@@ -59,7 +59,7 @@ The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
 
 # 2. Hdf5-Trainingset Generation
 
-The *inference* directory contains all the source code and modules needed to create a hdf5-file from given MRI volumes. Here, we use the orig.mgz output from freesurfer as the input image and the aparc.DKTatlas+aseg.mgz as the ground truth. The mapping functions are set-up accordingly as well and need to be changed if you use a different segmentation as ground truth. 
+The *src* directory contains all the source code and modules needed to create a hdf5-file from given MRI volumes. Here, we use the orig.mgz output from freesurfer as the input image and the aparc.DKTatlas+aseg.mgz as the ground truth. The mapping functions are set-up accordingly as well and need to be changed if you use a different segmentation as ground truth. 
 A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __generate_hdf5.py__ within which certain options can be selected and set via the command line:
 
 #### General
@@ -127,7 +127,7 @@ python3 generate_hdf5.py \
 
 # 3. Training
 
-The *inference* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __train.py__ within which certain options can be selected and set via the command line:
+The *src* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __train.py__ within which certain options can be selected and set via the command line:
 
 #### Training and Validation sets
 * --hdf5_name_train: Path to training hdf5-dataset
@@ -163,7 +163,7 @@ The *inference* directory contains all the source code and modules needed to run
 * --seed: Select random seed (default=1)
 
 
-To train the network on a given hdf5-set, change into the *inference* directory and run one of the following commands: 
+To train the network on a given hdf5-set, change into the *src* directory and run one of the following commands: 
 
 ### Example Commands Network Training
 ```
