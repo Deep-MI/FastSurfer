@@ -138,7 +138,6 @@ The *src* directory contains all the source code and modules needed to run the s
 
 #### Training options
 * --plane: which anatomical view should be trained on (axial (default), coronal or sagittal). Has to fit with the hdf5-sets.
-* --model: which model to run (UNet (default), QuickNat, CompetitiveDenseNet, RelayNet)
 * --epochs: Number of epochs to train (default=30)
 * --lr: learning rate (default=0.01)
 * --decay: Switch on to decay learning rate
@@ -148,11 +147,11 @@ The *src* directory contains all the source code and modules needed to run the s
 * --num_filters: Filter dimensions for Networks (all layers same, default=64)
 * --num_classes: Number of classes to predict including background. Axial and coronal = 79 (default), Sagittal = 51
 * --num_channels: Number of input channels. Default=7 for thick slices.
-* --kernel_height: Height of Kernel (Default 5)
-* --kernel_width: Width of Kernel (Default 5)
-* --stride: Stride during convolution (Default 1)
-* --stride_pool: Stride during pooling (Default 2)
-* --pool: Size of pooling filter (Default 2)
+* --kernel_height: Height of Kernel (default 5)
+* --kernel_width: Width of Kernel (default 5)
+* --stride: Stride during convolution (default 1)
+* --stride_pool: Stride during pooling (default 2)
+* --pool: Size of pooling filter (default 2)
 
 #### Logging
 * --log-interval: How often should a model be saved (default every 2 epochs)
