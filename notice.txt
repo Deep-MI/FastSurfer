@@ -1,0 +1,15 @@
+The recon-surf pipeline is largely based on FreeSurfer including the use of one binary (mris_make_surfaces) from the dev version. 
+A working version of FreeSurfer (version 6.0) is therefore needed to run recon-surf.
+
+We would like to note, that FreeSurfer is distributed under its own license: 
+
+# Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+
