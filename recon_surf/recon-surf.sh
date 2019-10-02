@@ -2,11 +2,6 @@
 
 VERSION='$Id$'
 
-#if [ -e $FREESURFER_HOME/sources.csh ]
-# then
-#  source $FREESURFER_HOME/sources.csh
-#fi
-
 t1="";
 seg="";
 subject="";
@@ -93,7 +88,7 @@ function RunBatchJobs()
     exec $JOB >> $LOG 2>&1 &
     PIDS=(${PIDS[@]} $!)
     LOGS=(${LOGS[@]} $LOG)
-    #rm -f $cmdf
+
   done
   # wait till all processes have finished
   PIDS_STATUS=()
@@ -191,11 +186,8 @@ case $key in
     exit
     ;;
     *)    # unknown option
-    echo ERROR: Flag $key unrecognized. 
-    #  echo $cmdline
+    echo ERROR: Flag $key unrecognized.
     exit 1
-    #POSITIONAL+=("$1") # save it in an array for later
-    #shift # past argument
     ;;
 esac
 done
@@ -340,7 +332,6 @@ echo " " |& tee -a $LF
 
 # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
 # output will be uchar (else mri_cc will fail below)
-#mask=$mdir/mask.mgz DEFINED ABOVE
 cmd="$python reduce_to_aseg.py -i $mdir/aparc+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask"
 RunIt "$cmd" $LF
 
@@ -377,43 +368,6 @@ RunIt "$cmd" $LF
 popd
 
 
-
-#echo " " |& tee -a $LF
-#echo "================== scaling WM in nu to 110 ==================" |& tee -a $LF
-#echo " " |& tee -a $LF
-#
-#
-#wm=$mdir/wm.mask.mgz
-#cmd="mri_binarize --i $mdir/aseg.auto_noCCseg.mgz --match 2 41 --erode 2 --o $wm"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-#
-## Compute mean in the mask
-#wmmeanfile=$mdir/wm.mask.mean.dat
-#cmd="mri_segstats --id 1 --i $mdir/nu.mgz --seg $wm --avgwf $wmmeanfile"
-#
-#wmmean=`cat $wmmeanfile`
-#scale=`echo 110/$wmmean | bc -l`
-#echo wmmean $wmmean | tee -a $LF
-#echo scale $scale | tee -a $LF
-## Now rescale the BC so that WM is 110, save as nu
-#nu=$mdir/nu.mgz
-#cmd="mri_concat $mdir/nu.mgz --mul $scale --o $nu"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-## convert to UCHAR again
-#cmd="mri_convert  -odt uchar --no_scale 1 $nu $nu"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-
-
-
-
-
-
 echo " " |& tee -a $LF
 echo "============ Creating brainmask from aseg and norm, and update aseg ============" |& tee -a $LF
 echo " " |& tee -a $LF
@@ -428,82 +382,17 @@ RunIt "$cmd" $LF
 popd
 
 
-#  
 # create aseg.auto including cc segmentation 46 sec: (not sure if this is needed), requries norm.mgz
 cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
 RunIt "$cmd" $LF
-
-
-#pushd $mdir
-#cmd="ln -sf aseg.auto.mgz aseg.presurf.mgz"
-#echo $cmd |& tee -a $LF
-#$cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-#popd
-# is done below in recon-all -asegmerge command
-
-
-# here we could hand over to
-#  recon-all -s $subject -autorecon2-samseg -autorecon3 
-# autorecon2-samseg : adds DoASegMerge, starts at DoNormalization2 and skips steps before
-# DoAsegMerge allows user to merge in manual edits, even if caLabel was not run
-# instead we run individual commands and offer alternative processing for some of the steps
 
 
 echo " " |& tee -a $LF
 echo "========= Creating filled from brain (brainfinalsurfs, wm.asegedit, wm)  =======" |& tee -a $LF
 echo " " |& tee -a $LF
 
-## -normalization2
-## brain.mgz normalize brain (2min11sec) (it does not matter if we take aseg or aprc+aseg)
-##cmd="mri_normalize -seed 1234 -mprage  -mask mask.mgz -aseg aparc+aseg.gt.mgz orig.mgz brain.mgz"
-#cmd="mri_normalize -seed 1234 -mprage -aseg $mdir/aseg.presurf.mgz -mask $mdir/brainmask.mgz $mdir/norm.mgz $mdir/brain.mgz"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-#
-## -maskbfs
-## remove low intensity voxels (brain finalsurfs for first surface creation below)
-#cmd="mri_mask -T 5 $mdir/brain.mgz $mdir/brainmask.mgz $mdir/brain.finalsurfs.mgz"
-#$timecmd $cmd
-#
-## -segmentation
-## find WM labels for surface creation  (1m)
-#cmd="mri_segment -mprage $mdir/brain.mgz $mdir/wm.seg.mgz"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-## Paint subcort structs from aseg (30sec) 
-## here it makes a difference if aseg or aparc+aseg is used. strange.
-#cmd="mri_edit_wm_with_aseg -keep-in $mdir/wm.seg.mgz $mdir/brain.mgz $mdir/aseg.presurf.mgz $mdir/wm.asegedit.mgz"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-## cleaning up the wm.aseg.edit WM region (remove loose voxels and fill some holes) 3sec
-#cmd="mri_pretess $mdir/wm.asegedit.mgz $mdir/wm $mdir/brain.mgz $mdir/wm.mgz"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-#
-## -fill
-## create filled (connected WM left and right) splitting WM in middle
-## here talairach is usefull . What is the ponscc.cut.log used for?
-## 26sec
-## differences between the one with talairach and without seem tiny. Maybe skip talairach above. Could be problematic if head is tilted a lot. Maybe make_upright can help here?
-#cmd="mri_fill -a $mdir/../scripts/ponscc.cut.log -xform $mdir/transforms/talairach.lta -segmentation $mdir/aseg.presurf.mgz $mdir/wm.mgz $mdir/filled.mgz"
-##cmd="mri_fill -xform $mdir/transforms/talairach.lta -segmentation $mdir/aseg.presurf.mgz $mdir/wm.mgz $mdir/filled.mgz"
-#echo $cmd |& tee -a $LF
-#$timecmd $cmd |& tee -a $LF
-#if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-
-# 0.071h
 cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill $fsthreads"
 RunIt "$cmd" $LF
-
-
-#fi
-
-
 
 
 # ================================================== SURFACES ==========================================================
@@ -560,10 +449,8 @@ echo "echo \"=================== Creating surfaces $hemi - qsphere =============
 echo "echo " |& tee -a $CMDF
 
 #surface inflation (54sec both hemis) (needed for qsphere and for topo-fixer)
-# maybe when using python spherically project, we can get rid of the inflated in topo fixer? So far it looks like it is really needed there
 cmd="recon-all -s $subject -hemi $hemi -inflate1 -no-isrunning $fsthreads"
 RunIt "$cmd" $LF $CMDF
- #mris_inflate -no-save-sulc $sdir/$hemi.smoothwm.nofix $sdir/$hemi.inflated.nofix 
 
 
 if [ "$fsqsphere" == "1" ]
@@ -571,16 +458,11 @@ then
   # quick spherical mapping (2min48sec)
   cmd="recon-all -s $subject -hemi $hemi -qsphere -no-isrunning $fsthreads"
   RunIt "$cmd" $LF $CMDF
-  
-  #mris_sphere -q -p 6 -a 128 -seed 1234 $sdir/$hemi.inflated.nofix $sdir/$hemi.qsphere.nofix 
-  
-  
+
 else
 
-  # instead of mris_sphere, directly project to sphere with spectral approach
-
+    # instead of mris_sphere, directly project to sphere with spectral approach
     # equivalent to -qsphere
-    
     # (23sec)
     cmd="$python spherically_project_wrapper.py --hemi $hemi --sdir $sdir --subject $subject --threads=$threads --py $python"
 
@@ -597,20 +479,8 @@ echo "echo " |& tee -a $CMDF
 cmd="recon-all -s $subject -hemi $hemi -fix -no-isrunning $fsthreads"
 RunIt "$cmd" $LF $CMDF
   ## copy nofix to orig and inflated for next step
-  #  cmd="cp $sdir/$hemi.orig.nofix $sdir/$hemi.orig"
-  #  cmd="cp $sdir/$hemi.inflated.nofix $sdir/$hemi.inflated"
-  ## 3 min 21 sec (can be much slower for many defects)
-  #  cmd="mris_fix_topology -rusage $sdir/../scripts/rusage.mris_fix_topology.$hemi.dat -mgz -sphere qsphere.nofix -ga -seed 1234 $subject $hemi"
-  ## Euler should be 2 (= spherical topology)
-  #  cmd="mris_euler_number $sdir/$hemi.orig"
-  ## remove self intersection
-  #  cmd="mris_remove_intersection $sdir/$hemi.orig $sdir/$hemi.orig"
-  ## We'll create a better inflated surface below, so remove the quick-and-dirty one that we did above.
-  #  cmd="rm $sdir/$hemi.inflated"
-
-
-# -white (don't know how to call this from recon-all as it needs -whiteonly setting and by default it also creates the pial.
-# create first WM surface white.preaparc from topo fixed orig surf, also first cortex label (1min), (3min for deep learning surf)
+  # -white (don't know how to call this from recon-all as it needs -whiteonly setting and by default it also creates the pial.
+  # create first WM surface white.preaparc from topo fixed orig surf, also first cortex label (1min), (3min for deep learning surf)
 
   if [ "$fstess" == "1" ]
   then
@@ -631,17 +501,6 @@ echo "echo \" \"" |& tee -a $CMDF
 # create nicer inflated surface from topo fixed (not needed, just later for visualization)
 cmd="recon-all -s $subject -hemi $hemi -smooth2 -inflate2 -curvHK -curvstats -no-isrunning $fsthreads"
 RunIt "$cmd" $LF $CMDF
-#  # -smooth2 wm
-#  cmd="mris_smooth -n 3 -nw -seed 1234 $sdir/$hemi.white.preaparc $sdir/$hemi.smoothwm"
-#  # -inflate2 second inflation for atlas registration (30sec) 
-#  cmd="mris_inflate -rusage $sdir/rusage.mris_inflate.$hemi.dat $sdir/$hemi.smoothwm $sdir/$hemi.inflated"  
-#  # -curvHK 2sec (compute curvature) 
-#  cmd="mris_curvature -w -seed 1234 $sdir/$hemi.white.preaparc" 
-#  # compute curvature (38sec), not sure this is needed - why compute curvature of the inflated??
-#  cmd="mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 $sdir/$hemi.inflated"
-#  # -curvstats get curvature stats, needs curv and sulc files (created above in mris_make_surfaces!)
-#  cmd="mris_curvature_stats -m --writeCurvatureFiles -G -o $sdir/../stats/$hemi.curv.stats -F smoothwm $subject $hemi curv sulc"
-
 
  
 echo "echo \" \"" |& tee -a $CMDF
@@ -652,13 +511,7 @@ echo "echo \" \"" |& tee -a $CMDF
     # map input aparc to surface (requrires thickness (and thus pail) to compute projfrac 0.5), here we do projmm which allows us to compute based only on white
     # this is dangerous, as some cortices could be < 0.6 mm, but then there is no volume label probably anyway.
     # Also note that currently we cannot mask non-cortex regions here, should be done in mris_anatomical stats later
-    # the smoothing helps 
-
-    #time mris_sample_parc -ct $FREESURFER_HOME/FreeSurferColorLUT.txt -projfrac 0.6 -f 5  $subject $hemi aparc+aseg.orig.mgz aparc-mapped.annot
-    ##mri_vol2surf --mov $mdir/aparc+aseg.orig.mgz --hemi $hemi --o $sdir/$hemi.aparc.mapped.mgh --regheader $subject --mask $ldir/$hemi.cortex --projfrac 0.6  --interp nearest
-    #mri_vol2surf --mov $mdir/aparc+aseg.orig.mgz --hemi $hemi --o $sdir/$hemi.aparc.mapped.mgh --regheader $subject --mask $ldir/$hemi.cortex --interp nearest --projfrac-max 0 1 0.1
-    #mris_seg2annot --seg $sdir/$hemi.aparc.mapped.mgh --s $subject --h $hemi --o $ldir/$hemi.aparc.mapped2.annot --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt
-#    cmd="mris_sample_parc -ct $FREESURFER_HOME/FreeSurferColorLUT.txt -projmm 0.6 -f 5  -surf white.preaparc $subject $hemi aparc+aseg4annot.orig.mgz aparc.mapped.annot"
+    # the smoothing helps
     cmd="mris_sample_parc -ct $FREESURFER_HOME/average/colortable_desikan_killiany.txt -file ./$hemi.DKTatlaslookup.txt -projmm 0.6 -f 5  -surf white.preaparc $subject $hemi aparc+aseg.orig.mgz aparc.mapped.prefix.annot"
     RunIt "$cmd" $LF $CMDF
     
@@ -677,25 +530,13 @@ echo "echo \" \"" |& tee -a $CMDF
     # this registers to sphere, creates aparc and creates pial using aparc, also computes jacobian
     cmd="recon-all -s $subject -hemi $hemi -sphere -surfreg -jacobian_white -avgcurv -cortparc -pial -no-isrunning $fsthreads"
     RunIt "$cmd" $LF $CMDF
-    # -sphere !! distortion minimizing spherical mapping (10min40sec)
-    # time mris_sphere -rusage $sdir/rusage.mris_sphere.$hemi.dat -seed 1234 $sdir/$hemi.inflated $sdir/$hemi.sphere 
-    # -surfreg !! registration to spherical atlas (10min36sec)
-    # time mris_register -curv -rusage $sdir/rusage.mris_register.$hemi.dat $sdir/$hemi.sphere $FREESURFER_HOME/average/$hemi.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif $sdir/$hemi.sphere.reg 
-    # -jacobian_white compute jacobian (not sure we need this)
-    # mris_jacobian $sdir/$hemi.white.preaparc $sdir/$hemi.sphere.reg $sdir/$hemi.jacobian_white 
-    # -avgcurv sample atlas data onto the sphere mesh of this subject (frame 6 is the average curvature)? don't think we need this for anything.
-    # mrisp_paint -a 5 /groups/ag-reuter/software-centos/fsdev/average/$hemi.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif#6 $sdir/$hemi.sphere.reg $sdir/$hemi.avg_curv 
-    # -cortparc 10sec label the cortex (fast, as most of it is probably the registration?)
-    # mris_ca_label -l $ldir/$hemi.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $subject $hemi $sdir/$hemi.sphere.reg $FREESURFER_HOME/average/$hemi.DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs $ldir/$hemi.aparc.annot 
-    # -pial 6 min create both white (update) and pial surface (and new cortex label , thickness, curv also):
-    #time mris_make_surfaces -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi
 
 else
 echo "echo \" \"" |& tee -a $CMDF
 echo "echo \"================ Creating surfaces $hemi - pial direct ===================\"" |& tee -a $CMDF
 echo "echo \" \"" |& tee -a $CMDF
 
-    # 3 min compute pial and cortex label, and thickness without using aparc : (NEED to test if using the approximate aparc mapped above improves things here):
+    # 3 min compute pial and cortex label, and thickness without using aparc :
     cmd="${binpath}mris_make_surfaces -noaparc -nowhite -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi"
     RunIt "$cmd" $LF $CMDF
     echo "pushd $sdir" >> $CMDF
@@ -721,7 +562,6 @@ echo "echo \" \"" |& tee -a $CMDF
 # (10 sec, 5 each hemi) compute vertex wise volume (?h.volume) and mid.area (?h.area.mid) :
 # not really needed but so quick, lets just do it
 cmd="recon-all -s $subject -hemi $hemi -surfvolume -no-isrunning $fsthreads"
-#cmd="vertexvol --s $subject --$hemi --th3 "
 RunIt "$cmd" $LF $CMDF
 
 if [ "$DoParallel" == "0" ] ; then 
@@ -753,52 +593,12 @@ echo " " |& tee -a $LF
   # anatomical stats can run without ribon, but will omit some surface based measures then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc). 
   # could be stripped but lets run it to have these measures below
-  #  cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 --label_right_white 41 --label_right_ribbon 42 --save_ribbon $subject "
   cmd="recon-all -s $subject -cortribbon $fsthreads"
   RunIt "$cmd" $LF
 
 
 
 if [ "$fsaparc" == "1" ] ; then
-
-
-#  for hemi in "lh rh"; do
-
- #   cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $sdir/../stats/$hemi.aparc.stats -b -a $ldir/$hemi.aparc.annot -c $ldir/aparc.annot.ctab $subject $hemi white"
- #   echo $cmd |& tee -a $LF
- #   $timecmd $cmd |& tee -a $LF
- #   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-
-#    cmd=" mris_ca_label -l $ldir/$hemi.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $subject $hemi $sdir/../surf/$hemi.sphere.reg $FREESURFER_HOME/average/$hemi.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs $ldir/$hemi.aparc.a2009s.annot"
- #   echo $cmd |& tee -a $LF
- #   $timecmd $cmd |& tee -a $LF
- #   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-#
-#    cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $sdir/../stats/$hemi.aparc.a2009s.stats -b -a ../label/$hemi.aparc.a2009s.annot -c $ldir/aparc.annot.a2009s.ctab $subject $hemi white"
-#    echo $cmd |& tee -a $LF
-#    $timecmd $cmd |& tee -a $LF
-#    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-# 
-#    cmd="mris_ca_label -l $ldir/$hemi.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $subject $hemi ../surf/$hemi.sphere.reg $FREESURFER_HOME/average/$hemi.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs $ldir/$hemi.aparc.DKTatlas.annot "
-#    echo $cmd |& tee -a $LF
-#    $timecmd $cmd |& tee -a $LF
-#    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-
-#    cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $sdir/../stats/$hemi.aparc.DKTatlas.stats -b -a $stats/../label/$hemi.aparc.DKTatlas.annot -c $ldir/aparc.annot.DKTatlas.ctab $subject $hemi white"
-#    echo $cmd |& tee -a $LF
-#    $timecmd $cmd |& tee -a $LF
-#    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-
-#    $cmd="pctsurfcon --s $subject --$hemi-only"
-#    echo $cmd |& tee -a $LF
-#    $timecmd $cmd |& tee -a $LF
-#    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-#
-#
-#  done  # hemi loop
-
-
-# mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz 
 
 echo " " |& tee -a $LF
   echo "============= Creating surfaces - other FS seg and stats =======================" |& tee -a $LF
@@ -814,14 +614,6 @@ echo " " |& tee -a $LF
   
   cmd="recon-all -s $subject -apas2aseg -segstats -wmparc -balabels $fsthreads"
   RunIt "$cmd" $LF
-
-# mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --a2009s 
-# mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.DKTatlas --o $mdir/aparc.DKTatlas+aseg.mgz 
-# apas2aseg --i $mdir/aparc+aseg.mgz --o $mdir/aseg.mgz 
-# mri_segstats --seed 1234 --seg $mdir/aseg.mgz --sum $mdir/../stats/aseg.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject
-# mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mgz --ctxseg $mdir/aparc+aseg.mgz 
-# mri_segstats --seed 1234 --seg $mdir/wmparc.mgz --sum $mdir/../stats/wmparc.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv 
-# ...recon-all -s $subject  -balabels
 
 fi  # (FS-APARC)
 
@@ -888,23 +680,20 @@ echo " " |& tee -a $LF
 echo "===================== Creating wmparc from mapped =======================" |& tee -a $LF
 echo " " |& tee -a $LF
 
-  # 1m 11sec also create stats for aseg.presurf.hypos (which is basicall the aseg derived from the input with CC and hypos)
+  # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and hypos)
   # difference between this and the surface improved one above are probably tiny, so the surface improvement above can probably be skipped to save time
   # in dev version the seed can be given in command line, but not in 6.0:
-#  cmd="mri_segstats --seed 1234 --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject" 
-  cmd="mri_segstats --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject" 
+  cmd="mri_segstats --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
   RunIt "$cmd" $LF
 
-# -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
-#   
-# labels are messed up, due to the aparc mapped surface labels which are incorrect, we need a lookup above.
+  # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
+  # labels are messed up, due to the aparc mapped surface labels which are incorrect, we need a lookup above.
   cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mapped.mgz --ctxseg $mdir/aparc+aseg.orig.mgz --annot aparc.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
   RunIt "$cmd" $LF
    
-   # takes a few mins
+  # takes a few mins
   # in dev version the seed can be given in command line, but not in 6.0:
-#  cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt" 
-  cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt" 
+  cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
 
 echo " " |& tee -a $LF
