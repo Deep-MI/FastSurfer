@@ -107,13 +107,13 @@ def options_parse():
     # 4. Pre-trained weights
     parser.add_option('--network_sagittal_path', dest='network_sagittal_path',
                       help="path to pre-trained weights of sagittal network",
-                      default='./experiments/Sagittal_UNet_APARC_ASEG/ckpts/Epoch_30_training_state.pkl')
+                      default='./checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
     parser.add_option('--network_coronal_path', dest='network_coronal_path',
                       help="pre-trained weights of coronal network",
-                      default='./experiments/Coronal_UNet_APARC_ASEG/ckpts/Epoch_30_training_state.pkl')
+                      default='./checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
     parser.add_option('--network_axial_path', dest='network_axial_path',
                       help="pre-trained weights of axial network",
-                      default='./experiments/Axial_UNet_APARC_ASEG/ckpts/Epoch_30_training_state.pkl')
+                      default='./checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
 
     # 5. Clean up and GPU/CPU options (disable cuda, change batchsize)
     parser.add_option('--clean', dest='cleanup', help="Flag to clean up segmentation", action='store_true')
