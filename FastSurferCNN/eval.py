@@ -119,12 +119,15 @@ def options_parse():
     parser.add_option('--clean', dest='cleanup', help="Flag to clean up segmentation", action='store_true')
     parser.add_option('--no_cuda', action='store_true', default=False, help='disables CUDA training')
     parser.add_option('--batch_size', type=int, default=16, help="Batch size for inference. Default: 16")
+    parser.add_option('--simple_run', action='store_true', default=False,
+                      help='Simplified run: only analyse one given image specified by --in_name (output: --out_name). '
+                           'Need to specify absolute path to both --in_name and --out_name if this option is chosen.')
     (sel_option, args) = parser.parse_args()
 
-    if sel_option.input is None and sel_option.csv_file is None:
+    if sel_option.input is None and sel_option.csv_file is None and not sel_option.simple_run:
         sys.exit('ERROR: Please specify data directory or input volume')
 
-    if sel_option.output is None:
+    if sel_option.output is None and not sel_option.simple_run:
         sys.exit('ERROR: Please specify data output directory (can be same as input directory)')
 
     return sel_option
@@ -436,61 +439,66 @@ if __name__ == "__main__":
     # Command Line options and error checking done here
     options = options_parse()
 
-    # Prepare subject list to be processed
-    if options.csv_file is not None:
-        with open(options.csv_file, "r") as s_dirs:
-            subject_directories = [line.strip() for line in s_dirs.readlines()]
+    if options.simple_run:
+        fast_surfer_cnn(options.iname, options.oname, options)
 
     else:
-        search_path = op.join(options.input, options.search_tag)
-        subject_directories = glob.glob(search_path)
 
-    # Report number of subjects to be processed and loop over them
-    data_set_size = len(subject_directories)
-    print("Total Dataset Size is {}".format(data_set_size))
-
-    for current_subject in subject_directories:
-
-        start_time = time.time()
-        subject = current_subject.split("/")[-1]
-
-        # Define volume to process, log-file and name under which final prediction will be saved
-        if options.csv_file:
-
-            dataset = current_subject.split("/")[-2]
-            invol = op.join(current_subject, options.iname)
-            logfile = op.join(options.output, dataset, subject, options.logfile)
-            save_file_name = op.join(options.output, dataset, subject, options.oname)
+        # Prepare subject list to be processed
+        if options.csv_file is not None:
+            with open(options.csv_file, "r") as s_dirs:
+                subject_directories = [line.strip() for line in s_dirs.readlines()]
 
         else:
+            search_path = op.join(options.input, options.search_tag)
+            subject_directories = glob.glob(search_path)
 
-            invol = op.join(current_subject, options.iname)
-            logfile = op.join(options.output, subject, options.logfile)
-            save_file_name = op.join(options.output, subject, options.oname)
+        # Report number of subjects to be processed and loop over them
+        data_set_size = len(subject_directories)
+        print("Total Dataset Size is {}".format(data_set_size))
 
-        print("Running Fast Surfer on {}".format(subject))
+        for current_subject in subject_directories:
 
-        # Check if output subject directory exists and create it otherwise
-        sub_dir, out = op.split(save_file_name)
+            start_time = time.time()
+            subject = current_subject.split("/")[-1]
 
-        if not op.exists(sub_dir):
-            makedirs(sub_dir)
+            # Define volume to process, log-file and name under which final prediction will be saved
+            if options.csv_file:
 
-        # Prepare the log-file
-        old_stdout = sys.stdout
-        log_file = open(logfile, "w")
-        sys.stdout = log_file
+                dataset = current_subject.split("/")[-2]
+                invol = op.join(current_subject, options.iname)
+                logfile = op.join(options.output, dataset, subject, options.logfile)
+                save_file_name = op.join(options.output, dataset, subject, options.oname)
 
-        # Run network
-        fast_surfer_cnn(invol, save_file_name, options)
+            else:
 
-        end_time = time.time() - start_time
+                invol = op.join(current_subject, options.iname)
+                logfile = op.join(options.output, subject, options.logfile)
+                save_file_name = op.join(options.output, subject, options.oname)
 
-        print("Total time for computation of segmentation is {:0.4f} seconds.".format(end_time))
+            print("Running Fast Surfer on {}".format(subject))
 
-        sys.stdout = old_stdout
-        log_file.close()
+            # Check if output subject directory exists and create it otherwise
+            sub_dir, out = op.split(save_file_name)
 
-        print("Total time for computation of segmentation is {:0.4f} seconds.".format(end_time))
+            if not op.exists(sub_dir):
+                makedirs(sub_dir)
 
-    sys.exit(0)
+            # Prepare the log-file
+            old_stdout = sys.stdout
+            log_file = open(logfile, "w")
+            sys.stdout = log_file
+
+            # Run network
+            fast_surfer_cnn(invol, save_file_name, options)
+
+            end_time = time.time() - start_time
+
+            print("Total time for computation of segmentation is {:0.4f} seconds.".format(end_time))
+
+            sys.stdout = old_stdout
+            log_file.close()
+
+            print("Total time for computation of segmentation is {:0.4f} seconds.".format(end_time))
+
+        sys.exit(0)
