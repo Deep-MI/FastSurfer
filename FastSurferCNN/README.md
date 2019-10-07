@@ -7,7 +7,7 @@ The network was trained with conformed images (UCHAR, 256x256x256, 1 mm voxels a
 
 # 1. Inference
 
-The *src* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __eval.py__ within which certain options can be selected and set via the command line:
+The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __eval.py__ within which certain options can be selected and set via the command line:
 
 #### General
 * --i_dir: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
@@ -30,7 +30,7 @@ The *src* directory contains all the source code and modules needed to run the s
 
 
 ### Example Command Evaluation Single Subject
-To run the network on MRI-volumes of subject1 in ./data (specified by --i_dir flag; e.g. ./data/subject1/orig.mgz), change into the *src* directory and run the following commands: 
+To run the network on MRI-volumes of subject1 in ./data (specified by --i_dir flag; e.g. ./data/subject1/orig.mgz), change into the *FastSurferCNN* directory and run the following commands: 
 
 ```
 python3 eval.py --i_dir ../data \
@@ -45,7 +45,7 @@ python3 eval.py --i_dir ../data \
 The output will be saved in ./data/subject1/aparc.DKTatlas+aseg.deep.mgz.
 
 ### Example Command Evaluation whole directory
-To run the network on all subjects MRI-volumes in ./data, change into the *src* directory and run the following command: 
+To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
 
 ```
 python3 eval.py --i_dir ../data \
@@ -60,7 +60,7 @@ The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
 
 # 2. Hdf5-Trainingset Generation
 
-The *src* directory contains all the source code and modules needed to create a hdf5-file from given MRI volumes. Here, we use the orig.mgz output from freesurfer as the input image and the aparc.DKTatlas+aseg.mgz as the ground truth. The mapping functions are set-up accordingly as well and need to be changed if you use a different segmentation as ground truth. 
+The *FastSurferCNN* directory contains all the source code and modules needed to create a hdf5-file from given MRI volumes. Here, we use the orig.mgz output from freesurfer as the input image and the aparc.DKTatlas+aseg.mgz as the ground truth. The mapping functions are set-up accordingly as well and need to be changed if you use a different segmentation as ground truth. 
 A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __generate_hdf5.py__ within which certain options can be selected and set via the command line:
 
 #### General
@@ -128,7 +128,7 @@ python3 generate_hdf5.py \
 
 # 3. Training
 
-The *src* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __train.py__ within which certain options can be selected and set via the command line:
+The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __train.py__ within which certain options can be selected and set via the command line:
 
 #### Training and Validation sets
 * --hdf5_name_train: Path to training hdf5-dataset
@@ -163,7 +163,7 @@ The *src* directory contains all the source code and modules needed to run the s
 * --seed: Select random seed (default=1)
 
 
-To train the network on a given hdf5-set, change into the *src* directory and run one of the following commands: 
+To train the network on a given hdf5-set, change into the *FastSurferCNN* directory and run one of the following commands: 
 
 ### Example Commands Network Training
 ```
