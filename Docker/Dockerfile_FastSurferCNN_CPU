@@ -1,0 +1,31 @@
+## Start with ubuntu base
+
+FROM ubuntu:16.04
+ARG PYTHON_VERSION=3.6
+
+# Install custom libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+         curl \
+         ca-certificates && \
+         rm -rf /var/lib/apt/lists/*
+	 
+# Install miniconda and needed python packages (for FastSurferCNN)
+RUN curl -o ~/miniconda.sh -O  https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+     chmod +x ~/miniconda.sh && \
+     ~/miniconda.sh -b -p /opt/conda && \
+     rm ~/miniconda.sh && \
+     /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy scipy matplotlib h5py scikit-image && \
+     /opt/conda/bin/conda install -y -c pytorch cpuonly "pytorch=1.2.0=py3.6_cpu_0" torchvision=0.4.0=py36_cpu && \
+     /opt/conda/bin/conda clean -ya
+ENV PATH /opt/conda/bin:$PATH
+
+# Install missing python libs
+Run pip install nibabel==2.5.1
+
+# Add FastSurfer (copy application code) to docker image
+COPY ./FastSurferCNN /FastSurferCNN/
+COPY ./checkpoints /FastSurferCNN/checkpoints/
+WORKDIR "/FastSurferCNN"
+
+ENTRYPOINT ["python3.6", "eval.py"]
+CMD ["--help"]
