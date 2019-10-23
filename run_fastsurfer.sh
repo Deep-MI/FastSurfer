@@ -1,3 +1,19 @@
+
+# Copyright 2019 Image Analysis Lab, German Center for Neurodegenrative Diseases (DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 #!/bin/bash
 
 VERSION='$Id$'
@@ -32,26 +48,27 @@ function usage()
               (ii) surfaces, thickness etc as a FS subject dir using recon-surf"
     echo ""
     echo "./run_fastsurfer.sh"
-    echo -e "\t--sid <subjectID>                 Subject ID for directory inside \$SUBJECTS_DIR to be created"
-    echo -e "\t--sd  <subjects_dir>              Output directory \$SUBJECTS_DIR (pass via environment or here)"
-    echo -e "\t--t1  <T1_input>                  T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>        Segmentation (similar to aparc+aseg)"
-    echo -e "\t--seg_log <segmentation_log>      Log-file for the segmentation (FastSurferCNN)"
-    echo -e "\t--weights_sag <weights_sagittal>  Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--weights_ax <weights_axial>      Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--weights_cor <weights_coronal>   Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--clean_seg <clean_segmentation>  Flag to clean up FastSurferCNN segmentation"
-    echo -e "\t--no_cuda <disable_cuda>          Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
-    echo -e "\t--batch <batch_size>              Batch size for inference. Default: 16."
-    echo -e "\t--order <order_of_interpolation>  Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
-    echo -e "\t--mc                              Switch on marching cube for surface creation"
-    echo -e "\t--qspec                           Switch on spectral spherical projection for qsphere"
-    echo -e "\t--nofsaparc                       Skip FS aparc segmentations and ribbon for speedup"
-    echo -e "\t--surfreg                         Run Surface registration with FreeSurfer (for cross-subject correspondance)"
-    echo -e "\t--parallel                        Run both hemispheres in parallel"
-    echo -e "\t--threads <int>                   Set openMP and ITK threads to <int>"
-    echo -e "\t--py <python_cmd>                 Command for python, default 'python3.6'"
-    echo -e "\t-h --help                         Print Help"
+    echo -e "\t--fs_license <freesurfer_license_file  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
+    echo -e "\t--sid <subjectID>                      Subject ID for directory inside \$SUBJECTS_DIR to be created"
+    echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
+    echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
+    echo -e "\t--seg <segmentation_input>             Segmentation (similar to aparc+aseg)"
+    echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN)"
+    echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+    echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+    echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+    echo -e "\t--clean_seg <clean_segmentation>       Flag to clean up FastSurferCNN segmentation"
+    echo -e "\t--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
+    echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 16."
+    echo -e "\t--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
+    echo -e "\t--mc                                   Switch on marching cube for surface creation"
+    echo -e "\t--qspec                                Switch on spectral spherical projection for qsphere"
+    echo -e "\t--nofsaparc                            Skip FS aparc segmentations and ribbon for speedup"
+    echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondance)"
+    echo -e "\t--parallel                             Run both hemispheres in parallel"
+    echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
+    echo -e "\t--py <python_cmd>                      Command for python, default 'python3.6'"
+    echo -e "\t-h --help                              Print Help"
     echo ""
 }
 
@@ -70,6 +87,11 @@ do
 key="$1"
 
 case $key in
+    --fs_license)
+    export FS_LICENSE="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --sid)
     subject="$2"
     shift # past argument
