@@ -60,7 +60,11 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 datadir=/home/user/my_mri_data
 
 # Run FastSurfer
-./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license --t1 $datadir/subject1/orig.mgz --seg $datadir/subject1/aparc.DKTatlas+aseg.deep.mgz --sid subject1 --sd $datadir --mc --qspec --nofsaparc --parallel --threads 4
+./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license \
+                    --t1 $datadir/subject1/orig.mgz \
+                    --seg $datadir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --sid subject1 --sd $datadir \
+                    --mc --qspec --nofsaparc --parallel --threads 4
 ```
 ### Example 2: FastSurfer on multiple subjects (parallel processing)
 
@@ -83,7 +87,11 @@ mkdir $datadir/logs # create log dir for storing nohup output log (optional)
 
 while read p ; do
   echo $p
-  nohup ./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license --t1 $datadir/$p/orig.mgz --seg $datadir/$p/aparc.DKTatlas+aseg.deep.mgz --sid $p --sd $datadir --mc --qspec --nofsaparc > $datadir/logs/out-${p}.log &
+  nohup ./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license \
+                            --t1 $datadir/$p/orig.mgz \
+                            --seg $datadir/$p/aparc.DKTatlas+aseg.deep.mgz \
+                            --sid $p --sd $datadir \
+                            --mc --qspec --nofsaparc > $datadir/logs/out-${p}.log &
   sleep 90s 
 done < ./data/subjects_list.txt
 ```
@@ -94,7 +102,7 @@ After building the Docker (see instructions in ./Docker/README.md), you do not n
 To run FastSurfer on a given subjects using the provided Docker, execute the following command:
 
 ```bash
-nvidia-docker run -v /home/henschell/FastSurfer/data:/data --rm -it --user 4323 fastsurfer:v2 \
+nvidia-docker run -v /home/user/my_mri_data:/data --rm -it --user 4323 fastsurfer:v2 \
               --fs_license /data/.license \
               --t1 /data/subject2/orig.mgz \
               --seg /data/subject2/aparc.DKTatlas+aseg.deep.mgz \
