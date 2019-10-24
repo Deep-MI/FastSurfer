@@ -102,7 +102,7 @@ After building the Docker (see instructions in ./Docker/README.md), you do not n
 To run FastSurfer on a given subjects using the provided Docker, execute the following command:
 
 ```bash
-nvidia-docker run -v /home/user/my_mri_data:/data --rm -it --user 4323 fastsurfer:v2 \
+nvidia-docker run -v /home/user/my_mri_data:/data --rm --user 4323 fastsurfer:gpu \
               --fs_license /data/.license \
               --t1 /data/subject2/orig.mgz \
               --seg /data/subject2/aparc.DKTatlas+aseg.deep.mgz \

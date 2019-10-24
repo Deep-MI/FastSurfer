@@ -1,2 +1,3 @@
+#!/bin/bash
 cd ..
-docker build -t fastsurfer:v1 -f ./Docker/Dockerfile .
+docker build -t fastsurfer:gpu -f ./Docker/Dockerfile .
