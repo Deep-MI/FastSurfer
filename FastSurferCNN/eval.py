@@ -456,6 +456,13 @@ if __name__ == "__main__":
     options = options_parse()
 
     if options.simple_run:
+
+        # Check if output subject directory exists and create it otherwise
+        sub_dir, out = op.split(options.oname)
+
+        if not op.exists(sub_dir):
+            makedirs(sub_dir)
+
         fast_surfer_cnn(options.iname, options.oname, options)
 
     else:
