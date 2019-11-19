@@ -47,6 +47,7 @@ function usage()
     echo -e "\t--surfreg                     Run Surface registration with FreeSurfer (for cross-subject correspondance)"
     echo -e "\t--parallel                    Run both hemispheres in parallel"
     echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
+    echo -e "\t--dev                         Switch on usage of dev-version for FreeSurfer"
     echo -e "\t--py <python_cmd>             Command for python, default 'python36'"
     echo -e "\t-h --help                     Print Help"
     echo ""
@@ -190,6 +191,10 @@ case $key in
     threads="$2"
     shift # past argument
     shift # past value
+    ;;
+    --dev)
+    binpath=""
+    shift # past argument
     ;;
     --py)
     python="$2"

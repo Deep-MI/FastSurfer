@@ -18,13 +18,11 @@
 
 # IMPORTS
 import optparse
-import os
 import sys
 import numpy as np
 import nibabel.freesurfer.io as fs
+from read_geometry import read_geometry
 from scipy import sparse
-from scipy.stats import mode
-
 
 
 HELPTEXT = """
@@ -72,13 +70,13 @@ def options_parse():
     return options
 
 
-def get_adjM (trias,n):
-    I=trias
-    J=I[:,[1,2,0]] 
+def get_adjM(trias, n):
+    I = trias
+    J = I[:, [1, 2, 0]]
     # flatten
     I = I.flatten()
     J = J.flatten()
-    adj = sparse.csr_matrix((np.ones(I.shape,dtype=bool), (I, J)), shape=(n,n))
+    adj = sparse.csr_matrix((np.ones(I.shape, dtype=bool), (I, J)), shape=(n, n))
     # if max adj is > 1 we have non manifold or mesh trias are not oriented
     # if matrix is not symmetric, we have a boundary
     # in case we have boundary, make sure this is a symmetric matrix
@@ -88,8 +86,8 @@ def get_adjM (trias,n):
     
 def bincount2D_vectorized(a):    
     N = a.max()+1
-    a_offs = a + np.arange(a.shape[0])[:,None]*N
-    return np.bincount(a_offs.ravel(), minlength=a.shape[0]*N).reshape(-1,N) 
+    a_offs = a + np.arange(a.shape[0])[:, None]*N
+    return np.bincount(a_offs.ravel(), minlength=a.shape[0]*N).reshape(-1, N)
     
 
 def mode_filter(adjM, labels, fillonlylabel="", novote=[]): 
@@ -103,7 +101,7 @@ def mode_filter(adjM, labels, fillonlylabel="", novote=[]):
     # since they are neighbors to themselves, this adds
     # values to nlabels below that we don't want
     counts = np.diff(adjM.indptr)
-    rows=np.where(counts==1)
+    rows = np.where(counts == 1)
     pos = adjM.indptr[rows]
     adjM.data[pos] = 0
     adjM.eliminate_zeros()
@@ -114,24 +112,24 @@ def mode_filter(adjM, labels, fillonlylabel="", novote=[]):
     # find vertices to fill
     # if fillonlylabels empty, fill all
     if not fillonlylabel:
-        ids = np.arange(0,n)
+        ids = np.arange(0, n)
     else:
-        #select the ones with the labels
-        ids = np.where(labels==fillonlylabel)[0]
+        # select the ones with the labels
+        ids = np.where(labels == fillonlylabel)[0]
         if ids.size == 0:
             print("WARNING: No ids found with idx "+str(fillonlylabel)+"  ... continue")
             return labels
     # of all ids to fill, find neighbors
-    nbrs=adjM[ids,:]
+    nbrs = adjM[ids, :]
     # get vertex ids (I, J ) of each edge in nbrs
-    [I,J,V] = sparse.find(nbrs)
+    [I, J, V] = sparse.find(nbrs)
     # check if we have neighbors with -1 or 0
     # this could produce problems in the loop below, so lets stop for now:
-    nlabels=labels[J]
-    if any(nlabels==-1) or any(nlabels==0):
+    nlabels = labels[J]
+    if any(nlabels == -1) or any(nlabels == 0):
         sys.exit("there are -1 or 0 labels in neighbors!")  
     # create sparse matrix with labels at neighbors
-    nlabels= sparse.csr_matrix((labels[J],(I,J)))
+    nlabels = sparse.csr_matrix((labels[J], (I, J)))
     #print("nlabels: {}".format(nlabels))
     from scipy.stats import mode
     if not isinstance(nlabels, sparse.csr_matrix):
@@ -140,27 +138,27 @@ def mode_filter(adjM, labels, fillonlylabel="", novote=[]):
     # get rid of rows that have uniform vote (or are empty)
     # for this to work no negative numbers should exist
     # get row counts, max and sums
-    rmax=nlabels.max(1).A.squeeze()
+    rmax = nlabels.max(1).A.squeeze()
     sums = nlabels.sum(axis=1).A1
     counts = np.diff(nlabels.indptr)
     # then keep rows where max*counts differs from sums
-    rmax = np.multiply(rmax,counts)
-    rows=np.where(rmax!=sums)[0]
+    rmax = np.multiply(rmax, counts)
+    rows = np.where(rmax != sums)[0]
     print("rows: "+str(nlabels.shape[0])+"  reduced to "+str(rows.size))
     # Only after fixing the rows above, we can 
     # get rid of entries that should not vote
     # since we have only rows that were non-uniform, they should not become empty
     # rows may become unform: we still need to vote below to update this label
     if novote:
-        rr = np.in1d(nlabels.data,novote)
-        nlabels.data[rr] = 0;
-        nlabels.eliminate_zeros();
+        rr = np.in1d(nlabels.data, novote)
+        nlabels.data[rr] = 0
+        nlabels.eliminate_zeros()
     # run over all rows and compute mode (maybe vectorize later)
-    rempty=0
+    rempty = 0
     for row in rows:
         rvals = nlabels.data[nlabels.indptr[row]:nlabels.indptr[row+1]]
         if rvals.size == 0:
-            rempty+=1
+            rempty += 1
             continue
         #print(str(rvals))
         mvals = mode(rvals)[0]
@@ -168,7 +166,7 @@ def mode_filter(adjM, labels, fillonlylabel="", novote=[]):
         if mvals.size != 0:
             #print(str(row)+' '+str(ids[row])+' '+str(mvals[0]))
             labels_new[ids[row]] = mvals[0]
-    if (rempty>0):
+    if rempty > 0:
         # should not happen
         print("WARNING: row empty: "+str(rempty))
     #nbrs=np.squeeze(np.asarray(nbrs.todense())) # sparse matrix to dense matrix to np.array
@@ -178,15 +176,13 @@ def mode_filter(adjM, labels, fillonlylabel="", novote=[]):
     return labels_new
 
 
-
-
 def smooth_aparc(insurfname, inaparcname, incortexname, outaparcname):
     """ (string) -> None
     smoothes aparc
     """
     # read input files
     print("Reading in surface: {} ...".format(insurfname))
-    surf = fs.read_geometry(insurfname, read_metadata=True)
+    surf = read_geometry(insurfname, read_metadata=True)
     print("Reading in annotation: {} ...".format(inaparcname))
     aparc = fs.read_annot(inaparcname)
     print("Reading in cortex label: {} ...".format(incortexname))
@@ -195,15 +191,14 @@ def smooth_aparc(insurfname, inaparcname, incortexname, outaparcname):
     labels = aparc[0]
     faces  = surf[1]
     nvert = labels.size
-    if (labels.size != surf[0].shape[0]):
+    if labels.size != surf[0].shape[0]:
         sys.exit("ERROR smooth_aparc: vertec count "+format(surf[0].shape[0])+" does not match label length "+format(labels.size))
-        
-	
+
     # Compute Cortex Mask
-    mask= np.zeros(labels.shape,dtype=bool)
+    mask = np.zeros(labels.shape, dtype=bool)
     mask[cortex] = True
     # check if we have places where non-cortex has some labels
-    noncortnum=np.where(~mask & (labels!=-1))
+    noncortnum=np.where(~mask & (labels != -1))
     print("Non-cortex vertices with labels: "+str(noncortnum[0].size)) # num of places where non cortex has some real labels
     # here we need to decide how to deal with them
     # either we set everything outside cortex to -1 (the FS way)
@@ -214,13 +209,13 @@ def smooth_aparc(insurfname, inaparcname, incortexname, outaparcname):
     noncortids = np.where(~mask)
     
     # remove triangles where one vertex is non-cortex to avoid these edges to vote on neighbors later
-    rr = np.in1d(faces,noncortids)
-    rr = np.reshape(rr,faces.shape)
-    rr = np.amax(rr,1)
-    faces = faces[~rr,:]
+    rr = np.in1d(faces, noncortids)
+    rr = np.reshape(rr, faces.shape)
+    rr = np.amax(rr, 1)
+    faces = faces[~rr, :]
     
     # get Edge matrix (adjacency)
-    adjM = get_adjM (faces,nvert)
+    adjM = get_adjM(faces, nvert)
     
     # add identity so that each vertex votes in the mode filter below
     adjM = adjM + sparse.eye(adjM.shape[0])
@@ -233,50 +228,47 @@ def smooth_aparc(insurfname, inaparcname, incortexname, outaparcname):
     
     # set all labels inside cortex that are -1 or 0 to fill label
     fillonlylabel = np.max(labels)+1
-    labels[mask & (labels==-1)] = fillonlylabel
-    labels[mask & (labels==0)]  = fillonlylabel
+    labels[mask & (labels == -1)] = fillonlylabel
+    labels[mask & (labels == 0)]  = fillonlylabel
     # now we do not have any -1 or 0 (except 0 outside of cortex)
     # FILL HOLES
-    ids = np.where(labels==fillonlylabel)[0]
-    counter=1
-    idssize=ids.size
+    ids = np.where(labels == fillonlylabel)[0]
+    counter = 1
+    idssize = ids.size
     while idssize != 0:
         print("Fill Round: "+str(counter))
-        labels_new = mode_filter(adjM,labels,fillonlylabel,np.array([fillonlylabel]))
-        labels=labels_new
-        ids = np.where(labels==fillonlylabel)[0]
-        if (ids.size == idssize):
+        labels_new = mode_filter(adjM, labels, fillonlylabel, np.array([fillonlylabel]))
+        labels = labels_new
+        ids = np.where(labels == fillonlylabel)[0]
+        if ids.size == idssize:
             # no more improvement, strange could be an island in the cortex label that cannot be filled
             print("Warning: Cannot improve but still have holes. Maybe there is an island in the cortex label that cannot be filled with real labels.")
-            fillids=np.where( labels==fillonlylabel )[0]
+            fillids = np.where(labels == fillonlylabel)[0]
             labels[fillids] = 0
-            rr = np.in1d(faces,fillids)
-            rr = np.reshape(rr,faces.shape)
-            rr = np.amax(rr,1)
-            faces = faces[~rr,:]
+            rr = np.in1d(faces, fillids)
+            rr = np.reshape(rr, faces.shape)
+            rr = np.amax(rr, 1)
+            faces = faces[~rr, :]
             # get Edge matrix (adjacency)
-            adjM = get_adjM (faces,nvert)
+            adjM = get_adjM(faces, nvert)
             # add identity so that each vertex votes in the mode filter below
             adjM = adjM + sparse.eye(adjM.shape[0])
             break
         idssize = ids.size
-        counter+=1
+        counter += 1
     # SMOOTH other labels (first with wider kernel then again fine-tune):
-    labels = mode_filter(adjM*adjM,labels)
-    labels = mode_filter(adjM,labels)
+    labels = mode_filter(adjM*adjM, labels)
+    labels = mode_filter(adjM, labels)
     # set labels outside cortex to -1
     labels[~mask] = -1
     print ("Outputing fixed annot: {}".format(outaparcname))
     fs.write_annot(outaparcname, labels, aparc[1], aparc[2])
 
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
     smooth_aparc(options.insurf, options.inaparc, options.incort, options.outaparc)
     
     sys.exit(0)
-
-
