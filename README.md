@@ -11,7 +11,7 @@ This directory contains all information needed to run FastSurfer - a fast and ac
 
 
 ## Usage
-The *FastSurferCNN* and *recon_surf* directories contain all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. In addition, a working version of __FreeSurfer v6.0__ is needed to run recon-surf.
+The *FastSurferCNN* and *recon_surf* directories contain all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. In addition, a working version of __FreeSurfer__ (v6.0 or dev) is needed to run recon-surf.
 The main script is called __run_fastsurfer.sh__ which can be used to run both FastSurferCNN and recon-surf sequentially on a given subject. There are a number of options which can be selected and set via the command line.
 List them by running the following command:
 ```bash
@@ -45,6 +45,7 @@ List them by running the following command:
 
 ### Other
 * --py: which python version to use. Default: python3.6
+* --dev: Flag to set if FreeSurfer dev version is used
     
 
 ### Example 1: FastSurfer on subject1
@@ -113,5 +114,5 @@ nvidia-docker run -v /home/user/my_mri_data:/data --rm --user 4323 fastsurfer:gp
 Within this repository, we further provide the code and Docker files for running FastSurferCNN and recon-surf independently from each other. For each of these purposes, see the README.md's in the corresponding folders.
 
 ## Acknowledgements
-The recon-surf pipeline is largely based on FreeSurfer v6.0 including the use of one binary (mris_make_surfaces) from the dev version. 
+The recon-surf pipeline is largely based on FreeSurfer including the use of one binary (mris_make_surfaces) from the dev version. 
 https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferMethodsCitation
