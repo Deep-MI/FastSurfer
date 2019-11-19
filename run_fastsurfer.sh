@@ -35,6 +35,7 @@ qspec=""
 nofsaparc=""
 fssurfreg=""
 doParallel=""
+dev=""
 threads="1"
 python="python3.6"
 fastsurfercnndir="./FastSurferCNN"
@@ -67,6 +68,7 @@ function usage()
     echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondance)"
     echo -e "\t--parallel                             Run both hemispheres in parallel"
     echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
+    echo -e "\t--dev                                  Switch on if dev-version of FreeSurfer was sourced"
     echo -e "\t--py <python_cmd>                      Command for python, default 'python3.6'"
     echo -e "\t-h --help                              Print Help"
     echo ""
@@ -175,6 +177,10 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --dev)
+    dev="--dev"
+    shift # past argument
+    ;;
     --py)
     python="$2"
     shift # past argument
@@ -227,7 +233,7 @@ popd
 # ============= Running recon-surf (surfaces, thickness etc.) ===============
 # use recon-surf to create surface models based on the FastSurferCNN segmentation.
 pushd $reconsurfdir
-cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $mc $qspec $nofsaparc $fssurfreg $doParallel --threads $threads --py $python"
+cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $mc $qspec $nofsaparc $fssurfreg $doParallel $dev --threads $threads --py $python"
 $cmd
 if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
 popd
