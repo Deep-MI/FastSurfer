@@ -8,7 +8,7 @@ such as the one provided by the FastSurferCNN deep learning architecture.
 
 # Usage
 The *recon_surf* directory contains all the source code and binaries (mris_make_surfaces from the FreeSurfer dev version)
-to run the analysis. In addition, a working distribution of __FreeSurfer v6.0__ is needed.
+to run the analysis. In addition, a working distribution of __FreeSurfer__ (v6.0 or dev) is needed.
 
 The main script is called __recon-surf.sh__ which accepts certain arguments via the command line.
 List them by running the following command:
@@ -33,6 +33,7 @@ List them by running the following command:
 
 ### Other
 * --py: which python version to use. Default: python3.6
+* --dev: Flag to set if FreeSurfer dev-version is used
 
 ### Example 1: recon-surf on a single subject (subject1)
 
