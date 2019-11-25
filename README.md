@@ -59,14 +59,18 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
 datadir=/home/user/my_mri_data
+fastsurferdir=/home/user/my_fastsurfer_analysis
 
 # Run FastSurfer
 ./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license \
                     --t1 $datadir/subject1/orig.mgz \
-                    --seg $datadir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                    --sid subject1 --sd $datadir \
+                    --seg $fastsurferdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --sid subject1 --sd $fastsurferdir \
                     --mc --qspec --nofsaparc --parallel --threads 4
 ```
+
+The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation).
+
 ### Example 2: FastSurfer on multiple subjects (parallel processing)
 
 In order to run FastSurfer on a number of cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line per line:
@@ -84,15 +88,16 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 cd /home/user/FastSurfer
 datadir=/home/user/my_mri_data
-mkdir $datadir/logs # create log dir for storing nohup output log (optional)
+fastsurferdir=/home/user/my_fastsurfer_analysis
+mkdir $fastsurferdir/logs # create log dir for storing nohup output log (optional)
 
 while read p ; do
   echo $p
   nohup ./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license \
                             --t1 $datadir/$p/orig.mgz \
-                            --seg $datadir/$p/aparc.DKTatlas+aseg.deep.mgz \
-                            --sid $p --sd $datadir \
-                            --mc --qspec --nofsaparc > $datadir/logs/out-${p}.log &
+                            --seg $fastsurferdir/$p/aparc.DKTatlas+aseg.deep.mgz \
+                            --sid $p --sd $fastsurferdir \
+                            --mc --qspec --nofsaparc > $fastsurferdir/logs/out-${p}.log &
   sleep 90s 
 done < ./data/subjects_list.txt
 ```
@@ -103,12 +108,15 @@ After building the Docker (see instructions in ./Docker/README.md), you do not n
 To run FastSurfer on a given subjects using the provided Docker, execute the following command:
 
 ```bash
-nvidia-docker run -v /home/user/my_mri_data:/data --rm --user 4323 fastsurfer:gpu \
-              --fs_license /data/.license \
-              --t1 /data/subject2/orig.mgz \
-              --seg /data/subject2/aparc.DKTatlas+aseg.deep.mgz \
-              --sid subject8 --sd /data \
-              --mc --qspec --nofsaparc --parallel
+nvidia-docker run -v /home/user/my_mri_data:/data \
+                  -v /home/user/my_fastsurfer_analysis:/output \
+                  -v /home/user/my_fs_license_dir:/fs60 \
+                  --rm --user 4323 fastsurfer:gpu \
+                  --fs_license /fs60/.license \
+                  --t1 /data/subject2/orig.mgz \
+                  --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
+                  --sid subject8 --sd /output \
+                  --mc --qspec --nofsaparc --parallel
 ```
 
 Within this repository, we further provide the code and Docker files for running FastSurferCNN and recon-surf independently from each other. For each of these purposes, see the README.md's in the corresponding folders.
