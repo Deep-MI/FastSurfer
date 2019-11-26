@@ -103,9 +103,9 @@ done < ./data/subjects_list.txt
 ```
 
 ### Example 3: FastSurfer inside Docker
-After building the Docker (see instructions in ./Docker/README.md), you do not need to have a separate installation of FreeSurfer on your computer (included in the Docker). However, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to requiere a valid license (for free).
+After building the Docker (see instructions in ./Docker/README.md), you do not need to have a separate installation of FreeSurfer on your computer (included in the Docker). However, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free).
 
-To run FastSurfer on a given subjects using the provided Docker, execute the following command:
+To run FastSurfer on a given subject using the provided Docker, execute the following command:
 
 ```bash
 nvidia-docker run -v /home/user/my_mri_data:/data \
