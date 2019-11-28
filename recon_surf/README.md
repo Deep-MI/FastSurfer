@@ -17,7 +17,7 @@ List them by running the following command:
 ./recon-surf.sh --help
 ```
 
-### Requiered arguments
+### Required arguments
 * --sd: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * --sid: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
 * --t1: T1 full head input (not bias corrected). 
