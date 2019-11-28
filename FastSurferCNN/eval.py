@@ -208,6 +208,9 @@ def fast_surfer_cnn(img_filename, save_as, args):
         if k[:7] == "module." and not model_parallel:
             new_state_dict[k[7:]] = v
 
+        elif k[:7] != "module." and model_parallel:
+            new_state_dict["module." + k] = v
+
         else:
             new_state_dict[k] = v
 
@@ -266,8 +269,13 @@ def fast_surfer_cnn(img_filename, save_as, args):
     new_state_dict = OrderedDict()
 
     for k, v in model_state["model_state_dict"].items():
+
         if k[:7] == "module." and not model_parallel:
             new_state_dict[k[7:]] = v
+
+        elif k[:7] != "module." and model_parallel:
+            new_state_dict["module." + k] = v
+
         else:
             new_state_dict[k] = v
 
@@ -325,8 +333,13 @@ def fast_surfer_cnn(img_filename, save_as, args):
     new_state_dict = OrderedDict()
 
     for k, v in model_state["model_state_dict"].items():
+
         if k[:7] == "module." and not model_parallel:
             new_state_dict[k[7:]] = v
+
+        elif k[:7] != "module." and model_parallel:
+            new_state_dict["module." + k] = v
+
         else:
             new_state_dict[k] = v
 
@@ -408,7 +421,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
                             axis=3)
 
     # Problematic classes: 1026, 1011, 1029, 1019
-    for prob_class_lh in [1011, 1029, 1026, 1029]:
+    for prob_class_lh in [1011, 1019, 1026, 1029]:
         prob_class_rh = prob_class_lh + 1000
         mask_lh = ((prediction_image == prob_class_lh) | (prediction_image == prob_class_rh)) & (lh_rh_split == 0)
         mask_rh = ((prediction_image == prob_class_lh) | (prediction_image == prob_class_rh)) & (lh_rh_split == 1)
