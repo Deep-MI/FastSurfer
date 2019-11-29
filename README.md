@@ -33,7 +33,7 @@ List them by running the following command:
 * --clean_seg: Flag to clean up FastSurferCNN segmentation
 * --no_cuda: Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
 * --batch: Batch size for inference. Default: 16
-* --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)
+* --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
 
 ### Surface pipeline arguments (optional)
 * --mc: Switch on marching cube for surface creation
