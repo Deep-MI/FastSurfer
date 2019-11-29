@@ -46,11 +46,12 @@ docker run -v /home/user/my_mri_data:/data \
            --fs_license /fs60/.license \
            --t1 /data/subject2/orig.mgz \
            --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
+           --no_cuda \
            --sid subject8 --sd /output \
            --mc --qspec --nofsaparc --parallel
 ```
 
-As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used instead of the nvidia one.
+As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used instead of the nvidia one. In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
 
 ### Build GPU FastSurferCNN container (segmentation only)
 
@@ -95,7 +96,8 @@ docker run -v /home/user/my_mri_data:/data \
            --in_name mri/orig.mgz \
            --o_dir /output \
            --out_name aparc.DKTatlas+aseg.deep.mgz \
-           --log deep_surfer.log
+           --log deep_surfer.log \
+           --no_cuda
 ```
 
-Again, only the tag of the image is changed from gpu to cpu and the standard docker is used instead of the nvidia one.
+Again, only the tag of the image is changed from gpu to cpu and the standard docker is used instead of the nvidia one. In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
