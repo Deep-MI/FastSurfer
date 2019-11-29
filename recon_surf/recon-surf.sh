@@ -44,7 +44,7 @@ function usage()
     echo -e "\t--mc                          Switch on marching cube for surface creation"
     echo -e "\t--qspec                       Switch on spectral spherical projection for qsphere"
     echo -e "\t--nofsaparc                   Skip FS aparc segmentations and ribbon for speedup"
-    echo -e "\t--surfreg                     Run Surface registration with FreeSurfer (for cross-subject correspondance)"
+    echo -e "\t--surfreg                     Run Surface registration with FreeSurfer (for cross-subject correspondence)"
     echo -e "\t--parallel                    Run both hemispheres in parallel"
     echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
     echo -e "\t--dev                         Switch on usage of dev-version for FreeSurfer"
@@ -426,7 +426,7 @@ CMDF="$SUBJECTS_DIR/$subject/scripts/$hemi.processing.cmdf"
 CMDFS="$CMDFS $CMDF"
 rm -rf $CMDF
 
-
+echo "#!/bin/bash" > $CMDF
 echo "echo " |& tee -a $CMDF
 echo "echo \"================== Creating surfaces $hemi - orig.nofix ==================\"" |& tee -a $CMDF
 echo "echo " |& tee -a $CMDF
