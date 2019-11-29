@@ -64,7 +64,7 @@ function usage()
     echo -e "\t--mc                                   Switch on marching cube for surface creation"
     echo -e "\t--qspec                                Switch on spectral spherical projection for qsphere"
     echo -e "\t--nofsaparc                            Skip FS aparc segmentations and ribbon for speedup"
-    echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondance)"
+    echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondence)"
     echo -e "\t--parallel                             Run both hemispheres in parallel"
     echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
     echo -e "\t--dev                                  Switch on if dev-version of FreeSurfer was sourced"
