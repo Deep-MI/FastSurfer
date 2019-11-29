@@ -1,10 +1,10 @@
 # Overview
 
 This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within
-1  minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). It consists of two main part:
+1  minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). It consists of two main parts:
 (i) FastSurferCNN - an advanced deep learning architecture capable of whole brain segmentation into 95 classes in under
 1 minute, mimicking FreeSurfer’s anatomical segmentation and cortical parcellation (DKTatlas)
-(ii) recon-surf - full  FreeSurfer  alternative for cortical surface reconstruction, mapping of cortical labels and traditional point-wise and ROI thickness analysis in approximately 60 min
+(ii) recon-surf - full  FreeSurfer  alternative for cortical surface reconstruction, mapping of cortical labels and traditional point-wise and ROI thickness analysis in approximately 60 minutes.
 
 
 ![](/images/teaser.png)
@@ -39,7 +39,7 @@ List them by running the following command:
 * --mc: Switch on marching cube for surface creation
 * --qspec: Switch on spectral spherical projection for qsphere
 * --nofsaparc: Skip FS aparc segmentations and ribbon for speedup
-* --surfreg: Run Surface registration with FreeSurfer (for cross-subject correspondance)
+* --surfreg: Run Surface registration with FreeSurfer (for cross-subject correspondence)
 * --parallel: Run both hemispheres in parallel
 * --threads: Set openMP and ITK threads to <int>
 
