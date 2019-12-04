@@ -1,17 +1,17 @@
 collections
 glob
-h5py
-nibabel
-numpy
 optparse
 argparse
 os
 sys
-scipy
-skimage
 time
-torch
-torchvision
+h5py==2.9.0
+nibabel==2.5.1
+numpy==1.17.4
+scipy==1.3.1
+skimage==0.15.0
+torch==1.2.0
+torchvision==0.4.0
 
 
 
