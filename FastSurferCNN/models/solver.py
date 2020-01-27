@@ -83,8 +83,8 @@ def iou_score(pred_cls, true_cls, nclass=79):
 
     for i in range(1, nclass):
 
-        intersect = ((pred_cls == i) + (true_cls == i)).eq(2).sum().item()
-        union = ((pred_cls == i) + (true_cls == i)).ge(1).sum().item()
+        intersect = ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
+        union = ((pred_cls == i).float() + (true_cls == i).float()).ge(1).sum().item()
         intersect_.append(intersect)
         union_.append(union)
 
