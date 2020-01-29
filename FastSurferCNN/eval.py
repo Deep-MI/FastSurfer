@@ -188,6 +188,10 @@ def fast_surfer_cnn(img_filename, save_as, args):
     # Put it onto the GPU or CPU
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
+    print("Cuda available: {}, "
+          "# Available GPUS: {}, "
+          "Cuda user disabled (--no_cuda flag): {}, "
+          "--> Using device: {}".format(torch.cuda.is_available(), torch.cuda.device_count(), args.no_cuda, device))
 
     if use_cuda and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
