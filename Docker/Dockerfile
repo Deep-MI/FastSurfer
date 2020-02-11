@@ -1,6 +1,6 @@
 ## Start with Docker pytorch base
 
-FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
 ARG PYTHON_VERSION=3.6
 
 # Install custom libraries + freesurfer 6.0 (and necessary dependencies)
