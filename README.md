@@ -108,16 +108,23 @@ After building the Docker (see instructions in ./Docker/README.md), you do not n
 To run FastSurfer on a given subject using the provided Docker, execute the following command:
 
 ```bash
-nvidia-docker run -v /home/user/my_mri_data:/data \
-                  -v /home/user/my_fastsurfer_analysis:/output \
-                  -v /home/user/my_fs_license_dir:/fs60 \
-                  --rm --user 4323 fastsurfer:gpu \
-                  --fs_license /fs60/.license \
-                  --t1 /data/subject2/orig.mgz \
-                  --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
-                  --sid subject8 --sd /output \
-                  --mc --qspec --nofsaparc --parallel
+docker run --gpus all -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurfer_analysis:/output \
+                      -v /home/user/my_fs_license_dir:/fs60 \
+                      --rm --user XXXX fastsurfer:gpu \
+                      --fs_license /fs60/.license \
+                      --t1 /data/subject2/orig.mgz \
+                      --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
+                      --sid subject8 --sd /output \
+                      --mc --qspec --nofsaparc --parallel
 ```
+
+The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
+The --gpus flag is used to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
+The -v command mounts your data (and output) directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
+The --rm flag takes care of removing the container once the analysis finished. 
+The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+
 
 Within this repository, we further provide the code and Docker files for running FastSurferCNN and recon-surf independently from each other. For each of these purposes, see the README.md's in the corresponding folders.
 

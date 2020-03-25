@@ -13,20 +13,22 @@ In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; o
 This script builds a docker image with the name fastsurfer:gpu. With it you basically execute the script __run_fastsurfer.sh__ from the parent directory. It takes as input a single T1-weighted MRI brain scan (from the /data directory) and first produces the aparc.DKTatlas+aseg.mgz segmentation followed by the surface construction (output stored in /output directory).
 
 ```bash
-nvidia-docker run -v /home/user/my_mri_data:/data \
-                  -v /home/user/my_fastsurfer_analysis:/output \
-                  -v /home/user/my_fs_license_dir:/fs60 \
-                  --rm --user XXXX fastsurfer:gpu \
-                  --fs_license /fs60/.license \
-                  --t1 /data/subject2/orig.mgz \
-                  --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
-                  --sid subject8 --sd /output \
-                  --mc --qspec --nofsaparc --parallel
+docker run --gpus all -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurfer_analysis:/output \
+                      -v /home/user/my_fs_license_dir:/fs60 \
+                      --rm --user XXXX fastsurfer:gpu \
+                      --fs_license /fs60/.license \
+                      --t1 /data/subject2/orig.mgz \
+                      --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
+                      --sid subject8 --sd /output \
+                      --mc --qspec --nofsaparc --parallel
 ```
 
-The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). The --user XXXX part should be changed to the appropiate user id.
+The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
+The --gpus flag is used to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
 The -v command mounts your data (and output) directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
 The --rm flag takes care of removing the container once the analysis finished. 
+The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
 All other flags are identical to the ones explained on the main page (on directory up).
 
 ### Example 2: Build CPU FastSurfer container
@@ -51,7 +53,7 @@ docker run -v /home/user/my_mri_data:/data \
            --mc --qspec --nofsaparc --parallel
 ```
 
-As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used instead of the nvidia one. In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
+As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
 
 ### Build GPU FastSurferCNN container (segmentation only)
 
@@ -64,19 +66,20 @@ docker build -t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN .
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
 ```bash
-nvidia-docker run -v /home/user/my_mri_data:/data \
-                  -v /home/user/my_fastsurferCNN_analysis:/output \
-                  --rm --user XXXX fastsurfercnn:gpu \
-                  --i_dir /data \
-                  --in_name mri/orig.mgz \
-                  --o_dir /output \
-                  --out_name aparc.DKTatlas+aseg.deep.mgz \
-                  --log deep_surfer.log
+docker run --gpus all -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurferCNN_analysis:/output \
+                      --rm --user XXXX fastsurfercnn:gpu \
+                      --i_dir /data \
+                      --in_name mri/orig.mgz \
+                      --o_dir /output \
+                      --out_name aparc.DKTatlas+aseg.deep.mgz \
+                      --log deep_surfer.log
 ```
 
-Again, the --user XXXX part should be changed to the appropiate user id.
+The --gpus flag is used to access GPU resources. Specify how many GPUs to use: In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
 The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
 The --rm flag takes care of removing the container once the analysis finished. 
+Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
 All other flags are identical to the ones explained on the main page (on directory up).
 
 ### Build CPU FastSurferCNN container (segmentation only)
@@ -100,4 +103,4 @@ docker run -v /home/user/my_mri_data:/data \
            --no_cuda
 ```
 
-Again, only the tag of the image is changed from gpu to cpu and the standard docker is used instead of the nvidia one. In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
+Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
