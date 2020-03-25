@@ -24,11 +24,12 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --mc --qspec --nofsaparc --parallel
 ```
 
-The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
-The --gpus flag is used to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
-The -v command mounts your data (and output) directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
-The --rm flag takes care of removing the container once the analysis finished. 
-The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+* The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
+* The --gpus flag is used to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
+* The -v command mounts your data (and output) directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
+* The --rm flag takes care of removing the container once the analysis finished. 
+* The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+
 All other flags are identical to the ones explained on the main page (on directory up).
 
 ### Example 2: Build CPU FastSurfer container
@@ -76,10 +77,11 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --log deep_surfer.log
 ```
 
-The --gpus flag is used to access GPU resources. Specify how many GPUs to use: In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
-The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
-The --rm flag takes care of removing the container once the analysis finished. 
-Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
+* The --gpus flag is used to access GPU resources. Specify how many GPUs to use: In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
+* The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
+* The --rm flag takes care of removing the container once the analysis finished. 
+* Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
+
 All other flags are identical to the ones explained on the main page (on directory up).
 
 ### Build CPU FastSurferCNN container (segmentation only)
