@@ -20,7 +20,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --fs_license /fs60/.license \
                       --t1 /data/subject2/orig.mgz \
                       --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
-                      --sid subject8 --sd /output \
+                      --sid subject2 --sd /output \
                       --mc --qspec --nofsaparc --parallel
 ```
 
@@ -50,7 +50,7 @@ docker run -v /home/user/my_mri_data:/data \
            --t1 /data/subject2/orig.mgz \
            --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
            --no_cuda \
-           --sid subject8 --sd /output \
+           --sid subject2 --sd /output \
            --mc --qspec --nofsaparc --parallel
 ```
 
