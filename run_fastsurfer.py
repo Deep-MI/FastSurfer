@@ -25,14 +25,15 @@ import argparse
 
 def setup_options():
     # Validation settings
-    parser = argparse.ArgumentParser(description='Wrapper for fastsurfer (FastSurferCNN + recon-surf)')
+    parser = argparse.ArgumentParser(description='Wrapper for FastSurfer pipeline (FastSurferCNN + recon-surf)')
 
     # Requiered options
     # 1. Directory information (location of T1 images to segment and where to store the output)
     parser.add_argument('--t1', help="T1 full head input (not bias corrected). ABSOLUTE Path!", type=str, required=True)
     parser.add_argument('--seg', default="aparc.DKTatlas+aseg.deep.mgz", type=str,
-                        help="Name of segmentation (similar to aparc+aseg). Default: aparc.DKTatlas+aseg.deep.mgz. "
-                             "Specifiy ABSOLUTE Path!")
+                        help="Name of intermediate DL-based segmentation file (similar to aparc+aseg). \n"
+                             "Default: aparc.DKTatlas+aseg.deep.mgz. \n"
+                             "Requires an ABSOLUTE Path!")
     parser.add_argument('--sd', '--subjects_dir',
                         help="Output directory $SUBJECTS_DIR (FreeSurfer style) for surfaces & Co. ABSOLUTE Path!")
     parser.add_argument('--sid', '--subjectID', help="Subject ID for directory inside $SUBJECTS_DIR to be created.")
