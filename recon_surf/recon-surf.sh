@@ -334,7 +334,7 @@ echo "================== Creating orig and rawavg from input ===================
 echo " " |& tee -a $LF
 
 # create orig.mgz and aparc+aseg.orig.mgz (copy of segmentation)
-cmd="mri_convert $t1 $mdir/orig.mgz"
+cmd="mri_convert -c $t1 $mdir/orig.mgz"
 RunIt "$cmd" $LF
 
 cmd="mri_convert $seg $mdir/aparc+aseg.orig.mgz"

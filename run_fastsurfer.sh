@@ -52,7 +52,7 @@ function usage()
     echo -e "\t--sid <subjectID>                      Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>             Segmentation (similar to aparc+aseg)"
+    echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Default: aparc.DKTatlas+aseg.deep.mgz. Requires an ABSOLUTE Path!"
     echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN)"
     echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
