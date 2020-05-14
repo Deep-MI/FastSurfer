@@ -65,7 +65,7 @@ function RunIt()
   cmd=$1
   LF=$2
   if [[ $# -eq 3 ]]
-  then 
+  then
     CMDF=$3
     echo "echo \"$cmd\" " |& tee -a $CMDF
     echo "$timecmd $cmd " |& tee -a $CMDF
@@ -73,7 +73,7 @@ function RunIt()
   else
     echo $cmd |& tee -a $LF
     $timecmd $cmd |& tee -a $LF
-    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi 
+    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   fi
 }
 
@@ -86,10 +86,10 @@ function RunBatchJobs()
   # launch jobs found in command files (shift past first logfile arg).
   # job output goes to a logfile named after the command file, which
   # later gets appended to LOG_FILE
-  
+
   echo
   echo "RunBatchJobs: Logfile: $LOG_FILE"
-  
+
   PIDS=()
   LOGS=()
   shift
@@ -133,7 +133,7 @@ function RunBatchJobs()
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
-then 
+then
   usage
   exit
 fi
@@ -233,7 +233,7 @@ if [ -z "$t1" ]
   exit 1;
 fi
 
-if [ -z "$subject" ] 
+if [ -z "$subject" ]
  then
   echo "ERROR: must supply subject name via --sid"
   exit 1;
@@ -297,7 +297,7 @@ min=`date +%M`
 
 
 # Setup dirs
-mkdir -p $SUBJECTS_DIR/$subject/scripts 
+mkdir -p $SUBJECTS_DIR/$subject/scripts
 mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
 mkdir -p $SUBJECTS_DIR/$subject/mri/tmp
 mkdir -p $SUBJECTS_DIR/$subject/surf
@@ -438,7 +438,7 @@ then
   RunIt "$cmd" $LF $CMDF
 else
   # instead of mri_tesselate lego land use marching cube
-  
+
     if [ $hemi == "lh" ]; then
         hemivalue=255;
     else
@@ -453,7 +453,7 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Reduce to largest component (usually there should only be one)
-    cmd="mris_extract_main_component $sdir/$hemi.orig.nofix $sdir/$hemi.orig.nofix" 
+    cmd="mris_extract_main_component $sdir/$hemi.orig.nofix $sdir/$hemi.orig.nofix"
     RunIt "$cmd" $LF $CMDF
 
     # -smooth1 (explicitly state 10 iteration (default) but may change in future
@@ -506,8 +506,8 @@ RunIt "$cmd" $LF $CMDF
   then
     cmd="mris_make_surfaces -aseg aseg.presurf -white white.preaparc -noaparc -whiteonly -mgz -T1 brain.finalsurfs $subject $hemi"
   else
-    # seems like surfaces from mri_mc cause segfaults in mris_make_surf from 6.0, so we need to use a copy of dev:
-    cmd="${binpath}mris_make_surfaces -aseg ../mri/aseg.presurf -white white.preaparc -noaparc -whiteonly -mgz -T1 brain.finalsurfs $subject $hemi"
+     # seems like surfaces from mri_mc cause segfaults in mris_make_surf from 6.0, so we need to use a copy of dev:
+     cmd="${binpath}mris_make_surfaces -aseg ../mri/aseg.presurf -white white.preaparc -noaparc -whiteonly -mgz -T1 brain.finalsurfs $subject $hemi"
   fi
   RunIt "$cmd" $LF $CMDF
 
@@ -522,50 +522,24 @@ echo "echo \" \"" |& tee -a $CMDF
 cmd="recon-all -s $subject -hemi $hemi -smooth2 -inflate2 -curvHK -curvstats -no-isrunning $fsthreads"
 RunIt "$cmd" $LF $CMDF
 
- 
+
 echo "echo \" \"" |& tee -a $CMDF
 echo "echo \"=========== Creating surfaces $hemi - map input seg to surf ===============\"" |& tee -a $CMDF
 echo "echo \" \"" |& tee -a $CMDF
 
-# sample input segemntation (aparc+aseg orig) onto wm surface:
+    # sample input segmentation (aparc+aseg orig) onto wm surface:
     # map input aparc to surface (requrires thickness (and thus pail) to compute projfrac 0.5), here we do projmm which allows us to compute based only on white
     # this is dangerous, as some cortices could be < 0.6 mm, but then there is no volume label probably anyway.
     # Also note that currently we cannot mask non-cortex regions here, should be done in mris_anatomical stats later
     # the smoothing helps
     cmd="mris_sample_parc -ct $FREESURFER_HOME/average/colortable_desikan_killiany.txt -file ./$hemi.DKTatlaslookup.txt -projmm 0.6 -f 5  -surf white.preaparc $subject $hemi aparc+aseg.orig.mgz aparc.mapped.prefix.annot"
     RunIt "$cmd" $LF $CMDF
-    
+
     cmd="$python smooth_aparc.py --insurf $sdir/$hemi.white.preaparc --inaparc $ldir/$hemi.aparc.mapped.prefix.annot --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.mapped.annot"
     RunIt "$cmd" $LF $CMDF
-    
- 
- 
-if [ "$fsaparc" == "1" ] ; then
-  
-echo "echo \" \"" |& tee -a $CMDF
-echo "echo \"============ Creating surfaces $hemi - FS sphere, seg..pial ===============\"" |& tee -a $CMDF
-echo "echo \" \"" |& tee -a $CMDF
 
-    # 20-25 min for traditional surface segmentation (each hemi)
-    # this registers to sphere, creates aparc and creates pial using aparc, also computes jacobian
-    cmd="recon-all -s $subject -hemi $hemi -sphere -surfreg -jacobian_white -avgcurv -cortparc -pial -no-isrunning $fsthreads"
-    RunIt "$cmd" $LF $CMDF
 
-else
-echo "echo \" \"" |& tee -a $CMDF
-echo "echo \"================ Creating surfaces $hemi - pial direct ===================\"" |& tee -a $CMDF
-echo "echo \" \"" |& tee -a $CMDF
-
-    # 3 min compute pial and cortex label, and thickness without using aparc :
-    cmd="${binpath}mris_make_surfaces -noaparc -nowhite -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi"
-    RunIt "$cmd" $LF $CMDF
-    echo "pushd $sdir" >> $CMDF
-    cmd="ln -sf $hemi.white.preaparc $hemi.white"
-    RunIt "$cmd" $LF $CMDF
-    echo "popd" >> $CMDF
-fi
-
-if [ "$fssurfreg" == "1" ] ; then
+if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   echo "echo \" \"" |& tee -a $CMDF
   echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
   echo "echo \" \"" |& tee -a $CMDF
@@ -573,6 +547,45 @@ if [ "$fssurfreg" == "1" ] ; then
   # Surface registration for cross-subject correspondance (registration to fsaverage)
   cmd="recon-all -s $subject -hemi $hemi -sphere -surfreg -no-isrunning $fsthreads"
   RunIt "$cmd" $LF "$CMDF"
+fi
+
+
+if [ "$fsaparc" == "1" ] ; then
+
+echo "echo \" \"" |& tee -a $CMDF
+echo "echo \"============ Creating surfaces $hemi - FS seg..pial ===============\"" |& tee -a $CMDF
+echo "echo \" \"" |& tee -a $CMDF
+
+    # 20-25 min for traditional surface segmentation (each hemi)
+    # this creates aparc and also computes jacobian
+    cmd="recon-all -s $subject -hemi $hemi -jacobian_white -avgcurv -cortparc -no-isrunning $fsthreads"
+    RunIt "$cmd" $LF $CMDF
+
+    # creates pial using aparc, marching cube surfaces makes mris_make_surfaces crash here, so use dev binary in that case
+    if [ "$fstess" == "1" ]
+    then
+      cmd="mris_make_surfaces -orig_white white.preaparc -orig_pial white.preaparc -aseg ../mri/aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi"
+    else
+      cmd="${binpath}mris_make_surfaces -orig_white white.preaparc -orig_pial white.preaparc -aseg ../mri/aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi"
+    fi
+    RunIt "$cmd" $LF $CMDF
+else
+echo "echo \" \"" |& tee -a $CMDF
+echo "echo \"================ Creating surfaces $hemi - pial direct ===================\"" |& tee -a $CMDF
+echo "echo \" \"" |& tee -a $CMDF
+
+    # 3 min compute pial and cortex label, and thickness without using aparc :
+    if [ "$fstess" == "1" ]
+    then
+      cmd="mris_make_surfaces -noaparc -nowhite -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi"
+    else
+      cmd="${binpath}mris_make_surfaces -noaparc -nowhite -orig_white white.preaparc -orig_pial white.preaparc -aseg aseg.presurf -mgz -T1 brain.finalsurfs $subject $hemi"
+    fi
+    RunIt "$cmd" $LF $CMDF
+    echo "pushd $sdir" >> $CMDF
+    cmd="ln -sf $hemi.white.preaparc $hemi.white"
+    RunIt "$cmd" $LF $CMDF
+    echo "popd" >> $CMDF
 fi
 
 echo "echo \" \"" |& tee -a $CMDF
