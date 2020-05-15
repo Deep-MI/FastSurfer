@@ -26,8 +26,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms, utils
 
 from data_loader.load_neuroimaging_data import AsegDatasetWithAugmentation
-from data_loader.augmentation import AugmentationPadImage, AugmentationRandomCrop, AugmentationRandomBrightness, \
-    AugmentationRandomRotation, ToTensor
+from data_loader.augmentation import AugmentationPadImage, AugmentationRandomCrop, ToTensor
 
 from models.networks import FastSurferCNN
 from models.solver import Solver
@@ -116,7 +115,7 @@ def setup_options():
     parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train (default: 30)')
     parser.add_argument('--lr', type=float, default=1e-2, metavar='LR', help='learning rate (default: 0.01)')
     parser.add_argument('--decay', action="store_true", help="switch to decay learning rate")
-    parser.add_argument('--optim', type=str, default="adam", choices=["adam", "sgd", "adamW"])
+    parser.add_argument('--optim', type=str, default="adam", choices=["adam", "sgd"])
     parser.add_argument('--resume', action="store_true", default=False, help="Flag if resume is needed")
     parser.add_argument('--torchv11', action="store_true", default=False,
                         help="Flag if torch version below 1.2 is used."
