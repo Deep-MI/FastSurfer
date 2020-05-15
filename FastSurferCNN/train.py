@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +26,8 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms, utils
 
 from data_loader.load_neuroimaging_data import AsegDatasetWithAugmentation
-from data_loader.augmentation import AugmentationPadImage, AugmentationRandomCrop, ToTensor
+from data_loader.augmentation import AugmentationPadImage, AugmentationRandomCrop, AugmentationRandomBrightness, \
+    AugmentationRandomRotation, ToTensor
 
 from models.networks import FastSurferCNN
 from models.solver import Solver
@@ -42,39 +42,39 @@ CLASS_NAMES_SAG = ["3rd-Ventricle", "4th-Ventricle", "Brain-Stem", "CSF", "Cereb
                    "VentralDC", "choroid-plexus", "WM-hypointensities",
                    "ctx-both-caudalanteriorcingulate", "ctx-both-caudalmiddlefrontal",
                    "ctx-both-cuneus", "ctx-both-entorhinal", "ctx-both-fusiform",
-                   "ctx-both-inferiorparietal",	"ctx-both-inferiortemporal", "ctx-both-isthmuscingulate",
-                   "ctx-both-lateraloccipital",	"ctx-both-lateralorbitofrontal", "ctx-both-lingual",
-                   "ctx-both-medialorbitofrontal", "ctx-both-middletemporal",	"ctx-both-parahippocampal",
+                   "ctx-both-inferiorparietal", "ctx-both-inferiortemporal", "ctx-both-isthmuscingulate",
+                   "ctx-both-lateraloccipital", "ctx-both-lateralorbitofrontal", "ctx-both-lingual",
+                   "ctx-both-medialorbitofrontal", "ctx-both-middletemporal", "ctx-both-parahippocampal",
                    "ctx-both-paracentral", "ctx-both-parsopercularis", "ctx-both-parsorbitalis",
-                   "ctx-both-parstriangularis",	"ctx-both-pericalcarine", "ctx-both-postcentral",
+                   "ctx-both-parstriangularis", "ctx-both-pericalcarine", "ctx-both-postcentral",
                    "ctx-both-posteriorcingulate", "ctx-both-precentral", "ctx-both-precuneus",
-                   "ctx-both-rostralanteriorcingulate",	"ctx-both-rostralmiddlefrontal", "ctx-both-superiorfrontal",
-                   "ctx-both-superiorparietal",	"ctx-both-superiortemporal", "ctx-both-supramarginal",
+                   "ctx-both-rostralanteriorcingulate", "ctx-both-rostralmiddlefrontal", "ctx-both-superiorfrontal",
+                   "ctx-both-superiorparietal", "ctx-both-superiortemporal", "ctx-both-supramarginal",
                    "ctx-both-transversetemporal", "ctx-both-insula"
                    ]
 
-CLASS_NAMES = ["Left-Cerebral-White-Matter", "Left-Lateral-Ventricle",	"Left-Inf-Lat-Vent",
-               "Left-Cerebellum-White-Matter",	"Left-Cerebellum-Cortex",	"Left-Thalamus-Proper",
-               "Left-Caudate",	"Left-Putamen",	"Left-Pallidum",	"3rd-Ventricle",	"4th-Ventricle",
-               "Brain-Stem",	"Left-Hippocampus",	"Left-Amygdala",	"CSF",	"Left-Accumbens-area",
-               "Left-VentralDC",	"Left-choroid-plexus",	"Right-Cerebral-White-Matter",
-               "Right-Lateral-Ventricle",	"Right-Inf-Lat-Vent",	"Right-Cerebellum-White-Matter",
-               "Right-Cerebellum-Cortex",	"Right-Thalamus-Proper",	"Right-Caudate",	"Right-Putamen",
-               "Right-Pallidum",	"Right-Hippocampus",	"Right-Amygdala",	"Right-Accumbens-area",
-               "Right-VentralDC",	"Right-choroid-plexus",	"WM-hypointensities",	"ctx-lh-caudalanteriorcingulate",
-               "ctx-both-caudalmiddlefrontal",	"ctx-lh-cuneus",	"ctx-both-entorhinal",	"ctx-both-fusiform",
-               "ctx-both-inferiorparietal",	"ctx-both-inferiortemporal",	"ctx-lh-isthmuscingulate",
-               "ctx-both-lateraloccipital",	"ctx-lh-lateralorbitofrontal",	"ctx-lh-lingual",
-               "ctx-lh-medialorbitofrontal",	"ctx-both-middletemporal",	"ctx-lh-parahippocampal",
-               "ctx-lh-paracentral",	"ctx-both-parsopercularis",	"ctx-both-parsorbitalis",
-               "ctx-both-parstriangularis",	"ctx-lh-pericalcarine",	"ctx-lh-postcentral",
-               "ctx-lh-posteriorcingulate",	"ctx-lh-precentral",	"ctx-lh-precuneus",
-               "ctx-both-rostralanteriorcingulate",	"ctx-both-rostralmiddlefrontal", "ctx-lh-superiorfrontal",
-               "ctx-both-superiorparietal",	"ctx-both-superiortemporal", "ctx-both-supramarginal",
-               "ctx-both-transversetemporal", "ctx-both-insula",	"ctx-rh-caudalanteriorcingulate",
-               "ctx-rh-cuneus",	"ctx-rh-isthmuscingulate", "ctx-rh-lateralorbitofrontal", "ctx-rh-lingual",
+CLASS_NAMES = ["Left-Cerebral-White-Matter", "Left-Lateral-Ventricle", "Left-Inf-Lat-Vent",
+               "Left-Cerebellum-White-Matter", "Left-Cerebellum-Cortex", "Left-Thalamus-Proper",
+               "Left-Caudate", "Left-Putamen", "Left-Pallidum", "3rd-Ventricle", "4th-Ventricle",
+               "Brain-Stem", "Left-Hippocampus", "Left-Amygdala", "CSF", "Left-Accumbens-area",
+               "Left-VentralDC", "Left-choroid-plexus", "Right-Cerebral-White-Matter",
+               "Right-Lateral-Ventricle", "Right-Inf-Lat-Vent", "Right-Cerebellum-White-Matter",
+               "Right-Cerebellum-Cortex", "Right-Thalamus-Proper", "Right-Caudate", "Right-Putamen",
+               "Right-Pallidum", "Right-Hippocampus", "Right-Amygdala", "Right-Accumbens-area",
+               "Right-VentralDC", "Right-choroid-plexus", "WM-hypointensities", "ctx-lh-caudalanteriorcingulate",
+               "ctx-both-caudalmiddlefrontal", "ctx-lh-cuneus", "ctx-both-entorhinal", "ctx-both-fusiform",
+               "ctx-both-inferiorparietal", "ctx-both-inferiortemporal", "ctx-lh-isthmuscingulate",
+               "ctx-both-lateraloccipital", "ctx-lh-lateralorbitofrontal", "ctx-lh-lingual",
+               "ctx-lh-medialorbitofrontal", "ctx-both-middletemporal", "ctx-lh-parahippocampal",
+               "ctx-lh-paracentral", "ctx-both-parsopercularis", "ctx-both-parsorbitalis",
+               "ctx-both-parstriangularis", "ctx-lh-pericalcarine", "ctx-lh-postcentral",
+               "ctx-lh-posteriorcingulate", "ctx-lh-precentral", "ctx-lh-precuneus",
+               "ctx-both-rostralanteriorcingulate", "ctx-both-rostralmiddlefrontal", "ctx-lh-superiorfrontal",
+               "ctx-both-superiorparietal", "ctx-both-superiortemporal", "ctx-both-supramarginal",
+               "ctx-both-transversetemporal", "ctx-both-insula", "ctx-rh-caudalanteriorcingulate",
+               "ctx-rh-cuneus", "ctx-rh-isthmuscingulate", "ctx-rh-lateralorbitofrontal", "ctx-rh-lingual",
                "ctx-rh-medialorbitofrontal", "ctx-rh-parahippocampal", "ctx-rh-paracentral",
-               "ctx-rh-pericalcarine",	"ctx-rh-postcentral", "ctx-rh-posteriorcingulate", "ctx-rh-precentral",
+               "ctx-rh-pericalcarine", "ctx-rh-postcentral", "ctx-rh-posteriorcingulate", "ctx-rh-precentral",
                "ctx-rh-precuneus", "ctx-rh-superiorfrontal"]
 
 
@@ -116,8 +116,15 @@ def setup_options():
     parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train (default: 30)')
     parser.add_argument('--lr', type=float, default=1e-2, metavar='LR', help='learning rate (default: 0.01)')
     parser.add_argument('--decay', action="store_true", help="switch to decay learning rate")
-    parser.add_argument('--optim', type=str, default="adam", choices=["adam", "sgd"])
+    parser.add_argument('--optim', type=str, default="adam", choices=["adam", "sgd", "adamW"])
     parser.add_argument('--resume', action="store_true", default=False, help="Flag if resume is needed")
+    parser.add_argument('--torchv11', action="store_true", default=False,
+                        help="Flag if torch version below 1.2 is used."
+                             " Order of learning rate schedule update and optimizer step is changed between the versions.")
+    parser.add_argument('--scheduler', type=str, default="StepLR", choices=["StepLR", "None"],
+                        help="type of learning rate scheduler to use. Default: StepLR")
+    parser.add_argument('--momentum', type=float, default=0.9, help='Momentum for optimizer (SGD).')
+    parser.add_argument('--nesterov', action='store_true', default=False, help='Enables Nesterov for optimizer (SGD)')
 
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
@@ -152,7 +159,7 @@ def train():
 
     # Define augmentations
     transform_train = transforms.Compose([AugmentationPadImage(pad_size=8), AugmentationRandomCrop(output_size=256),
-                                         ToTensor()])
+                                          ToTensor()])
     transform_test = transforms.Compose([ToTensor()])
 
     # Prepare and load data
@@ -188,11 +195,31 @@ def train():
     else:
         curr_labels = CLASS_NAMES
 
+    # optimizer selection
+    if args.optim == "sgd":
+        optim = torch.optim.SGD
+
+        # Global optimization parameters for adam
+        default_optim_args = {"lr": args.lr,
+                              "momentum": args.momentum,
+                              "dampening": 0,
+                              "weight_decay": 0,
+                              "nesterov": args.nesterov}
+    else:
+        optim = torch.optim.Adam
+
+        # Global optimization parameters for adam
+        default_optim_args = {"lr": args.lr,
+                              "betas": (0.9, 0.999),
+                              "eps": 1e-8,
+                              "weight_decay": 0.01}
+
     # Run network
-    solver = Solver(num_classes=params_network["num_classes"], optimizer_args={"lr": args.lr})
+    solver = Solver(num_classes=params_network["num_classes"], optimizer_args=default_optim_args, optimizer=optim)
     solver.train(model, train_dataloader, None, validation_dataloader, class_names=curr_labels, num_epochs=args.epochs,
                  log_params={'logdir': args.log_dir + "logs", 'log_iter': args.log_interval, 'logger': logger},
-                 expdir=args.log_dir + "ckpts", resume=args.resume)
+                 expdir=args.log_dir + "ckpts", scheduler_type=args.scheduler, torch_v11=args.torchv11,
+                 resume=args.resume)
 
 
 if __name__ == "__main__":

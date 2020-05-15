@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,7 +81,6 @@ def iou_score(pred_cls, true_cls, nclass=79):
     union_ = []
 
     for i in range(1, nclass):
-
         intersect = ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
         union = ((pred_cls == i).float() + (true_cls == i).float()).ge(1).sum().item()
         intersect_.append(intersect)
@@ -104,7 +102,6 @@ def accuracy(pred_cls, true_cls, nclass=79):
     tpos = []
 
     for i in range(1, nclass):
-
         true_positive = ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
         tpos.append(true_positive)
         per_cls_counts.append(positive[i])
@@ -201,12 +198,6 @@ class Solver(object):
     """
     Class for training neural networks
     """
-    # Global optimization parameters
-
-    default_optim_args = {"lr": 1e-2,
-                          "betas": (0.9, 0.999),
-                          "eps": 1e-8,
-                          "weight_decay": 0.0001}
 
     # gamma is the factor for lowering the lr and step_size is when it gets lowered
     default_lr_scheduler_args = {"gamma": 0.05,
@@ -215,11 +206,8 @@ class Solver(object):
     def __init__(self, num_classes, optimizer=torch.optim.Adam, optimizer_args={}, loss_func=CombinedLoss(),
                  lr_scheduler_args={}):
 
-        optimizer_args_merged = Solver.default_optim_args.copy()
-        optimizer_args_merged.update(optimizer_args)
-
         # Merge and update the default arguments - optimizer
-        self.optimizer_args = optimizer_args_merged
+        self.optimizer_args = optimizer_args
 
         lr_scheduler_args_merged = Solver.default_lr_scheduler_args.copy()
         lr_scheduler_args_merged.update(lr_scheduler_args)
@@ -233,7 +221,7 @@ class Solver(object):
         self.classes = list(range(self.num_classes))
 
     def train(self, model, train_loader, train_loader_test, validation_loader, class_names, num_epochs,
-              log_params, expdir, resume=True):
+              log_params, expdir, scheduler_type, torch_v11, resume=True):
         """
         Train Model with provided parameters for optimization
         Inputs:
@@ -252,8 +240,11 @@ class Solver(object):
         optimizer = self.optimizer(model.parameters(), **self.optimizer_args)
 
         # Instantiate the scheduler class
-        scheduler = lr_scheduler.StepLR(optimizer, step_size=self.lr_scheduler_args["step_size"],
-                                        gamma=self.lr_scheduler_args["gamma"])
+        if scheduler_type == "StepLR":
+            scheduler = lr_scheduler.StepLR(optimizer, step_size=self.lr_scheduler_args["step_size"],
+                                            gamma=self.lr_scheduler_args["gamma"])
+        else:
+            scheduler = None
 
         # Set up logger format
         a = "{}\t" * (self.num_classes - 2) + "{}"
@@ -290,8 +281,9 @@ class Solver(object):
             epoch = epoch + 1
             epoch_start = time.time()
 
-            # Update learning rate based on epoch number
-            scheduler.step()
+            # Update learning rate based on epoch number (only for pytorch version <1.2)
+            if torch_v11 and scheduler is not None:
+                scheduler.step()
 
             loss_batch = np.zeros(1)
 
@@ -323,14 +315,18 @@ class Solver(object):
 
                 loss_batch += loss_total.item()
 
-                if batch_idx % (len(train_loader)//2) == 0 or batch_idx == len(train_loader)-1:
+                if batch_idx % (len(train_loader) // 2) == 0 or batch_idx == len(train_loader) - 1:
                     log_params["logger"].info("Train Epoch: {} [{}/{}] ({:.0f}%)] "
                                               "with loss: {}".format(epoch, batch_idx,
                                                                      len(train_loader),
-                                                                     100. * batch_idx/len(train_loader),
-                                                                     loss_batch / (batch_idx+1)))
+                                                                     100. * batch_idx / len(train_loader),
+                                                                     loss_batch / (batch_idx + 1)))
 
                 del images_batch, labels_batch, weights_batch, predictions, loss_total, loss_dice, loss_ce
+
+            # Update learning rate at the end based on epoch number (only for pytorch version > 1.1)
+            if not torch_v11 and scheduler is not None:
+                scheduler.step()
 
             epoch_finish = time.time() - epoch_start
 
@@ -344,11 +340,11 @@ class Solver(object):
             val_loss_total = 0
             val_loss_dice = 0
             val_loss_ce = 0
-            count = 0
-            ints_ = np.zeros(self.num_classes-1)
-            unis_ = np.zeros(self.num_classes-1)
-            per_cls_counts = np.zeros(self.num_classes-1)
-            accs = np.zeros(self.num_classes-1)  # -1 to exclude background (still included in val loss)
+
+            ints_ = np.zeros(self.num_classes - 1)
+            unis_ = np.zeros(self.num_classes - 1)
+            per_cls_counts = np.zeros(self.num_classes - 1)
+            accs = np.zeros(self.num_classes - 1)  # -1 to exclude background (still included in val loss)
 
             with torch.no_grad():
 
@@ -438,7 +434,6 @@ class Solver(object):
                         tpos, pcc = accuracy(batch_output, labels_batch, self.num_classes)
                         accs += tpos
                         per_cls_counts += pcc
-                        count += images_batch.size()[0]
 
                         _, cm_batch = dice_confusion_matrix(batch_output, labels_batch, self.num_classes)
                         cnf_matrix_validation += cm_batch.cpu()
@@ -483,10 +478,12 @@ class Solver(object):
             # Saving Models
 
             if epoch % log_params["log_iter"] == 0:
-
                 save_name = os.path.join(expdir, 'Epoch_' + str(epoch).zfill(2) + '_training_state.pkl')
                 checkpoint = {"model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
-                              "scheduler_state_dict": scheduler.state_dict(), "epoch": epoch}
+                              "epoch": epoch}
+                if scheduler is not None:
+                    checkpoint["scheduler_state_dict"] = scheduler.state_dict()
+
                 torch.save(checkpoint, save_name)
 
             model.train()
