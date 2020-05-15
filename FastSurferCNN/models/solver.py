@@ -105,7 +105,7 @@ def accuracy(pred_cls, true_cls, nclass=79):
 
     for i in range(1, nclass):
 
-        true_positive = ((pred_cls == i) + (true_cls == i)).eq(2).sum().item()
+        true_positive = ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
         tpos.append(true_positive)
         per_cls_counts.append(positive[i])
 
@@ -458,9 +458,9 @@ class Solver(object):
                     # Get final measures and log them
                     ious = ints_ / unis_
                     accs /= per_cls_counts
-                    val_loss_total /= count
-                    val_loss_dice /= count
-                    val_loss_ce /= count
+                    val_loss_total /= (batch_idx + 1)
+                    val_loss_dice /= (batch_idx + 1)
+                    val_loss_ce /= (batch_idx + 1)
                     cnf_matrix_validation = cnf_matrix_validation / (batch_idx + 1)
                     val_end = time.time() - val_start
 
