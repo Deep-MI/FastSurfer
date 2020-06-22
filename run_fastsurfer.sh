@@ -48,7 +48,7 @@ function usage()
               (ii) surfaces, thickness etc as a FS subject dir using recon-surf"
     echo ""
     echo "./run_fastsurfer.sh"
-    echo -e "\t--fs_license <freesurfer_license_file  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
+    echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
     echo -e "\t--sid <subjectID>                      Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
