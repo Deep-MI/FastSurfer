@@ -27,7 +27,7 @@ fssurfreg=0;  # run FS surface registration to fsaverage, if 0 omit this step
 
 timecmd="fs_time"
 binpath="./"
-python="python36"
+python="python3.6"
 DoParallel=0
 threads="1"
 
@@ -49,6 +49,7 @@ function usage()
     echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
     echo -e "\t--dev                         Switch on usage of dev-version for FreeSurfer"
     echo -e "\t--py <python_cmd>             Command for python, default 'python36'"
+    echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
     echo -e "\t-h --help                     Print Help"
     echo ""
 }
@@ -198,6 +199,11 @@ case $key in
     ;;
     --py)
     python="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --fs_license)
+    export FS_LICENSE="$2"
     shift # past argument
     shift # past value
     ;;
