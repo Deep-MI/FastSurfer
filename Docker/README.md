@@ -106,3 +106,31 @@ docker run -v /home/user/my_mri_data:/data \
 ```
 
 Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
+
+### Build CPU FastSurfer recon-surf container (surface pipeline only)
+
+In order to build the docker image for FastSurfer recon-surf (surface pipeline only, segmentation needs to exist already!) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
+
+```bash
+cd ..
+docker build -t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf .
+```
+
+For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
+```bash
+docker run -v /home/user/my_mri_data:/data \
+           -v /home/user/my_fastsurfer_analysis:/output \
+           -v /home/user/my_fs_license_dir:/fs60 \
+           --rm --user XXXX fastsurfer_reconsurf:cpu \
+           --fs_license /fs60/.license \
+           --t1 /data/subject2/orig.mgz \
+           --seg /output/subject2/mri/aparc.DKTatlas+aseg.deep.mgz \
+           --sid subject2 --sd /output \
+           --mc --qspec --nofsaparc --parallel
+```
+
+* The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
+* The --rm flag takes care of removing the container once the analysis finished. 
+* Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
+
+All other flags are identical to the ones explained on the main page (on directory up).
