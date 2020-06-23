@@ -455,7 +455,12 @@ else
     cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
     RunIt "$cmd" $LF $CMDF
 
+    # Marching cube does not return filename and wrong volume info!
     cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $sdir/$hemi.orig.nofix"
+    RunIt "$cmd" $LF $CMDF
+
+    # Rewrite surface orig.nofix to fix vertex locs bug (scannerRAS instead of surfaceRAS set with mc)
+    cmd="$python rewrite_mc_surface.py --input $sdir/$hemi.orig.nofix --output $sdir/$hemi.orig.nofix --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
     RunIt "$cmd" $LF $CMDF
 
     # Reduce to largest component (usually there should only be one)
