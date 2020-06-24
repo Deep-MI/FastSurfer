@@ -134,7 +134,7 @@ docker run -v /home/user/my_mri_data:/data \
            --sid subject2 --sd /output \
            --mc --qspec --nofsaparc --parallel
 ```
-
+* The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
 * The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
 * The --rm flag takes care of removing the container once the analysis finished. 
 * Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
