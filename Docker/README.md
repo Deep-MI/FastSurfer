@@ -1,6 +1,12 @@
 # FastSurfer Docker image creation
 
-Within this directory we currently provide four different Dockerfiles that are set up for running either the whole FastSurfer pipeline (FastSurferCNN + recon-surf) or only the segmentation network (FastSurferCNN) on the GPU or CPU. 
+Within this directory we currently provide five different Dockerfiles that are set up for running: 
+
+* the whole FastSurfer pipeline (FastSurferCNN + recon-surf, Example 1 (GPU) and 2 (CPU))
+* only the segmentation network (FastSurferCNN, Example 3 (GPU) and 4 (CPU))
+* only the surface pipeline (recon-surf, Example 5 (CPU))
+
+In order to run the whole FastSurfer pipeline or the surface part, you need you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
 
 ### Example 1: Build GPU FastSurfer container (default)
 
@@ -56,7 +62,7 @@ docker run -v /home/user/my_mri_data:/data \
 
 As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
 
-### Build GPU FastSurferCNN container (segmentation only)
+### Example 3: Build GPU FastSurferCNN container (segmentation only)
 
 In order to build the docker image for FastSurferCNN (segmentation only; on GPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
@@ -84,7 +90,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 
 All other flags are identical to the ones explained on the main page (on directory up).
 
-### Build CPU FastSurferCNN container (segmentation only)
+### Example 4: Build CPU FastSurferCNN container (segmentation only)
 In order to build the docker image for FastSurferCNN (segmentation only; on CPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
@@ -107,7 +113,7 @@ docker run -v /home/user/my_mri_data:/data \
 
 Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
 
-### Build CPU FastSurfer recon-surf container (surface pipeline only)
+### Example 5: Build CPU FastSurfer recon-surf container (surface pipeline only)
 
 In order to build the docker image for FastSurfer recon-surf (surface pipeline only, segmentation needs to exist already!) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
