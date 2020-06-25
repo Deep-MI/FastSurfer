@@ -16,7 +16,7 @@ The *FastSurferCNN* and *recon_surf* directories contain all the source code and
 
 There are two ways to run FastSurfer - (a) locally or (b) using Docker. 
 
-(a) For a local version, download this github repository (use git clone or download as zip and unpack) for the necessary source code and python scripts. If you also have the necessary python libraries installed (see above), this is already enough to generate the whole-brain segmentation using FastSurferCNN (see the README.md in the FastSurferCNN directory for the exact commands). In order to run the whole FastSurfer pipeline locally on your machine, a working version of __FreeSurfer__ (v6.0, https://surfer.nmr.mgh.harvard.edu/fswiki/rel6downloads) is needed (specifically to run recon-surf). See [Example 1](#example-1:-fastSurfer-on-subject1) and [Example 2](#example-2:-fastSurfer-on-multiple-subjects-(parallel-processing)) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) locally.
+(a) For a local version, download this github repository (use git clone or download as zip and unpack) for the necessary source code and python scripts. If you also have the necessary python libraries installed (see above), this is already enough to generate the whole-brain segmentation using FastSurferCNN (see the README.md in the FastSurferCNN directory for the exact commands). In order to run the whole FastSurfer pipeline locally on your machine, a working version of __FreeSurfer__ (v6.0, https://surfer.nmr.mgh.harvard.edu/fswiki/rel6downloads) is needed (specifically to run recon-surf), as well as some python packages (nibabel, torch, torchvision, scipy, scikit-image, h5py). See [Example 1](#example-1:-fastSurfer-on-subject1) and [Example 2](#example-2:-fastSurfer-on-multiple-subjects-(parallel-processing)) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) locally.
 
 (b) For a dockerized version, simply use the provided Dockerfiles in our Docker directory to build your image (see the README.md in the Docker directory). No other local installations are needed (FreeSurfer and everything else is already included). See [Example 3](#example-3:-fastSurfer-inside-docker) for a working example.
 
@@ -30,8 +30,8 @@ List them by running the following command:
 * --fs_license: Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far.
 * --sd: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * --sid: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
-* --t1: T1 full head input (not bias corrected). The network was trained with conformed images (UCHAR, 256x256x256, 1 mm voxels and standard slice orientation). These specifications are checked in the eval.py script and the image is automatically conformed if it does not comply.
-* --seg: Name and location of segmentation (where and under which name to store it)
+* --t1: T1 full head input (not bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 1 mm voxels and standard slice orientation). These specifications are checked in the eval.py script and the image is automatically conformed if it does not comply.
+* --seg: Global path with filename of segmentation (where and under which name to store it)
 
 ### Network specific arguments (optional)
 * --weights_sag: Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
