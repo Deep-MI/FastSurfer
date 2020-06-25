@@ -46,7 +46,7 @@ List them by running the following command:
 ### Surface pipeline arguments (optional)
 * --mc: Switch on marching cube for surface creation
 * --qspec: Switch on spectral spherical projection for qsphere
-* --nofsaparc: Skip FS aparc segmentations and ribbon for speedup
+* --nofsaparc: Skip FS aparc segmentations (faster, and usually the mapped ones are fine)
 * --surfreg: Run Surface registration with FreeSurfer (for cross-subject correspondence)
 * --parallel: Run both hemispheres in parallel
 * --threads: Set openMP and ITK threads to <int>
