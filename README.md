@@ -133,6 +133,12 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * The --rm flag takes care of removing the container once the analysis finished. 
 * The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
 
+## References
+
+If you use this for research publications, please cite:
+
+Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+
 ## Acknowledgements
 The recon-surf pipeline is largely based on FreeSurfer including the use of one binary (mris_make_surfaces) from the dev version. 
 https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferMethodsCitation
