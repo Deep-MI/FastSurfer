@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +15,10 @@
 
 # IMPORTS
 import optparse
-import os
 import sys
 import numpy as np
 import nibabel as nib
 import copy
-
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex lables back to left/right GM.
@@ -51,7 +48,7 @@ Date: Jul-24-2018
 
 """
 
-h_input  = 'path to input segmentation'
+h_input = 'path to input segmentation'
 h_output = 'path to ouput segmentation'
 h_outmask = 'path to ouput mask'
 
@@ -60,8 +57,9 @@ def options_parse():
     """
     Command line option parser for reduce_to_aseg.py
     """
-    parser = optparse.OptionParser(version='$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $', usage=HELPTEXT)
-    parser.add_option('--input',  '-i', dest='input_seg', help=h_input)
+    parser = optparse.OptionParser(version='$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $',
+                                   usage=HELPTEXT)
+    parser.add_option('--input', '-i', dest='input_seg', help=h_input)
     parser.add_option('--output', '-o', dest='output_seg', help=h_output)
     parser.add_option('--outmask', dest='output_mask', help=h_outmask)
     (options, args) = parser.parse_args()
@@ -72,80 +70,82 @@ def options_parse():
     return options
 
 
-
-def reduce_to_aseg(inseg):
+def reduce_to_aseg(data_inseg):
     print ("Reducing to aseg ...")
-    data = inseg.get_data()
     # replace 2000... with 42
-    data[data>= 2000] = 42
+    data_inseg[data_inseg >= 2000] = 42
     # replace 1000... with 3
-    data[data>=1000] = 3
-    return inseg
+    data_inseg[data_inseg >= 1000] = 3
+    return data_inseg
 
 
-def create_mask(aseg, dnum, enum):
+def create_mask(aseg_data, dnum, enum):
     from skimage.morphology import binary_dilation, binary_erosion
     from skimage.measure import label
     print ("Creating dilated mask ...")
-    data = aseg.get_data()
-    
+
     # treat lateral orbital frontal and parsorbitalis special to avoid capturing too much of eye nerve
-    lat_orb_front_mask = np.logical_or(data==2012, data==1012)
-    parsorbitalis_mask = np.logical_or(data==2019, data==1019)
+    lat_orb_front_mask = np.logical_or(aseg_data == 2012, aseg_data == 1012)
+    parsorbitalis_mask = np.logical_or(aseg_data == 2019, aseg_data == 1019)
     frontal_mask = np.logical_or(lat_orb_front_mask, parsorbitalis_mask)
-    print("Frontal region special treatment: ",format(np.sum(frontal_mask)))
-    
+    print("Frontal region special treatment: ", format(np.sum(frontal_mask)))
+
     # reduce to binary
-    datab = (data>0)
+    datab = (aseg_data > 0)
     datab[frontal_mask] = 0
     # dilate and erode
     for x in range(dnum):
-        datab = binary_dilation(datab,np.ones((3,3,3)))
+        datab = binary_dilation(datab, np.ones((3, 3, 3)))
     for x in range(enum):
-        datab = binary_erosion(datab,np.ones((3,3,3)))
+        datab = binary_erosion(datab, np.ones((3, 3, 3)))
+
     # extract largest component
     labels = label(datab)
-    assert( labels.max() != 0 ) # assume at least 1 real connected component
+    assert (labels.max() != 0)  # assume at least 1 real connected component
     print("  Found {} connected component(s)!".format(labels.max()))
-    if (labels.max() > 1):
+
+    if labels.max() > 1:
         print("  Selecting largest component!")
-        datab = (labels == np.argmax(np.bincount(labels.flat)[1:])+1)
-	
+        datab = (labels == np.argmax(np.bincount(labels.flat)[1:]) + 1)
+
     # add frontal regions back to mask
     datab[frontal_mask] = 1
-    
+
     # set mask
-    data[~datab] = 0
-    data[datab] = 1
-    return aseg
-    
+    aseg_data[~datab] = 0
+    aseg_data[datab] = 1
+    return aseg_data
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
     print("Reading in aparc+aseg: {} ...".format(options.input_seg))
     inseg = nib.load(options.input_seg)
-    
+    inseg_data = inseg.get_data()
+    inseg_header = inseg.header
+    inseg_affine = inseg.affine
+
+    # Change datatype to np.uint8
+    inseg_header.set_data_dtype(np.uint8)
+
     # get mask
     if options.output_mask:
-        bm = create_mask(copy.deepcopy(inseg),5,4)
-    
-    aseg = reduce_to_aseg(inseg)
-    aseg.set_data_dtype(np.uint8)
+        bm = create_mask(copy.deepcopy(inseg_data), 5, 4)
+        print ("Outputing mask: {}".format(options.output_mask))
+        mask = nib.MGHImage(bm, inseg_affine, inseg_header)
+        mask.to_filename(options.output_mask)
+
+    # reduce aparc to aseg and mask regions
+    aseg = reduce_to_aseg(inseg_data)
 
     if options.output_mask:
-        bm.set_data_dtype(np.uint8)
-        print ("Outputing mask: {}".format(options.output_mask))
-        nib.save(bm, options.output_mask)
-	# mask aseg also
-        data = aseg.get_data()
-        data[bm.get_data()==0] = 0
-	
+        # mask aseg also
+        aseg[bm == 0] = 0
+
     print ("Outputing aseg: {}".format(options.output_seg))
-    nib.save(aseg, options.output_seg)
+    aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
+    aseg_fin.to_filename(options.output_seg)
 
     sys.exit(0)
-
-
