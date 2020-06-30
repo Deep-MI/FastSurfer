@@ -45,18 +45,18 @@ Date: Jul-09-2019
 
 h_input = 'path to input image'
 h_output = 'path to ouput image'
-h_oder = 'order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)'
+h_order = 'order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)'
 
 
 def options_parse():
     """
-    Command line option parser for reduce_to_aparc.py
+    Command line option parser
     """
     parser = optparse.OptionParser(version='$Id: conform.py,v 1.0 2019/07/19 10:52:08 mreuter Exp $',
                                    usage=HELPTEXT)
     parser.add_option('--input', '-i', dest='input', help=h_input)
     parser.add_option('--output', '-o', dest='output', help=h_output)
-    parser.add_option('--order', dest='order', help=h_output, type="int", default=1)
+    parser.add_option('--order', dest='order', help=h_order, type="int", default=1)
     (fin_options, args) = parser.parse_args()
     if fin_options.input is None or fin_options.output is None:
         sys.exit('ERROR: Please specify input and output images')
