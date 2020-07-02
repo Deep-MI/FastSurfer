@@ -12,7 +12,7 @@ Within this repository, we provide the code and Docker files for running FastSur
 ![](/images/teaser.png)
 
 ## Usage
-The *FastSurferCNN* and *recon_surf* directories contain all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. 
+The *FastSurferCNN* and *recon_surf* directories contain all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. This should run on most modern linux systems with bash-4.0 or higher. 
 
 There are two ways to run FastSurfer - (a) locally or (b) using Docker. 
 
