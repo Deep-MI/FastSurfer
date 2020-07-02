@@ -1,6 +1,6 @@
 # Overview
 
-This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within 1  minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). It consists of two main parts:
+This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within 1 minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). It consists of two main parts:
 
 (i) FastSurferCNN - an advanced deep learning architecture capable of whole brain segmentation into 95 classes in under
 1 minute, mimicking FreeSurfer’s anatomical segmentation and cortical parcellation (DKTatlas)
@@ -12,13 +12,13 @@ Within this repository, we provide the code and Docker files for running FastSur
 ![](/images/teaser.png)
 
 ## Usage
-The *FastSurferCNN* and *recon_surf* directories contain all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. This should run on most modern linux systems with bash-4.0 or higher. 
+The *FastSurferCNN* and *recon_surf* directories contain all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. FastSurfer should run on most modern linux systems with bash-4.0 or higher. 
 
 There are two ways to run FastSurfer - (a) locally or (b) using Docker. 
 
-(a) For a local version, download this github repository (use git clone or download as zip and unpack) for the necessary source code and python scripts. If you also have the necessary python libraries installed (see above), this is already enough to generate the whole-brain segmentation using FastSurferCNN (see the README.md in the FastSurferCNN directory for the exact commands). In order to run the whole FastSurfer pipeline locally on your machine, a working version of __FreeSurfer__ (v6.0, https://surfer.nmr.mgh.harvard.edu/fswiki/rel6downloads) is needed (specifically to run recon-surf), as well as some python packages (nibabel, torch, torchvision, scipy, scikit-image, h5py). See [Example 1](#example-1:-fastSurfer-on-subject1) and [Example 2](#example-2:-fastSurfer-on-multiple-subjects-(parallel-processing)) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) locally.
+(a) For a __native install__, download this github repository (use git clone or download as zip and unpack) for the necessary source code and python scripts. If you also have the necessary python libraries installed (see above), this is already enough to generate the whole-brain segmentation using FastSurferCNN (see the README.md in the FastSurferCNN directory for the exact commands). In order to run the whole FastSurfer pipeline locally on your machine, a working version of __FreeSurfer__ (v6.0, https://surfer.nmr.mgh.harvard.edu/fswiki/rel6downloads) is needed (specifically to run recon-surf), as well as some python packages (nibabel, torch, torchvision, scipy, scikit-image, h5py). See [Example 1](#example-1:-fastSurfer-on-subject1) and [Example 2](#example-2:-fastSurfer-on-multiple-subjects-(parallel-processing)) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) locally.
 
-(b) For a dockerized version, simply use the provided Dockerfiles in our Docker directory to build your image (see the README.md in the Docker directory). No other local installations are needed (FreeSurfer and everything else is already included). See [Example 3](#example-3:-fastSurfer-inside-docker) for a working example.
+(b) For a __docker version__, simply use the provided Dockerfiles in our Docker directory to build your image (see the README.md in the Docker directory). No other local installations are needed (FreeSurfer and everything else will be included, you only need to provide a FreeSurfer license file). We will also make a Docker image available on Dockerhub in the near future (probably with the official release of version 1.0). See [Example 3](#example-3:-fastSurfer-inside-docker) for an example how to run FastSurfer inside a Docker container.
 
 The main script called __run_fastsurfer.sh__ can be used to run both FastSurferCNN and recon-surf sequentially on a given subject. There are a number of options which can be selected and set via the command line. 
 List them by running the following command:
