@@ -20,9 +20,9 @@ VERSION='$Id$'
 t1="";
 seg="";
 subject="";
-fstess=1;       # run mri_tesselate (FS way), if 0 = run mri_mc
-fsqsphere=1;    # run inflate1 and qsphere (FSway), if 0 run spectral projection
-fsaparc=1;	# run FS aparc (and cortical ribbon), if 0 map aparc from seg input
+fstess=0;       # run mri_tesselate (FS way), if 0 = run mri_mc
+fsqsphere=0;    # run inflate1 and qsphere (FSway), if 0 run spectral projection
+fsaparc=0;	# run FS aparc (and cortical ribbon), if 0 map aparc from seg input
 fssurfreg=0;  # run FS surface registration to fsaverage, if 0 omit this step
 
 timecmd="fs_time"
@@ -40,14 +40,13 @@ function usage()
     echo -e "\t--sid <subjectID>             Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>          Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>              T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>    Segmentation (similar to aparc+aseg)"
-    echo -e "\t--mc                          Switch on marching cube for surface creation"
-    echo -e "\t--qspec                       Switch on spectral spherical projection for qsphere"
-    echo -e "\t--nofsaparc                   Skip FS aparc segmentations and ribbon for speedup"
+    echo -e "\t--seg <segmentation_input>    Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
+    echo -e "\t--fstess                      Switch on mri_tesselate for surface creation (default: mri_mc)"
+    echo -e "\t--fsqsphere                   Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
+    echo -e "\t--fsaparc                     Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
     echo -e "\t--surfreg                     Run Surface registration with FreeSurfer (for cross-subject correspondence)"
     echo -e "\t--parallel                    Run both hemispheres in parallel"
     echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
-    echo -e "\t--dev                         Switch on usage of dev-version for FreeSurfer"
     echo -e "\t--py <python_cmd>             Command for python, default 'python36'"
     echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
     echo -e "\t-h --help                     Print Help"
@@ -168,16 +167,16 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --mc)
-    fstess=0
+    --fstess)
+    fstess=1
     shift # past argument
     ;;
-    --qspec)
-    fsqsphere=0
+    --fsqsphere)
+    fsqsphere=1
     shift # past argument
     ;;
-    --nofsaparc)
-    fsaparc=0
+    --fsaparc)
+    fsaparc=1
     shift # past argument
     ;;
     --surfreg)
@@ -193,17 +192,18 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --dev)
-    binpath=""
-    shift # past argument
-    ;;
     --py)
     python="$2"
     shift # past argument
     shift # past value
     ;;
     --fs_license)
-    export FS_LICENSE="$2"
+    if [ -f "$2" ]; then
+        export FS_LICENSE="$2"
+    else
+        echo "Provided FreeSurfer license file $2 could not be found. Make sure to provide the full path and name. Exiting..."
+        exit 1;
+    fi
     shift # past argument
     shift # past value
     ;;
@@ -232,6 +232,15 @@ then
   exit 1;
 fi
 
+if [ -z "$FREESURFER_HOME" ]
+then
+  echo "Did not find \$FREESURFER_HOME. A working version of FreeSurfer v6.0 is needed to run recon-surf locally."
+  echo "Make sure to export and source FreeSurfer before running recon-surf.sh: "
+  echo "export FREESURFER_HOME=/path/to/your/local/fs60"
+  echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
+  exit 1;
+fi
+
 if [ -z "$t1" ]
  then
   echo "ERROR: must supply T1 input (conformed, full head) via --t1"
@@ -247,8 +256,16 @@ fi
 
 if [ -z "$seg" ]
  then
-  echo "ERROR: must supply brain segmentation via --seg"
-  exit 1;
+    if [ -f "${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz" ]
+      then
+        # Set to default
+        seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+    else
+        # No segmentation found, exit with error
+        echo "ERROR: segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz)"
+        echo " or you must supply the absolute path and name via --seg."
+        exit 1;
+     fi
 fi
 
 if [ "$DoParallel" == "1" ]

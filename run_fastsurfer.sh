@@ -29,12 +29,13 @@ clean_seg=""
 cuda=""
 batch_size="16"
 order="1"
-mc=""
-qspec=""
-nofsaparc=""
+seg_only="0"
+surf_only="0"
+fstess=""
+fsqsphere=""
+fsaparc=""
 fssurfreg=""
 doParallel=""
-dev=""
 threads="1"
 python="python3.6"
 fastsurfercnndir="./FastSurferCNN"
@@ -52,7 +53,7 @@ function usage()
     echo -e "\t--sid <subjectID>                      Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Default: aparc.DKTatlas+aseg.deep.mgz. Requires an ABSOLUTE Path!"
+    echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
     echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN)"
     echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
@@ -61,13 +62,14 @@ function usage()
     echo -e "\t--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
     echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 16."
     echo -e "\t--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
-    echo -e "\t--mc                                   Switch on marching cube for surface creation"
-    echo -e "\t--qspec                                Switch on spectral spherical projection for qsphere"
-    echo -e "\t--nofsaparc                            Skip FS aparc segmentations and ribbon for speedup"
+    echo -e "\t--seg_only                             Run only FastSurferCNN (generate segmentation, do not run surface pipeline)"
+    echo -e "\t--surf_only                            Run surface pipeline only. The segmentation input has to exist already in this case."
+    echo -e "\t--fstess                               Switch on mri_tesselate for surface creation (default: mri_mc)"
+    echo -e "\t--fsqsphere                            Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
+    echo -e "\t--fsaparc                              Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
     echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondence)"
     echo -e "\t--parallel                             Run both hemispheres in parallel"
     echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
-    echo -e "\t--dev                                  Switch on if dev-version of FreeSurfer was sourced"
     echo -e "\t--py <python_cmd>                      Command for python, default 'python3.6'"
     echo -e "\t-h --help                              Print Help"
     echo ""
@@ -89,7 +91,12 @@ key="$1"
 
 case $key in
     --fs_license)
-    export FS_LICENSE="$2"
+    if [ -f "$2" ]; then
+        export FS_LICENSE="$2"
+    else
+        echo "Provided FreeSurfer license file $2 could not be found. Make sure to provide the full path and name. Exiting..."
+        exit 1;
+    fi
     shift # past argument
     shift # past value
     ;;
@@ -151,16 +158,24 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --mc)
-    mc="--mc"
+    --seg_only)
+    seg_only="1"
     shift # past argument
     ;;
-    --qspec)
-    qspec="--qspec"
+    --surf_only)
+    surf_only="1"
     shift # past argument
     ;;
-    --nofsaparc)
-    nofsaparc="--nofsaparc"
+    --fstess)
+    fstess="--fstess"
+    shift # past argument
+    ;;
+    --fsqsphere)
+    fsqsphere="--fsqsphere"
+    shift # past argument
+    ;;
+    --fsaparc)
+    fsaparc="--fsaparc"
     shift # past argument
     ;;
     --surfreg)
@@ -175,10 +190,6 @@ case $key in
     threads="$2"
     shift # past argument
     shift # past value
-    ;;
-    --dev)
-    dev="--dev"
-    shift # past argument
     ;;
     --py)
     python="$2"
@@ -213,27 +224,45 @@ fi
 
 if [ -z "$seg" ]
  then
-  echo "ERROR: must supply output path + name to brain segmentation via --seg"
-  exit 1;
+  seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
+if [ "$surf_only" == "1" ] && [ ! -f "$seg" ]
+  then
+    echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
+    echo "You passed --surf_only but the whole-brain segmentation ($seg) could not be found."
+    echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --seg"
+    exit 1;
+fi
+
+if [ "$surf_only" == "1" ] && [ "$seg_only" == "1" ]
+  then
+      echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
+      echo "To run the whole FastSurfer pipeline, omit both flags."
+      exit 1;
+fi
 ########################################## START ########################################################
 
 
-# "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
-# use FastSurferCNN to create cortical parcellation + anatomical segmentation into 93 classes.
-pushd $fastsurfercnndir
-cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg $cuda"
-echo $cmd |& tee -a $seg_log
-$cmd |& tee -a $seg_log
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-popd
+if [ "$surf_only" == "0" ]; then
+  # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
+  # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 93 classes.
+  pushd $fastsurfercnndir
+  cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg $cuda"
+  echo $cmd |& tee -a $seg_log
+  $cmd |& tee -a $seg_log
+  if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+  popd
+fi
 
-# ============= Running recon-surf (surfaces, thickness etc.) ===============
-# use recon-surf to create surface models based on the FastSurferCNN segmentation.
-pushd $reconsurfdir
-cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $mc $qspec $nofsaparc $fssurfreg $doParallel $dev --threads $threads --py $python"
-$cmd
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-popd
+if [ "$seg_only" == "0" ]; then
+  # ============= Running recon-surf (surfaces, thickness etc.) ===============
+  # use recon-surf to create surface models based on the FastSurferCNN segmentation.
+  pushd $reconsurfdir
+  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
+  $cmd
+  if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+  popd
+fi
+
 ########################################## End ########################################################
