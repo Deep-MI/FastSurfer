@@ -21,19 +21,18 @@ List them by running the following command:
 * --sd: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * --sid: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
 * --t1: T1 full head input (not bias corrected). 
-* --seg: Name and location of segmentation (where and under which name to store it)
 
 ### Optional arguments
-* --mc: Switch on marching cube for surface creation (otherwise tesselate is used)
-* --qspec: Switch on spectral spherical projection for qsphere (otherwise qsphere is used)
-* --nofsaparc: Skip FS aparc segmentations and ribbon for speedup
+* --seg: Global path with filename of segmentation (where and under which name to find it, must already exist). Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+* --fstess: Use mri_tesselate instead of marching cube (default) for surface creation
+* --fsqsphere: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
+* --fsaparc: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
 * --surfreg: Run Surface registration with FreeSurfer (for cross-subject correspondance)
 * --parallel: Run both hemispheres in parallel
 * --threads: Set openMP and ITK threads to <int>
 
 ### Other
 * --py: which python version to use. Default: python3.6
-* --dev: Flag to set if FreeSurfer dev-version is used
 
 ### Example 1: recon-surf on a single subject (subject1)
 
@@ -53,9 +52,7 @@ targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_
 # Run recon-surf
 ./recon-surf.sh --sid subject1 \
                 --sd $targetdir \
-                --t1 $datadir/subject1/orig.mgz \
-                --seg $segdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                --mc --qspec --nofsaparc \
+                --t1 $datadir/subject1/orig.mgz 
                 --py python3.6
 
 ```
@@ -85,7 +82,7 @@ segdir=/home/user/my_segmentation_data
 targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_DIR
 
 # Create log directory (optional)
-mkdir $targetdir/logs
+mkdir -p $targetdir/logs
 
 # Run recon-surf
 while read p ; do
@@ -93,8 +90,6 @@ while read p ; do
   nohup ./recon-surf.sh --sid ${p} \
                         --sd $targetdir \
                         --t1 $datadir/${p}/orig.mgz \
-                        --seg $segdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                        --mc --qspec --nofsaparc \
                         --py python3.6 > $targetdir/logs/out-${p}.log &
   sleep 3 
 done < /home/user/my_mri_data/subject_list.txt
