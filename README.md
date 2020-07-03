@@ -25,13 +25,15 @@ List them by running the following command:
 ```
 
 ### Required arguments
-* --fs_license: Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far.
 * --sd: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * --sid: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
 * --t1: T1 full head input (not bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 1 mm voxels and standard slice orientation). These specifications are checked in the eval.py script and the image is automatically conformed if it does not comply.
-* --seg: Global path with filename of segmentation (where and under which name to store it)
+
+### Requiered for docker
+* --fs_license: Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far. Strictly necessary if you use Docker, optional for local install (your local FreeSurfer license will automatically be used)
 
 ### Network specific arguments (optional)
+* --seg: Global path with filename of segmentation (where and under which name to store it). Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * --weights_sag: Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
 * --weights_ax: Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
 * --weights_cor: Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
@@ -42,19 +44,20 @@ List them by running the following command:
 * --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
 
 ### Surface pipeline arguments (optional)
-* --mc: Switch on marching cube for surface creation
-* --qspec: Switch on spectral spherical projection for qsphere
-* --nofsaparc: Skip FS aparc segmentations (faster, and usually the mapped ones are fine)
+* --fstess: Use mri_tesselate instead of marching cube (default) for surface creation
+* --fsqsphere: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
+* --fsaparc: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
 * --surfreg: Run Surface registration with FreeSurfer (for cross-subject correspondence)
 * --parallel: Run both hemispheres in parallel
 * --threads: Set openMP and ITK threads to <int>
 
 ### Other
 * --py: which python version to use. Default: python3.6
-* --dev: Flag to set if FreeSurfer dev version is used
+* --seg_only: only run FastSurferCNN (generate segmentation, do not run the surface pipeline)
+* --surf_only: only run the surface pipeline recon_surf. The segmentation created by FastSurferCNN must already exist in this case.
     
 
-### Example 1: FastSurfer on subject1
+### Example 1: FastSurfer on subject1 (with parallel processing of hemis)
 
 Given you want to analyze data for subject1 which is stored on your computer under /home/user/my_mri_data/subject1/orig.mgz, run the following command from the console (do not forget to source FreeSurfer!):
 
@@ -68,16 +71,14 @@ datadir=/home/user/my_mri_data
 fastsurferdir=/home/user/my_fastsurfer_analysis
 
 # Run FastSurfer
-./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license \
-                    --t1 $datadir/subject1/orig.mgz \
-                    --seg $fastsurferdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
                     --sid subject1 --sd $fastsurferdir \
-                    --mc --qspec --nofsaparc --parallel --threads 4
+                    --parallel --threads 4
 ```
 
-The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation).
+The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subject1/mri (default location)). Processing of the hemispheres will be run in parallel (--parallel flag). Omit this flag to run the processing sequentially.
 
-### Example 2: FastSurfer on multiple subjects (parallel processing)
+### Example 2: FastSurfer on multiple subjects
 
 In order to run FastSurfer on a number of cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line per line:
 subject1\n
@@ -95,21 +96,18 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 cd /home/user/FastSurfer
 datadir=/home/user/my_mri_data
 fastsurferdir=/home/user/my_fastsurfer_analysis
-mkdir $fastsurferdir/logs # create log dir for storing nohup output log (optional)
+mkdir -p $fastsurferdir/logs # create log dir for storing nohup output log (optional)
 
 while read p ; do
   echo $p
-  nohup ./run_fastsurfer.sh --fs_license /path/to/freesurfer/fs60/.license \
-                            --t1 $datadir/$p/orig.mgz \
-                            --seg $fastsurferdir/$p/aparc.DKTatlas+aseg.deep.mgz \
-                            --sid $p --sd $fastsurferdir \
-                            --mc --qspec --nofsaparc > $fastsurferdir/logs/out-${p}.log &
+  nohup ./run_fastsurfer.sh --t1 $datadir/$p/orig.mgz 
+                            --sid $p --sd $fastsurferdir > $fastsurferdir/logs/out-${p}.log &
   sleep 90s 
 done < ./data/subjects_list.txt
 ```
 
 ### Example 3: FastSurfer inside Docker
-After building the Docker (see instructions in ./Docker/README.md), you do not need to have a separate installation of FreeSurfer on your computer (included in the Docker). However, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free).
+After building the Docker (see instructions in ./Docker/README.md), you do not need to have a separate installation of FreeSurfer on your computer (included in the Docker). However, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free). This license need to be passed to the script via the --fs_license flag.
 
 To run FastSurfer on a given subject using the provided Docker, execute the following command:
 
@@ -120,9 +118,8 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --rm --user XXXX fastsurfer:gpu \
                       --fs_license /fs60/.license \
                       --t1 /data/subject2/orig.mgz \
-                      --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
                       --sid subject2 --sd /output \
-                      --mc --qspec --nofsaparc --parallel
+                      --parallel
 ```
 
 * The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
