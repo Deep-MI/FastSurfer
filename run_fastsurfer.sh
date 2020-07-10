@@ -30,6 +30,8 @@ cuda=""
 batch_size="16"
 order="1"
 seg_only="0"
+seg_cc=""
+vol_segstats=""
 surf_only="0"
 fstess=""
 fsqsphere=""
@@ -63,7 +65,9 @@ function usage()
     echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 16."
     echo -e "\t--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
     echo -e "\t--seg_only                             Run only FastSurferCNN (generate segmentation, do not run surface pipeline)"
+    echo -e "\t--seg_with_cc_only                     Run FastSurferCNN (generate segmentation) and recon_surf until corpus callosum (CC) is added in (no surface models will be created in this case!)"
     echo -e "\t--surf_only                            Run surface pipeline only. The segmentation input has to exist already in this case."
+    echo -e "\t--vol_segstats                         Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces). Can be used in combination with --seg_only in which case recon-surf only runs till CC is added (akin to --seg_with_cc_only)."
     echo -e "\t--fstess                               Switch on mri_tesselate for surface creation (default: mri_mc)"
     echo -e "\t--fsqsphere                            Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
     echo -e "\t--fsaparc                              Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
@@ -162,8 +166,16 @@ case $key in
     seg_only="1"
     shift # past argument
     ;;
+    --seg_with_cc_only)
+    seg_cc="--seg_with_cc_only"
+    shift # past argument
+    ;;
     --surf_only)
     surf_only="1"
+    shift # past argument
+    ;;
+    --vol_segstats)
+    vol_segstats="--vol_segstats"
     shift # past argument
     ;;
     --fstess)
@@ -246,13 +258,27 @@ if [ "$surf_only" == "1" ] && [ "$seg_only" == "1" ]
       echo "To run the whole FastSurfer pipeline, omit both flags."
       exit 1;
 fi
+
+if [ "$seg_only" == "1" ] && [ ! -z "$vol_segstats" ]
+  then
+    seg_cc="--seg_with_cc_only"
+    seg_only=0
+    echo "You requested segstats without running the surface pipeline. In this case, recon-surf will"
+    echo "run until the corpus callsoum is added to the segmentation and the norm.mgz is generated "
+    echo "(needed for partial volume correction). "
+    echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
+fi
 ########################################## START ########################################################
 
 
 if [ "$surf_only" == "0" ]; then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
-  # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 93 classes.
+  # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
   mkdir -p "$(dirname "$seg_log")"
+  echo "Log file for fastsurfercnn eval.py" > $seg_log
+  date  |& tee -a $seg_log
+  echo "" |& tee -a $seg_log
+
   pushd $fastsurfercnndir
   cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg $cuda"
   echo $cmd |& tee -a $seg_log
@@ -265,7 +291,7 @@ if [ "$seg_only" == "0" ]; then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd $reconsurfdir
-  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
+  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
   $cmd
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   popd

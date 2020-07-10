@@ -20,6 +20,8 @@ VERSION='$Id$'
 t1="";
 seg="";
 subject="";
+seg_cc=0; # if 1, run pipeline only till corpus callosum is added (no surfaces will be created)
+vol_segstats=0; # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0;       # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0;    # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0;	# run FS aparc (and cortical ribbon), if 0 map aparc from seg input
@@ -41,6 +43,8 @@ function usage()
     echo -e "\t--sd  <subjects_dir>          Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>              T1 full head input (not bias corrected)"
     echo -e "\t--seg <segmentation_input>    Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
+    echo -e "\t--seg_with_cc_only            Run recon_surf until corpus callosum is added in (no surface models will be created in this case!)"
+    echo -e "\t--vol_segstats                Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces)."
     echo -e "\t--fstess                      Switch on mri_tesselate for surface creation (default: mri_mc)"
     echo -e "\t--fsqsphere                   Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
     echo -e "\t--fsaparc                     Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
@@ -166,6 +170,14 @@ case $key in
     seg="$2"
     shift # past argument
     shift # past value
+    ;;
+    --seg_with_cc_only)
+    seg_cc=1
+    shift # past argument
+    ;;
+    --vol_segstats)
+    vol_segstats=1
+    shift # past argument
     ;;
     --fstess)
     fstess=1
@@ -425,10 +437,32 @@ RunIt "$cmd" $LF
 popd
 
 
-# create aseg.auto including cc segmentation 46 sec: (not sure if this is needed), requries norm.mgz
+# create aseg.auto including cc segmentation and add cc into aparc.DKTatlas+aseg.deep; 46 sec: (not sure if this is needed), requires norm.mgz
 cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
 RunIt "$cmd" $LF
 
+cmd="$python paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $seg -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
+RunIt "$cmd" $LF
+
+if [ "$vol_segstats" == "1" ]
+  # Calculate volume-based segstats for deep learning prediction (with CC, requires norm.mgz as invol)
+then
+    cmd="mri_segstats --seg $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz --sum $mdir/../stats/aparc.DKTatlas+aseg.deep.volume.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --id 2, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63, 77, 251, 252, 253, 254, 255, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2034, 2035 --ctab /$FREESURFER_HOME/FreeSurferColorLUT.txt --subject $subject"
+    RunIt "$cmd" $LF
+fi
+
+if [ "$seg_cc" == "1" ]
+  # stop workflow at this point (only segmentation with corpus callosum was requested, surface models will be skipped.
+then
+    echo " " |& tee -a $LF
+    echo "User requested segmentation only (with Corpus Callosum and/or vol segstats)." |& tee -a $LF
+    echo "Therefore, pipeline finishes at this point. No surfaces will be created." |& tee -a $LF
+    echo "================= DONE =========================================================" |& tee -a $LF
+    echo " " |& tee -a $LF
+    echo "recon-surf.sh $subject finished without error at `date`"  |& tee -a $LF
+    echo " " |& tee -a $LF
+    exit 0;
+fi
 
 echo " " |& tee -a $LF
 echo "========= Creating filled from brain (brainfinalsurfs, wm.asegedit, wm)  =======" |& tee -a $LF
