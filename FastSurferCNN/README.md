@@ -16,7 +16,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * --t: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*...)
 * --o_dir: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
 * --out_name: name of the prediction (__default: aparc.DKTatlas+aseg.deep.mgz__)
-* --log: name of log-file (information about processing is stored here; __default: deep_surfer.log__). Saved in the same directory as the predictions.
+* --log: name of log-file (information about processing is stored here; __default: deep-seg.log__). Saved in the same directory as the predictions.
 * --order: order of interpolation (0=nearest,__1=linear(default)__, 2=quadratic, 3=cubic) for conformation (if not already done).
 
 #### Checkpoints

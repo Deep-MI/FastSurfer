@@ -117,8 +117,8 @@ def options_parse():
     parser.add_option('--t', '--tag', dest='search_tag', default="*",
                       help='Search tag to process only certain subjects. If a single image should be analyzed, set the '
                            'tag with its id. Default: processes all.')
-    parser.add_option('--log', dest='logfile', help='name of log-file. Default: deep_surfer.log',
-                      default='deep_surfer.log')
+    parser.add_option('--log', dest='logfile', help='name of log-file. Default: deep-seg.log',
+                      default='deep-seg.log')
 
     # 4. Pre-trained weights
     parser.add_option('--network_sagittal_path', dest='network_sagittal_path',

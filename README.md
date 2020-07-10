@@ -37,7 +37,7 @@ List them by running the following command:
 * --weights_sag: Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
 * --weights_ax: Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
 * --weights_cor: Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
-* --seg_log: Name and location for the log-file for the segmentation (FastSurferCNN)
+* --seg_log: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * --clean_seg: Flag to clean up FastSurferCNN segmentation
 * --no_cuda: Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
 * --batch: Batch size for inference. Default: 16. Lower this to reduce memory requirement

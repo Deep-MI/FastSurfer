@@ -54,7 +54,7 @@ function usage()
     echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
     echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
-    echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN)"
+    echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN). Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log"
     echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
@@ -227,6 +227,11 @@ if [ -z "$seg" ]
   seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
+if [ -z "$seg_log" ]
+ then
+  seg_log="${sd}/${subject}/scripts/deep-seg.log"
+fi
+
 if [ "$surf_only" == "1" ] && [ ! -f "$seg" ]
   then
     echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
@@ -247,6 +252,7 @@ fi
 if [ "$surf_only" == "0" ]; then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 93 classes.
+  mkdir -p "$(dirname "$seg_log")"
   pushd $fastsurfercnndir
   cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg $cuda"
   echo $cmd |& tee -a $seg_log
