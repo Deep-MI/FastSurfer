@@ -211,7 +211,7 @@ def train():
         default_optim_args = {"lr": args.lr,
                               "betas": (0.9, 0.999),
                               "eps": 1e-8,
-                              "weight_decay": 0.01}
+                              "weight_decay": 0.0001}
 
     # Run network
     solver = Solver(num_classes=params_network["num_classes"], optimizer_args=default_optim_args, optimizer=optim)
