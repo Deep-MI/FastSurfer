@@ -514,6 +514,12 @@ else
     cmd="$python rewrite_mc_surface.py --input $sdir/$hemi.orig.nofix --output $sdir/$hemi.orig.nofix --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
     RunIt "$cmd" $LF $CMDF
 
+    # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
+    cmd="mris_info $sdir/$hemi.orig.nofix | grep -q 'vertex locs : surfaceRAS'"
+    echo "echo \"$cmd\" " |& tee -a $CMDF
+    echo "$timecmd $cmd " |& tee -a $CMDF
+    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> $CMDF
+
     # Reduce to largest component (usually there should only be one)
     cmd="mris_extract_main_component $sdir/$hemi.orig.nofix $sdir/$hemi.orig.nofix"
     RunIt "$cmd" $LF $CMDF

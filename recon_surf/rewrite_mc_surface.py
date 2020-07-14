@@ -53,7 +53,6 @@ def resafe_surface(insurf, outsurf, pretess):
         # Set information with file used for surface construction (volume info and name)
         surf[2]['filename'] = pretess
         surf[2]['volume'] = nibload(pretess).header.get_data_shape()
-        print(surf[2]['volume'])
 
     fs.write_geometry(outsurf, surf[0], surf[1], volume_info=surf[2])
 
