@@ -25,9 +25,8 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --rm --user XXXX fastsurfer:gpu \
                       --fs_license /fs60/.license \
                       --t1 /data/subject2/orig.mgz \
-                      --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
                       --sid subject2 --sd /output \
-                      --mc --qspec --nofsaparc --parallel
+                      --parallel
 ```
 
 * The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
@@ -54,10 +53,9 @@ docker run -v /home/user/my_mri_data:/data \
            --rm --user XXXX fastsurfer:cpu \
            --fs_license /fs60/.license \
            --t1 /data/subject2/orig.mgz \
-           --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
            --no_cuda \
            --sid subject2 --sd /output \
-           --mc --qspec --nofsaparc --parallel
+           --parallel
 ```
 
 As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
@@ -79,7 +77,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --i_dir /data \
                       --in_name mri/orig.mgz \
                       --o_dir /output \
-                      --out_name aparc.DKTatlas+aseg.deep.mgz \
+                      --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
                       --log deep_surfer.log
 ```
 
@@ -106,7 +104,7 @@ docker run -v /home/user/my_mri_data:/data \
            --i_dir /data \
            --in_name mri/orig.mgz \
            --o_dir /output \
-           --out_name aparc.DKTatlas+aseg.deep.mgz \
+           --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
            --log deep_surfer.log \
            --no_cuda
 ```
@@ -130,9 +128,8 @@ docker run -v /home/user/my_mri_data:/data \
            --rm --user XXXX fastsurfer_reconsurf:cpu \
            --fs_license /fs60/.license \
            --t1 /data/subject2/orig.mgz \
-           --seg /output/subject2/mri/aparc.DKTatlas+aseg.deep.mgz \
            --sid subject2 --sd /output \
-           --mc --qspec --nofsaparc --parallel
+           --parallel
 ```
 * The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
 * The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
