@@ -6,7 +6,7 @@ Within this directory we currently provide five different Dockerfiles that are s
 * only the segmentation network (FastSurferCNN, Example 3 (GPU) and 4 (CPU))
 * only the surface pipeline (recon-surf, Example 5 (CPU))
 
-In order to run the whole FastSurfer pipeline or the surface part, you need you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
+In order to run the whole FastSurfer pipeline or the surface part, you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
 
 ### Example 1: Build GPU FastSurfer container (default)
 
