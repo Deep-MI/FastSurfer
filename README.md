@@ -78,6 +78,11 @@ fastsurferdir=/home/user/my_fastsurfer_analysis
 
 The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subject1/mri (default location)). Processing of the hemispheres will be run in parallel (--parallel flag). Omit this flag to run the processing sequentially.
 
+In order to directly see the log-output of the segmentation part (FastSurferCNN) on the terminal as well, you need to disable python's automatic output buffering. This can be done by executing the following command prior to starting the shell script (e.g. after sourcing FreeSurfer):
+```bash
+export PYTHONUNBUFFERED=0
+```
+
 ### Example 2: FastSurfer on multiple subjects
 
 In order to run FastSurfer on a number of cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line per line:
@@ -105,6 +110,10 @@ while read p ; do
   sleep 90s 
 done < ./data/subjects_list.txt
 ```
+In order to directly see the log-output of the segmentation part (FastSurferCNN) on the terminal as well, you need to disable python's automatic output buffering. This can be done by executing the following command prior to starting the shell script (e.g. after sourcing FreeSurfer):
+```bash
+export PYTHONUNBUFFERED=0
+```
 
 ### Example 3: FastSurfer inside Docker
 After building the Docker (see instructions in ./Docker/README.md), you do not need to have a separate installation of FreeSurfer on your computer (included in the Docker). However, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free). This license need to be passed to the script via the --fs_license flag.
@@ -127,6 +136,8 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * The -v command mounts your data (and output) directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
 * The --rm flag takes care of removing the container once the analysis finished. 
 * The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+
+In order to directly see the output of the segmentation part (FastSurferCNN) on the terminal as well, you need to disable python's automatic output buffering by adding the -e PYTHONUNBUFFERED=0 to your docker command (e.g. line 4 would change to: --rm --user XXXX -e PYTHONUNBUFFERED=0 fastsurfer:gpu ).
 
 ## References
 
