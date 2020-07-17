@@ -25,4 +25,4 @@ dependencies:
   - scikit-sparse
   - pip
   - pip:
-    - nibabel=2.5.1
+    - nibabel==2.5.1
