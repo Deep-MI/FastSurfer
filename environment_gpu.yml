@@ -1,0 +1,28 @@
+name: FastSurfer
+
+channels:
+  - pytorch
+  - conda-forge
+  
+dependencies:
+  - python=3.6
+  - numpy
+  - pyyaml
+  - scipy
+  - ipython
+  - mkl
+  - mkl-include
+  - ninja
+  - cython
+  - typing
+  - matplotlib
+  - h5py
+  - scikit-image
+  - pillow=6.1
+  - cudatoolkit=10.0
+  - "pytorch=1.2.0=py3.6_cuda10.0.130_cudnn7.6.2_0"
+  - torchvision=0.4.0
+  - scikit-sparse
+  - pip
+  - pip:
+    - nibabel=2.5.1
