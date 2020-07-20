@@ -352,6 +352,8 @@ mask=$mdir/mask.mgz
 
 
 # Set up log file
+DoneFile=$SUBJECTS_DIR/$subject/scripts/recon-surf.done
+if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
 LF=$SUBJECTS_DIR/$subject/scripts/recon-surf.log
 if [ $LF != /dev/null ] ; then  rm -f $LF ; fi
 echo "Log file for recon-surf.sh" >> $LF
@@ -817,8 +819,6 @@ echo "Ended   at $EndTime" |& tee -a $LF
 echo "#@#%# recon-surf-run-time-hours $tRunHours" |& tee -a $LF
 
 # Create the Done File
-DoneFile=$SUBJECTS_DIR/$subject/scripts/recon-surf.done
-if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
 echo "------------------------------" > $DoneFile
 echo "SUBJECT $subject"           >> $DoneFile
 echo "START_TIME $StartTime"      >> $DoneFile
