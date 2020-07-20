@@ -37,8 +37,6 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 
 All other flags are identical to the ones explained on the main page (on directory up).
 
-In order to directly see the output of the segmentation part (FastSurferCNN) on the terminal as well, you need to disable python's automatic output buffering by adding the -e PYTHONUNBUFFERED=0 to your docker command (e.g. line 4 would change to: --rm --user XXXX -e PYTHONUNBUFFERED=0 fastsurfer:gpu \).
-
 ### Example 2: Build CPU FastSurfer container
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
@@ -61,8 +59,6 @@ docker run -v /home/user/my_mri_data:/data \
 ```
 
 As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
-
-In order to directly see the output of the segmentation part (FastSurferCNN) on the terminal as well, you need to disable python's automatic output buffering by adding the -e PYTHONUNBUFFERED=0 to your docker command (e.g. line 4 would change to: --rm --user XXXX -e PYTHONUNBUFFERED=0 fastsurfer:cpu \).
 
 ### Example 3: Build GPU FastSurferCNN container (segmentation only)
 
