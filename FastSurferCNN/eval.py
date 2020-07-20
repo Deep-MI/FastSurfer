@@ -382,9 +382,13 @@ def fast_surfer_cnn(img_filename, save_as, args):
     prediction_probability_coronal = prediction_probability_coronal.permute(2, 3, 0, 1)
     prediction_probability_sagittal = prediction_probability_sagittal.permute(0, 3, 2, 1)
 
-    _, prediction_image = torch.max(torch.add(torch.mul(torch.add(prediction_probability_axial,
-                                                                  prediction_probability_coronal), 0.4),
+    intermediate_img = torch.add(prediction_probability_axial, prediction_probability_coronal)
+    del prediction_probability_axial, prediction_probability_coronal
+
+    _, prediction_image = torch.max(torch.add(torch.mul(intermediate_img, 0.4),
                                               torch.mul(prediction_probability_sagittal, 0.2)), 3)
+
+    del prediction_probability_sagittal, intermediate_img
 
     prediction_image = prediction_image.numpy()
 
