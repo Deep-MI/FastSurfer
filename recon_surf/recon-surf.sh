@@ -240,7 +240,7 @@ echo
 
 if [ -z "$SUBJECTS_DIR" ]
 then
-  echo \$SUBJECTS_DIR not set
+  echo "\$SUBJECTS_DIR not set. Either set it via the shell prior to running recon_surf.sh or supply it via the --sd flag."
   exit 1;
 fi
 
@@ -253,31 +253,36 @@ then
   exit 1;
 fi
 
-if [ -z "$t1" ]
- then
-  echo "ERROR: must supply T1 input (conformed, full head) via --t1"
+if [ -z "$PYTHONUNBUFFERED" ]
+then
+  export PYTHONUNBUFFERED=0
+fi
+
+if [ -z "$t1" ] || [ ! -f "$t1" ]
+then
+  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (conformed, full head) via --t1 (absolute path and name)."
   # needed to create orig.mgz and to get file name. This will eventually be changed.
   exit 1;
 fi
 
 if [ -z "$subject" ]
- then
+then
   echo "ERROR: must supply subject name via --sid"
   exit 1;
 fi
 
 if [ -z "$seg" ]
- then
-    if [ -f "${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz" ]
-      then
-        # Set to default
-        seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
-    else
-        # No segmentation found, exit with error
-        echo "ERROR: segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz)"
-        echo " or you must supply the absolute path and name via --seg."
-        exit 1;
-     fi
+then
+  # Set to default
+  seg="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+fi
+
+if [ ! -f "$seg" ]
+then
+  # No segmentation found, exit with error
+  echo "ERROR: Segmentation ($seg) could not be found! "
+  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --seg."
+  exit 1;
 fi
 
 if [ "$DoParallel" == "1" ]
@@ -800,5 +805,32 @@ echo " " |& tee -a $LF
 echo " " |& tee -a $LF
 echo "================= DONE =========================================================" |& tee -a $LF
 echo " " |& tee -a $LF
-echo "recon-surf.sh $subject finished without error at `date`"  |& tee -a $LF 
-echo " " |& tee -a $LF
+
+# Collect info
+EndTime=`date`
+tSecEnd=`date '+%s'`
+tRunHours=`echo \($tSecEnd - $tSecStart\)/3600|bc -l`
+tRunHours=`printf %6.3f $tRunHours`
+
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at $EndTime" |& tee -a $LF
+echo "#@#%# recon-surf-run-time-hours $tRunHours" |& tee -a $LF
+
+# Create the Done File
+DoneFile=$SUBJECTS_DIR/$subject/scripts/recon-surf.done
+if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
+echo "------------------------------" > $DoneFile
+echo "SUBJECT $subject"           >> $DoneFile
+echo "START_TIME $StartTime"      >> $DoneFile
+echo "END_TIME $EndTime"          >> $DoneFile
+echo "RUNTIME_HOURS $tRunHours"   >> $DoneFile
+echo "USER `id -un`"              >> $DoneFile
+echo "HOST `hostname`"            >> $DoneFile
+echo "PROCESSOR `uname -m`"       >> $DoneFile
+echo "OS `uname -s`"              >> $DoneFile
+echo "UNAME `uname -a`"           >> $DoneFile
+echo "VERSION $VERSION"           >> $DoneFile
+echo "CMDPATH $0"                 >> $DoneFile
+echo "CMDARGS ${inputargs[*]}"    >> $DoneFile
+
+echo "recon-surf.sh $subject finished without error at `date`"  |& tee -a $LF
