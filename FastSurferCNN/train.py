@@ -215,7 +215,7 @@ def train():
 
     # Run network
     solver = Solver(num_classes=params_network["num_classes"], optimizer_args=default_optim_args, optimizer=optim)
-    solver.train(model, train_dataloader, None, validation_dataloader, class_names=curr_labels, num_epochs=args.epochs,
+    solver.train(model, train_dataloader, validation_dataloader, class_names=curr_labels, num_epochs=args.epochs,
                  log_params={'logdir': args.log_dir + "logs", 'log_iter': args.log_interval, 'logger': logger},
                  expdir=args.log_dir + "ckpts", scheduler_type=args.scheduler, torch_v11=args.torchv11,
                  resume=args.resume)
