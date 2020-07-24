@@ -22,6 +22,7 @@ import time
 import sys
 import glob
 import os.path as op
+import logging
 import torch
 import torch.nn as nn
 
@@ -134,7 +135,7 @@ def options_parse():
     # 5. Clean up and GPU/CPU options (disable cuda, change batchsize)
     parser.add_option('--clean', dest='cleanup', help="Flag to clean up segmentation", action='store_true')
     parser.add_option('--no_cuda', action='store_true', default=False, help='disables CUDA training')
-    parser.add_option('--batch_size', type=int, default=16, help="Batch size for inference. Default: 16")
+    parser.add_option('--batch_size', type=int, default=8, help="Batch size for inference. Default: 8")
     parser.add_option('--simple_run', action='store_true', default=False,
                       help='Simplified run: only analyse one given image specified by --in_name (output: --out_name). '
                            'Need to specify absolute path to both --in_name and --out_name if this option is chosen.')
@@ -149,7 +150,7 @@ def options_parse():
     return sel_option
 
 
-def fast_surfer_cnn(img_filename, save_as, args):
+def fast_surfer_cnn(img_filename, save_as, logger, args):
     """
     Cortical parcellation of single image
     :param str img_filename: name of image file
@@ -159,19 +160,19 @@ def fast_surfer_cnn(img_filename, save_as, args):
             * args.network_axial_path: path to axial checkpoint (stored pretrained network)
             * args.cleanup: Whether to clean up the segmentation (medial filter on certain labels)
             * args.no_cuda: Whether to use CUDA (GPU) or not (CPU)
+    ;param logging.logger logger: Logging instance info messages will be written to
     :param str save_as: name under which to save prediction.
     :return None: saves prediction to save_as
     """
-    print("Reading volume {}".format(img_filename))
+    start_total = time.time()
+    logger.info("Reading volume {}".format(img_filename))
 
     header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=args.order)
 
     transform_test = transforms.Compose([ToTensorTest()])
 
     test_dataset_axial = OrigDataThickSlices(img_filename, orig_data, transforms=transform_test, plane='Axial')
-
     test_dataset_sagittal = OrigDataThickSlices(img_filename, orig_data, transforms=transform_test, plane='Sagittal')
-
     test_dataset_coronal = OrigDataThickSlices(img_filename, orig_data, transforms=transform_test, plane='Coronal')
 
     start = time.time()
@@ -188,10 +189,10 @@ def fast_surfer_cnn(img_filename, save_as, args):
     # Put it onto the GPU or CPU
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    print("Cuda available: {}, "
-          "# Available GPUS: {}, "
-          "Cuda user disabled (--no_cuda flag): {}, "
-          "--> Using device: {}".format(torch.cuda.is_available(), torch.cuda.device_count(), args.no_cuda, device))
+    logger.info("Cuda available: {}, # Available GPUS: {}, "
+                "Cuda user disabled (--no_cuda flag): {}, --> Using device: {}".format(torch.cuda.is_available(),
+                                                                                       torch.cuda.device_count(),
+                                                                                       args.no_cuda, device))
 
     if use_cuda and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
@@ -202,7 +203,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
     model.to(device)
 
     # Set up state dict (remapping of names, if not multiple GPUs/CPUs)
-    print("Loading Axial Net from {}".format(args.network_axial_path))
+    logger.info("Loading Axial Net from {}".format(args.network_axial_path))
 
     model_state = torch.load(args.network_axial_path, map_location=device)
     new_state_dict = OrderedDict()
@@ -223,7 +224,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
     model.eval()
     prediction_probability_axial = torch.zeros((256, params_network["num_classes"], 256, 256), dtype=torch.float)
 
-    print("Axial model loaded.")
+    logger.info("Axial model loaded.")
     with torch.no_grad():
 
         start_index = 0
@@ -237,10 +238,9 @@ def fast_surfer_cnn(img_filename, save_as, args):
 
             prediction_probability_axial[start_index:start_index + temp.shape[0]] = temp.cpu()
             start_index += temp.shape[0]
-            print("--->Batch {} Axial Testing Done.".format(batch_idx))
+            logger.info("--->Batch {} Axial Testing Done.".format(batch_idx))
 
-    end = time.time() - start
-    print("Axial View Tested in {:0.4f} seconds".format(end))
+    logger.info("Axial View Tested in {:0.4f} seconds".format(time.time() - start))
 
     # Coronal View Testing
     start = time.time()
@@ -267,7 +267,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
     model.to(device)
 
     # Set up new state dict (remapping of names, if not multiple GPUs/CPUs)
-    print("Loading Coronal Net from {}".format(args.network_coronal_path))
+    logger.info("Loading Coronal Net from {}".format(args.network_coronal_path))
 
     model_state = torch.load(args.network_coronal_path, map_location=device)
     new_state_dict = OrderedDict()
@@ -288,7 +288,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
     model.eval()
     prediction_probability_coronal = torch.zeros((256, params_network["num_classes"], 256, 256), dtype=torch.float)
 
-    print("Coronal model loaded.")
+    logger.info("Coronal model loaded.")
     start_index = 0
     with torch.no_grad():
 
@@ -303,10 +303,9 @@ def fast_surfer_cnn(img_filename, save_as, args):
 
             prediction_probability_coronal[start_index:start_index + temp.shape[0]] = temp.cpu()
             start_index += temp.shape[0]
-            print("--->Batch {} Coronal Testing Done.".format(batch_idx))
+            logger.info("--->Batch {} Coronal Testing Done.".format(batch_idx))
 
-    end = time.time() - start
-    print("Coronal View Tested in {:0.4f} seconds".format(end))
+    logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start))
 
     start = time.time()
 
@@ -331,7 +330,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
     model.to(device)
 
     # Set up new state dict (remapping of names, if not multiple GPUs/CPUs)
-    print("Loading Sagittal Net from {}".format(args.network_sagittal_path))
+    logger.info("Loading Sagittal Net from {}".format(args.network_sagittal_path))
 
     model_state = torch.load(args.network_sagittal_path, map_location=device)
     new_state_dict = OrderedDict()
@@ -366,12 +365,11 @@ def fast_surfer_cnn(img_filename, save_as, args):
 
             prediction_probability_sagittal[start_index:start_index + temp.shape[0]] = temp.cpu()
             start_index += temp.shape[0]
-            print("--->Batch {} Sagittal Testing Done.".format(batch_idx))
+            logger.info("--->Batch {} Sagittal Testing Done.".format(batch_idx))
 
     prediction_probability_sagittal = map_prediction_sagittal2full(prediction_probability_sagittal)
-    end = time.time() - start
 
-    print("Sagittal View Tested in {:0.4f} seconds".format(end))
+    logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start))
 
     del model, test_dataset_axial, test_dataset_coronal, test_dataset_sagittal, test_data_loader
 
@@ -393,7 +391,7 @@ def fast_surfer_cnn(img_filename, save_as, args):
     prediction_image = prediction_image.numpy()
 
     end = time.time() - start
-    print("View Aggregation finished in {:0.4f} seconds.".format(end))
+    logger.info("View Aggregation finished in {:0.4f} seconds.".format(end))
 
     prediction_image = map_label2aparc_aseg(prediction_image)
 
@@ -461,20 +459,25 @@ def fast_surfer_cnn(img_filename, save_as, args):
                     mask[mask_label] = 1
 
         prediction_image[mask == 1] = prediction_image_medfilt[mask == 1]
-        end = time.time() - start
-        print("Segmentation Cleaned up in {:0.4f} seconds.".format(end))
+        logger.info("Segmentation Cleaned up in {:0.4f} seconds.".format(time.time() - start))
 
     # Saving image
     header_info.set_data_dtype(np.int16)
     mapped_aseg_img = nib.MGHImage(prediction_image, affine_info, header_info)
     mapped_aseg_img.to_filename(save_as)
-    print("Saving Segmentation to {}".format(save_as))
+    logger.info("Saving Segmentation to {}".format(save_as))
+    logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
 
 
 if __name__ == "__main__":
 
     # Command Line options and error checking done here
     options = options_parse()
+
+    # Set up the logger
+    logger = logging.getLogger("eval")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(stream=sys.stdout))
 
     if options.simple_run:
 
@@ -484,7 +487,7 @@ if __name__ == "__main__":
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
-        fast_surfer_cnn(options.iname, options.oname, options)
+        fast_surfer_cnn(options.iname, options.oname, logger, options)
 
     else:
 
@@ -499,11 +502,10 @@ if __name__ == "__main__":
 
         # Report number of subjects to be processed and loop over them
         data_set_size = len(subject_directories)
-        print("Total Dataset Size is {}".format(data_set_size))
+        logger.info("Total Dataset Size is {}".format(data_set_size))
 
         for current_subject in subject_directories:
 
-            start_time = time.time()
             subject = current_subject.split("/")[-1]
 
             # Define volume to process, log-file and name under which final prediction will be saved
@@ -520,7 +522,7 @@ if __name__ == "__main__":
                 logfile = op.join(options.output, subject, options.logfile)
                 save_file_name = op.join(options.output, subject, options.oname)
 
-            print("Running Fast Surfer on {}".format(subject))
+            logger.info("Running Fast Surfer on {}".format(subject))
 
             # Check if output subject directory exists and create it otherwise
             sub_dir, out = op.split(save_file_name)
@@ -528,21 +530,14 @@ if __name__ == "__main__":
             if not op.exists(sub_dir):
                 makedirs(sub_dir)
 
-            # Prepare the log-file
-            old_stdout = sys.stdout
-            log_file = open(logfile, "w")
-            sys.stdout = log_file
+            # Prepare the log-file (logging to File in subject directory)
+            fh = logging.FileHandler(logfile, mode='w')
+            logger.addHandler(fh)
 
             # Run network
-            fast_surfer_cnn(invol, save_file_name, options)
+            fast_surfer_cnn(invol, save_file_name, logger, options)
 
-            end_time = time.time() - start_time
-
-            print("Total time for computation of segmentation is {:0.4f} seconds.".format(end_time))
-
-            sys.stdout = old_stdout
-            log_file.close()
-
-            print("Total time for computation of segmentation is {:0.4f} seconds.".format(end_time))
+            logger.removeHandler(fh)
+            fh.close()
 
         sys.exit(0)
