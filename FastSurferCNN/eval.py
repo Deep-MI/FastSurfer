@@ -160,7 +160,7 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
             * args.network_axial_path: path to axial checkpoint (stored pretrained network)
             * args.cleanup: Whether to clean up the segmentation (medial filter on certain labels)
             * args.no_cuda: Whether to use CUDA (GPU) or not (CPU)
-    ;param logging.logger logger: Logging instance info messages will be written to
+    :param logging.logger logger: Logging instance info messages will be written to
     :param str save_as: name under which to save prediction.
     :return None: saves prediction to save_as
     """
