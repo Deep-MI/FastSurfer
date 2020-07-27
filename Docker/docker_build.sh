@@ -1,3 +1,3 @@
 #!/bin/bash
 cd ..
-docker build -t fastsurfer:gpu -f ./Docker/Dockerfile .
+docker build --rm=true -t fastsurfer:gpu -f ./Docker/Dockerfile .
