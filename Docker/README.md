@@ -42,7 +42,7 @@ In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; o
 
 ```bash
 cd ..
-docker build -t fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
+docker build --rm=true -t fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
 ```
 
 For running the analysis, the command is basically the same as above for the GPU option:
@@ -66,7 +66,7 @@ In order to build the docker image for FastSurferCNN (segmentation only; on GPU;
 
 ```bash
 cd ..
-docker build -t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN .
+docker build --rm=true -t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
@@ -93,7 +93,7 @@ In order to build the docker image for FastSurferCNN (segmentation only; on CPU;
 
 ```bash
 cd ..
-docker build -t fastsurfercnn:cpu -f ./Docker/Dockerfile_FastSurferCNN_CPU .
+docker build --rm=true -t fastsurfercnn:cpu -f ./Docker/Dockerfile_FastSurferCNN_CPU .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
@@ -117,7 +117,7 @@ In order to build the docker image for FastSurfer recon-surf (surface pipeline o
 
 ```bash
 cd ..
-docker build -t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf .
+docker build --rm=true -t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
