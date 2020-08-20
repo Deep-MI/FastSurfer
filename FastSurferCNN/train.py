@@ -83,8 +83,8 @@ def setup_options():
 
     parser.add_argument('--batch_size', type=int, default=16, metavar='N',
                         help='input batch size for training (default: 16)')
-    parser.add_argument('--test_batch_size', type=int, default=16, metavar='N',
-                        help='input batch size for testing (default: 16)')
+    parser.add_argument('--val_batch_size', type=int, default=16, metavar='N',
+                        help='input batch size for validation (default: 16)')
 
     parser.add_argument('--hdf5_name_train', type=str,
                         help='path to training hdf5-dataset')
@@ -169,7 +169,7 @@ def train():
     dataset_validation = AsegDatasetWithAugmentation(params_dataset_test, transforms=transform_test)
 
     train_dataloader = DataLoader(dataset=dataset_train, batch_size=args.batch_size, shuffle=True)
-    validation_dataloader = DataLoader(dataset=dataset_validation, batch_size=args.test_batch_size, shuffle=True)
+    validation_dataloader = DataLoader(dataset=dataset_validation, batch_size=args.val_batch_size, shuffle=True)
 
     # Set up network
     params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
