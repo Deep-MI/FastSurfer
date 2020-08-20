@@ -16,7 +16,8 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lates
      /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy scipy matplotlib h5py scikit-image pillow=6.1 && \
      /opt/conda/bin/conda install -y -c pytorch cudatoolkit=10.0 "pytorch=1.2.0=py3.6_cuda10.0.130_cudnn7.6.2_0" torchvision=0.4.0 && \
      /opt/conda/bin/conda clean -ya
-ENV PATH /opt/conda/bin:$PATH
+ENV PYTHONUNBUFFERED=0 \
+    PATH=/opt/conda/bin:$PATH
 
 # Install missing python libs
 Run pip install nibabel==2.5.1

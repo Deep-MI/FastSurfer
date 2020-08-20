@@ -25,9 +25,8 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --rm --user XXXX fastsurfer:gpu \
                       --fs_license /fs60/.license \
                       --t1 /data/subject2/orig.mgz \
-                      --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
                       --sid subject2 --sd /output \
-                      --mc --qspec --nofsaparc --parallel
+                      --parallel
 ```
 
 * The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
@@ -43,7 +42,7 @@ In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; o
 
 ```bash
 cd ..
-docker build -t fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
+docker build --rm=true -t fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
 ```
 
 For running the analysis, the command is basically the same as above for the GPU option:
@@ -54,10 +53,9 @@ docker run -v /home/user/my_mri_data:/data \
            --rm --user XXXX fastsurfer:cpu \
            --fs_license /fs60/.license \
            --t1 /data/subject2/orig.mgz \
-           --seg /output/subject2/aparc.DKTatlas+aseg.deep.mgz \
            --no_cuda \
            --sid subject2 --sd /output \
-           --mc --qspec --nofsaparc --parallel
+           --parallel
 ```
 
 As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
@@ -68,7 +66,7 @@ In order to build the docker image for FastSurferCNN (segmentation only; on GPU;
 
 ```bash
 cd ..
-docker build -t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN .
+docker build --rm=true -t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
@@ -79,7 +77,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --i_dir /data \
                       --in_name mri/orig.mgz \
                       --o_dir /output \
-                      --out_name aparc.DKTatlas+aseg.deep.mgz \
+                      --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
                       --log deep_surfer.log
 ```
 
@@ -95,7 +93,7 @@ In order to build the docker image for FastSurferCNN (segmentation only; on CPU;
 
 ```bash
 cd ..
-docker build -t fastsurfercnn:cpu -f ./Docker/Dockerfile_FastSurferCNN_CPU .
+docker build --rm=true -t fastsurfercnn:cpu -f ./Docker/Dockerfile_FastSurferCNN_CPU .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
@@ -106,7 +104,7 @@ docker run -v /home/user/my_mri_data:/data \
            --i_dir /data \
            --in_name mri/orig.mgz \
            --o_dir /output \
-           --out_name aparc.DKTatlas+aseg.deep.mgz \
+           --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
            --log deep_surfer.log \
            --no_cuda
 ```
@@ -119,7 +117,7 @@ In order to build the docker image for FastSurfer recon-surf (surface pipeline o
 
 ```bash
 cd ..
-docker build -t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf .
+docker build --rm=true -t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
@@ -130,9 +128,8 @@ docker run -v /home/user/my_mri_data:/data \
            --rm --user XXXX fastsurfer_reconsurf:cpu \
            --fs_license /fs60/.license \
            --t1 /data/subject2/orig.mgz \
-           --seg /output/subject2/mri/aparc.DKTatlas+aseg.deep.mgz \
            --sid subject2 --sd /output \
-           --mc --qspec --nofsaparc --parallel
+           --parallel
 ```
 * The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
 * The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).

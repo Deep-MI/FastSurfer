@@ -89,24 +89,27 @@ def iou_score(pred_cls, true_cls, nclass=79):
     return np.array(intersect_), np.array(union_)
 
 
-def accuracy(pred_cls, true_cls, nclass=79):
+def precision_recall(pred_cls, true_cls, nclass=79):
     """
-    Function to calculate accuracy (TP/(TP + FP + TN + FN)
+    Function to calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class
     :param pytorch.Tensor pred_cls: network prediction (categorical)
     :param pytorch.Tensor true_cls: ground truth (categorical)
     :param int nclass: number of classes
     :return:
     """
-    positive = torch.histc(true_cls.cpu().float(), bins=nclass, min=0, max=nclass, out=None)
-    per_cls_counts = []
+    tpos_fneg = []
+    tpos_fpos = []
     tpos = []
 
     for i in range(1, nclass):
-        true_positive = ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
-        tpos.append(true_positive)
-        per_cls_counts.append(positive[i])
+        all_pred = (pred_cls == i).float()
+        all_gt = (true_cls == i).float()
 
-    return np.array(tpos), np.array(per_cls_counts)
+        tpos.append((all_pred + all_gt).eq(2).sum().item())
+        tpos_fpos.append(all_pred.sum().item())
+        tpos_fneg.append(all_gt.sum().item())
+
+    return np.array(tpos), np.array(tpos_fneg), np.array(tpos_fpos)
 
 
 ##
@@ -220,7 +223,7 @@ class Solver(object):
         self.num_classes = num_classes
         self.classes = list(range(self.num_classes))
 
-    def train(self, model, train_loader, train_loader_test, validation_loader, class_names, num_epochs,
+    def train(self, model, train_loader, validation_loader, class_names, num_epochs,
               log_params, expdir, scheduler_type, torch_v11, resume=True):
         """
         Train Model with provided parameters for optimization
@@ -343,60 +346,11 @@ class Solver(object):
 
             ints_ = np.zeros(self.num_classes - 1)
             unis_ = np.zeros(self.num_classes - 1)
-            per_cls_counts = np.zeros(self.num_classes - 1)
+            per_cls_counts_gt = np.zeros(self.num_classes - 1)
+            per_cls_counts_pred = np.zeros(self.num_classes - 1)
             accs = np.zeros(self.num_classes - 1)  # -1 to exclude background (still included in val loss)
 
             with torch.no_grad():
-
-                if train_loader_test is not None:
-                    cnf_matrix_train = torch.zeros(self.num_classes, self.num_classes)
-
-                    val_start = time.time()
-
-                    for batch_idx, sample_batch in enumerate(train_loader_test):
-
-                        images_batch, labels_batch, weights_batch = sample_batch['image'], sample_batch['label'], \
-                                                                    sample_batch['weight']
-
-                        # Map to variables
-                        images_batch = Variable(images_batch)
-                        labels_batch = Variable(labels_batch)
-                        weights_batch = Variable(weights_batch)
-
-                        if torch.cuda.is_available():
-                            images_batch, labels_batch, weights_batch = images_batch.cuda(), labels_batch.cuda(), \
-                                                                        weights_batch.type(torch.FloatTensor).cuda()
-
-                        predictions = model(images_batch)
-
-                        _, batch_output = torch.max(predictions, dim=1)
-
-                        _, cm_batch = dice_confusion_matrix(batch_output, labels_batch, self.num_classes)
-
-                        cnf_matrix_train += cm_batch.cpu()
-
-                        # Plot sample predictions
-                        if batch_idx == 0:
-                            plt_title = 'Train Results Epoch ' + str(epoch)
-
-                            file_save_name = os.path.join(log_params["logdir"],
-                                                          'Epoch_' + str(epoch) + '_Train_Predictions.pdf')
-
-                            plot_predictions(images_batch, labels_batch, batch_output, plt_title, file_save_name)
-
-                        if batch_idx % 5 == 0:
-                            print("Test on Train Data --Epoch: {}. Iter: {} / {}.".format(epoch, batch_idx,
-                                                                                          len(train_loader_test)))
-
-                        del images_batch, labels_batch, weights_batch, predictions, batch_output, cm_batch
-
-                    cnf_matrix_train = cnf_matrix_train / (batch_idx + 1)
-                    train_end = time.time() - val_start
-                    print("Completed Testing on Training Dataset in {:0.4f} s".format(train_end))
-
-                    # print(cnf_matrix_train)
-                    save_name = os.path.join(log_params["logdir"], 'Epoch_' + str(epoch) + '_Train_Dice_CM.pdf')
-                    plot_confusion_matrix(cnf_matrix_train.cpu().numpy(), self.classes, file_save_name=save_name)
 
                 if validation_loader is not None:
 
@@ -431,9 +385,10 @@ class Solver(object):
                         ints_ += int_
                         unis_ += uni_
 
-                        tpos, pcc = accuracy(batch_output, labels_batch, self.num_classes)
+                        tpos, pcc_gt, pcc_pred = precision_recall(batch_output, labels_batch, self.num_classes)
                         accs += tpos
-                        per_cls_counts += pcc
+                        per_cls_counts_gt += pcc_gt
+                        per_cls_counts_pred += pcc_pred
 
                         _, cm_batch = dice_confusion_matrix(batch_output, labels_batch, self.num_classes)
                         cnf_matrix_validation += cm_batch.cpu()
@@ -448,11 +403,10 @@ class Solver(object):
                             plot_predictions(images_batch, labels_batch, batch_output, plt_title, file_save_name)
 
                         del images_batch, labels_batch, weights_batch, predictions, batch_output, \
-                            int_, uni_, tpos, pcc, loss_total, loss_dice, loss_ce  # cm_batch,
+                            int_, uni_, tpos, pcc_gt, pcc_pred, loss_total, loss_dice, loss_ce  # cm_batch,
 
                     # Get final measures and log them
                     ious = ints_ / unis_
-                    accs /= per_cls_counts
                     val_loss_total /= (batch_idx + 1)
                     val_loss_dice /= (batch_idx + 1)
                     val_loss_ce /= (batch_idx + 1)
@@ -466,10 +420,13 @@ class Solver(object):
 
                     # Log metrics
                     log_params["logger"].info("[Epoch {} stats]: MIoU: {:.4f}; "
-                                              "Mean Accuracy: {:.4f}; "
+                                              "Mean Recall: {:.4f}; "
+                                              "Mean Precision: {:.4f}; "
                                               "Avg loss total: {:.4f}; "
                                               "Avg loss dice: {:.4f}; "
-                                              "Avg loss ce: {:.4f}".format(epoch, np.mean(ious), np.mean(accs),
+                                              "Avg loss ce: {:.4f}".format(epoch, np.mean(ious),
+                                                                           np.mean(accs / per_cls_counts_gt),
+                                                                           np.mean(accs / per_cls_counts_pred),
                                                                            val_loss_total, val_loss_dice, val_loss_ce))
 
                     log_params["logger"].info(a.format(*class_names))

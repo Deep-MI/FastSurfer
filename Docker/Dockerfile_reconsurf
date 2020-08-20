@@ -87,6 +87,7 @@ ENV OS=Linux \
     FMRI_ANALYSIS_DIR=/opt/freesurfer/fsfast \
     PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 \
     MNI_PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 \
+    PYTHONUNBUFFERED=0 \
     PATH=/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
 
 

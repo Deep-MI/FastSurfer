@@ -27,7 +27,7 @@ weights_ax="../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_s
 weights_cor="../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
 clean_seg=""
 cuda=""
-batch_size="16"
+batch_size="8"
 order="1"
 seg_only="0"
 seg_cc=""
@@ -62,7 +62,7 @@ function usage()
     echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--clean_seg <clean_segmentation>       Flag to clean up FastSurferCNN segmentation"
     echo -e "\t--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
-    echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 16."
+    echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 8."
     echo -e "\t--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
     echo -e "\t--seg_only                             Run only FastSurferCNN (generate segmentation, do not run surface pipeline)"
     echo -e "\t--seg_with_cc_only                     Run FastSurferCNN (generate segmentation) and recon_surf until corpus callosum (CC) is added in (no surface models will be created in this case!)"
@@ -222,26 +222,32 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 
 
 # CHECKS
-if [ -z "$t1" ]
- then
-  echo "ERROR: must supply T1 input (conformed, full head) via --t1"
-  exit 1;
+if [ -z "$t1" ] || [ ! -f "$t1" ]
+  then
+    echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (conformed, full head) via --t1 (absolute path and name)."
+    # needed to create orig.mgz and to get file name. This will eventually be changed.
+    exit 1;
 fi
 
 if [ -z "$subject" ]
  then
-  echo "ERROR: must supply subject name via --sid"
-  exit 1;
+    echo "ERROR: must supply subject name via --sid"
+    exit 1;
 fi
 
 if [ -z "$seg" ]
- then
-  seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+  then
+    seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
 if [ -z "$seg_log" ]
  then
-  seg_log="${sd}/${subject}/scripts/deep-seg.log"
+    seg_log="${sd}/${subject}/scripts/deep-seg.log"
+fi
+
+if [ -z "$PYTHONUNBUFFERED" ]
+then
+  export PYTHONUNBUFFERED=0
 fi
 
 if [ "$surf_only" == "1" ] && [ ! -f "$seg" ]
@@ -254,9 +260,9 @@ fi
 
 if [ "$surf_only" == "1" ] && [ "$seg_only" == "1" ]
   then
-      echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
-      echo "To run the whole FastSurfer pipeline, omit both flags."
-      exit 1;
+    echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
+    echo "To run the whole FastSurfer pipeline, omit both flags."
+    exit 1;
 fi
 
 if [ "$seg_only" == "1" ] && [ ! -z "$vol_segstats" ]
