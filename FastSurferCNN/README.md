@@ -134,14 +134,16 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * --hdf5_name_train: Path to training hdf5-dataset
 * --hdf5_name_val: Path to validation hdf5-dataset
 * --batch_size: Input batch size for training set (default: 16)
-* --test_bach_size: Input batch size for validation set (default: 16)
+* --validation_batch_size: Input batch size for validation set (default: 16)
 
 #### Training options
 * --plane: which anatomical view should be trained on (axial (default), coronal or sagittal). Has to fit with the hdf5-sets.
 * --epochs: Number of epochs to train (default=30)
 * --lr: learning rate (default=0.01)
-* --decay: Switch on to decay learning rate
 * --optim: Optimizer to use (adam (default) or sgd)
+* --momentum: Momentum for optimizer (SGD)
+* --nesterov: Enables Nesterov for optimizer (SGD)
+* --scheduler: Type of learning rate scheduler to use (StepLR (default), None)
 
 #### Model options
 * --num_filters: Filter dimensions for Networks (all layers same, default=64)
