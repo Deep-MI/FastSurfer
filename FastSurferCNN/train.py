@@ -83,8 +83,8 @@ def setup_options():
 
     parser.add_argument('--batch_size', type=int, default=16, metavar='N',
                         help='input batch size for training (default: 16)')
-    parser.add_argument('--test_batch_size', type=int, default=16, metavar='N',
-                        help='input batch size for testing (default: 16)')
+    parser.add_argument('--validation_batch_size', type=int, default=16, metavar='N',
+                        help='input batch size for validation (default: 16)')
 
     parser.add_argument('--hdf5_name_train', type=str,
                         help='path to training hdf5-dataset')
@@ -93,6 +93,10 @@ def setup_options():
 
     parser.add_argument('--plane', type=str, default="axial", choices=["axial", "coronal", "sagittal"],
                         help="Which plane to train on (axial (default), coronal or sagittal)")
+    parser.add_argument('--img_height', dest="height", type=int, default=256,
+                        help='Height of image instances as returned by hdf5_loader (Default 256)')
+    parser.add_argument('--img_width', dest="width", type=int, default=256,
+                        help='Width of image instances as returned by hdf5_loader (Default 256)')
 
     parser.add_argument('--log-interval', type=int, default=2, metavar='N',
                         help='how many batches to wait before logging training status')
@@ -114,7 +118,6 @@ def setup_options():
 
     parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train (default: 30)')
     parser.add_argument('--lr', type=float, default=1e-2, metavar='LR', help='learning rate (default: 0.01)')
-    parser.add_argument('--decay', action="store_true", help="switch to decay learning rate")
     parser.add_argument('--optim', type=str, default="adam", choices=["adam", "sgd"])
     parser.add_argument('--resume', action="store_true", default=False, help="Flag if resume is needed")
     parser.add_argument('--torchv11', action="store_true", default=False,
@@ -157,7 +160,8 @@ def train():
     logger.info("%s", repr(args))
 
     # Define augmentations
-    transform_train = transforms.Compose([AugmentationPadImage(pad_size=8), AugmentationRandomCrop(output_size=256),
+    transform_train = transforms.Compose([AugmentationPadImage(pad_size=8),
+                                          AugmentationRandomCrop(output_size=(args.height, args.width)),
                                           ToTensor()])
     transform_test = transforms.Compose([ToTensor()])
 
@@ -169,14 +173,14 @@ def train():
     dataset_validation = AsegDatasetWithAugmentation(params_dataset_test, transforms=transform_test)
 
     train_dataloader = DataLoader(dataset=dataset_train, batch_size=args.batch_size, shuffle=True)
-    validation_dataloader = DataLoader(dataset=dataset_validation, batch_size=args.test_batch_size, shuffle=True)
+    validation_dataloader = DataLoader(dataset=dataset_validation, batch_size=args.validation_batch_size, shuffle=True)
 
     # Set up network
     params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
                       'kernel_h': args.kernel_height, 'kernel_w': args.kernel_width, 'stride_conv': args.stride,
                       'pool': args.pool, 'stride_pool': args.stride_pool, 'num_classes': args.num_classes,
                       'kernel_c': 1, 'kernel_d': 1, 'batch_size': args.batch_size,
-                      'height': 256, 'width': 256}
+                      'height': args.height, 'width': args.width}
 
     # Select the model
     model = FastSurferCNN(params_network)
@@ -216,8 +220,8 @@ def train():
     # Run network
     solver = Solver(num_classes=params_network["num_classes"], optimizer_args=default_optim_args, optimizer=optim)
     solver.train(model, train_dataloader, validation_dataloader, class_names=curr_labels, num_epochs=args.epochs,
-                 log_params={'logdir': args.log_dir + "logs", 'log_iter': args.log_interval, 'logger': logger},
-                 expdir=args.log_dir + "ckpts", scheduler_type=args.scheduler, torch_v11=args.torchv11,
+                 log_params={'logdir': os.path.join(args.log_dir, "logs"), 'log_iter': args.log_interval, 'logger': logger},
+                 expdir=os.path.join(args.log_dir, "ckpts"), scheduler_type=args.scheduler, torch_v11=args.torchv11,
                  resume=args.resume)
 
 

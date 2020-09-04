@@ -203,7 +203,7 @@ class Solver(object):
     """
 
     # gamma is the factor for lowering the lr and step_size is when it gets lowered
-    default_lr_scheduler_args = {"gamma": 0.05,
+    default_lr_scheduler_args = {"gamma": 0.3,
                                  "step_size": 5}
 
     def __init__(self, num_classes, optimizer=torch.optim.Adam, optimizer_args={}, loss_func=CombinedLoss(),
@@ -246,8 +246,13 @@ class Solver(object):
         if scheduler_type == "StepLR":
             scheduler = lr_scheduler.StepLR(optimizer, step_size=self.lr_scheduler_args["step_size"],
                                             gamma=self.lr_scheduler_args["gamma"])
+
+            log_params["logger"].info(
+                "Scheduler: StepLR, step_size: {}, gamma: {}".format(self.lr_scheduler_args["step_size"],
+                                                                     self.lr_scheduler_args["gamma"]))
         else:
             scheduler = None
+            log_params["logger"].info("Scheduler: None")
 
         # Set up logger format
         a = "{}\t" * (self.num_classes - 2) + "{}"
@@ -269,7 +274,8 @@ class Solver(object):
                 # Restore model dictionary
                 model.load_state_dict(state["model_state_dict"])
                 optimizer.load_state_dict(state["optimizer_state_dict"])
-                scheduler.load_state_dict(state["scheduler_state_dict"])
+                if scheduler is not None:
+                    scheduler.load_state_dict(state["scheduler_state_dict"])
                 epoch = state["epoch"]
 
                 print("Successfully restored the model state. Resuming training from Epoch {}".format(epoch + 1))
