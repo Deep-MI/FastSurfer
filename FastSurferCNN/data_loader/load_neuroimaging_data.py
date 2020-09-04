@@ -18,6 +18,9 @@
 import nibabel as nib
 import numpy as np
 import h5py
+import scipy.ndimage.morphology as morphology
+import scipy.ndimage as ndimage
+import scipy.ndimage.filters as filters
 
 from skimage.measure import label
 from torch.utils.data.dataset import Dataset
@@ -149,6 +152,46 @@ def create_weight_mask(mapped_aseg, max_weight=5, max_edge_weight=5):
     return weights_mask
 
 
+# class unknown filler (cortex)
+def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
+    """
+    Function to replace label 1000 (lh unknown) and 2000 (rh unknown) with closest class for each voxel.
+    :param np.ndarray gt: ground truth segmentation with class unknown
+    :param int unknown_label: class label for unknown (lh: 1000, rh: 2000)
+    :param int cortex_stop: class label at which cortical labels of this hemi stop (lh: 2000, rh: 3000)
+    :return:
+    """
+    # Define shape of image and dilation element
+    h, w, d = gt.shape
+    struct1 = ndimage.generate_binary_structure(3, 2)
+
+    # Get indices of unknown labels, dilate them to get closest sorrounding parcels
+    unknown = gt == unknown_label
+    unknown = (morphology.binary_dilation(unknown, struct1) ^ unknown)
+    list_parcels = np.unique(gt[unknown])
+
+    # Mask all subcortical structures (fill unknown with closest cortical parcels only)
+    mask = (list_parcels > unknown_label) & (list_parcels < cortex_stop)
+    list_parcels = list_parcels[mask]
+
+    # For each closest parcel, blur label with gaussian filter (spread), append resulting blurred images
+    blur_vals = np.ndarray((h, w, d, 0), dtype=np.float)
+
+    for idx in range(len(list_parcels)):
+        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=np.float), sigma=5)
+        blur_vals = np.append(blur_vals, np.expand_dims(aseg_blur, axis=3), axis=3)
+
+    # Get for each position parcel with maximum value after blurring (= closest parcel)
+    unknown = np.argmax(blur_vals, axis=3)
+    unknown = np.reshape(list_parcels[unknown.ravel()], (h, w, d))
+
+    # Assign the determined closest parcel to the unknown class (case-by-case basis)
+    mask = gt == unknown_label
+    gt[mask] = unknown[mask]
+
+    return gt
+
+
 # Label mapping functions (to aparc (eval) and to label (train))
 def map_label2aparc_aseg(mapped_aseg):
     """
@@ -195,6 +238,11 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None):
 
     aseg[aseg == 3] = 0  # Map Remaining Cortical labels to background
     aseg[aseg == 42] = 0
+
+    # If ctx-unknowns are not filled yet, do it now
+    if np.any(np.in1d([1000, 2000], aseg.ravel())):
+        aseg = fill_unknown_labels_per_hemi(aseg, 1000, 2000)
+        aseg = fill_unknown_labels_per_hemi(aseg, 2000, 3000)
 
     cortical_label_mask = (aseg >= 2000) & (aseg <= 2999)
     aseg[cortical_label_mask] = aseg[cortical_label_mask] - 1000
