@@ -21,7 +21,9 @@ six==1.15.0
 # If you want CUDA 9.2, add +cu92 to both the torch and torchvision version
 # If you want cpuonly option, add +cpu to both the torch and torchvision version
 # See also instructions for v1.2.0 (Wheel) at: https://pytorch.org/get-started/previous-versions/
+-f https://download.pytorch.org/whl/torch_stable.html
 torch===1.2.0
+-f https://download.pytorch.org/whl/torch_stable.html
 torchvision===0.4.0
 
 # The dependency scikit-sparse is optional (but recommended) for the recon-surf script only. 
