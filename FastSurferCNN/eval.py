@@ -15,7 +15,7 @@
 
 
 # IMPORTS
-import optparse
+import argparse
 import nibabel as nib
 import numpy as np
 import time
@@ -47,45 +47,24 @@ from data_loader.augmentation import ToTensorTest
 
 from models.networks import FastSurferCNN
 
-
 HELPTEXT = """
-Script to generate aparc.DKTatlas+aseg.deep.mgz using Deep Learning 
-
-USAGE:
-python3 eval.py --i_dir <data_directory>  or --csv_file <subject_dirs_list.csv>\
-                --in_name <volume name> \
-                --t <search_tag> \
-                --o_dir <output_directory> \
-                --out_name <prediction name> \
-                --log <log_file> \
-                --network_sagittal_path <pretrained weights sagittal> \
-                --network_coronal_path <pretrained weights coronal> \
-                --network_axial_path <pretrained weights sagittal>
+Script to generate aparc.DKTatlas+aseg.deep.mgz using Deep Learning. \n
 
 Dependencies:
 
-    Torch
+    Torch 
     Torchvision
     Skimage
     Numpy
     Matplotlib
-    optparse
-    time
-    glob
     h5py
-    sys
-    os
     scipy
     Python 3.5
-
-    Numpy
-    http://www.numpy.org
-
-    Nibabel to read and write neuroimaging data
-    http://nipy.org/nibabel/
+    Nibabel (to read and write neuroimaging data, http://nipy.org/nibabel/)
 
 
 Original Author: Leonie Henschel
+
 Date: Mar-12-2019
 
 """
@@ -95,93 +74,189 @@ def options_parse():
     """
     Command line option parser
     """
-    parser = optparse.OptionParser(version='$Id: fast_surfer_cnn, v 1.0 2019/09/30$',
-                                   usage=HELPTEXT)
-    # Requiered options
+    parser = argparse.ArgumentParser(description=HELPTEXT, epilog='$Id: fast_surfer_cnn, v 1.0 2019/09/30$')
+
     # 1. Directory information (where to read from, where to write to)
-    parser.add_option('--i_dir', '--input_directory', dest='input', help='path to directory of input volume(s).')
-    parser.add_option('--csv_file', '--csv_file', help="CSV-file with directories to process", default=None)
-    parser.add_option('--o_dir', '--output_directory', dest='output',
-                      help='path to output directory. Will be created if it does not already exist')
+    parser.add_argument('--i_dir', '--input_directory', dest='input', help='path to directory of input volume(s).')
+    parser.add_argument('--csv_file', '--csv_file', help="CSV-file with directories to process", default=None)
+    parser.add_argument('--o_dir', '--output_directory', dest='output',
+                        help='path to output directory. Will be created if it does not already exist')
 
     # 2. Options for the MRI volumes (name of in and output, order of interpolation if not conformed)
-    parser.add_option('--in_name', '--input_name', dest='iname', help='name of file to process. Default: orig.mgz',
-                      default='orig.mgz')
-    parser.add_option('--out_name', '--output_name', dest='oname', default='aparc.DKTatlas+aseg.deep.mgz',
-                      help='name under which segmentation will be saved. Default: aparc.DKTatlas+aseg.deep.mgz. '
-                           'If a separate subfolder is desired (e.g. FS conform, add it to the name: '
-                           'mri/aparc.DKTatlas+aseg.deep.mgz)')
-    parser.add_option('--order', dest='order', type="int", default=1,
-                      help="order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)")
+    parser.add_argument('--in_name', '--input_name', dest='iname', help='name of file to process. Default: orig.mgz',
+                        default='orig.mgz')
+    parser.add_argument('--out_name', '--output_name', dest='oname', default='aparc.DKTatlas+aseg.deep.mgz',
+                        help='name under which segmentation will be saved. Default: aparc.DKTatlas+aseg.deep.mgz. '
+                             'If a separate subfolder is desired (e.g. FS conform, add it to the name: '
+                             'mri/aparc.DKTatlas+aseg.deep.mgz)')
+    parser.add_argument('--order', dest='order', type=int, default=1,
+                        help="order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)")
 
     # 3. Options for log-file and search-tag
-    parser.add_option('--t', '--tag', dest='search_tag', default="*",
-                      help='Search tag to process only certain subjects. If a single image should be analyzed, set the '
-                           'tag with its id. Default: processes all.')
-    parser.add_option('--log', dest='logfile', help='name of log-file. Default: deep-seg.log',
-                      default='deep-seg.log')
+    parser.add_argument('--t', '--tag', dest='search_tag', default="*",
+                        help='Search tag to process only certain subjects. If a single image should be analyzed, '
+                             'set the tag with its id. Default: processes all.')
+    parser.add_argument('--log', dest='logfile', help='name of log-file. Default: deep-seg.log',
+                        default='deep-seg.log')
 
     # 4. Pre-trained weights
-    parser.add_option('--network_sagittal_path', dest='network_sagittal_path',
-                      help="path to pre-trained weights of sagittal network",
-                      default='./checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
-    parser.add_option('--network_coronal_path', dest='network_coronal_path',
-                      help="pre-trained weights of coronal network",
-                      default='./checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
-    parser.add_option('--network_axial_path', dest='network_axial_path',
-                      help="pre-trained weights of axial network",
-                      default='./checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
+    parser.add_argument('--network_sagittal_path', dest='network_sagittal_path',
+                        help="path to pre-trained weights of sagittal network",
+                        default='./checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
+    parser.add_argument('--network_coronal_path', dest='network_coronal_path',
+                        help="pre-trained weights of coronal network",
+                        default='./checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
+    parser.add_argument('--network_axial_path', dest='network_axial_path',
+                        help="pre-trained weights of axial network",
+                        default='./checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
 
-    # 5. Clean up and GPU/CPU options (disable cuda, change batchsize)
-    parser.add_option('--clean', dest='cleanup', help="Flag to clean up segmentation", action='store_true')
-    parser.add_option('--no_cuda', action='store_true', default=False, help='disables CUDA training')
-    parser.add_option('--batch_size', type=int, default=8, help="Batch size for inference. Default: 8")
-    parser.add_option('--simple_run', action='store_true', default=False,
-                      help='Simplified run: only analyse one given image specified by --in_name (output: --out_name). '
-                           'Need to specify absolute path to both --in_name and --out_name if this option is chosen.')
-    (sel_option, args) = parser.parse_args()
+    # 5. Options for model parameters setup (only change if model training was changed)
+    parser.add_argument('--num_filters', type=int, default=64,
+                        help='Filter dimensions for DenseNet (all layers same). Default=64')
+    parser.add_argument('--num_classes_ax_cor', type=int, default=79,
+                        help='Number of classes to predict in axial and coronal net, including background. Default=79')
+    parser.add_argument('--num_classes_sag', type=int, default=51,
+                        help='Number of classes to predict in sagittal net, including background. Default=51')
+    parser.add_argument('--num_channels', type=int, default=7,
+                        help='Number of input channels. Default=7 (thick slices)')
+    parser.add_argument('--kernel_height', type=int, default=5, help='Height of Kernel (Default 5)')
+    parser.add_argument('--kernel_width', type=int, default=5, help='Width of Kernel (Default 5)')
+    parser.add_argument('--stride', type=int, default=1, help="Stride during convolution (Default 1)")
+    parser.add_argument('--stride_pool', type=int, default=2, help="Stride during pooling (Default 2)")
+    parser.add_argument('--pool', type=int, default=2, help='Size of pooling filter (Default 2)')
+
+    # 6. Clean up and GPU/CPU options (disable cuda, change batchsize)
+    parser.add_argument('--clean', dest='cleanup', help="Flag to clean up segmentation", action='store_true')
+    parser.add_argument('--no_cuda', action='store_true', default=False, help='disables CUDA training')
+    parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default: 8")
+    parser.add_argument('--simple_run', action='store_true', default=False,
+                        help='Simplified run: only analyse one given image specified by --in_name (output: --out_name). '
+                             'Need to specify absolute path to both --in_name and --out_name if this option is chosen.')
+    sel_option = parser.parse_args()
 
     if sel_option.input is None and sel_option.csv_file is None and not sel_option.simple_run:
-        sys.exit('ERROR: Please specify data directory or input volume')
+        parser.print_help(sys.stderr)
+        sys.exit('----------------------------\nERROR: Please specify data directory or input volume\n')
 
     if sel_option.output is None and not sel_option.simple_run:
-        sys.exit('ERROR: Please specify data output directory (can be same as input directory)')
+        parser.print_help(sys.stderr)
+        sys.exit('----------------------------\nERROR: Please specify data output directory '
+                 '(can be same as input directory)\n')
 
     return sel_option
 
 
-def fast_surfer_cnn(img_filename, save_as, logger, args):
+def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, params_model, model, logger):
     """
-    Cortical parcellation of single image
+    Inference run for single network on a given image.
+
     :param str img_filename: name of image file
-    :param parser.Options args: Arguments (passed via command line) to set up networks
+    :param np.ndarray orig_data: image data
+    :param torch.tensor prediction_probability: default tensor to hold prediction probabilities
+    :param str plane: Which plane to predict (Axial, Sagittal, Coronal)
+    :param str ckpts: Path to pretrained weights of network
+    :param dict params_model: parameters to set up model (includes device, use_cuda, model_parallel, batch_size)
+    :param torch.nn.Module model: Model to use for prediction
+    :param logging.logger logger: Logging instance info messages will be written to
+    :return:
+    """
+    # Set up DataLoader
+    test_dataset = OrigDataThickSlices(img_filename, orig_data, plane=plane,
+                                       transforms=transforms.Compose([ToTensorTest()]))
+
+    test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
+                                  batch_size=params_model["batch_size"])
+
+    # Set up state dict for model
+    logger.info("Loading {} Net from {}".format(plane, ckpts))
+
+    model_state = torch.load(ckpts, map_location=params_model["device"])
+    new_state_dict = OrderedDict()
+
+    for k, v in model_state["model_state_dict"].items():
+
+        if k[:7] == "module." and not params_model["model_parallel"]:
+            new_state_dict[k[7:]] = v
+
+        elif k[:7] != "module." and params_model["model_parallel"]:
+            new_state_dict["module." + k] = v
+
+        else:
+            new_state_dict[k] = v
+
+    model.load_state_dict(new_state_dict)
+
+    model.eval()
+
+    logger.info("{} model loaded.".format(plane))
+    with torch.no_grad():
+
+        start_index = 0
+        for batch_idx, sample_batch in enumerate(test_data_loader):
+
+            images_batch = Variable(sample_batch["image"])
+
+            if params_model["use_cuda"]:
+                images_batch = images_batch.cuda()
+
+            temp = model(images_batch)
+
+            if plane == "Axial":
+                temp = temp.permute(3, 0, 2, 1)
+                prediction_probability[:, start_index:start_index + temp.shape[1], :, :] += torch.mul(temp.cpu(), 0.4)
+                start_index += temp.shape[1]
+
+            elif plane == "Coronal":
+                temp = temp.permute(2, 3, 0, 1)
+                prediction_probability[:, :, start_index:start_index + temp.shape[2], :] += torch.mul(temp.cpu(), 0.4)
+                start_index += temp.shape[2]
+
+            else:
+                temp = map_prediction_sagittal2full(temp).permute(0, 3, 2, 1)
+                prediction_probability[start_index:start_index + temp.shape[0], :, :, :] += torch.mul(temp.cpu(), 0.2)
+                start_index += temp.shape[0]
+
+            logger.info("--->Batch {} {} Testing Done.".format(batch_idx, plane))
+
+    return prediction_probability
+
+
+def fastsurfercnn(img_filename, save_as, logger, args):
+    """
+    Cortical parcellation of single image with FastSurferCNN.
+
+    :param str img_filename: name of image file
+    :param parser.Argparse args: Arguments (passed via command line) to set up networks
             * args.network_sagittal_path: path to sagittal checkpoint (stored pretrained network)
             * args.network_coronal_path: path to coronal checkpoint (stored pretrained network)
             * args.network_axial_path: path to axial checkpoint (stored pretrained network)
             * args.cleanup: Whether to clean up the segmentation (medial filter on certain labels)
             * args.no_cuda: Whether to use CUDA (GPU) or not (CPU)
+            * args.batch_size: Input batch size for inference (Default=8)
+            * args.num_classes_ax_cor: Number of classes to predict in axial/coronal net (Default=79)
+            * args.num_classes_sag: Number of classes to predict in sagittal net (Default=51)
+            * args.num_channels: Number of input channels (Default=7, thick slices)
+            * args.num_filters: Number of filter dimensions for DenseNet (Default=64)
+            * args.kernel_height and args.kernel_width: Height and width of Kernel (Default=5)
+            * args.stride: Stride during convolution (Default=1)
+            * args.stride_pool: Stride during pooling (Default=2)
+            * args.pool: Size of pooling filter (Default=2)
     :param logging.logger logger: Logging instance info messages will be written to
     :param str save_as: name under which to save prediction.
+
     :return None: saves prediction to save_as
     """
     start_total = time.time()
     logger.info("Reading volume {}".format(img_filename))
 
-    header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=args.order)
+    header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1)
 
-    transform_test = transforms.Compose([ToTensorTest()])
-
-    test_dataset_axial = OrigDataThickSlices(img_filename, orig_data, transforms=transform_test, plane='Axial')
-    test_dataset_sagittal = OrigDataThickSlices(img_filename, orig_data, transforms=transform_test, plane='Sagittal')
-    test_dataset_coronal = OrigDataThickSlices(img_filename, orig_data, transforms=transform_test, plane='Coronal')
-
-    start = time.time()
-    
-    test_data_loader = DataLoader(dataset=test_dataset_axial, batch_size=args.batch_size, shuffle=False)
-
-    # Axial View Testing
-    params_network = {'num_channels': 7, 'num_filters': 64, 'kernel_h': 5, 'kernel_w': 5, 'stride_conv': 1, 'pool': 2,
-                      'stride_pool': 2, 'num_classes': 79, 'kernel_c': 1, 'kernel_d': 1}
+    # Set up model for axial and coronal networks
+    params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
+                      'kernel_h': args.kernel_height, 'kernel_w': args.kernel_width,
+                      'stride_conv': args.stride, 'pool': args.pool,
+                      'stride_pool': args.stride_pool, 'num_classes': args.num_classes_ax_cor,
+                      'kernel_c': 1, 'kernel_d': 1}
 
     # Select the model
     model = FastSurferCNN(params_network)
@@ -189,10 +264,12 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
     # Put it onto the GPU or CPU
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
+
     logger.info("Cuda available: {}, # Available GPUS: {}, "
-                "Cuda user disabled (--no_cuda flag): {}, --> Using device: {}".format(torch.cuda.is_available(),
-                                                                                       torch.cuda.device_count(),
-                                                                                       args.no_cuda, device))
+                "Cuda user disabled (--no_cuda flag): {}, "
+                "--> Using device: {}".format(torch.cuda.is_available(),
+                                              torch.cuda.device_count(),
+                                              args.no_cuda, device))
 
     if use_cuda and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
@@ -202,202 +279,59 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
 
     model.to(device)
 
-    # Set up state dict (remapping of names, if not multiple GPUs/CPUs)
-    logger.info("Loading Axial Net from {}".format(args.network_axial_path))
+    params_model = {'device': device, "use_cuda": use_cuda, "batch_size": args.batch_size,
+                    "model_parallel": model_parallel}
 
-    model_state = torch.load(args.network_axial_path, map_location=device)
-    new_state_dict = OrderedDict()
+    # Set up tensor to hold probabilities
+    pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
 
-    for k, v in model_state["model_state_dict"].items():
-
-        if k[:7] == "module." and not model_parallel:
-            new_state_dict[k[7:]] = v
-
-        elif k[:7] != "module." and model_parallel:
-            new_state_dict["module." + k] = v
-
-        else:
-            new_state_dict[k] = v
-
-    model.load_state_dict(new_state_dict)
-
-    model.eval()
-    prediction_probability_axial = torch.zeros((256, params_network["num_classes"], 256, 256), dtype=torch.float)
-
-    logger.info("Axial model loaded.")
-    with torch.no_grad():
-
-        start_index = 0
-        for batch_idx, sample_batch in enumerate(test_data_loader):
-            images_batch = Variable(sample_batch["image"])
-
-            if use_cuda:
-                images_batch = images_batch.cuda()
-
-            temp = model(images_batch)
-
-            prediction_probability_axial[start_index:start_index + temp.shape[0]] = temp.cpu()
-            start_index += temp.shape[0]
-            logger.info("--->Batch {} Axial Testing Done.".format(batch_idx))
+    # Axial Prediction
+    start = time.time()
+    pred_prob = run_network(img_filename,
+                            orig_data, pred_prob, "Axial",
+                            args.network_axial_path,
+                            params_model, model, logger)
 
     logger.info("Axial View Tested in {:0.4f} seconds".format(time.time() - start))
 
-    # Coronal View Testing
+    # Coronal Prediction
     start = time.time()
-
-    test_data_loader = DataLoader(dataset=test_dataset_coronal, batch_size=args.batch_size, shuffle=False)
-
-    params_network = {'num_channels': 7, 'num_filters': 64, 'kernel_h': 5, 'kernel_w': 5, 'stride_conv': 1, 'pool': 2,
-                      'stride_pool': 2, 'num_classes': 79, 'kernel_c': 1, 'kernel_d': 1}
-
-    # Select the model
-
-    model = FastSurferCNN(params_network)
-
-    # Put it onto the GPU or CPU
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-
-    if use_cuda and torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
-        model_parallel = True
-    else:
-        model_parallel = False
-
-    model.to(device)
-
-    # Set up new state dict (remapping of names, if not multiple GPUs/CPUs)
-    logger.info("Loading Coronal Net from {}".format(args.network_coronal_path))
-
-    model_state = torch.load(args.network_coronal_path, map_location=device)
-    new_state_dict = OrderedDict()
-
-    for k, v in model_state["model_state_dict"].items():
-
-        if k[:7] == "module." and not model_parallel:
-            new_state_dict[k[7:]] = v
-
-        elif k[:7] != "module." and model_parallel:
-            new_state_dict["module." + k] = v
-
-        else:
-            new_state_dict[k] = v
-
-    model.load_state_dict(new_state_dict)
-
-    model.eval()
-    prediction_probability_coronal = torch.zeros((256, params_network["num_classes"], 256, 256), dtype=torch.float)
-
-    logger.info("Coronal model loaded.")
-    start_index = 0
-    with torch.no_grad():
-
-        for batch_idx, sample_batch in enumerate(test_data_loader):
-
-            images_batch = Variable(sample_batch["image"])
-
-            if use_cuda:
-                images_batch = images_batch.cuda()
-
-            temp = model(images_batch)
-
-            prediction_probability_coronal[start_index:start_index + temp.shape[0]] = temp.cpu()
-            start_index += temp.shape[0]
-            logger.info("--->Batch {} Coronal Testing Done.".format(batch_idx))
+    pred_prob = run_network(img_filename,
+                            orig_data, pred_prob, "Coronal",
+                            args.network_coronal_path,
+                            params_model, model, logger)
 
     logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start))
 
+    # Sagittal view testing
     start = time.time()
+    params_network["num_classes"] = args.num_classes_sag
+    params_network["num_channels"] = args.num_channels
 
-    test_data_loader = DataLoader(dataset=test_dataset_sagittal, batch_size=args.batch_size, shuffle=False)
-
-    params_network = {'num_channels': 7, 'num_filters': 64, 'kernel_h': 5, 'kernel_w': 5, 'stride_conv': 1, 'pool': 2,
-                      'stride_pool': 2, 'num_classes': 51, 'kernel_c': 1, 'kernel_d': 1}
-
-    # Select the model
     model = FastSurferCNN(params_network)
 
-    # Put it onto the GPU or CPU
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-
-    if use_cuda and torch.cuda.device_count() > 1:
+    if model_parallel:
         model = nn.DataParallel(model)
-        model_parallel = True
-    else:
-        model_parallel = False
 
     model.to(device)
 
-    # Set up new state dict (remapping of names, if not multiple GPUs/CPUs)
-    logger.info("Loading Sagittal Net from {}".format(args.network_sagittal_path))
-
-    model_state = torch.load(args.network_sagittal_path, map_location=device)
-    new_state_dict = OrderedDict()
-
-    for k, v in model_state["model_state_dict"].items():
-
-        if k[:7] == "module." and not model_parallel:
-            new_state_dict[k[7:]] = v
-
-        elif k[:7] != "module." and model_parallel:
-            new_state_dict["module." + k] = v
-
-        else:
-            new_state_dict[k] = v
-
-    model.load_state_dict(new_state_dict)
-
-    model.eval()
-    prediction_probability_sagittal = torch.zeros((256, params_network["num_classes"], 256, 256), dtype=torch.float)
-
-    start_index = 0
-    with torch.no_grad():
-
-        for batch_idx, sample_batch in enumerate(test_data_loader):
-
-            images_batch = Variable(sample_batch["image"])
-
-            if use_cuda:
-                images_batch = images_batch.cuda()
-
-            temp = model(images_batch)
-
-            prediction_probability_sagittal[start_index:start_index + temp.shape[0]] = temp.cpu()
-            start_index += temp.shape[0]
-            logger.info("--->Batch {} Sagittal Testing Done.".format(batch_idx))
-
-    prediction_probability_sagittal = map_prediction_sagittal2full(prediction_probability_sagittal)
+    pred_prob = run_network(img_filename, orig_data, pred_prob, "Sagittal",
+                            args.network_sagittal_path,
+                            params_model, model, logger)
 
     logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start))
 
-    del model, test_dataset_axial, test_dataset_coronal, test_dataset_sagittal, test_data_loader
-
+    # Get predictions and map to freesurfer label space
     start = time.time()
+    _, pred_prob = torch.max(pred_prob, 3)
+    pred_prob = pred_prob.numpy()
+    pred_prob = map_label2aparc_aseg(pred_prob)
+    logger.info("Final segmentation map in FreeSurfer space in {:0.4f} seconds".format(time.time() - start))
 
-    # Start View Aggregation: change from N,C,X,Y to coronal view with C in last dimension = H,W,D,C
-    prediction_probability_axial = prediction_probability_axial.permute(3, 0, 2, 1)
-    prediction_probability_coronal = prediction_probability_coronal.permute(2, 3, 0, 1)
-    prediction_probability_sagittal = prediction_probability_sagittal.permute(0, 3, 2, 1)
-
-    intermediate_img = torch.add(prediction_probability_axial, prediction_probability_coronal)
-    del prediction_probability_axial, prediction_probability_coronal
-
-    _, prediction_image = torch.max(torch.add(torch.mul(intermediate_img, 0.4),
-                                              torch.mul(prediction_probability_sagittal, 0.2)), 3)
-
-    del prediction_probability_sagittal, intermediate_img
-
-    prediction_image = prediction_image.numpy()
-
-    end = time.time() - start
-    logger.info("View Aggregation finished in {:0.4f} seconds.".format(end))
-
-    prediction_image = map_label2aparc_aseg(prediction_image)
-
+    # Post processing - Splitting classes
     # Quick Fix for 2026 vs 1026; 2029 vs. 1029; 2025 vs. 1025
-    rh_wm = get_largest_cc(prediction_image == 41)
-    lh_wm = get_largest_cc(prediction_image == 2)
+    rh_wm = get_largest_cc(pred_prob == 41)
+    lh_wm = get_largest_cc(pred_prob == 2)
     rh_wm = regionprops(label(rh_wm, background=0))
     lh_wm = regionprops(label(lh_wm, background=0))
     centroid_rh = np.asarray(rh_wm[0].centroid)
@@ -408,7 +342,7 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
 
     for label_current in labels_list:
 
-        label_img = label(prediction_image == label_current, connectivity=3, background=0)
+        label_img = label(pred_prob == label_current, connectivity=3, background=0)
 
         for region in regionprops(label_img):
 
@@ -417,11 +351,11 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
                 if np.linalg.norm(np.asarray(region.centroid) - centroid_rh) < np.linalg.norm(
                         np.asarray(region.centroid) - centroid_lh):
                     mask = label_img == region.label
-                    prediction_image[mask] = label_current + 1000
+                    pred_prob[mask] = label_current + 1000
 
     # Quick Fixes for overlapping classes
-    aseg_lh = gaussian_filter(1000 * np.asarray(prediction_image == 2, dtype=np.float), sigma=3)
-    aseg_rh = gaussian_filter(1000 * np.asarray(prediction_image == 41, dtype=np.float), sigma=3)
+    aseg_lh = gaussian_filter(1000 * np.asarray(pred_prob == 2, dtype=np.float), sigma=3)
+    aseg_rh = gaussian_filter(1000 * np.asarray(pred_prob == 41, dtype=np.float), sigma=3)
 
     lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
                             axis=3)
@@ -429,11 +363,11 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
     # Problematic classes: 1026, 1011, 1029, 1019
     for prob_class_lh in [1011, 1019, 1026, 1029]:
         prob_class_rh = prob_class_lh + 1000
-        mask_lh = ((prediction_image == prob_class_lh) | (prediction_image == prob_class_rh)) & (lh_rh_split == 0)
-        mask_rh = ((prediction_image == prob_class_lh) | (prediction_image == prob_class_rh)) & (lh_rh_split == 1)
+        mask_lh = ((pred_prob == prob_class_lh) | (pred_prob == prob_class_rh)) & (lh_rh_split == 0)
+        mask_rh = ((pred_prob == prob_class_lh) | (pred_prob == prob_class_rh)) & (lh_rh_split == 1)
 
-        prediction_image[mask_lh] = prob_class_lh
-        prediction_image[mask_rh] = prob_class_rh
+        pred_prob[mask_lh] = prob_class_lh
+        pred_prob[mask_rh] = prob_class_rh
 
     # Clean-Up
     if args.cleanup is True:
@@ -444,12 +378,12 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
                   77, 1026, 2026]
 
         start = time.time()
-        prediction_image_medfilt = median_filter(prediction_image, size=(3, 3, 3))
-        mask = np.zeros_like(prediction_image)
+        pred_prob_medfilt = median_filter(pred_prob, size=(3, 3, 3))
+        mask = np.zeros_like(pred_prob)
         tolerance = 25
 
         for current_label in labels:
-            current_class = (prediction_image == current_label)
+            current_class = (pred_prob == current_label)
             label_image = label(current_class, connectivity=3)
 
             for region in regionprops(label_image):
@@ -458,12 +392,12 @@ def fast_surfer_cnn(img_filename, save_as, logger, args):
                     mask_label = (label_image == region.label)
                     mask[mask_label] = 1
 
-        prediction_image[mask == 1] = prediction_image_medfilt[mask == 1]
+        pred_prob[mask == 1] = pred_prob_medfilt[mask == 1]
         logger.info("Segmentation Cleaned up in {:0.4f} seconds.".format(time.time() - start))
 
     # Saving image
     header_info.set_data_dtype(np.int16)
-    mapped_aseg_img = nib.MGHImage(prediction_image, affine_info, header_info)
+    mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
     mapped_aseg_img.to_filename(save_as)
     logger.info("Saving Segmentation to {}".format(save_as))
     logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
@@ -487,7 +421,7 @@ if __name__ == "__main__":
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
-        fast_surfer_cnn(options.iname, options.oname, logger, options)
+        fastsurfercnn(options.iname, options.oname, logger, options)
 
     else:
 
@@ -535,7 +469,7 @@ if __name__ == "__main__":
             logger.addHandler(fh)
 
             # Run network
-            fast_surfer_cnn(invol, save_file_name, logger, options)
+            fastsurfercnn(invol, save_file_name, logger, options)
 
             logger.removeHandler(fh)
             fh.close()
