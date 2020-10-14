@@ -303,7 +303,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start))
 
-    # Sagittal view testing
+    # Sagittal Prediction
     start = time.time()
     params_network["num_classes"] = args.num_classes_sag
     params_network["num_channels"] = args.num_channels
@@ -322,11 +322,9 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start))
 
     # Get predictions and map to freesurfer label space
-    start = time.time()
     _, pred_prob = torch.max(pred_prob, 3)
     pred_prob = pred_prob.numpy()
     pred_prob = map_label2aparc_aseg(pred_prob)
-    logger.info("Final segmentation map in FreeSurfer space in {:0.4f} seconds".format(time.time() - start))
 
     # Post processing - Splitting classes
     # Quick Fix for 2026 vs 1026; 2029 vs. 1029; 2025 vs. 1025
