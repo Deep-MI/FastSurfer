@@ -291,10 +291,10 @@ def check_affine_in_nifti(img, logger=None):
     check = True
     message = ""
 
-    if img.header['qform_code'] != 0 and np.max(np.abs(img.get_sform() - img.get_qform())) > 0.0001:
+    if img.header['qform_code'] != 0 and np.max(np.abs(img.get_sform() - img.get_qform())) > 0.001:
         message = "#############################################################" \
                   "\nWARNING: qform and sform transform are not identical!\n sform-transform:\n{}\n qform-transform:\n{}\n" \
-                  "You might want to check your nifti-header for inconsistencies!" \
+                  "You might want to check your Nifti-header for inconsistencies!" \
                   "\n!!! Affine from qform transform will now be used !!!\n" \
                   "#############################################################".format(img.header.get_sform(),
                                                                                          img.header.get_qform())
@@ -312,12 +312,13 @@ def check_affine_in_nifti(img, logger=None):
 
         if (abs(xsize - vox_size_head[0]) > .001) or (abs(ysize - vox_size_head[1]) > .001) or (abs(zsize - vox_size_head[2]) > 0.001):
             message = "#############################################################\n" \
-                      "WARNING: Voxel sizes are inconsistent! This is probably due to shear in the vox2ras matrix. " \
-                      "\nVoxel size in header vs. Voxel size in affine: " \
-                      "({}, {}), ({}, {}), ({}, {})\nInput Vox2RAS----------------\n{}\n" \
-                      "#############################################################".format(vox_size_head[0], xsize,
-                                                                                             vox_size_head[1], ysize,
-                                                                                             vox_size_head[2], zsize,
+                      "ERROR: Invalid Nifti-header! Affine matrix is inconsistent with Voxel sizes. " \
+                      "\nVoxel size (from header) vs. Voxel size in affine: " \
+                      "({}, {}, {}), ({}, {}, {})\nInput Affine----------------\n{}\n" \
+                      "#############################################################".format(vox_size_head[0],
+                                                                                             vox_size_head[1],
+                                                                                             vox_size_head[2],
+                                                                                             xsize, ysize, zsize,
                                                                                              aff)
             check = False
 
