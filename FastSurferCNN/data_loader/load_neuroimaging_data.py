@@ -21,10 +21,11 @@ import h5py
 import scipy.ndimage.morphology as morphology
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
+import sys
 
 from skimage.measure import label
 from torch.utils.data.dataset import Dataset
-from .conform import is_conform, conform
+from .conform import is_conform, conform, check_affine_in_nifti
 
 ##
 # Helper Functions
@@ -32,7 +33,7 @@ from .conform import is_conform, conform
 
 
 # Conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropic voxels
-def load_and_conform_image(img_filename, interpol=1):
+def load_and_conform_image(img_filename, interpol=1, logger=None):
     """
     Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm isotropic voxels size
     (if it does not already have this format)
@@ -43,7 +44,21 @@ def load_and_conform_image(img_filename, interpol=1):
     orig = nib.load(img_filename)
 
     if not is_conform(orig):
-        print('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+
+        if logger is not None:
+            logger.info('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+        else:
+            print('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+
+        if len(orig.shape) > 3 and orig.shape[3] != 1:
+            sys.exit('ERROR: Multiple input frames (' + format(orig.shape[3]) + ') not supported!')
+
+        # Check affine if image is nifti image
+        if img_filename[-7:] == ".nii.gz" or img_filename[-4:] == ".nii":
+            if not check_affine_in_nifti(orig, logger=logger):
+                sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
+
+        # conform
         orig = conform(orig, interpol)
 
     # Collect header and affine information

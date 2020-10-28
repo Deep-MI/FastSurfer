@@ -277,6 +277,58 @@ def is_conform(img, eps=1e-06):
     return True
 
 
+def check_affine_in_nifti(img, logger=None):
+    """
+    Function to check affine in nifti Image. Sets affine with qform if it exists and differs from sform.
+    If qform does not exist, voxelsizes between header information and information in affine are compared.
+    In case these do not match, the function returns False (otherwise returns True.
+
+    :param nibabel.NiftiImage img: loaded nifti-image
+    :return bool: True, if: affine was reset to qform
+                            voxelsizes in affine are equivalent to voxelsizes in header
+                  False, if: voxelsizes in affine and header differ
+    """
+    check = True
+    message = ""
+
+    if img.header['qform_code'] != 0 and np.max(np.abs(img.get_sform() - img.get_qform())) > 0.0001:
+        message = "#############################################################" \
+                  "\nWARNING: qform and sform transform are not identical!\n sform-transform:\n{}\n qform-transform:\n{}\n" \
+                  "You might want to check your nifti-header for inconsistencies!" \
+                  "\n!!! Affine from qform transform will now be used !!!\n" \
+                  "#############################################################".format(img.header.get_sform(),
+                                                                                         img.header.get_qform())
+        # Set sform with qform affine and update best affine in header
+        img.set_sform(img.get_qform())
+        img.update_header()
+
+    else:
+        # Check if affine correctly includes voxel information and print Warning/Exit otherwise
+        vox_size_head = img.header.get_zooms()
+        aff = img.affine
+        xsize = np.sqrt(aff[0][0] * aff[0][0] + aff[1][0] * aff[1][0] + aff[2][0] * aff[2][0])
+        ysize = np.sqrt(aff[0][1] * aff[0][1] + aff[1][1] * aff[1][1] + aff[2][1] * aff[2][1])
+        zsize = np.sqrt(aff[0][2] * aff[0][2] + aff[1][2] * aff[1][2] + aff[2][2] * aff[2][2])
+
+        if (abs(xsize - vox_size_head[0]) > .001) or (abs(ysize - vox_size_head[1]) > .001) or (abs(zsize - vox_size_head[2]) > 0.001):
+            message = "#############################################################\n" \
+                      "WARNING: Voxel sizes are inconsistent! This is probably due to shear in the vox2ras matrix. " \
+                      "\nVoxel size in header vs. Voxel size in affine: " \
+                      "({}, {}), ({}, {}), ({}, {})\nInput Vox2RAS----------------\n{}\n" \
+                      "#############################################################".format(vox_size_head[0], xsize,
+                                                                                             vox_size_head[1], ysize,
+                                                                                             vox_size_head[2], zsize,
+                                                                                             aff)
+            check = False
+
+    if logger is not None:
+        logger.info(message)
+
+    else:
+        print(message)
+
+    return check
+
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
@@ -289,6 +341,12 @@ if __name__ == "__main__":
 
     if is_conform(image):
         sys.exit("Input " + format(options.input) + " is already conform! No output created.\n")
+
+    # If image is nifti image
+    if options.input[-7:] == ".nii.gz" or options.input[-4:] == ".nii":
+
+        if not check_affine_in_nifti(image):
+            sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
     new_image = conform(image, options.order)
     print ("Writing conformed image: {}".format(options.output))

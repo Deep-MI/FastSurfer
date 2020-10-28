@@ -249,7 +249,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     start_total = time.time()
     logger.info("Reading volume {}".format(img_filename))
 
-    header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1)
+    header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1, logger=logger)
 
     # Set up model for axial and coronal networks
     params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
