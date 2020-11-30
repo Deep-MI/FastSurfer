@@ -1,0 +1,21 @@
+name: fastsurfer_cpu
+
+channels:
+  - pytorch
+  - defaults
+  - conda-forge
+  
+dependencies:
+  - cpuonly=1.0
+  - h5py=2.9.0
+  - matplotlib=3.1.1
+  - nibabel=2.5.1
+  - numpy=1.17.4
+  - pillow=7.1.1
+  - python=3.6.10
+  - pytorch=1.2.0
+  - scikit-image=0.15.0
+  - scikit-sparse=0.4.4
+  - scipy=1.3.1
+  - torchvision=0.4.0
+
