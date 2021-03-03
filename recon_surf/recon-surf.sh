@@ -35,6 +35,7 @@ threads="1" # number of threads to use for running FastSurfer
 
 # Dev flags default
 check_version=1; # Run version check for FreeSurfer (terminate if anything but v6.0 is detected)
+get_t1=1; # Generate T1.mgz from nu.mgz and brainmask from it (default)
 
 if [ -z "$FASTSURFER_HOME" ]
 then
@@ -67,6 +68,7 @@ function usage()
     echo ""
     echo "Dev Flags"
     echo -e "\t--ignore_fs_version           Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if v6.0 is not sourced. Can be used for testing dev versions."
+    echo -e "\t--no_fs_T1                    Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves approx. 1:30 min."
     echo ""
 }
 
@@ -234,6 +236,10 @@ case $key in
     ;;
     --ignore_fs_version)
     check_version=0
+    shift # past argument
+    ;;
+    --no_fs_T1 )
+    get_t1=0
     shift # past argument
     ;;
     -h|--help)
@@ -465,15 +471,26 @@ echo " " |& tee -a $LF
 echo "============ Creating brainmask from aseg and norm, and update aseg ============" |& tee -a $LF
 echo " " |& tee -a $LF
 
-
-# create norm and brainmask by masking nu
+# create norm by masking nu
 cmd="mri_mask $mdir/nu.mgz $mdir/mask.mgz $mdir/norm.mgz"
 RunIt "$cmd" $LF
-pushd $mdir
-cmd="ln -sf norm.mgz brainmask.mgz"
-RunIt "$cmd" $LF
-popd
 
+if [ "$get_t1" == "1" ]
+then
+  # create T1.mgz from nu
+  cmd="mri_normalize -g 1 -mprage $mdir/nu.mgz $mdir/T1.mgz"
+  RunIt "$cmd" $LF
+
+  # create brainmask by masking T1
+  cmd="mri_mask $mdir/T1.mgz $mdir/mask.mgz $mdir/brainmask.mgz"
+  RunIt "$cmd" $LF
+else
+  # Default: create brainmask by linkage to norm.mgz (masked nu.mgz)
+  pushd $mdir
+  cmd="ln -sf norm.mgz brainmask.mgz"
+  RunIt "$cmd" $LF
+  popd
+fi
 
 # create aseg.auto including cc segmentation and add cc into aparc.DKTatlas+aseg.deep; 46 sec: (not sure if this is needed), requires norm.mgz
 cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"

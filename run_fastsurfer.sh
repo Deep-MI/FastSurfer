@@ -52,6 +52,7 @@ python="python3.6"
 
 # Dev flags defaults
 vcheck=""
+vfst1=""
 
 function usage()
 {
@@ -89,6 +90,7 @@ function usage()
     echo ""
     echo "Dev Flags"
     echo -e "\t--ignore_fs_version                    Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if v6.0 is not sourced. Can be used for testing dev versions."
+    echo -e "\t--no_fs_T1                             Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves approx. 1:30 min."
     echo ""
 }
 
@@ -225,6 +227,10 @@ case $key in
     vcheck="--ignore_fs_version"
     shift # past argument
     ;;
+    --no_fs_T1 )
+    vfst1="--no_fs_T1"
+    shift # past argument
+    ;;
     -h|--help)
     usage
     exit
@@ -314,7 +320,7 @@ if [ "$seg_only" == "0" ]; then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd $reconsurfdir
-  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck"
+  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1"
   $cmd
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   popd
