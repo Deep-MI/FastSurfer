@@ -16,21 +16,26 @@
 
 
 VERSION='$Id$'
+FS_VERSION_SUPPORT="stable-pub-v6"
+timecmd="fs_time"
 
-t1="";
-seg="";
-subject="";
+# Regular flags default
+t1=""; # Path and name of T1 input
+seg=""; # Path and name of segmentation
+subject=""; # Subject name
 seg_cc=0; # if 1, run pipeline only till corpus callosum is added (no surfaces will be created)
 vol_segstats=0; # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0;       # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0;    # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0;	# run FS aparc (and cortical ribbon), if 0 map aparc from seg input
 fssurfreg=0;  # run FS surface registration to fsaverage, if 0 omit this step
+python="python3.6" # python version
+DoParallel=0 # if 1, run hemispheres in parallel
+threads="1" # number of threads to use for running FastSurfer
 
-timecmd="fs_time"
-python="python3.6"
-DoParallel=0
-threads="1"
+# Dev flags default
+check_version=1; # Run version check for FreeSurfer (terminate if anything but v6.0 is detected)
+
 if [ -z "$FASTSURFER_HOME" ]
 then
   binpath="./"
@@ -59,6 +64,9 @@ function usage()
     echo -e "\t--py <python_cmd>             Command for python, default 'python36'"
     echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
     echo -e "\t-h --help                     Print Help"
+    echo ""
+    echo "Dev Flags"
+    echo -e "\t--ignore_fs_version           Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if v6.0 is not sourced. Can be used for testing dev versions."
     echo ""
 }
 
@@ -224,6 +232,10 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --ignore_fs_version)
+    check_version=0
+    shift # past argument
+    ;;
     -h|--help)
     usage
     exit
@@ -256,6 +268,20 @@ then
   echo "export FREESURFER_HOME=/path/to/your/local/fs60"
   echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
   exit 1;
+fi
+
+if [ "$check_version" == "1" ]
+then
+  if grep -q -v ${FS_VERSION_SUPPORT} $FREESURFER_HOME/build-stamp.txt
+  then
+    echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat $FREESURFER_HOME/build-stamp.txt)."
+    echo "We are currently only supporting FreeSurfer 6 Stable releases. Older versions are not compatible"
+    echo "and we do not recommend to use FreeSurfer v7 together with FastSurfer at this time."
+    echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
+    echo "export FREESURFER_HOME=/path/to/your/local/fs60"
+    echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
+    exit 1;
+  fi
 fi
 
 if [ -z "$PYTHONUNBUFFERED" ]

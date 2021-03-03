@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 VERSION='$Id$'
 
 # Set default values for arguments
@@ -24,6 +23,10 @@ then
   echo "Change via enviroment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
   export FASTSURFER_HOME=${PWD}
 fi
+fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
+reconsurfdir="$FASTSURFER_HOME/recon_surf"
+
+# Regular flags defaults
 subject=""
 t1=""
 seg=""
@@ -46,8 +49,9 @@ fssurfreg=""
 doParallel=""
 threads="1"
 python="python3.6"
-fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
-reconsurfdir="$FASTSURFER_HOME/recon_surf"
+
+# Dev flags defaults
+vcheck=""
 
 function usage()
 {
@@ -82,6 +86,9 @@ function usage()
     echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
     echo -e "\t--py <python_cmd>                      Command for python, default 'python3.6'"
     echo -e "\t-h --help                              Print Help"
+    echo ""
+    echo "Dev Flags"
+    echo -e "\t--ignore_fs_version                    Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if v6.0 is not sourced. Can be used for testing dev versions."
     echo ""
 }
 
@@ -214,6 +221,10 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --ignore_fs_version)
+    vcheck="--ignore_fs_version"
+    shift # past argument
+    ;;
     -h|--help)
     usage
     exit
@@ -303,7 +314,7 @@ if [ "$seg_only" == "0" ]; then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd $reconsurfdir
-  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
+  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck"
   $cmd
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   popd
