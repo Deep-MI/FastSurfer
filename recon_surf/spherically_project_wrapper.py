@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +28,7 @@ def setup_options():
     parser.add_argument('--subject', type=str, help="Name (ID) of subject.")
     parser.add_argument('--threads', type=int, help="Number of threads to use.")
     parser.add_argument('--py', type=str, help="which python version to use.")
+    parser.add_argument('--binpath', type=str, help="directory of spherically_project.py script.")
 
     args = parser.parse_args()
     return args
@@ -54,7 +54,6 @@ def call(command, **kwargs):
 
 
 def spherical_wrapper(command1, command2, **kwargs):
-
     # First try to run standard spherical project
     print("Running command: {}".format(command1))
     code_1 = call(command1, **kwargs)
@@ -69,8 +68,9 @@ def spherical_wrapper(command1, command2, **kwargs):
 if __name__ == "__main__":
 
     opts = setup_options()
-    cmd1 = opts.py + " spherically_project.py -i " + opts.sdir + "/" + opts.hemi + ".smoothwm.nofix -o " \
-                   + opts.sdir + "/" + opts.hemi + ".qsphere.nofix"
+    cmd1 = opts.py + " " + opts.binpath + "spherically_project.py -i " + opts.sdir + "/" + opts.hemi \
+                   + ".smoothwm.nofix -o " + opts.sdir + "/" + opts.hemi + ".qsphere.nofix"
+
     if opts.threads > 1:
         threading = "-threads " + str(opts.threads) + " -itkthreads " + str(opts.threads)
     else:

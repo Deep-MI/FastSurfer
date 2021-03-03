@@ -18,13 +18,19 @@
 VERSION='$Id$'
 
 # Set default values for arguments
+if [ -z "$FASTSURFER_HOME" ]
+then
+  echo "Setting ENV variable FASTSURFER_HOME to current working directory ${PWD}. "
+  echo "Change via enviroment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
+  export FASTSURFER_HOME=${PWD}
+fi
 subject=""
 t1=""
 seg=""
 seg_log=""
-weights_sag="../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-weights_ax="../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-weights_cor="../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+weights_sag="$FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+weights_ax="$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+weights_cor="$FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
 clean_seg=""
 cuda=""
 batch_size="8"
@@ -40,8 +46,8 @@ fssurfreg=""
 doParallel=""
 threads="1"
 python="python3.6"
-fastsurfercnndir="./FastSurferCNN"
-reconsurfdir="./recon_surf"
+fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
+reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 function usage()
 {
@@ -57,9 +63,9 @@ function usage()
     echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
     echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
     echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN). Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log"
-    echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+    echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: \$FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+    echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: \$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+    echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: \$FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--clean_seg <clean_segmentation>       Flag to clean up FastSurferCNN segmentation"
     echo -e "\t--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
     echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 8."

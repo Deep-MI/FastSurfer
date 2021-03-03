@@ -75,7 +75,9 @@ ENV OS=Linux \
 
 # Add FastSurfer (copy application code) to docker image
 COPY . /fastsurfer/
+ENV FASTSURFER_HOME=/fastsurfer
 WORKDIR "/fastsurfer"
+
 
 ENTRYPOINT ["./run_fastsurfer.sh"]
 CMD ["--help"]
