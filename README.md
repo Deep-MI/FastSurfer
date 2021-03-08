@@ -1,11 +1,13 @@
 # Overview
 
-This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within 1 minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). It consists of two main parts:
+This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within 1 minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). The whole pipeline consists of two main parts:
 
 (i) FastSurferCNN - an advanced deep learning architecture capable of whole brain segmentation into 95 classes in under
 1 minute, mimicking FreeSurfer’s anatomical segmentation and cortical parcellation (DKTatlas)
 
 (ii) recon-surf - full  FreeSurfer  alternative for cortical surface reconstruction, mapping of cortical labels and traditional point-wise and ROI thickness analysis in approximately 60 minutes.
+
+Image input requirements are identical to FreeSurfer: good quality T1-weighted MRI acquired at 3T with a resolution close to 1mm isotropic (slice thickness should not exeed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. Sub-mm scans (e.g. .75 or .8mm isotropic) will be downsampled by us automatically to 1mm isotropic, for example, we had success segmenting de-faced HCP data.
 
 Within this repository, we provide the code and Docker files for running FastSurferCNN (segmentation only) and recon-surf (surface pipeline only) independently from each other or as a whole pipeline (run_fastsurfer.sh, segmentation + surface pipeline). For each of these purposes, see the README.md's in the corresponding folders.
 
