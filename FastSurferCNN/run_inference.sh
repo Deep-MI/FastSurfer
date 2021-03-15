@@ -9,6 +9,30 @@
 module load python/3.7
 source /home/nikhil/projects/def-jbpoline/nikhil/deep_learning/code/env/bin/activate
 
+echo prune_percent 0.90 cohort NC
+python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+	--o_dir ../data/prune_90/NC/ \
+	--t sub-* \
+	--in_name mri/orig.mgz \
+	--log temp_Competitive.log \
+	--network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--prune_type layerwise \
+	--prune_percent 0.90
+
+echo prune_percent 0.90 cohort PD
+python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/PD_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+	--o_dir ../data/prune_90/PD/ \
+	--t sub-* \
+	--in_name mri/orig.mgz \
+	--log temp_Competitive.log \
+	--network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--prune_type layerwise \
+	--prune_percent 0.90
+
 echo prune_percent 0.75
 python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/PD_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
 	--o_dir ../data/prune_75/PD/ \
