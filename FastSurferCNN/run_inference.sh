@@ -35,7 +35,7 @@ python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/dat
 
 echo prune_percent 0.25
 python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
-	--o_dir ../data/prune_75/NC/ \
+	--o_dir ../data/prune_25/NC/ \
 	--t sub-* \
 	--in_name mri/orig.mgz \
 	--log temp_Competitive.log \
