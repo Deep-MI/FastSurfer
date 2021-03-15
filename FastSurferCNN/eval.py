@@ -25,6 +25,8 @@ import os.path as op
 import logging
 import torch
 import torch.nn as nn
+import torch.nn.utils.prune as prune
+import torch.nn.functional as F
 
 from torch.autograd import Variable
 from torch.utils.data.dataloader import DataLoader
@@ -109,6 +111,14 @@ def options_parse():
     parser.add_argument('--network_axial_path', dest='network_axial_path',
                         help="pre-trained weights of axial network",
                         default='./checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl')
+    # Prune options                    
+    parser.add_argument('--prune_type', dest='prune_type',
+                        help="prune type: Global or layerwise sparsity",
+                        default=None)
+    parser.add_argument('--prune_percent', dest='prune_percent',
+                        help="desired sparsity",
+                        type=float, default=0.2)
+    
 
     # 5. Options for model parameters setup (only change if model training was changed)
     parser.add_argument('--num_filters', type=int, default=64,
@@ -144,6 +154,32 @@ def options_parse():
                  '(can be same as input directory)\n')
 
     return sel_option
+
+
+### Nikhil's Addition
+def prune_model(model, prune_type, prune_percent):
+    ''' Sparsifies (L1) model weights with either global or layerwise prune_percent. Currently only pruning Conv2D.
+    '''
+    if prune_type == 'global':
+        print('Globally pruning all Conv2d layers with {} sparsity'.format(prune_percent))
+        parameters_to_prune = []
+        for name, module in model.named_modules():
+            if isinstance(module, torch.nn.Conv2d):
+                parameters_to_prune.append((module,'weight'))
+        
+        prune.global_unstructured(tuple(parameters_to_prune), pruning_method=prune.L1Unstructured, amount=prune_percent)
+
+    elif prune_type == 'layerwise':
+        print('Layerwise pruning all Conv2d layers with {} sparsity'.format(prune_percent))
+        for name, module in model.named_modules():
+            if isinstance(module, torch.nn.Conv2d):
+                prune.l1_unstructured(module, name='weight', amount=prune_percent)
+
+    else:
+        print('Unknown pruning method: {}'.format(prune_type))
+
+    return model
+###
 
 
 def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, params_model, model, logger):
@@ -187,6 +223,10 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
     model.load_state_dict(new_state_dict)
 
     model.eval()
+
+    ### Nikhi's addtion
+    if params_model['prune_type'] is not None:
+        model = prune_model(model, params_model['prune_type'], params_model['prune_percent'])
 
     logger.info("{} model loaded.".format(plane))
     with torch.no_grad():
@@ -279,8 +319,16 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     model.to(device)
 
+    ### Nikhil's modification to add prune params
+    prune_type = args.prune_type
+    prune_percent = float(args.prune_percent)
+
+    logger.info("prune params, type:{}, percent:{}".format(prune_type,prune_percent))
     params_model = {'device': device, "use_cuda": use_cuda, "batch_size": args.batch_size,
-                    "model_parallel": model_parallel}
+                    "model_parallel": model_parallel, 
+                    'prune_type': prune_type, 'prune_percent':prune_percent}
+    ###
+
 
     # Set up tensor to hold probabilities
     pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
