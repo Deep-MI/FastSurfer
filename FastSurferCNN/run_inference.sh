@@ -10,8 +10,8 @@ module load python/3.7
 source /home/nikhil/projects/def-jbpoline/nikhil/deep_learning/code/env/bin/activate
 
 echo prune_percent 0.75
-python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
-	--o_dir ../data/prune_75/NC/ \
+python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/PD_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+	--o_dir ../data/prune_75/PD/ \
 	--t sub-* \
 	--in_name mri/orig.mgz \
 	--log temp_Competitive.log \
@@ -22,8 +22,8 @@ python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/dat
 	--prune_percent 0.75
 
 echo prune_percent 0.5
-python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
-	--o_dir ../data/prune_50/NC/ \
+python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/PD_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+	--o_dir ../data/prune_50/PD/ \
 	--t sub-* \
 	--in_name mri/orig.mgz \
 	--log temp_Competitive.log \
@@ -34,8 +34,8 @@ python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/dat
 	--prune_percent 0.5
 
 echo prune_percent 0.25
-python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
-	--o_dir ../data/prune_25/NC/ \
+python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/PD_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+	--o_dir ../data/prune_25/PD/ \
 	--t sub-* \
 	--in_name mri/orig.mgz \
 	--log temp_Competitive.log \
@@ -44,3 +44,15 @@ python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/dat
 	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--prune_type layerwise \
 	--prune_percent 0.25
+
+echo prune_percent 0.10
+python3 eval.py --i_dir /home/nikhil/projects/def-jbpoline/nikhil/Parkinsons/data/freesurfer/PD_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+	--o_dir ../data/prune_10/PD/ \
+	--t sub-* \
+	--in_name mri/orig.mgz \
+	--log temp_Competitive.log \
+	--network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--prune_type layerwise \
+	--prune_percent 0.10
