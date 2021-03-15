@@ -178,6 +178,10 @@ def prune_model(model, prune_type, prune_percent):
     else:
         print('Unknown pruning method: {}'.format(prune_type))
 
+    # make pruning permenant
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            prune.remove(module, 'weight')
     return model
 ###
 
