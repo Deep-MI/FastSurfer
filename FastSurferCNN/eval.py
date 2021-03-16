@@ -156,7 +156,7 @@ def options_parse():
     return sel_option
 
 
-### Nikhil's Addition
+### Prune module addition
 def prune_model(model, prune_type, prune_percent):
     ''' Sparsifies (L1) model weights with either global or layerwise prune_percent. Currently only pruning Conv2D.
     '''
@@ -179,6 +179,7 @@ def prune_model(model, prune_type, prune_percent):
         print('Unknown pruning method: {}'.format(prune_type))
 
     # make pruning permenant
+    # otherwise subsequent Coronal and Sagittal model calls fail due to weight name mismatch
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
             prune.remove(module, 'weight')
@@ -228,9 +229,24 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
 
     model.eval()
 
-    ### Nikhi's addtion
+    ### Prune module addition
     if params_model['prune_type'] is not None:
         model = prune_model(model, params_model['prune_type'], params_model['prune_percent'])
+        n_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        n_zero_params = []
+        n_conv_params = []
+        logger.info('\nPruning parameters...')
+        for name, module in model.named_modules():
+            if isinstance(module, torch.nn.Conv2d):
+                zero_conv_params = float(torch.sum(module.weight == 0))
+                total_conv_params = float(module.weight.nelement())
+                logger.info("Sparsity in {}: {:.2f}%".format(name, 100. * zero_conv_params /total_conv_params))
+                n_zero_params.append(zero_conv_params)
+                n_conv_params.append(total_conv_params)
+
+        logger.info('\nTotal params in the model, trainable:{}, conv:{}, ({:3.2f}), zero:{}, ({:3.2f})'.format(n_trainable_params,np.sum(n_conv_params),
+        100*np.sum(n_conv_params)/n_trainable_params,np.sum(n_zero_params),100*np.sum(n_zero_params)/n_trainable_params))
+
 
     logger.info("{} model loaded.".format(plane))
     with torch.no_grad():
@@ -323,7 +339,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     model.to(device)
 
-    ### Nikhil's modification to add prune params
+    ### Prune module addition
     prune_type = args.prune_type
     prune_percent = float(args.prune_percent)
 
