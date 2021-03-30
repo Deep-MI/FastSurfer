@@ -99,6 +99,7 @@ def getscale(data, dst_min, dst_max, f_low=0.0, f_high=0.999):
     :return: returns (adjusted) src_min and scale factor
     """
     # get min and max from source
+    data = np.maximum(data, 0)
     src_min = np.min(data)
     src_max = np.max(data)
 
