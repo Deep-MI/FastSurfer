@@ -1,0 +1,4 @@
+*.sif
+__pycache__/
+*.out
+data/
