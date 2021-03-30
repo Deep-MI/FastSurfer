@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python3 eval.py --i_dir /home/nikhil/projects/Parkinsons/data/fs60/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
+python3 eval_with_tracker.py --i_dir /home/nikhil/projects/Parkinsons/data/fs60/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/ \
 	--o_dir ../data \
 	--t sub-0128 \
 	--in_name mri/orig.mgz \
@@ -8,6 +8,4 @@ python3 eval.py --i_dir /home/nikhil/projects/Parkinsons/data/fs60/NC_fmriprep_a
 	--network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
-	--prune_type layerwise \
-	--prune_percent 0.1
-
+	--mock_run 2
