@@ -1,0 +1,111 @@
+Reading volume /home/nikhil/projects/Parkinsons/data/fs60/NC_fmriprep_anat_20.2.0/freesurfer-6.0.1/sub-0128/mri/orig.mgz
+Cuda available: False, # Available GPUS: 0, Cuda user disabled (--no_cuda flag): False, --> Using device: cpu
+prune params, type:None, percent:0.2
+MACs:0 params: 0
+Loading Axial Net from ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
+Axial model loaded.
+--->Batch 0 Axial Testing Done.
+--->Batch 1 Axial Testing Done.
+--->Batch 2 Axial Testing Done.
+--->Batch 3 Axial Testing Done.
+--->Batch 4 Axial Testing Done.
+--->Batch 5 Axial Testing Done.
+--->Batch 6 Axial Testing Done.
+--->Batch 7 Axial Testing Done.
+--->Batch 8 Axial Testing Done.
+--->Batch 9 Axial Testing Done.
+--->Batch 10 Axial Testing Done.
+--->Batch 11 Axial Testing Done.
+--->Batch 12 Axial Testing Done.
+--->Batch 13 Axial Testing Done.
+--->Batch 14 Axial Testing Done.
+--->Batch 15 Axial Testing Done.
+--->Batch 16 Axial Testing Done.
+--->Batch 17 Axial Testing Done.
+--->Batch 18 Axial Testing Done.
+--->Batch 19 Axial Testing Done.
+--->Batch 20 Axial Testing Done.
+--->Batch 21 Axial Testing Done.
+--->Batch 22 Axial Testing Done.
+--->Batch 23 Axial Testing Done.
+--->Batch 24 Axial Testing Done.
+--->Batch 25 Axial Testing Done.
+--->Batch 26 Axial Testing Done.
+--->Batch 27 Axial Testing Done.
+--->Batch 28 Axial Testing Done.
+--->Batch 29 Axial Testing Done.
+--->Batch 30 Axial Testing Done.
+--->Batch 31 Axial Testing Done.
+Axial View Tested in 3804.5118 seconds
+Loading Coronal Net from ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
+Coronal model loaded.
+--->Batch 0 Coronal Testing Done.
+--->Batch 1 Coronal Testing Done.
+--->Batch 2 Coronal Testing Done.
+--->Batch 3 Coronal Testing Done.
+--->Batch 4 Coronal Testing Done.
+--->Batch 5 Coronal Testing Done.
+--->Batch 6 Coronal Testing Done.
+--->Batch 7 Coronal Testing Done.
+--->Batch 8 Coronal Testing Done.
+--->Batch 9 Coronal Testing Done.
+--->Batch 10 Coronal Testing Done.
+--->Batch 11 Coronal Testing Done.
+--->Batch 12 Coronal Testing Done.
+--->Batch 13 Coronal Testing Done.
+--->Batch 14 Coronal Testing Done.
+--->Batch 15 Coronal Testing Done.
+--->Batch 16 Coronal Testing Done.
+--->Batch 17 Coronal Testing Done.
+--->Batch 18 Coronal Testing Done.
+--->Batch 19 Coronal Testing Done.
+--->Batch 20 Coronal Testing Done.
+--->Batch 21 Coronal Testing Done.
+--->Batch 22 Coronal Testing Done.
+--->Batch 23 Coronal Testing Done.
+--->Batch 24 Coronal Testing Done.
+--->Batch 25 Coronal Testing Done.
+--->Batch 26 Coronal Testing Done.
+--->Batch 27 Coronal Testing Done.
+--->Batch 28 Coronal Testing Done.
+--->Batch 29 Coronal Testing Done.
+--->Batch 30 Coronal Testing Done.
+--->Batch 31 Coronal Testing Done.
+Coronal View Tested in 3597.4483 seconds
+Loading Sagittal Net from ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
+Sagittal model loaded.
+--->Batch 0 Sagittal Testing Done.
+--->Batch 1 Sagittal Testing Done.
+--->Batch 2 Sagittal Testing Done.
+--->Batch 3 Sagittal Testing Done.
+--->Batch 4 Sagittal Testing Done.
+--->Batch 5 Sagittal Testing Done.
+--->Batch 6 Sagittal Testing Done.
+--->Batch 7 Sagittal Testing Done.
+--->Batch 8 Sagittal Testing Done.
+--->Batch 9 Sagittal Testing Done.
+--->Batch 10 Sagittal Testing Done.
+--->Batch 11 Sagittal Testing Done.
+--->Batch 12 Sagittal Testing Done.
+--->Batch 13 Sagittal Testing Done.
+--->Batch 14 Sagittal Testing Done.
+--->Batch 15 Sagittal Testing Done.
+--->Batch 16 Sagittal Testing Done.
+--->Batch 17 Sagittal Testing Done.
+--->Batch 18 Sagittal Testing Done.
+--->Batch 19 Sagittal Testing Done.
+--->Batch 20 Sagittal Testing Done.
+--->Batch 21 Sagittal Testing Done.
+--->Batch 22 Sagittal Testing Done.
+--->Batch 23 Sagittal Testing Done.
+--->Batch 24 Sagittal Testing Done.
+--->Batch 25 Sagittal Testing Done.
+--->Batch 26 Sagittal Testing Done.
+--->Batch 27 Sagittal Testing Done.
+--->Batch 28 Sagittal Testing Done.
+--->Batch 29 Sagittal Testing Done.
+--->Batch 30 Sagittal Testing Done.
+--->Batch 31 Sagittal Testing Done.
+Sagittal View Tested in 3172.0072 seconds
+Saving Segmentation to ../data/sub-0128/aparc.DKTatlas+aseg.deep.mgz
+Total processing time: 10582.6275 seconds.

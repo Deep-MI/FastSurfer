@@ -323,250 +323,251 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     :return None: saves prediction to save_as
     """
-    start_total = time.time()
-
     mock_run = args.mock_run
     if mock_run != 0:
         print('********Doing a mock run with level: {} (1: No inference, 2:Axial, 3:Coronal, 4:Sagittal********'.format(mock_run))
 
     # PAPI
-    papi_df = pd.DataFrame(columns=['task','start_time','duration','DP'])
+    papi_df = pd.DataFrame(columns=['task','DP'])
     high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
 
-    # setup
-    start_time = time.time()
+    # impract context manager
+    tracker_log_dir = args.tracker_log_dir
+    exp_track_setup_log_file = tracker_log_dir + 'setup/'
+
+    with ImpactTracker(exp_track_setup_log_file):
+        start_total = time.time()
+        logger.info("Reading volume {}".format(img_filename))
+
+        header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1, logger=logger)
+
+        # Set up model for axial and coronal networks
+        params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
+                        'kernel_h': args.kernel_height, 'kernel_w': args.kernel_width,
+                        'stride_conv': args.stride, 'pool': args.pool,
+                        'stride_pool': args.stride_pool, 'num_classes': args.num_classes_ax_cor,
+                        'kernel_c': 1, 'kernel_d': 1}
+
+        # Select the model
+        model = FastSurferCNN(params_network)
+
+        # Put it onto the GPU or CPU
+        use_cuda = not args.no_cuda and torch.cuda.is_available()
+        device = torch.device("cuda" if use_cuda else "cpu")
+
+        logger.info("Cuda available: {}, # Available GPUS: {}, "
+                    "Cuda user disabled (--no_cuda flag): {}, "
+                    "--> Using device: {}".format(torch.cuda.is_available(),
+                                                torch.cuda.device_count(),
+                                                args.no_cuda, device))
+
+        if use_cuda and torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
+            model_parallel = True
+        else:
+            model_parallel = False
+
+        model.to(device)
+
+        ### Prune module addition
+        prune_type = args.prune_type
+        prune_percent = float(args.prune_percent)
+
+        logger.info("prune params, type:{}, percent:{}".format(prune_type,prune_percent))
+        params_model = {'device': device, "use_cuda": use_cuda, "batch_size": args.batch_size,
+                        "model_parallel": model_parallel, 
+                        'prune_type': prune_type, 'prune_percent':prune_percent}
+        ###
+
+
+        # Set up tensor to hold probabilities
+        pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
+
+        DP = high.stop_counters()
+        papi_df.loc[0] = ['setup',DP]
+
     
-    logger.info("Reading volume {}".format(img_filename))
-    header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1, logger=logger)
-
-    # Set up model for axial and coronal networks
-    params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
-                      'kernel_h': args.kernel_height, 'kernel_w': args.kernel_width,
-                      'stride_conv': args.stride, 'pool': args.pool,
-                      'stride_pool': args.stride_pool, 'num_classes': args.num_classes_ax_cor,
-                      'kernel_c': 1, 'kernel_d': 1}
-
-    # Select the model
-    model = FastSurferCNN(params_network)
-
-    # Put it onto the GPU or CPU
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-
-    logger.info("Cuda available: {}, # Available GPUS: {}, "
-                "Cuda user disabled (--no_cuda flag): {}, "
-                "--> Using device: {}".format(torch.cuda.is_available(),
-                                              torch.cuda.device_count(),
-                                              args.no_cuda, device))
-
-    if use_cuda and torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
-        model_parallel = True
-    else:
-        model_parallel = False
-
-    model.to(device)
-
-    ### Prune module addition
-    prune_type = args.prune_type
-    prune_percent = float(args.prune_percent)
-
-    logger.info("prune params, type:{}, percent:{}".format(prune_type,prune_percent))
-    params_model = {'device': device, "use_cuda": use_cuda, "batch_size": args.batch_size,
-                    "model_parallel": model_parallel, 
-                    'prune_type': prune_type, 'prune_percent':prune_percent}
-    ###
-
-    # Set up tensor to hold probabilities
-    pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
-
-    DP = high.stop_counters()[0]
-    end_time = time.time()
-    setup_time = end_time - start_time
-    papi_df.loc[0] = ['setup', start_time, setup_time, DP]
-
     # MAC counters (ignoring this part from FLOP counter)
-    n_channels = 1
-    input_size = 256
-    # macs, params = get_model_complexity_info(model, (n_channels, input_size, input_size), as_strings=False,
-    #                                     print_per_layer_stat=False)
-    macs, params = 0, 0 # get_model_complexity fails to process BN layers
+    time.sleep(5)
+    exp_track_setup_log_file = tracker_log_dir + 'MAC/'
+    with ImpactTracker(exp_track_setup_log_file):
+        n_channels = 1
+        input_size = 256
+        # macs, params = get_model_complexity_info(model, (n_channels, input_size, input_size), as_strings=False,
+        #                                     print_per_layer_stat=False)
+        macs, params = 0, 0 # get_model_complexity fails to process BN layers
 
-    logger.info("MACs:{} params: {}".format(macs,params))
+        logger.info("MACs:{} params: {}".format(macs,params))
 
 
     # Axial Prediction #trainable:1799206 
     if mock_run in [0, 2]:
         high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        start = time.time()
+        
+        # impract context manager
+        exp_track_setup_log_file = tracker_log_dir + 'Axial/'
+        with ImpactTracker(exp_track_setup_log_file):
+            
+            pred_prob = run_network(img_filename,
+                                    orig_data, pred_prob, "Axial",
+                                    args.network_axial_path,
+                                    params_model, model, logger)
 
-        start_time = time.time()
-        pred_prob = run_network(img_filename,
-                                orig_data, pred_prob, "Axial",
-                                args.network_axial_path,
-                                params_model, model, logger)
+            logger.info("Axial View Tested in {:0.4f} seconds".format(time.time() - start))
 
-        print("Axial View Tested in {:0.4f} seconds".format(time.time() - start_time))
-
-        DP = high.stop_counters()[0]
-        end_time = time.time()
-        axial_time = end_time - start_time
-        papi_df.loc[1] = ['axial', start_time, axial_time, DP]
+            DP = high.stop_counters()
+            papi_df.loc[1] = ['axial',DP]
 
     # Coronal Prediction #trainable:1799206
     if mock_run in [0, 3]:
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        exp_track_setup_log_file = tracker_log_dir + 'Coronal/'
+        with ImpactTracker(exp_track_setup_log_file):
+            high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
 
-        start_time = time.time()
-        pred_prob = run_network(img_filename,
-                                orig_data, pred_prob, "Coronal",
-                                args.network_coronal_path,
-                                params_model, model, logger)
+            start = time.time()
+            pred_prob = run_network(img_filename,
+                                    orig_data, pred_prob, "Coronal",
+                                    args.network_coronal_path,
+                                    params_model, model, logger)
 
-        logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start_time))
+            logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start))
 
-        DP = high.stop_counters()[0]
-        end_time = time.time()
-        coronal_time = end_time - start_time
-        papi_df.loc[2] = ['Coronal', start_time, coronal_time, DP]
+            DP = high.stop_counters()
+            papi_df.loc[2] = ['Coronal',DP]
 
     # Sagittal Prediction #trainable:1797386
     if mock_run in [0, 4]:
         high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
-        
-        start_time = time.time()
-        params_network["num_classes"] = args.num_classes_sag
-        params_network["num_channels"] = args.num_channels
+        start = time.time()
 
-        model = FastSurferCNN(params_network)
+        exp_track_setup_log_file = tracker_log_dir + 'Sagittal/'
+        with ImpactTracker(exp_track_setup_log_file):
+            
+            params_network["num_classes"] = args.num_classes_sag
+            params_network["num_channels"] = args.num_channels
 
-        if model_parallel:
-            model = nn.DataParallel(model)
+            model = FastSurferCNN(params_network)
 
-        model.to(device)
+            if model_parallel:
+                model = nn.DataParallel(model)
 
-        pred_prob = run_network(img_filename, orig_data, pred_prob, "Sagittal",
-                                args.network_sagittal_path,
-                                params_model, model, logger)
+            model.to(device)
 
-        logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start_time))
-        
-        DP = high.stop_counters()[0]
-        end_time = time.time()
-        sagittal_time = end_time - start_time
-        papi_df.loc[3] = ['Sagittal', start_time, sagittal_time, DP]
+            pred_prob = run_network(img_filename, orig_data, pred_prob, "Sagittal",
+                                    args.network_sagittal_path,
+                                    params_model, model, logger)
+
+            logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start))
+            
+            DP = high.stop_counters()
+            papi_df.loc[3] = ['Sagittal',DP]
 
     if mock_run != 1:
-        # Aggregatipn and postprocessing:
+        # Aggregation and postprocessing:
         high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
-        start_time  = time.time()
 
-        # Get predictions and map to freesurfer label space
-        _, pred_prob = torch.max(pred_prob, 3)
-        pred_prob = pred_prob.numpy()
-        pred_prob = map_label2aparc_aseg(pred_prob)
+        exp_track_setup_log_file = tracker_log_dir + 'aggregate/'
+        with ImpactTracker(exp_track_setup_log_file):    
+            # Get predictions and map to freesurfer label space
+            _, pred_prob = torch.max(pred_prob, 3)
+            pred_prob = pred_prob.numpy()
+            pred_prob = map_label2aparc_aseg(pred_prob)
 
-        # Post processing - Splitting classes
-        # Quick Fix for 2026 vs 1026; 2029 vs. 1029; 2025 vs. 1025
-        rh_wm = get_largest_cc(pred_prob == 41)
-        lh_wm = get_largest_cc(pred_prob == 2)
-        rh_wm = regionprops(label(rh_wm, background=0))
-        lh_wm = regionprops(label(lh_wm, background=0))
-        centroid_rh = np.asarray(rh_wm[0].centroid)
-        centroid_lh = np.asarray(lh_wm[0].centroid)
+            # Post processing - Splitting classes
+            # Quick Fix for 2026 vs 1026; 2029 vs. 1029; 2025 vs. 1025
+            rh_wm = get_largest_cc(pred_prob == 41)
+            lh_wm = get_largest_cc(pred_prob == 2)
+            rh_wm = regionprops(label(rh_wm, background=0))
+            lh_wm = regionprops(label(lh_wm, background=0))
+            centroid_rh = np.asarray(rh_wm[0].centroid)
+            centroid_lh = np.asarray(lh_wm[0].centroid)
 
-        labels_list = np.array([1003, 1006, 1007, 1008, 1009, 1011,
-                                1015, 1018, 1019, 1020, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035])
+            labels_list = np.array([1003, 1006, 1007, 1008, 1009, 1011,
+                                    1015, 1018, 1019, 1020, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035])
 
-        for label_current in labels_list:
+            for label_current in labels_list:
 
-            label_img = label(pred_prob == label_current, connectivity=3, background=0)
+                label_img = label(pred_prob == label_current, connectivity=3, background=0)
 
-            for region in regionprops(label_img):
+                for region in regionprops(label_img):
 
-                if region.label != 0:  # To avoid background
+                    if region.label != 0:  # To avoid background
 
-                    if np.linalg.norm(np.asarray(region.centroid) - centroid_rh) < np.linalg.norm(
-                            np.asarray(region.centroid) - centroid_lh):
-                        mask = label_img == region.label
-                        pred_prob[mask] = label_current + 1000
+                        if np.linalg.norm(np.asarray(region.centroid) - centroid_rh) < np.linalg.norm(
+                                np.asarray(region.centroid) - centroid_lh):
+                            mask = label_img == region.label
+                            pred_prob[mask] = label_current + 1000
 
-        # Quick Fixes for overlapping classes
-        aseg_lh = gaussian_filter(1000 * np.asarray(pred_prob == 2, dtype=np.float), sigma=3)
-        aseg_rh = gaussian_filter(1000 * np.asarray(pred_prob == 41, dtype=np.float), sigma=3)
+            # Quick Fixes for overlapping classes
+            aseg_lh = gaussian_filter(1000 * np.asarray(pred_prob == 2, dtype=np.float), sigma=3)
+            aseg_rh = gaussian_filter(1000 * np.asarray(pred_prob == 41, dtype=np.float), sigma=3)
 
-        lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
-                                axis=3)
+            lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
+                                    axis=3)
 
-        # Problematic classes: 1026, 1011, 1029, 1019
-        for prob_class_lh in [1011, 1019, 1026, 1029]:
-            prob_class_rh = prob_class_lh + 1000
-            mask_lh = ((pred_prob == prob_class_lh) | (pred_prob == prob_class_rh)) & (lh_rh_split == 0)
-            mask_rh = ((pred_prob == prob_class_lh) | (pred_prob == prob_class_rh)) & (lh_rh_split == 1)
+            # Problematic classes: 1026, 1011, 1029, 1019
+            for prob_class_lh in [1011, 1019, 1026, 1029]:
+                prob_class_rh = prob_class_lh + 1000
+                mask_lh = ((pred_prob == prob_class_lh) | (pred_prob == prob_class_rh)) & (lh_rh_split == 0)
+                mask_rh = ((pred_prob == prob_class_lh) | (pred_prob == prob_class_rh)) & (lh_rh_split == 1)
 
-            pred_prob[mask_lh] = prob_class_lh
-            pred_prob[mask_rh] = prob_class_rh
+                pred_prob[mask_lh] = prob_class_lh
+                pred_prob[mask_rh] = prob_class_rh
 
-        DP = high.stop_counters()[0]
-        end_time = time.time()
-        agg_time = end_time - start_time
-        papi_df.loc[4] = ['aggregate', start_time, agg_time, DP]
-        
+            DP = high.stop_counters()
+            papi_df.loc[4] = ['aggregate',DP]
+            
         # Clean-Up
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
-        start_time = time.time()
+        exp_track_setup_log_file = tracker_log_dir + 'cleanup/'
+        with ImpactTracker(exp_track_setup_log_file):
+            high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+            if args.cleanup is True:
 
-        if args.cleanup is True:
-            start_time = time.time()
-            labels = [2, 4, 5, 7, 8, 10, 11, 12, 13, 14,
-                    15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44,
-                    46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
-                    77, 1026, 2026]
+                labels = [2, 4, 5, 7, 8, 10, 11, 12, 13, 14,
+                        15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44,
+                        46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
+                        77, 1026, 2026]
 
-            pred_prob_medfilt = median_filter(pred_prob, size=(3, 3, 3))
-            mask = np.zeros_like(pred_prob)
-            tolerance = 25
+                start = time.time()
+                pred_prob_medfilt = median_filter(pred_prob, size=(3, 3, 3))
+                mask = np.zeros_like(pred_prob)
+                tolerance = 25
 
-            for current_label in labels:
-                current_class = (pred_prob == current_label)
-                label_image = label(current_class, connectivity=3)
+                for current_label in labels:
+                    current_class = (pred_prob == current_label)
+                    label_image = label(current_class, connectivity=3)
 
-                for region in regionprops(label_image):
+                    for region in regionprops(label_image):
 
-                    if region.area <= tolerance:
-                        mask_label = (label_image == region.label)
-                        mask[mask_label] = 1
+                        if region.area <= tolerance:
+                            mask_label = (label_image == region.label)
+                            mask[mask_label] = 1
 
-            pred_prob[mask == 1] = pred_prob_medfilt[mask == 1]
-            # logger.info("Segmentation Cleaned up in {:0.4f} seconds.".format(time.time() - start_time)
-            print("Segmentation Cleaned up in {:0.4f} seconds.".format(time.time() - start_time))
+                pred_prob[mask == 1] = pred_prob_medfilt[mask == 1]
+                logger.info("Segmentation Cleaned up in {:0.4f} seconds.".format(time.time() - start))
 
-
-        DP = high.stop_counters()[0]
-        end_time = time.time()
-        cleanup_time = end_time - start_time
-        papi_df.loc[5] = ['cleanup',start_time, cleanup_time, DP]
+                DP = high.stop_counters()
+                papi_df.loc[5] = ['cleanup',DP]
 
         # Saving image
         high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
-        start_time = time.time()
 
         header_info.set_data_dtype(np.int16)
         mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
         mapped_aseg_img.to_filename(save_as)
-    
-        DP = high.stop_counters()[0]
-        end_time = time.time()
-        save_time = end_time - start_time
-        papi_df.loc[6] = ['save', start_time, save_time, DP]
+        logger.info("Saving Segmentation to {}".format(save_as))
+        logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
+
+        DP = high.stop_counters()
+        papi_df.loc[6] = ['save',DP]
 
     papi_df['MAC'] = macs
     papi_df['params'] = params
-    papi_df.to_csv('{}/compute_costs_flop.csv'.format(args.tracker_log_dir))
-
-    logger.info("Saving Segmentation to {}".format(save_as))
-    logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
+    papi_df.to_csv('{}/compute_flops.csv'.format(tracker_log_dir))
 
 if __name__ == "__main__":
+
     # Command Line options and error checking done here
     options = options_parse()
 
@@ -574,14 +575,6 @@ if __name__ == "__main__":
     logger = logging.getLogger("eval")
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(stream=sys.stdout))
-
-    # Set up the tracker
-    # experiment impact tracker
-    log_dir = options.tracker_log_dir
-    # Init tracker with log path
-    tracker = ImpactTracker(log_dir)
-    # Start tracker in a separate process
-    tracker.launch_impact_monitor()
 
     if options.simple_run:
 
@@ -646,6 +639,6 @@ if __name__ == "__main__":
 
             # Check experiment tracker status
             # Optional. Adding this will ensure that your experiment stops if impact tracker throws an exception and exit.
-            tracker.get_latest_info_and_check_for_errors()
+            # tracker.get_latest_info_and_check_for_errors()
 
         sys.exit(0)

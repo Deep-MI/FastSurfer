@@ -9,4 +9,4 @@ python3 eval_with_tracker.py --i_dir /home/nikhil/projects/Parkinsons/data/fs60/
 	--network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--tracker_log_dir './logs/tmp/' \
-	--mock_run 1
+	--mock_run 4
