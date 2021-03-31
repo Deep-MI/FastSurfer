@@ -133,6 +133,9 @@ def options_parse():
     parser.add_argument('--mock_run', dest='mock_run',
                         help="run without inference: 1, run only Axial model: 2",
                         type=int, default=1)
+    parser.add_argument('--tracker_log_dir', dest='tracker_log_dir',
+                        help="log dir for experiment impact tracker",
+                        type=str, default='./tracker_logs/')
     
 
     # 5. Options for model parameters setup (only change if model training was changed)
@@ -554,7 +557,7 @@ if __name__ == "__main__":
 
     # Set up the tracker
     # experiment impact tracker
-    log_dir = 'logs/exp_impact_tracker_test/'
+    log_dir = options.tracker_log_dir
     # Init tracker with log path
     tracker = ImpactTracker(log_dir)
     # Start tracker in a separate process
