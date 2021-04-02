@@ -52,7 +52,7 @@ from models.networks import FastSurferCNN
 # Compute costs
 import pandas as pd
 # from ptflops import get_model_complexity_info
-from pypapi import events, papi_high as high
+# from pypapi import events, papi_high as high
 
 # experiment tracker
 sys.path.append('../../')
@@ -331,7 +331,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     # PAPI
     papi_df = pd.DataFrame(columns=['task','start_time','duration','DP'])
-    high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+    # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
 
     # setup
     start_time = time.time()
@@ -380,7 +380,8 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     # Set up tensor to hold probabilities
     pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
 
-    DP = high.stop_counters()[0]
+    # DP = high.stop_counters()[0]
+    DP = 0
     end_time = time.time()
     setup_time = end_time - start_time
     papi_df.loc[0] = ['setup', start_time, setup_time, DP]
@@ -397,7 +398,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     # Axial Prediction #trainable:1799206 
     if mock_run in [0, 2]:
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
 
         start_time = time.time()
         pred_prob = run_network(img_filename,
@@ -407,14 +408,15 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
         print("Axial View Tested in {:0.4f} seconds".format(time.time() - start_time))
 
-        DP = high.stop_counters()[0]
+        # DP = high.stop_counters()[0]
+        DP = 0
         end_time = time.time()
         axial_time = end_time - start_time
         papi_df.loc[1] = ['axial', start_time, axial_time, DP]
 
     # Coronal Prediction #trainable:1799206
     if mock_run in [0, 3]:
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
 
         start_time = time.time()
         pred_prob = run_network(img_filename,
@@ -424,14 +426,15 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
         logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start_time))
 
-        DP = high.stop_counters()[0]
+        # DP = high.stop_counters()[0]
+        DP = 0
         end_time = time.time()
         coronal_time = end_time - start_time
         papi_df.loc[2] = ['Coronal', start_time, coronal_time, DP]
 
     # Sagittal Prediction #trainable:1797386
     if mock_run in [0, 4]:
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
         
         start_time = time.time()
         params_network["num_classes"] = args.num_classes_sag
@@ -450,14 +453,15 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
         logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start_time))
         
-        DP = high.stop_counters()[0]
+        # DP = high.stop_counters()[0]
+        DP = 0
         end_time = time.time()
         sagittal_time = end_time - start_time
         papi_df.loc[3] = ['Sagittal', start_time, sagittal_time, DP]
 
     if mock_run != 1:
         # Aggregatipn and postprocessing:
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
         start_time  = time.time()
 
         # Get predictions and map to freesurfer label space
@@ -506,13 +510,14 @@ def fastsurfercnn(img_filename, save_as, logger, args):
             pred_prob[mask_lh] = prob_class_lh
             pred_prob[mask_rh] = prob_class_rh
 
-        DP = high.stop_counters()[0]
+        # DP = high.stop_counters()[0]
+        DP = 0
         end_time = time.time()
         agg_time = end_time - start_time
         papi_df.loc[4] = ['aggregate', start_time, agg_time, DP]
         
         # Clean-Up
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
         start_time = time.time()
 
         if args.cleanup is True:
@@ -541,20 +546,22 @@ def fastsurfercnn(img_filename, save_as, logger, args):
             print("Segmentation Cleaned up in {:0.4f} seconds.".format(time.time() - start_time))
 
 
-        DP = high.stop_counters()[0]
+        # DP = high.stop_counters()[0]
+        DP = 0
         end_time = time.time()
         cleanup_time = end_time - start_time
         papi_df.loc[5] = ['cleanup',start_time, cleanup_time, DP]
 
         # Saving image
-        high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
+        # high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
         start_time = time.time()
 
         header_info.set_data_dtype(np.int16)
         mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
         mapped_aseg_img.to_filename(save_as)
     
-        DP = high.stop_counters()[0]
+        # DP = high.stop_counters()[0]
+        DP = 0
         end_time = time.time()
         save_time = end_time - start_time
         papi_df.loc[6] = ['save', start_time, save_time, DP]
