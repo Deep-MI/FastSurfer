@@ -455,7 +455,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     sagittal_time = end_time - start_time
     papi_df.loc[3] = ['Sagittal', start_time, sagittal_time, DP]
 
-    # Aggregatipn and postprocessing:
+    # Aggregation and postprocessing:
     high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
     start_time  = time.time()
 
@@ -536,6 +536,8 @@ def fastsurfercnn(img_filename, save_as, logger, args):
         header_info.set_data_dtype(np.int16)
         mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
         mapped_aseg_img.to_filename(save_as)
+        logger.info("Saving Segmentation to {}".format(save_as))
+        logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
     
     DP = high.stop_counters()[0]
     end_time = time.time()
@@ -546,8 +548,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     papi_df['params'] = params
     papi_df.to_csv('{}/compute_costs_flop.csv'.format(args.tracker_log_dir))
 
-    logger.info("Saving Segmentation to {}".format(save_as))
-    logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
+    
 
 if __name__ == "__main__":
     # Command Line options and error checking done here
