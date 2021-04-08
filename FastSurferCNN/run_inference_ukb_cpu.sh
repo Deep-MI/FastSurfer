@@ -17,5 +17,5 @@ python3 eval_with_tracker.py --i_dir "${DATA_DIR}" \
 	--geo_loc '45.4972159,-73.6103642' \
 	--prune_type layerwise \
 	--prune_percent 0.5 \
-	--tracker_log_dir './logs/CC_cpu_test/' \
+	--tracker_log_dir './logs/CC_ukb_cpu_test/' \
 	--mock_run 0

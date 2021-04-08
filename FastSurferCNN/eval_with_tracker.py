@@ -563,7 +563,7 @@ if __name__ == "__main__":
     logger.addHandler(logging.StreamHandler(stream=sys.stdout))
 
     # Set up the tracker
-    log_dir = '{}/{}/'.format(options.tracker_log_dir,options.tag)
+    log_dir = '{}/{}/'.format(options.tracker_log_dir,options.search_tag)
 
     geo_loc = options.geo_loc
     ly,lx = float(geo_loc.split(',')[0]), float(geo_loc.split(',')[1])

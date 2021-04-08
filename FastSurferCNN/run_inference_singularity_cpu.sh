@@ -10,4 +10,4 @@
 
 module load singularity/3.6
 
-singularity exec --nv --overlay /project/rpp-aevans-ab/neurohub/ukbb/imaging/neurohub_ukbb_t1_ses2_0_bids.squashfs:ro ../../FastSurfer.sif ./run_inference_ukb_cpu.sh
+singularity exec --overlay /project/rpp-aevans-ab/neurohub/ukbb/imaging/neurohub_ukbb_t1_ses2_0_bids.squashfs:ro ../../FastSurfer.sif ./run_inference_ukb_cpu.sh
