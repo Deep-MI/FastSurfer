@@ -6,7 +6,7 @@ PARAM_T='sub-2017717'
 
 # cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-python3 eval.py --i_dir "${DATA_DIR}" \
+python3 eval_with_tracker.py --i_dir "${DATA_DIR}" \
 	--o_dir ../data/prune_50/NC/ \
 	--t "${PARAM_T}" \
 	--in_name "${INPUT_FILE_NAME}" \
