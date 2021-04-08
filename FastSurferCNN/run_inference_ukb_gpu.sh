@@ -6,14 +6,16 @@ PARAM_T='sub-2017717'
 
 # cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-echo prune_percent 0.0 cohort ukb
-python3 eval_with_tracker.py --i_dir "${DATA_DIR}" \
-	--o_dir ../data/ukb/ \
+python3 eval.py --i_dir "${DATA_DIR}" \
+	--o_dir ../data/prune_50/NC/ \
 	--t "${PARAM_T}" \
 	--in_name "${INPUT_FILE_NAME}" \
 	--log temp_Competitive.log \
 	--network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
 	--network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+	--geo_loc '45.4972159,-73.6103642' \
+	--prune_type layerwise \
+	--prune_percent 0.5 \
 	--tracker_log_dir './logs/CC_gpu_test/' \
 	--mock_run 0

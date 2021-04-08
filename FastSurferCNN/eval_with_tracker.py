@@ -133,6 +133,9 @@ def options_parse():
     parser.add_argument('--mock_run', dest='mock_run',
                         help="run without inference: 1, run only Axial model: 2",
                         type=int, default=1)
+    parser.add_argument('--geo_loc', dest='geo_loc',
+                        help="(lat,log) coords for experiment impact tracker",
+                        type=str, default='45.4972159,-73.6103642') #MTL Beluga
     parser.add_argument('--tracker_log_dir', dest='tracker_log_dir',
                         help="log dir for experiment impact tracker",
                         type=str, default='./tracker_logs/')
@@ -552,7 +555,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
 if __name__ == "__main__":
     # Command Line options and error checking done here
-    options = options_parse()
+    options = options_parse()   
 
     # Set up the logger
     logger = logging.getLogger("eval")
@@ -560,10 +563,14 @@ if __name__ == "__main__":
     logger.addHandler(logging.StreamHandler(stream=sys.stdout))
 
     # Set up the tracker
-    # experiment impact tracker
-    log_dir = options.tracker_log_dir
+    log_dir = '{}/{}/'.format(options.tracker_log_dir,options.tag)
+
+    geo_loc = options.geo_loc
+    ly,lx = float(geo_loc.split(',')[0]), float(geo_loc.split(',')[1])
+    coords = (ly,lx)
+    
     # Init tracker with log path
-    tracker = ImpactTracker(log_dir)
+    tracker = ImpactTracker(log_dir,coords)
     # Start tracker in a separate process
     tracker.launch_impact_monitor()
 
