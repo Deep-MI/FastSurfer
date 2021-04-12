@@ -1,8 +1,8 @@
 #!/bin/bash
 
 DATA_DIR='/neurohub/ukbb/imaging/'
-INPUT_FILE_NAME='ses-2/anat/sub-2017717_ses-2_T1w.nii.gz'
-PARAM_T='sub-2017717'
+INPUT_FILE_NAME="ses-2/anat/sub-$1_ses-2_T1w.nii.gz"
+PARAM_T="sub-$1"
 
 # cd "$( dirname "${BASH_SOURCE[0]}" )"
 
