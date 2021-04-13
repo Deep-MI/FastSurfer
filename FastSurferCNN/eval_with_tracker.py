@@ -333,6 +333,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
         print('\n********Doing a mock run with level: {} (1: No inference, 2:Axial, 3:Coronal, 4:Sagittal********\n'.format(mock_run))
 
     # PAPI
+    papi_csv = '{}/{}/compute_costs_flop.csv'.format(args.tracker_log_dir,args.search_tag)
     papi_df = pd.DataFrame(columns=['task','start_time','duration','DP'])
     high.start_counters([events.PAPI_DP_OPS,]) #default: PAPI_FP_OPS
 
@@ -549,9 +550,8 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     
     papi_df['MAC'] = macs
     papi_df['params'] = params
-    papi_df.to_csv('{}/compute_costs_flop.csv'.format(args.tracker_log_dir))
+    papi_df.to_csv(papi_csv)
 
-    
 
 if __name__ == "__main__":
     # Command Line options and error checking done here
