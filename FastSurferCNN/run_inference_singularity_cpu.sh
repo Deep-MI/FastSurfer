@@ -5,8 +5,16 @@
 #SBATCH --time=0-05:50
 #SBATCH --output=%N-%j.out
 #SBATCH --account=def-jbpoline
+#SBATCH --array=0-72
 
 # cd "$( dirname "${BASH_SOURCE[0]}" )"
+
+[[ -z "${SLURM_ARRAY_TASK_ID}" ]] && exit 1
+
+subj=$(awk -v row="${SLURM_ARRAY_TASK_ID}" \
+    'BEGIN {FS=","} NR == row + 2 {print $5}' ~/fastsurfer_pilot_subjects.csv)
+[[ -z "$subj" ]] && exit 1
+echo "running inference for subject $subj"
 
 module load singularity/3.6
 
