@@ -49,7 +49,7 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lates
      rm ~/miniconda.sh && \
      /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy scipy matplotlib h5py scikit-image && \
      /opt/conda/bin/conda install -y -c pytorch cudatoolkit=10.0 "pytorch=1.2.0=py3.6_cuda10.0.130_cudnn7.6.2_0" torchvision=0.4.0 && \
-     /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=7.1.1 && \
+     /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=8.1.1 && \
      /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/bin:$PATH
 
@@ -79,5 +79,5 @@ ENV FASTSURFER_HOME=/fastsurfer
 WORKDIR "/fastsurfer"
 
 
-ENTRYPOINT ["./run_fastsurfer.sh"]
-CMD ["--help"]
+#ENTRYPOINT ["./run_fastsurfer.sh"]
+#CMD ["--help"]
