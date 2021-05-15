@@ -79,5 +79,5 @@ ENV FASTSURFER_HOME=/fastsurfer
 WORKDIR "/fastsurfer"
 
 
-#ENTRYPOINT ["./run_fastsurfer.sh"]
-#CMD ["--help"]
+ENTRYPOINT ["./run_fastsurfer.sh"]
+CMD ["--help"]
