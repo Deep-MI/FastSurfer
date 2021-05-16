@@ -81,8 +81,16 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
     # compute vox2vox from src to trg
     vox2vox = inv(out_affine) @ ras2ras @ img.affine
 
+    # remove last dimension in .img files (Multiple input frames are not supported, but
+    # a single one also throws an error as the number of columns in the affine does not
+    # represent the shape
+    data = img.get_data()
+    ishape = data.shape
+    if len(ishape) > 3 and ishape[3] == 1:
+        data = np.squeeze(data, axis=-1)
+
     # here we apply the inverse vox2vox (to pull back the src info to the target image)
-    new_data = affine_transform(img.get_data(), inv(vox2vox), output_shape=out_shape, order=order)
+    new_data = affine_transform(data, inv(vox2vox), output_shape=out_shape, order=order)
     return new_data
 
 
