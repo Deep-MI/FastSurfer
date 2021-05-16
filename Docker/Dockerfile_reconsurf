@@ -64,12 +64,9 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lates
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
      /opt/conda/bin/conda install -y python=$PYTHON_VERSION numpy scipy scikit-image && \
-     /opt/conda/bin/conda install -y -c conda-forge scikit-sparse && \
+     /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 && \
      /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/bin:$PATH
-
-# Install missing python libs
-Run pip install nibabel==2.5.1
 
 # Add FreeSurfer Environment variables (.license file needed, alternatively export FS_LICENSE=path/to/license)
 ENV OS=Linux \
