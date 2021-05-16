@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -127,6 +126,16 @@ def options_parse():
 
     # 6. Clean up and GPU/CPU options (disable cuda, change batchsize)
     parser.add_argument('--clean', dest='cleanup', help="Flag to clean up segmentation", action='store_true')
+    parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
+                        default="check", choices=["gpu", "cpu", "check"],
+                        help="Define where the view aggregation should be run on. \
+                              By default, the program checks if you have enough memory \
+                              to run the view aggregation on the gpu. The total memory \
+                              is considered for this decision. If this fails, or \
+                              you actively overwrote the check with setting \
+                              > --run_viewagg_on cpu <, view agg is run on the cpu. \
+                              Equivalently, if you define > --run_viewagg_on gpu <,\
+                              view agg will be run on the gpu (no memory check will be done).")
     parser.add_argument('--no_cuda', action='store_true', default=False, help='disables CUDA training')
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default: 8")
     parser.add_argument('--simple_run', action='store_true', default=False,
@@ -146,7 +155,7 @@ def options_parse():
     return sel_option
 
 
-def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, params_model, model, logger):
+def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, params_model, model, logger, gpu_small):
     """
     Inference run for single network on a given image.
 
@@ -203,17 +212,23 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
 
             if plane == "Axial":
                 temp = temp.permute(3, 0, 2, 1)
-                prediction_probability[:, start_index:start_index + temp.shape[1], :, :] += torch.mul(temp.cpu(), 0.4)
+                if gpu_small:
+                    temp = temp.cpu()
+                prediction_probability[:, start_index:start_index + temp.shape[1], :, :] += torch.mul(temp, 0.4)
                 start_index += temp.shape[1]
 
             elif plane == "Coronal":
                 temp = temp.permute(2, 3, 0, 1)
-                prediction_probability[:, :, start_index:start_index + temp.shape[2], :] += torch.mul(temp.cpu(), 0.4)
+                if gpu_small:
+                    temp = temp.cpu()
+                prediction_probability[:, :, start_index:start_index + temp.shape[2], :] += torch.mul(temp, 0.4)
                 start_index += temp.shape[2]
 
             else:
                 temp = map_prediction_sagittal2full(temp).permute(0, 3, 2, 1)
-                prediction_probability[start_index:start_index + temp.shape[0], :, :, :] += torch.mul(temp.cpu(), 0.2)
+                if gpu_small:
+                    temp = temp.cpu()
+                prediction_probability[start_index:start_index + temp.shape[0], :, :, :] += torch.mul(temp, 0.2)
                 start_index += temp.shape[0]
 
             logger.info("--->Batch {} {} Testing Done.".format(batch_idx, plane))
@@ -221,7 +236,7 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
     return prediction_probability
 
 
-def fastsurfercnn(img_filename, save_as, logger, args):
+def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
     """
     Cortical parcellation of single image with FastSurferCNN.
 
@@ -262,7 +277,6 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     model = FastSurferCNN(params_network)
 
     # Put it onto the GPU or CPU
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
     logger.info("Cuda available: {}, # Available GPUS: {}, "
@@ -283,14 +297,18 @@ def fastsurfercnn(img_filename, save_as, logger, args):
                     "model_parallel": model_parallel}
 
     # Set up tensor to hold probabilities
-    pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
+    if not gpu_small:
+        pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float).to(device)
+
+    else:
+        pred_prob = torch.zeros((256, 256, 256, args.num_classes_ax_cor), dtype=torch.float)
 
     # Axial Prediction
     start = time.time()
     pred_prob = run_network(img_filename,
                             orig_data, pred_prob, "Axial",
                             args.network_axial_path,
-                            params_model, model, logger)
+                            params_model, model, logger, gpu_small)
 
     logger.info("Axial View Tested in {:0.4f} seconds".format(time.time() - start))
 
@@ -299,7 +317,7 @@ def fastsurfercnn(img_filename, save_as, logger, args):
     pred_prob = run_network(img_filename,
                             orig_data, pred_prob, "Coronal",
                             args.network_coronal_path,
-                            params_model, model, logger)
+                            params_model, model, logger, gpu_small)
 
     logger.info("Coronal View Tested in {:0.4f} seconds".format(time.time() - start))
 
@@ -317,13 +335,16 @@ def fastsurfercnn(img_filename, save_as, logger, args):
 
     pred_prob = run_network(img_filename, orig_data, pred_prob, "Sagittal",
                             args.network_sagittal_path,
-                            params_model, model, logger)
+                            params_model, model, logger, gpu_small)
 
     logger.info("Sagittal View Tested in {:0.4f} seconds".format(time.time() - start))
 
     # Get predictions and map to freesurfer label space
     _, pred_prob = torch.max(pred_prob, 3)
-    pred_prob = pred_prob.numpy()
+    if gpu_small:
+        pred_prob = pred_prob.numpy()
+    else:
+        pred_prob = pred_prob.cpu().numpy()
     pred_prob = map_label2aparc_aseg(pred_prob)
 
     # Post processing - Splitting classes
@@ -411,6 +432,25 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(stream=sys.stdout))
 
+    # check what device to use and how much memory is available (memory can be overwritten)
+    use_cuda = not options.no_cuda and torch.cuda.is_available()
+
+    if options.run_viewagg_on == "gpu":
+        # run view agg on the gpu (force)
+        small_gpu = False
+
+    elif use_cuda and options.run_viewagg_on == "check":
+        # check, if GPU is big enough to run view agg on it
+        # (this currently takes only the total memory into account, not the occupied on)
+        total_gpu_memory = sum([torch.cuda.get_device_properties(i).__getattribute__("total_memory") for i in
+                                range(torch.cuda.device_count())])
+        small_gpu = total_gpu_memory < 8000000000
+
+    else:
+        # run view agg on the cpu (either if the available GPU RAM is not big enough (<8 GB),
+        # or if the model is anyhow run on cpu)
+        small_gpu = True
+
     if options.simple_run:
 
         # Check if output subject directory exists and create it otherwise
@@ -419,7 +459,7 @@ if __name__ == "__main__":
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
-        fastsurfercnn(options.iname, options.oname, logger, options)
+        fastsurfercnn(options.iname, options.oname, use_cuda, small_gpu, logger, options)
 
     else:
 
@@ -467,7 +507,7 @@ if __name__ == "__main__":
             logger.addHandler(fh)
 
             # Run network
-            fastsurfercnn(invol, save_file_name, logger, options)
+            fastsurfercnn(invol, save_file_name, use_cuda, small_gpu, logger, options)
 
             logger.removeHandler(fh)
             fh.close()

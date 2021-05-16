@@ -35,6 +35,7 @@ weights_sag="$FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/E
 weights_ax="$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
 weights_cor="$FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
 clean_seg=""
+viewagg="check"
 cuda=""
 batch_size="8"
 order="1"
@@ -72,6 +73,10 @@ function usage()
     echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: \$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: \$FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--clean_seg <clean_segmentation>       Flag to clean up FastSurferCNN segmentation"
+    echo -e "\t--run_viewagg_on <check,gpu,cpu>       Define where the view aggregation should be run on. By default, the program checks if you have enough memory \
+                                                      to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or \
+                                                      you actively overwrote the check with setting > --run_viewagg_on cpu <, view agg is run on the cpu. \
+                                                      Equivalently, if you define > --run_viewagg_on gpu <, view agg will be run on the gpu (no memory check will be done)."
     echo -e "\t--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
     echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 8."
     echo -e "\t--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
@@ -162,6 +167,11 @@ case $key in
     --clean_seg)
     clean_seg="--clean"
     shift # past argument
+    ;;
+    --run_viewagg_on)
+    viewagg="$2"
+    shift # past argument
+    shift # past value
     ;;
     --no_cuda)
     cuda="--no_cuda"
@@ -309,7 +319,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg $cuda"
+  cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg --run_viewagg_on $viewagg $cuda"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
