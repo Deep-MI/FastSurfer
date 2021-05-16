@@ -26,6 +26,11 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 
 #### Optional commands
 * --clean: clean up segmentation after running it (optional)
+* --run_viewagg_on: Define where the view aggregation should be run on. 
+                    By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
+                    The total memory is considered for this decision. 
+                    If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
+                    Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
 * --no_cuda: Disable CUDA training (optional)
 
 
