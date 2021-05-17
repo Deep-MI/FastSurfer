@@ -18,8 +18,8 @@ After a quick introduction, it covers three use cases:
 
 In addition, there is a small section covering [python-qatools](https://github.com/Deep-MI/qatools-python) called "Bonus - Quality analysis using qatools". 
 
-## ISMRM 2020 slides
-As part of the ISMRM Sofware Demo 2020, a presentation giving an overview of how to use FastSurfer was created as well. This contains references to the notebooks above as well as some background information on FastSurfer. Feel free to check it out: https://docs.google.com/presentation/d/1xuMFBo-AQMwdH8MplUWgEvn9z0bJk6p1mzi2vm-mKvs/edit?usp=sharing
+## ISMRM 2021 slides
+As part of the ISMRM Sofware Demo 2021, a presentation giving an overview of how to use FastSurfer was created as well. This contains references to the notebooks above as well as some background information on FastSurfer. Feel free to check it out: https://docs.google.com/presentation/d/1xuMFBo-AQMwdH8MplUWgEvn9z0bJk6p1mzi2vm-mKvs/edit?usp=sharing
 
 ## Requierements
 If you want to follow along on your local machine, you need a working installation of FastSurfer. The steps are also covered in the second notebook (Sections B for Use case 1 and 2). In order to follow the installation instructions, some basic requierements have to be met.
