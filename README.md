@@ -1,3 +1,6 @@
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/master/Tutorial/Tutorial_FastSurferCNN_QuickSeg.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/master/Tutorial/Complete_FastSurfer_Tutorial.ipynb)
+
 # Overview
 
 This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within 1 minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). The whole pipeline consists of two main parts:
