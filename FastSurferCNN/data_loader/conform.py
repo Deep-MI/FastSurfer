@@ -82,7 +82,7 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
     vox2vox = inv(out_affine) @ ras2ras @ img.affine
 
     # here we apply the inverse vox2vox (to pull back the src info to the target image)
-    new_data = affine_transform(img.data(), inv(vox2vox), output_shape=out_shape, order=order)
+    new_data = affine_transform(img.get_data(), inv(vox2vox), output_shape=out_shape, order=order)
     return new_data
 
 
