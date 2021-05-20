@@ -2,11 +2,11 @@ services:
   - docker
   
 env:
-  - IMAGETAG="-t fastsurfer:gpu -f ./Docker/Dockerfile"
-  - IMAGETAG="-t fastsurfer:cpu -f ./Docker/Dockerfile_CPU"
-  - IMAGETAG="-t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN"
-  - IMAGETAG="-t fastsurfercnn:cpu -f ./Docker/Dockerfile_FastSurferCNN_CPU"
-  - IMAGETAG="-t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf"
+  - IMAGETAG="-t fastsurfer:gpu-beta -f ./Docker/Dockerfile"
+  - IMAGETAG="-t fastsurfer:cpu-beta -f ./Docker/Dockerfile_CPU"
+  - IMAGETAG="-t fastsurfer:segonly-gpu-beta -f ./Docker/Dockerfile_FastSurferCNN"
+  - IMAGETAG="-t fastsurfer:segonly-cpu-beta -f ./Docker/Dockerfile_FastSurferCNN_CPU"
+  - IMAGETAG="-t fastsurfer:surfonly-cpu-beta -f ./Docker/Dockerfile_reconsurf"
   
 script:
   #- echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
