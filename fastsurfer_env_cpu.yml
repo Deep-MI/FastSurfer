@@ -11,7 +11,7 @@ dependencies:
   - matplotlib=3.1.1
   - nibabel=2.5.1
   - numpy=1.17.4
-  - pillow=7.1.1
+  - pillow=8.2.0
   - python=3.6.10
   - pytorch=1.2.0
   - scikit-image=0.15.0
