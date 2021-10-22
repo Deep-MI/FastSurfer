@@ -65,7 +65,7 @@ class PopulationDataset:
         # Prepare arrays to hold the data
         orig_dataset = np.ndarray(shape=(256, 256, 0, 2 * self.slice_thickness + 1), dtype=np.uint8)
         aseg_dataset = np.ndarray(shape=(256, 256, 0), dtype=np.uint8)
-        weight_dataset = np.ndarray(shape=(256, 256, 0), dtype=np.float)
+        weight_dataset = np.ndarray(shape=(256, 256, 0), dtype=float)
         subjects = []
 
         # Loop over all subjects and load orig, aseg and create the weights
@@ -78,16 +78,16 @@ class PopulationDataset:
 
                 # Load orig and aseg
                 orig = nib.load(join(current_subject, self.orig_name))
-                orig = np.asarray(orig.get_data(), dtype=np.uint8)
+                orig = np.asarray(np.asanyarray(orig.dataobj), dtype=np.uint8)
 
                 aseg = nib.load(join(current_subject, self.aparc_name))
 
                 print('Processing ground truth segmentation {}'.format(self.aparc_name))
-                aseg = np.asarray(aseg.get_data(), dtype=np.int16)
+                aseg = np.asarray(np.asanyarray(aseg.dataobj), dtype=np.int16)
 
                 if self.aparc_nocc is not None:
                     aseg_nocc = nib.load(join(current_subject, self.aparc_nocc))
-                    aseg_nocc = np.asarray(aseg_nocc.get_data(), dtype=np.int16)
+                    aseg_nocc = np.asarray(np.asanyarray(aseg_nocc.dataobj), dtype=np.int16)
 
                 else:
                     aseg_nocc = None
