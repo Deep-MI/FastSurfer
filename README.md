@@ -92,11 +92,11 @@ The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+as
 
 In order to run FastSurfer on a number of cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line per line:
 ```
-subject1 \n
-subject2 \n
-subject3 \n
-... \n
-subject10  \n
+subject1
+subject2
+subject3
+...
+subject10
 ```
 And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
 
