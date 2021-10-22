@@ -141,7 +141,7 @@ python3 generate_hdf5.py \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
-
+ 
 ```
 # 3. Training
 
