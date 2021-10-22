@@ -122,13 +122,13 @@ After building the Docker (see instructions in ./Docker/README.md), you do not n
 To run FastSurfer on a given subject using the provided Docker, execute the following command:
 
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:**/data** \
+docker run --gpus all -v /home/user/my_mri_data:\**/data\** \
                       -v /home/user/my_fastsurfer_analysis:**/output** \
                       -v /home/user/my_fs_license_dir:/fs60 \
                       --rm --user XXXX fastsurfer:gpu \
                       --fs_license /fs60/.license \
                       --t1 **/data**/subject2/orig.mgz \
-                      --sid subject2 --sd **/output** \
+                      --sid subject2 --sd \**/output\** \
                       --parallel
 ```
 
