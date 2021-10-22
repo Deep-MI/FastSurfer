@@ -96,7 +96,7 @@ subject1 \n
 subject2 \n
 subject3 \n
 ... \n
-subject10 \n
+subject10  \n
 ```
 And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
 
