@@ -69,7 +69,7 @@ List them by running the following command:
 
 ### Example 1: FastSurfer on subject1 (with parallel processing of hemis)
 
-Given you want to analyze data for subject1 which is stored on your computer under /home/user/my_mri_data/subject1/orig.mgz, run the following command from the console (do not forget to source FreeSurfer!):
+Given you want to analyze data for subject1 which is stored on your computer under /home/user/my_mri_data/subject1/orig.mgz (notice folder structure needs to be like: "data/subject/orig.mgz"), run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
 # Source FreeSurfer
@@ -91,11 +91,11 @@ The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+as
 ### Example 2: FastSurfer on multiple subjects
 
 In order to run FastSurfer on a number of cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line per line:
-subject1\n
-subject2\n
-subject3\n
-...
-subject10\n
+subject1 \n
+subject2 \n
+subject3 \n
+... \n 
+subject10 \n
 
 And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
 
@@ -122,13 +122,13 @@ After building the Docker (see instructions in ./Docker/README.md), you do not n
 To run FastSurfer on a given subject using the provided Docker, execute the following command:
 
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
+docker run --gpus all -v /home/user/my_mri_data:**/data** \
+                      -v /home/user/my_fastsurfer_analysis:**/output** \
                       -v /home/user/my_fs_license_dir:/fs60 \
                       --rm --user XXXX fastsurfer:gpu \
                       --fs_license /fs60/.license \
-                      --t1 /data/subject2/orig.mgz \
-                      --sid subject2 --sd /output \
+                      --t1 **/data**/subject2/orig.mgz \
+                      --sid subject2 --sd **/output** \
                       --parallel
 ```
 
