@@ -1,6 +1,7 @@
 ## Start with Docker pytorch base
 
 FROM nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+ENV LANG=C.UTF-8
 ARG PYTHON_VERSION=3.6
 
 # Install custom libraries + freesurfer 6.0 (and necessary dependencies)
@@ -41,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     	--exclude='freesurfer/average/mult-comp-cor' \
     	--exclude='freesurfer/lib/cuda' \
     	--exclude='freesurfer/lib/qt'
-	 
+
 # Install miniconda and needed python packages (for FastSurferCNN)
 RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
      chmod +x ~/miniconda.sh && \
@@ -52,6 +53,9 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lates
      /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=8.3.2 && \
      /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/bin:$PATH
+
+# install pip related dependencies
+RUN python$PYTHON_VERSION -m pip install -U git+https://github.com/Deep-MI/LaPy.git#egg=lapy
 
 # Add FreeSurfer Environment variables (.license file needed, alternatively export FS_LICENSE=path/to/license)
 ENV OS=Linux \

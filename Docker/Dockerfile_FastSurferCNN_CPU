@@ -1,14 +1,16 @@
 ## Start with ubuntu base
 
 FROM ubuntu:16.04
+ENV LANG=C.UTF-8
 ARG PYTHON_VERSION=3.6
 
 # Install custom libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
          wget \
+         git \
          ca-certificates && \
          rm -rf /var/lib/apt/lists/*
-	 
+
 # Install miniconda and needed python packages (for FastSurferCNN)
 RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
      chmod +x ~/miniconda.sh && \
@@ -20,6 +22,9 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-lates
      /opt/conda/bin/conda clean -ya
 ENV PYTHONUNBUFFERED=0 \
     PATH=/opt/conda/bin:$PATH
+
+# install pip related dependencies
+RUN python$PYTHON_VERSION -m pip install -U git+https://github.com/Deep-MI/LaPy.git#egg=lapy
 
 # Add FastSurfer (copy application code) to docker image
 COPY ./FastSurferCNN /FastSurferCNN/
