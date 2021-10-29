@@ -65,7 +65,7 @@ class PopulationDataset:
         # Prepare arrays to hold the data
         orig_dataset = np.ndarray(shape=(256, 256, 0, 2 * self.slice_thickness + 1), dtype=np.uint8)
         aseg_dataset = np.ndarray(shape=(256, 256, 0), dtype=np.uint8)
-        weight_dataset = np.ndarray(shape=(256, 256, 0), dtype=np.float)
+        weight_dataset = np.ndarray(shape=(256, 256, 0), dtype=float)
         subjects = []
 
         # Loop over all subjects and load orig, aseg and create the weights

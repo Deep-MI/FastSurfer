@@ -136,7 +136,7 @@ def read_geometry(filepath, read_metadata=False, read_stamp=False):
         else:
             raise ValueError("File does not appear to be a Freesurfer surface (triangle file)")
 
-    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+    coords = coords.astype(float)  # XXX: due to mayavi bug on mac 32bits
 
     ret = (coords, faces)
     if read_metadata:
