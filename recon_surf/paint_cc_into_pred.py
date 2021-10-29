@@ -78,9 +78,9 @@ if __name__ == "__main__":
     options = argument_parse()
 
     print("Reading inputs: {} {}...".format(options.input_cc, options.input_pred))
-    aseg_image = nib.load(options.input_cc).get_data()
+    aseg_image = np.asanyarray(nib.load(options.input_cc).dataobj)
     prediction = nib.load(options.input_pred)
-    pred_with_cc = paint_in_cc(prediction.get_data(), aseg_image)
+    pred_with_cc = paint_in_cc(np.asanyarray(prediction.dataobj , aseg_image))
 
     print ("Writing segmentation with corpus callosum to: {}".format(options.output))
     pred_with_cc_fin = nib.MGHImage(pred_with_cc, prediction.affine, prediction.header)
