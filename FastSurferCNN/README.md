@@ -26,11 +26,6 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 
 #### Optional commands
 * --clean: clean up segmentation after running it (optional)
-* --run_viewagg_on: Define where the view aggregation should be run on. 
-                    By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
-                    The total memory is considered for this decision. 
-                    If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
-                    Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
 * --no_cuda: Disable CUDA training (optional)
 
 
@@ -71,7 +66,7 @@ A list of python libraries used within the code can be found in __requirements.t
 #### General
 * --hdf5_name: Path and name of the to-be-created hdf5-file
 * --data_dir: Directory with images to load
-* --pattern: Pattern to match only certain files in the directory, default "*"
+* --pattern: Pattern to match only certain files in the directory
 * --csv_file: Csv-file listing subjects to load (can be used instead of data_dir; one complete path per line (up to the subject directory))
               Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
               
@@ -131,20 +126,6 @@ python3 generate_hdf5.py \
 
 ```
 
-#### Example Command Sagittal using --data_dir instead of --csv_file
---data_dir specifies the path in which the data is located, with --pattern we can select subjects from the specified path. By default the pattern is "*" meaning all subjects will be selected.
-In the following example we are only selecting subject1.
-```
-python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_axial.hdf5 \
---data_dir ../data \
---pattern "subject1" \
---plane sagittal \
---image_name mri/orig.mgz \
---gt_name mri/aparc.DKTatlas+aseg.mgz \
---gt_nocc mri/aseg.auto_noCCseg.mgz
- 
-```
 # 3. Training
 
 The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __train.py__ within which certain options can be selected and set via the command line:
