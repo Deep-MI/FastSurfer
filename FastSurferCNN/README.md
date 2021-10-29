@@ -71,7 +71,7 @@ A list of python libraries used within the code can be found in __requirements.t
 #### General
 * --hdf5_name: Path and name of the to-be-created hdf5-file
 * --data_dir: Directory with images to load
-* --pattern: Pattern to match only certain files in the directory
+* --pattern: Pattern to match only certain files in the directory, default "*"
 * --csv_file: Csv-file listing subjects to load (can be used instead of data_dir; one complete path per line (up to the subject directory))
               Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
               
@@ -131,13 +131,15 @@ python3 generate_hdf5.py \
 
 ```
 
-#### Example with data_dir
+#### Example Command Sagittal using --data_dir instead of --csv_file
+--data_dir specifies the path in which the data is located, with --pattern we can select subjects from the specified path. By default the pattern is "*" meaning all subjects will be selected.
+In the following example we are only selecting subject1.
 ```
 python3 generate_hdf5.py \
 --hdf5_name ../data/training_set_cispa_axial.hdf5 \
 --data_dir ../data \
---pattern "*" \
---plane axial \
+--pattern "subject1" \
+--plane sagittal \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
