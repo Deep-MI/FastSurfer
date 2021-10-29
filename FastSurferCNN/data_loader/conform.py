@@ -82,7 +82,14 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
     vox2vox = inv(out_affine) @ ras2ras @ img.affine
 
     # here we apply the inverse vox2vox (to pull back the src info to the target image)
-    new_data = affine_transform(np.asanyarray(img.dataobj), inv(vox2vox), output_shape=out_shape, order=order)
+    image_data = np.asanyarray(img.dataobj)
+    # convert frames to single image
+    if len(image_data.shape) > 3:
+        if any(s != 1 for s in image_data.shape[3:]):
+            raise ValueError(f'Multiple input frames {tuple(img_data.shape)} not supported!')
+        image_data = np.squeeze(image_data, axis=tuple(range(3,len(image_data.shape))))
+
+    new_data = affine_transform(image_data, inv(vox2vox), output_shape=out_shape, order=order)
     return new_data
 
 

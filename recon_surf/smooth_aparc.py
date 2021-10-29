@@ -21,7 +21,7 @@ import optparse
 import sys
 import numpy as np
 import nibabel.freesurfer.io as fs
-from read_geometry import read_geometry
+from lapy.read_geometry import read_geometry
 from scipy import sparse
 
 
