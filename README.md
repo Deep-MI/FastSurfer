@@ -1,3 +1,6 @@
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/master/Tutorial/Tutorial_FastSurferCNN_QuickSeg.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/master/Tutorial/Complete_FastSurfer_Tutorial.ipynb)
+
 # Overview
 
 This directory contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline.  This approach provides a full FreeSurfer alternative for volumetric analysis (within 1 minute)  and  surface-based  thickness  analysis  (within  only  around  1h  run  time). The whole pipeline consists of two main parts:
@@ -7,7 +10,7 @@ This directory contains all information needed to run FastSurfer - a fast and ac
 
 (ii) recon-surf - full  FreeSurfer  alternative for cortical surface reconstruction, mapping of cortical labels and traditional point-wise and ROI thickness analysis in approximately 60 minutes.
 
-Image input requirements are identical to FreeSurfer: good quality T1-weighted MRI acquired at 3T with a resolution close to 1mm isotropic (slice thickness should not exeed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. Sub-mm scans (e.g. .75 or .8mm isotropic) will be downsampled by us automatically to 1mm isotropic, for example, we had success segmenting de-faced HCP data.
+Image input requirements are identical to FreeSurfer: good quality T1-weighted MRI acquired at 3T with a resolution close to 1mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. Sub-mm scans (e.g. .75 or .8mm isotropic) will be downsampled by us automatically to 1mm isotropic, for example, we had success segmenting de-faced HCP data.
 
 Within this repository, we provide the code and Docker files for running FastSurferCNN (segmentation only) and recon-surf (surface pipeline only) independently from each other or as a whole pipeline (run_fastsurfer.sh, segmentation + surface pipeline). For each of these purposes, see the README.md's in the corresponding folders.
 
@@ -41,6 +44,11 @@ List them by running the following command:
 * --weights_cor: Pretrained weights of coronal network. Default: ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
 * --seg_log: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * --clean_seg: Flag to clean up FastSurferCNN segmentation
+* --run_viewagg_on: Define where the view aggregation should be run on. 
+                    By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
+                    The total memory is considered for this decision. 
+                    If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
+                    Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
 * --no_cuda: Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
 * --batch: Batch size for inference. Default: 16. Lower this to reduce memory requirement
 * --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
