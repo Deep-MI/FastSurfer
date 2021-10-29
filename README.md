@@ -69,7 +69,7 @@ List them by running the following command:
 
 ### Example 1: FastSurfer on subject1 (with parallel processing of hemis)
 
-Given you want to analyze data for subject1 which is stored on your computer under /home/user/my_mri_data/subject1/orig.mgz (notice that the folder structure needs to be like this: "../data/subject/orig.mgz"), run the following command from the console (do not forget to source FreeSurfer!):
+Given you want to analyze data for subject1 which is stored on your computer under /home/user/my_mri_data/subject1/orig.mgz, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
 # Source FreeSurfer
