@@ -33,6 +33,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
                     Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
 * --no_cuda: Disable CUDA training (optional)
 
+
 ### Example Command Evaluation Single Subject
 To run the network on MRI-volumes of subject1 in ./data (specified by --i_dir flag; e.g. ./data/subject1/orig.mgz), change into the *FastSurferCNN* directory and run the following commands: 
 
