@@ -86,7 +86,7 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
     # convert frames to single image
     if len(image_data.shape) > 3:
         if any(s != 1 for s in image_data.shape[3:]):
-            raise ValueError(f'Multiple input frames {tuple(img_data.shape)} not supported!')
+            raise ValueError(f'Multiple input frames {tuple(image_data.shape)} not supported!')
         image_data = np.squeeze(image_data, axis=tuple(range(3,len(image_data.shape))))
 
     new_data = affine_transform(image_data, inv(vox2vox), output_shape=out_shape, order=order)
