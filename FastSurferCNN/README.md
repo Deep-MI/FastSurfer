@@ -133,12 +133,12 @@ python3 generate_hdf5.py \
 
 #### Example Command Sagittal using --data_dir instead of --csv_file
 --data_dir specifies the path in which the data is located, with --pattern we can select subjects from the specified path. By default the pattern is "*" meaning all subjects will be selected.
-In the following example we are only selecting subject1.
+In the following example we selecting subject1 till subject19.
 ```
 python3 generate_hdf5.py \
 --hdf5_name ../data/training_set_cispa_axial.hdf5 \
 --data_dir ../data \
---pattern "subject1" \
+--pattern "subject1[0-9]" \
 --plane sagittal \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
