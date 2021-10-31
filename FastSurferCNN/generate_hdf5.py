@@ -63,9 +63,9 @@ class PopulationDataset:
         start_d = time.time()
 
         # Prepare arrays to hold the data
-        orig_dataset = np.ndarray(shape=(256, 256, 0, 2 * self.slice_thickness + 1), dtype=np.uint8)
-        aseg_dataset = np.ndarray(shape=(256, 256, 0), dtype=np.uint8)
-        weight_dataset = np.ndarray(shape=(256, 256, 0), dtype=np.float)
+        orig_dataset = np.ndarray(shape=(self.height, self.width, 0, 2 * self.slice_thickness + 1), dtype=np.float32)
+        aseg_dataset = np.ndarray(shape=(self.height, self.width, 0), dtype=np.uint8)
+        weight_dataset = np.ndarray(shape=(self.height, self.width, 0), dtype=np.float32)
         subjects = []
 
         # Loop over all subjects and load orig, aseg and create the weights
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument('--data_dir', type=str, default="/testsuite", help="Directory with images to load")
     parser.add_argument('--thickness', type=int, default=3, help="Number of pre- and succeeding slices (default: 3)")
     parser.add_argument('--csv_file', type=str, default=None, help="Csv-file listing subjects to include in file")
-    parser.add_argument('--pattern', type=str, help="Pattern to match files in directory.")
+    parser.add_argument('--pattern', type=str, default="*", help="Pattern to match files in directory.")
     parser.add_argument('--image_name', type=str, default="mri/orig.mgz",
                         help="Default name of original images. FreeSurfer orig.mgz is default (mri/orig.mgz)")
     parser.add_argument('--gt_name', type=str, default="mri/aparc.DKTatlas+aseg.mgz",

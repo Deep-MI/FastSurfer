@@ -71,7 +71,7 @@ A list of python libraries used within the code can be found in __requirements.t
 #### General
 * --hdf5_name: Path and name of the to-be-created hdf5-file
 * --data_dir: Directory with images to load
-* --pattern: Pattern to match only certain files in the directory, default "*"
+* --pattern: Pattern to match only certain files in the directory
 * --csv_file: Csv-file listing subjects to load (can be used instead of data_dir; one complete path per line (up to the subject directory))
               Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
               
@@ -145,6 +145,7 @@ python3 generate_hdf5.py \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
  
 ```
+
 # 3. Training
 
 The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __train.py__ within which certain options can be selected and set via the command line:
