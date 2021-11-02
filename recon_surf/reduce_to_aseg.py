@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     print("Reading in aparc+aseg: {} ...".format(options.input_seg))
     inseg = nib.load(options.input_seg)
-    inseg_data = inseg.get_data()
+    inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
     inseg_affine = inseg.affine
 

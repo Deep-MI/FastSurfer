@@ -82,11 +82,11 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
     vox2vox = inv(out_affine) @ ras2ras @ img.affine
 
     # here we apply the inverse vox2vox (to pull back the src info to the target image)
-    image_data = img.get_data()
+    image_data = np.asanyarray(img.dataobj)
     # convert frames to single image
     if len(image_data.shape) > 3:
         if any(s != 1 for s in image_data.shape[3:]):
-            raise ValueError(f'Multiple input frames {tuple(img.get_data().shape)} not supported!')
+            raise ValueError(f'Multiple input frames {tuple(image_data.shape)} not supported!')
         image_data = np.squeeze(image_data, axis=tuple(range(3,len(image_data.shape))))
 
     new_data = affine_transform(image_data, inv(vox2vox), output_shape=out_shape, order=order)
@@ -231,7 +231,7 @@ def conform(img, order=1):
     # Pxyz is the center of the image in world coords
 
     # get scale for conversion on original input before mapping to be more similar to mri_convert
-    src_min, scale = getscale(img.get_data(), 0, 255)
+    src_min, scale = getscale(np.asanyarray(img.dataobj), 0, 255)
 
     mapped_data = map_image(img, h1.get_affine(), h1.get_data_shape(), order=order)
     # print("max: "+format(np.max(mapped_data)))
