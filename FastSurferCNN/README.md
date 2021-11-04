@@ -164,7 +164,7 @@ Now, if only a subset should be used for the hdf5-file (e.g. subject 10 till sub
 python3 generate_hdf5.py \
 --hdf5_name ../data/training_set_cispa_axial.hdf5 \
 --data_dir ../data \
---pattern "subject1[0-9]" 
+--pattern "subject1[0-9]" \
 --plane sagittal \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
