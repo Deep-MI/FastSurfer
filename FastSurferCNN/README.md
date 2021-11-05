@@ -26,11 +26,13 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 
 #### Optional commands
 * --clean: clean up segmentation after running it (optional)
-* --run_viewagg_on: Define where the view aggregation should be run on.
+
+* --run_viewagg_on: Define where the view aggregation should be run on. 
                     By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
                     The total memory is considered for this decision. 
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
-                    Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).  
+                    Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
+
 * --no_cuda: Disable CUDA training (optional)
 
 
@@ -129,6 +131,47 @@ python3 generate_hdf5.py \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
 
+```
+
+#### Example Command Sagittal using --data_dir instead of --csv_file
+--data_dir specifies the path in which the data is located, with --pattern we can select subjects from the specified path. By default the pattern is "*" meaning all subjects will be selected.
+As an example, imagine you have 19 FreeSurfer processed subjects labeled subject1 to subject19 in the ../data directory:
+
+```
+/home/user/FastSurfer/data
+├── subject1
+├── subject2
+├── subject3
+…
+│
+├── subject19
+    ├── mri
+    │   ├── aparc.DKTatlas+aseg.mgz
+    │   ├── aseg.auto_noCCseg.mgz
+    │   ├── orig.mgz
+    │   ├── …
+    │   …
+    ├── scripts
+    ├── stats
+    ├── surf
+    ├── tmp
+    ├── touch
+    └── trash
+```
+
+Setting --pattern "*" will select all 19 subjects (subject1, ..., subject19).
+Now, if only a subset should be used for the hdf5-file (e.g. subject 10 till subject19), this can be done by changing the --pattern flag to "subject1[0-9]": 
+
+```
+python3 generate_hdf5.py \
+--hdf5_name ../data/training_set_cispa_axial.hdf5 \
+--data_dir ../data \
+--pattern "subject1[0-9]" \
+--plane sagittal \
+--image_name mri/orig.mgz \
+--gt_name mri/aparc.DKTatlas+aseg.mgz \
+--gt_nocc mri/aseg.auto_noCCseg.mgz
+ 
 ```
 
 # 3. Training

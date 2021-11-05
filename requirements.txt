@@ -7,13 +7,16 @@ matplotlib==3.1.1
 networkx==2.5
 nibabel==2.5.1
 numpy==1.17.4
-Pillow==8.2.0
+Pillow==8.3.2
 pyparsing==2.4.7
 python-dateutil==2.8.1
 PyWavelets==1.1.1
 scikit-image==0.15.0
 scipy==1.3.1
 six==1.15.0
+
+# Lapy installation from git
+git+https://github.com/Deep-MI/LaPy.git#egg=lapy
 
 # Pytorch installation
 # By default, pip will install torch v1.2.0 gpu version for CUDA 10.0
@@ -25,9 +28,7 @@ torch===1.2.0
 -f https://download.pytorch.org/whl/torch_stable.html
 torchvision===0.4.0
 
-# The dependency scikit-sparse is optional (but recommended) for the recon-surf script only. 
-# Due to its dependency on numpy, it can however not be installed sequentially with the other 
+# The dependency scikit-sparse is optional (but recommended) for the recon-surf script only.
+# Due to its dependency on numpy, it can however not be installed sequentially with the other
 # packages (see also https://github.com/pypa/pip/issues/25 for an indepth discussion on the topic)
 #scikit-sparse==0.4.4
-
-
