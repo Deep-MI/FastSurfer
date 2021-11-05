@@ -45,7 +45,6 @@ List them by running the following command:
 * --seg_log: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * --clean_seg: Flag to clean up FastSurferCNN segmentation
 * --run_viewagg_on: Define where the view aggregation should be run on. 
-
                     By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
                     The total memory is considered for this decision. 
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
