@@ -190,10 +190,10 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     list_parcels = list_parcels[mask]
 
     # For each closest parcel, blur label with gaussian filter (spread), append resulting blurred images
-    blur_vals = np.ndarray((h, w, d, 0), dtype=np.float)
+    blur_vals = np.ndarray((h, w, d, 0), dtype=float)
 
     for idx in range(len(list_parcels)):
-        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=np.float), sigma=5)
+        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=float), sigma=5)
         blur_vals = np.append(blur_vals, np.expand_dims(aseg_blur, axis=3), axis=3)
 
     # Get for each position parcel with maximum value after blurring (= closest parcel)
