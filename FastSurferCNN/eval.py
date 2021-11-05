@@ -373,8 +373,8 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
                     pred_prob[mask] = label_current + 1000
 
     # Quick Fixes for overlapping classes
-    aseg_lh = gaussian_filter(1000 * np.asarray(pred_prob == 2, dtype=np.float), sigma=3)
-    aseg_rh = gaussian_filter(1000 * np.asarray(pred_prob == 41, dtype=np.float), sigma=3)
+    aseg_lh = gaussian_filter(1000 * np.asarray(pred_prob == 2, dtype=float), sigma=3)
+    aseg_rh = gaussian_filter(1000 * np.asarray(pred_prob == 41, dtype=float), sigma=3)
 
     lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
                             axis=3)

@@ -52,7 +52,6 @@ List them by running the following command:
 * --no_cuda: Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
 * --batch: Batch size for inference. Default: 16. Lower this to reduce memory requirement
 * --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
-
 ### Surface pipeline arguments (optional)
 * --fstess: Use mri_tesselate instead of marching cube (default) for surface creation
 * --fsqsphere: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
