@@ -49,7 +49,7 @@ fsaparc=""
 fssurfreg=""
 doParallel=""
 threads="1"
-python="python3.6"
+python="python3.8"
 
 # Dev flags defaults
 vcheck=""
