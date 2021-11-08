@@ -78,16 +78,16 @@ class PopulationDataset:
 
                 # Load orig and aseg
                 orig = nib.load(join(current_subject, self.orig_name))
-                orig = np.asanyarray(orig.dataobj, dtype=np.uint8)
+                orig = np.asanyarray(orig.dataobj)
 
                 aseg = nib.load(join(current_subject, self.aparc_name))
 
                 print('Processing ground truth segmentation {}'.format(self.aparc_name))
-                aseg = np.asanyarray(aseg.dataobj, dtype=np.int16)
+                aseg = np.asanyarray(aseg.dataobj)
 
                 if self.aparc_nocc is not None:
                     aseg_nocc = nib.load(join(current_subject, self.aparc_nocc))
-                    aseg_nocc = np.asanyarray(aseg_nocc.dataobj, dtype=np.int16)
+                    aseg_nocc = np.asanyarray(aseg_nocc.dataobj)
 
                 else:
                     aseg_nocc = None
