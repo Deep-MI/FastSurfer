@@ -38,6 +38,21 @@ Python 3.6 or greater is generally recommended to run FastSurfer. In addition yo
 ```bash 
 sudo apt install python3-pip
 ```
+
+If not pre-installed, `setuptools` has to be installed before the contents of requirements.txt. This can be done via apt or pip:
+```bash
+sudo apt install python3-setuptools
+```
+```bash
+pip install setuptools
+```
+
+The optional recon-surf dependency, `scikit-sparse`, can not be installed sequentially with `numpy` (and thus can not be included in the requirements.txt file). Therefore, it should be installed separately, after the requirements.txt install:
+
+```bash
+pip install scikit-sparse=0.4.4
+```
+
 It is normally recommended to run your set ups in separate virtual environments (like e.g. [pipenv](https://pypi.org/project/pipenv/)/[virtualenv](https://pypi.org/project/virtualenv/)). Or you can use conda.
 
 #### 2. Anaconda
