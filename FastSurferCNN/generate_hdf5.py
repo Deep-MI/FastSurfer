@@ -78,16 +78,16 @@ class PopulationDataset:
 
                 # Load orig and aseg
                 orig = nib.load(join(current_subject, self.orig_name))
-                orig = np.asanyarray(orig.dataobj, dtype=np.uint8)
+                orig = np.asanyarray(orig.dataobj)
 
                 aseg = nib.load(join(current_subject, self.aparc_name))
 
                 print('Processing ground truth segmentation {}'.format(self.aparc_name))
-                aseg = np.asanyarray(aseg.dataobj, dtype=np.int16)
+                aseg = np.asanyarray(aseg.dataobj)
 
                 if self.aparc_nocc is not None:
                     aseg_nocc = nib.load(join(current_subject, self.aparc_nocc))
-                    aseg_nocc = np.asanyarray(aseg_nocc.dataobj, dtype=np.int16)
+                    aseg_nocc = np.asanyarray(aseg_nocc.dataobj)
 
                 else:
                     aseg_nocc = None
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument('--data_dir', type=str, default="/testsuite", help="Directory with images to load")
     parser.add_argument('--thickness', type=int, default=3, help="Number of pre- and succeeding slices (default: 3)")
     parser.add_argument('--csv_file', type=str, default=None, help="Csv-file listing subjects to include in file")
-    parser.add_argument('--pattern', type=str, default="*", help="Pattern to match files in directory.") 
+    parser.add_argument('--pattern', type=str, default="*", help="Pattern to match files in directory.")
     parser.add_argument('--image_name', type=str, default="mri/orig.mgz",
                         help="Default name of original images. FreeSurfer orig.mgz is default (mri/orig.mgz)")
     parser.add_argument('--gt_name', type=str, default="mri/aparc.DKTatlas+aseg.mgz",

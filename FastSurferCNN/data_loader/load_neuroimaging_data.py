@@ -64,7 +64,7 @@ def load_and_conform_image(img_filename, interpol=1, logger=None):
     # Collect header and affine information
     header_info = orig.header
     affine_info = orig.affine
-    orig = np.asarray(orig.get_data(), dtype=np.uint8)#orig = np.asanyarray(orig.dataobj, dtype=np.uint8)
+    orig = np.asanyarray(orig.dataobj)
 
     return header_info, affine_info, orig
 
