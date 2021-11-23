@@ -96,13 +96,13 @@ if __name__ == "__main__":
 
                         recon_all_stages.append({'stage_name':stage_name, 'start':previous_stage_start_time, 'end':current_stage_start_time, 'time':stage_time})
 
-            string = 'Command: {}\nStart: {}\nEnd: {}\nTime (s): {:.2f}'.format(temp_line, start_time,
-                                                                               end_time, cmd_time)
+            string = 'Command: {}\nStart: {}\nEnd: {}\nTime (m): {:.2f}'.format(temp_line, start_time,
+                                                                               end_time, round(cmd_time / 60., 2))
             if cmd_name == 'recon-all ':
                 string += '\n\nrecon-all stages:\n>>>'
                 for recon_all_stage in recon_all_stages:
-                    string += '\nStage: {}\nStart: {}\nEnd: {}\nTime (s): {:.2f}\n'.format(recon_all_stage['stage_name'], recon_all_stage['start'],
-                                                                                         recon_all_stage['end'], recon_all_stage['time'])
+                    string += '\nStage: {}\nStart: {}\nEnd: {}\nTime (m): {:.2f}\n'.format(recon_all_stage['stage_name'], recon_all_stage['start'],
+                                                                                         recon_all_stage['end'], round(recon_all_stage['time'] / 60., 2))
                 string += '<<<'
 
             output_file.write('\n'+string+'\n')

@@ -93,10 +93,13 @@ if __name__ == "__main__":
 
                             if debug:
                                 print('Start: {}'.format(current_stage_start_time))
-                                print('Time (s): {}'.format(stage_time))
+                                print('Time (m): {}'.format(stage_time))
                                 print()
 
-                            recon_all_stages.append({'stage_name':stage_name, 'start':previous_stage_start_time, 'end':current_stage_start_time, 'time':stage_time})
+                            recon_all_stages.append({'stage_name':stage_name,
+                                                     'start':previous_stage_start_time,
+                                                     'end':current_stage_start_time,
+                                                     'time': round(stage_time / 60., 2)})
                         else:
                             first_stage = False
 
@@ -115,35 +118,38 @@ if __name__ == "__main__":
 
                         if debug:
                             print('Start: {}'.format(current_stage_start_time))
-                            print('Time (s): {}'.format(stage_time))
+                            print('Time (m): {}'.format(stage_time))
                             print()
 
-                        recon_all_stages.append({'stage_name':stage_name, 'start':previous_stage_start_time, 'end':current_stage_start_time, 'time':stage_time})
+                        recon_all_stages.append({'stage_name': stage_name,
+                                                 'start': previous_stage_start_time,
+                                                 'end': current_stage_start_time,
+                                                 'time': round(stage_time / 60., 2)})
 
             if debug:
                 print('Short command:\n{}'.format(cmd_name.strip(' ')))
                 print('Full command:\n{}'.format(cmd_line))
                 print('Start Time:', start_time)
                 print('End Time:', end_time)
-                print('Total Time: {:.2f} seconds'.format(cmd_time))
+                print('Total Time: {:.2f} minutes'.format(round(cmd_time / 60., 2)))
                 print()
                 print('-'*30); print()
 
             if version == 1:
-                string = temp_line + ' ' + start_time + ' ' + end_time + ' ' + str(cmd_time)
+                string = temp_line + ' ' + start_time + ' ' + end_time + ' ' + str(round(cmd_time / 60., 2))
                 if cmd_name == 'recon-all ':
                     string += '\n\nrecon-all stages:\n>>>\n'
                     for recon_all_stage in recon_all_stages:
                         string += recon_all_stage['stage_name'] + ' ' + recon_all_stage['start'] + ' ' + recon_all_stage['end'] + ' ' + str(recon_all_stage['time']) + '\n'
                     string += '<<<'
             elif version == 2:
-                string = 'Command: {}\nStart: {}\nEnd: {}\nTime (s): {:.2f}'.format(temp_line, start_time,
-                                                                                   end_time, cmd_time)
+                string = 'Command: {}\nStart: {}\nEnd: {}\nTime (m): {:.2f}'.format(temp_line, start_time,
+                                                                                   end_time, round(cmd_time / 60., 2))
                 if cmd_name == 'recon-all ':
                     string += '\n\nrecon-all stages:\n>>>'
                     for recon_all_stage in recon_all_stages:
-                        string += '\nStage: {}\nStart: {}\nEnd: {}\nTime (s): {:.2f}\n'.format(recon_all_stage['stage_name'], recon_all_stage['start'],
-                                                                                             recon_all_stage['end'], recon_all_stage['time'])
+                        string += '\nStage: {}\nStart: {}\nEnd: {}\nTime (m): {:.2f}\n'.format(recon_all_stage['stage_name'], recon_all_stage['start'],
+                                                                                               recon_all_stage['end'], round(recon_all_stage['time'] / 60., 2))
                     string += '<<<'
 
             output_file.write('\n'+string+'\n')
