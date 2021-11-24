@@ -94,9 +94,15 @@ if __name__ == "__main__":
 
                         if not first_stage:
                             current_stage_start_time = lines[j].split(' ')[-3]
-                            current_date_time = datetime.datetime.strptime(current_stage_start_time, '%H:%M:%S')
-                            previous_date_time = datetime.datetime.strptime(previous_stage_start_time, '%H:%M:%S')
-                            stage_time = round((current_date_time - previous_date_time).total_seconds() / 60., 2)
+
+                            ## Reconstructed string for easier parsing of stage date and time:
+                            current_datetime_str = lines[j].split(' ')[-5] + ' ' + \
+                                                   lines[j].split(' ')[-4] + ' ' + \
+                                                   lines[j].split(' ')[-1] + ' ' + \
+                                                   lines[j].split(' ')[-3]
+                            current_date_time = datetime.datetime.strptime(current_datetime_str, '%b %d %Y %H:%M:%S')
+                            previous_date_time = datetime.datetime.strptime(previous_datetime_str, '%b %d %Y %H:%M:%S')
+                            stage_time = (current_date_time - previous_date_time).total_seconds()
 
                             stage_dict = {}
                             stage_dict['stage_name'] = stage_name
@@ -113,13 +119,22 @@ if __name__ == "__main__":
 
                         stage_name = ' '.join(lines[j].split(' ')[:-6][1:])
                         previous_stage_start_time = lines[j].split(' ')[-3]
+                        previous_datetime_str = lines[j].split(' ')[-5] + ' ' + \
+                                                lines[j].split(' ')[-4] + ' ' + \
+                                                lines[j].split(' ')[-1] + ' ' + \
+                                                lines[j].split(' ')[-3]
 
                     ## Lines containing 'Ended' are used to find the end time of the last stage:
                     if 'Ended' in lines[j]:
                         current_stage_start_time = lines[j].split(' ')[-3]
-                        current_date_time = datetime.datetime.strptime(current_stage_start_time, '%H:%M:%S')
-                        previous_date_time = datetime.datetime.strptime(previous_stage_start_time, '%H:%M:%S')
-                        stage_time = round((current_date_time - previous_date_time).total_seconds() / 60., 2)
+                        ## Reconstructed string for easier parsing of stage date and time:
+                        current_datetime_str = lines[j].split(' ')[-5] + ' ' + \
+                                               lines[j].split(' ')[-4] + ' ' + \
+                                               lines[j].split(' ')[-1] + ' ' + \
+                                               lines[j].split(' ')[-3]
+                        current_date_time = datetime.datetime.strptime(current_datetime_str, '%b %d %Y %H:%M:%S')
+                        previous_date_time = datetime.datetime.strptime(previous_datetime_str, '%b %d %Y %H:%M:%S')
+                        stage_time = (current_date_time - previous_date_time).total_seconds()
 
                         stage_dict = {}
                         stage_dict['stage_name'] = stage_name                        
