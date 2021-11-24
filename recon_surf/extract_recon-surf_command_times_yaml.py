@@ -23,7 +23,7 @@ if __name__ == "__main__":
     timestamp_feature = '@#@FSTIME'
     recon_all_stage_feature = '#@# '
     cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command']
-    filtered_cmds = ['ln ']
+    filtered_cmds = ['ln ', 'rm ']
 
     if args.out_file_path == '':
         out_file_path = args.in_file_path.rsplit('/', 1)[0] + '/' + 'recon-surf_times.yaml'
