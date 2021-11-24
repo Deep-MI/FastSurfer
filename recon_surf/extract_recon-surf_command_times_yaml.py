@@ -37,12 +37,15 @@ if __name__ == "__main__":
     yaml_dict['recon-surf_commands'] = []
 
     for i, line in enumerate(lines):
+        ## Use recon_surf "stage" names as top level of recon-surf_commands entries:
         if '======' in line:
             stage_line = line
             current_recon_surf_stage_name = stage_line.strip('=')[1:-1].replace(' ', '-')
             if current_recon_surf_stage_name == 'DONE':
                 continue
             yaml_dict['recon-surf_commands'].append({current_recon_surf_stage_name: []})
+
+        ## Process lines containing the timestamp_feature:
         if timestamp_feature in line and 'cmdf' not in line:
 
             ## Parse out cmd name, start time, and duration:
@@ -90,12 +93,13 @@ if __name__ == "__main__":
 
                 for j in range(previous_line_index, i):
                     if recon_all_stage_feature in lines[j] and len(lines[j].split(' ')) > 5:
-                        ## the second condition avoids the line "#@# 241395 lh 227149"
+                        ## the second condition avoids lines such as "#@# 241395 lh 227149"
 
                         if not first_stage:
                             current_stage_start_time = lines[j].split(' ')[-3]
 
-                            ## Reconstructed string for easier parsing of stage date and time:
+                            ## Reconstruct string for easier parsing of stage date and time:
+                            ## (Example: "Nov 14 2021 12:31:34")
                             current_datetime_str = lines[j].split(' ')[-5] + ' ' + \
                                                    lines[j].split(' ')[-4] + ' ' + \
                                                    lines[j].split(' ')[-1] + ' ' + \
@@ -127,7 +131,7 @@ if __name__ == "__main__":
                     ## Lines containing 'Ended' are used to find the end time of the last stage:
                     if 'Ended' in lines[j]:
                         current_stage_start_time = lines[j].split(' ')[-3]
-                        ## Reconstructed string for easier parsing of stage date and time:
+
                         current_datetime_str = lines[j].split(' ')[-5] + ' ' + \
                                                lines[j].split(' ')[-4] + ' ' + \
                                                lines[j].split(' ')[-1] + ' ' + \
