@@ -11,6 +11,8 @@ if __name__ == "__main__":
                         help='Path to recon-surf.log file')
     parser.add_argument('--out_file_path', type=str,
                         default='', help='Path to output recon-surf_time.log file')
+    parser.add_argument('--time_units', type=str,
+                        default='s', help='Units of time [s, m]')
     args = parser.parse_args()
 
     lines = []
@@ -73,7 +75,10 @@ if __name__ == "__main__":
             entry_dict['cmd'] = cmd_line
             entry_dict['start'] = start_time
             entry_dict['stop'] = end_time
-            entry_dict['duration_m'] = round(cmd_time / 60., 2)
+            if args.time_units == 's':
+                entry_dict['duration_s'] = cmd_time
+            elif args.time_units == 'm':
+                entry_dict['duration_m'] = round(cmd_time / 60., 2)
 
             ## Parse out the same details for each stage in recon-all
             if cmd_name == 'recon-all ':
@@ -94,7 +99,10 @@ if __name__ == "__main__":
                             stage_dict['stage_name'] = stage_name
                             stage_dict['start'] = previous_stage_start_time
                             stage_dict['stop'] = current_stage_start_time
-                            stage_dict['duration_m'] = round(stage_time / 60., 2)
+                            if args.time_units == 's':
+                                stage_dict['duration_s'] = stage_time
+                            elif args.time_units == 'm':
+                                stage_dict['duration_m'] = round(stage_time / 60., 2)
 
                             entry_dict['stages'].append(stage_dict)
                         else:
@@ -114,7 +122,10 @@ if __name__ == "__main__":
                         stage_dict['stage_name'] = stage_name                        
                         stage_dict['start'] = previous_stage_start_time                        
                         stage_dict['stop'] = current_stage_start_time                        
-                        stage_dict['duration_m'] = round(stage_time / 60., 2)
+                        if args.time_units == 's':
+                            stage_dict['duration_s'] = stage_time
+                        elif args.time_units == 'm':
+                            stage_dict['duration_m'] = round(stage_time / 60., 2)
                             
                         entry_dict['stages'].append(stage_dict)
 
