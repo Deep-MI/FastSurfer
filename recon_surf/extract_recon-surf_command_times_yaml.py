@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument('--out_file_path', type=str,
                         default='', help='Path to output recon-surf_time.log file')
     parser.add_argument('--time_units', type=str,
-                        default='s', help='Units of time [s, m]')
+                        default='m', help='Units of time [s, m]')
     args = parser.parse_args()
 
     lines = []
