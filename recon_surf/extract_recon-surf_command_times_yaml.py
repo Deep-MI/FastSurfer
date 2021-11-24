@@ -31,6 +31,11 @@ if __name__ == "__main__":
         out_file_path = args.out_file_path 
 
     print('[INFO] Parsing file for recon_surf time information: {}'.format(args.in_file_path))
+    if args.time_units not in ['s', 'm']:
+        print('[WARN] Invalid time_units! Must be in s or m. Defaulting to m...')
+        time_units = 'm'
+    else:
+        time_units = args.time_units
 
     yaml_dict = {}
     yaml_dict['date'] = lines[1]
@@ -81,9 +86,9 @@ if __name__ == "__main__":
             entry_dict['cmd'] = cmd_line
             entry_dict['start'] = start_time
             entry_dict['stop'] = end_time
-            if args.time_units == 's':
+            if time_units == 's':
                 entry_dict['duration_s'] = cmd_time
-            elif args.time_units == 'm':
+            elif time_units == 'm':
                 entry_dict['duration_m'] = round(cmd_time / 60., 2)
 
             ## Parse out the same details for each stage in recon-all
@@ -112,9 +117,9 @@ if __name__ == "__main__":
                             stage_dict['stage_name'] = stage_name
                             stage_dict['start'] = previous_stage_start_time
                             stage_dict['stop'] = current_stage_start_time
-                            if args.time_units == 's':
+                            if time_units == 's':
                                 stage_dict['duration_s'] = stage_time
-                            elif args.time_units == 'm':
+                            elif time_units == 'm':
                                 stage_dict['duration_m'] = round(stage_time / 60., 2)
 
                             entry_dict['stages'].append(stage_dict)
@@ -144,9 +149,9 @@ if __name__ == "__main__":
                         stage_dict['stage_name'] = stage_name                        
                         stage_dict['start'] = previous_stage_start_time                        
                         stage_dict['stop'] = current_stage_start_time                        
-                        if args.time_units == 's':
+                        if time_units == 's':
                             stage_dict['duration_s'] = stage_time
-                        elif args.time_units == 'm':
+                        elif time_units == 'm':
                             stage_dict['duration_m'] = round(stage_time / 60., 2)
                             
                         entry_dict['stages'].append(stage_dict)
