@@ -34,6 +34,12 @@ if __name__ == "__main__":
     yaml_dict['recon-surf_commands'] = []
 
     for i, line in enumerate(lines):
+        if '======' in line:
+            stage_line = line
+            current_recon_surf_stage_name = stage_line.strip('=')[1:-1].replace(' ', '-')
+            if current_recon_surf_stage_name == 'DONE':
+                continue
+            yaml_dict['recon-surf_commands'].append({current_recon_surf_stage_name: []})
         if timestamp_feature in line and 'cmdf' not in line:
 
             ## Parse out cmd name, start time, and duration:
@@ -112,7 +118,7 @@ if __name__ == "__main__":
                             
                         entry_dict['stages'].append(stage_dict)
 
-            yaml_dict['recon-surf_commands'].append(entry_dict)
+            yaml_dict['recon-surf_commands'][-1][current_recon_surf_stage_name].append(entry_dict)
 
     print('[INFO] Writing output to file: {}'.format(out_file_path))
     with open(out_file_path, 'w') as outfile:
