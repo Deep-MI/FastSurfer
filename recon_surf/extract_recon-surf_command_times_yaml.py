@@ -64,9 +64,9 @@ if __name__ == "__main__":
 
             start_date_time = datetime.datetime.strptime(date_time_str, '%Y:%m:%d:%H:%M:%S')
             assert line.split(' ')[6] == 'e'
-            cmd_time = float(line.split(' ')[7])
+            cmd_duration = float(line.split(' ')[7])
 
-            end_date_time = (start_date_time + datetime.timedelta(0, float(cmd_time)))
+            end_date_time = (start_date_time + datetime.timedelta(0, float(cmd_duration)))
             end_date_time_str = end_date_time.strftime('%Y:%m:%d:%H:%M:%S')
             end_time = end_date_time_str[11:]
 
@@ -87,9 +87,9 @@ if __name__ == "__main__":
             entry_dict['start'] = start_time
             entry_dict['stop'] = end_time
             if time_units == 's':
-                entry_dict['duration_s'] = cmd_time
+                entry_dict['duration_s'] = cmd_duration
             elif time_units == 'm':
-                entry_dict['duration_m'] = round(cmd_time / 60., 2)
+                entry_dict['duration_m'] = round(cmd_duration / 60., 2)
 
             ## Parse out the same details for each stage in recon-all
             if cmd_name == 'recon-all ':
@@ -111,16 +111,16 @@ if __name__ == "__main__":
                                                    lines[j].split(' ')[-3]
                             current_date_time = datetime.datetime.strptime(current_datetime_str, '%b %d %Y %H:%M:%S')
                             previous_date_time = datetime.datetime.strptime(previous_datetime_str, '%b %d %Y %H:%M:%S')
-                            stage_time = (current_date_time - previous_date_time).total_seconds()
+                            stage_duration = (current_date_time - previous_date_time).total_seconds()
 
                             stage_dict = {}
                             stage_dict['stage_name'] = stage_name
                             stage_dict['start'] = previous_stage_start_time
                             stage_dict['stop'] = current_stage_start_time
                             if time_units == 's':
-                                stage_dict['duration_s'] = stage_time
+                                stage_dict['duration_s'] = stage_duration
                             elif time_units == 'm':
-                                stage_dict['duration_m'] = round(stage_time / 60., 2)
+                                stage_dict['duration_m'] = round(stage_duration / 60., 2)
 
                             entry_dict['stages'].append(stage_dict)
                         else:
@@ -143,16 +143,16 @@ if __name__ == "__main__":
                                                lines[j].split(' ')[-3]
                         current_date_time = datetime.datetime.strptime(current_datetime_str, '%b %d %Y %H:%M:%S')
                         previous_date_time = datetime.datetime.strptime(previous_datetime_str, '%b %d %Y %H:%M:%S')
-                        stage_time = (current_date_time - previous_date_time).total_seconds()
+                        stage_duration = (current_date_time - previous_date_time).total_seconds()
 
                         stage_dict = {}
                         stage_dict['stage_name'] = stage_name                        
                         stage_dict['start'] = previous_stage_start_time                        
                         stage_dict['stop'] = current_stage_start_time                        
                         if time_units == 's':
-                            stage_dict['duration_s'] = stage_time
+                            stage_dict['duration_s'] = stage_duration
                         elif time_units == 'm':
-                            stage_dict['duration_m'] = round(stage_time / 60., 2)
+                            stage_dict['duration_m'] = round(stage_duration / 60., 2)
                             
                         entry_dict['stages'].append(stage_dict)
 
