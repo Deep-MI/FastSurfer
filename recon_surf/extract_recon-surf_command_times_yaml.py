@@ -110,17 +110,14 @@ if __name__ == "__main__":
             end_time = end_date_time_str[11:]
 
             ## Get the line containing the actual full command:
-            previous_line_index = i
+            cmd_line_index = None
             cmd_line = None
-            while True:
-                temp_line = lines[previous_line_index - 1]
-
+            for previous_line_index in range(i-1, -1, -1):
+                temp_line = lines[previous_line_index]
                 if cmd_name in temp_line and all(phrase not in temp_line for phrase in cmd_line_filter_phrases):
+                    cmd_line = temp_line
+                    cmd_line_index = previous_line_index
                     break
-                else:
-                    previous_line_index -= 1
-
-            cmd_line = temp_line
 
             entry_dict['cmd'] = cmd_line
             entry_dict['start'] = start_time
@@ -135,7 +132,7 @@ if __name__ == "__main__":
                 entry_dict['stages'] = []
                 first_stage = True
 
-                for j in range(previous_line_index, i):
+                for j in range(cmd_line_index, i):
                     if recon_all_stage_feature in lines[j] and len(lines[j].split(' ')) > 5:
                         ## the second condition avoids lines such as "#@# 241395 lh 227149"
 
