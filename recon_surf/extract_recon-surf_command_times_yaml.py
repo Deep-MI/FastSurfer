@@ -69,7 +69,7 @@ if __name__ == "__main__":
     else:
         out_file_path = args.out_file_path 
 
-    print('[INFO] Parsing file for recon_surf time information: {}'.format(args.in_file_path))
+    print('[INFO] Parsing file for recon_surf time information: {}\n'.format(args.in_file_path))
     if args.time_units not in ['s', 'm']:
         print('[WARN] Invalid time_units! Must be in s or m. Defaulting to m...')
         time_units = 'm'
@@ -118,6 +118,9 @@ if __name__ == "__main__":
                     cmd_line = temp_line
                     cmd_line_index = previous_line_index
                     break
+            else:
+                print('[WARN] Could not find the line containing the full command for {} in line {}! Skipping...\n'.format(cmd_name[:-1], i))
+                continue
 
             entry_dict['cmd'] = cmd_line
             entry_dict['start'] = start_time
