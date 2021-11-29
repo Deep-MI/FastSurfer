@@ -45,17 +45,17 @@ def extract_datetime_str(line):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_file_path', type=str,
+    parser.add_argument('-i', '--input_file_path', type=str,
                         default='scripts/recon-surf.log', 
                         help='Path to recon-surf.log file')
-    parser.add_argument('--out_file_path', type=str,
+    parser.add_argument('-o', '--output_file_path', type=str,
                         default='', help='Path to output recon-surf_time.log file')
     parser.add_argument('--time_units', type=str,
                         default='m', help='Units of time [s, m]')
     args = parser.parse_args()
 
     lines = []
-    with open(args.in_file_path) as file:
+    with open(args.input_file_path) as file:
         for line in file:
             lines.append(line.rstrip())
 
@@ -64,12 +64,12 @@ if __name__ == "__main__":
     cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command']
     filtered_cmds = ['ln ', 'rm ']
 
-    if args.out_file_path == '':
-        out_file_path = args.in_file_path.rsplit('/', 1)[0] + '/' + 'recon-surf_times.yaml'
+    if args.output_file_path == '':
+        output_file_path = args.input_file_path.rsplit('/', 1)[0] + '/' + 'recon-surf_times.yaml'
     else:
-        out_file_path = args.out_file_path 
+        output_file_path = args.output_file_path 
 
-    print('[INFO] Parsing file for recon_surf time information: {}\n'.format(args.in_file_path))
+    print('[INFO] Parsing file for recon_surf time information: {}\n'.format(args.input_file_path))
     if args.time_units not in ['s', 'm']:
         print('[WARN] Invalid time_units! Must be in s or m. Defaulting to m...')
         time_units = 'm'
@@ -178,6 +178,6 @@ if __name__ == "__main__":
 
             yaml_dict['recon-surf_commands'][-1][current_recon_surf_stage_name].append(entry_dict)
 
-    print('[INFO] Writing output to file: {}'.format(out_file_path))
-    with open(out_file_path, 'w') as outfile:
+    print('[INFO] Writing output to file: {}'.format(output_file_path))
+    with open(output_file_path, 'w') as outfile:
         yaml.dump(yaml_dict, outfile, sort_keys=False)
