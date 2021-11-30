@@ -439,6 +439,7 @@ def save_image(pred_prob, affine_info, header_info, save_as):
     assert any(save_as.endswith(file_ext) for file_ext in supported_output_file_formats), \
             'Output filename does not contain a supported file format (' + ', '.join(file_ext for file_ext in supported_output_file_formats) + ')!'
 
+    mapped_aseg_img = None
     if save_as.endswith('mgz'):
         mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
     elif any(save_as.endswith(file_ext) for file_ext in ['nii', 'nii.gz']):
