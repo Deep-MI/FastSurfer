@@ -87,7 +87,7 @@ From: ubuntu:16.04
     export PYTHONUNBUFFERED=0 
     export PATH=/opt/conda/bin:/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
     export LC_ALL=C
-    
+     
 %runscript
     cd /opt/FastSurfer
     echo "Arguments received: $*"
