@@ -2,9 +2,9 @@
 
 Within this directory we currently provide five different Singularity definiton files that are set up for running:
 
-    * the whole FastSurfer pipeline (FastSurferCNN + recon-surf, Example 1 (GPU) Example 2 (CPU))
-    * only the segmentation network (FastSurferCNN, Example 3 (GPU) Example 4 (CPU))
-    * only the surface pipeline (recon-surf, Example 5 (CPU))
+* the whole FastSurfer pipeline (FastSurferCNN + recon-surf, Example 1 (GPU) Example 2 (CPU))
+* only the segmentation network (FastSurferCNN, Example 3 (GPU) Example 4 (CPU))
+* only the surface pipeline (recon-surf, Example 5 (CPU))
 
 In order to run the whole FastSurfer pipeline or the surface part, you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)).
 
@@ -142,14 +142,14 @@ singularity run --bind /pathToLicense/.license \
 Define the location where the tmp_data of the images should be located.
 
 
-```
+```bash
 export SINGULARITY_TMPDIR=~/.singularity/tmp
 export SINGULARITY_CACHEDIR=~/.singularity/cache
 ```
 
 #### Build image:
 
-```
+```bash
 singularity build --remote fastsurfer_cnn.sif fastsurfer_cnn.def
 ```
 
@@ -158,7 +158,7 @@ We assume that our data lies somewhere in our /home dir. So we do not need to bi
 We want to use our GPU so we need __--nv__, this time we do not want to limit our GPU ressources so we do not set the SINGULARITYENV_CUDA_VISIBLE_DEVICES flag.
 FreeSurfer is not needed so we do not need to export the license.
 
-```
+```bash
 cd ..
 
 
@@ -182,7 +182,7 @@ export SINGULARITY_CACHEDIR=~/.singularity/cache
 
 Now we can build our image:
 
-```
+```bash
 singularity build --remote fastsurfer_cnn_cpu.sif fastsurfer_cnn_cpu.def
 ```
 
@@ -192,7 +192,7 @@ We assume that our data lies somewhere in our /home dir. So we need to bind the 
 In this case we do not need to bind anything.
 We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the Flag __--no_cuda__. 
 
-```
+```bash
 cd ..
 
 singularity run ./Singularity/fastsurfer_cnn.sif \
@@ -210,12 +210,11 @@ singularity run ./Singularity/fastsurfer_cnn.sif \
 
 ```
 singularity build --remote reconsurf.sif reconsurf.def
-
 ```
 We assume that our licens is outside of he default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
 In this case we are binding only the license to our container.
 We can also bind to a specific destination ( __--bind /src:/dest__ ) see below:
-```
+```bash
 cd ..
 
 singularity run --bind /pathToLicense/.license:/license     
@@ -225,8 +224,6 @@ singularity run --bind /pathToLicense/.license:/license
 				--sid subject10 \
 				--sd /home/user/my_fastsurfer_analysis \
 				--parallel
-
-
 ```
 
 ### Frequent Problems:
