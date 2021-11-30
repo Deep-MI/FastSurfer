@@ -1,0 +1,109 @@
+Bootstrap: docker
+From: ubuntu:16.04
+
+%post
+	# Install custom libraries
+	apt-get update && apt-get install -y --no-install-recommends \
+         wget \
+         git \
+         ca-certificates && \
+         rm -rf /var/lib/apt/lists/*
+
+	# Install miniconda and needed python packages (for FastSurferCNN)
+	wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh && \
+    /opt/conda/bin/conda install -y python=3.6 numpy scipy matplotlib h5py scikit-image && \
+    /opt/conda/bin/conda install -y -c pytorch cpuonly "pytorch=1.2.0=py3.6_cpu_0" torchvision=0.4.0=py36_cpu && \
+    /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=8.3.2 && \
+    /opt/conda/bin/conda clean -ya
+    git clone https://github.com/Deep-MI/FastSurfer.git /opt/FastSurfer
+    
+%environment
+    export PYTHONUNBUFFERED=0 \
+    export PATH=/opt/conda/bin:$PATH
+    
+%runscript
+    cd /opt/FastSurfer/FastSurferCNN
+    echo "Arguments received: $*"
+    python ./eval.py "$@"
+      
+%help
+    This container runs FastSurferCNN - a deep-learning network used to produce a whole-brain segmentation called aparc.DKTatlas+aseg.deep.mgz based on a T1-weighted MRI image.
+    
+    ARGUMENTS:
+    
+  -h, --help            show this help message and exit
+  --i_dir INPUT, --input_directory INPUT
+                        path to directory of input volume(s).
+  --csv_file CSV_FILE, --csv_file CSV_FILE
+                        CSV-file with directories to process
+  --o_dir OUTPUT, --output_directory OUTPUT
+                        path to output directory. Will be created if it does
+                        not already exist
+  --in_name INAME, --input_name INAME
+                        name of file to process. Default: orig.mgz
+  --out_name ONAME, --output_name ONAME
+                        name under which segmentation will be saved. Default:
+                        aparc.DKTatlas+aseg.deep.mgz. If a separate subfolder
+                        is desired (e.g. FS conform, add it to the name:
+                        mri/aparc.DKTatlas+aseg.deep.mgz)
+  --order ORDER         order of interpolation
+                        (0=nearest,1=linear(default),2=quadratic,3=cubic)
+  --t SEARCH_TAG, --tag SEARCH_TAG
+                        Search tag to process only certain subjects. If a
+                        single image should be analyzed, set the tag with its
+                        id. Default: processes all.
+  --log LOGFILE         name of log-file. Default: deep-seg.log
+  --network_sagittal_path NETWORK_SAGITTAL_PATH
+                        path to pre-trained weights of sagittal network
+  --network_coronal_path NETWORK_CORONAL_PATH
+                        pre-trained weights of coronal network
+  --network_axial_path NETWORK_AXIAL_PATH
+                        pre-trained weights of axial network
+  --num_filters NUM_FILTERS
+                        Filter dimensions for DenseNet (all layers same).
+                        Default=64
+  --num_classes_ax_cor NUM_CLASSES_AX_COR
+                        Number of classes to predict in axial and coronal net,
+                        including background. Default=79
+  --num_classes_sag NUM_CLASSES_SAG
+                        Number of classes to predict in sagittal net,
+                        including background. Default=51
+  --num_channels NUM_CHANNELS
+                        Number of input channels. Default=7 (thick slices)
+  --kernel_height KERNEL_HEIGHT
+                        Height of Kernel (Default 5)
+  --kernel_width KERNEL_WIDTH
+                        Width of Kernel (Default 5)
+  --stride STRIDE       Stride during convolution (Default 1)
+  --stride_pool STRIDE_POOL
+                        Stride during pooling (Default 2)
+  --pool POOL           Size of pooling filter (Default 2)
+  --clean               Flag to clean up segmentation
+  --run_viewagg_on {gpu,cpu,check}
+                        Define where the view aggregation should be run on. By
+                        default, the program checks if you have enough memory
+                        to run the view aggregation on the gpu. The total
+                        memory is considered for this decision. If this fails,
+                        or you actively overwrote the check with setting >
+                        --run_viewagg_on cpu <, view agg is run on the cpu.
+                        Equivalently, if you define > --run_viewagg_on gpu <,
+                        view agg will be run on the gpu (no memory check will
+                        be done).
+  --no_cuda             disables CUDA training
+  --batch_size BATCH_SIZE
+                        Batch size for inference. Default: 8
+  --simple_run          Simplified run: only analyse one given image specified
+                        by --in_name (output: --out_name). Need to specify
+                        absolute path to both --in_name and --out_name if this
+                        option is chosen.
+
+
+    
+%labels
+    Author LH@deepmilab 
+    Edit RV@deepmilab
+    Version v0.01
+    MyLabel FastSurferCNN for CPU
