@@ -65,8 +65,9 @@ __--remote__ : allows to build image without root privleges on a remote server.
 singularity build --remote fastsurfer.sif fastsurfer.def
 ```
 
-Note: * if you build your container as root you do not need the option __--remote__ and just write(singularity build fastsurfer.sif fastsurfer.def)  
-      * Singularity saves your .sif file on a server under https://cloud.sylabs.io/library/USER by default. So you need to check if you have enough space on the server. Otherwise you will get an Error.
+Note: 
+* if you build your container as root you do not need the option __--remote__ and just write(singularity build fastsurfer.sif fastsurfer.def)  
+* Singularity saves your .sif file on a server under https://cloud.sylabs.io/library/USER by default. So you need to check if you have enough space on the server. Otherwise you will get an Error.
 To avoid this you can just delete the sif image on the server since you have it already in the folder in which you used the build command.
 
 #### Run our Singualrity image.
