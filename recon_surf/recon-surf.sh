@@ -882,3 +882,6 @@ echo "CMDPATH $0"                 >> $DoneFile
 echo "CMDARGS ${inputargs[*]}"    >> $DoneFile
 
 echo "recon-surf.sh $subject finished without error at `date`"  |& tee -a $LF
+
+cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surf_times.yaml"
+RunIt "$cmd"
