@@ -154,19 +154,15 @@ singularity build --remote fastsurfer_cnn.sif fastsurfer_cnn.def
 ```
 
 #### Run fastsurefer_cnn.sif:
-We assume that our licens is outside of he default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
+We assume that our data lies somewhere in our /home dir. So we do not need to bind anything.
 We want to use our GPU so we need __--nv__, this time we do not want to limit our GPU ressources so we do not set the SINGULARITYENV_CUDA_VISIBLE_DEVICES flag.
-
-```
-export FS_LICENSE=/pathToLicense/.license
-```
+FreeSurfer is not needed so we do not need to export the license.
 
 ```
 cd ..
 
 
-singularity run --nv --bind /pathToLicense/.license  \
-				 ./Singularity/fastsurfer_cnn.sif \
+singularity run --nv ./Singularity/fastsurfer_cnn.sif \
 				 --i_dir /home/user/my_mri_data/subject10/ \
 				 --in_name orig.mgz \
 				 --o_dir /home/user/my_fastsurfer_analisis/ \
@@ -184,7 +180,6 @@ export SINGULARITY_CACHEDIR=~/.singularity/cache
 ```
 
 
-
 Now we can build our image:
 
 ```
@@ -193,19 +188,14 @@ singularity build --remote fastsurfer_cnn_cpu.sif fastsurfer_cnn_cpu.def
 
 We do not need to export the Freesurfer license path beause for segmentaton only we dont need freesurfer.
 
-```
-export FS_LICENSE=/pathToLicense/.license
-```
-
-We assume that our licens is outside of he default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
-In this case we are binding only the license to our container.
+We assume that our data lies somewhere in our /home dir. So we need to bind the locations first.
+In this case we do not need to bind anything.
 We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the Flag __--no_cuda__. 
 
 ```
 cd ..
 
-singularity run --bind /groups/ag-reuter/software-centos/fs60/.license  \
-				 ./Singularity/fastsurfer_cnn.sif \
+singularity run ./Singularity/fastsurfer_cnn.sif \
 				 --i_dir /home/user/my_mri_data/subject10/ \
 				 --in_name orig.mgz \
 				 --o_dir /home/user/my_fastsurfer_analysis/ \
@@ -241,17 +231,17 @@ singularity run --bind /pathToLicense/.license:/license
 
 ### Frequent Problems:
 
-	-Did you export the license ?
+	* Did you export the license ?
 		=> export FS_LICENSE=/pathToLicense/.license
 	
-	-Space on Server ? (FATAL:   Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage))
+	* Space on Server ? (FATAL:   Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage))
 		=> eliminate images on https://cloud.sylabs.io/library/USER , and build again
 	
-	-Did you define a locale location to save the tmp_data ?
+	* Did you define a locale location to save the tmp_data ?
 		=> export SINGULARITY_TMPDIR=~/.singularity/tmp
-		   export SINGULARITY_CACHEDIR=~/.singularity/cache
+		=> export SINGULARITY_CACHEDIR=~/.singularity/cache
 	
-	-are you in the correct directory ?
+	* are you in the correct directory ?
 		=> build in ../FastSurfer/Singularity
 		=> run in ../FastSurfer
 	
