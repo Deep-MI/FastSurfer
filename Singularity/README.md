@@ -214,13 +214,12 @@ singularity build --remote reconsurf.sif reconsurf.def
 ```
 We assume that our licens is outside of he default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
 In this case we are binding only the license to our container.
-We can also bind to a specific destination ( __--bind /src:/dest__ ) see below:
 ```bash
 cd ..
 
-singularity run --bind /pathToLicense/.license:/license     
+singularity run --bind /pathToLicense/.license \  
 				./Singularity/reconsurf.sif \
-				--fs_license /license \
+				--fs_license /pathToLicense/.license \
 				--t1 /home/user/my_mri_data/subject10/orig.mgz \     
 				--sid subject10 \
 				--sd /home/user/my_fastsurfer_analysis \
@@ -244,8 +243,9 @@ export SINGULARITY_CACHEDIR=~/.singularity/cache
 ```
 	
 * are you in the correct directory ?
-	build in ../FastSurfer/Singularity
-	run in ../FastSurfer
+
+	build in: ../FastSurfer/Singularity
+	run in: ../FastSurfer
 	
 	
 
