@@ -68,6 +68,7 @@ Date: Mar-12-2019
 
 """
 
+supported_output_file_formats = ['mgz', 'nii', 'nii.gz']
 
 def options_parse():
     """
@@ -416,10 +417,38 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
 
     # Saving image
     header_info.set_data_dtype(np.int16)
-    mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
-    mapped_aseg_img.to_filename(save_as)
+
+    save_image(pred_prob, affine_info, header_info, save_as)
+
     logger.info("Saving Segmentation to {}".format(save_as))
     logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
+
+def save_image(pred_prob, affine_info, header_info, save_as):
+    """
+    Save the result of fastsurfercnn, according to the desired output file format.
+    Supported formats are defined in supported_output_file_formats.
+
+    :param numpy.ndarray pred_prob: predictions (in freesurfer label space)
+    :param numpy.ndarray affine_info: image affine information
+    :param nibabel.freesurfer.mghformat.MGHHeader header_info: image header information
+    :param str save_as: name under which to save prediction; this determines output file format
+
+    :return None: saves predictions to save_as
+    """
+
+    assert any(save_as.endswith(file_ext) for file_ext in supported_output_file_formats), \
+            'Output filename does not contain a supported file format (' + ', '.join(file_ext for file_ext in supported_output_file_formats) + ')!'
+
+    if save_as.endswith('mgz'):
+        mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
+    elif any(save_as.endswith(file_ext) for file_ext in ['nii', 'nii.gz']):
+        mapped_aseg_img = nib.nifti1.Nifti1Pair(pred_prob, affine_info, header_info)
+
+    if any(save_as.endswith(file_ext) for file_ext in ['mgz', 'nii']):
+        nib.save(mapped_aseg_img, save_as)
+    elif save_as.endswith('nii.gz'):
+        ## For correct outputs, nii.gz files should be saved using the nifti1 sub-module's save():
+        nib.nifti1.save(mapped_aseg_img, save_as)
 
 
 if __name__ == "__main__":
