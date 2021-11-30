@@ -234,7 +234,7 @@ export FS_LICENSE=/pathToLicense/.license
 ```
 * Space on Server ? (FATAL:   Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage))
 
- eliminate images on https://cloud.sylabs.io/library/USER , and build again
+	eliminate images on https://cloud.sylabs.io/library/USER , and build again
 	
 * Did you define a locale location to save the tmp_data ?
 ```
@@ -243,8 +243,8 @@ export SINGULARITY_CACHEDIR=~/.singularity/cache
 ```
 	
 * are you in the correct directory ?
- build in ../FastSurfer/Singularity
- run in ../FastSurfer
+	build in ../FastSurfer/Singularity
+	run in ../FastSurfer
 	
 	
 
