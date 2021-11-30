@@ -1,0 +1,141 @@
+Bootstrap: docker
+From: ubuntu:16.04
+
+%post
+    # Install dependencies for FreeSurfer and FastSurfer
+    apt-get update && apt-get install -y --no-install-recommends \
+         build-essential \
+         cmake \
+         git \
+         vim \
+         wget \
+         ca-certificates \
+         bzip2 \
+         libx11-6 \
+         libjpeg-dev \
+         libpng-dev \
+         bc \
+         tar \
+         zip \
+         gawk \
+         tcsh \
+         time \
+         libgomp1 \
+         libglu1-mesa \
+	 libglu1-mesa-dev \
+	 perl-modules && \
+         apt-get clean && \
+         rm -rf /var/lib/apt/lists/* /tmp/!build-temp /var/tmp/*
+    
+    # Install FreeSurfer
+    wget -qO- https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /opt \
+    	--exclude='freesurfer/trctrain' \
+    	--exclude='freesurfer/subjects/fsaverage_sym' \
+    	--exclude='freesurfer/subjects/fsaverage3' \
+    	--exclude='freesurfer/subjects/fsaverage4' \
+    	--exclude='freesurfer/subjects/fsaverage5' \
+    	--exclude='freesurfer/subjects/fsaverage6' \
+    	--exclude='freesurfer/subjects/cvs_avg35' \
+    	--exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
+    	--exclude='freesurfer/subjects/bert' \
+    	--exclude='freesurfer/subjects/V1_average' \
+    	--exclude='freesurfer/average/mult-comp-cor' \
+    	--exclude='freesurfer/lib/cuda' \
+    	--exclude='freesurfer/lib/qt' \
+        --exclude='freesurfer/matlab' \
+        --exclude='freesurfer/diffusion' \
+        --exclude='freesurfer/bin/freeview.bin' \
+        --exclude='freesurfer/bin/freeview' \
+        --exclude='freesurfer/bin/mris_decimate_gui.bin' \
+        --exclude='freesurfer/bin/mris_decimate_gui' \
+        --exclude='freesurfer/bin/qdec.bin' \
+        --exclude='freesurfer/bin/qdec' \
+        --exclude='freesurfer/bin/qdec_glmfit' \
+        --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
+        --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
+        --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
+        --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
+        --exclude='freesurfer/bin/fs_spmreg.glnxa64'
+    	
+    # Install miniconda and all needed python packages (including pytorch)
+    wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+     chmod +x ~/miniconda.sh && \
+     ~/miniconda.sh -b -p /opt/conda && \
+     rm ~/miniconda.sh && \
+     /opt/conda/bin/conda install -y python=3.6 numpy scipy matplotlib h5py scikit-image && \
+     /opt/conda/bin/conda install -y -c pytorch cpuonly "pytorch=1.2.0=py3.6_cpu_0" torchvision=0.4.0=py36_cpu && \
+     /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=8.3.2 && \
+     /opt/conda/bin/conda clean -ya
+    git clone https://github.com/Deep-MI/FastSurfer.git /opt/FastSurfer
+    
+%environment
+    export OS=Linux 
+    export FS_OVERRIDE=0 
+    export FIX_VERTEX_AREA= 
+    export SUBJECTS_DIR=/opt/freesurfer/subjects 
+    export FSF_OUTPUT_FORMAT=nii.gz 
+    export MNI_DIR=/opt/freesurfer/mni 
+    export LOCAL_DIR=/opt/freesurfer/local 
+    export FREESURFER_HOME=/opt/freesurfer 
+    export FSFAST_HOME=/opt/freesurfer/fsfast 
+    export MINC_BIN_DIR=/opt/freesurfer/mni/bin 
+    export MINC_LIB_DIR=/opt/freesurfer/mni/lib 
+    export MNI_DATAPATH=/opt/freesurfer/mni/data 
+    export FMRI_ANALYSIS_DIR=/opt/freesurfer/fsfast 
+    export PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 
+    export MNI_PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 
+    export PYTHONUNBUFFERED=0 
+    export PATH=/opt/conda/bin:/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
+    export LC_ALL=C
+    
+%runscript
+    cd /opt/FastSurfer
+    echo "Arguments received: $*"
+    ./run_fastsurfer.sh "$@"
+      
+%help
+    This container runs FastSurfer - a deep-learning based neuroimaging pipeline. 
+    
+    It takes a T1 full head image and creates
+        (i) a segmentation using FastSurferCNN (equivalent to FreeSurfers aparc.DKTatlas+aseg.mgz)
+        (ii) surfaces, thickness etc as a FS subject dir using recon-surf
+    
+    ARGUMENTS:
+    --fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far.
+	--sid <subjectID>                      Subject ID for directory inside $SUBJECTS_DIR to be created
+	--sd  <subjects_dir>                   Output directory $SUBJECTS_DIR (pass via environment or here)
+	--t1  <T1_input>                       T1 full head input (not bias corrected)
+	--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz.
+	--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
+	--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: $FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
+	--weights_ax <weights_axial>           Pretrained weights of axial network. Default: $FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
+	--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: $FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl
+	--clean_seg <clean_segmentation>       Flag to clean up FastSurferCNN segmentation
+	--run_viewagg_on <check,gpu,cpu>       Define where the view aggregation should be run on. By default, the program checks if you have enough memory to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting > --run_viewagg_on cpu <, view agg is run on the cpu. Equivalently, if you define > --run_viewagg_on gpu <, view agg will be run on the gpu (no memory check will be done).
+	--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
+	--batch <batch_size>                   Batch size for inference. Default: 8.
+	--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)
+	--seg_only                             Run only FastSurferCNN (generate segmentation, do not run surface pipeline)
+	--seg_with_cc_only                     Run FastSurferCNN (generate segmentation) and recon_surf until corpus callosum (CC) is added in (no surface models will be created in this case!)
+	--surf_only                            Run surface pipeline only. The segmentation input has to exist already in this case.
+	--vol_segstats                         Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces). Can be used in combination with --seg_only in which case recon-surf only runs till CC is added (akin to --seg_with_cc_only).
+	--fstess                               Switch on mri_tesselate for surface creation (default: mri_mc)
+	--fsqsphere                            Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)
+	--fsaparc                              Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)
+	--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondence)
+	--parallel                             Run both hemispheres in parallel
+	--threads <int>                        Set openMP and ITK threads to <int>
+	--py <python_cmd>                      Command for python, default 'python3.6'
+	-h --help                              Print Help
+
+Dev Flags
+	--ignore_fs_version                    Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if v6.0 is not sourced. Can be used for testing dev versions.
+	--no_fs_T1                             Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves approx. 1:30 min.
+
+
+%labels
+    Author LH@deepmilab 
+    Edit RV@deepmilab
+    Version v0.01
+    MyLabel FastSurfer for CPU
+    
