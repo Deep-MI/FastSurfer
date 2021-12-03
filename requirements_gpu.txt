@@ -1,0 +1,4 @@
+scikit-image>=0.15.0
+scikit-sparse>=0.4.4
+torchvision>=0.4.0
+lapy @ git+https://github.com/Deep-MI/LaPy.git
