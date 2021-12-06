@@ -23,7 +23,7 @@ List them by running the following command:
 * --t1: T1 full head input (not bias corrected). 
 
 ### Optional arguments
-* --seg: Global path with filename of segmentation (where and under which name to find it, must already exist). Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+* --seg: Global path with filename of segmentation (where and under which name to find it, must already exist). Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.nii.gz
 * --fstess: Use mri_tesselate instead of marching cube (default) for surface creation
 * --fsqsphere: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
 * --fsaparc: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)

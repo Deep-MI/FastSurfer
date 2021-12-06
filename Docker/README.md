@@ -16,7 +16,7 @@ In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; o
 ./docker_build.sh
 ```
 
-This script builds a docker image with the name fastsurfer:gpu. With it you basically execute the script __run_fastsurfer.sh__ from the parent directory. It takes as input a single T1-weighted MRI brain scan (from the /data directory) and first produces the aparc.DKTatlas+aseg.mgz segmentation followed by the surface construction (output stored in /output directory).
+This script builds a docker image with the name fastsurfer:gpu. With it you basically execute the script __run_fastsurfer.sh__ from the parent directory. It takes as input a single T1-weighted MRI brain scan (from the /data directory) and first produces the aparc.DKTatlas+aseg.nii.gz segmentation followed by the surface construction (output stored in /output directory).
 
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
@@ -77,7 +77,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --i_dir /data \
                       --in_name mri/orig.mgz \
                       --o_dir /output \
-                      --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
+                      --out_name mri/aparc.DKTatlas+aseg.deep.nii.gz \
                       --log deep_surfer.log
 ```
 
@@ -104,7 +104,7 @@ docker run -v /home/user/my_mri_data:/data \
            --i_dir /data \
            --in_name mri/orig.mgz \
            --o_dir /output \
-           --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
+           --out_name mri/aparc.DKTatlas+aseg.deep.nii.gz \
            --log deep_surfer.log \
            --no_cuda
 ```
