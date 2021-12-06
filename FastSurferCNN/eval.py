@@ -47,7 +47,7 @@ from data_loader.augmentation import ToTensorTest
 from models.networks import FastSurferCNN
 
 HELPTEXT = """
-Script to generate aparc.DKTatlas+aseg.deep.mgz using Deep Learning. \n
+Script to generate aparc.DKTatlas+aseg.deep.nii.gz using Deep Learning. \n
 
 Dependencies:
 
@@ -85,10 +85,10 @@ def options_parse():
     # 2. Options for the MRI volumes (name of in and output, order of interpolation if not conformed)
     parser.add_argument('--in_name', '--input_name', dest='iname', help='name of file to process. Default: orig.mgz',
                         default='orig.mgz')
-    parser.add_argument('--out_name', '--output_name', dest='oname', default='aparc.DKTatlas+aseg.deep.mgz',
-                        help='name under which segmentation will be saved. Default: aparc.DKTatlas+aseg.deep.mgz. '
+    parser.add_argument('--out_name', '--output_name', dest='oname', default='aparc.DKTatlas+aseg.deep.nii.gz',
+                        help='name under which segmentation will be saved. Default: aparc.DKTatlas+aseg.deep.nii.gz. '
                              'If a separate subfolder is desired (e.g. FS conform, add it to the name: '
-                             'mri/aparc.DKTatlas+aseg.deep.mgz)')
+                             'mri/aparc.DKTatlas+aseg.deep.nii.gz)')
     parser.add_argument('--order', dest='order', type=int, default=1,
                         help="order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)")
 
