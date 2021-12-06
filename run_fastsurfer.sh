@@ -67,7 +67,7 @@ function usage()
     echo -e "\t--sid <subjectID>                      Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
+    echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.nii.gz."
     echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN). Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log"
     echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: \$FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
     echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: \$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
@@ -270,7 +270,7 @@ fi
 
 if [ -z "$seg" ]
   then
-    seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+    seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 fi
 
 if [ -z "$seg_log" ]
@@ -287,7 +287,7 @@ if [ "$surf_only" == "1" ] && [ ! -f "$seg" ]
   then
     echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
     echo "You passed --surf_only but the whole-brain segmentation ($seg) could not be found."
-    echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --seg"
+    echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.nii.gz), specify the absolute path and name via --seg"
     exit 1;
 fi
 
