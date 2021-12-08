@@ -29,13 +29,14 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --parallel
 ```
 
-* The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
 * The --gpus flag is used to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
-* The -v command mounts your data (and output) directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
+* The -v commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these visible under the name following the colon (in this case /data, /output, and /fs60).
 * The --rm flag takes care of removing the container once the analysis finished. 
 * The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+* The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+* Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
 
-All other flags are identical to the ones explained on the main page (on directory up).
+All other flags are identical to the ones explained on the main page [README](../README.md).
 
 ### Example 2: Build CPU FastSurfer container
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
@@ -85,8 +86,9 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
 * The --rm flag takes care of removing the container once the analysis finished. 
 * Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
+* Also here, the paths after --i_dir and --o_dir refer to local paths inside the container, as they were mapped above with the -v commands.
 
-All other flags are identical to the ones explained on the main page (on directory up).
+All other flags are identical to the ones explained on the main page [README](../README.md).
 
 ### Example 4: Build CPU FastSurferCNN container (segmentation only)
 In order to build the docker image for FastSurferCNN (segmentation only; on CPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
@@ -131,9 +133,10 @@ docker run -v /home/user/my_mri_data:/data \
            --sid subject2 --sd /output \
            --parallel
 ```
-* The fs_license points to your FreeSurfer license which needs to be available on your computer (e.g. in the /home/user/my_fs_license_dir folder). 
-* The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
+* The -v commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these visible under the name following the colon (in this case /data, /output, and /fs60).
 * The --rm flag takes care of removing the container once the analysis finished. 
 * Again, the --user XXXX part should be changed to the appropiate user id (a four digit number; can be checked with the command "id -u" on linux systems).
+* The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+* Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
 
-All other flags are identical to the ones explained on the main page (on directory up).
+All other flags are identical to the ones explained on the main page [README](../README.md).
