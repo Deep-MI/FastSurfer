@@ -44,8 +44,10 @@ pillow==8.3.2
     #   torchvision
 pyparsing==2.4.7
     # via matplotlib
-python-dateutil==2.8.1
-    # via matplotlib
+python-dateutil==2.8.2
+    # via
+    #   -r requirements.in
+    #   matplotlib
 pywavelets==1.1.1
     # via scikit-image
 scikit-image==0.15.0

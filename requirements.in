@@ -4,6 +4,7 @@ nibabel==2.5.1
 numpy==1.17.4
 scikit-image==0.15.0
 scipy==1.3.1
+python-dateutil==2.8.2
 
 # Lapy installation from git
 git+https://github.com/Deep-MI/LaPy.git#egg=lapy
