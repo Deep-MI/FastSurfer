@@ -109,7 +109,7 @@ docker run -v /home/user/my_mri_data:/data \
            --no_cuda
 ```
 
-Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
+Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn off GPU usage inside FastSurferCNN.
 
 ### Example 5: Build CPU FastSurfer recon-surf container (surface pipeline only)
 
