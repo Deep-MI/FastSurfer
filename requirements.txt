@@ -50,6 +50,8 @@ python-dateutil==2.8.2
     #   matplotlib
 pywavelets==1.1.1
     # via scikit-image
+pyyaml==5.4.1
+    # via -r requirements.in
 scikit-image==0.15.0
     # via -r requirements.in
 scipy==1.3.1
