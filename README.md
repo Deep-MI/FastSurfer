@@ -119,7 +119,7 @@ done < ./data/subjects_list.txt
 ### Example 3: FastSurfer inside Docker
 After building the Docker (see instructions in ./Docker/README.md), you do not need to have a separate installation of FreeSurfer on your computer (included in the Docker). However, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free). This license need to be passed to the script via the --fs_license flag.
 
-To run FastSurfer on a given subject using the provided Docker, execute the following command:
+To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:
 
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
@@ -138,6 +138,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * The --user XXXX part should be changed to the appropriate user id (a four digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
 * The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 * Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
+* You can also run a CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
 
 ## References
 
