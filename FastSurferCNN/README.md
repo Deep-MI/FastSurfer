@@ -15,7 +15,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * --in_name: name of the MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
 * --t: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*...)
 * --o_dir: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
-* --out_name: name of the prediction (__default: aparc.DKTatlas+aseg.deep.nii.gz__)
+* --out_name: name of the prediction (__default: aparc.DKTatlas+aseg.deep.mgz__)
 * --log: name of log-file (information about processing is stored here; __default: deep-seg.log__). Saved in the same directory as the predictions.
 * --order: order of interpolation (0=nearest,__1=linear(default)__, 2=quadratic, 3=cubic) for conformation (if not already done).
 
@@ -47,7 +47,7 @@ python3 eval.py --i_dir ../data \
 --network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
 ```
 
-The output will be saved in ./data/subject1/aparc.DKTatlas+aseg.deep.nii.gz.
+The output will be saved in ./data/subject1/aparc.DKTatlas+aseg.deep.mgz.
 
 ### Example Command Evaluation whole directory
 To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
@@ -61,7 +61,7 @@ python3 eval.py --i_dir ../data \
 --network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
 ```
 
-The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.nii.gz.
+The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
 
 # 2. Hdf5-Trainingset Generation
 
