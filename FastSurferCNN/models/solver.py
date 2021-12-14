@@ -36,7 +36,7 @@ def create_exp_directory(exp_dir_name):
     """
     Function to create a directory if it does not exist yet.
     :param str exp_dir_name: name of directory to create.
-    :return:
+    :return: None; creates a directory
     """
     if not os.path.exists(exp_dir_name):
         try:
@@ -51,10 +51,11 @@ def create_exp_directory(exp_dir_name):
 def dice_confusion_matrix(batch_output, labels_batch, num_classes):
     """
     Function to compute the dice confusion matrix.
-    :param batch_output:
-    :param labels_batch:
-    :param num_classes:
-    :return:
+    :param torch.Tensor batch_output: a batch of outputs
+    :param torch.Tensor labels_batch: a batch of corresponding ground-truth labels
+    :param int num_classes: number of classes
+    :return: torch.Tensor avg_dice: average dice score
+    :return: torch.Tensor dice_cm: dice confusion matrix
     """
     dice_cm = torch.zeros(num_classes, num_classes)
 
@@ -76,6 +77,10 @@ def iou_score(pred_cls, true_cls, nclass=79):
     """
     compute the intersection-over-union score
     both inputs should be categorical (as opposed to one-hot)
+    :param torch.Tensor pred_cls: network prediction (categorical)
+    :param torch.Tensor true_cls: ground truth (categorical)
+    :return: np.ndarray: the intersection array
+    :return: np.ndarray: the union array
     """
     intersect_ = []
     union_ = []
@@ -92,10 +97,13 @@ def iou_score(pred_cls, true_cls, nclass=79):
 def precision_recall(pred_cls, true_cls, nclass=79):
     """
     Function to calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class
-    :param pytorch.Tensor pred_cls: network prediction (categorical)
-    :param pytorch.Tensor true_cls: ground truth (categorical)
+    :param torch.Tensor pred_cls: network prediction (categorical)
+    :param torch.Tensor true_cls: ground truth (categorical)
     :param int nclass: number of classes
     :return:
+    :return: np.ndarray: an array of true positives
+    :return: np.ndarray: an array of true positives - false negatives
+    :return: np.ndarray: an array of true positives - false positives
     """
     tpos_fneg = []
     tpos_fpos = []
@@ -118,12 +126,12 @@ def precision_recall(pred_cls, true_cls, nclass=79):
 def plot_predictions(images_batch, labels_batch, batch_output, plt_title, file_save_name):
     """
     Function to plot predictions from validation set.
-    :param images_batch:
-    :param labels_batch:
-    :param batch_output:
-    :param plt_title:
-    :param file_save_name:
-    :return:
+    :param torch.Tensor images_batch: batch of images
+    :param torch.Tensir labels_batch: batch of output ground-truth labels
+    :param torch.Tensor batch_output: batch of output predictions
+    :param str plt_title: title of the plot
+    :param str file_save_name: the filename of the saved figure
+    :return: None
     """
 
     f = plt.figure(figsize=(20, 20))
@@ -160,12 +168,12 @@ def plot_confusion_matrix(cm, classes, title='Confusion matrix', cmap=plt.cm.Blu
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
-    :param cm:
+    :param np.ndarray cm: confusion matrix array
     :param classes:
-    :param title:
-    :param cmap:
-    :param file_save_name:
-    :return:
+    :param str title: title of the plot
+    :param matplotlib.colors.Colormap cmap: color map
+    :param file_save_name: the filename of the saved figure
+    :return: None
     """
     f = plt.figure(figsize=(35, 35))
 

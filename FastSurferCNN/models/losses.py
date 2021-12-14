@@ -32,7 +32,7 @@ class DiceLoss(_Loss):
         :param target: N x C x W LongTensor with starting class at 0
         :param weights: C FloatTensor with class wise weights
         :param int ignore_index: ignore label with index x in the loss calculation
-        :return:
+        :return: torch.FloatTensor loss: FloatTensor with class wise weights
         """
         eps = 0.001
 

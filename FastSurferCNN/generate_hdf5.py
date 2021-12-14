@@ -58,7 +58,7 @@ class PopulationDataset:
         Function to store all images in a given directory (or pattern) in a hdf5-file.
         :param str plane: which plane is processed (coronal, axial or saggital)
         :param bool is_small: small hdf5-file for pretraining?
-        :return:
+        :return: None
         """
         start_d = time.time()
 

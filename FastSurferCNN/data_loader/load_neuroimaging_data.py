@@ -39,7 +39,9 @@ def load_and_conform_image(img_filename, interpol=1, logger=None):
     (if it does not already have this format)
     :param str img_filename: path and name of volume to read
     :param int interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
-    :return:
+    :return: nibabel.MGHImage header_info: header information of the conformed image
+    :return: np.ndarray affine_info: affine information of the conformed image
+    :return: nibabel.MGHImage orig: conformed image
     """
     orig = nib.load(img_filename)
 
@@ -76,7 +78,7 @@ def transform_axial(vol, coronal2axial=True):
     :param np.ndarray vol: image volume to transform
     :param bool coronal2axial: transform from coronal to axial = True (default),
                                transform from axial to coronal = False
-    :return:
+    :return: np.ndarray: transformed image volume
     """
     if coronal2axial:
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
@@ -90,7 +92,7 @@ def transform_sagittal(vol, coronal2sagittal=True):
     :param np.ndarray vol: image volume to transform
     :param bool coronal2sagittal: transform from coronal to sagittal = True (default),
                                 transform from sagittal to coronal = False
-    :return:
+    :return: np.ndarray: transformed image volume
     """
     if coronal2sagittal:
         return np.moveaxis(vol, [0, 1, 2], [2, 1, 0])
@@ -106,7 +108,7 @@ def get_thick_slices(img_data, slice_thickness=3):
     label only middle one)
     :param np.ndarray img_data: 3D MRI image read in with nibabel 
     :param int slice_thickness: number of slices to stack on top and below slice of interest (default=3) 
-    :return: 
+    :return: np.ndarray img_data_thick: image array containing the extracted slices
     """
     h, w, d = img_data.shape
     img_data_pad = np.expand_dims(np.pad(img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode='edge'),
@@ -127,6 +129,9 @@ def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
     :param np.ndarray weight_vol: weight corresponding to labels
     :param int threshold: threshold for number of pixels needed to keep slice (below = dropped)
     :return:
+    :return: np.ndarray img_vol: filtered orig image volume
+    :return: np.ndarray label_vol: filtered label images (ground truth)
+    :return: np.ndarray weight_vol: filtered weight corresponding to labels
     """
     # Get indices of all slices with more than threshold labels/pixels
     select_slices = (np.sum(label_vol, axis=(0, 1)) > threshold)
@@ -174,7 +179,7 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     :param np.ndarray gt: ground truth segmentation with class unknown
     :param int unknown_label: class label for unknown (lh: 1000, rh: 2000)
     :param int cortex_stop: class label at which cortical labels of this hemi stop (lh: 2000, rh: 3000)
-    :return:
+    :return: np.ndarray gt: ground truth segmentation with replaced unknown class labels
     """
     # Define shape of image and dilation element
     h, w, d = gt.shape
@@ -237,7 +242,8 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None):
     Function to perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space
     :param np.ndarray aseg: ground truth aparc+aseg
     :param None/np.ndarray aseg_nocc: ground truth aseg without corpus callosum segmentation
-    :return:
+    :return: np.ndarray mapped_aseg: label space segmentation (coronal and axial)
+    :return: np.ndarray mapped_aseg_sag: label space segmentation (sagittal)
     """
     aseg_temp = aseg.copy()
     aseg[aseg == 80] = 77  # Hypointensities Class
@@ -329,7 +335,7 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None):
     for idx, value in enumerate(labels_sag):
         lut_aseg[value] = idx
 
-    # Remap Label Classes - Perform LUT Mapping - Coronal, Axial
+    # Remap Label Classes - Perform LUT Mapping - Sagittal
 
     mapped_aseg_sag = lut_aseg.ravel()[aseg.ravel()]
 
@@ -342,7 +348,7 @@ def sagittal_coronal_remap_lookup(x):
     """
     Dictionary mapping to convert left labels to corresponding right labels for aseg
     :param int x: label to look up
-    :return:
+    :return: dict: left-to-right aseg label mapping dict
     """
     return {
         2: 41,
@@ -367,9 +373,9 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=79):
     """
     Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
     (full aparc.DKTatlas+aseg.mgz)
-    :param prediction_sag: sagittal prediction (labels)
+    :param np.ndarray prediction_sag: sagittal prediction (labels)
     :param int num_classes: number of classes (96 for full classes, 79 for hemi split)
-    :return: Remapped prediction
+    :return: np.ndarray prediction_full: Remapped prediction
     """
     if num_classes == 96:
         idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 14, 15, 4, 16,
@@ -413,7 +419,7 @@ def get_largest_cc(segmentation):
     """
     Function to find largest connected component of segmentation.
     :param np.ndarray segmentation: segmentation
-    :return:
+    :return: np.ndarray largest_cc: largest connected component of the segmentation array
     """
     labels = label(segmentation, connectivity=3, background=0)
 
