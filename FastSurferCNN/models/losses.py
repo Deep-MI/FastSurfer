@@ -28,11 +28,11 @@ class DiceLoss(_Loss):
 
     def forward(self, output, target, weights=None, ignore_index=None):
         """
-        :param output: N x C x H x W Variable
-        :param target: N x C x W LongTensor with starting class at 0
-        :param weights: C FloatTensor with class wise weights
+        :param torch.Tensor output: N x C x H x W Variable
+        :param torch.Tensor target: N x C x W LongTensor with starting class at 0
+        :param torch.Tensor weights: C FloatTensor with class wise weights
         :param int ignore_index: ignore label with index x in the loss calculation
-        :return: torch.FloatTensor loss: FloatTensor with class wise weights
+        :return: torch.Tensor loss: FloatTensor with class wise weights
         """
         eps = 0.001
 

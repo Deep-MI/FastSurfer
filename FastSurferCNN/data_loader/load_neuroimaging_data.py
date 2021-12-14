@@ -148,10 +148,10 @@ def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
 def create_weight_mask(mapped_aseg, max_weight=5, max_edge_weight=5):
     """
     Function to create weighted mask - with median frequency balancing and edge-weighting
-    :param mapped_aseg:
-    :param max_weight:
-    :param max_edge_weight:
-    :return:
+    :param np.ndarray mapped_aseg: label space segmentation
+    :param int max_weight: an upper bound on weight values
+    :param int max_edge_weight: edge-weighting factor
+    :return: np.ndarray weights_mask: generated weights mask
     """
     unique, counts = np.unique(mapped_aseg, return_counts=True)
 
@@ -216,8 +216,8 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
 def map_label2aparc_aseg(mapped_aseg):
     """
     Function to perform look-up table mapping from label space to aparc.DKTatlas+aseg space
-    :param np.ndarray mapped_aseg: label space segmentation (aparc.DKTatlas + aseg)
-    :return:
+    :param np.ndarray mapped_aseg: label space segmentation
+    :return: np.ndarray aseg: segmentation in aparc+aseg space
     """
     aseg = np.zeros_like(mapped_aseg)
     labels = np.array([0, 2, 4, 5, 7, 8, 10, 11, 12, 13, 14,
@@ -401,7 +401,12 @@ def bbox_3d(img):
     """
     Function to extract the three-dimensional bounding box coordinates.
     :param np.ndarray img: mri image
-    :return:
+    :return: float rmin
+    :return: float rmax
+    :return: float cmin
+    :return: float cmax
+    :return: float zmin
+    :return: float zmax
     """
 
     r = np.any(img, axis=(1, 2))

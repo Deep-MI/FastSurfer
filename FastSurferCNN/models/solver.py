@@ -169,7 +169,7 @@ def plot_confusion_matrix(cm, classes, title='Confusion matrix', cmap=plt.cm.Blu
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     :param np.ndarray cm: confusion matrix array
-    :param classes:
+    :param list classes: list of class ids
     :param str title: title of the plot
     :param matplotlib.colors.Colormap cmap: color map
     :param file_save_name: the filename of the saved figure
