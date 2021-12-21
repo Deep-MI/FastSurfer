@@ -261,6 +261,9 @@ def is_conform(img, eps=1e-06, check_dtype=True):
                       thus sometimes not correctly recognized. The epsilon accounts for these small shifts.
     :return: True if image is already conformed, False otherwise
     """
+
+    criteria = {'Dimensions 256x256x256': True, 'Voxel size 1x1x1': True, 'Orientation LIA': True}
+
     ishape = img.shape
 
     if len(ishape) > 3 and ishape[3] != 1:
@@ -268,24 +271,32 @@ def is_conform(img, eps=1e-06, check_dtype=True):
 
     # check dimensions
     if ishape[0] != 256 or ishape[1] != 256 or ishape[2] != 256:
-        return False
+        criteria['Dimensions 256x256x256'] = False
 
     # check voxel size
     izoom = img.header.get_zooms()
     if izoom[0] != 1.0 or izoom[1] != 1.0 or izoom[2] != 1.0:
-        return False
+        criteria['Voxel size 1x1x1'] = False
 
     # check orientation LIA
     iaffine = img.affine[0:3, 0:3] + [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
 
     if np.max(np.abs(iaffine)) > 0.0 + eps:
-        return False
+        criteria['Orientation LIA'] = False
 
     # check dtype uchar
-    if check_dtype and img.get_data_dtype() != 'uint8':
-        return False
+    if check_dtype:
+        criteria['Dtype uint8'] = True
+        if img.get_data_dtype() != 'uint8':
+            criteria['Dtype uint8'] = False
 
-    return True
+    if all(criteria.values()):
+        return True
+    else:
+        print('The input image is not conformed. A conformed image must satisfy the following criteria:')
+        for condition, value in criteria.items():
+            print(' - {:<30} {}'.format(condition+':', value))
+        return False
 
 
 def check_affine_in_nifti(img, logger=None):
