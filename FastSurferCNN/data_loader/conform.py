@@ -63,6 +63,8 @@ def options_parse():
     parser.add_option('--seg_input', dest='seg_input', default=False, action='store_true',
                       help='Specifies whether the input is a seg image. If true, '
                            'the check for conformance disregards the uint8 dtype criteria')
+    parser.add_option('--verbose', dest='verbose', default=False, action='store_true',
+                      help='If verbose, more specific messages are printed')
     (fin_options, args) = parser.parse_args()
     if fin_options.input is None:
         sys.exit('ERROR: Please specify input image')
@@ -256,7 +258,7 @@ def conform(img, order=1):
     return new_img
 
 
-def is_conform(img, eps=1e-06, check_dtype=True):
+def is_conform(img, eps=1e-06, check_dtype=True, verbose=True):
     """
     Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1, and
     LIA orientation.
@@ -299,9 +301,11 @@ def is_conform(img, eps=1e-06, check_dtype=True):
     if all(criteria.values()):
         return True
     else:
-        print('The input image is not conformed. A conformed image must satisfy the following criteria:')
-        for condition, value in criteria.items():
-            print(' - {:<30} {}'.format(condition+':', value))
+        print('The input image is not conformed.')
+        if verbose:
+            print('A conformed image must satisfy the following criteria:')
+            for condition, value in criteria.items():
+                print(' - {:<30} {}'.format(condition+':', value))
         return False
 
 
@@ -369,9 +373,9 @@ if __name__ == "__main__":
         sys.exit('ERROR: Multiple input frames (' + format(image.shape[3]) + ') not supported!')
 
     if not options.seg_input:
-        image_is_conformed = is_conform(image, check_dtype=True)
+        image_is_conformed = is_conform(image, check_dtype=True, verbose=options.verbose)
     else:
-        image_is_conformed = is_conform(image, check_dtype=False)
+        image_is_conformed = is_conform(image, check_dtype=False, verbose=options.verbose)
 
     if image_is_conformed:
         print("Input " + format(options.input) + " is already conformed! Exiting.\n")

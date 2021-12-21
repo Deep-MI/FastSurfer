@@ -413,10 +413,10 @@ echo "================== Creating orig and rawavg from input ===================
 echo " " |& tee -a $LF
 
 # check for input conformance
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only --verbose"
 RunIt "$cmd" $LF
 
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only --seg_input"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only --seg_input --verbose"
 RunIt "$cmd" $LF
 
 # create orig.mgz and aparc+aseg.orig.mgz (copy of segmentation)
