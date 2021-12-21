@@ -273,6 +273,11 @@ if [ -z "$seg" ]
     seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
+if [ -z "$conformed_input" ]
+  then
+    conformed_input="${sd}/${subject}/mri/conformed_orig.mgz"
+fi
+
 if [ -z "$seg_log" ]
  then
     seg_log="${sd}/${subject}/scripts/deep-seg.log"
@@ -319,7 +324,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python eval.py --in_name $t1 --out_name $seg --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg --run_viewagg_on $viewagg $cuda"
+  cmd="$python eval.py --in_name $t1 --out_name $seg --conformed_input $conformed_input --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg --run_viewagg_on $viewagg $cuda"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
@@ -330,7 +335,7 @@ if [ "$seg_only" == "0" ]; then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd $reconsurfdir
-  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $t1 --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1"
+  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_input --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1"
   $cmd
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   popd
