@@ -412,8 +412,15 @@ echo " " |& tee -a $LF
 echo "================== Creating orig and rawavg from input =========================" |& tee -a $LF
 echo " " |& tee -a $LF
 
+# check for input conformance
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only"
+RunIt "$cmd" $LF
+
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only --seg_input"
+RunIt "$cmd" $LF
+
 # create orig.mgz and aparc+aseg.orig.mgz (copy of segmentation)
-cmd="mri_convert -c $t1 $mdir/orig.mgz"
+cmd="mri_convert $t1 $mdir/orig.mgz"
 RunIt "$cmd" $LF
 
 cmd="mri_convert $seg $mdir/aparc+aseg.orig.mgz"
