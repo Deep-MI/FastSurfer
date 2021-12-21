@@ -57,6 +57,11 @@ def options_parse():
     parser.add_option('--input', '-i', dest='input', help=h_input)
     parser.add_option('--output', '-o', dest='output', help=h_output)
     parser.add_option('--order', dest='order', help=h_order, type="int", default=1)
+    parser.add_option('--check_only', dest='check_only', default=False, action='store_true',
+                      help='If True, only checks if the input image is conformed')
+    parser.add_option('--seg_input', dest='seg_input', default=False, action='store_true',
+                      help='Specifies whether the input is a seg image. If true, '
+                           'the check for conformance disregards the uint8 dtype criteria')
     (fin_options, args) = parser.parse_args()
     if fin_options.input is None or fin_options.output is None:
         sys.exit('ERROR: Please specify input and output images')
@@ -362,8 +367,19 @@ if __name__ == "__main__":
     if len(image.shape) > 3 and image.shape[3] != 1:
         sys.exit('ERROR: Multiple input frames (' + format(image.shape[3]) + ') not supported!')
 
-    if is_conform(image):
-        sys.exit("Input " + format(options.input) + " is already conform! No output created.\n")
+    if not options.seg_input:
+        image_is_conformed = is_conform(image, check_dtype=True)
+    else:
+        image_is_conformed = is_conform(image, check_dtype=False)
+
+    if image_is_conformed:
+        print("Input " + format(options.input) + " is already conformed! Exiting.\n")
+        sys.exit(0)
+    else:
+        # Note: if check_only, a non-conforming image leads to an error code, this result is needed in recon_surf.sh
+        if options.check_only:
+            print("check_only flag provided. Exiting without conforming input image.\n")
+            sys.exit(1)
 
     # If image is nifti image
     if options.input[-7:] == ".nii.gz" or options.input[-4:] == ".nii":
