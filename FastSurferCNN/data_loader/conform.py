@@ -250,7 +250,7 @@ def conform(img, order=1):
     return new_img
 
 
-def is_conform(img, eps=1e-06):
+def is_conform(img, eps=1e-06, check_dtype=True):
     """
     Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1, and
     LIA orientation.
@@ -279,6 +279,10 @@ def is_conform(img, eps=1e-06):
     iaffine = img.affine[0:3, 0:3] + [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
 
     if np.max(np.abs(iaffine)) > 0.0 + eps:
+        return False
+
+    # check dtype uchar
+    if check_dtype and img.get_data_dtype() != 'uint8':
         return False
 
     return True
