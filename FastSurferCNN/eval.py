@@ -88,7 +88,7 @@ def options_parse():
                         help='name under which segmentation will be saved. Default: aparc.DKTatlas+aseg.deep.mgz. '
                              'If a separate subfolder is desired (e.g. FS conform, add it to the name: '
                              'mri/aparc.DKTatlas+aseg.deep.mgz)')
-    parser.add_argument('--conformed_input', '--conformed_input', dest='conformed_input', default='conformed_input.mgz',
+    parser.add_argument('--conformed_name', '--conformed_name', dest='conformed_name', default='conformed_input.mgz',
                         help='Name under which the conformed input image will be saved. Default: conformed_input.mgz.')
     parser.add_argument('--order', dest='order', type=int, default=1,
                         help="order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)")
@@ -270,8 +270,8 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
 
     # Save conformed input image to use in recon-surf later
     conformed_orig_img = nib.MGHImage(orig_data, affine_info, header_info)
-    conformed_orig_img.to_filename(args.conformed_input)
-    logger.info("Saving conformed original image to {}".format(args.conformed_input))
+    conformed_orig_img.to_filename(args.conformed_name)
+    logger.info("Saving conformed original image to {}".format(args.conformed_name))
 
     # Set up model for axial and coronal networks
     params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
