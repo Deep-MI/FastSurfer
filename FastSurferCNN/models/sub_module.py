@@ -86,8 +86,8 @@ class CompetitiveDenseBlock(nn.Module):
         {in (Conv - BN from prev. block) -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} x 2 -> {Conv -> BN} -> out
         end with batch-normed output to allow maxout across skip-connections
 
-        :param tensor x: input tensor (image or feature map)
-        :return tensor out: output tensor (processed feature map)
+        :param torch.Tensor x: input tensor (image or feature map)
+        :return torch.Tensor out: output tensor (processed feature map)
         """
         # Activation from pooled input
         x0 = self.prelu(x)
@@ -181,8 +181,8 @@ class CompetitiveDenseBlockInput(nn.Module):
         CompetitiveDenseBlockInput's computational Graph
         in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out
 
-        :param tensor x: input tensor (image or feature map)
-        :return tensor out: output tensor (processed feature map)
+        :param torch.Tensor x: input tensor (image or feature map)
+        :return torch.Tensor out: output tensor (processed feature map)
         """
         # Input batch normalization
         x0_bn = self.bn0(x)
@@ -225,12 +225,14 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
     def forward(self, x):
         """
-        CComputational graph for Encoder Block:
+        Computational graph for Encoder Block:
           * CompetitiveDenseBlock
           * Max Pooling (+ retain indices)
 
-        :param tensor x: feature map from previous block
-        :return: original feature map, maxpooled feature map, maxpool indices
+        :param torch.Tensor x: feature map from previous block
+        :return: torch.Tensor out_encoder: original feature map
+        :return: torch.Tensor out_block: maxpooled feature map,
+        :return: torch.Tensor indices: maxpool indices
         """
         out_block = super(CompetitiveEncoderBlock, self).forward(x)  # To be concatenated as Skip Connection
         out_encoder, indices = self.maxpool(out_block)  # Max Pool as Input to Next Layer
@@ -257,8 +259,10 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
           * CompetitiveDenseBlockInput
           * Max Pooling (+ retain indices)
 
-        :param tensor x: feature map from previous block
-        :return: original feature map, maxpooled feature map, maxpool indices
+        :param torch.Tensor x: feature map from previous block
+        :return: torch.Tensor out_encoder: original feature map
+        :return: torch.Tensor out_block: maxpooled feature map,
+        :return: torch.Tensor indices: maxpool indices
         """
         out_block = super(CompetitiveEncoderBlockInput, self).forward(x)  # To be concatenated as Skip Connection
         out_encoder, indices = self.maxpool(out_block)  # Max Pool as Input to Next Layer
@@ -287,10 +291,10 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
           * Maxout combination of unpooled map + skip connection
           * Forwarding toward CompetitiveDenseBlock
 
-        :param tensor x: input feature map from lower block (gets unpooled and maxed with out_block)
-        :param tensor out_block: skip connection feature map from the corresponding Encoder
-        :param tensor indices: indices for unpooling from the corresponding Encoder (maxpool op)
-        :return: processed feature maps
+        :param torch.Tensor x: input feature map from lower block (gets unpooled and maxed with out_block)
+        :param torch.Tensor out_block: skip connection feature map from the corresponding Encoder
+        :param torch.Tensor indices: indices for unpooling from the corresponding Encoder (maxpool op)
+        :return: torch.Tensor out_block: processed feature maps
         """
         unpool = self.unpool(x, indices)
         unpool = torch.unsqueeze(unpool, 4)
@@ -319,8 +323,8 @@ class ClassifierBlock(nn.Module):
     def forward(self, x):
         """
         Computational graph of classifier
-        :param tensor x: output of last CompetitiveDenseDecoder Block-
-        :return: logits
+        :param torch.Tensor x: output of last CompetitiveDenseDecoder Block-
+        :return: torch.Tensor logits: prediction logits
         """
         logits = self.conv(x)
 
