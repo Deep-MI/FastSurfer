@@ -55,8 +55,7 @@ def options_parse():
     parser = optparse.OptionParser(version='$Id: conform.py,v 1.0 2019/07/19 10:52:08 mreuter Exp $',
                                    usage=HELPTEXT)
     parser.add_option('--input', '-i', dest='input', help=h_input)
-    parser.add_option('--output', '-o', dest='output', help=h_output,
-                      default='./conformed_img.mgz')
+    parser.add_option('--output', '-o', dest='output', help=h_output)
     parser.add_option('--order', dest='order', help=h_order, type="int", default=1)
     parser.add_option('--check_only', dest='check_only', default=False, action='store_true',
                       help='If True, only checks if the input image is conformed')
@@ -66,8 +65,8 @@ def options_parse():
     parser.add_option('--verbose', dest='verbose', default=False, action='store_true',
                       help='If verbose, more specific messages are printed')
     (fin_options, args) = parser.parse_args()
-    if fin_options.input is None:
-        sys.exit('ERROR: Please specify input image')
+    if fin_options.input is None or fin_options.output is None:
+        sys.exit('ERROR: Please specify input and output images')
     return fin_options
 
 
