@@ -65,8 +65,12 @@ def options_parse():
     parser.add_option('--verbose', dest='verbose', default=False, action='store_true',
                       help='If verbose, more specific messages are printed')
     (fin_options, args) = parser.parse_args()
-    if fin_options.input is None or fin_options.output is None:
-        sys.exit('ERROR: Please specify input and output images')
+    if fin_options.input is None:
+        sys.exit('ERROR: Please specify input image')
+    if not fin_options.check_only and fin_options.output is None:
+        sys.exit('ERROR: Please specify output image')
+    if fin_options.check_only and fin_options.output is not None:
+        sys.exit('ERROR: You passed in check_only. Please do not also specify output image')
     return fin_options
 
 
