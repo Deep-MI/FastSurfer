@@ -282,7 +282,7 @@ fi
 
 if [ -z "$conformed_name" ]
   then
-    conformed_name="${sd}/${subject}/mri/conformed_orig.mgz"
+    conformed_name="${sd}/${subject}/mri/orig.mgz"
 fi
 
 if [ -z "$seg_log" ]
