@@ -466,6 +466,13 @@ if __name__ == "__main__":
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
+        # Check if orig sub-directory exists and create it otherwise
+        if not op.exists(op.join(sub_dir, 'orig')):
+            makedirs(op.join(sub_dir, 'orig'))
+
+        # Save input image to standard location (will change once save_image functionality is integrated)
+        nib.load(options.iname).to_filename(op.join(sub_dir, 'orig', '001.mgz'))
+
         fastsurfercnn(options.iname, options.oname, use_cuda, small_gpu, logger, options)
 
     else:
@@ -508,6 +515,13 @@ if __name__ == "__main__":
 
             if not op.exists(sub_dir):
                 makedirs(sub_dir)
+
+            # Check if orig sub-directory exists and create it otherwise
+            if not op.exists(op.join(sub_dir, 'orig')):
+                makedirs(op.join(sub_dir, 'orig'))
+
+            # Save input image to standard location (will change once save_image functionality is integrated)
+            nib.load(invol).to_filename(op.join(sub_dir, 'orig', '001.mgz'))
 
             # Prepare the log-file (logging to File in subject directory)
             fh = logging.FileHandler(logfile, mode='w')
