@@ -13,6 +13,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * --i_dir: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
 * --csv_file: Path to csv-file listing input volume directories
 * --in_name: name of the MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
+* --conformed_name: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and the result is saved in this file, __default: orig.mgz__)
 * --t: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*...)
 * --o_dir: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
 * --out_name: name of the prediction (__default: aparc.DKTatlas+aseg.deep.mgz__)
