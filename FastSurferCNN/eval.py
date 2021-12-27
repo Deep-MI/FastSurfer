@@ -471,7 +471,11 @@ if __name__ == "__main__":
             makedirs(op.join(sub_dir, 'orig'))
 
         # Save input image to standard location (will change once save_image functionality is integrated)
-        nib.load(options.iname).to_filename(op.join(sub_dir, 'orig', '001.mgz'))
+        input_image = nib.load(options.iname)
+        if not options.iname.endswith('mgz'):
+            input_image = nib.MGHImage(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header)
+
+        input_image.to_filename(op.join(sub_dir, 'orig', '001.mgz'))
 
         fastsurfercnn(options.iname, options.oname, use_cuda, small_gpu, logger, options)
 
@@ -521,7 +525,11 @@ if __name__ == "__main__":
                 makedirs(op.join(sub_dir, 'orig'))
 
             # Save input image to standard location (will change once save_image functionality is integrated)
-            nib.load(invol).to_filename(op.join(sub_dir, 'orig', '001.mgz'))
+            input_image = nib.load(invol)
+            if not invol.endswith('mgz'):
+                input_image = nib.MGHImage(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header)
+
+            input_image.to_filename(op.join(sub_dir, 'orig', '001.mgz'))
 
             # Prepare the log-file (logging to File in subject directory)
             fh = logging.FileHandler(logfile, mode='w')
