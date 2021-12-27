@@ -263,13 +263,16 @@ def conform(img, order=1):
 
 def is_conform(img, eps=1e-06, check_dtype=True, verbose=True):
     """
-    Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1, and
-    LIA orientation.
+    Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1,
+    LIA orientation, and data type UCHAR).
 
     :param nibabel.MGHImage img: Loaded source image
     :param float eps: allowed deviation from zero for LIA orientation check (default 1e-06).
                       Small inaccuracies can occur through the inversion operation. Already conformed images are
                       thus sometimes not correctly recognized. The epsilon accounts for these small shifts.
+    :param bool check_dtype: specifies whether the UCHAR dtype condition is checked for;
+                             this is not done when the input is a segmentation
+    :param bool verbose: if True, details of which conformance conditions are violated (if any) are displayed
     :return: True if image is already conformed, False otherwise
     """
 
