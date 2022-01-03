@@ -12,85 +12,45 @@ In order to run the whole FastSurfer pipeline or the surface part, you need a va
 ## Set up Singularity
 
 To build Singularity images localy you need to be root, but there is a workaround for running it for example from a compute cluster. You can remotly build your image at https://cloud.sylabs.io/builder. In order to use this feature you need an access token. 
+For more in information see https://sylabs.io/guides/3.6/user-guide/ or see below in the FAQ.
 
- 
-### Generate a acces token
+## Initial setup
 
-     1. Go to: https://cloud.sylabs.io/
-     2. Click “Sign In” and follow the sign in steps.
-     3. Click on your login id (same and updated button as the Sign in one).
-     4. Select “Access Tokens” from the drop down menu.
-     5. Enter a name for your new access token, such as “test token”
-     6. Click the “Create a New Access Token” button.
-     7. Click “Copy token to Clipboard” from the “New API Token” page.
-     8. Run singularity remote login and paste the access token at the prompt.
-
-For more in information see https://sylabs.io/guides/3.6/user-guide/ 
-
-Inorder to avoid overflow errors you should set the __SINGULARITY_TMPDIR__ and __SINGULARITY_CACHEDIR__ to be saved at a location with sufficient space. 
+Define the location where the tmp_data of the images should be located. And export the FreeSurfer licens.
 
 ```bash
 mkdir ~/.singularity/tmp
 export SINGULARITY_TMPDIR=~/.singularity/tmp
 mkdir ~/.singularity/cache
 export SINGULARITY_CACHEDIR=~/.singularity/cache
+
+export FS_LICENSE=/pathToLicense/.license
+
 ```
 
-NOTE: you need to do this every time u open a new terminal. Otherwiese you can write this setting in your ~/.bashrc (after you created the dedicated folders):
-
-```bash
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-```
-
-
+NOTE: you do not need to export the FreeSurfer license when doing segmentation only (example 3 and 4)
 ### Example 1: Build GPU FastSurfer container
 
-Define the location where the tmp_data of the images should be located.
-
-```bash
-mkdir ~/.singularity/tmp
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-mkdir ~/.singularity/cache
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-```
-
-#### Now we can build our Singualrity image.
-
-We assume we do not have root privileges so we are going to build as remote. 
-
-__--remote__ : allows to build image without root privleges on a remote server. 
+#### Build image:
 
 ```bash
 singularity build --remote fastsurfer.sif fastsurfer.def
 ```
+We assume we do not have root privileges so we are going to build as remote. 
 
-Note: 
+__--remote__ : allows to build image without root privleges on a remote server. 
+
+
+NOTE: 
 * if you build your container as root you do not need the option __--remote__ and just write(singularity build fastsurfer.sif fastsurfer.def)  
 * Singularity saves your .sif file on a server under https://cloud.sylabs.io/library/USER by default. So you need to check if you have enough space on the server. Otherwise you will get an Error.
 To avoid this you can just delete the sif image on the server since you have it already in the folder in which you used the build command.
 
 #### Run our Singualrity image.
 
-NOTE: As default Singularity only binds the directories $HOME , /tmp , /proc , /sys , /dev, and $PWD. If your license or data is outside of this directories you will need to bind them with __--bind__. See the example below.
-
-We assume that our data and our licens is outside of he default directories. So we need to bind the locations first.
-In this case we are binding the license and the data to our container.
-We also want to use our GPU so we need to use __--nv__ to allow the container the use of the GPU. By default Singualrity uses all available GPUs to limit how many GPUs to use (for example one) you can set the flag __SINGULARITYENV_CUDA_VISIBLE_DEVICES=1__.
-
-
-We first need to export our FreeSurfer license path. 
-
-```bash
-export FS_LICENSE=/pathToLicense/.license
-```
-
-Set using one GPU:
 ```bash
 export SINGULARITYENV_CUDA_VISIBLE_DEVICES=1
-```
 
-```bash
 cd ..
 
 singularity run --nv --bind /pathToLicense/.license,/home/user/my_mri_data/ \
@@ -100,34 +60,19 @@ singularity run --nv --bind /pathToLicense/.license,/home/user/my_mri_data/ \
 				 --sd /home/user/my_fastsurfer_analisis/ \
 				 --parallel
 ```
-	
+
+NOTE: As default Singularity only binds the directories $HOME , /tmp , /proc , /sys , /dev, and $PWD. If your license or data is outside of this directories you will need to bind them with __--bind__. See the example below.
+
+We assume that our data and our licens is outside of he default directories. So we need to bind the locations first.
+In this case we are binding the license and the data to our container.
+We also want to use our GPU so we need to use __--nv__ to allow the container the use of the GPU. By default Singualrity uses all available GPUs to limit how many GPUs to use (for example one) you can set the flag __SINGULARITYENV_CUDA_VISIBLE_DEVICES=1__.
+
 ### Example 2: Build CPU FastSurfer container 
-
-Define the location where the tmp_data of the images should be located.
-
-```bash
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-```
-Now we can build our image:
 
 ```bash
 singularity build --remote fastsurfer_cpu.sif fastsurfer_cpu.def
-```
 
-We assume that our license is outside of the default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
-In this case we are binding only the license to our container.
-We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the flag __--no_cuda__. 
-
-We first need to export the Freesurfer license.
-
-```bash
-export FS_LICENSE=/pathToLicense/.license
-```
-
-```bash
 cd ..
-
 
 singularity run --bind /pathToLicense/.license \
 				 ./Singularity/fastsurfer_cpu.sif \
@@ -138,30 +83,16 @@ singularity run --bind /pathToLicense/.license \
 				 --parallel
 ```
 
+We assume that our license is outside of the default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
+In this case we are binding only the license to our container.
+We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the flag __--no_cuda__. 
 ### Example 3: Build GPU FastSurferCNN container (segmentation only)
 
-Define the location where the tmp_data of the images should be located.
-
-
-```bash
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-```
-
-#### Build image:
 
 ```bash
 singularity build --remote fastsurfer_cnn.sif fastsurfer_cnn.def
-```
 
-#### Run fastsurefer_cnn.sif:
-We assume that our data lies somewhere in our /home dir. So we do not need to bind anything.
-We want to use our GPU so we need __--nv__, this time we do not want to limit our GPU ressources so we do not set the SINGULARITYENV_CUDA_VISIBLE_DEVICES flag.
-FreeSurfer is not needed so we do not need to export the license.
-
-```bash
 cd ..
-
 
 singularity run --nv ./Singularity/fastsurfer_cnn.sif \
 				 --i_dir /home/user/my_mri_data/subject10/ \
@@ -171,29 +102,16 @@ singularity run --nv ./Singularity/fastsurfer_cnn.sif \
 				 --log deep_surfer.log
 ```
 
+We assume that our data lies somewhere in our /home dir. So we do not need to bind anything.
+We want to use our GPU so we need __--nv__, this time we do not want to limit our GPU ressources so we do not set the SINGULARITYENV_CUDA_VISIBLE_DEVICES flag.
+FreeSurfer is not needed so we do not need to export the license.
+
 ### Example 4: Build CPU FastSurferCNN container (segmentation only)
 
-Define the location where the tmp_data of the images should be located.
-
-```
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-```
-
-
-Now we can build our image:
 
 ```bash
 singularity build --remote fastsurfer_cnn_cpu.sif fastsurfer_cnn_cpu.def
-```
 
-We do not need to export the Freesurfer license path beause for segmentaton only we dont need freesurfer.
-
-We assume that our data lies somewhere in our /home dir. So we need to bind the locations first.
-In this case we do not need to bind anything.
-We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the Flag __--no_cuda__. 
-
-```bash
 cd ..
 
 singularity run ./Singularity/fastsurfer_cnn.sif \
@@ -205,16 +123,17 @@ singularity run ./Singularity/fastsurfer_cnn.sif \
 				 --log deep_surfer.log
 
 ```
+Note: We do not need to export the FreeSurfer license path beause for segmentaton only we dont need FreeSurfer.
+
+We assume that our data lies somewhere in our /home dir. So we need to bind the locations first.
+In this case we do not need to bind anything.
+We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the Flag __--no_cuda__. 
 ### Example 5: Build CPU FastSurfer recon-surf container (surface pipeline only)
 
-#### Build image:
 
 ```
 singularity build --remote reconsurf.sif reconsurf.def
-```
-We assume that our licens is outside of he default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
-In this case we are binding only the license to our container.
-```bash
+
 cd ..
 
 singularity run --bind /pathToLicense/.license \  
@@ -225,6 +144,11 @@ singularity run --bind /pathToLicense/.license \
 				--sd /home/user/my_fastsurfer_analysis \
 				--parallel
 ```
+
+We assume that our licens is outside of the default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
+In this case we are binding only the license to our container.
+
+
 
 ### Frequent Problems:
 
@@ -242,11 +166,50 @@ export SINGULARITY_TMPDIR=~/.singularity/tmp
 export SINGULARITY_CACHEDIR=~/.singularity/cache
 ```
 	
-* are you in the correct directory ?
+* FATAL:   "Unable to build from fastsurfer.def: open fastsurfer.def:" __no such file or directory__
+ 
+	you might be in the wrong directory
 
-	build in: ../FastSurfer/Singularity
-	run in: ../FastSurfer
+	Answer: build in: ../FastSurfer/Singularity
+		run in: ../FastSurfer
+		
+		
+* FATAL:   While performing build: failed to post request to remote build service: Failed to verify auth token in request: token is expired by 716h9m34.241819076s (401 Unauthorized)
+	   
+	   the Token expired:
+	   
+	   Answer: create an new Token (see Set up Singularity in FAQ)
+ 
+* Set up Singularity
 	
-	
+	### Generate a acces token
+
+     1. Go to: https://cloud.sylabs.io/
+     2. Click “Sign In” and follow the sign in steps.
+     3. Click on your login id (same and updated button as the Sign in one).
+     4. Select “Access Tokens” from the drop down menu.
+     5. Enter a name for your new access token, such as “test token”
+     6. Click the “Create a New Access Token” button.
+     7. Click “Copy token to Clipboard” from the “New API Token” page.
+     8. Run singularity remote login and paste the access token at the prompt.
+
+	For more in information see https://sylabs.io/guides/3.6/user-guide/ 
+
+	Inorder to avoid overflow errors you should set the __SINGULARITY_TMPDIR__ and __SINGULARITY_CACHEDIR__ to be saved at a location with sufficient space. 
+
+	```bash
+	mkdir ~/.singularity/tmp
+	export SINGULARITY_TMPDIR=~/.singularity/tmp
+	mkdir ~/.singularity/cache
+	export SINGULARITY_CACHEDIR=~/.singularity/cache
+	```
+
+	NOTE: you need to do this every time you open a new terminal. Otherwiese you can write this setting in your ~/.bashrc (after you created the dedicated folders):
+
+	```bash
+	export SINGULARITY_TMPDIR=~/.singularity/tmp
+	export SINGULARITY_CACHEDIR=~/.singularity/cache
+	```
+
 
 
