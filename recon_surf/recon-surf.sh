@@ -768,6 +768,9 @@ echo " " |& tee -a $LF
   cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos"
   RunIt "$cmd" $LF  
   
+  cmd="mri_aparc2aseg --s $subject --volmask --annot aparc.a2009s --aseg aseg.presurf.hypos --a2009s"
+  RunIt "$cmd" $LF
+  
   cmd="recon-all -s $subject -apas2aseg -segstats -wmparc -balabels $fsthreads"
   RunIt "$cmd" $LF
 
