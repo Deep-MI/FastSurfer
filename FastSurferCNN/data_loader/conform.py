@@ -73,7 +73,7 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
     :param np.ndarray out_shape: the trg shape information
     :param np.ndarray ras2ras: ras2ras an additional maping that should be applied (default=id to just reslice)
     :param int order: order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)
-    :return: mapped Image data array
+    :return: np.ndarray new_data: mapped image data array
     """
     from scipy.ndimage import affine_transform
     from numpy.linalg import inv
@@ -98,12 +98,13 @@ def getscale(data, dst_min, dst_max, f_low=0.0, f_high=0.999):
     Function to get offset and scale of image intensities to robustly rescale to range dst_min..dst_max.
     Equivalent to how mri_convert conforms images.
 
-    :param np.ndarray data: Image data (intensity values)
+    :param np.ndarray data: image data (intensity values)
     :param float dst_min: future minimal intensity value
     :param float dst_max: future maximal intensity value
     :param f_low: robust cropping at low end (0.0 no cropping)
     :param f_high: robust cropping at higher end (0.999 crop one thousandths of high intensity voxels)
-    :return: returns (adjusted) src_min and scale factor
+    :return: float src_min: (adjusted) offset
+    :return: float scale: scale factor
     """
     # get min and max from source
     src_min = np.min(data)
@@ -176,7 +177,7 @@ def scalecrop(data, dst_min, dst_max, src_min, scale):
     :param float dst_max: future maximal intensity value
     :param float src_min: minimal value to consider from source (crops below)
     :param float scale: scale value by which source will be shifted
-    :return: scaled Image data array
+    :return: np.ndarray data_new: scaled image data
     """
     data_new = dst_min + scale * (data - src_min)
 
@@ -196,7 +197,7 @@ def rescale(data, dst_min, dst_max, f_low=0.0, f_high=0.999):
     :param float dst_max: future maximal intensity value
     :param f_low: robust cropping at low end (0.0 no cropping)
     :param f_high: robust cropping at higher end (0.999 crop one thousandths of high intensity voxels)
-    :return: returns scaled Image data array
+    :return: np.ndarray data_new: scaled image data
     """
     src_min, scale = getscale(data, dst_min, dst_max, f_low, f_high)
     data_new = scalecrop(data, dst_min, dst_max, src_min, scale)
@@ -213,7 +214,7 @@ def conform(img, order=1):
 
     :param nibabel.MGHImage img: loaded source image
     :param int order: interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic)
-    :return:nibabel.MGHImage new_img: conformed image
+    :return: nibabel.MGHImage new_img: conformed image
     """
     from nibabel.freesurfer.mghformat import MGHHeader
 
