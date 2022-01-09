@@ -152,10 +152,13 @@ In this case we are binding only the license to our container.
 
 ### Frequent Problems:
 
-* Did you export the license ?
-```
-export FS_LICENSE=/pathToLicense/.license
-```
+* ERROR: FreeSurfer license file /opt/freesurfer/license.txt not found.
+
+	Did you export the license ?
+
+	```
+	export FS_LICENSE=/pathToLicense/.license
+	```
 * Space on Server ? (FATAL:   Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage))
 
 	eliminate images on https://cloud.sylabs.io/library/USER , and build again
@@ -166,7 +169,7 @@ export SINGULARITY_TMPDIR=~/.singularity/tmp
 export SINGULARITY_CACHEDIR=~/.singularity/cache
 ```
 	
-* FATAL:   "Unable to build from fastsurfer.def: open fastsurfer.def:" __no such file or directory__
+*  __no such file or directory__
  
 	you might be in the wrong directory
 
