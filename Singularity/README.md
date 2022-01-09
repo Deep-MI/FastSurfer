@@ -164,12 +164,12 @@ In this case we are binding only the license to our container.
 	eliminate images on https://cloud.sylabs.io/library/USER , and build again
 	
 * Did you define a locale location to save the tmp_data ?
-```
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-```
+	```
+	export SINGULARITY_TMPDIR=~/.singularity/tmp
+	export SINGULARITY_CACHEDIR=~/.singularity/cache
+	```
 	
-*  __no such file or directory__
+* ERROR: no such file or directory
  
 	you might be in the wrong directory
 
