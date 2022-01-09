@@ -16,19 +16,14 @@ For more in information see https://sylabs.io/guides/3.6/user-guide/ or see belo
 
 ## Initial setup
 
-Define the location where the tmp_data of the images should be located. And export the FreeSurfer licens.
+Make sure the FreeSurfer license is exported.
 
 ```bash
-mkdir ~/.singularity/tmp
-export SINGULARITY_TMPDIR=~/.singularity/tmp
-mkdir ~/.singularity/cache
-export SINGULARITY_CACHEDIR=~/.singularity/cache
-
 export FS_LICENSE=/pathToLicense/.license
-
 ```
 
 NOTE: you do not need to export the FreeSurfer license when doing segmentation only (example 3 and 4)
+
 ### Example 1: Build GPU FastSurfer container
 
 #### Build image:
@@ -152,37 +147,6 @@ In this case we are binding only the license to our container.
 
 ### Frequent Problems:
 
-* ERROR: FreeSurfer license file /opt/freesurfer/license.txt not found.
-
-	Did you export the license ?
-
-	```
-	export FS_LICENSE=/pathToLicense/.license
-	```
-* Space on Server ? (FATAL:   Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage))
-
-	eliminate images on https://cloud.sylabs.io/library/USER , and build again
-	
-* Did you define a locale location to save the tmp_data ?
-	```
-	export SINGULARITY_TMPDIR=~/.singularity/tmp
-	export SINGULARITY_CACHEDIR=~/.singularity/cache
-	```
-	
-* ERROR: no such file or directory
- 
-	you might be in the wrong directory
-
-	Answer: build in: ../FastSurfer/Singularity
-		run in: ../FastSurfer
-		
-		
-* FATAL:   While performing build: failed to post request to remote build service: Failed to verify auth token in request: token is expired by 716h9m34.241819076s (401 Unauthorized)
-	   
-	   the Token expired:
-	   
-	   Answer: create an new Token (see Set up Singularity in FAQ)
- 
 * Set up Singularity
 	
 	### Generate a acces token
@@ -197,22 +161,38 @@ In this case we are binding only the license to our container.
      8. Run singularity remote login and paste the access token at the prompt.
 
 	For more in information see https://sylabs.io/guides/3.6/user-guide/ 
+	
+* ERROR: FreeSurfer license file /opt/freesurfer/license.txt not found.
 
-	Inorder to avoid overflow errors you should set the __SINGULARITY_TMPDIR__ and __SINGULARITY_CACHEDIR__ to be saved at a location with sufficient space. 
+	Did you export the license ?
 
-	```bash
-	mkdir ~/.singularity/tmp
-	export SINGULARITY_TMPDIR=~/.singularity/tmp
-	mkdir ~/.singularity/cache
-	export SINGULARITY_CACHEDIR=~/.singularity/cache
 	```
-
-	NOTE: you need to do this every time you open a new terminal. Otherwiese you can write this setting in your ~/.bashrc (after you created the dedicated folders):
-
-	```bash
-	export SINGULARITY_TMPDIR=~/.singularity/tmp
-	export SINGULARITY_CACHEDIR=~/.singularity/cache
+	export FS_LICENSE=/pathToLicense/.license
 	```
+	
+* FATAL: Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage)
+	
+	You do not have suficcient space on the remote server.
+	 
+	Answer: eliminate images on https://cloud.sylabs.io/library/USER , and build again
+	
+	
+* ERROR: no such file or directory
+ 
+	you might be in the wrong directory
+
+	Answer: build in: ../FastSurfer/Singularity
+			run in: ../FastSurfer
+		
+		
+* FATAL: While performing build: failed to post request to remote build service: Failed to verify auth token in request: token is expired (401 Unauthorized)
+	   
+	   the Token expired:
+	   
+	   Answer: create an new Token (see Set up Singularity in FAQ)
+ 
+
+
 
 
 
