@@ -63,7 +63,7 @@ In this case we are binding the license and the data to our container.
 We also want to use our GPU so we need to use __--nv__ to allow the container the use of the GPU. By default Singualrity uses all available GPUs to limit how many GPUs to use (for example one) you can set the flag __SINGULARITYENV_CUDA_VISIBLE_DEVICES=1__.
 
 
-### Run with multiple subjects (Example 1) :
+#### Run image with multiple subjects (Example 1) :
 
 Inorder to run the container with multiple subjects you need a subjects_list.txt that looks like so:
 	```
@@ -90,7 +90,7 @@ while read p; do
 ```
 
 
-### Example 2: Build CPU FastSurfer container 
+### Example 2: CPU FastSurfer container 
 
 ```bash
 singularity build --remote fastsurfer_cpu.sif fastsurfer_cpu.def
@@ -109,7 +109,7 @@ singularity run --bind /pathToLicense/.license \
 We assume that our license is outside of the default directories but the data lies somewhere in our /home dir. So we need to bind the locations first.
 In this case we are binding only the license to our container.
 We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the flag __--no_cuda__. 
-### Example 3: Build GPU FastSurferCNN container (segmentation only)
+### Example 3: GPU FastSurferCNN container (segmentation only)
 
 
 ```bash
@@ -129,7 +129,7 @@ We assume that our data lies somewhere in our /home dir. So we do not need to bi
 We want to use our GPU so we need __--nv__, this time we do not want to limit our GPU ressources so we do not set the SINGULARITYENV_CUDA_VISIBLE_DEVICES flag.
 FreeSurfer is not needed so we do not need to export the license.
 
-### Example 4: Build CPU FastSurferCNN container (segmentation only)
+### Example 4: CPU FastSurferCNN container (segmentation only)
 
 
 ```bash
@@ -151,7 +151,7 @@ Note: We do not need to export the FreeSurfer license path beause for segmentato
 We assume that our data lies somewhere in our /home dir. So we need to bind the locations first.
 In this case we do not need to bind anything.
 We want to use our CPU so we do not need to use __--nv__ for singularity. But we still need specify for FastSurfer that we want to use out CPU, we can do this with the Flag __--no_cuda__. 
-### Example 5: Build CPU FastSurfer recon-surf container (surface pipeline only)
+### Example 5: CPU FastSurfer recon-surf container (surface pipeline only)
 
 
 ```
