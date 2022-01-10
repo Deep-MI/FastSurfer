@@ -48,15 +48,15 @@ export SINGULARITYENV_CUDA_VISIBLE_DEVICES=1
 
 cd ..
 
-singularity run --nv --bind /pathToLicense/.license,/home/user/my_mri_data/ \
+singularity run --nv --bind /pathToLicense/.license,../my_mri_data/ \
 				 ./Singularity/fastsurfer.sif \
-				 --t1 /home/user/my_mri_data/subject10/orig.mgz \
+				 --t1 ..my_mri_data/subject10/orig.mgz \
 				 --sid subject10 \
-				 --sd /home/user/my_fastsurfer_analisis/ \
+				 --sd ../my_fastsurfer_analisis/ \
 				 --parallel
 ```
 
-NOTE: As default Singularity only binds the directories $HOME , /tmp , /proc , /sys , /dev, and $PWD. If your license or data is outside of this directories you will need to bind them with __--bind__. See the example below.
+NOTE: As default Singularity only binds the directories $HOME , /tmp , /proc , /sys , /dev, and $PWD. If your license or data is outside of this directories you will need to bind them with __--bind__. See the example below. You can also bind a location for the output if you want to save your outputs outside of the default binded directories.
 
 We assume that our data and our licens is outside of he default directories. So we need to bind the locations first.
 In this case we are binding the license and the data to our container.
@@ -71,10 +71,10 @@ cd ..
 
 singularity run --bind /pathToLicense/.license \
 				 ./Singularity/fastsurfer_cpu.sif \
-				 --t1 /home/user/my_mri_data/subject10/orig.mgz \
+				 --t1 ../my_mri_data/subject10/orig.mgz \
 				 --sid subject10 \
 				 --no_cuda
-				 --sd /home/user/my_fastsurfer_analisis/ \
+				 --sd ../my_fastsurfer_analisis/ \
 				 --parallel
 ```
 
@@ -90,9 +90,9 @@ singularity build --remote fastsurfer_cnn.sif fastsurfer_cnn.def
 cd ..
 
 singularity run --nv ./Singularity/fastsurfer_cnn.sif \
-				 --i_dir /home/user/my_mri_data/subject10/ \
+				 --i_dir ../my_mri_data/subject10/ \
 				 --in_name orig.mgz \
-				 --o_dir /home/user/my_fastsurfer_analisis/ \
+				 --o_dir ../my_fastsurfer_analisis/ \
 				 --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
 				 --log deep_surfer.log
 ```
@@ -110,9 +110,9 @@ singularity build --remote fastsurfer_cnn_cpu.sif fastsurfer_cnn_cpu.def
 cd ..
 
 singularity run ./Singularity/fastsurfer_cnn.sif \
-				 --i_dir /home/user/my_mri_data/subject10/ \
+				 --i_dir ../my_mri_data/subject10/ \
 				 --in_name orig.mgz \
-				 --o_dir /home/user/my_fastsurfer_analysis/ \
+				 --o_dir ../my_fastsurfer_analysis/ \
 				 --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
 				 --no_cuda \
 				 --log deep_surfer.log
@@ -134,9 +134,9 @@ cd ..
 singularity run --bind /pathToLicense/.license \  
 				./Singularity/reconsurf.sif \
 				--fs_license /pathToLicense/.license \
-				--t1 /home/user/my_mri_data/subject10/orig.mgz \     
+				--t1 ../my_mri_data/subject10/orig.mgz \     
 				--sid subject10 \
-				--sd /home/user/my_fastsurfer_analysis \
+				--sd ../my_fastsurfer_analysis \
 				--parallel
 ```
 
@@ -164,8 +164,9 @@ In this case we are binding only the license to our container.
 	
 * ERROR: FreeSurfer license file /opt/freesurfer/license.txt not found.
 
-	Did you export the license ?
+	you did not export the license:
 
+	Answer:
 	```
 	export FS_LICENSE=/pathToLicense/.license
 	```
