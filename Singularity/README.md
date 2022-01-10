@@ -62,6 +62,34 @@ We assume that our data and our licens is outside of he default directories. So 
 In this case we are binding the license and the data to our container.
 We also want to use our GPU so we need to use __--nv__ to allow the container the use of the GPU. By default Singualrity uses all available GPUs to limit how many GPUs to use (for example one) you can set the flag __SINGULARITYENV_CUDA_VISIBLE_DEVICES=1__.
 
+
+### Run with multiple subjects (Example 1) :
+
+Inorder to run the container with multiple subjects you need a subjects_list.txt that looks like so:
+	```
+	subject1
+	subject2
+	...
+	subject10	
+	```
+We need that so we can loop over this list and run the command for each subject.
+
+```
+while read p; do 
+	echo $p;
+	
+	singularity run --nv --bind /pathToLicense/.license,/pathToData/my_mri_data/ \ 
+	./Singularity/fastsurfer.sif  
+	--t1 /pathToData/my_mri_data/$p/orig.mgz \ 
+	--sid $p  
+	--sd /pathToOutput/my_fastsurfer_analisis/output-${p}.log/  
+	--parallel 
+	
+	&& sleep 90s; 
+	done < /home/vellar/FastSurfer_Test/data/subjects_list.txt
+```
+
+
 ### Example 2: Build CPU FastSurfer container 
 
 ```bash
