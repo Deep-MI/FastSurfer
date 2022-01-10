@@ -48,11 +48,11 @@ export SINGULARITYENV_CUDA_VISIBLE_DEVICES=1
 
 cd ..
 
-singularity run --nv --bind /pathToLicense/.license,../my_mri_data/ \
+singularity run --nv --bind /pathToLicense/.license,/pathToData/my_mri_data/ \
 				 ./Singularity/fastsurfer.sif \
-				 --t1 ../my_mri_data/subject10/orig.mgz \
+				 --t1 /pathToData/my_mri_data/subject10/orig.mgz \
 				 --sid subject10 \
-				 --sd ../my_fastsurfer_analisis/ \
+				 --sd /pathToOutput/my_fastsurfer_analisis/ \
 				 --parallel
 ```
 
@@ -71,10 +71,10 @@ cd ..
 
 singularity run --bind /pathToLicense/.license \
 				 ./Singularity/fastsurfer_cpu.sif \
-				 --t1 ../my_mri_data/subject10/orig.mgz \
+				 --t1 /pathToData/my_mri_data/subject10/orig.mgz \
 				 --sid subject10 \
 				 --no_cuda
-				 --sd ../my_fastsurfer_analisis/ \
+				 --sd /pathToOutput/my_fastsurfer_analisis/ \
 				 --parallel
 ```
 
@@ -90,9 +90,9 @@ singularity build --remote fastsurfer_cnn.sif fastsurfer_cnn.def
 cd ..
 
 singularity run --nv ./Singularity/fastsurfer_cnn.sif \
-				 --i_dir ../my_mri_data/subject10/ \
+				 --i_dir /pathToData/my_mri_data/subject10/ \
 				 --in_name orig.mgz \
-				 --o_dir ../my_fastsurfer_analisis/ \
+				 --o_dir /pathToOutput/my_fastsurfer_analisis/ \
 				 --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
 				 --log deep_surfer.log
 ```
@@ -110,9 +110,9 @@ singularity build --remote fastsurfer_cnn_cpu.sif fastsurfer_cnn_cpu.def
 cd ..
 
 singularity run ./Singularity/fastsurfer_cnn.sif \
-				 --i_dir ../my_mri_data/subject10/ \
+				 --i_dir /pathToData/my_mri_data/subject10/ \
 				 --in_name orig.mgz \
-				 --o_dir ../my_fastsurfer_analysis/ \
+				 --o_dir /pathToOutput/my_fastsurfer_analysis/ \
 				 --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
 				 --no_cuda \
 				 --log deep_surfer.log
@@ -134,9 +134,9 @@ cd ..
 singularity run --bind /pathToLicense/.license \  
 				./Singularity/reconsurf.sif \
 				--fs_license /pathToLicense/.license \
-				--t1 ../my_mri_data/subject10/orig.mgz \     
+				--t1 /pathToData/my_mri_data/subject10/orig.mgz \     
 				--sid subject10 \
-				--sd ../my_fastsurfer_analysis \
+				--sd /pathToOutput/my_fastsurfer_analysis \
 				--parallel
 ```
 
