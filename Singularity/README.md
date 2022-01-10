@@ -162,7 +162,9 @@ In this case we are binding only the license to our container.
 
 	For more in information see https://sylabs.io/guides/3.6/user-guide/ 
 	
-* __license not found__ ERROR: FreeSurfer license file /opt/freesurfer/license.txt not found.
+* __license not found__ 
+	
+	ERROR: FreeSurfer license file /opt/freesurfer/license.txt not found.
 
 	you did not export the license:
 
@@ -171,14 +173,18 @@ In this case we are binding only the license to our container.
 	export FS_LICENSE=/pathToLicense/.license
 	```
 	
-* __remote builder storage is full__ FATAL: Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage)
+* __remote builder storage is full__
+	
+	FATAL: Unable to push image to library: request did not succeed: quota error: storage quota exceeded (507 Insufficient Storage)
 	
 	You do not have suficcient space on the remote server.
 	 
 	Answer: eliminate images on https://cloud.sylabs.io/library/USER , and build again
 	
 	
-* __wrong directory__ ERROR: no such file or directory
+* __wrong directory__ 
+	
+	ERROR: no such file or directory
  
 	you might be in the wrong directory
 
@@ -186,11 +192,12 @@ In this case we are binding only the license to our container.
 			run in: ../FastSurfer
 		
 		
-* __token expired__ FATAL: While performing build: failed to post request to remote build service: Failed to verify auth token in request: token is expired (401 Unauthorized)
+* __token expired__ 
+	FATAL: While performing build: failed to post request to remote build service: Failed to verify auth token in request: token is expired (401 Unauthorized)
 	   
-	   the token expired:
+	the token expired:
 	   
-	   Answer: create an new Token (see Set up Singularity in FAQ)
+	Answer: create an new Token (see Set up Singularity in FAQ)
  
 
 
