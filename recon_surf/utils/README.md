@@ -24,6 +24,6 @@ Entries are grouped according to the section in `recon_surf.sh` in which the com
 The following will extract recon_surf command time information from `123456/scripts/recon-surf.log` and save it in `123456/scripts/recon-surf_times.yaml` (with durations in minutes).
 
 ```
-python3 extract_recon_surf_time_info.py --in_file_path 123456/scripts/recon-surf.log --time_units m
+python3 extract_recon_surf_time_info.py --input_file_path 123456/scripts/recon-surf.log --time_units m
 ```
 
