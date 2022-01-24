@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     yaml_dict = {}
     yaml_dict['date'] = lines[1]
-    yaml_dict['recon-surf_commands'] = []
+    recon_surf_commands = []
 
     for i, line in enumerate(lines):
         ## Use recon_surf "stage" names as top level of recon-surf_commands entries:
@@ -69,7 +69,13 @@ if __name__ == "__main__":
             current_recon_surf_stage_name = stage_line.strip('=')[1:-1].replace(' ', '-')
             if current_recon_surf_stage_name == 'DONE':
                 continue
-            yaml_dict['recon-surf_commands'].append({current_recon_surf_stage_name: []})
+            recon_surf_commands.append({current_recon_surf_stage_name: []})
+
+        if 'recon-surf.sh' in line and '--sid' in line:
+            try:
+                yaml_dict['subject_id'] = line.split()[line.split().index('--sid') + 1]
+            except ValueError:
+                print('[WARN] Could not extract subject ID from log file! It will not be added to the output.')
 
         ## Process lines containing the timestamp_feature:
         if timestamp_feature in line and 'cmdf' not in line:
@@ -158,7 +164,9 @@ if __name__ == "__main__":
                             
                         entry_dict['stages'].append(stage_dict)
 
-            yaml_dict['recon-surf_commands'][-1][current_recon_surf_stage_name].append(entry_dict)
+            recon_surf_commands[-1][current_recon_surf_stage_name].append(entry_dict)
+
+    yaml_dict['recon-surf_commands'] = recon_surf_commands
 
     print('[INFO] Writing output to file: {}'.format(output_file_path))
     with open(output_file_path, 'w') as outfile:
