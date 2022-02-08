@@ -17,7 +17,7 @@ def get_recon_all_stage_duration(line, previous_datetime_str):
     :return: str stage_duration: stage duration in seconds
     """
 
-    current_datetime_str = ' '.join(line.split(' ')[-6:])
+    current_datetime_str = ' '.join(line.split()[-6:])
     current_date_time = dateutil.parser.parse(current_datetime_str)
     previous_date_time = dateutil.parser.parse(previous_datetime_str)
     stage_duration = (current_date_time - previous_date_time).total_seconds()
@@ -77,15 +77,15 @@ if __name__ == "__main__":
             ## Parse out cmd name, start time, and duration:
             entry_dict = {}
 
-            cmd_name = line.split(' ')[3] + ' '
+            cmd_name = line.split()[2] + ' '
             if cmd_name in filtered_cmds:
                 continue
-            date_time_str = line.split(' ')[2]
+            date_time_str = line.split()[1]
             start_time = date_time_str[11:]
 
             start_date_time = datetime.datetime.strptime(date_time_str, '%Y:%m:%d:%H:%M:%S')
-            assert line.split(' ')[6] == 'e'
-            cmd_duration = float(line.split(' ')[7])
+            assert line.split()[5] == 'e'
+            cmd_duration = float(line.split()[6])
 
             end_date_time = (start_date_time + datetime.timedelta(0, float(cmd_duration)))
             end_date_time_str = end_date_time.strftime('%Y:%m:%d:%H:%M:%S')
@@ -118,11 +118,11 @@ if __name__ == "__main__":
                 first_stage = True
 
                 for j in range(cmd_line_index, i):
-                    if recon_all_stage_feature in lines[j] and len(lines[j].split(' ')) > 5:
+                    if recon_all_stage_feature in lines[j] and len(lines[j].split()) > 5:
                         ## the second condition avoids lines such as "#@# 241395 lh 227149"
 
                         if not first_stage:
-                            current_stage_start_time = lines[j].split(' ')[-3]
+                            current_stage_start_time = lines[j].split()[-3]
                             stage_duration = get_recon_all_stage_duration(lines[j], previous_datetime_str)
 
                             stage_dict = {}
@@ -138,13 +138,13 @@ if __name__ == "__main__":
                         else:
                             first_stage = False
 
-                        stage_name = ' '.join(lines[j].split(' ')[:-6][1:])
-                        previous_stage_start_time = lines[j].split(' ')[-3]
-                        previous_datetime_str = ' '.join(lines[j].split(' ')[-6:])
+                        stage_name = ' '.join(lines[j].split()[:-6][1:])
+                        previous_stage_start_time = lines[j].split()[-3]
+                        previous_datetime_str = ' '.join(lines[j].split()[-6:])
 
                     ## Lines containing 'Ended' are used to find the end time of the last stage:
                     if 'Ended' in lines[j]:
-                        current_stage_start_time = lines[j].split(' ')[-3]
+                        current_stage_start_time = lines[j].split()[-3]
                         stage_duration = get_recon_all_stage_duration(lines[j], previous_datetime_str)
 
                         stage_dict = {}
