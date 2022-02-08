@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     timestamp_feature = '@#@FSTIME'
     recon_all_stage_feature = '#@# '
-    cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command']
+    cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command', 'failed']
     filtered_cmds = ['ln ', 'rm ']
 
     if args.output_file_path == '':
