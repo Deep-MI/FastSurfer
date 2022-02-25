@@ -8,6 +8,8 @@ Within this directory we currently provide five different Dockerfiles that are s
 
 In order to run the whole FastSurfer pipeline or the surface part, you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
 
+Note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details).
+
 ### Example 1: Build GPU FastSurfer container (default)
 
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) simply execute the following command after traversing into the *Docker* directory: 
