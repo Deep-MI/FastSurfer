@@ -846,7 +846,6 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
 
   # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
-  # labels are messed up, due to the aparc mapped surface labels which are incorrect, we need a lookup above.
   cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mapped.mgz --ctxseg $mdir/aparc.mapped+aseg.mgz --annot aparc.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
   RunIt "$cmd" $LF
    
