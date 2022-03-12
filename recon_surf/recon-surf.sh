@@ -415,7 +415,7 @@ echo " " |& tee -a $LF
 
 # check for input conformance
 conform=""
-if  [ "$hires" != "0" ]
+if  [ "$hires" == "1" ]
 then
   conform="--conform_min"
 fi
@@ -511,7 +511,7 @@ if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
   cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz"
-  if [ "$hires" == 1 ]
+  if [ "$hires" == "1" ]
   then
     cmd="$cmd -noconform"
   fi
@@ -598,22 +598,37 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Marching cube does not return filename and wrong volume info!
-    cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $sdir/$hemi.orig.nofix"
+    outmesh=$sdir/$hemi.orig.nofix
+    if [ "$hires" == "1" ]; then
+      outmesh=$sdir/$hemi.orig.nofix.predec
+    fi
+    cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
     RunIt "$cmd" $LF $CMDF
 
     # Rewrite surface orig.nofix to fix vertex locs bug (scannerRAS instead of surfaceRAS set with mc)
-    cmd="$python ${binpath}rewrite_mc_surface.py --input $sdir/$hemi.orig.nofix --output $sdir/$hemi.orig.nofix --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
+    cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $sdir/$outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
     RunIt "$cmd" $LF $CMDF
 
     # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
-    cmd="mris_info $sdir/$hemi.orig.nofix | grep -q 'vertex locs : surfaceRAS'"
+    cmd="mris_info $outmesh | grep -q 'vertex locs : surfaceRAS'"
     echo "echo \"$cmd\" " |& tee -a $CMDF
     echo "$timecmd $cmd " |& tee -a $CMDF
-    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> $CMDF
+    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> $CMDF
 
     # Reduce to largest component (usually there should only be one)
-    cmd="mris_extract_main_component $sdir/$hemi.orig.nofix $sdir/$hemi.orig.nofix"
+    cmd="mris_extract_main_component $outmesh $outmesh"
     RunIt "$cmd" $LF $CMDF
+    
+    # for hires decimate mesh 
+    if [ "$hires" == "1" ]; then
+      DecimationFaceArea="0.5"
+      # Reduce the number of faces such that the average face area is
+      # DecimationFaceArea.  If the average face area is already more
+      # than DecimationFaceArea, then the surface is not changed.
+      # set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+      cmd="mris_remesh --desired-face-area $DecimationFaceArea --input $outmesh --output $sdir/$hemi.orig.nofix"
+      RunIt "$cmd" $LF $CMDF
+    fi
 
     # -smooth1 (explicitly state 10 iteration (default) but may change in future)
     cmd="mris_smooth -n 10 -nw -seed 1234 $sdir/$hemi.orig.nofix $sdir/$hemi.smoothwm.nofix"
