@@ -269,9 +269,9 @@ fi
 
 if [ -z "$FREESURFER_HOME" ]
 then
-  echo "Did not find \$FREESURFER_HOME. A working version of FreeSurfer v7.2 is needed to run recon-surf locally."
+  echo "Did not find \$FREESURFER_HOME. A working version of FreeSurfer $FS_VERSION_SUPPORT is needed to run recon-surf locally."
   echo "Make sure to export and source FreeSurfer before running recon-surf.sh: "
-  echo "export FREESURFER_HOME=/path/to/your/local/fs72"
+  echo "export FREESURFER_HOME=/path/to/your/local/freesurfer"
   echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
   exit 1;
 fi
@@ -281,9 +281,9 @@ then
   if grep -q -v ${FS_VERSION_SUPPORT} $FREESURFER_HOME/build-stamp.txt
   then
     echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat $FREESURFER_HOME/build-stamp.txt)."
-    echo "We are currently supporting FreeSurfer 6 Stable releases and FreeSurfer 7."
+    echo "We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT "
     echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
-    echo "export FREESURFER_HOME=/path/to/your/local/fs72"
+    echo "export FREESURFER_HOME=/path/to/your/local/freesurfer"
     echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
     exit 1;
   fi
