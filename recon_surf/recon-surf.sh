@@ -21,24 +21,24 @@ VERSION='$Id$'
 FS_VERSION_SUPPORT="7.2.0"
 
 # Regular flags default
-t1=""; # Path and name of T1 input
-seg=""; # Path and name of segmentation
-subject=""; # Subject name
-seg_cc=0; # if 1, run pipeline only till corpus callosum is added (no surfaces will be created)
-vol_segstats=0; # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
-fstess=0;       # run mri_tesselate (FS way), if 0 = run mri_mc
-fsqsphere=0;    # run inflate1 and qsphere (FSway), if 0 run spectral projection
-fsaparc=0;	# run FS aparc (and cortical ribbon), if 0 map aparc from seg input
-fssurfreg=0;  # run FS surface registration to fsaverage, if 0 omit this step
-python="python3.8" # python version
-DoParallel=0 # if 1, run hemispheres in parallel
-threads="1" # number of threads to use for running FastSurfer
-hires=0 # hires processing
-hiresflag="" # flag for recon-all calls for hires (default empty)
+t1=""               # Path and name of T1 input
+seg=""              # Path and name of segmentation
+subject=""          # Subject name
+seg_cc=0            # if 1, run pipeline only until corpus callosum is added (no surfaces will be created)
+vol_segstats=0      # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
+fstess=0            # run mri_tesselate (FS way), if 0 = run mri_mc
+fsqsphere=0         # run inflate1 and qsphere (FSway), if 0 run spectral projection
+fsaparc=0	          # run FS aparc (and cortical ribbon), if 0 map aparc from seg input
+fssurfreg=0         # run FS surface registration to fsaverage, if 0 omit this step
+python="python3.8"  # python version
+DoParallel=0        # if 1, run hemispheres in parallel
+threads="1"         # number of threads to use for running FastSurfer
+hires=0             # hires processing
+hiresflag=""        # flag for recon-all calls for hires (default empty)
 
 # Dev flags default
-check_version=1; # Run version check for FreeSurfer (terminate if anything but v6.0 is detected)
-get_t1=1; # Generate T1.mgz from nu.mgz and brainmask from it (default)
+check_version=1;    # Check for supported FreeSurfer version (terminate if not detected)
+get_t1=1;           # Generate T1.mgz from nu.mgz and brainmask from it (default)
 
 if [ -z "$FASTSURFER_HOME" ]
 then
@@ -70,8 +70,8 @@ function usage()
     echo -e "\t--hires                       Run FastSurfer recon-surf stream for hires image"
     echo -e "\t--parallel                    Run both hemispheres in parallel"
     echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
-    echo -e "\t--py <python_cmd>             Command for python, default 'python3.8'"
-    echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
+    echo -e "\t--py <python_cmd>             Command for python, default $python"
+    echo -e "\t--fs_license <license_file>   Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
     echo -e "\t-h --help                     Print Help"
     echo ""
     echo "Dev Flags"
@@ -528,10 +528,13 @@ else
   popd
 fi
 
-# create aseg.auto including cc segmentation and add cc into aparc.DKTatlas+aseg.deep; 46 sec: (not sure if this is needed), requires norm.mgz
+# create aseg.auto including cc segmentation and  46 sec, requires norm.mgz
+# Note: if original input segmentation already contains CC, this will exit with ERROR
+# in the future maybe check and skip this step (and next)
 cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
 RunIt "$cmd" $LF
 
+# add cc into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
 cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $seg -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
 RunIt "$cmd" $LF
 
@@ -606,7 +609,7 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Rewrite surface orig.nofix to fix vertex locs bug (scannerRAS instead of surfaceRAS set with mc)
-    cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $sdir/$outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
+    cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
     RunIt "$cmd" $LF $CMDF
 
     # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
