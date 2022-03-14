@@ -471,7 +471,7 @@ if __name__ == "__main__":
             makedirs(op.join(sub_dir, 'orig'))
 
         # Check if conformed image directory exists and create it otherwise
-        sub_dir, out = op.split(args.conformed_name)
+        sub_dir, out = op.split(options.conformed_name)
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
