@@ -811,16 +811,21 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
   popd
 
-
-  # 18 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
+  # 18 sec hyporelabel (generate aseg.presurf.hypos.mgz from aseg.presurf and ?h.white)
   cmd="recon-all -s $subject -hyporelabel $fsthreads"
   RunIt "$cmd" $LF
+fi
 
-  # 55sec mapping aparc.mapped back to volume (should be a nicer aparc+aseg compared to input, due to surface help)???
-  cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.mapped --o $mdir/aparc.mapped+aseg.mgz  "
-  RunIt "$cmd" $LF
 
-  # 4sec creating an aseg from the aparc.mapped+aseg.mgz (should be better than the aseg.presurf.hypos..)
+# generate aparc.mapped+aseg.mgz, needed later to paint-in white matter labels also
+# 55sec mapping aparc.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
+cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.mapped --o $mdir/aparc.mapped+aseg.mgz"
+RunIt "$cmd" $LF
+
+
+if [ "$fsaparc" == "0" ] ; then
+
+  # 4sec creating an aseg from the aparc.mapped+aseg.mgz (instead of aseg.presurf.hypos..)
   # we call it aseg, because that is needed below in recon-all segstats
   cmd="apas2aseg --i $mdir/aparc.mapped+aseg.mgz --o $mdir/aseg.mgz "
   RunIt "$cmd" $LF
