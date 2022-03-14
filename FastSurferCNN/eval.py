@@ -470,6 +470,11 @@ if __name__ == "__main__":
         if not op.exists(op.join(sub_dir, 'orig')):
             makedirs(op.join(sub_dir, 'orig'))
 
+        # Check if conformed image directory exists and create it otherwise
+        sub_dir, out = op.split(args.conformed_name)
+        if not op.exists(sub_dir):
+            makedirs(sub_dir)
+
         # Save input image to standard location (will change once save_image functionality is integrated)
         input_image = nib.load(options.iname)
         if not options.iname.endswith('mgz'):
