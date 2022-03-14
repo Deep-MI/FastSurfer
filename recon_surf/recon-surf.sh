@@ -835,6 +835,11 @@ if [ "$fsaparc" == "0" ] ; then
   RunIt "$cmd" $LF
  
   # balabels need sphere.reg
+  if [ "$fssurfreg" == "1" ] ; then
+      # can be produced if surf registration exists
+      cmd="recon-all -s $subject -balabels $fsthreads"
+      RunIt "$cmd" $LF "$CMDF"
+  fi
 
 fi
 
