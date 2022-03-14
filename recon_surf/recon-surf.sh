@@ -794,17 +794,22 @@ if [ "$fsaparc" == "0" ] ; then
   RunIt "$cmd" $LF
   popd
 
-
   # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
   # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz
   # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces
   cmd="recon-all -s $subject -hyporelabel -apas2aseg $fsthreads"
   RunIt "$cmd" $LF
+  
+fi
 
-  # creating aparc.mapped+aseg.mgz by mapping aparc.mapped from surface to aseg.mgz
-  # (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)???
-  cmd="mri_surf2volseg --o $mdir/aparc.mapped+aseg.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
-  RunIt "$cmd" $LF
+
+# creating aparc.mapped+aseg.mgz by mapping aparc.mapped from surface to aseg.mgz
+# (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)???
+cmd="mri_surf2volseg --o $mdir/aparc.mapped+aseg.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+RunIt "$cmd" $LF
+
+
+if [ "$fsaparc" == "0" ] ; then
 
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
   cmd="recon-all -s $subject -segstats $fsthreads"
