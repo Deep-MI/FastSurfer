@@ -238,7 +238,7 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
     return prediction_probability
 
 
-def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
+def fastsurfercnn(img_filename, save_as, conformed_img_filename, use_cuda, gpu_small, logger, args):
     """
     Cortical parcellation of single image with FastSurferCNN.
 
@@ -260,6 +260,7 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
             * args.pool: Size of pooling filter (Default=2)
     :param logging.logger logger: Logging instance info messages will be written to
     :param str save_as: name under which to save prediction.
+    :param str conformed_img_filename: name under which to save original, conformed image.
 
     :return None: saves prediction to save_as
     """
@@ -270,8 +271,8 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
 
     # Save conformed input image to use in recon-surf later
     conformed_orig_img = nib.MGHImage(orig_data, affine_info, header_info)
-    conformed_orig_img.to_filename(args.conformed_name)
-    logger.info("Saving conformed original image to {}".format(args.conformed_name))
+    conformed_orig_img.to_filename(conformed_img_filename)
+    logger.info("Saving conformed original image to {}".format(conformed_img_filename))
 
     # Set up model for axial and coronal networks
     params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
@@ -482,7 +483,7 @@ if __name__ == "__main__":
 
         input_image.to_filename(op.join(sub_dir, 'orig', '001.mgz'))
 
-        fastsurfercnn(options.iname, options.oname, use_cuda, small_gpu, logger, options)
+        fastsurfercnn(options.iname, options.oname, options.conformed_name, use_cuda, small_gpu, logger, options)
 
     else:
 
@@ -510,12 +511,14 @@ if __name__ == "__main__":
                 invol = op.join(current_subject, options.iname)
                 logfile = op.join(options.output, dataset, subject, options.logfile)
                 save_file_name = op.join(options.output, dataset, subject, options.oname)
+                conformed_img_filename = op.join(options.output, dataset, subject, options.conformed_name)
 
             else:
 
                 invol = op.join(current_subject, options.iname)
                 logfile = op.join(options.output, subject, options.logfile)
                 save_file_name = op.join(options.output, subject, options.oname)
+                conformed_img_filename = op.join(options.output, subject, options.conformed_name)
 
             logger.info("Running Fast Surfer on {}".format(subject))
 
@@ -541,7 +544,7 @@ if __name__ == "__main__":
             logger.addHandler(fh)
 
             # Run network
-            fastsurfercnn(invol, save_file_name, use_cuda, small_gpu, logger, options)
+            fastsurfercnn(invol, save_file_name, conformed_img_filename, use_cuda, small_gpu, logger, options)
 
             logger.removeHandler(fh)
             fh.close()
