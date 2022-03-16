@@ -676,8 +676,31 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   echo "echo \" \"" |& tee -a $CMDF
 
   # Surface registration for cross-subject correspondance (registration to fsaverage)
-  cmd="recon-all -s $subject -hemi $hemi -sphere -surfreg -no-isrunning $fsthreads"
+  cmd="recon-all -s $subject -hemi $hemi -sphere -no-isrunning $fsthreads"
   RunIt "$cmd" $LF "$CMDF"
+  
+  # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central 
+  # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not 
+  # seem to do this, so we initialize the spherical registration with the better 
+  # label from FastSurferCNN, this replaces recon-al -surfreg
+  # 1. extract label 24 = precentral from FastSurferCNN mapped annotation
+  cmd="mri_annotation2label --subject $subject --hemi $hemi --label 24 --labelbase ${hemi}.mapped --annotation aparc.mapped"
+  RunIt "$cmd" $LF "$CMDF"
+  # 2. guide spherical registration to align label 24 to precentral in the atlas
+  cmd="mris_register -curv \
+       -L ${hemi}.mapped-024.label \
+       $FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs precentral \
+       $SUBJECTS_DIR/$subject/surf/${hemi}.sphere \
+       $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+       $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg"
+  RunIt "$cmd" $LF "$CMDF"
+  # command to generate new aparc to check if registration was OK
+  # run only for debugging
+  #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
+  #     -aseg $SUBJECTS_DIR/$sid/mri/aseg.presurf.mgz \
+  #     -seed 1234 $sid $hemi $SUBJECTS_DIR/$sid/surf/${hemi}.sphere.reg \
+  #     $SUBJECTS_DIR/$sid/label/${hemi}.aparc.DKTatlas-guided.annot"
+  
 fi
 
 
