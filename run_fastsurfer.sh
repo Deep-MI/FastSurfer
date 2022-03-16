@@ -295,6 +295,14 @@ then
   export PYTHONUNBUFFERED=0
 fi
 
+if [ "${seg: -3}" != "${conformed_name: -3}" ]
+  then
+    echo "ERROR: Specified segmentation output and conformed image output do not have same file type."
+    echo "You passed --seg ${seg} and --conformed_name ${conformed_name}."
+    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
+    exit 1;
+fi
+
 if [ "$surf_only" == "1" ] && [ ! -f "$seg" ]
   then
     echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
