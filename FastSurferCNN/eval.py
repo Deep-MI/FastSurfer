@@ -88,6 +88,8 @@ def options_parse():
                         help='name under which segmentation will be saved. Default: aparc.DKTatlas+aseg.deep.mgz. '
                              'If a separate subfolder is desired (e.g. FS conform, add it to the name: '
                              'mri/aparc.DKTatlas+aseg.deep.mgz)')
+    parser.add_argument('--conf_name', '--conformed_name', dest='conformed_name', default='orig.mgz',
+                        help='Name under which the conformed input image will be saved, in the same directory as the segmentation (the input image is always conformed first, if it is not already conformed). The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: orig.mgz.')
     parser.add_argument('--order', dest='order', type=int, default=1,
                         help="order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)")
 
@@ -236,7 +238,7 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
     return prediction_probability
 
 
-def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
+def fastsurfercnn(img_filename, save_as, conformed_img_filename, use_cuda, gpu_small, logger, args):
     """
     Cortical parcellation of single image with FastSurferCNN.
 
@@ -258,6 +260,7 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
             * args.pool: Size of pooling filter (Default=2)
     :param logging.logger logger: Logging instance info messages will be written to
     :param str save_as: name under which to save prediction.
+    :param str conformed_img_filename: name under which to save original, conformed image.
 
     :return None: saves prediction to save_as
     """
@@ -265,6 +268,10 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
     logger.info("Reading volume {}".format(img_filename))
 
     header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1, logger=logger)
+
+    # Save conformed input image to use in recon-surf later
+    save_image(orig_data, affine_info, header_info, conformed_img_filename)
+    logger.info("Saving conformed original image to {}".format(conformed_img_filename))
 
     # Set up model for axial and coronal networks
     params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
@@ -460,7 +467,20 @@ if __name__ == "__main__":
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
-        fastsurfercnn(options.iname, options.oname, use_cuda, small_gpu, logger, options)
+        # Check if orig sub-directory exists and create it otherwise
+        if not op.exists(op.join(sub_dir, 'orig')):
+            makedirs(op.join(sub_dir, 'orig'))
+
+        # Check if conformed image directory exists and create it otherwise
+        sub_dir, out = op.split(options.conformed_name)
+        if not op.exists(sub_dir):
+            makedirs(sub_dir)
+
+        # Save input image to standard location
+        input_image = nib.load(options.iname)
+        save_image(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header, op.join(sub_dir, 'orig', '001.mgz'))
+
+        fastsurfercnn(options.iname, options.oname, options.conformed_name, use_cuda, small_gpu, logger, options)
 
     else:
 
@@ -488,12 +508,14 @@ if __name__ == "__main__":
                 invol = op.join(current_subject, options.iname)
                 logfile = op.join(options.output, dataset, subject, options.logfile)
                 save_file_name = op.join(options.output, dataset, subject, options.oname)
+                conformed_img_filename = op.join(options.output, dataset, subject, options.conformed_name)
 
             else:
 
                 invol = op.join(current_subject, options.iname)
                 logfile = op.join(options.output, subject, options.logfile)
                 save_file_name = op.join(options.output, subject, options.oname)
+                conformed_img_filename = op.join(options.output, subject, options.conformed_name)
 
             logger.info("Running Fast Surfer on {}".format(subject))
 
@@ -503,12 +525,20 @@ if __name__ == "__main__":
             if not op.exists(sub_dir):
                 makedirs(sub_dir)
 
+            # Check if orig sub-directory exists and create it otherwise
+            if not op.exists(op.join(sub_dir, 'orig')):
+                makedirs(op.join(sub_dir, 'orig'))
+
+            # Save input image to standard location
+            input_image = nib.load(invol)
+            save_image(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header, op.join(sub_dir, 'orig', '001.mgz'))
+
             # Prepare the log-file (logging to File in subject directory)
             fh = logging.FileHandler(logfile, mode='w')
             logger.addHandler(fh)
 
             # Run network
-            fastsurfercnn(invol, save_file_name, use_cuda, small_gpu, logger, options)
+            fastsurfercnn(invol, save_file_name, conformed_img_filename, use_cuda, small_gpu, logger, options)
 
             logger.removeHandler(fh)
             fh.close()

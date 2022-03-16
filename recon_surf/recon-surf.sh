@@ -52,8 +52,9 @@ function usage()
     echo "./recon-surf.sh"
     echo -e "\t--sid <subjectID>             Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>          Output directory \$SUBJECTS_DIR (pass via environment or here)"
-    echo -e "\t--t1  <T1_input>              T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>    Name of intermediate DL-based segmentation file (similar to aparc+aseg). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
+    echo -e "\t--t1  <T1_input>              T1 full head input (not bias corrected). This must be a conformed image (dimensions: 256x256x256, voxel size: 1x1x1,
+    LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's conform.py script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>)."
+    echo -e "\t--seg <segmentation_input>    Name of intermediate DL-based segmentation file (similar to aparc+aseg). This must be conformed (dimensions: 256x256x256, voxel size: 1x1x1, LIA orientation). FastSurferCNN's segmentations are conformed by default; please ensure that segmentations produced otherwise are conformed. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
     echo -e "\t--seg_with_cc_only            Run recon_surf until corpus callosum is added in (no surface models will be created in this case!)"
     echo -e "\t--vol_segstats                Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces)."
     echo -e "\t--fstess                      Switch on mri_tesselate for surface creation (default: mri_mc)"
@@ -412,8 +413,15 @@ echo " " |& tee -a $LF
 echo "================== Creating orig and rawavg from input =========================" |& tee -a $LF
 echo " " |& tee -a $LF
 
+# check for input conformance
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only --verbose"
+RunIt "$cmd" $LF
+
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only --seg_input --verbose"
+RunIt "$cmd" $LF
+
 # create orig.mgz and aparc+aseg.orig.mgz (copy of segmentation)
-cmd="mri_convert -c $t1 $mdir/orig.mgz"
+cmd="mri_convert $t1 $mdir/orig.mgz"
 RunIt "$cmd" $LF
 
 cmd="mri_convert $seg $mdir/aparc+aseg.orig.mgz"

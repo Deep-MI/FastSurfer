@@ -20,10 +20,10 @@ List them by running the following command:
 ### Required arguments
 * --sd: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * --sid: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
-* --t1: T1 full head input (not bias corrected). 
+* --t1: T1 full head input (not bias corrected). This must be conformed (dimensions: 256x256x256, voxel size: 1x1x1, LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's [conform.py](https://github.com/Deep-MI/FastSurfer/blob/master/FastSurferCNN/data_loader/conform.py) script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>).
 
 ### Optional arguments
-* --seg: Global path with filename of segmentation (where and under which name to find it, must already exist). Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+* --seg: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: 256x256x256, voxel size: 1x1x1, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * --fstess: Use mri_tesselate instead of marching cube (default) for surface creation
 * --fsqsphere: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
 * --fsaparc: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
