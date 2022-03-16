@@ -41,6 +41,7 @@ from data_loader.load_neuroimaging_data import map_label2aparc_aseg
 from data_loader.load_neuroimaging_data import map_prediction_sagittal2full
 from data_loader.load_neuroimaging_data import get_largest_cc
 from data_loader.load_neuroimaging_data import load_and_conform_image
+from data_loader.load_neuroimaging_data import save_image
 
 from data_loader.augmentation import ToTensorTest
 
@@ -67,7 +68,6 @@ Original Author: Leonie Henschel
 Date: Mar-12-2019
 
 """
-
 
 def options_parse():
     """
@@ -416,8 +416,9 @@ def fastsurfercnn(img_filename, save_as, use_cuda, gpu_small, logger, args):
 
     # Saving image
     header_info.set_data_dtype(np.int16)
-    mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
-    mapped_aseg_img.to_filename(save_as)
+
+    save_image(pred_prob, affine_info, header_info, save_as)
+
     logger.info("Saving Segmentation to {}".format(save_as))
     logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
 
