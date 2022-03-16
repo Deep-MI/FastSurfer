@@ -89,7 +89,7 @@ def options_parse():
                              'If a separate subfolder is desired (e.g. FS conform, add it to the name: '
                              'mri/aparc.DKTatlas+aseg.deep.mgz)')
     parser.add_argument('--conf_name', '--conformed_name', dest='conformed_name', default='orig.mgz',
-                        help='Name under which the conformed input image will be saved, in the same directory as the segmentation (the input image is always conformed first, if it is not already conformed). In addition, the original image is always saved in orig/001.mgz in the output directory. Default: orig.mgz.')
+                        help='Name under which the conformed input image will be saved, in the same directory as the segmentation (the input image is always conformed first, if it is not already conformed). The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: orig.mgz.')
     parser.add_argument('--order', dest='order', type=int, default=1,
                         help="order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)")
 
