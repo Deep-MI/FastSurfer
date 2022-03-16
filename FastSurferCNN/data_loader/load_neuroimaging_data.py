@@ -27,6 +27,8 @@ from skimage.measure import label
 from torch.utils.data.dataset import Dataset
 from .conform import is_conform, conform, check_affine_in_nifti
 
+supported_output_file_formats = ['mgz', 'nii', 'nii.gz']
+
 ##
 # Helper Functions
 ##
@@ -39,7 +41,9 @@ def load_and_conform_image(img_filename, interpol=1, logger=None):
     (if it does not already have this format)
     :param str img_filename: path and name of volume to read
     :param int interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
-    :return:
+    :return: nibabel.MGHImage header_info: header information of the conformed image
+    :return: np.ndarray affine_info: affine information of the conformed image
+    :return: nibabel.MGHImage orig: conformed image
     """
     orig = nib.load(img_filename)
 
@@ -68,6 +72,34 @@ def load_and_conform_image(img_filename, interpol=1, logger=None):
 
     return header_info, affine_info, orig
 
+def save_image(img_array, affine_info, header_info, save_as):
+    """
+    Save an image (nibabel MGHImage), according to the desired output file format.
+    Supported formats are defined in supported_output_file_formats.
+
+    :param numpy.ndarray img_array: an array containing image data
+    :param numpy.ndarray affine_info: image affine information
+    :param nibabel.freesurfer.mghformat.MGHHeader header_info: image header information
+    :param str save_as: name under which to save prediction; this determines output file format
+
+    :return None: saves predictions to save_as
+    """
+
+    assert any(save_as.endswith(file_ext) for file_ext in supported_output_file_formats), \
+            'Output filename does not contain a supported file format (' + ', '.join(file_ext for file_ext in supported_output_file_formats) + ')!'
+
+    mgh_img = None
+    if save_as.endswith('mgz'):
+        mgh_img = nib.MGHImage(img_array, affine_info, header_info)
+    elif any(save_as.endswith(file_ext) for file_ext in ['nii', 'nii.gz']):
+        mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
+
+    if any(save_as.endswith(file_ext) for file_ext in ['mgz', 'nii']):
+        nib.save(mgh_img, save_as)
+    elif save_as.endswith('nii.gz'):
+        ## For correct outputs, nii.gz files should be saved using the nifti1 sub-module's save():
+        nib.nifti1.save(mgh_img, save_as)
+
 
 # Transformation for mapping
 def transform_axial(vol, coronal2axial=True):
@@ -76,7 +108,7 @@ def transform_axial(vol, coronal2axial=True):
     :param np.ndarray vol: image volume to transform
     :param bool coronal2axial: transform from coronal to axial = True (default),
                                transform from axial to coronal = False
-    :return:
+    :return: np.ndarray: transformed image volume
     """
     if coronal2axial:
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
@@ -90,7 +122,7 @@ def transform_sagittal(vol, coronal2sagittal=True):
     :param np.ndarray vol: image volume to transform
     :param bool coronal2sagittal: transform from coronal to sagittal = True (default),
                                 transform from sagittal to coronal = False
-    :return:
+    :return: np.ndarray: transformed image volume
     """
     if coronal2sagittal:
         return np.moveaxis(vol, [0, 1, 2], [2, 1, 0])
@@ -106,7 +138,7 @@ def get_thick_slices(img_data, slice_thickness=3):
     label only middle one)
     :param np.ndarray img_data: 3D MRI image read in with nibabel 
     :param int slice_thickness: number of slices to stack on top and below slice of interest (default=3) 
-    :return: 
+    :return: np.ndarray img_data_thick: image array containing the extracted slices
     """
     h, w, d = img_data.shape
     img_data_pad = np.expand_dims(np.pad(img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode='edge'),
@@ -127,6 +159,9 @@ def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
     :param np.ndarray weight_vol: weight corresponding to labels
     :param int threshold: threshold for number of pixels needed to keep slice (below = dropped)
     :return:
+    :return: np.ndarray img_vol: filtered orig image volume
+    :return: np.ndarray label_vol: filtered label images (ground truth)
+    :return: np.ndarray weight_vol: filtered weight corresponding to labels
     """
     # Get indices of all slices with more than threshold labels/pixels
     select_slices = (np.sum(label_vol, axis=(0, 1)) > threshold)
@@ -143,10 +178,10 @@ def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
 def create_weight_mask(mapped_aseg, max_weight=5, max_edge_weight=5):
     """
     Function to create weighted mask - with median frequency balancing and edge-weighting
-    :param mapped_aseg:
-    :param max_weight:
-    :param max_edge_weight:
-    :return:
+    :param np.ndarray mapped_aseg: label space segmentation
+    :param int max_weight: an upper bound on weight values
+    :param int max_edge_weight: edge-weighting factor
+    :return: np.ndarray weights_mask: generated weights mask
     """
     unique, counts = np.unique(mapped_aseg, return_counts=True)
 
@@ -174,7 +209,7 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     :param np.ndarray gt: ground truth segmentation with class unknown
     :param int unknown_label: class label for unknown (lh: 1000, rh: 2000)
     :param int cortex_stop: class label at which cortical labels of this hemi stop (lh: 2000, rh: 3000)
-    :return:
+    :return: np.ndarray gt: ground truth segmentation with replaced unknown class labels
     """
     # Define shape of image and dilation element
     h, w, d = gt.shape
@@ -211,8 +246,8 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
 def map_label2aparc_aseg(mapped_aseg):
     """
     Function to perform look-up table mapping from label space to aparc.DKTatlas+aseg space
-    :param np.ndarray mapped_aseg: label space segmentation (aparc.DKTatlas + aseg)
-    :return:
+    :param np.ndarray mapped_aseg: label space segmentation
+    :return: np.ndarray aseg: segmentation in aparc+aseg space
     """
     aseg = np.zeros_like(mapped_aseg)
     labels = np.array([0, 2, 4, 5, 7, 8, 10, 11, 12, 13, 14,
@@ -237,7 +272,8 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None):
     Function to perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space
     :param np.ndarray aseg: ground truth aparc+aseg
     :param None/np.ndarray aseg_nocc: ground truth aseg without corpus callosum segmentation
-    :return:
+    :return: np.ndarray mapped_aseg: label space segmentation (coronal and axial)
+    :return: np.ndarray mapped_aseg_sag: label space segmentation (sagittal)
     """
     aseg_temp = aseg.copy()
     aseg[aseg == 80] = 77  # Hypointensities Class
@@ -329,7 +365,7 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None):
     for idx, value in enumerate(labels_sag):
         lut_aseg[value] = idx
 
-    # Remap Label Classes - Perform LUT Mapping - Coronal, Axial
+    # Remap Label Classes - Perform LUT Mapping - Sagittal
 
     mapped_aseg_sag = lut_aseg.ravel()[aseg.ravel()]
 
@@ -342,7 +378,7 @@ def sagittal_coronal_remap_lookup(x):
     """
     Dictionary mapping to convert left labels to corresponding right labels for aseg
     :param int x: label to look up
-    :return:
+    :return: dict: left-to-right aseg label mapping dict
     """
     return {
         2: 41,
@@ -367,9 +403,9 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=79):
     """
     Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
     (full aparc.DKTatlas+aseg.mgz)
-    :param prediction_sag: sagittal prediction (labels)
+    :param np.ndarray prediction_sag: sagittal prediction (labels)
     :param int num_classes: number of classes (96 for full classes, 79 for hemi split)
-    :return: Remapped prediction
+    :return: np.ndarray prediction_full: Remapped prediction
     """
     if num_classes == 96:
         idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 14, 15, 4, 16,
@@ -395,7 +431,12 @@ def bbox_3d(img):
     """
     Function to extract the three-dimensional bounding box coordinates.
     :param np.ndarray img: mri image
-    :return:
+    :return: float rmin
+    :return: float rmax
+    :return: float cmin
+    :return: float cmax
+    :return: float zmin
+    :return: float zmax
     """
 
     r = np.any(img, axis=(1, 2))
@@ -413,7 +454,7 @@ def get_largest_cc(segmentation):
     """
     Function to find largest connected component of segmentation.
     :param np.ndarray segmentation: segmentation
-    :return:
+    :return: np.ndarray largest_cc: largest connected component of the segmentation array
     """
     labels = label(segmentation, connectivity=3, background=0)
 

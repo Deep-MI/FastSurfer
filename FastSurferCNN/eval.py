@@ -41,6 +41,7 @@ from data_loader.load_neuroimaging_data import map_label2aparc_aseg
 from data_loader.load_neuroimaging_data import map_prediction_sagittal2full
 from data_loader.load_neuroimaging_data import get_largest_cc
 from data_loader.load_neuroimaging_data import load_and_conform_image
+from data_loader.load_neuroimaging_data import save_image
 
 from data_loader.augmentation import ToTensorTest
 
@@ -67,7 +68,6 @@ Original Author: Leonie Henschel
 Date: Mar-12-2019
 
 """
-
 
 def options_parse():
     """
@@ -163,13 +163,13 @@ def run_network(img_filename, orig_data, prediction_probability, plane, ckpts, p
 
     :param str img_filename: name of image file
     :param np.ndarray orig_data: image data
-    :param torch.tensor prediction_probability: default tensor to hold prediction probabilities
+    :param torch.Tensor prediction_probability: default tensor to hold prediction probabilities
     :param str plane: Which plane to predict (Axial, Sagittal, Coronal)
     :param str ckpts: Path to pretrained weights of network
     :param dict params_model: parameters to set up model (includes device, use_cuda, model_parallel, batch_size)
     :param torch.nn.Module model: Model to use for prediction
     :param logging.logger logger: Logging instance info messages will be written to
-    :return:
+    :return: torch.Tensor prediction_probability: original tensor populated with prediction probabilities
     """
     # Set up DataLoader
     test_dataset = OrigDataThickSlices(img_filename, orig_data, plane=plane,
@@ -424,8 +424,9 @@ def fastsurfercnn(img_filename, save_as, conformed_img_filename, use_cuda, gpu_s
 
     # Saving image
     header_info.set_data_dtype(np.int16)
-    mapped_aseg_img = nib.MGHImage(pred_prob, affine_info, header_info)
-    mapped_aseg_img.to_filename(save_as)
+
+    save_image(pred_prob, affine_info, header_info, save_as)
+
     logger.info("Saving Segmentation to {}".format(save_as))
     logger.info("Total processing time: {:0.4f} seconds.".format(time.time() - start_total))
 

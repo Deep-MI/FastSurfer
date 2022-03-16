@@ -819,16 +819,21 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
   popd
 
-
-  # 18 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
+  # 18 sec hyporelabel (generate aseg.presurf.hypos.mgz from aseg.presurf and ?h.white)
   cmd="recon-all -s $subject -hyporelabel $fsthreads"
   RunIt "$cmd" $LF
+fi
 
-  # 55sec mapping aparc.mapped back to volume (should be a nicer aparc+aseg compared to input, due to surface help)???
-  cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.mapped --o $mdir/aparc.mapped+aseg.mgz  "
-  RunIt "$cmd" $LF
 
-  # 4sec creating an aseg from the aparc.mapped+aseg.mgz (should be better than the aseg.presurf.hypos..)
+# generate aparc.mapped+aseg.mgz, needed later to paint-in white matter labels also
+# 55sec mapping aparc.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
+cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.mapped --o $mdir/aparc.mapped+aseg.mgz"
+RunIt "$cmd" $LF
+
+
+if [ "$fsaparc" == "0" ] ; then
+
+  # 4sec creating an aseg from the aparc.mapped+aseg.mgz (instead of aseg.presurf.hypos..)
   # we call it aseg, because that is needed below in recon-all segstats
   cmd="apas2aseg --i $mdir/aparc.mapped+aseg.mgz --o $mdir/aseg.mgz "
   RunIt "$cmd" $LF
@@ -838,6 +843,11 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
  
   # balabels need sphere.reg
+  if [ "$fssurfreg" == "1" ] ; then
+      # can be produced if surf registration exists
+      cmd="recon-all -s $subject -balabels $fsthreads"
+      RunIt "$cmd" $LF "$CMDF"
+  fi
 
 fi
 
@@ -854,8 +864,7 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
 
   # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
-  # labels are messed up, due to the aparc mapped surface labels which are incorrect, we need a lookup above.
-  cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mapped.mgz --ctxseg $mdir/aparc+aseg.orig.mgz --annot aparc.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
+  cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mapped.mgz --ctxseg $mdir/aparc.mapped+aseg.mgz --annot aparc.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
   RunIt "$cmd" $LF
    
   # takes a few mins

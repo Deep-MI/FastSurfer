@@ -63,8 +63,8 @@ class FastSurferCNN(nn.Module):
     def forward(self, x):
         """
         Computational graph
-        :param tensor x: input image
-        :return tensor: prediction logits
+        :param torch.Tensor x: input image
+        :return torch.Tensor logits: prediction logits
         """
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
         encoder_output2, skip_encoder_2, indices_2 = self.encode2.forward(encoder_output1)
