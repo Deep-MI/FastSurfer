@@ -53,7 +53,7 @@ function usage()
     echo -e "\t--sid <subjectID>             Subject ID for directory inside \$SUBJECTS_DIR to be created"
     echo -e "\t--sd  <subjects_dir>          Output directory \$SUBJECTS_DIR (pass via environment or here)"
     echo -e "\t--t1  <T1_input>              T1 full head input (not bias corrected). This must be a conformed image (dimensions: 256x256x256, voxel size: 1x1x1,
-    LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's conform.py script."
+    LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's conform.py script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>)."
     echo -e "\t--seg <segmentation_input>    Name of intermediate DL-based segmentation file (similar to aparc+aseg). This must be conformed (dimensions: 256x256x256, voxel size: 1x1x1, LIA orientation). FastSurferCNN's segmentations are conformed by default; please ensure that segmentations produced otherwise are conformed. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
     echo -e "\t--seg_with_cc_only            Run recon_surf until corpus callosum is added in (no surface models will be created in this case!)"
     echo -e "\t--vol_segstats                Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces)."

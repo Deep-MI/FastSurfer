@@ -58,7 +58,7 @@ def options_parse():
     parser.add_option('--output', '-o', dest='output', help=h_output)
     parser.add_option('--order', dest='order', help=h_order, type="int", default=1)
     parser.add_option('--check_only', dest='check_only', default=False, action='store_true',
-                      help='If True, only checks if the input image is conformed')
+                      help='If True, only checks if the input image is conformed, and does not return an output.')
     parser.add_option('--seg_input', dest='seg_input', default=False, action='store_true',
                       help='Specifies whether the input is a seg image. If true, '
                            'the check for conformance disregards the uint8 dtype criteria')
