@@ -270,8 +270,7 @@ def fastsurfercnn(img_filename, save_as, conformed_img_filename, use_cuda, gpu_s
     header_info, affine_info, orig_data = load_and_conform_image(img_filename, interpol=1, logger=logger)
 
     # Save conformed input image to use in recon-surf later
-    conformed_orig_img = nib.MGHImage(orig_data, affine_info, header_info)
-    conformed_orig_img.to_filename(conformed_img_filename)
+    save_image(orig_data, affine_info, header_info, conformed_img_filename)
     logger.info("Saving conformed original image to {}".format(conformed_img_filename))
 
     # Set up model for axial and coronal networks
@@ -477,12 +476,9 @@ if __name__ == "__main__":
         if not op.exists(sub_dir):
             makedirs(sub_dir)
 
-        # Save input image to standard location (will change once save_image functionality is integrated)
+        # Save input image to standard location
         input_image = nib.load(options.iname)
-        if not options.iname.endswith('mgz'):
-            input_image = nib.MGHImage(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header)
-
-        input_image.to_filename(op.join(sub_dir, 'orig', '001.mgz'))
+        save_image(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header, op.join(sub_dir, 'orig', '001.mgz'))
 
         fastsurfercnn(options.iname, options.oname, options.conformed_name, use_cuda, small_gpu, logger, options)
 
@@ -533,12 +529,9 @@ if __name__ == "__main__":
             if not op.exists(op.join(sub_dir, 'orig')):
                 makedirs(op.join(sub_dir, 'orig'))
 
-            # Save input image to standard location (will change once save_image functionality is integrated)
+            # Save input image to standard location
             input_image = nib.load(invol)
-            if not invol.endswith('mgz'):
-                input_image = nib.MGHImage(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header)
-
-            input_image.to_filename(op.join(sub_dir, 'orig', '001.mgz'))
+            save_image(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header, op.join(sub_dir, 'orig', '001.mgz'))
 
             # Prepare the log-file (logging to File in subject directory)
             fh = logging.FileHandler(logfile, mode='w')
