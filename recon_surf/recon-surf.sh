@@ -872,6 +872,18 @@ if [ "$fsaparc" == "0" ] ; then
       RunIt "$cmd" $LF "$CMDF"
   fi
 
+  # Symbolic link for TRACULA
+  pushd $ldir
+  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.DKTatlas.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.annot"
+  RunIt "$cmd" $LF
+  popd
+
 fi
 
 
