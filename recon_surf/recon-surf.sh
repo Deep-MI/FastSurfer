@@ -907,6 +907,12 @@ echo " " |& tee -a $LF
   cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
 
+  # Symlink of wmparc.mapped for sub-segmentations in FreeSurfer
+  pushd $mdir
+  cmd="ln -sf wmparc.mapped.mgz wmparc.mgz"
+  RunIt "$cmd" $LF
+  popd
+
 echo " " |& tee -a $LF
 echo "================= DONE =========================================================" |& tee -a $LF
 echo " " |& tee -a $LF
