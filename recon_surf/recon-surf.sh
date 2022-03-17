@@ -852,7 +852,11 @@ fi
 # 55sec mapping aparc.DKTatlas.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
 cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.DKTatlas.mapped --o $mdir/aparc.DKTatlas+aseg.mapped.mgz"
 RunIt "$cmd" $LF
-
+# Symlink of aparc.DKTatlas+aseg.mapped.mgz for potential post-processing
+pushd $mdir
+cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
+RunIt "$cmd" $LF
+popd
 
 if [ "$fsaparc" == "0" ] ; then
 
