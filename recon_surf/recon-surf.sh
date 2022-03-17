@@ -684,7 +684,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # seem to do this, so we initialize the spherical registration with the better 
   # label from FastSurferCNN, this replaces recon-al -surfreg
   # 1. extract label 24 = precentral from FastSurferCNN mapped annotation
-  cmd="mri_annotation2label --subject $subject --hemi $hemi --label 24 --labelbase ${hemi}.mapped --annotation aparc.mapped"
+  cmd="mri_annotation2label --subject $subject --hemi $hemi --label 24 --labelbase ${hemi}.mapped --annotation aparc.mapped --surface white.preaparc"
   RunIt "$cmd" $LF "$CMDF"
   # 2. guide spherical registration to align label 24 to precentral in the atlas
   cmd="mris_register -curv \
