@@ -852,13 +852,13 @@ fi
 # 55sec mapping aparc.DKTatlas.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
 cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.DKTatlas.mapped --o $mdir/aparc.DKTatlas+aseg.mapped.mgz"
 RunIt "$cmd" $LF
-# Symlink of aparc.DKTatlas+aseg.mapped.mgz for potential post-processing
-pushd $mdir
-cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
-RunIt "$cmd" $LF
-popd
 
 if [ "$fsaparc" == "0" ] ; then
+  # Symlink of aparc.DKTatlas+aseg.mapped.mgz for potential post-processing
+  pushd $mdir
+  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
+  RunIt "$cmd" $LF
+  popd
 
   # 4sec creating an aseg from the aparc.DKTatlas+aseg.mapped.mgz (instead of aseg.presurf.hypos..)
   # we call it aseg, because that is needed below in recon-all segstats
@@ -911,11 +911,13 @@ echo " " |& tee -a $LF
   cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
 
+if [ "$fsaparc" == "0" ] ; then
   # Symlink of wmparc.mapped for sub-segmentations in FreeSurfer
   pushd $mdir
   cmd="ln -sf wmparc.mapped.mgz wmparc.mgz"
   RunIt "$cmd" $LF
   popd
+fi
 
 echo " " |& tee -a $LF
 echo "================= DONE =========================================================" |& tee -a $LF
