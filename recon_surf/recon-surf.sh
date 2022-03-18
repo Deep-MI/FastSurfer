@@ -907,7 +907,7 @@ if [ "$fsaparc" == "0" ] ; then
   RunIt "$cmd" $LF
   popd
 
-  # Symbolic link for mapped label files
+  # Symbolic link for mapped surface parcellations
   pushd $ldir
   cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.DKTatlas.annot"
   RunIt "$cmd" $LF
