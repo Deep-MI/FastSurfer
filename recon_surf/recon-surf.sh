@@ -688,7 +688,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   RunIt "$cmd" $LF "$CMDF"
   # 2. guide spherical registration to align label 24 to precentral in the atlas
   cmd="mris_register -curv \
-       -L ${hemi}.mapped-024.label \
+       -L ${ldir}/${hemi}.mapped-024.label \
        $FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs precentral \
        $SUBJECTS_DIR/$subject/surf/${hemi}.sphere \
        $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
@@ -847,18 +847,12 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
 fi
 
-
 # generate aparc.DKTatlas+aseg.mapped.mgz, needed later to paint-in white matter labels also
 # 55sec mapping aparc.DKTatlas.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
 cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.DKTatlas.mapped --o $mdir/aparc.DKTatlas+aseg.mapped.mgz"
 RunIt "$cmd" $LF
 
 if [ "$fsaparc" == "0" ] ; then
-  # Symlink of aparc.DKTatlas+aseg.mapped.mgz for potential post-processing
-  pushd $mdir
-  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
-  RunIt "$cmd" $LF
-  popd
 
   # 4sec creating an aseg from the aparc.DKTatlas+aseg.mapped.mgz (instead of aseg.presurf.hypos..)
   # we call it aseg, because that is needed below in recon-all segstats
@@ -875,18 +869,6 @@ if [ "$fsaparc" == "0" ] ; then
       cmd="recon-all -s $subject -balabels $fsthreads"
       RunIt "$cmd" $LF "$CMDF"
   fi
-
-  # Symbolic link for TRACULA
-  pushd $ldir
-  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.DKTatlas.annot"
-  RunIt "$cmd" $LF
-  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
-  RunIt "$cmd" $LF
-  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.annot"
-  RunIt "$cmd" $LF
-  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.annot"
-  RunIt "$cmd" $LF
-  popd
 
 fi
 
@@ -911,10 +893,29 @@ echo " " |& tee -a $LF
   cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
 
+# Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
 if [ "$fsaparc" == "0" ] ; then
-  # Symlink of wmparc.mapped for sub-segmentations in FreeSurfer
+  # Symlink of aparc.DKTatlas+aseg.mapped.mgz
+  pushd $mdir
+  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
+  RunIt "$cmd" $LF
+  popd
+
+  # Symlink of wmparc.mapped
   pushd $mdir
   cmd="ln -sf wmparc.mapped.mgz wmparc.mgz"
+  RunIt "$cmd" $LF
+  popd
+
+  # Symbolic link for mapped label files
+  pushd $ldir
+  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.DKTatlas.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.annot"
   RunIt "$cmd" $LF
   popd
 fi
