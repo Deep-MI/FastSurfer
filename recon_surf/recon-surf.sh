@@ -688,7 +688,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   RunIt "$cmd" $LF "$CMDF"
   # 2. guide spherical registration to align label 24 to precentral in the atlas
   cmd="mris_register -curv \
-       -L ${hemi}.mapped-024.label \
+       -L ${ldir}/${hemi}.mapped-024.label \
        $FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs precentral \
        $SUBJECTS_DIR/$subject/surf/${hemi}.sphere \
        $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
