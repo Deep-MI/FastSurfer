@@ -420,11 +420,11 @@ RunIt "$cmd" $LF
 cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only --seg_input --verbose"
 RunIt "$cmd" $LF
 
-# create orig.mgz and aparc+aseg.orig.mgz (copy of segmentation)
+# create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of segmentation)
 cmd="mri_convert $t1 $mdir/orig.mgz"
 RunIt "$cmd" $LF
 
-cmd="mri_convert $seg $mdir/aparc+aseg.orig.mgz"
+cmd="mri_convert $seg $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" $LF
 
 # link to rawavg (needed by pctsurfcon)
@@ -439,7 +439,7 @@ echo " " |& tee -a $LF
 
 # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
 # output will be uchar (else mri_cc will fail below)
-cmd="$python ${binpath}reduce_to_aseg.py -i $mdir/aparc+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask"
+cmd="$python ${binpath}reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask"
 RunIt "$cmd" $LF
 
 
@@ -658,15 +658,15 @@ echo "echo \" \"" |& tee -a $CMDF
 echo "echo \"=========== Creating surfaces $hemi - map input seg to surf ===============\"" |& tee -a $CMDF
 echo "echo \" \"" |& tee -a $CMDF
 
-    # sample input segmentation (aparc+aseg orig) onto wm surface:
-    # map input aparc to surface (requrires thickness (and thus pail) to compute projfrac 0.5), here we do projmm which allows us to compute based only on white
+    # sample input segmentation (aparc.DKTatlas+aseg orig) onto wm surface:
+    # map input aparc to surface (requires thickness (and thus pail) to compute projfrac 0.5), here we do projmm which allows us to compute based only on white
     # this is dangerous, as some cortices could be < 0.6 mm, but then there is no volume label probably anyway.
     # Also note that currently we cannot mask non-cortex regions here, should be done in mris_anatomical stats later
     # the smoothing helps
-    cmd="mris_sample_parc -ct $FREESURFER_HOME/average/colortable_desikan_killiany.txt -file ${binpath}$hemi.DKTatlaslookup.txt -projmm 0.6 -f 5  -surf white.preaparc $subject $hemi aparc+aseg.orig.mgz aparc.mapped.prefix.annot"
+    cmd="mris_sample_parc -ct $FREESURFER_HOME/average/colortable_desikan_killiany.txt -file ${binpath}$hemi.DKTatlaslookup.txt -projmm 0.6 -f 5  -surf white.preaparc $subject $hemi aparc.DKTatlas+aseg.orig.mgz aparc.DKTatlas.mapped.prefix.annot"
     RunIt "$cmd" $LF $CMDF
 
-    cmd="$python ${binpath}smooth_aparc.py --insurf $sdir/$hemi.white.preaparc --inaparc $ldir/$hemi.aparc.mapped.prefix.annot --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.mapped.annot"
+    cmd="$python ${binpath}smooth_aparc.py --insurf $sdir/$hemi.white.preaparc --inaparc $ldir/$hemi.aparc.DKTatlas.mapped.prefix.annot --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot"
     RunIt "$cmd" $LF $CMDF
 
 
@@ -684,7 +684,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # seem to do this, so we initialize the spherical registration with the better 
   # label from FastSurferCNN, this replaces recon-al -surfreg
   # 1. extract label 24 = precentral from FastSurferCNN mapped annotation
-  cmd="mri_annotation2label --subject $subject --hemi $hemi --label 24 --labelbase ${hemi}.mapped --annotation aparc.mapped --surface white.preaparc"
+  cmd="mri_annotation2label --subject $subject --hemi $hemi --label 24 --labelbase ${hemi}.mapped --annotation aparc.DKTatlas.mapped --surface white.preaparc"
   RunIt "$cmd" $LF "$CMDF"
   # 2. guide spherical registration to align label 24 to precentral in the atlas
   cmd="mris_register -curv \
@@ -815,7 +815,7 @@ echo " " |& tee -a $LF
 
  # 2x18sec create stats from mapped aparc
 for hemi in lh rh; do
-  cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $sdir/../stats/$hemi.aparc.mapped.stats -b -a $ldir/$hemi.aparc.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
+  cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $sdir/../stats/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
   RunIt "$cmd" $LF
 done
 
@@ -828,9 +828,9 @@ echo " " |& tee -a $LF
 
 # pctsurfcon (has no way to specify which annot to use, so we need to link ours as aparc is not available)
   pushd $ldir
-  cmd="ln -sf lh.aparc.mapped.annot lh.aparc.annot"
+  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.annot"
   RunIt "$cmd" $LF
-  cmd="ln -sf rh.aparc.mapped.annot rh.aparc.annot"
+  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.annot"
   RunIt "$cmd" $LF
   popd
   for hemi in lh rh; do 
@@ -847,18 +847,16 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
 fi
 
-
-# generate aparc.mapped+aseg.mgz, needed later to paint-in white matter labels also
-# 55sec mapping aparc.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
-cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.mapped --o $mdir/aparc.mapped+aseg.mgz"
+# generate aparc.DKTatlas+aseg.mapped.mgz, needed later to paint-in white matter labels also
+# 55sec mapping aparc.DKTatlas.mapped back to volume (could be a nicer aparc+aseg compared to input, due to surface help, not verified yet)
+cmd="mri_aparc2aseg --s $subject --volmask --aseg aseg.presurf.hypos --annot aparc.DKTatlas.mapped --o $mdir/aparc.DKTatlas+aseg.mapped.mgz"
 RunIt "$cmd" $LF
-
 
 if [ "$fsaparc" == "0" ] ; then
 
-  # 4sec creating an aseg from the aparc.mapped+aseg.mgz (instead of aseg.presurf.hypos..)
+  # 4sec creating an aseg from the aparc.DKTatlas+aseg.mapped.mgz (instead of aseg.presurf.hypos..)
   # we call it aseg, because that is needed below in recon-all segstats
-  cmd="apas2aseg --i $mdir/aparc.mapped+aseg.mgz --o $mdir/aseg.mgz "
+  cmd="apas2aseg --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --o $mdir/aseg.mgz "
   RunIt "$cmd" $LF
 
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
@@ -886,14 +884,38 @@ echo " " |& tee -a $LF
   cmd="mri_segstats --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
   RunIt "$cmd" $LF
 
-  # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
-  cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mapped.mgz --ctxseg $mdir/aparc.mapped+aseg.mgz --annot aparc.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
+  # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.DKTatlas.mapped:
+  cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.DKTatlas.mapped.mgz --ctxseg $mdir/aparc.DKTatlas+aseg.mapped.mgz --annot aparc.DKTatlas.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
   RunIt "$cmd" $LF
    
   # takes a few mins
   # in dev version the seed can be given in command line, but not in 6.0:
-  cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
+  cmd="mri_segstats --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
+
+# Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
+if [ "$fsaparc" == "0" ] ; then
+  # Symlink of aparc.DKTatlas+aseg.mapped.mgz
+  pushd $mdir
+  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
+  RunIt "$cmd" $LF
+  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc+aseg.mgz"
+  RunIt "$cmd" $LF
+  popd
+
+  # Symlink of wmparc.mapped
+  pushd $mdir
+  cmd="ln -sf wmparc.DKTatlas.mapped.mgz wmparc.mgz"
+  RunIt "$cmd" $LF
+  popd
+
+  # Symbolic link for mapped surface parcellations
+  pushd $ldir
+  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.DKTatlas.annot"
+  RunIt "$cmd" $LF
+  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
+  RunIt "$cmd" $LF
+fi
 
 echo " " |& tee -a $LF
 echo "================= DONE =========================================================" |& tee -a $LF
