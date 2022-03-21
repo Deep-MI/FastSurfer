@@ -913,11 +913,6 @@ if [ "$fsaparc" == "0" ] ; then
   RunIt "$cmd" $LF
   cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
   RunIt "$cmd" $LF
-  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.annot"
-  RunIt "$cmd" $LF
-  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.annot"
-  RunIt "$cmd" $LF
-  popd
 fi
 
 echo " " |& tee -a $LF
