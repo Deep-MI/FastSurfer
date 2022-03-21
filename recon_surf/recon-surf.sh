@@ -885,12 +885,12 @@ echo " " |& tee -a $LF
   RunIt "$cmd" $LF
 
   # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.DKTatlas.mapped:
-  cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.mapped.mgz --ctxseg $mdir/aparc.DKTatlas+aseg.mapped.mgz --annot aparc.DKTatlas.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
+  cmd="mri_aparc2aseg --s $subject --labelwm --hypo-as-wm --rip-unknown --volmask --o $mdir/wmparc.DKTatlas.mapped.mgz --ctxseg $mdir/aparc.DKTatlas+aseg.mapped.mgz --annot aparc.DKTatlas.mapped --annot-table $ldir/aparc.annot.mapped.ctab"
   RunIt "$cmd" $LF
    
   # takes a few mins
   # in dev version the seed can be given in command line, but not in 6.0:
-  cmd="mri_segstats --seg $mdir/wmparc.mapped.mgz --sum $mdir/../stats/wmparc.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
+  cmd="mri_segstats --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
 
 # Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
@@ -899,11 +899,13 @@ if [ "$fsaparc" == "0" ] ; then
   pushd $mdir
   cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
   RunIt "$cmd" $LF
+  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc+aseg.mgz"
+  RunIt "$cmd" $LF
   popd
 
   # Symlink of wmparc.mapped
   pushd $mdir
-  cmd="ln -sf wmparc.mapped.mgz wmparc.mgz"
+  cmd="ln -sf wmparc.DKTatlas.mapped.mgz wmparc.mgz"
   RunIt "$cmd" $LF
   popd
 
