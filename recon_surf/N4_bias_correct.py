@@ -186,7 +186,7 @@ def normalizeWM (itkimage, itkmask=None, radius=50, centroid=None, targetWM=110)
     #  warning do not use otsu mask as it is cropping low-intensity values
     if mask_passed:
         ball = ball*itkmask
-    #sitk.WriteImage(ball, "ball.nii.gz")
+    sitk.WriteImage(ball, "ball.nii.gz")
 
     # get 1 and 90 percentiles of intensities in ball
     aimg = sitk.GetArrayFromImage(itkimage)
