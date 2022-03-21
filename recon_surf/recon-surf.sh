@@ -428,8 +428,18 @@ pushd $mdir
 
 # orig_nu 44 sec nu correct (for speed keep useing old N3 here)
 # FS 7.2 uses  --ants-n4 (takes 3 min and does not accept the mask)
-cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
+cmd="mri_convert $mdir/orig.mgz $mdir/orig.nii.gz"
 RunIt "$cmd" $LF
+cmd="mri_convert $mdir/mask.mgz $mdir/mask.nii.gz"
+RunIt "$cmd" $LF
+#cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
+cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.nii.gz --out $mdir/orig_nu.nii.gz --mask $mdir/mask.nii.gz  --threads $threads"
+RunIt "$cmd" $LF
+cmd="mri_convert -odt uchar $mdir/orig_nu.nii.gz $mdir/orig_nu.mgz"
+RunIt "$cmd" $LF
+cmd="rm $mdir/orig_nu.nii.gz $mdir/mask.nii.gz"
+RunIt "$cmd" $LF
+
 
 # talairach.xfm: compute talairach full head (25sec)
 cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm"
@@ -443,13 +453,19 @@ RunIt "$cmd" $LF
 cmd="lta_convert --src $mdir/orig.mgz --trg $FREESURFER_HOME/average/mni305.cor.mgz --inxfm $mdir/transforms/talairach.xfm --outlta $mdir/transforms/talairach.xfm.lta --subject fsaverage --ltavox2vox"
 RunIt "$cmd" $LF
 
-# create better nu.mgz using talairach transform
-NuIterations=2 # default 1.5T
-NuIterations="1 --proto-iters 1000 --distance 50"  # default 3T
+# create better nu.mgz using talairach transform (finds wm and maps it to approx 110)
+#NuIterations=2 # default 1.5T
+#NuIterations="1 --proto-iters 1000 --distance 50"  # default 3T
 # Using Ants-N4 here to be more similar to FS7.2 (even though it does not allow passing a mask)
 #cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --mask $mdir/mask.mgz"
-cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --ants-n4"
-RunIt "$cmd" $LF
+#cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --ants-n4"
+# all this is basically useless, as we did a good orig_nu already, only missing is the 110 mapping which we do here
+# note, that this can be implemented easily, using the eroded mask or a ball in the center of the brainmask, without talairach.xfm
+#cmd="mri_make_uchar $mdir/orig_nu.mgz $mdir/transforms/talairach.xfm $mdir/nu.mgz"
+#RunIt "$cmd" $LF
+# given that talairach is useless here, question is, is it needed downstream for anything?
+# if not, we can skip creation here (maybe wmparc needs it??)
+
 # Add xfm to nu
 cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $mdir/nu.mgz $mdir/nu.mgz"
 RunIt "$cmd" $LF
@@ -467,7 +483,7 @@ RunIt "$cmd" $LF
 
 if [ "$get_t1" == "1" ]
 then
-  # create T1.mgz from nu
+  # create T1.mgz from nu (!! here we could also try passing aseg?)
   cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz"
   RunIt "$cmd" $LF
 
