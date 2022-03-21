@@ -450,6 +450,7 @@ pushd $mdir
 cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
 RunIt "$cmd" $LF
 
+
 # talairach.xfm: compute talairach full head (25sec)
 cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm"
 RunIt "$cmd" $LF
