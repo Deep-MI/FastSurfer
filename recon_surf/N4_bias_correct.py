@@ -175,7 +175,7 @@ def normalizeWM (itkimage, itkmask=None, radius=50, centroid=None, targetWM=110)
     # create a spherical gaussian blob
     gaussian = sitk.GaussianSource(sitk.sitkUInt8,
         size = itkimage.GetSize(),
-        sigma = [radius,radius,radius],
+        sigma = [radius-1,radius-1,radius-1],
         mean = centroid,
         spacing = itkimage.GetSpacing())
     # threshold to create a binary ball
@@ -186,7 +186,7 @@ def normalizeWM (itkimage, itkmask=None, radius=50, centroid=None, targetWM=110)
     #  warning do not use otsu mask as it is cropping low-intensity values
     if mask_passed:
         ball = ball*itkmask
-    sitk.WriteImage(ball, "ball.nii.gz")
+    #sitk.WriteImage(ball, "ball.nii.gz")
 
     # get 1 and 90 percentiles of intensities in ball
     aimg = sitk.GetArrayFromImage(itkimage)
@@ -194,7 +194,7 @@ def normalizeWM (itkimage, itkmask=None, radius=50, centroid=None, targetWM=110)
     mask = np.extract(amask,aimg)
     percentile90 = np.percentile(mask,90)
     percentile01 = np.percentile(mask, 1)
-    print("- percentile01: {}\n- percentile90: {}".format(percentile01,percentile90))
+    print("-  1st percentile: {}\n- 90th percentile: {}".format(percentile01,percentile90))
 
     # compute intensity transformation
     m = (targetWM - 2.55) / (percentile90 - percentile01) 
