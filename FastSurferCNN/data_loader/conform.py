@@ -57,9 +57,20 @@ def options_parse():
     parser.add_option('--input', '-i', dest='input', help=h_input)
     parser.add_option('--output', '-o', dest='output', help=h_output)
     parser.add_option('--order', dest='order', help=h_order, type="int", default=1)
+    parser.add_option('--check_only', dest='check_only', default=False, action='store_true',
+                      help='If True, only checks if the input image is conformed, and does not return an output.')
+    parser.add_option('--seg_input', dest='seg_input', default=False, action='store_true',
+                      help='Specifies whether the input is a seg image. If true, '
+                           'the check for conformance disregards the uint8 dtype criteria')
+    parser.add_option('--verbose', dest='verbose', default=False, action='store_true',
+                      help='If verbose, more specific messages are printed')
     (fin_options, args) = parser.parse_args()
-    if fin_options.input is None or fin_options.output is None:
-        sys.exit('ERROR: Please specify input and output images')
+    if fin_options.input is None:
+        sys.exit('ERROR: Please specify input image')
+    if not fin_options.check_only and fin_options.output is None:
+        sys.exit('ERROR: Please specify output image')
+    if fin_options.check_only and fin_options.output is not None:
+        sys.exit('ERROR: You passed in check_only. Please do not also specify output image')
     return fin_options
 
 
@@ -251,17 +262,23 @@ def conform(img, order=1):
     return new_img
 
 
-def is_conform(img, eps=1e-06):
+def is_conform(img, eps=1e-06, check_dtype=True, verbose=True):
     """
-    Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1, and
-    LIA orientation.
+    Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1,
+    LIA orientation, and data type UCHAR).
 
     :param nibabel.MGHImage img: Loaded source image
     :param float eps: allowed deviation from zero for LIA orientation check (default 1e-06).
                       Small inaccuracies can occur through the inversion operation. Already conformed images are
                       thus sometimes not correctly recognized. The epsilon accounts for these small shifts.
+    :param bool check_dtype: specifies whether the UCHAR dtype condition is checked for;
+                             this is not done when the input is a segmentation
+    :param bool verbose: if True, details of which conformance conditions are violated (if any) are displayed
     :return: True if image is already conformed, False otherwise
     """
+
+    criteria = {'Dimensions 256x256x256': True, 'Voxel size 1x1x1': True, 'Orientation LIA': True}
+
     ishape = img.shape
 
     if len(ishape) > 3 and ishape[3] != 1:
@@ -269,20 +286,34 @@ def is_conform(img, eps=1e-06):
 
     # check dimensions
     if ishape[0] != 256 or ishape[1] != 256 or ishape[2] != 256:
-        return False
+        criteria['Dimensions 256x256x256'] = False
 
     # check voxel size
     izoom = img.header.get_zooms()
     if izoom[0] != 1.0 or izoom[1] != 1.0 or izoom[2] != 1.0:
-        return False
+        criteria['Voxel size 1x1x1'] = False
 
     # check orientation LIA
     iaffine = img.affine[0:3, 0:3] + [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
 
     if np.max(np.abs(iaffine)) > 0.0 + eps:
-        return False
+        criteria['Orientation LIA'] = False
 
-    return True
+    # check dtype uchar
+    if check_dtype:
+        criteria['Dtype uint8'] = True
+        if img.get_data_dtype() != 'uint8':
+            criteria['Dtype uint8'] = False
+
+    if all(criteria.values()):
+        return True
+    else:
+        print('The input image is not conformed.')
+        if verbose:
+            print('A conformed image must satisfy the following criteria:')
+            for condition, value in criteria.items():
+                print(' - {:<30} {}'.format(condition+':', value))
+        return False
 
 
 def check_affine_in_nifti(img, logger=None):
@@ -348,8 +379,19 @@ if __name__ == "__main__":
     if len(image.shape) > 3 and image.shape[3] != 1:
         sys.exit('ERROR: Multiple input frames (' + format(image.shape[3]) + ') not supported!')
 
-    if is_conform(image):
-        sys.exit("Input " + format(options.input) + " is already conform! No output created.\n")
+    if not options.seg_input:
+        image_is_conformed = is_conform(image, check_dtype=True, verbose=options.verbose)
+    else:
+        image_is_conformed = is_conform(image, check_dtype=False, verbose=options.verbose)
+
+    if image_is_conformed:
+        print("Input " + format(options.input) + " is already conformed! Exiting.\n")
+        sys.exit(0)
+    else:
+        # Note: if check_only, a non-conforming image leads to an error code, this result is needed in recon_surf.sh
+        if options.check_only:
+            print("check_only flag provided. Exiting without conforming input image.\n")
+            sys.exit(1)
 
     # If image is nifti image
     if options.input[-7:] == ".nii.gz" or options.input[-4:] == ".nii":
