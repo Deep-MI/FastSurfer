@@ -280,7 +280,7 @@ def spherically_project_surface(insurf, outsurf, use_cholmod=True):
     takes path to insurf, spherically projects it, outputs it to outsurf
     """
     surf = read_geometry(insurf, read_metadata=True)
-    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod)
+    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod)
     fs.write_geometry(outsurf, projected.v, projected.t, volume_info=surf[2])
 
 
