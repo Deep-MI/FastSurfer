@@ -440,16 +440,8 @@ pushd $mdir
 # frontal head), we don't. Also this avoids a second call to nu correct. 
 # talairach.xfm is also not needed here at all, it can be dropped if other places in the
 # stream can be changed to avoid it. 
-cmd="mri_convert $mdir/orig.mgz $mdir/orig.nii.gz"
-RunIt "$cmd" $LF
-cmd="mri_convert $mdir/mask.mgz $mdir/mask.nii.gz"
-RunIt "$cmd" $LF
 #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.nii.gz --out $mdir/orig_nu.nii.gz --mask $mdir/mask.nii.gz  --threads $threads"
-RunIt "$cmd" $LF
-cmd="mri_convert -odt uchar $mdir/orig_nu.nii.gz $mdir/orig_nu.mgz"
-RunIt "$cmd" $LF
-cmd="rm $mdir/orig_nu.nii.gz $mdir/mask.nii.gz"
+cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
 RunIt "$cmd" $LF
 
 # talairach.xfm: compute talairach full head (25sec)

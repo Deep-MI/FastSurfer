@@ -21,6 +21,9 @@ import optparse
 import numpy as np
 import sys
 import SimpleITK as sitk
+import nibabel as nib
+import image_io as iio
+
 
 HELPTEXT = """
 
@@ -261,7 +264,8 @@ if __name__ == "__main__":
 
     # read image (only nii supported) and convert to float32
     print("\nreading {}".format(options.invol))
-    itkimage = sitk.ReadImage(options.invol, sitk.sitkFloat32)
+    #itkimage = sitk.ReadImage(options.invol, sitk.sitkFloat32)
+    itkimage, header = iio.readITKimage(options.invol, sitk.sitkFloat32, with_header=True)
 
     # if talaraich is passed
     talorig = None
@@ -271,7 +275,8 @@ if __name__ == "__main__":
 
     # read mask (as uchar)
     if options.mask:
-        itkmask = sitk.ReadImage(options.mask, sitk.sitkUInt8)
+        #itkmask = sitk.ReadImage(options.mask, sitk.sitkUInt8)
+        itkmask = iio.readITKimage(options.mask, sitk.sitkUInt8)
     else:
         itkmask=None
 
@@ -288,7 +293,8 @@ if __name__ == "__main__":
 
     # write image
     print("writing: {}".format(options.outvol))
-    sitk.WriteImage(itkcorrected, options.outvol)
+    #sitk.WriteImage(itkcorrected, options.outvol)
+    iio.writeITKimage(itkcorrected,options.outvol, header)
     
     sys.exit(0)
 
