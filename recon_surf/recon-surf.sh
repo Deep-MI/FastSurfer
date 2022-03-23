@@ -417,12 +417,12 @@ echo " " |& tee -a $LF
 conform=""
 if  [ "$hires" == "1" ]
 then
-  conform="--conform_min"
+  cmin="--conform_min"
 fi
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only $conform --verbose"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only $cmin --verbose"
 RunIt "$cmd" $LF
 
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only --seg_input --verbose"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only $cmin --seg_input --verbose"
 RunIt "$cmd" $LF
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of segmentation)
