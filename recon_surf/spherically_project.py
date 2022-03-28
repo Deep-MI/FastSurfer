@@ -87,7 +87,7 @@ def options_parse():
     return options
 
 
-def tria_spherical_project(tria, flow_iter=3, debug=False):
+def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
     """
     spherical(tria) computes the first three non-constant eigenfunctions
            and then projects the spectral embedding onto a sphere. This works
@@ -119,7 +119,7 @@ def tria_spherical_project(tria, flow_iter=3, debug=False):
         area = np.sum(areas[np.where(spatvol < 0)])
         return area
 
-    fem = Solver(tria, lump=False)
+    fem = Solver(tria, lump=False, use_cholmod=use_cholmod)
     evals, evecs = fem.eigs(k=4)
 
     if debug:
@@ -239,7 +239,7 @@ def tria_spherical_project(tria, flow_iter=3, debug=False):
     # do a few mean curvature flow euler steps to make more convex
     # three should be sufficient
     if flow_iter > 0:
-        tflow = tria_mean_curvature_flow(TriaMesh(vn, tria.t), max_iter=flow_iter)
+        tflow = tria_mean_curvature_flow(TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod)
         vn = tflow.v
 
     # project to sphere and scaled to have the same scale/origin as FS:
@@ -275,12 +275,12 @@ def tria_spherical_project(tria, flow_iter=3, debug=False):
     return trianew
 
 
-def spherically_project_surface(insurf, outsurf):
+def spherically_project_surface(insurf, outsurf, use_cholmod=True):
     """ (string) -> None
     takes path to insurf, spherically projects it, outputs it to outsurf
     """
     surf = read_geometry(insurf, read_metadata=True)
-    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3)
+    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod)
     fs.write_geometry(outsurf, projected.v, projected.t, volume_info=surf[2])
 
 
@@ -291,7 +291,8 @@ if __name__ == "__main__":
     projected_surf = options.output_surf
 
     print("Reading in surface: {} ...".format(surf_to_project))
-    spherically_project_surface(surf_to_project, projected_surf)
+    # switching cholmod off will be slower, but does not require scikit sparse cholmod
+    spherically_project_surface(surf_to_project, projected_surf, use_cholmod=False)
     print ("Outputing spherically projected surface: {}".format(projected_surf))
 
     sys.exit(0)

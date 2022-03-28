@@ -138,7 +138,7 @@ def setup_options():
 def train():
     """
     Function to train a network with the given input parameters
-    :return:
+    :return: None
     """
     args = setup_options()
 

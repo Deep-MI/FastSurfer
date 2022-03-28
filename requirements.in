@@ -1,0 +1,26 @@
+h5py==2.9.0
+matplotlib==3.1.1
+nibabel==2.5.1
+numpy==1.17.4
+scikit-image==0.15.0
+scipy==1.3.1
+python-dateutil==2.8.2
+pyyaml==5.4.1
+
+# Lapy installation from git
+git+https://github.com/Deep-MI/LaPy.git#egg=lapy
+
+# Pytorch installation
+# By default, pip will install torch v1.2.0 gpu version for CUDA 10.0
+# If you want CUDA 9.2, add +cu92 to both the torch and torchvision version
+# If you want cpuonly option, add +cpu to both the torch and torchvision version
+# See also instructions for v1.2.0 (Wheel) at: https://pytorch.org/get-started/previous-versions/
+-f https://download.pytorch.org/whl/torch_stable.html
+torch===1.2.0
+-f https://download.pytorch.org/whl/torch_stable.html
+torchvision===0.4.0
+
+# The dependency scikit-sparse is optional (but recommended) for the recon-surf script only.
+# Due to its dependency on numpy, it can however not be installed sequentially with the other
+# packages (see also https://github.com/pypa/pip/issues/25 for an indepth discussion on the topic)
+# scikit-sparse==0.4.4
