@@ -4,6 +4,7 @@ nibabel==2.5.1
 numpy==1.17.4
 scikit-image==0.15.0
 scipy==1.3.1
+simpleitk==2.1.1
 python-dateutil==2.8.2
 pyyaml==5.4.1
 
@@ -20,7 +21,3 @@ torch===1.2.0
 -f https://download.pytorch.org/whl/torch_stable.html
 torchvision===0.4.0
 
-# The dependency scikit-sparse is optional (but recommended) for the recon-surf script only.
-# Due to its dependency on numpy, it can however not be installed sequentially with the other
-# packages (see also https://github.com/pypa/pip/issues/25 for an indepth discussion on the topic)
-# scikit-sparse==0.4.4
