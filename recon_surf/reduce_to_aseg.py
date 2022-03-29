@@ -19,6 +19,9 @@ import sys
 import numpy as np
 import nibabel as nib
 import copy
+from skimage.morphology import binary_dilation, binary_erosion
+from skimage.measure import label
+from scipy.ndimage.filters import gaussian_filter as gaussian
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex lables back to left/right GM.
@@ -88,8 +91,7 @@ def reduce_to_aseg(data_inseg):
 
 
 def create_mask(aseg_data, dnum, enum):
-    from skimage.morphology import binary_dilation, binary_erosion
-    from skimage.measure import label
+
     print ("Creating dilated mask ...")
 
     # treat lateral orbital frontal and parsorbitalis special to avoid capturing too much of eye nerve
