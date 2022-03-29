@@ -21,7 +21,7 @@ import nibabel as nib
 import copy
 from skimage.morphology import binary_dilation, binary_erosion
 from skimage.measure import label
-from scipy.ndimage.filters import gaussian_filter as gaussian
+from skimage.filters import gaussian
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex lables back to left/right GM.
