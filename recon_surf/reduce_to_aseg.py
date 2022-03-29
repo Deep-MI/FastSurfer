@@ -22,9 +22,15 @@ import copy
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex lables back to left/right GM.
+
 If --outmask is used, it also creates a brainmask by dilating (5) and eroding (4) 
 the segmentation, and then selecting the largest component. In that case also the 
 segmentation is masked (to remove small components outside the main brain region).
+
+If --flipwm is passed, disconnected WM islands will be checked and potentially
+swapped to the other hemisphere. Sometimes these islands carry the wrong label 
+and are far from the main body into the other hemisphere. This will cause mri_cc
+to become really slow as it needs to cover a large search box. 
 
 
 USAGE:
@@ -51,6 +57,7 @@ Date: Jul-24-2018
 h_input = 'path to input segmentation'
 h_output = 'path to ouput segmentation'
 h_outmask = 'path to ouput mask'
+h_fixwm = 'whether to try to flip lables of disconnected WM island to other hemi'
 
 
 def options_parse():
@@ -59,9 +66,10 @@ def options_parse():
     """
     parser = optparse.OptionParser(version='$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $',
                                    usage=HELPTEXT)
-    parser.add_option('--input', '-i', dest='input_seg', help=h_input)
-    parser.add_option('--output', '-o', dest='output_seg', help=h_output)
-    parser.add_option('--outmask', dest='output_mask', help=h_outmask)
+    parser.add_option('--input', '-i',  dest='input_seg',   help=h_input)
+    parser.add_option('--output', '-o', dest='output_seg',  help=h_output)
+    parser.add_option('--outmask',      dest='output_mask', help=h_outmask)
+    parser.add_option('--fixwm',        dest='fix_wm',      help=h_fixwm, default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     if options.input_seg is None or options.output_seg is None:
@@ -117,6 +125,51 @@ def create_mask(aseg_data, dnum, enum):
     return aseg_data
 
 
+def flip_wm_islands(aseg_data):
+# Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
+# These are usually islands, not connected ot the main hemi WM component
+# Here we decide to flip assignment based on proximity to other WM and GM labels
+
+    #label ids
+    lh_wm = 2
+    lh_gm = 3
+    rh_wm = 41
+    rh_gm = 42
+
+    # for lh get largest component and islands
+    mask = (aseg_data == lh_wm)
+    labels = label(mask, background=0)
+    assert( labels.max() != 0 ) # assume at least 1 connected component
+    bc = np.bincount(labels.flat)[1:]
+    largestID = np.argmax(bc)+1
+    largestCC = (labels == largestID)
+    lh_islands = ( ~ largestCC) & (labels > 0)
+
+    # same for rh
+    mask = (aseg_data == rh_wm)
+    labels = label(mask, background=0)
+    assert( labels.max() != 0 ) # assume at least 1 CC
+    bc = np.bincount(labels.flat)[1:]
+    largestID = np.argmax(bc)+1
+    largestCC = labels == largestID
+    rh_islands = (labels != largestID ) & (labels > 0)
+
+    # get signed probability for lh and rh (by smoothing joined GM+WM labels)
+    lhmask = (aseg_data == lh_wm) | (aseg_data == lh_gm)
+    rhmask = (aseg_data == rh_wm) | (aseg_data == rh_gm)
+    ii = gaussian(lhmask.astype(float) * (-1) + rhmask.astype(float), sigma=1.5)
+
+    # flip island
+    rhswap = rh_islands & (ii < 0.0)
+    lhswap = lh_islands & (ii > 0.0)
+    flip_data = aseg_data.copy()
+    flip_data[rhswap] = lh_wm
+    flip_data[lhswap] = rh_wm
+    print("FlipWM: rh {} and lh {} flipped.".format(rhswap.sum(),lhswap.sum()))
+
+    return flip_data
+
+
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
@@ -143,6 +196,9 @@ if __name__ == "__main__":
     if options.output_mask:
         # mask aseg also
         aseg[bm == 0] = 0
+
+    if options.fix_wm:
+        aseg = flip_wm_islands(aseg)
 
     print ("Outputing aseg: {}".format(options.output_seg))
     aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
