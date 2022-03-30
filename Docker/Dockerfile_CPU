@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	 perl-modules && \
          apt-get clean && \
          rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-	 wget -qO- https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /opt \
+	 wget -qO- https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer-linux-centos6_x86_64-7.2.0.tar.gz | tar zxv --no-same-owner -C /opt \
     	--exclude='freesurfer/trctrain' \
     	--exclude='freesurfer/subjects/fsaverage_sym' \
     	--exclude='freesurfer/subjects/fsaverage3' \
@@ -72,7 +72,8 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py37_
 ENV PATH /opt/conda/bin:$PATH
 
 # install pip related dependencies
-RUN python$PYTHON_VERSION -m pip install -U git+https://github.com/Deep-MI/LaPy.git#egg=lapy
+RUN python$PYTHON_VERSION -m pip install -U git+https://github.com/Deep-MI/LaPy.git#egg=lapy && \
+    python$PYTHON_VERSION -m pip install simpleitk==2.1.1
 
 # Add FreeSurfer Environment variables (.license file needed, alternatively export FS_LICENSE=path/to/license)
 ENV OS=Linux \
@@ -88,8 +89,8 @@ ENV OS=Linux \
     MINC_LIB_DIR=/opt/freesurfer/mni/lib \
     MNI_DATAPATH=/opt/freesurfer/mni/data \
     FMRI_ANALYSIS_DIR=/opt/freesurfer/fsfast \
-    PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 \
-    MNI_PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 \
+    PERL5LIB=/opt/freesurfer/mni/share/perl5 \
+    MNI_PERL5LIB=/opt/freesurfer/mni/share/perl5 \
     PYTHONUNBUFFERED=0 \
     PATH=/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
 
