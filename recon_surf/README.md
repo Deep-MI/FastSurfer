@@ -32,7 +32,7 @@ List them by running the following command:
 * --threads: Set openMP and ITK threads to <int>
 
 ### Other
-* --py: which python version to use. Default: python3.6
+* --py: which python version to use. Default: python3.8
 
 ### Example 1: recon-surf on a single subject (subject1)
 
@@ -53,7 +53,7 @@ targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_
 ./recon-surf.sh --sid subject1 \
                 --sd $targetdir \
                 --t1 $datadir/subject1/orig.mgz 
-                --py python3.6
+                --py python3.8
 
 ```
 
@@ -90,7 +90,7 @@ while read p ; do
   nohup ./recon-surf.sh --sid ${p} \
                         --sd $targetdir \
                         --t1 $datadir/${p}/orig.mgz \
-                        --py python3.6 > $targetdir/logs/out-${p}.log &
+                        --py python3.8 > $targetdir/logs/out-${p}.log &
   sleep 3 
 done < /home/user/my_mri_data/subject_list.txt
 
