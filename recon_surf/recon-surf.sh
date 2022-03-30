@@ -29,7 +29,7 @@ fstess=0;       # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0;    # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0;	# run FS aparc (and cortical ribbon), if 0 map aparc from seg input
 fssurfreg=0;  # run FS surface registration to fsaverage, if 0 omit this step
-python="python3.6" # python version
+python="python3.8" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
 
@@ -63,7 +63,7 @@ function usage()
     echo -e "\t--surfreg                     Run Surface registration with FreeSurfer (for cross-subject correspondence)"
     echo -e "\t--parallel                    Run both hemispheres in parallel"
     echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
-    echo -e "\t--py <python_cmd>             Command for python, default 'python36'"
+    echo -e "\t--py <python_cmd>             Command for python, default 'python3.8'"
     echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
     echo -e "\t-h --help                     Print Help"
     echo ""
