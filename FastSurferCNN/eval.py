@@ -471,14 +471,14 @@ if __name__ == "__main__":
         if not op.exists(op.join(sub_dir, 'orig')):
             makedirs(op.join(sub_dir, 'orig'))
 
+        # Save input image to standard location
+        input_image = nib.load(options.iname)
+        save_image(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header, op.join(sub_dir, 'orig', '001.mgz'))
+
         # Check if conformed image directory exists and create it otherwise
         sub_dir, out = op.split(options.conformed_name)
         if not op.exists(sub_dir):
             makedirs(sub_dir)
-
-        # Save input image to standard location
-        input_image = nib.load(options.iname)
-        save_image(np.asanyarray(input_image.dataobj), input_image.affine, input_image.header, op.join(sub_dir, 'orig', '001.mgz'))
 
         fastsurfercnn(options.iname, options.oname, options.conformed_name, use_cuda, small_gpu, logger, options)
 
