@@ -62,7 +62,7 @@ List them by running the following command:
 * --threads: Set openMP and ITK threads to <int>
 
 ### Other
-* --py: which python version to use. Default: python3.6
+* --py: which python version to use. Default: python3.8
 * --seg_only: only run FastSurferCNN (generate segmentation, do not run the surface pipeline)
 * --surf_only: only run the surface pipeline recon_surf. The segmentation created by FastSurferCNN must already exist in this case.
     

@@ -1,8 +1,9 @@
 ## Start with Docker pytorch base
 
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 ENV LANG=C.UTF-8
-ARG PYTHON_VERSION=3.6
+ARG PYTHON_VERSION=3.8
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install custom libraries + freesurfer 6.0 (and necessary dependencies)
 RUN apt-get update && apt-get install -y --no-install-recommends \

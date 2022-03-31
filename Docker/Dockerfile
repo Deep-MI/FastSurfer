@@ -1,8 +1,9 @@
 ## Start with Docker pytorch base
 
-FROM nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04
+FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu20.04
 ENV LANG=C.UTF-8
-ARG PYTHON_VERSION=3.6
+ARG PYTHON_VERSION=3.8
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install custom libraries + freesurfer 6.0 (and necessary dependencies)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -49,7 +50,7 @@ RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py37_
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh && \
      /opt/conda/bin/conda install -y python=$PYTHON_VERSION python-dateutil pyyaml numpy scipy matplotlib h5py scikit-image && \
-     /opt/conda/bin/conda install -y -c pytorch cudatoolkit=10.0 "pytorch=1.2.0=py3.6_cuda10.0.130_cudnn7.6.2_0" torchvision=0.4.0 && \
+     /opt/conda/bin/conda install -y pytorch=1.10.0 torchvision=0.11.1 cudatoolkit=11.3 -c pytorch && \
      /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=8.3.2 && \
      /opt/conda/bin/conda clean -ya
 ENV PATH /opt/conda/bin:$PATH
