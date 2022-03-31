@@ -17,7 +17,6 @@
 
 VERSION='$Id$'
 FS_VERSION_SUPPORT="7.2.0"
-timecmd="fs_time"
 
 # Regular flags default
 t1=""; # Path and name of T1 input
@@ -43,6 +42,9 @@ then
 else
   binpath="$FASTSURFER_HOME/recon_surf/"
 fi
+
+# fs_time command from fs60, fs72 fails in parallel mode
+timecmd="${binpath}fs_time"
 
 function usage()
 {
