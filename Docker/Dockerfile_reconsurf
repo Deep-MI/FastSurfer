@@ -95,6 +95,7 @@ ENV OS=Linux \
 # Add FastSurfer recon-surf (copy application code) to docker image
 COPY . /fastsurfer/
 WORKDIR "/fastsurfer"
+ENV FASTSURFER_HOME=/fastsurfer
 
 ENTRYPOINT ["./recon_surf/recon-surf.sh"]
 CMD ["--help"]
