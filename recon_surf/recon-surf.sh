@@ -278,6 +278,8 @@ then
   echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
   exit 1;
 fi
+# needed in FS72 due to a bug in recon-all --fill using FREESURFER instead of FREESURFER_HOME
+export FREESURFER=$FREESURFER_HOME   
 
 if [ "$check_version" == "1" ]
 then
