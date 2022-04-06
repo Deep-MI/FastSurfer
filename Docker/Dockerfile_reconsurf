@@ -13,6 +13,7 @@ RUN apt update && apt-get install -y --no-install-recommends \
       time \
       bc \
       gawk \
+      ca-certificates \
       libgomp1 && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
