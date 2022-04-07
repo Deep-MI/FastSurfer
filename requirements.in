@@ -1,8 +1,8 @@
-h5py==2.9.0
+h5py==3.6.0
 matplotlib==3.5.1
-nibabel==2.5.1
+nibabel==3.2.2
 numpy==1.22.3
-scikit-image==0.18.3
+scikit-image==0.19.2
 scipy==1.8.0
 python-dateutil==2.8.2
 simpleitk==2.1.1
