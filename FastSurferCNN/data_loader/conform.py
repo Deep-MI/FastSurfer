@@ -25,7 +25,7 @@ Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropi
 
 
 USAGE:
-conform.py  -i <input> -o <output> <options>
+conform.py  -i <input> -o <output>
 
 
 Dependencies:
