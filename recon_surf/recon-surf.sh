@@ -296,7 +296,7 @@ then
     echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat $FREESURFER_HOME/build-stamp.txt)."
     echo "We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT "
     echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
-    echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT "
+    echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT
     echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
     exit 1;
   fi
