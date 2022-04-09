@@ -1,44 +1,73 @@
-## Start with Docker pytorch base
-
-FROM ubuntu:20.04
+## Start with ubuntu as build container
+FROM ubuntu:20.04 AS build
 ENV LANG=C.UTF-8
 ARG PYTHON_VERSION=3.8
+ARG CONDA_FILE=Miniconda3-py38_4.11.0-Linux-x86_64.sh
+#ARG CONDA_FILE=Miniconda3-py37_4.10.3-Linux-x86_64.sh
 ENV DEBIAN_FRONTEND=noninteractive
 
-# get fastsurfer into docker (needed for some install scripts)
-COPY . /fastsurfer/
+# get install scripts into docker
+COPY ./fastsurfer_env_reconsurf.yml /fastsurfer/fastsurfer_env_reconsurf.yml
+COPY ./Docker/install_fs_pruned.sh /fastsurfer/install_fs_pruned.sh
 
-# Install custom libraries, freesurfer dependencies
-# Install miniconda python packages, pip packages and freesurfer
+# Install packages needed for build
 RUN apt-get update && apt-get install -y --no-install-recommends \
       wget \
       git \
-      tcsh \
-      time \
-      bc \
-      gawk \
       ca-certificates \
-      libgomp1 \
       upx \
       file && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
-    
-RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py37_4.10.3-Linux-x86_64.sh  && \
+
+# Insstall conda
+RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/$CONDA_FILE  && \
      chmod +x ~/miniconda.sh && \
      ~/miniconda.sh -b -p /opt/conda && \
-     rm ~/miniconda.sh && \
-     /opt/conda/bin/conda install -y python=$PYTHON_VERSION python-dateutil=2.8.2 pyyaml=6.0 scikit-image=0.19.2 && \
-     /opt/conda/bin/conda install -y -c conda-forge pillow=9.0.1 && \
-     /opt/conda/bin/conda clean -ya
+     rm ~/miniconda.sh 
+
 ENV PATH /opt/conda/bin:$PATH
 
-RUN python$PYTHON_VERSION -m pip install -U git+https://github.com/Deep-MI/LaPy.git#egg=lapy && \
-    python$PYTHON_VERSION -m pip install simpleitk==2.1.1 && \
-    python$PYTHON_VERSION -m pip install numpy==1.22.3 && \
-    python$PYTHON_VERSION -m pip install scipy==1.8.0 && \
-    python$PYTHON_VERSION -m pip install nibabel==3.2.2 && \
-    /fastsurfer/Docker/install_fs_pruned.sh /opt --upx
+# Install our dependencies
+RUN conda env create -f /fastsurfer/fastsurfer_env_reconsurf.yml 
+
+# Install conda-pack:
+RUN conda install -c conda-forge conda-pack
+
+# Use conda-pack to create a standalone enviornment in /venv:
+RUN conda-pack -n fastsurfer_reconsurf -o /tmp/env.tar && \
+  mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
+  rm /tmp/env.tar
+
+# Now that venv in a new location, fix up paths:
+RUN /venv/bin/conda-unpack
+ENV PATH /venv/bin:$PATH
+
+# setup shell for install command below
+RUN echo "source /venv/bin/activate" >> ~/.bashrc
+SHELL ["/bin/bash", "--login", "-c"]
+
+# install freesurfer and point to new python location
+RUN /fastsurfer/install_fs_pruned.sh /opt --upx && \
+    rm /opt/freesurfer/bin/fspython && \
+    ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
+
+
+# ========================================
+# Here we create the smaller runtime image
+# ========================================
+
+FROM ubuntu:20.04 AS runtime
+
+# Install required packages for freesurfer to run
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      tcsh \
+      time \
+      bc \
+      gawk \
+      libgomp1 && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
 # Add FreeSurfer Environment variables
 ENV OS=Linux \
@@ -50,9 +79,19 @@ ENV OS=Linux \
     PYTHONUNBUFFERED=0 \
     PATH=/opt/freesurfer/bin:$PATH
 
+# make sure we use bash and activate conda env
+#  (in case someone starts this interactively)
+RUN echo "source /venv/bin/activate" >> ~/.bashrc
+SHELL ["/bin/bash", "--login", "-c"]
 
-# Set FastSurfer env and workdir:
+# Copy venv fastsurfer and pruned freesurfer from builder
+COPY --from=build /venv /venv
+COPY --from=build /opt/freesurfer /opt/freesurfer
+COPY . /fastsurfer/
+
+# Set FastSurfer workdir and entrypoint
+#  the script entrypoint ensures that our conda env is active
 WORKDIR "/fastsurfer"
 ENV FASTSURFER_HOME=/fastsurfer
-ENTRYPOINT ["./recon_surf/recon-surf.sh"]
+ENTRYPOINT ["./Docker/entrypoint.sh","./recon_surf/recon-surf.sh"]
 CMD ["--help"]

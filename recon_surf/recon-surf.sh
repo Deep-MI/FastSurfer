@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Enable strict mode pipefail
+set -euo pipefail
 
 VERSION='$Id$'
 FS_VERSION_SUPPORT="7.2.0"
@@ -336,19 +338,6 @@ then
 fi
 
 
-# Print parallelization parameters
-echo " " |& tee -a $LF
-if [ "$DoParallel" == "1" ]
-then
-  echo " RUNNING both hemis in PARALLEL " |& tee -a $LF
-else
-  echo " RUNNING both hemis SEQUENTIALLY " |& tee -a $LF
-fi
-echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " |& tee -a $LF
-echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " |& tee -a $LF
-echo " " |& tee -a $LF
-
-
 # collect info
 StartTime=`date`;
 tSecStart=`date '+%s'`;
@@ -389,6 +378,22 @@ echo "" |& tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt |& tee -a $LF
 echo $VERSION |& tee -a $LF
 uname -a  |& tee -a $LF
+
+
+# Print parallelization parameters
+echo " " |& tee -a $LF
+if [ "$DoParallel" == "1" ]
+then
+  echo " RUNNING both hemis in PARALLEL " |& tee -a $LF
+else
+  echo " RUNNING both hemis SEQUENTIALLY " |& tee -a $LF
+fi
+echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " |& tee -a $LF
+echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " |& tee -a $LF
+echo " " |& tee -a $LF
+
+
+
 
 #if false; then
 
