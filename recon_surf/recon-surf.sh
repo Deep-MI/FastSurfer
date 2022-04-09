@@ -274,7 +274,7 @@ if [ -z "$FREESURFER_HOME" ]
 then
   echo "Did not find \$FREESURFER_HOME. A working version of FreeSurfer $FS_VERSION_SUPPORT is needed to run recon-surf locally."
   echo "Make sure to export and source FreeSurfer before running recon-surf.sh: "
-  echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
+  echo "export FREESURFER_HOME=/path/to/your/local/freesurfer"
   echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
   exit 1;
 fi
@@ -288,7 +288,7 @@ then
     echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat $FREESURFER_HOME/build-stamp.txt)."
     echo "We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT "
     echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
-    echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT
+    echo "export FREESURFER_HOME=/path/to/your/local/freesurfer"
     echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
     exit 1;
   fi
@@ -327,8 +327,6 @@ then
 fi
 
 # set threads for openMP and itk
-# if OMP_NUM_THREADS is not set and available ressources are too vast, mc will fail with segmentation fault!
-# Therefore we set it to 1 as default above, if nothing is specified.
 fsthreads=""
 export OMP_NUM_THREADS=$threads
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
@@ -456,7 +454,7 @@ RunIt "$cmd" $LF
 # create copy
 cmd="cp $mdir/transforms/talairach.auto.xfm $mdir/transforms/talairach.xfm"
 RunIt "$cmd" $LF
-# talairach.lta: convert to lta
+# talairach.lta:  convert to lta
 cmd="lta_convert --src $mdir/orig.mgz --trg $FREESURFER_HOME/average/mni305.cor.mgz --inxfm $mdir/transforms/talairach.xfm --outlta $mdir/transforms/talairach.xfm.lta --subject fsaverage --ltavox2vox"
 RunIt "$cmd" $LF
 
