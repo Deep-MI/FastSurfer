@@ -409,7 +409,7 @@ echo "================== Creating orig and rawavg from input ===================
 echo " " |& tee -a $LF
 
 # check for input conformance
-cmin=""
+conform=""
 if  [ "$hires" == "1" ]
 then
   cmin="--conform_min"
