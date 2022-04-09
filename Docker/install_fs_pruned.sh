@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/bash --login
+
+# --login to read bashrc for conda inside docker
 
 if [ "$#" -lt 1 ]; then
     echo
