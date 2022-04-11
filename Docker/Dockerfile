@@ -1,6 +1,7 @@
 ## Start with ubuntu base
 
 FROM ubuntu:20.04 AS build
+
 ENV LANG=C.UTF-8
 ARG PYTHON_VERSION=3.8
 ARG CONDA_FILE=Miniconda3-py38_4.11.0-Linux-x86_64.sh
