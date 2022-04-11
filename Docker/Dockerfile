@@ -1,6 +1,6 @@
-## Start with Docker pytorch base
+## Start with ubuntu base
 
-FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu20.04 AS build
+FROM ubuntu:20.04 AS build
 ENV LANG=C.UTF-8
 ARG PYTHON_VERSION=3.8
 ARG CONDA_FILE=Miniconda3-py38_4.11.0-Linux-x86_64.sh
@@ -56,7 +56,7 @@ RUN /fastsurfer/install_fs_pruned.sh /opt --upx && \
 # Here we create the smaller runtime image
 # ========================================
 
-FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu20.04 AS runtime
+FROM ubuntu:20.04 AS runtime
 
 # Install required packages for freesurfer to run
 RUN apt-get update && apt-get install -y --no-install-recommends \
