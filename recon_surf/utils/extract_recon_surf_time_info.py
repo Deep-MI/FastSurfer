@@ -43,8 +43,10 @@ if __name__ == "__main__":
 
     timestamp_feature = '@#@FSTIME'
     recon_all_stage_feature = '#@# '
-    cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command', 'failed']
-    filtered_cmds = ['ln ', 'rm ']
+    cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command', 'failed', 'FSRUNTIME@',
+                               'ru_nivcsw', 'ru_nvcsw', 'ru_nsignals', 'ru_msgrcv', 'ru_msgsnd', 'ru_oublock', 'ru_inblock', 'ru_nswap',
+                               'ru_majflt', 'ru_minflt', 'ru_isrss', 'ru_idrss', 'ru_ixrss', 'ru_maxrss', 'stimesec', 'utimesec', '#' ]
+    filtered_cmds = ['ln ', 'rm ', 'cp ']
 
     if args.output_file_path == '':
         output_file_path = args.input_file_path.rsplit('/', 1)[0] + '/' + 'recon-surf_times.yaml'
