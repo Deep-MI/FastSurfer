@@ -112,7 +112,7 @@ if __name__ == "__main__":
                 print('[WARN] Could not find the line containing the full command for {} in line {}! Skipping...\n'.format(cmd_name[:-1], i))
                 continue
 
-            entry_dict['cmd'] = cmd_line
+            entry_dict['cmd'] = cmd_line.lstrip()
             entry_dict['start'] = start_time
             entry_dict['stop'] = end_time
             if time_units == 's':
