@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     for i, line in enumerate(lines):
         ## Use recon_surf "stage" names as top level of recon-surf_commands entries:
-        if '======' in line:
+        if '======' in line and 'teration' not in line:
             stage_line = line
             current_recon_surf_stage_name = stage_line.strip('=')[1:-1].replace(' ', '-')
             if current_recon_surf_stage_name == 'DONE':
