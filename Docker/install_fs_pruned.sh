@@ -139,6 +139,7 @@ copy_files="
   bin/mris_sphere
   bin/mris_register
   bin/mris_fix_topology
+  bin/mris_topo_fixer
   bin/mris_euler_number
   bin/defect2seg
   bin/mri_label2vol
@@ -319,7 +320,6 @@ link_files="
   bin/mri_stats2seg
   bin/mris_thickness
   bin/mris_thickness_diff
-  bin/mris_topo_fixer
   bin/mri_surf2surf
   bin/mri_surf2vol
   bin/mri_surfcluster
