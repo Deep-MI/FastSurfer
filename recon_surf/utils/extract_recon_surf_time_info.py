@@ -45,7 +45,8 @@ if __name__ == "__main__":
     recon_all_stage_feature = '#@# '
     cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command', 'failed', 'FSRUNTIME@',
                                'ru_nivcsw', 'ru_nvcsw', 'ru_nsignals', 'ru_msgrcv', 'ru_msgsnd', 'ru_oublock', 'ru_inblock', 'ru_nswap',
-                               'ru_majflt', 'ru_minflt', 'ru_isrss', 'ru_idrss', 'ru_ixrss', 'ru_maxrss', 'stimesec', 'utimesec', '#' ]
+                               'ru_majflt', 'ru_minflt', 'ru_isrss', 'ru_idrss', 'ru_ixrss', 'ru_maxrss', 'stimesec', 'utimesec', '#' ,
+                               'This may cause']
     filtered_cmds = ['ln ', 'rm ', 'cp ']
 
     if args.output_file_path == '':
