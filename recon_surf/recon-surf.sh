@@ -828,7 +828,7 @@ if [ "$fsaparc" == "0" ] ; then
   RunIt "$cmd" $LF
   popd
   for hemi in lh rh; do
-    cmd="pctsurfcon --subject $subject --$hemi-only"
+    cmd="pctsurfcon --s $subject --$hemi-only"
     RunIt "$cmd" $LF
   done
   pushd $ldir
