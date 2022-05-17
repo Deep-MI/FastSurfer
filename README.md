@@ -17,11 +17,13 @@ Within this repository, we provide the code and Docker files for running FastSur
 ![](/images/teaser.png)
 
 ## Usage
-There are two ways to run FastSurfer - (a) as a native install or (b) using Docker. 
+There are three ways to run FastSurfer - (a) as a native install, (b) using Docker, (c) using Singularity
 
 (a) For a __native install__ on a modern linux (e.g. Ubuntu 18.04 or Centos 7, or higher), download this github repository (use git clone or download as zip and unpack) for the necessary source code and python scripts. You also need to have the necessary Python 3 libraries installed (see __requirements.txt__) as well as bash-4.0 or higher (when using pip, upgrade pip first as older versions will fail). This is already enough to generate the whole-brain segmentation using FastSurferCNN (see the README.md in the FastSurferCNN directory for the exact commands). In order to run the whole FastSurfer pipeline locally on your machine, a working version of __FreeSurfer__ (v6.0, https://surfer.nmr.mgh.harvard.edu/fswiki/rel6downloads) is needed (specifically to run recon-surf). See [Example 1](#example-1:-fastSurfer-on-subject1) and [Example 2](#example-2:-fastSurfer-on-multiple-subjects-(parallel-processing)) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
 
 (b) For a __docker version__, simply use the provided Dockerfiles in our Docker directory to build your image (see the README.md in the Docker directory). No other local installations are needed (FreeSurfer and everything else will be included, you only need to provide a [FreeSurfer license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License)). We will also make a Docker image available on Dockerhub in the near future (probably with the official release of version 1.0, the current release is beta). See [Example 3](#example-3:-fastSurfer-inside-docker) for an example how to run FastSurfer inside a Docker container. Mac users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details).
+
+(c) For a __singularity version__, use the desired Docker image to build the corresponding Singularity image (see the README.md in the Singularity directory for directions on building from Docker). Note that the `--gpus all` argument from Docker is replaced with `--nv` when running in Singularity, along with other arguments shown in the example command below (see [Example 4](#example-4:-fastSurfer-inside-singularity)).
 
 The main script called __run_fastsurfer.sh__ can be used to run both FastSurferCNN and recon-surf sequentially on a given subject. There are several options which can be selected and set via the command line. 
 List them by running the following command:
@@ -141,6 +143,30 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 * You can also run a CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
 
+### Example 4: FastSurfer inside Singularity
+After building the Singularity image (see instructions in ./Singularity/README.md), you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the --fs_license flag.
+
+To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:
+
+```bash
+singularity exec --nv -B /home/user/my_mri_data:/data \
+                      -B /home/user/my_fastsurfer_analysis:/output \
+                      -B /home/user/my_fs_license_dir:/fs60 \
+                       /home/user/fastsurfer-gpu.sif \
+                       /fastsurfer/run_fastsurfer.sh \
+                      --fs_license /fs60/.license \
+                      --t1 /data/subject2/orig.mgz \
+                      --sid subject2 --sd /output \
+                      --parallel
+```
+
+* The `--nv` flag is used to access GPU resources. 
+* The -B commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs60). 
+* The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+* Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -B arguments. 
+* A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+* You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
+                               
 ## System Requirements
 
 Recommendation: At least 8GB CPU RAM and 8GB NVIDIA GPU RAM ```--batch 1 --run_viewagg_on gpu```  
