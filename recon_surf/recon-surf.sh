@@ -445,12 +445,14 @@ pushd $mdir
 # the mask due to a bug in AntsN4BiasFieldCorrectionFs wrapper).
 # This re-implementation uses N4 from simpleITK with our brainmask, we also directly 
 # scale WM to 110 using a ball at the center of the mask with radius 50 (similar to FS,
-# which uses origin of talaorach.xfm and grabs quite a few non brain region in the
+# which uses origin of talairach.xfm and grabs quite a few non brain region in the
 # frontal head), we don't. Also this avoids a second call to nu correct. 
 # talairach.xfm is also not needed here at all, it can be dropped if other places in the
 # stream can be changed to avoid it. 
-#cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
+# FS60 cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
+# FS72 cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --ants-n4 --n 1 --proto-iters 1000 --distance 50"
+#cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
+cmd="$python ${binpath}/bias_field_correction.py --image $mdir/orig.mgz --seg $mdir/aseg.auto_noCCseg.mgz --out orig_nu.mgz --bf bias_field.mgz --norm"
 RunIt "$cmd" $LF
 
 # talairach.xfm: compute talairach full head (25sec)
@@ -464,9 +466,10 @@ cmd="lta_convert --src $mdir/orig.mgz --trg $FREESURFER_HOME/average/mni305.cor.
 RunIt "$cmd" $LF
 
 # FS would here create better nu.mgz using talairach transform (finds wm and maps it to approx 110)
-#NuIterations="1 --proto-iters 1000 --distance 50"  # default 3T
+# NuIterations="1 --proto-iters 1000 --distance 50"  # default 3T
 #FS60 cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --mask $mdir/mask.mgz"
-#FS72 cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --ants-n4"
+# FS72 cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --ants-n4"
+#RunIt "$cmd" $LF
 # all this is basically useless, as we did a good orig_nu already, including WM normalization
 
 # Add xfm to nu (we use orig_nu as input to write nu.mgz)
