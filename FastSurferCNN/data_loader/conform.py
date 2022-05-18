@@ -250,8 +250,7 @@ def conform(img, order=1):
 
     if not img.get_data_dtype() == np.dtype(np.uint8):
 
-        if np.max(mapped_data) > 255:
-            mapped_data = scalecrop(mapped_data, 0, 255, src_min, scale)
+        mapped_data = scalecrop(mapped_data, 0, 255, src_min, scale)
 
     new_data = np.uint8(np.rint(mapped_data))
     new_img = nib.MGHImage(new_data, h1.get_affine(), h1)
@@ -369,6 +368,7 @@ def check_affine_in_nifti(img, logger=None):
 
     return check
 
+
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
@@ -400,7 +400,7 @@ if __name__ == "__main__":
             sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
     new_image = conform(image, options.order)
-    print ("Writing conformed image: {}".format(options.output))
+    print("Writing conformed image: {}".format(options.output))
 
     nib.save(new_image, options.output)
 
