@@ -469,6 +469,12 @@ RunIt "$cmd" $LF
 #FS72 cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --ants-n4"
 # all this is basically useless, as we did a good orig_nu already, including WM normalization
 
+# Since we do not run mri_em_register we sym-link other talairach transform files here
+cmd="ln -sf talairach.xfm.lta talairach_with_skull.lta"
+RunIt "$cmd" $LF
+cmd="ln -sf talairach.xfm.lta talairach.lta"
+RunIt "$cmd" $LF
+
 # Add xfm to nu (we use orig_nu as input to write nu.mgz)
 cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $mdir/orig_nu.mgz $mdir/nu.mgz"
 RunIt "$cmd" $LF
