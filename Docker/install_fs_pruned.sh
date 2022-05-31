@@ -363,7 +363,7 @@ ln -s $p3 $fsd/bin/fspython
 # (it misunderstands -hemi as -h for help and emi)
 # sed -i 's/allow_abbrev=False/allow_abbrev=False,add_help=False/' $fsd/python/scripts/rca-config 
 # this and problem with -s has been fixed in freesurfer dev, so we get it from there:
-wget https://raw.githubusercontent.com/freesurfer/freesurfer/dev/scripts/rca-config -O $fsd/python/scripts/rca-config
+wget https://raw.githubusercontent.com/freesurfer/freesurfer/c10e63484a3cfda5c272641241427fa154777cc2/scripts/rca-config -O $fsd/python/scripts/rca-config
 
 #cleanup
 rm -rf $fss
