@@ -303,12 +303,23 @@ if [ "${seg: -3}" != "${conformed_name: -3}" ]
     exit 1;
 fi
 
-if [ "$surf_only" == "1" ] && [ ! -f "$seg" ]
+if [ "$surf_only" == "1" ]
   then
-    echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
-    echo "You passed --surf_only but the whole-brain segmentation ($seg) could not be found."
-    echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --seg"
-    exit 1;
+    if [ ! -f "$seg" ]
+    then
+        echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
+        echo "You passed --surf_only but the whole-brain segmentation ($seg) could not be found."
+        echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --seg"
+        exit 1;
+    fi
+    if [ ! -f "$conformed_name" ]
+    then
+        echo "ERROR: To run the surface pipeline only, a conformed T1 image must already exist."
+        echo "You passed --surf_only but the conformed image ($conformed_name) could not be found."
+        echo "If the conformed image is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/orig.mgz),"
+        echo "specify the absolute path and name via --conformed_name."
+        exit 1;
+    fi
 fi
 
 if [ "$surf_only" == "1" ] && [ "$seg_only" == "1" ]
