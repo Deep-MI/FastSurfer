@@ -273,8 +273,12 @@ copy_files="
   subjects/fsaverage/label/rh.hOc2.mpm.vpnl.label
   subjects/fsaverage/label/rh.hOc3v.mpm.vpnl.label
   subjects/fsaverage/label/rh.hOc4v.mpm.vpnl.label
+  subjects/fsaverage/label/lh.aparc.annot
+  subjects/fsaverage/label/rh.aparc.annot
   subjects/fsaverage/surf/lh.sphere.reg
   subjects/fsaverage/surf/rh.sphere.reg
+  subjects/fsaverage/surf/lh.sphere
+  subjects/fsaverage/surf/rh.sphere
   subjects/fsaverage/surf/lh.white
   subjects/fsaverage/surf/rh.white
   python/scripts/rca-config
