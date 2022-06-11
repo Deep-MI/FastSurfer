@@ -26,7 +26,7 @@ singularity exec --nv -B /home/user/my_mri_data:/data \
                       -B /home/user/my_fs_license_dir:/fs \
                        /home/user/fastsurfer-gpu.sif \
                        /fastsurfer/run_fastsurfer.sh \
-                      --fs_license /fs/.license \
+                      --fs_license /fs/license.txt \
                       --t1 /data/subject2/orig.mgz \
                       --sid subject2 --sd /output \
                       --parallel
