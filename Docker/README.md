@@ -26,7 +26,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
                       --rm --user 123X fastsurfer:gpu \
-                      --fs_license /fs_license/.license \
+                      --fs_license /fs_license/license.txt \
                       --t1 /data/subject2/orig.mgz \
                       --sid subject2 --sd /output \
                       --parallel
@@ -57,7 +57,7 @@ docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
            -v /home/user/my_fs_license_dir:/fs_license \
            --rm --user 123X fastsurfer:cpu \
-           --fs_license /fs_license/.license \
+           --fs_license /fs_license/license.txt \
            --t1 /data/subject2/orig.mgz \
            --no_cuda \
            --sid subject2 --sd /output \
@@ -134,7 +134,7 @@ docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
            -v /home/user/my_fs_license_dir:/fs_license \
            --rm --user 123X fastsurfer_reconsurf:cpu \
-           --fs_license /fs_license/.license \
+           --fs_license /fs_license/license.txt \
            --t1 /data/subject2/orig.mgz \
            --sid subject2 --sd /output \
            --parallel
