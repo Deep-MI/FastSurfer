@@ -683,17 +683,22 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central 
   # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not 
   # seem to do this, so we initialize the spherical registration with the better 
-  # label from FastSurferCNN, this replaces recon-al -surfreg
-  # 1. extract label 24 = precentral from FastSurferCNN mapped annotation
-  cmd="mri_annotation2label --subject $subject --hemi $hemi --label 24 --labelbase ${hemi}.mapped --annotation aparc.DKTatlas.mapped --surface white.preaparc"
+  # cortical segmentation from FastSurferCNN, this replaces recon-al -surfreg
+  # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
+  # (note the former fix, initializing with pre-central label, is not working in FS7.2
+  # as they broke the label initializiation in mris_register)
+  cmd="$python ${binpath}/rotate_sphere.py \
+       --srcsphere $sdir/${hemi}.sphere \
+       --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
+       --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
+       --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
+       --out $sdir/${hemi}.angles.txt"
   RunIt "$cmd" $LF "$CMDF"
-  # 2. guide spherical registration to align label 24 to precentral in the atlas
-  cmd="mris_register -curv \
-       -L ${ldir}/${hemi}.mapped-024.label \
-       $FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs precentral \
-       $SUBJECTS_DIR/$subject/surf/${hemi}.sphere \
+  # 2. use global rotation as initialization to non-linear registration:
+  cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
+       $sdir/${hemi}.sphere \
        $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
-       $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg"
+       $sdir/${hemi}.sphere.reg"
   RunIt "$cmd" $LF "$CMDF"
   # command to generate new aparc to check if registration was OK
   # run only for debugging
