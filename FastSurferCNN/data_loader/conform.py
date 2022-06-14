@@ -25,7 +25,7 @@ Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropi
 
 
 USAGE:
-conform.py  -i <input> -o <output>
+conform.py  -i <input> -o <output> <options>
 
 
 Dependencies:
@@ -62,6 +62,9 @@ def options_parse():
     parser.add_option('--seg_input', dest='seg_input', default=False, action='store_true',
                       help='Specifies whether the input is a seg image. If true, '
                            'the check for conformance disregards the uint8 dtype criteria')
+    parser.add_option('--conform_min', dest='conform_min', default=False, action='store_true',
+                      help='Specifies whether the input is or should be conformed to the '
+                           'minimal voxel size (used for high-res processing)')
     parser.add_option('--verbose', dest='verbose', default=False, action='store_true',
                       help='If verbose, more specific messages are printed')
     (fin_options, args) = parser.parse_args()
@@ -214,23 +217,47 @@ def rescale(data, dst_min, dst_max, f_low=0.0, f_high=0.999):
     data_new = scalecrop(data, dst_min, dst_max, src_min, scale)
     return data_new
 
+def findMinSizeConformDim(img):
+    sizes = np.array(img.header.get_zooms()[:3])
+    #print("sizes: {}".format(sizes))
+    min_size = np.round(np.min(sizes)*10000) /10000
+    #print("min_size: {}".format(min_size))
+    if min_size > 1:
+        min_size =1
+    # compute widths in mm
+    widths = sizes * np.array(img.shape[:3])
+    #print("dims: {}".format(np.array(img.shape[:3])))
+    #print("widths: {}".format(widths))
+    #max_width = np.round(np.max(widths)*10000)/10000
+    max_width = np.max(widths)
+    #print("max_width: {}".format(max_width))
+    conform_dim = int(np.ceil(int(max_width/min_size * 10000) / 10000))
+    #print("conform_dim: {}".format(conform_dim))
+    if conform_dim < 256:
+        conform_dim = 256
+    return min_size, conform_dim
 
-def conform(img, order=1):
+def conform(img, order=1, conform_min=False):
     """
-    Python version of mri_convert -c, which turns image intensity values into UCHAR, reslices images to standard position, fills up
-    slices to standard 256x256x256 format and enforces 1 mm isotropic voxel sizes.
+    Python version of mri_convert -c, which turns image intensity values into UCHAR,
+    reslices images to standard position, fills up slices to standard 256x256x256
+    format and enforces 1 mm isotropic voxel sizes.
 
     Difference to mri_convert -c is that we first interpolate (float image), and then rescale to uchar. mri_convert is
     doing it the other way. However, we compute the scale factor from the input to be more similar again
 
     :param nibabel.MGHImage img: loaded source image
     :param int order: interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic)
+    :param bool conform_min: conform image to minimal voxel size (for high-res)
     :return: nibabel.MGHImage new_img: conformed image
     """
     from nibabel.freesurfer.mghformat import MGHHeader
 
     cwidth = 256
     csize = 1
+    if conform_min:
+        csize,cwidth = findMinSizeConformDim(img)
+
     h1 = MGHHeader.from_header(img.header)  # may copy some parameters if input was MGH format
 
     h1.set_data_shape([cwidth, cwidth, cwidth, 1])
@@ -261,12 +288,13 @@ def conform(img, order=1):
     return new_img
 
 
-def is_conform(img, eps=1e-06, check_dtype=True, verbose=True):
+def is_conform(img, conform_min=False, eps=1e-06, check_dtype=True, verbose=True):
     """
     Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1,
     LIA orientation, and data type UCHAR).
 
     :param nibabel.MGHImage img: Loaded source image
+    :param bool conform_min: check if conformed to minimal voxels size (for high-res)
     :param float eps: allowed deviation from zero for LIA orientation check (default 1e-06).
                       Small inaccuracies can occur through the inversion operation. Already conformed images are
                       thus sometimes not correctly recognized. The epsilon accounts for these small shifts.
@@ -276,40 +304,42 @@ def is_conform(img, eps=1e-06, check_dtype=True, verbose=True):
     :return: True if image is already conformed, False otherwise
     """
 
-    criteria = {'Dimensions 256x256x256': True, 'Voxel size 1x1x1': True, 'Orientation LIA': True}
+    criteria={}
+    cwidth = 256
+    csize = 1
+    if conform_min:
+        csize,cwidth = findMinSizeConformDim(img)
 
     ishape = img.shape
-
+    # check 3d
     if len(ishape) > 3 and ishape[3] != 1:
         sys.exit('ERROR: Multiple input frames (' + format(img.shape[3]) + ') not supported!')
 
     # check dimensions
-    if ishape[0] != 256 or ishape[1] != 256 or ishape[2] != 256:
-        criteria['Dimensions 256x256x256'] = False
+    criteria['Dimensions {}x{}x{}'.format(cwidth,cwidth,cwidth)] = (ishape[0]==cwidth and ishape[1]==cwidth and ishape[2]==cwidth)
 
     # check voxel size
-    izoom = img.header.get_zooms()
-    if izoom[0] != 1.0 or izoom[1] != 1.0 or izoom[2] != 1.0:
-        criteria['Voxel size 1x1x1'] = False
-
+    izoom = np.array(img.header.get_zooms())
+    criteria['Voxel Size {}x{}x{}'.format(csize,csize,csize)] = (np.max(np.abs(izoom-csize) < eps))
+    
     # check orientation LIA
-    iaffine = img.affine[0:3, 0:3] + [[1, 0, 0], [0, 0, -1], [0, 1, 0]]
-
-    if np.max(np.abs(iaffine)) > 0.0 + eps:
-        criteria['Orientation LIA'] = False
+    iaffine = img.affine[0:3, 0:3] + np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]]) * csize
+    criteria['Orientation LIA'] = (np.max(np.abs(iaffine)) <= eps)
 
     # check dtype uchar
     if check_dtype:
-        criteria['Dtype uint8'] = True
-        if img.get_data_dtype() != 'uint8':
-            criteria['Dtype uint8'] = False
+        criteria['Dtype uint8'] = (img.get_data_dtype() == 'uint8')
+
 
     if all(criteria.values()):
         return True
     else:
         print('The input image is not conformed.')
         if verbose:
-            print('A conformed image must satisfy the following criteria:')
+            cmin=""
+            if conform_min: 
+                cmin="-min"
+            print('A conformed{} image must satisfy the following criteria:'.format(cmin))
             for condition, value in criteria.items():
                 print(' - {:<30} {}'.format(condition+':', value))
         return False
@@ -380,9 +410,9 @@ if __name__ == "__main__":
         sys.exit('ERROR: Multiple input frames (' + format(image.shape[3]) + ') not supported!')
 
     if not options.seg_input:
-        image_is_conformed = is_conform(image, check_dtype=True, verbose=options.verbose)
+        image_is_conformed = is_conform(image, conform_min=options.conform_min, check_dtype=True, verbose=options.verbose)
     else:
-        image_is_conformed = is_conform(image, check_dtype=False, verbose=options.verbose)
+        image_is_conformed = is_conform(image, conform_min=options.conform_min, check_dtype=False, verbose=options.verbose)
 
     if image_is_conformed:
         print("Input " + format(options.input) + " is already conformed! Exiting.\n")
@@ -399,8 +429,8 @@ if __name__ == "__main__":
         if not check_affine_in_nifti(image):
             sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
-    new_image = conform(image, options.order)
-    print("Writing conformed image: {}".format(options.output))
+    new_image = conform(image, order=options.order, conform_min=options.conform_min)
+    print ("Writing conformed image: {}".format(options.output))
 
     nib.save(new_image, options.output)
 
