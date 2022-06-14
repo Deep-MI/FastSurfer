@@ -29,7 +29,7 @@ from torch.autograd import Variable
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms, utils
 
-from scipy.ndimage.filters import median_filter, gaussian_filter
+from scipy.ndimage import median_filter, gaussian_filter
 from skimage.measure import label, regionprops
 from skimage.measure import label
 

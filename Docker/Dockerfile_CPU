@@ -1,102 +1,96 @@
-## Start with Docker pytorch base
+## Start with ubuntu base
 
-FROM ubuntu:16.04
+FROM ubuntu:20.04 AS build
 ENV LANG=C.UTF-8
-ARG PYTHON_VERSION=3.6
+ARG PYTHON_VERSION=3.8
+ARG CONDA_FILE=Miniconda3-py38_4.11.0-Linux-x86_64.sh
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install custom libraries + freesurfer 6.0 (and necessary dependencies)
+# get install scripts into docker
+COPY ./fastsurfer_env_cpu.yml /fastsurfer/fastsurfer_env_cpu.yml
+COPY ./Docker/install_fs_pruned.sh /fastsurfer/install_fs_pruned.sh
+
+# Install packages needed for build
 RUN apt-get update && apt-get install -y --no-install-recommends \
-         build-essential \
-         cmake \
-         git \
-         vim \
-         wget \
-         ca-certificates \
-         bzip2 \
-         libx11-6 \
-         libjpeg-dev \
-         libpng-dev \
-         bc \
-         tar \
-         zip \
-         gawk \
-         tcsh \
-         time \
-         libgomp1 \
-         libglu1-mesa \
-	 libglu1-mesa-dev \
-	 perl-modules && \
-         apt-get clean && \
-         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-	 wget -qO- https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv --no-same-owner -C /opt \
-    	--exclude='freesurfer/trctrain' \
-    	--exclude='freesurfer/subjects/fsaverage_sym' \
-    	--exclude='freesurfer/subjects/fsaverage3' \
-    	--exclude='freesurfer/subjects/fsaverage4' \
-    	--exclude='freesurfer/subjects/fsaverage5' \
-    	--exclude='freesurfer/subjects/fsaverage6' \
-    	--exclude='freesurfer/subjects/cvs_avg35' \
-    	--exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
-    	--exclude='freesurfer/subjects/bert' \
-    	--exclude='freesurfer/subjects/V1_average' \
-    	--exclude='freesurfer/average/mult-comp-cor' \
-    	--exclude='freesurfer/lib/cuda' \
-    	--exclude='freesurfer/lib/qt' \
-        --exclude='freesurfer/matlab' \
-        --exclude='freesurfer/diffusion' \
-        --exclude='freesurfer/bin/freeview.bin' \
-        --exclude='freesurfer/bin/freeview' \
-        --exclude='freesurfer/bin/mris_decimate_gui.bin' \
-        --exclude='freesurfer/bin/mris_decimate_gui' \
-        --exclude='freesurfer/bin/qdec.bin' \
-        --exclude='freesurfer/bin/qdec' \
-        --exclude='freesurfer/bin/qdec_glmfit' \
-        --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
-        --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
-        --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
-        --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
-        --exclude='freesurfer/bin/fs_spmreg.glnxa64'
+      wget \
+      git \
+      ca-certificates \
+      upx \
+      file && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
-
-
-# Install miniconda and needed python packages (for FastSurferCNN)
-RUN wget -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py37_4.10.3-Linux-x86_64.sh  && \
+# Install conda
+RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/$CONDA_FILE  && \
      chmod +x ~/miniconda.sh && \
      ~/miniconda.sh -b -p /opt/conda && \
-     rm ~/miniconda.sh && \
-     /opt/conda/bin/conda install -y python=$PYTHON_VERSION python-dateutil pyyaml numpy scipy matplotlib h5py scikit-image && \
-     /opt/conda/bin/conda install -y -c pytorch cpuonly "pytorch=1.2.0=py3.6_cpu_0" torchvision=0.4.0=py36_cpu && \
-     /opt/conda/bin/conda install -y -c conda-forge scikit-sparse nibabel=2.5.1 pillow=8.3.2 && \
-     /opt/conda/bin/conda clean -ya
+     rm ~/miniconda.sh 
+
 ENV PATH /opt/conda/bin:$PATH
 
-# install pip related dependencies
-RUN python$PYTHON_VERSION -m pip install -U git+https://github.com/Deep-MI/LaPy.git#egg=lapy
+# Install our dependencies
+RUN conda env create -f /fastsurfer/fastsurfer_env_cpu.yml 
 
-# Add FreeSurfer Environment variables (.license file needed, alternatively export FS_LICENSE=path/to/license)
+# Install conda-pack:
+RUN conda install -c conda-forge conda-pack
+
+# Use conda-pack to create a standalone enviornment in /venv:
+RUN conda-pack -n fastsurfer_cpu -o /tmp/env.tar && \
+  mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
+  rm /tmp/env.tar
+
+# Now that venv in a new location, fix up paths:
+RUN /venv/bin/conda-unpack
+ENV PATH /venv/bin:$PATH
+
+# setup shell for install command below
+RUN echo "source /venv/bin/activate" >> ~/.bashrc
+SHELL ["/bin/bash", "--login", "-c"]
+
+# install freesurfer and point to new python location
+RUN /fastsurfer/install_fs_pruned.sh /opt --upx && \
+    rm /opt/freesurfer/bin/fspython && \
+    ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
+
+# ========================================
+# Here we create the smaller runtime image
+# ========================================
+
+FROM ubuntu:20.04 AS runtime
+
+# Install required packages for freesurfer to run
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      tcsh \
+      time \
+      bc \
+      gawk \
+      libgomp1 && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+
+# Add FreeSurfer Environment variables
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA= \
     SUBJECTS_DIR=/opt/freesurfer/subjects \
     FSF_OUTPUT_FORMAT=nii.gz \
-    MNI_DIR=/opt/freesurfer/mni \
-    LOCAL_DIR=/opt/freesurfer/local \
     FREESURFER_HOME=/opt/freesurfer \
-    FSFAST_HOME=/opt/freesurfer/fsfast \
-    MINC_BIN_DIR=/opt/freesurfer/mni/bin \
-    MINC_LIB_DIR=/opt/freesurfer/mni/lib \
-    MNI_DATAPATH=/opt/freesurfer/mni/data \
-    FMRI_ANALYSIS_DIR=/opt/freesurfer/fsfast \
-    PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 \
-    MNI_PERL5LIB=/opt/freesurfer/mni/lib/perl5/5.8.5 \
     PYTHONUNBUFFERED=0 \
-    PATH=/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
+    PATH=/venv/bin:/opt/freesurfer/bin:$PATH
 
+# make sure we use bash and activate conda env
+#  (in case someone starts this interactively)
+RUN echo "source /venv/bin/activate" >> ~/.bashrc
+SHELL ["/bin/bash", "--login", "-c"]
 
-# Add FastSurfer (copy application code) to docker image
+# Copy venv fastsurfer and pruned freesurfer from builder
+COPY --from=build /venv /venv
+COPY --from=build /opt/freesurfer /opt/freesurfer
 COPY . /fastsurfer/
-ENV FASTSURFER_HOME=/fastsurfer
-WORKDIR "/fastsurfer"
 
-ENTRYPOINT ["./run_fastsurfer.sh"]
+# Set FastSurfer workdir and entrypoint
+#  the script entrypoint ensures that our conda env is active
+WORKDIR "/fastsurfer"
+ENV FASTSURFER_HOME=/fastsurfer
+ENTRYPOINT ["./Docker/entrypoint.sh","./run_fastsurfer.sh"]
 CMD ["--help"]

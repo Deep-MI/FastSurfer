@@ -43,8 +43,11 @@ if __name__ == "__main__":
 
     timestamp_feature = '@#@FSTIME'
     recon_all_stage_feature = '#@# '
-    cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command', 'failed']
-    filtered_cmds = ['ln ', 'rm ']
+    cmd_line_filter_phrases = ['done', 'Done', 'successful', 'finished without error', 'cmdline' ,'Running command', 'failed', 'FSRUNTIME@',
+                               'ru_nivcsw', 'ru_nvcsw', 'ru_nsignals', 'ru_msgrcv', 'ru_msgsnd', 'ru_oublock', 'ru_inblock', 'ru_nswap',
+                               'ru_majflt', 'ru_minflt', 'ru_isrss', 'ru_idrss', 'ru_ixrss', 'ru_maxrss', 'stimesec', 'utimesec', '#' ,
+                               'This may cause']
+    filtered_cmds = ['ln ', 'rm ', 'cp ']
 
     if args.output_file_path == '':
         output_file_path = args.input_file_path.rsplit('/', 1)[0] + '/' + 'recon-surf_times.yaml'
@@ -64,7 +67,7 @@ if __name__ == "__main__":
 
     for i, line in enumerate(lines):
         ## Use recon_surf "stage" names as top level of recon-surf_commands entries:
-        if '======' in line:
+        if '======' in line and 'teration' not in line:
             stage_line = line
             current_recon_surf_stage_name = stage_line.strip('=')[1:-1].replace(' ', '-')
             if current_recon_surf_stage_name == 'DONE':
@@ -110,7 +113,7 @@ if __name__ == "__main__":
                 print('[WARN] Could not find the line containing the full command for {} in line {}! Skipping...\n'.format(cmd_name[:-1], i))
                 continue
 
-            entry_dict['cmd'] = cmd_line
+            entry_dict['cmd'] = cmd_line.lstrip()
             entry_dict['start'] = start_time
             entry_dict['stop'] = end_time
             if time_units == 's':
