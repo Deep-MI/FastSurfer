@@ -57,7 +57,9 @@ def main():
 
     if args.aug is not None:
         cfg.DATA.AUG = args.aug
-    cfg.DATA.CLASS_OPTIONS = args.opt
+
+    if args.opt:
+        cfg.DATA.CLASS_OPTIONS = args.opt
 
     summary_path = misc.check_path(join(cfg.LOG_DIR, 'summary'))
     if cfg.EXPR_NUM == "Default":
