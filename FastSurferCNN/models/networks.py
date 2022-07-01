@@ -107,7 +107,7 @@ class FastSurferCNN(FastSurferCNNBase):
         return output
 
 
-class FlexSkipFastSurferCNN(FastSurferCNNBase):
+class FastSurferVINN(FastSurferCNNBase):
     """
     Network Definition of Fully Competitive Network
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
@@ -121,7 +121,7 @@ class FlexSkipFastSurferCNN(FastSurferCNNBase):
     def __init__(self, params, padded_size=256):
         num_c = params["num_channels"]
         params["num_channels"] = params["num_filters_interpol"]
-        super(FlexSkipFastSurferCNN, self).__init__(params)
+        super(FastSurferVINN, self).__init__(params)
 
         # Flex options
         self.height = params['height']
@@ -197,7 +197,7 @@ class FlexSkipFastSurferCNN(FastSurferCNNBase):
 
 _MODELS = {
     "FastSurferCNN": FastSurferCNN,
-    "FlexSkipFastSurferCNN": FlexSkipFastSurferCNN,
+    "FastSurferVINN": FastSurferVINN,
 }
 
 
