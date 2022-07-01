@@ -512,12 +512,12 @@ def sagittal_coronal_remap_lookup(x):
     }[x]
 
 
-def map_prediction_sagittal2full(prediction_sag, num_classes=79):
+def map_prediction_sagittal2full(prediction_sag, num_classes=51):
     """
     Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
     (full aparc.DKTatlas+aseg.mgz)
     :param prediction_sag: sagittal prediction (labels)
-    :param int num_classes: number of classes (96 for full classes, 79 for hemi split, 36 for aseg)
+    :param int num_classes: number of SAGGITAL classes (96 for full classes, 51 for hemi split, 21 for aseg)
     :return: Remapped prediction
     """
     if num_classes == 96:
@@ -539,7 +539,7 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=79):
         idx_list = np.asarray([0,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  1,  2,  3, 15, 16,  4,
                                17, 18, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
                                19, 20], dtype=np.int16)
-    elif num_classes == 2:
+    elif num_classes == 1:
         idx_list = np.asarray([0, 1, 1])
     else:
         print(f"Number of classes {num_classes} does not match. Must be one of 96, 51, 21 or 2")
