@@ -29,10 +29,10 @@ _C.MODEL.NUM_BLOCKS = 5
 _C.MODEL.NUM_CHANNELS = 7
 
 # Height of convolution kernels
-_C.MODEL.KERNEL_H = 5
+_C.MODEL.KERNEL_H = 3
 
 # Width of convolution kernels
-_C.MODEL.KERNEL_W = 5
+_C.MODEL.KERNEL_W = 3
 
 # size of Classifier kernel
 _C.MODEL.KERNEL_C = 1
