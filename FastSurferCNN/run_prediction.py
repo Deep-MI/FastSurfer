@@ -20,6 +20,8 @@ import os
 import logging
 import nibabel as nib
 import time
+import sys
+print("Run pred", sys.path)
 
 from eval import Inference
 from utils.load_config import load_config
@@ -42,14 +44,11 @@ LOGGER.addHandler(logging.StreamHandler(stream=sys.stdout))
 def set_up_cfgs(cfg, args):
     cfg = load_config(cfg)
     cfg.OUT_LOG_DIR = args.out_dir if args.out_dir is not None else cfg.LOG_DIR
-    cfg.OUT_LOG_NAME = args.model_name
+    cfg.OUT_LOG_NAME = "fastsurfer"
     cfg.TEST.BATCH_SIZE = args.batch_size
 
-    if args.outdims != 0:
-        cfg.DATA.PADDED_SIZE = args.outdims
-    out_dims = round(args.base_dim * args.scale_out) if args.scale_out is not None else cfg.DATA.PADDED_SIZE
-    cfg.MODEL.OUT_TENSOR_WIDTH = out_dims if out_dims > cfg.DATA.PADDED_SIZE else cfg.DATA.PADDED_SIZE
-    cfg.MODEL.OUT_TENSOR_HEIGHT = out_dims if out_dims > cfg.DATA.PADDED_SIZE else cfg.DATA.PADDED_SIZE
+    cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
+    cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
     return cfg
 
 
@@ -63,7 +62,6 @@ class RunModelOnData:
         self.subject_name = ""
         self.gt, self.gt_data, self.orig, self.orig_data = "", "", "", ""
         self.sf = 1.0
-        self.model_name = args.model_name
         self.s = ""
         self.out_dir = args.out_dir
         self.orig_filename = os.path.join(self.current_subject, args.orig_name)
@@ -79,14 +77,9 @@ class RunModelOnData:
             self.pred_name = os.path.join(self.current_subject, args.pred_name)
 
         self.lut = du.read_classes_from_lut(args.lut)
-        self.num_classes = len(self.lut["LabelName"])-1
-        self.class_names = self.lut["LabelName"][1:]
-        self.labels = self.lut["ID"][1:]
+        self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
-        mask = np.ones(self.num_classes, dtype=bool)
-        mask[args.substruct] = False
-        self.range_sub = mask
         self.gn_noise = args.gn
         self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
@@ -109,11 +102,11 @@ class RunModelOnData:
 
     def set_orig(self, orig_str):
         self.orig, self.orig_data = self.get_img(orig_str)
-        # check and conform image
+        # TODO check and conform image (only add once conform.py is updated for hires)
 
-        if not conf.is_conform(self.orig, check_dtype=True):
+        """if not conf.is_conform(self.orig, check_dtype=True):
             self.orig = conf.conform(self.orig)
-            self.orig_data = np.asanyarray(self.orig.dataobj)
+            self.orig_data = np.asanyarray(self.orig.dataobj)"""
 
     def set_gt(self, gt_str):
         self.gt, self.gt_data = self.get_img(gt_str)
@@ -185,8 +178,8 @@ class RunModelOnData:
 
         # Get hard predictions and map to freesurfer label space
         _, pred_prob = torch.max(pred_prob, 3)
-        pred_prob = du.map_label2aparc_aseg(pred_prob, self.torch_labels)
-        pred_prob = du.split_cortex_labels(pred_prob.cpu().numpy())
+        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu().numpy(), self.labels)
+        pred_prob = du.split_cortex_labels(pred_prob)
         # return numpy array
         return pred_prob
 
@@ -211,7 +204,7 @@ class RunModelOnData:
         start = time.time()
 
         for _ in self.get_subjects(csv):
-            logger.info(f"Evaluating {self.model_name} on {self.subject_name}:\nnet {self.model_name}, ckpt {self.ckpt_fin}")
+            logger.info(f"Generating {self.pred_name} for {self.subject_name}:\nnet VINN, ckpt {self.ckpt_fin}")
 
             # Load and prepare ground truth data
             load = time.time()
@@ -259,11 +252,10 @@ if __name__ == "__main__":
                         help="Directory of ground truth (if different from orig input).")
     parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --pattern)",
                         default=None)
-    parser.add_argument("--lut", type=str, default=None,
+    parser.add_argument("--lut", type=str, default=os.path.join(os.path.dirname(__file__), "config/FastSurfer_ColorLUT.tsv"),
                         help="Path and name of LUT to use.")
-    parser.add_argument("--substruct", action="append",
-                        default=[1, 16],
-                        help="Substructures to calculate DSC over.")
+    parser.add_argument("--gn", type=int, default=0,
+                        help="How often to sample from gaussian and run inference on same sample with added noise on scale factor.")
 
     # 2. Options for output
     parser.add_argument("--out_dir", type=str, default=None,
@@ -273,13 +265,6 @@ if __name__ == "__main__":
                         help="Run single image for testing purposes instead of entire csv-file")
     parser.add_argument('--save_img', action='store_true', default=False, help="Save prediction as mgz on disk.")
 
-    # 3. Scale factor options or membership interpolation to ground truth seg shape
-    parser.add_argument("--base_res", type=float, default=1.0,
-                        help="Base resolution (what resolution does input image have). Default: 1.0 (for 1mm)")
-    parser.add_argument("--base_dim", type=int, default=256,
-                        help="Base dimension (what dimension does input image have). Defaul: 256 (for 1mm)")
-    parser.add_argument("--outdims", type=int, default=0,
-                        help="Output dimension (what dimension should output image have). Default: 0 (for 1mm)")
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load")
@@ -320,13 +305,10 @@ if __name__ == "__main__":
             eval.set_gt(os.path.join(subject, args.gt_name))
             eval.set_orig(os.path.join(subject, args.orig_name))
             eval.set_subject(subject.split("/")[-1])
-            pred_name = os.path.join(subject, args.pred_name + args.model_name + ".mgz")
+            pred_name = os.path.join(subject, args.pred_name)
 
             # Run model
-            if not args.load_pred_from_disk:
-                pred_data = eval.get_prediction()
-            else:
-                pred_data = np.asanyarray(nib.load(pred_name).dataobj)
+            pred_data = eval.get_prediction()
 
             gt, gt_data = eval.get_gt()
             eval.save_img(pred_name, pred_data)
