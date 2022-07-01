@@ -1,9 +1,21 @@
-import numpy as np
 
-import torch
+# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# IMPORTS
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from torch.utils.data._utils.collate import default_collate
 
 import data_loader.dataset as dset
 from data_loader.augmentation import ToTensor, ZeroPad2D, AddGaussianNoise
@@ -43,19 +55,19 @@ def get_dataloader(cfg, mode):
 
             # Elastic
             elastic = tio.RandomElasticDeformation(num_control_points=7,
-                                                           max_displacement=(20, 20, 0),
-                                                           locked_borders=2,
-                                                           image_interpolation='linear',
-                                                           include=['img', 'label', 'weight'])
+                                                   max_displacement=(20, 20, 0),
+                                                   locked_borders=2,
+                                                   image_interpolation='linear',
+                                                   include=['img', 'label', 'weight'])
             # Scales
             scaling = tio.RandomAffine(scales=(0.8, 1.15),
-                                   degrees=0,
-                                   translation=(0, 0, 0),
-                                   isotropic=True, # If True, scaling factor along all dimensions is the same
-                                   center='image',
-                                   default_pad_value='minimum',
-                                   image_interpolation='linear',
-                                   include=['img', 'label', 'weight'])
+                                       degrees=0,
+                                       translation=(0, 0, 0),
+                                       isotropic=True,  # If True, scaling factor along all dimensions is the same
+                                       center='image',
+                                       default_pad_value='minimum',
+                                       image_interpolation='linear',
+                                       include=['img', 'label', 'weight'])
 
             # Rotation
             rot = tio.RandomAffine(scales=(1.0, 1.0),
@@ -69,19 +81,19 @@ def get_dataloader(cfg, mode):
 
             # Translation
             tl = tio.RandomAffine(scales=(1.0, 1.0),
-                                   degrees=0,
-                                   translation=(15.0, 15.0, 0),
-                                   isotropic=True,  # If True, scaling factor along all dimensions is the same
-                                   center='image',
-                                   default_pad_value='minimum',
-                                   image_interpolation='linear',
-                                   include=['img', 'label', 'weight'])
+                                  degrees=0,
+                                  translation=(15.0, 15.0, 0),
+                                  isotropic=True,  # If True, scaling factor along all dimensions is the same
+                                  center='image',
+                                  default_pad_value='minimum',
+                                  image_interpolation='linear',
+                                  include=['img', 'label', 'weight'])
 
             # Random Anisotropy (Downsample image along an axis, then upsample back to initial space
             ra = tio.transforms.RandomAnisotropy(axes=(0, 1),
-                                             downsampling=(1.1, 1.5),
-                                             image_interpolation="linear",
-                                             include=["img"])
+                                                 downsampling=(1.1, 1.5),
+                                                 image_interpolation="linear",
+                                                 include=["img"])
 
             # Bias Field
             bias_field = tio.transforms.RandomBiasField(coefficients=0.5, order=3, include=['img'])
@@ -92,9 +104,9 @@ def get_dataloader(cfg, mode):
             #
 
             all_augs = {"Elastic": elastic, "Scaling": scaling, "Rotation": rot, "Translation": tl,
-                    "RAnisotropy": ra, "BiasField": bias_field, "RGamma": random_gamma}
+                        "RAnisotropy": ra, "BiasField": bias_field, "RGamma": random_gamma}
 
-            all_tfs = {all_augs[aug]: 0.8 for aug in cfg.DATA.AUG if aug !="Gaussian"}
+            all_tfs = {all_augs[aug]: 0.8 for aug in cfg.DATA.AUG if aug != "Gaussian"}
             gaussian_noise = True if "Gaussian" in cfg.DATA.AUG else False
 
             transform = tio.Compose([tio.Compose(all_tfs, p=0.8)], include=["img", "label", "weight"])
