@@ -48,7 +48,7 @@ class FastSurferCNNBase(nn.Module):
         self.decode4 = sm.CompetitiveDecoderBlock(params)
         self.decode3 = sm.CompetitiveDecoderBlock(params)
         self.decode2 = sm.CompetitiveDecoderBlock(params)
-        params["num_filters_last"] = params["num_filters"] * 2 if params["smooth"] else params["num_filters"]
+        params["num_filters_last"] = params["num_filters"]
         self.decode1 = sm.CompetitiveDecoderBlock(params)
 
         # Code for Network Initialization
