@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enable strict mode pipefail
-set -euo pipefail
-
 VERSION='$Id$'
 FS_VERSION_SUPPORT="7.2.0"
 
