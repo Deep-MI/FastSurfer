@@ -16,7 +16,7 @@
 # IMPORTS
 import torch
 import numpy as np
-import SuperResSegm.utils.logging as logging
+import utils.logging_script as logging
 
 logger = logging.get_logger(__name__)
 

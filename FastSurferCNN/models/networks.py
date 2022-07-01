@@ -15,11 +15,9 @@
 
 
 # IMPORTS
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import SuperResSegm.models.sub_module as sm
-import SuperResSegm.models.interpolation_layer as il
+import models.sub_module as sm
+import models.interpolation_layer as il
 import numpy as np
 
 

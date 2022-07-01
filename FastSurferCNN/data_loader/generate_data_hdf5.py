@@ -26,7 +26,7 @@ import pandas as pd
 
 from skimage.transform import rescale
 
-from data_utils import transform_axial, transform_sagittal, \
+from data_loader.data_utils import transform_axial, transform_sagittal, \
     map_aparc_aseg2label, create_weight_mask,\
     get_thick_slices, filter_blank_slices_thick, bounding_box_slices, bounding_box_crop, bounding_box_pad
 

@@ -22,9 +22,9 @@ from torchvision import transforms
 import torchio as tio
 import time
 
-import data_utils as du
+import data_loader.data_utils as du
 
-import utils.logging as logging
+import utils.logging_script as logging
 
 logger = logging.get_logger(__name__)
 

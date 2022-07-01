@@ -17,9 +17,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SuperResSegm.utils.metrics import DiceScore
-from SuperResSegm.utils.misc import plot_confusion_matrix
-import SuperResSegm.utils.logging as logging
+from utils.metrics import DiceScore
+from utils.misc import plot_confusion_matrix
+import utils.logging_script as logging
 
 
 logger = logging.get_logger(__name__)
