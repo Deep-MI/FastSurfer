@@ -95,7 +95,7 @@ _C.TRAIN.FINE_TUNE = False
 _C.TRAIN.CHECKPOINT_PERIOD = 2
 
 # number of worker for dataloader
-_C.TRAIN.NUM_WORKERS = 4
+_C.TRAIN.NUM_WORKERS = 8
 
 # Flag to disable or enable Early Stopping
 _C.TRAIN.EARLY_STOPPING = True
