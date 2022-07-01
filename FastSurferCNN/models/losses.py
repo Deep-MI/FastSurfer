@@ -28,11 +28,11 @@ class DiceLoss(_Loss):
 
     def forward(self, output, target, weights=None, ignore_index=None):
         """
-        :param torch.Tensor output: N x C x H x W Variable
-        :param torch.Tensor target: N x C x W LongTensor with starting class at 0
-        :param torch.Tensor weights: C FloatTensor with class wise weights
+        :param output: N x C x H x W Variable
+        :param target: N x C x W LongTensor with starting class at 0
+        :param weights: C FloatTensor with class wise weights
         :param int ignore_index: ignore label with index x in the loss calculation
-        :return: torch.Tensor loss: FloatTensor with class wise weights
+        :return:
         """
         eps = 0.001
 
@@ -73,6 +73,7 @@ class CrossEntropy2D(nn.Module):
     def __init__(self, weight=None, reduction='none'):
         super(CrossEntropy2D, self).__init__()
         self.nll_loss = nn.CrossEntropyLoss(weight=weight, reduction=reduction)
+        print(f"Initialized {self.__class__.__name__} with weight: {weight} and reduction: {reduction}")
 
     def forward(self, inputs, targets):
         return self.nll_loss(inputs, targets)
@@ -95,7 +96,10 @@ class CombinedLoss(nn.Module):
         self.weight_ce = weight_ce
 
     def forward(self, inputx, target, weight):
-        target = target.type(torch.LongTensor)  # Typecast to long tensor
+        # Typecast to long tensor --> labels are bytes initially (uint8),
+        # index operations requiere LongTensor in pytorch
+        target = target.type(torch.LongTensor)
+        # Due to typecasting above, target needs to be shifted to gpu again
         if inputx.is_cuda:
             target = target.cuda()
 
@@ -105,3 +109,15 @@ class CombinedLoss(nn.Module):
         total_loss = torch.add(torch.mul(dice_val, self.weight_dice), torch.mul(ce_val, self.weight_ce))
 
         return total_loss, dice_val, ce_val
+
+
+def get_loss_func(cfg):
+    if cfg.MODEL.LOSS_FUNC == 'combined':
+        return CombinedLoss()
+    elif cfg.MODEL.LOSS_FUNC == 'ce':
+        return CrossEntropy2D()
+    elif cfg.MODEL.LOSS_FUNC == "dice":
+        return DiceLoss()
+    else:
+        raise NotImplementedError(f"{cfg.MODEL.LOSS_FUNC}"
+                                  f" loss function is not supported")
