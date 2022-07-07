@@ -8,7 +8,7 @@ _C = CN()
 _C.MODEL = CN()
 
 # Name of model
-_C.MODEL.MODEL_NAME = ""
+_C.MODEL.MODEL_NAME = "FastSurferVINN"
 
 # Number of classes to predict, including background
 _C.MODEL.NUM_CLASSES = 79
