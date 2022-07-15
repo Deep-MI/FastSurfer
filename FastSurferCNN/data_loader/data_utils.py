@@ -17,11 +17,18 @@
 
 import numpy as np
 import torch
+import sys
 from skimage.measure import label, regionprops
 from scipy.ndimage import binary_erosion, binary_closing, filters, uniform_filter, generate_binary_structure
 import scipy.ndimage.morphology as morphology
 import nibabel as nib
 import pandas as pd
+from .conform import is_conform, conform, check_affine_in_nifti
+
+##
+# Global Vars
+##
+SUPPORTED_OUTPUT_FILE_FORMATS = ['mgz', 'nii', 'nii.gz']
 
 
 ##
@@ -29,19 +36,72 @@ import pandas as pd
 ##
 
 
+# Conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropic voxels
+def load_and_conform_image(img_filename, interpol=1, logger=None):
+    """
+    Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm isotropic voxels size
+    (if it does not already have this format)
+    :param str img_filename: path and name of volume to read
+    :param int interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
+    :return: nibabel.MGHImage header_info: header information of the conformed image
+    :return: np.ndarray affine_info: affine information of the conformed image
+    :return: nibabel.MGHImage orig: conformed image
+    """
+    orig = nib.load(img_filename)
+
+    if not is_conform(orig):
+
+        if logger is not None:
+            logger.info('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+        else:
+            print('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+
+        if len(orig.shape) > 3 and orig.shape[3] != 1:
+            sys.exit('ERROR: Multiple input frames (' + format(orig.shape[3]) + ') not supported!')
+
+        # Check affine if image is nifti image
+        if img_filename[-7:] == ".nii.gz" or img_filename[-4:] == ".nii":
+            if not check_affine_in_nifti(orig, logger=logger):
+                sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
+
+        # conform
+        orig = conform(orig, interpol)
+
+    # Collect header and affine information
+    header_info = orig.header
+    affine_info = orig.affine
+    orig = np.asanyarray(orig.dataobj)
+
+    return header_info, affine_info, orig
+
+
 # Save image routine
-def save_image_as_nifti(header, affine, image_to_save, save_as, dtype_set=np.int16):
+def save_image(header_info, affine_info, img_array, save_as):
     """
-    Function to save a given file as a nifti-image
-    :param string original_image: name and directory of the original image
-    :param ndarray image_to_save: image with dimensions (height, width, depth) to be saved in nifti format
-    :param save_as: name and directory where the nifti should be stored
-    :return: void
+    Save an image (nibabel MGHImage), according to the desired output file format.
+    Supported formats are defined in supported_output_file_formats.
+    :param numpy.ndarray img_array: an array containing image data
+    :param numpy.ndarray affine_info: image affine information
+    :param nibabel.freesurfer.mghformat.MGHHeader header_info: image header information
+    :param str save_as: name under which to save prediction; this determines output file format
+    :return None: saves predictions to save_as
     """
-    # Generate new nifti file
-    nifti_new = nib.MGHImage(image_to_save, affine, header)
-    nifti_new.set_data_dtype(np.dtype(dtype_set))  # not uint8 if aparc!!! (only goes till 255)
-    nifti_new.to_filename(save_as)
+
+    assert any(save_as.endswith(file_ext) for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS), \
+        'Output filename does not contain a supported file format (' + ', '.join(
+            file_ext for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS) + ')!'
+
+    mgh_img = None
+    if save_as.endswith('mgz'):
+        mgh_img = nib.MGHImage(img_array, affine_info, header_info)
+    elif any(save_as.endswith(file_ext) for file_ext in ['nii', 'nii.gz']):
+        mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
+
+    if any(save_as.endswith(file_ext) for file_ext in ['mgz', 'nii']):
+        nib.save(mgh_img, save_as)
+    elif save_as.endswith('nii.gz'):
+        # For correct outputs, nii.gz files should be saved using the nifti1 sub-module's save():
+        nib.nifti1.save(mgh_img, save_as)
 
 
 # Transformation for mapping
@@ -141,8 +201,9 @@ def create_weight_mask(mapped_aseg, max_weight=5, max_edge_weight=5, max_hires_w
     # Gradient Weighting
     if gradient:
         (gx, gy, gz) = np.gradient(mapped_aseg)
-        grad_weight = max_edge_weight * np.asarray(np.power(np.power(gx, 2) + np.power(gy, 2) + np.power(gz, 2), 0.5) > 0,
-                                                   dtype='float')
+        grad_weight = max_edge_weight * np.asarray(
+            np.power(np.power(gx, 2) + np.power(gy, 2) + np.power(gz, 2), 0.5) > 0,
+            dtype='float')
 
         weights_mask += grad_weight
 
@@ -408,16 +469,16 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
         print("APARC PROCESSING")
         aseg = fuse_cortex_labels(aseg)
         labels = np.array([0, 2, 4, 5, 7, 8, 10, 11, 12, 13, 14,
-                       15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44,
-                       46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
-                       77, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011,
-                       1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022,
-                       1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035,
-                       2002, 2005, 2010, 2012, 2013, 2014, 2016, 2017, 2021, 2022, 2023,
-                       2024, 2025, 2028])
+                           15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44,
+                           46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
+                           77, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011,
+                           1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022,
+                           1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035,
+                           2002, 2005, 2010, 2012, 2013, 2014, 2016, 2017, 2021, 2022, 2023,
+                           2024, 2025, 2028])
     else:
         print("ASEG PROCESSING")
-        aseg[aseg == 1000] = 3 # Map unknown to cortex
+        aseg[aseg == 1000] = 3  # Map unknown to cortex
         aseg[aseg == 2000] = 42
         aseg[aseg == 80] = 77  # Hypointensities Class
         aseg[aseg == 85] = 0  # Optic Chiasma to BKG
@@ -428,7 +489,8 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
                            15, 16, 17, 18, 24, 26, 28, 31, 41, 42, 43, 44,
                            46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
                            77])
-        assert len(np.unique(aseg)) == len(labels), "Error: length of aseg classes and labels differs: \n{}\n{}".format(np.unique(aseg), labels)
+        assert len(np.unique(aseg)) == len(labels), "Error: length of aseg classes and labels differs: \n{}\n{}".format(
+            np.unique(aseg), labels)
         assert not np.any(aseg > 77), "Error: classes above 77 still exist in aseg {}".format(np.unique(aseg))
         assert np.any(aseg == 3) and np.any(aseg == 42), "Error: no cortical marker detected {}".format(np.unique(aseg))
 
@@ -465,13 +527,13 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
         aseg[cortical_label_mask] = aseg[cortical_label_mask] - 1000
 
         labels_sag = np.array([0, 14, 15, 16, 24, 41, 43, 44, 46, 47, 49,
-                           50, 51, 52, 53, 54, 58, 60, 63, 77, 1002,
-                           1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014,
-                           1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025,
-                           1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035])
+                               50, 51, 52, 53, 54, 58, 60, 63, 77, 1002,
+                               1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014,
+                               1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025,
+                               1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035])
     else:
         labels_sag = np.array([0, 14, 15, 16, 24, 41, 42, 43, 44, 46, 47, 49,
-                           50, 51, 52, 53, 54, 58, 60, 63, 77])
+                               50, 51, 52, 53, 54, 58, 60, 63, 77])
 
     h, w, d = aseg.shape
     lut_aseg = np.zeros(max(labels_sag) + 1, dtype='int')
@@ -536,7 +598,7 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=51):
                                29, 30, 31, 33, 34, 38, 39, 40, 41, 42, 45], dtype=np.int16)
 
     elif num_classes == 21:
-        idx_list = np.asarray([0,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,  1,  2,  3, 15, 16,  4,
+        idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 2, 3, 15, 16, 4,
                                17, 18, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
                                19, 20], dtype=np.int16)
     elif num_classes == 1:
