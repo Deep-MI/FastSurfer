@@ -1,5 +1,5 @@
 MODEL:
-  MODEL_NAME: "FlexSkipFastSurferCNN"
+  MODEL_NAME: "FastSurferVINN"
   NUM_CLASSES: 34
   NUM_FILTERS: 71
   KERNEL_H: 3
