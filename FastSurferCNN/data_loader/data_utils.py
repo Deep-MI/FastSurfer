@@ -23,13 +23,17 @@ from scipy.ndimage import binary_erosion, binary_closing, filters, uniform_filte
 import scipy.ndimage.morphology as morphology
 import nibabel as nib
 import pandas as pd
+import logging
 from .conform import is_conform, conform, check_affine_in_nifti
+
 
 ##
 # Global Vars
 ##
 SUPPORTED_OUTPUT_FILE_FORMATS = ['mgz', 'nii', 'nii.gz']
-
+LOGGER = logging.getLogger("eval")
+LOGGER.setLevel(logging.DEBUG)
+LOGGER.addHandler(logging.StreamHandler(stream=sys.stdout))
 
 ##
 # Helper Functions
@@ -37,12 +41,13 @@ SUPPORTED_OUTPUT_FILE_FORMATS = ['mgz', 'nii', 'nii.gz']
 
 
 # Conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropic voxels
-def load_and_conform_image(img_filename, interpol=1, logger=None):
+def load_and_conform_image(img_filename, interpol=1, logger=LOGGER):
     """
     Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm isotropic voxels size
     (if it does not already have this format)
     :param str img_filename: path and name of volume to read
     :param int interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
+    :param logger logger: Logger to write output to (default = STDOUT)
     :return: nibabel.MGHImage header_info: header information of the conformed image
     :return: np.ndarray affine_info: affine information of the conformed image
     :return: nibabel.MGHImage orig: conformed image
@@ -51,10 +56,7 @@ def load_and_conform_image(img_filename, interpol=1, logger=None):
 
     if not is_conform(orig):
 
-        if logger is not None:
-            logger.info('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
-        else:
-            print('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+        logger.info('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
 
         if len(orig.shape) > 3 and orig.shape[3] != 1:
             sys.exit('ERROR: Multiple input frames (' + format(orig.shape[3]) + ') not supported!')
@@ -453,10 +455,57 @@ def split_cortex_labels(aparc):
     return aparc
 
 
-def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
+def unify_lateralized_labels(lut, combi=["Left-", "Right-"]):
+    """
+    Function to generate lookup dictionary of left-right labels
+    :param str or pd.DataFrame lut: either lut-file string to load or pandas dataframe
+                                    Example entry:
+                                    ID LabelName  R   G   B   A
+                                    0   Unknown   0   0   0   0
+                                    1   Left-Cerebral-Exterior 70  130 180 0
+    :param list(str) combi: Prefix or labelnames to combine. Default: Left- and Right-
+    :return dict: dictionary mapping between left and right hemispheres
+    """
+    if isinstance(lut, str):
+        lut = read_classes_from_lut(lut)
+    left = lut[["ID", "LabelName"]][lut["LabelName"].str.startswith(combi[0])]
+    right = lut[["ID", "LabelName"]][lut["LabelName"].str.startswith(combi[1])]
+    left["LabelName"] = left["LabelName"].str.removeprefix(combi[0])
+    right["LabelName"] = right["LabelName"].str.removeprefix(combi[1])
+    mapp = left.merge(right, on="LabelName")
+    return pd.Series(mapp.ID_y.values, index=mapp.ID_x).to_dict()
+
+
+def get_labels_from_lut(lut, label_extract=("Left-", "ctx-rh")):
+    """
+    Function to extract
+    :param str of pd.DataFrame lut: FreeSurfer like LookUp Table (either path to it
+                                    or already loaded as pandas DataFrame.
+                                    Example entry:
+                                    ID LabelName  R   G   B   A
+                                    0   Unknown   0   0   0   0
+                                    1   Left-Cerebral-Exterior 70  130 180 0
+    :param tuple(str) label_extract: suffix of label names to mask for sagittal labels
+                                     Default: "Left-" and "ctx-rh"
+    :return np.ndarray: full label list
+    :return np.ndarray: sagittal label list
+    """
+    if isinstance(lut, str):
+        lut = read_classes_from_lut(lut)
+    mask = lut["LabelName"].str.startswith(label_extract)
+    return lut["ID"].values, lut["ID"][~mask].values
+
+
+def map_aparc_aseg2label(aseg, labels, labels_sag, sagittal_lut_dict, aseg_nocc=None, processing="aparc"):
     """
     Function to perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space
     :param np.ndarray aseg: ground truth aparc+aseg
+    :param np.ndarray labels: labels to use (extracted from LUT with get_labels_from_lut)
+    :param np.ndarray labels_sag: sagittal labels to use (extracted from LUT with
+                                  get_labels_from_lut)
+    :param dict(int) sagittal_lut_dict: left-right label mapping (can be extracted with
+                                        unify_lateralized_labels from LUT)
+    :param str processing: should be set to "aparc" or "aseg" for additional mappings (hard-coded)
     :param None/np.ndarray aseg_nocc: ground truth aseg without corpus callosum segmentation
     :return:
     """
@@ -465,19 +514,12 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
         cc_mask = (aseg >= 251) & (aseg <= 255)
         aseg[cc_mask] = aseg_nocc[cc_mask]
 
-    if aparc:
-        print("APARC PROCESSING")
+    if processing == "aparc":
+        LOGGER.info("APARC PROCESSING")
         aseg = fuse_cortex_labels(aseg)
-        labels = np.array([0, 2, 4, 5, 7, 8, 10, 11, 12, 13, 14,
-                           15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44,
-                           46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
-                           77, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011,
-                           1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022,
-                           1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035,
-                           2002, 2005, 2010, 2012, 2013, 2014, 2016, 2017, 2021, 2022, 2023,
-                           2024, 2025, 2028])
-    else:
-        print("ASEG PROCESSING")
+
+    elif processing == "aseg":
+        LOGGER.info("ASEG PROCESSING")
         aseg[aseg == 1000] = 3  # Map unknown to cortex
         aseg[aseg == 2000] = 42
         aseg[aseg == 80] = 77  # Hypointensities Class
@@ -485,10 +527,7 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
         aseg[aseg == 62] = 41  # Right Vessel to Right WM
         aseg[aseg == 30] = 2  # Left Vessel to Left WM
         aseg[aseg == 72] = 24  # 5th Ventricle to CSF
-        labels = np.array([0, 2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14,
-                           15, 16, 17, 18, 24, 26, 28, 31, 41, 42, 43, 44,
-                           46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63,
-                           77])
+
         assert len(np.unique(aseg)) == len(labels), "Error: length of aseg classes and labels differs: \n{}\n{}".format(
             np.unique(aseg), labels)
         assert not np.any(aseg > 77), "Error: classes above 77 still exist in aseg {}".format(np.unique(aseg))
@@ -500,40 +539,18 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
         lut_aseg[value] = idx
 
     # Remap Label Classes - Perform LUT Mapping - Coronal, Axial
-
     mapped_aseg = lut_aseg.ravel()[aseg.ravel()]
-
     mapped_aseg = mapped_aseg.reshape((h, w, d))
 
-    # Map Sagittal Labels
-    aseg[aseg == 2] = 41
-    aseg[aseg == 3] = 42
-    aseg[aseg == 4] = 43
-    aseg[aseg == 5] = 44
-    aseg[aseg == 7] = 46
-    aseg[aseg == 8] = 47
-    aseg[aseg == 10] = 49
-    aseg[aseg == 11] = 50
-    aseg[aseg == 12] = 51
-    aseg[aseg == 13] = 52
-    aseg[aseg == 17] = 53
-    aseg[aseg == 18] = 54
-    aseg[aseg == 26] = 58
-    aseg[aseg == 28] = 60
-    aseg[aseg == 31] = 63
-
-    if aparc:
+    if processing == "aparc":
         cortical_label_mask = (aseg >= 2000) & (aseg <= 2999)
         aseg[cortical_label_mask] = aseg[cortical_label_mask] - 1000
 
-        labels_sag = np.array([0, 14, 15, 16, 24, 41, 43, 44, 46, 47, 49,
-                               50, 51, 52, 53, 54, 58, 60, 63, 77, 1002,
-                               1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014,
-                               1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025,
-                               1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035])
-    else:
-        labels_sag = np.array([0, 14, 15, 16, 24, 41, 42, 43, 44, 46, 47, 49,
-                               50, 51, 52, 53, 54, 58, 60, 63, 77])
+    # For sagittal, all Left hemispheres will be mapped to right, ctx the otherway round
+    # If you use your own LUT, make sure all per-hemi labels have the corresponding prefix
+    # Map Sagittal Labels
+    for left, right in sagittal_lut_dict.items():
+        aseg[aseg == left] = right
 
     h, w, d = aseg.shape
     lut_aseg = np.zeros(max(labels_sag) + 1, dtype='int')
@@ -541,9 +558,7 @@ def map_aparc_aseg2label(aseg, aseg_nocc=None, aparc=True):
         lut_aseg[value] = idx
 
     # Remap Label Classes - Perform LUT Mapping - Coronal, Axial
-
     mapped_aseg_sag = lut_aseg.ravel()[aseg.ravel()]
-
     mapped_aseg_sag = mapped_aseg_sag.reshape((h, w, d))
 
     return mapped_aseg, mapped_aseg_sag
