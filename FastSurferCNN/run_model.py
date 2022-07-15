@@ -32,7 +32,7 @@ def setup_options():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="configs/SuperResSegm.yaml",
+        default="config/FastSurferVINN.yaml",
         type=str,
     )
     parser.add_argument("--aug", action='append', help="List of augmentations to use.", default=None)
