@@ -15,7 +15,7 @@
 
 from os.path import join, split, splitext
 
-from config import get_cfg_defaults
+from config.defaults import get_cfg_defaults
 
 
 def get_config(args):
