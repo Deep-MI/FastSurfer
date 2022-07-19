@@ -289,8 +289,8 @@ def read_classes_from_lut(lut_file):
 def map_label2aparc_aseg(mapped_aseg, labels):
     """
     Function to perform look-up table mapping from sequential label space to LUT space
-    :param np.ndarray mapped_aseg: label space segmentation (aparc.DKTatlas + aseg)
-    :param list(int) labels: list of labels defining LUT space
+    :param torch.Tensor mapped_aseg: label space segmentation (aparc.DKTatlas + aseg)
+    :param np.ndarray labels: list of labels defining LUT space
     :return:
     """
     aseg = torch.zeros_like(mapped_aseg)
@@ -298,7 +298,7 @@ def map_label2aparc_aseg(mapped_aseg, labels):
 
     aseg = labels[torch.ravel(mapped_aseg)]
 
-    aseg = torch.reshape(aseg, (h, w, d))
+    aseg = torch.reshape(torch.from_numpy(aseg), (h, w, d))
 
     return aseg
 

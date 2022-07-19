@@ -178,7 +178,7 @@ class RunModelOnData:
 
         # Get hard predictions and map to freesurfer label space
         _, pred_prob = torch.max(pred_prob, 3)
-        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu().numpy(), self.labels)
+        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu(), self.labels)
         pred_prob = du.split_cortex_labels(pred_prob)
         # return numpy array
         return pred_prob
