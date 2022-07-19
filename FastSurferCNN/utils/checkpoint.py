@@ -17,6 +17,7 @@
 import os
 import glob
 
+import requests
 import torch
 
 
@@ -116,3 +117,21 @@ def remove_ckpt(ckpt):
         os.remove(ckpt)
     except FileNotFoundError:
         pass
+
+
+def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
+    """
+        Download a checkpoint file. Raises an HTTPError if the file is not found
+        or the server is not reachable.
+    :param download_url: str: URL of checkpoint hosting site
+    :param checkpoint_name: str: name of checkpoint
+    :param checkpoint_path: str: path of the file in which the checkpoint will be saved
+    :return:
+    """
+    response = requests.get(os.path.join(download_url, checkpoint_name))
+
+    # Raise error if file does not exist:
+    response.raise_for_status()
+
+    with open(checkpoint_path, 'wb') as f:
+        f.write(response.content)
