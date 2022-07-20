@@ -82,6 +82,7 @@ A list of python libraries used within the code can be found in __requirements.t
               /dataset/D2/subject1
               /dataset/D2/subject10
               /dataset/D2/subject20
+* --lut: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv
               
 The actual filename and segmentation ground truth name is specfied via --image_name and --gt_name (e.g. the actual file could be sth. like /dataset/D1/subject1/mri_volume.mgz and /dataset/D1/subject1/segmentation.mgz)
 
@@ -91,24 +92,37 @@ The actual filename and segmentation ground truth name is specfied via --image_n
 * --gt_nocc: Segmentation without corpus callosum (used to mask this segmentation in ground truth). For a normal FreeSurfer input, use mri/aseg.auto_noCCseg.mgz. 
 
 #### Image specific options
-* --plane: which anatomical plane to use for slicing (axial, coronal or sagittal)
+* --plane: Which anatomical plane to use for slicing (axial, coronal or sagittal)
 * --height: Slice height (256 for conformed volumes)
 * --width: Slice width (256 for conformed volumes)
 * --thickness: Number of pre- and suceeding slices (we use 3 --> total of 7 slices is fed to the network)
+* --combi: Suffixes of labels names to combine. Default: Left- and Right-
+* --sag_mask: Suffixes of labels names to mask for final sagittal labels. Default: Left- and ctx-rh
+* --max_w: Overall max weight for any voxel in weight mask. Default: 5
+* --hires_w: Weight for hires elements (sulci, WM strands, cortex border) in weight mask. Default: None
+* --no_grad: Turn on to only use median weight frequency (no gradient). Default: False
+* --gm: Turn on to add cortex mask for hires-processing. Default: False
+* --processing: Use aseg, aparc or no specific mapping processing. Default: aparc
+* --sizes: Resolutions of images in the dataset. Default: 256
 
-#### Example Command Axial
+#### Example Command Axial (Single Resolution)
 ```
 python3 generate_hdf5.py \
 --hdf5_name ../data/training_set_cispa_axial.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
+--thickness 3 \
 --plane axial \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
+--max_w 5 \
+--edge_w 4 \
+--hires_w 4 \
+--sizes 256
 
 ```
 
-#### Example Command Coronal
+#### Example Command Coronal (Single Resolution)
 ```
 python3 generate_hdf5.py \
 --hdf5_name ../data/training_set_cispa_coronal.hdf5 \
@@ -117,18 +131,26 @@ python3 generate_hdf5.py \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
+--max_w 5 \
+--edge_w 4 \
+--hires_w 4 \
+--sizes 256
 
 ```
 
-#### Example Command Sagittal
+#### Example Command Sagittal (Multiple Resolutions)
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_sagittal.hdf5 \
+--hdf5_name ../data/training_set_cispa_multires_sagittal.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --plane sagittal \
 --image_name mri/orig.mgz \
 --gt_name mri/aparc.DKTatlas+aseg.mgz \
 --gt_nocc mri/aseg.auto_noCCseg.mgz
+--max_w 5 \
+--edge_w 4 \
+--hires_w 4 \
+--sizes 256 311 320
 
 ```
 
