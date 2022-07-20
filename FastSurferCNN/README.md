@@ -99,7 +99,7 @@ The actual filename and segmentation ground truth name is specfied via --image_n
 #### Example Command Axial
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_axial.hdf5 \
+--hdf5_name ../data/training_set_axial.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --plane axial \
 --image_name mri/orig.mgz \
@@ -111,7 +111,7 @@ python3 generate_hdf5.py \
 #### Example Command Coronal
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_coronal.hdf5 \
+--hdf5_name ../data/training_set_coronal.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --plane coronal \
 --image_name mri/orig.mgz \
@@ -123,7 +123,7 @@ python3 generate_hdf5.py \
 #### Example Command Sagittal
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_sagittal.hdf5 \
+--hdf5_name ../data/training_set_sagittal.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --plane sagittal \
 --image_name mri/orig.mgz \
@@ -163,7 +163,7 @@ Now, if only a subset should be used for the hdf5-file (e.g. subject 10 till sub
 
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_axial.hdf5 \
+--hdf5_name ../data/training_set_axial.hdf5 \
 --data_dir ../data \
 --pattern "subject1[0-9]" \
 --plane sagittal \
@@ -219,7 +219,7 @@ To train the network on a given hdf5-set, change into the *FastSurferCNN* direct
 # Sagittal view
 
 python3 train.py \
---hdf5_name_train ../data/training_set_cispa_sagittal.hdf5 \
+--hdf5_name_train ../data/training_set_sagittal.hdf5 \
 --hdf5_name_val ../data/validation_set_sagittal.hdf5 \
 --plane sagittal \
 --log_dir ../checkpoints/Sagittal_Competitive_APARC_ASEG/ \
@@ -230,7 +230,7 @@ python3 train.py \
 # Coronal view
 
 python3 train.py \
---hdf5_name_train ../data/training_set_cispa_coronal.hdf5 \
+--hdf5_name_train ../data/training_set_coronal.hdf5 \
 --hdf5_name_val ../data/validation_set_coronal.hdf5 \
 --plane coronal \
 --log_dir ../checkpoints/Coronal_Competitive_APARC_ASEG/ \
@@ -241,7 +241,7 @@ python3 train.py \
 # Axial view
 
 python3 train.py \
---hdf5_name_train ../data/training_set_cispa_axial.hdf5 \
+--hdf5_name_train ../data/training_set_axial.hdf5 \
 --hdf5_name_val ../data/validation_set_axial.hdf5 \
 --plane axial \
 --log_dir ../checkpoints/Axial_Competitive_APARC_ASEG/ \
