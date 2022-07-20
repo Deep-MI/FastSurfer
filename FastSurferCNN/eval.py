@@ -443,6 +443,8 @@ if __name__ == "__main__":
     # check what device to use and how much memory is available (memory can be overwritten)
     use_cuda = not options.no_cuda and torch.cuda.is_available()
 
+    torch.set_flush_denormal(True)
+
     if options.run_viewagg_on == "gpu":
         # run view agg on the gpu (force)
         small_gpu = False
