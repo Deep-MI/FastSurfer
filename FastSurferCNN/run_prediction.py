@@ -79,6 +79,27 @@ class RunModelOnData:
 
         self.conf_name = args.conf_name
 
+        if args.run_viewagg_on == "gpu":
+            # run view agg on the gpu (force)
+            self.small_gpu = False
+
+        elif args.run_viewagg_on == "check":
+            # check, if GPU is big enough to run view agg on it
+            # (this currently takes only the total memory into account, not the occupied on)
+            total_gpu_memory = sum([torch.cuda.get_device_properties(i).__getattribute__("total_memory") for i in
+                                    range(torch.cuda.device_count())])
+            self.small_gpu = total_gpu_memory < 8000000000
+
+        elif args.run_viewagg_on == "cpu":
+            # run view agg on the cpu (either if the available GPU RAM is not big enough (<8 GB),
+            # or if the model is anyhow run on cpu)
+            self.small_gpu = True
+
+        if self.small_gpu:
+            LOGGER.info("Running view aggregation on CPU")
+        else:
+            LOGGER.info("Running view aggregation on GPU")
+
         self.lut = du.read_classes_from_lut(args.lut)
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
@@ -86,7 +107,7 @@ class RunModelOnData:
         self.gn_noise = args.gn
         self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        self.model = Inference(self.cfg_fin, self.ckpt_fin)
+        self.model = Inference(self.cfg_fin, self.ckpt_fin, self.small_gpu)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
 
@@ -162,8 +183,12 @@ class RunModelOnData:
         if self.view_ops["coronal"]["cfg"] is not None:
             if self.view_ops["axial"]["cfg"] is not None:
                 self.set_model("coronal")
-            pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
-                                    dtype=torch.float).to(self.device)
+            if not self.small_gpu:
+                pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
+                                        dtype=torch.float).to(self.device)
+            else:
+                pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
+                                        dtype=torch.float)
             pred_prob = self.run_model(pred_prob)
 
         # axial inference
@@ -171,27 +196,43 @@ class RunModelOnData:
             LOGGER.info("Run axial view agg")
             if self.view_ops["coronal"]["cfg"] is not None:
                 self.set_model("axial")
-                ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                      dtype=torch.float).to(self.device)
+                if not self.small_gpu:
+                    ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
+                                          dtype=torch.float).to(self.device)
+                else:
+                    ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
+                                          dtype=torch.float)
                 pred_prob += self.run_model(ax_prob)
                 del ax_prob
             else:
-                pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                      dtype=torch.float).to(self.device)
+                if not self.small_gpu:
+                    pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
+                                          dtype=torch.float).to(self.device)
+                else:
+                    pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
+                                          dtype=torch.float)
                 pred_prob = self.run_model(pred_prob)
 
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
             if self.view_ops["coronal"]["cfg"] is not None:
-                sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                       dtype=torch.float).to(self.device)
+                if not self.small_gpu:
+                    sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
+                                           dtype=torch.float).to(self.device)
+                else:
+                    sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
+                                           dtype=torch.float)
                 self.set_model("sagittal")
                 pred_prob += self.run_model(sag_prob)
                 del sag_prob
             else:
-                pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                       dtype=torch.float).to(self.device)
+                if not self.small_gpu:
+                    pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
+                                           dtype=torch.float).to(self.device)
+                else:
+                    pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
+                                           dtype=torch.float)
                 pred_prob += self.run_model(pred_prob)
 
         # Get hard predictions and map to freesurfer label space
@@ -242,6 +283,32 @@ class RunModelOnData:
                 logger.info("Image successfully saved as {} in {:0.4f} seconds".format(self.pred_name, time.time() - save))
 
         logger.info("Processing finished in {:0.4f} seconds".format(time.time() - start))
+
+#     ## Alt.:
+#     def run(self, csv, save_img, metrics, logger=LOGGER):
+#         start = time.time()
+# 
+#         for _ in self.get_subjects(csv):
+#             logger.info(f"Generating {self.pred_name} for {self.subject_name}:\nnet VINN, ckpt {self.ckpt_fin}")
+# 
+#             # Load and prepare ground truth data
+#             load = time.time()
+#             self.set_gt(self.gt_filename)
+#             self.set_orig(self.orig_filename)
+#             logger.info("Ground truth loaded in {:0.4f} seconds".format(time.time() - load))
+# 
+#             # Load prediction or generate it from scratch
+#             load = time.time()
+#             pred_data = self.get_prediction()
+#             logger.info("Model prediction finished in {:0.4f}.".format(time.time() - load))
+# 
+#             # Save Image
+#             if save_img:
+#                 save = time.time()
+#                 self.save_img(self.pred_name, pred_data)
+#                 logger.info("Image successfully saved as {} in {:0.4f} seconds".format(self.pred_name, time.time() - save))
+# 
+#         logger.info("Processing finished in {:0.4f} seconds".format(time.time() - start))
 
     def set_up_model_params(self, plane, cfg, ckpt):
         self.view_ops[plane]["cfg"] = cfg
@@ -307,6 +374,17 @@ if __name__ == "__main__":
     parser.add_argument("--cfg_sag", dest="cfg_sag", help="Path to the sagittal config file",
                         default=None, type=str)
 
+    parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
+                    default="check", choices=["gpu", "cpu", "check"],
+                    help="Define where the view aggregation should be run on. \
+                          By default, the program checks if you have enough memory \
+                          to run the view aggregation on the gpu. The total memory \
+                          is considered for this decision. If this fails, or \
+                          you actively overwrote the check with setting \
+                          > --run_viewagg_on cpu <, view agg is run on the cpu. \
+                          Equivalently, if you define > --run_viewagg_on gpu <,\
+                          view agg will be run on the gpu (no memory check will be done).")
+
     args = parser.parse_args()
 
     # Check input and output options
@@ -320,6 +398,7 @@ if __name__ == "__main__":
                  '(can be same as input directory)\n')
 
     LOGGER.info("Ground truth: {}, Origs: {}".format(args.gt_name, args.orig_name))
+
 
     # Set Up Model
     eval = RunModelOnData(args)

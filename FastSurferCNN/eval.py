@@ -32,11 +32,12 @@ logger = logging.get_logger(__name__)
 
 
 class Inference:
-    def __init__(self, cfg, ckpt):
+    def __init__(self, cfg, ckpt, small_gpu):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
         self.cfg = cfg
+        self.small_gpu = small_gpu
 
         # Set up logging
         logging.setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
@@ -131,16 +132,22 @@ class Inference:
 
             if self.cfg.DATA.PLANE == "axial":
                 pred = pred.permute(3, 0, 2, 1)
+                if self.small_gpu:
+                    pred = pred.cpu()
                 pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4)
                 start_index += pred.shape[1]
 
             elif self.cfg.DATA.PLANE == "coronal":
                 pred = pred.permute(2, 3, 0, 1)
+                if self.small_gpu:
+                    pred = pred.cpu()
                 pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4)
                 start_index += pred.shape[2]
 
             else:
                 pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1)
+                if self.small_gpu:
+                    pred = pred.cpu()
                 pred_prob[start_index:start_index + pred.shape[0], :, :, :] += torch.mul(pred, 0.2)
                 start_index += pred.shape[0]
 
