@@ -104,6 +104,11 @@ class RunModelOnData:
 
     def set_orig(self, orig_str):
         self.orig, self.orig_data = self.get_img(orig_str)
+
+        # Save input image to standard location
+        LOGGER.info("Saving original image to {}".format(self.input_img_name))
+        self.save_img(self.input_img_name, self.orig_data)
+
         # TODO check and conform image (only add once conform.py is updated for hires)
 
         """if not conf.is_conform(self.orig, check_dtype=True):
@@ -120,6 +125,7 @@ class RunModelOnData:
     def set_subject(self, subject):
         self.subject_name = subject.split("/")[-1]
         self.subject_conf_name = os.path.join(self.out_dir, subject.strip('/'), self.conf_name)
+        self.input_img_name = os.path.join(self.out_dir, subject.strip('/'), 'mri/orig', '001.mgz')
 
     def set_model(self, plane):
         self.model.set_model(self.view_ops[plane]["cfg"])
