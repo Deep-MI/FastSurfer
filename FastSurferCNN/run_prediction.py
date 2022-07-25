@@ -73,10 +73,10 @@ class RunModelOnData:
 
         if args.out_dir is not None:
             self.pred_name = os.path.join(args.out_dir, self.subject_name, args.pred_name)
-            self.conf_name = os.path.join(args.out_dir, self.subject_name, args.conf_name)
         else:
             self.pred_name = os.path.join(self.current_subject, args.pred_name)
-            self.conf_name = os.path.join(self.current_subject, args.conf_name)
+
+        self.conf_name = args.conf_name
 
         self.lut = du.read_classes_from_lut(args.lut)
         self.labels = self.lut["ID"].values
@@ -111,14 +111,15 @@ class RunModelOnData:
             self.orig_data = np.asanyarray(self.orig.dataobj)"""
 
         # Save conformed input image
-        LOGGER.info("Saving conformed original image to {}".format(self.conf_name))
-        self.save_img(self.conf_name, self.orig_data)
+        LOGGER.info("Saving conformed original image to {}".format(self.subject_conf_name))
+        self.save_img(self.subject_conf_name, self.orig_data)
 
     def set_gt(self, gt_str):
         self.gt, self.gt_data = self.get_img(gt_str)
 
     def set_subject(self, subject):
-        self.subject_name = subject
+        self.subject_name = subject.split("/")[-1]
+        self.subject_conf_name = os.path.join(self.out_dir, subject.strip('/'), self.conf_name)
 
     def set_model(self, plane):
         self.model.set_model(self.view_ops[plane]["cfg"])
@@ -313,8 +314,8 @@ if __name__ == "__main__":
         for subject in s_dirs:
             # Set orig and gt for testing now
             eval.set_gt(os.path.join(subject, args.gt_name))
+            eval.set_subject(subject)
             eval.set_orig(os.path.join(subject, args.orig_name))
-            eval.set_subject(subject.split("/")[-1])
             pred_name = os.path.join(subject, args.pred_name)
 
             # Run model
@@ -326,8 +327,8 @@ if __name__ == "__main__":
     else:
         # Set orig and gt for testing now
         eval.set_gt(os.path.join(s_dirs[0], args.gt_name))
+        eval.set_subject(s_dirs[0])
         eval.set_orig(os.path.join(s_dirs[0], args.orig_name))
-        eval.set_subject(s_dirs[0].split("/")[-1])
         pred_name = os.path.join(s_dirs[0], args.pred_name)
 
         # Run model
