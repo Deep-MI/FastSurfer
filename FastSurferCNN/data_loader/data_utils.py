@@ -528,10 +528,12 @@ def map_aparc_aseg2label(aseg, labels, labels_sag, sagittal_lut_dict, aseg_nocc=
         aseg[aseg == 30] = 2  # Left Vessel to Left WM
         aseg[aseg == 72] = 24  # 5th Ventricle to CSF
 
-        assert len(np.unique(aseg)) == len(labels), "Error: length of aseg classes and labels differs: \n{}\n{}".format(
-            np.unique(aseg), labels)
-        assert not np.any(aseg > 77), "Error: classes above 77 still exist in aseg {}".format(np.unique(aseg))
+        assert not np.any(251 <= aseg), "Error: CC classes (251-255) still exist in aseg {}".format(np.unique(aseg))
         assert np.any(aseg == 3) and np.any(aseg == 42), "Error: no cortical marker detected {}".format(np.unique(aseg))
+
+    assert set(labels).issuperset(
+        np.unique(aseg)), "Error: segmentation image contains classes not listed in the labels: \n{}\n{}".format(
+        np.unique(aseg), labels)
 
     h, w, d = aseg.shape
     lut_aseg = np.zeros(max(labels) + 1, dtype='int')
