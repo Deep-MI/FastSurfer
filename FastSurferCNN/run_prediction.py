@@ -305,6 +305,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Check input and output options
+    if args.in_dir is None and args.csv_file is None and not args.single_img:
+        parser.print_help(sys.stderr)
+        sys.exit('----------------------------\nERROR: Please specify data directory or input volume\n')
+
+    if args.out_dir is None and not args.single_img:
+        parser.print_help(sys.stderr)
+        sys.exit('----------------------------\nERROR: Please specify data output directory '
+                 '(can be same as input directory)\n')
+
     # Get all subjects of interest
     if args.csv_file is not None:
         with open(args.csv_file, "r") as s_dirs:
