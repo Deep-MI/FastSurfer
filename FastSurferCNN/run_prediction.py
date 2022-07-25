@@ -20,6 +20,7 @@ import os
 import logging
 import nibabel as nib
 import time
+import glob
 import sys
 print("Run pred", sys.path)
 
@@ -256,6 +257,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
+    parser.add_argument("--in_dir", type=str, default=None,
+                        help="Directory in which input volume(s) are located.")
     parser.add_argument('--gt_name', type=str, default="mri/aseg.mgz",
                         help="Default name for ground truth segmentations. Default: mri/aseg.filled.mgz")
     parser.add_argument('--orig_name', type=str, dest="orig_name", default='mri/orig.mgz', help="Name of orig input")
@@ -273,6 +276,9 @@ if __name__ == "__main__":
                         help="Path and name of LUT to use.")
     parser.add_argument("--gn", type=int, default=0,
                         help="How often to sample from gaussian and run inference on same sample with added noise on scale factor.")
+    parser.add_argument('--t', '--tag', dest='search_tag', default="*",
+                        help='Search tag to process only certain subjects. If a single image should be analyzed, '
+                             'set the tag with its id. Default: processes all.')
 
     # 2. Options for output
     parser.add_argument("--out_dir", type=str, default=None,
@@ -300,10 +306,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Get all subjects of interest
-    with open(args.csv_file, "r") as s_dirs:
-        s_dirs = [line.strip() for line in s_dirs.readlines()]
+    if args.csv_file is not None:
+        with open(args.csv_file, "r") as s_dirs:
+            s_dirs = [line.strip() for line in s_dirs.readlines()]
+        LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
+    else:
+        s_dirs = glob.glob(os.path.join(args.in_dir, args.search_tag))
+        LOGGER.info("Analyzing all {} subjects from in_dir {}".format(len(s_dirs), args.in_dir))
 
-    LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
     LOGGER.info("Output will be stored in: {}".format(args.out_dir))
 
     LOGGER.info("Ground truth: {}, Origs: {}".format(args.gt_name, args.orig_name))
