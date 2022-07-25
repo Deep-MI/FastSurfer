@@ -342,7 +342,7 @@ if __name__ == "__main__":
             eval.set_gt(os.path.join(subject, args.gt_name))
             eval.set_subject(subject)
             eval.set_orig(os.path.join(subject, args.orig_name))
-            pred_name = os.path.join(subject, args.pred_name)
+            pred_name = os.path.join(args.out_dir, subject.strip('/'), args.pred_name)
 
             # Run model
             pred_data = eval.get_prediction()
