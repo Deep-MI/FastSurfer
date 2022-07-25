@@ -125,8 +125,13 @@ class RunModelOnData:
 
     def set_subject(self, subject):
         self.subject_name = subject.split("/")[-1]
-        self.subject_conf_name = os.path.join(self.out_dir, subject.strip('/'), self.conf_name)
-        self.input_img_name = os.path.join(self.out_dir, subject.strip('/'), 'mri/orig', '001.mgz')
+
+        if args.single_img:
+            self.subject_conf_name = os.path.join(self.conf_name)
+            self.input_img_name = os.path.join(subject.strip('/'), 'mri/orig', '001.mgz')
+        else:
+            self.subject_conf_name = os.path.join(self.out_dir, subject.strip('/'), self.conf_name)
+            self.input_img_name = os.path.join(self.out_dir, subject.strip('/'), 'mri/orig', '001.mgz')
 
     def set_model(self, plane):
         self.model.set_model(self.view_ops[plane]["cfg"])
@@ -315,28 +320,28 @@ if __name__ == "__main__":
         sys.exit('----------------------------\nERROR: Please specify data output directory '
                  '(can be same as input directory)\n')
 
-    # Get all subjects of interest
-    if args.csv_file is not None:
-        with open(args.csv_file, "r") as s_dirs:
-            s_dirs = [line.strip() for line in s_dirs.readlines()]
-        LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
-    else:
-        s_dirs = glob.glob(os.path.join(args.in_dir, args.search_tag))
-        LOGGER.info("Analyzing all {} subjects from in_dir {}".format(len(s_dirs), args.in_dir))
-
-    LOGGER.info("Output will be stored in: {}".format(args.out_dir))
-
     LOGGER.info("Ground truth: {}, Origs: {}".format(args.gt_name, args.orig_name))
-
-    # Create output directory if it does not already exist.
-    if args.out_dir is not None and not os.path.exists(args.out_dir):
-        LOGGER.info("Output directory does not exist. Creating it now...")
-        os.makedirs(args.out_dir)
 
     # Set Up Model
     eval = RunModelOnData(args)
 
     if not args.single_img:
+
+        # Get all subjects of interest
+        if args.csv_file is not None:
+            with open(args.csv_file, "r") as s_dirs:
+                s_dirs = [line.strip() for line in s_dirs.readlines()]
+            LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
+        else:
+            s_dirs = glob.glob(os.path.join(args.in_dir, args.search_tag))
+            LOGGER.info("Analyzing all {} subjects from in_dir {}".format(len(s_dirs), args.in_dir))
+            LOGGER.info("Output will be stored in: {}".format(args.out_dir))
+
+        # Create output directory if it does not already exist.
+        if args.out_dir is not None and not os.path.exists(args.out_dir):
+            LOGGER.info("Output directory does not exist. Creating it now...")
+            os.makedirs(args.out_dir)
+
         for subject in s_dirs:
             # Set orig and gt for testing now
             eval.set_gt(os.path.join(subject, args.gt_name))
@@ -348,15 +353,23 @@ if __name__ == "__main__":
             pred_data = eval.get_prediction()
 
             gt, gt_data = eval.get_gt()
-            eval.save_img(pred_name, pred_data)
+            if args.save_img:
+                eval.save_img(pred_name, pred_data)
 
     else:
+        # Create output directory if it does not already exist.
+        out_dir, _ = os.path.split(args.pred_name)
+        if not os.path.exists(out_dir):
+            LOGGER.info("Output directory does not exist. Creating it now...")
+            os.makedirs(out_dir)
+
         # Set orig and gt for testing now
-        eval.set_gt(os.path.join(s_dirs[0], args.gt_name))
-        eval.set_subject(s_dirs[0])
-        eval.set_orig(os.path.join(s_dirs[0], args.orig_name))
-        pred_name = os.path.join(s_dirs[0], args.pred_name)
+        # Note: assumes orig_name, gt_name, and pred_name are absolute paths when --single_img:
+        subject, img_name = os.path.split(args.orig_name)
+        eval.set_subject(subject)
+        eval.set_orig(args.orig_name)
 
         # Run model
         pred_data = eval.get_prediction() #
-        eval.save_img(pred_name, pred_data)
+        if args.save_img:
+            eval.save_img(args.pred_name, pred_data)
