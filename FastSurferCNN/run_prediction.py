@@ -145,7 +145,7 @@ class RunModelOnData:
                                    pred_prob, noise=self.gn_noise)
 
         # Post processing
-        h, w, d = self.gt_data.shape
+        h, w, d = self.orig_data.shape
         pred_prob = pred_prob[0:h, 0:w, 0:d, :]
 
         return pred_prob
@@ -216,7 +216,7 @@ class RunModelOnData:
             os.makedirs("/".join(save_as.split("/")[0:-1]))
         if not isinstance(data, np.ndarray):
             data = data.cpu().numpy()
-        du.save_image(self.gt.header, self.gt.header.get_affine(), data, save_as)
+        du.save_image(self.orig.header, self.orig.header.get_affine(), data, save_as)
         LOGGER.info("Successfully saved image as {}".format(save_as))
 
     def run(self, csv, save_img, metrics, logger=LOGGER):
