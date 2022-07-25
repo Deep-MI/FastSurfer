@@ -73,8 +73,10 @@ class RunModelOnData:
 
         if args.out_dir is not None:
             self.pred_name = os.path.join(args.out_dir, self.subject_name, args.pred_name)
+            self.conf_name = os.path.join(args.out_dir, self.subject_name, args.conf_name)
         else:
             self.pred_name = os.path.join(self.current_subject, args.pred_name)
+            self.conf_name = os.path.join(self.current_subject, args.conf_name)
 
         self.lut = du.read_classes_from_lut(args.lut)
         self.labels = self.lut["ID"].values
@@ -107,6 +109,10 @@ class RunModelOnData:
         """if not conf.is_conform(self.orig, check_dtype=True):
             self.orig = conf.conform(self.orig)
             self.orig_data = np.asanyarray(self.orig.dataobj)"""
+
+        # Save conformed input image
+        LOGGER.info("Saving conformed original image to {}".format(self.conf_name))
+        self.save_img(self.conf_name, self.orig_data)
 
     def set_gt(self, gt_str):
         self.gt, self.gt_data = self.get_img(gt_str)
@@ -248,6 +254,10 @@ if __name__ == "__main__":
     parser.add_argument('--orig_name', type=str, dest="orig_name", default='mri/orig.mgz', help="Name of orig input")
     parser.add_argument('--pred_name', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
                         help="Filename to save prediction. Default: mri/aparc.DKTatlas+aseg.deep.mgz")
+    parser.add_argument('--conf_name', type=str, dest='conf_name', default='orig.mgz',
+                        help="Name under which the conformed input image will be saved, in the same directory as the segmentation "
+                             "(the input image is always conformed first, if it is not already conformed). "
+                             "The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: orig.mgz.")
     parser.add_argument('--gt_dir', type=str, default=None,
                         help="Directory of ground truth (if different from orig input).")
     parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --pattern)",
