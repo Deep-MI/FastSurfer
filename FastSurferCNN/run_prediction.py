@@ -110,14 +110,13 @@ class RunModelOnData:
         LOGGER.info("Saving original image to {}".format(self.input_img_name))
         self.save_img(self.input_img_name, self.orig_data)
 
-        # TODO check and conform image (only add once conform.py is updated for hires)
-
-        """if not conf.is_conform(self.orig, check_dtype=True):
-            self.orig = conf.conform(self.orig)
-            self.orig_data = np.asanyarray(self.orig.dataobj)"""
+        if not conf.is_conform(self.orig, conform_min=True, check_dtype=True, verbose=False):
+            LOGGER.info("Conforming image")
+            self.orig = conf.conform(self.orig, conform_min=True)
+            self.orig_data = np.asanyarray(self.orig.dataobj)
 
         # Save conformed input image
-        LOGGER.info("Saving conformed original image to {}".format(self.subject_conf_name))
+        LOGGER.info("Saving conformed image to {}".format(self.subject_conf_name))
         self.save_img(self.subject_conf_name, self.orig_data)
 
     def set_gt(self, gt_str):
