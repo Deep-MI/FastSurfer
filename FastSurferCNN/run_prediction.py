@@ -284,32 +284,6 @@ class RunModelOnData:
 
         logger.info("Processing finished in {:0.4f} seconds".format(time.time() - start))
 
-#     ## Alt.:
-#     def run(self, csv, save_img, metrics, logger=LOGGER):
-#         start = time.time()
-# 
-#         for _ in self.get_subjects(csv):
-#             logger.info(f"Generating {self.pred_name} for {self.subject_name}:\nnet VINN, ckpt {self.ckpt_fin}")
-# 
-#             # Load and prepare ground truth data
-#             load = time.time()
-#             self.set_gt(self.gt_filename)
-#             self.set_orig(self.orig_filename)
-#             logger.info("Ground truth loaded in {:0.4f} seconds".format(time.time() - load))
-# 
-#             # Load prediction or generate it from scratch
-#             load = time.time()
-#             pred_data = self.get_prediction()
-#             logger.info("Model prediction finished in {:0.4f}.".format(time.time() - load))
-# 
-#             # Save Image
-#             if save_img:
-#                 save = time.time()
-#                 self.save_img(self.pred_name, pred_data)
-#                 logger.info("Image successfully saved as {} in {:0.4f} seconds".format(self.pred_name, time.time() - save))
-# 
-#         logger.info("Processing finished in {:0.4f} seconds".format(time.time() - start))
-
     def set_up_model_params(self, plane, cfg, ckpt):
         self.view_ops[plane]["cfg"] = cfg
         self.view_ops[plane]["ckpt"] = ckpt
