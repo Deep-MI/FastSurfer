@@ -147,8 +147,9 @@ class RunModelOnData:
         self.subject_name = subject.split("/")[-1]
 
         if args.single_img:
-            self.subject_conf_name = os.path.join(self.conf_name)
-            self.input_img_name = os.path.join(subject.strip('/'), 'mri/orig', '001.mgz')
+            out_dir, _ = os.path.split(args.pred_name)
+            self.subject_conf_name = self.conf_name
+            self.input_img_name = os.path.join(out_dir, 'orig', '001.mgz')
         else:
             self.subject_conf_name = os.path.join(self.out_dir, subject.strip('/'), self.conf_name)
             self.input_img_name = os.path.join(self.out_dir, subject.strip('/'), 'mri/orig', '001.mgz')
