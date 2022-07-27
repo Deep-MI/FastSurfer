@@ -182,7 +182,7 @@ class RunModelOnData:
 
         # coronal inference
         if self.view_ops["coronal"]["cfg"] is not None:
-            if self.view_ops["axial"]["cfg"] is not None:
+            if self.view_ops["axial"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
                 self.set_model("coronal")
             if not self.small_gpu:
                 pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
@@ -195,7 +195,7 @@ class RunModelOnData:
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
-            if self.view_ops["coronal"]["cfg"] is not None:
+            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
                 self.set_model("axial")
                 if not self.small_gpu:
                     ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
@@ -217,7 +217,7 @@ class RunModelOnData:
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
-            if self.view_ops["coronal"]["cfg"] is not None:
+            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["axial"]["cfg"] is not None:
                 if not self.small_gpu:
                     sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
                                            dtype=torch.float).to(self.device)
@@ -234,7 +234,7 @@ class RunModelOnData:
                 else:
                     pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
                                            dtype=torch.float)
-                pred_prob += self.run_model(pred_prob)
+                pred_prob = self.run_model(pred_prob)
 
         # Get hard predictions and map to freesurfer label space
         _, pred_prob = torch.max(pred_prob, 3)
