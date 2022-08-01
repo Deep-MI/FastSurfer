@@ -250,14 +250,20 @@ class RunModelOnData:
 
         return img, data
 
-    def save_img(self, save_as, data):
+    def save_img(self, save_as, data, seg=False):
         # Create output directory if it does not already exist.
         if not os.path.exists("/".join(save_as.split("/")[0:-1])):
             LOGGER.info("Output image directory does not exist. Creating it now...")
             os.makedirs("/".join(save_as.split("/")[0:-1]))
         if not isinstance(data, np.ndarray):
             data = data.cpu().numpy()
-        du.save_image(self.orig.header, self.orig.header.get_affine(), data, save_as)
+
+        if seg:
+            header = self.orig.header.copy()
+            header.set_data_dtype(np.int16)
+            du.save_image(header, self.orig.header.get_affine(), data, save_as)
+        else:
+            du.save_image(self.orig.header, self.orig.header.get_affine(), data, save_as)
         LOGGER.info("Successfully saved image as {}".format(save_as))
 
     def run(self, csv, save_img, metrics, logger=LOGGER):
@@ -407,7 +413,7 @@ if __name__ == "__main__":
 
             gt, gt_data = eval.get_gt()
             if args.save_img:
-                eval.save_img(pred_name, pred_data)
+                eval.save_img(pred_name, pred_data, seg=True)
 
     else:
         # Create output directory if it does not already exist.
@@ -425,4 +431,4 @@ if __name__ == "__main__":
         # Run model
         pred_data = eval.get_prediction() #
         if args.save_img:
-            eval.save_img(args.pred_name, pred_data)
+            eval.save_img(args.pred_name, pred_data, seg=True)
