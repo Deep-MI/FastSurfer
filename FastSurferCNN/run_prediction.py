@@ -380,6 +380,7 @@ if __name__ == "__main__":
 
     LOGGER.info("Ground truth: {}, Origs: {}".format(args.gt_name, args.orig_name))
 
+    torch.set_flush_denormal(True)
 
     # Set Up Model
     eval = RunModelOnData(args)
