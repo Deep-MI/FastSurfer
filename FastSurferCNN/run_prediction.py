@@ -107,7 +107,7 @@ class RunModelOnData:
         self.gn_noise = args.gn
         self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        self.model = Inference(self.cfg_fin, self.ckpt_fin, self.small_gpu)
+        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda, self.small_gpu)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
 
@@ -355,6 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--cfg_sag", dest="cfg_sag", help="Path to the sagittal config file",
                         default=None, type=str)
 
+    parser.add_argument('--no_cuda', action='store_true', default=False, help="Disables GPU usage")
     parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
                     default="check", choices=["gpu", "cpu", "check"],
                     help="Define where the view aggregation should be run on. \
