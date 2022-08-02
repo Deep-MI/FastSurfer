@@ -32,9 +32,13 @@ t1=""
 seg=""
 conformed_name=""
 seg_log=""
-weights_sag="$FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-weights_ax="$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-weights_cor="$FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
+## TODO: If included with FastSurfer, set the default paths of the following files:
+weights_sag=""
+weights_ax=""
+weights_cor=""
+config_cor=""
+config_ax=""
+config_sag=""
 clean_seg=""
 viewagg="check"
 cuda=""
@@ -168,6 +172,21 @@ case $key in
     ;;
     --weights_cor)
     weights_cor="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --config_ax)
+    config_cor="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --config_sag)
+    config_sag="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --config_ax)
+    config_cor="$2"
     shift # past argument
     shift # past value
     ;;
@@ -340,7 +359,6 @@ if [ "$seg_only" == "1" ] && [ ! -z "$vol_segstats" ]
 fi
 ########################################## START ########################################################
 
-
 if [ "$surf_only" == "0" ]; then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
@@ -350,7 +368,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python eval.py --in_name $t1 --out_name $seg --conformed_name $conformed_name --order $order --network_sagittal_path $weights_sag --network_axial_path $weights_ax --network_coronal_path $weights_cor --batch_size $batch_size --simple_run $clean_seg --run_viewagg_on $viewagg $cuda"
+  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
