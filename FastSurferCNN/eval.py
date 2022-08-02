@@ -131,6 +131,11 @@ class Inference:
             images, scale_factors = batch['image'].to(self.device), batch['scale_factor'].to(self.device)
             pred = self.model(images, scale_factors, out_scale)
 
+            # cut prediction to the image size
+            # TODO: a bit "hacky" to get the orig image size...; maybe this can just be in batch
+            shape = val_loader.dataset.images.shape
+            pred = pred[:, :, :shape[1], :shape[2]]
+
             if self.cfg.DATA.PLANE == "axial":
                 pred = pred.permute(3, 0, 2, 1).to(pred_prob.device)  # the to-operation is implicit
                 pred_prob[:, start_index:start_index + pred.shape[1], :, :].add_(pred, alpha=0.4)
@@ -155,6 +160,8 @@ class Inference:
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg, gn_noise=noise,
                                                      transforms=transforms.Compose([ToTensorTest()]))
+#                                                     transforms=transforms.Compose([ZeroPad2DTest((self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE)),
+#                                                                                    ToTensorTest()]))
 
         test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
                                       batch_size=self.cfg.TEST.BATCH_SIZE)
