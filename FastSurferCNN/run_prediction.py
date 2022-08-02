@@ -107,7 +107,7 @@ class RunModelOnData:
         self.gn_noise = args.gn
         self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda, self.small_gpu)
+        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
 
@@ -189,64 +189,24 @@ class RunModelOnData:
 
         # coronal inference
         if self.view_ops["coronal"]["cfg"] is not None:
-            if self.view_ops["axial"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
-                self.set_model("coronal")
-            if not self.small_gpu:
-                pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
-                                        dtype=torch.float).to(self.device)
-            else:
-                pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
-                                        dtype=torch.float)
+            LOGGER.info("Run coronal prediction")
+            self.set_model("coronal")
             pred_prob = self.run_model(pred_prob)
 
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
-            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
-                self.set_model("axial")
-                if not self.small_gpu:
-                    ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float).to(self.device)
-                else:
-                    ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float)
-                pred_prob += self.run_model(ax_prob)
-                del ax_prob
-            else:
-                if not self.small_gpu:
-                    pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float).to(self.device)
-                else:
-                    pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float)
-                pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob)
 
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
-            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["axial"]["cfg"] is not None:
-                if not self.small_gpu:
-                    sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float).to(self.device)
-                else:
-                    sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float)
-                self.set_model("sagittal")
-                pred_prob += self.run_model(sag_prob)
-                del sag_prob
-            else:
-                if not self.small_gpu:
-                    pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float).to(self.device)
-                else:
-                    pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float)
-                pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob)
 
         # Get hard predictions and map to freesurfer label space
-        _, pred_prob = torch.max(pred_prob, 3)
-        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu(), self.labels).numpy()
-        pred_prob = du.split_cortex_labels(pred_prob)
+        pred_prob = torch.argmax(pred_prob, 3)
+        pred_prob = du.map_label2aparc_aseg(pred_prob, self.labels)
+        pred_prob = du.split_cortex_labels(pred_prob.cpu().numpy())
         # return numpy array
         return pred_prob
 
