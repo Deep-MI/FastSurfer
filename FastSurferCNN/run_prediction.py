@@ -107,7 +107,7 @@ class RunModelOnData:
         self.gn_noise = args.gn
         self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda, self.small_gpu)
+        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
 
@@ -118,11 +118,11 @@ class RunModelOnData:
         cfg_fin = cfg_cor if cfg_cor is not None else cfg_sag if cfg_sag is not None else cfg_ax
         ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
         return {"coronal": {"cfg": cfg_cor,
-                     "ckpt": args.ckpt_cor},
-         "sagittal": {"cfg": cfg_sag,
-                      "ckpt": args.ckpt_sag},
-         "axial": {"cfg": cfg_ax,
-                   "ckpt": args.ckpt_ax}}, cfg_fin, ckpt_fin
+                            "ckpt": args.ckpt_cor},
+                "sagittal": {"cfg": cfg_sag,
+                             "ckpt": args.ckpt_sag},
+                "axial": {"cfg": cfg_ax,
+                          "ckpt": args.ckpt_ax}}, cfg_fin, ckpt_fin
 
     def set_orig(self, orig_str):
         self.orig, self.orig_data = self.get_img(orig_str)
@@ -178,46 +178,34 @@ class RunModelOnData:
         return self.orig, self.orig_data
 
     def get_prediction(self):
-        oh, ow, od = self.orig.shape
+        shape = self.orig.shape + (self.get_num_classes(),)
+        kwargs = {
+            "device": "cpu" if self.small_gpu else self.device,
+            "dtype": torch.float,
+            "requires_grad": False
+        }
+
+        pred_prob = torch.zeros(shape, **kwargs)
 
         # coronal inference
         if self.view_ops["coronal"]["cfg"] is not None:
+            LOGGER.info("Run coronal prediction")
             self.set_model("coronal")
-            pred_prob = torch.zeros((self.dim, self.dim, od, self.get_num_classes()),
-                                    dtype=torch.float, device='cpu' if self.small_gpu else self.device)
             pred_prob = self.run_model(pred_prob)
 
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
-            self.set_model("axial")
-            if self.view_ops["coronal"]["cfg"] is not None:
-                ax_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
-                                      dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob += self.run_model(ax_prob)
-                del ax_prob
-            else:
-                pred_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
-                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob)
 
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
-            self.set_model("sagittal")
-            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["axial"]["cfg"] is not None:
-                sag_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
-                                       dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob += self.run_model(sag_prob)
-                del sag_prob
-            else:
-                pred_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
-                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob)
 
         # Get hard predictions and map to freesurfer label space
         _, pred_prob = torch.max(pred_prob, 3)
-        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu(), self.labels)
+        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu(), self.labels).numpy()
         pred_prob = du.split_cortex_labels(pred_prob)
         # return numpy array
         return pred_prob
@@ -337,17 +325,16 @@ if __name__ == "__main__":
     parser.add_argument("--cfg_sag", dest="cfg_sag", help="Path to the sagittal config file",
                         default=None, type=str)
 
-    parser.add_argument('--no_cuda', action='store_true', default=False, help="Disables GPU usage")
     parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
-                    default="check", choices=["gpu", "cpu", "check"],
-                    help="Define where the view aggregation should be run on. \
-                          By default, the program checks if you have enough memory \
-                          to run the view aggregation on the gpu. The total memory \
-                          is considered for this decision. If this fails, or \
-                          you actively overwrote the check with setting \
-                          > --run_viewagg_on cpu <, view agg is run on the cpu. \
-                          Equivalently, if you define > --run_viewagg_on gpu <,\
-                          view agg will be run on the gpu (no memory check will be done).")
+                        default="check", choices=["gpu", "cpu", "check"],
+                        help="Define where the view aggregation should be run on. \
+                             By default, the program checks if you have enough memory \
+                             to run the view aggregation on the gpu. The total memory \
+                             is considered for this decision. If this fails, or \
+                             you actively overwrote the check with setting \
+                             > --run_viewagg_on cpu <, view agg is run on the cpu. \
+                             Equivalently, if you define > --run_viewagg_on gpu <,\
+                             view agg will be run on the gpu (no memory check will be done).")
 
     args = parser.parse_args()
 
@@ -363,7 +350,6 @@ if __name__ == "__main__":
 
     LOGGER.info("Ground truth: {}, Origs: {}".format(args.gt_name, args.orig_name))
 
-    torch.set_flush_denormal(True)
 
     # Set Up Model
     eval = RunModelOnData(args)
