@@ -184,56 +184,36 @@ class RunModelOnData:
         if self.view_ops["coronal"]["cfg"] is not None:
             if self.view_ops["axial"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
                 self.set_model("coronal")
-            if not self.small_gpu:
-                pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
-                                        dtype=torch.float).to(self.device)
-            else:
-                pred_prob = torch.zeros((self.dim, self.dim, od, self.model.get_num_classes()),
-                                        dtype=torch.float)
+            pred_prob = torch.zeros((self.dim, self.dim, od, self.get_num_classes()),
+                                    dtype=torch.float, device='cpu' if self.small_gpu else self.device)
             pred_prob = self.run_model(pred_prob)
 
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
-            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
+            if self.view_ops["coronal"]["cfg"] is not None:
                 self.set_model("axial")
-                if not self.small_gpu:
-                    ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float).to(self.device)
-                else:
-                    ax_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float)
+                ax_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
+                                      dtype=torch.float, device='cpu' if self.small_gpu else self.device)
                 pred_prob += self.run_model(ax_prob)
                 del ax_prob
             else:
-                if not self.small_gpu:
-                    pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float).to(self.device)
-                else:
-                    pred_prob = torch.zeros((self.dim, ow, self.dim, self.model.get_num_classes()),
-                                          dtype=torch.float)
+                pred_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
+                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
                 pred_prob = self.run_model(pred_prob)
 
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
             if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["axial"]["cfg"] is not None:
-                if not self.small_gpu:
-                    sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float).to(self.device)
-                else:
-                    sag_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float)
+                sag_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
+                                       dtype=torch.float, device='cpu' if self.small_gpu else self.device)
                 self.set_model("sagittal")
                 pred_prob += self.run_model(sag_prob)
                 del sag_prob
             else:
-                if not self.small_gpu:
-                    pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float).to(self.device)
-                else:
-                    pred_prob = torch.zeros((oh, self.dim, self.dim, self.model.get_num_classes()),
-                                           dtype=torch.float)
+                pred_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
+                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
                 pred_prob = self.run_model(pred_prob)
 
         # Get hard predictions and map to freesurfer label space
@@ -301,6 +281,9 @@ class RunModelOnData:
                 self.current_subject = line.strip()
                 self.subject_name = line.split("/")[-1] if line.split("/")[-1] != "mri" else line.split("/")[-2]
                 yield
+
+    def get_num_classes(self):
+        return 79
 
 
 if __name__ == "__main__":
