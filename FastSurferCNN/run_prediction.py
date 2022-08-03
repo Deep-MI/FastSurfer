@@ -182,8 +182,7 @@ class RunModelOnData:
 
         # coronal inference
         if self.view_ops["coronal"]["cfg"] is not None:
-            if self.view_ops["axial"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
-                self.set_model("coronal")
+            self.set_model("coronal")
             pred_prob = torch.zeros((self.dim, self.dim, od, self.get_num_classes()),
                                     dtype=torch.float, device='cpu' if self.small_gpu else self.device)
             pred_prob = self.run_model(pred_prob)
@@ -191,8 +190,8 @@ class RunModelOnData:
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
+            self.set_model("axial")
             if self.view_ops["coronal"]["cfg"] is not None:
-                self.set_model("axial")
                 ax_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
                                       dtype=torch.float, device='cpu' if self.small_gpu else self.device)
                 pred_prob += self.run_model(ax_prob)
@@ -205,10 +204,10 @@ class RunModelOnData:
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
+            self.set_model("sagittal")
             if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["axial"]["cfg"] is not None:
                 sag_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                self.set_model("sagittal")
                 pred_prob += self.run_model(sag_prob)
                 del sag_prob
             else:
