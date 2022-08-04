@@ -127,7 +127,7 @@ class FastSurferVINN(FastSurferCNNBase):
         self.height = params['height']
         self.width = params['width']
 
-        self.out_tensor_shape = tuple(params.get(k, padded_size) for k in ['out_tensor_width', 'out_tensor_height'])
+        self.out_tensor_shape = tuple(params.get('out_tensor_' + k, padded_size) for k in ['width', 'height'])
 
         self.interpolation_mode = params['interpolation_mode'] if 'interpolation_mode' in params else 'bilinear'
         if self.interpolation_mode not in ['nearest', 'bilinear', 'bicubic', 'area']:

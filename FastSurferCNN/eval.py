@@ -121,7 +121,7 @@ class Inference:
         return self.device
 
     @torch.no_grad()
-    def eval(self, val_loader, pred_prob: torch.Tensor, out_scale=None):
+    def eval(self, val_loader, out: torch.Tensor, out_scale=None):
         """Perform prediction and inplace-aggregate views into pred_prob. Return pred_prob."""
         self.model.eval()
 
@@ -132,31 +132,31 @@ class Inference:
             pred = self.model(images, scale_factors, out_scale)
 
             # cut prediction to the image size
-            # TODO: a bit "hacky" to get the orig image size...; maybe this can just be in batch
+            # TODO: a bit "hacky" to get the orig image size of the current plane...; maybe this can just be in batch
             shape = val_loader.dataset.images.shape
             pred = pred[:, :, :shape[1], :shape[2]]
 
             if self.cfg.DATA.PLANE == "axial":
-                pred = pred.permute(3, 0, 2, 1).to(pred_prob.device)  # the to-operation is implicit
-                pred_prob[:, start_index:start_index + pred.shape[1], :, :].add_(pred, alpha=0.4)
+                pred = pred.permute(3, 0, 2, 1).to(out.device)  # the to-operation is implicit
+                out[:, start_index:start_index + pred.shape[1], :, :].add_(pred, alpha=0.4)
                 start_index += pred.shape[1]
 
             elif self.cfg.DATA.PLANE == "coronal":
-                pred = pred.permute(2, 3, 0, 1).to(pred_prob.device)
-                pred_prob[:, :, start_index:start_index + pred.shape[2], :].add_(pred, alpha=0.4)
+                pred = pred.permute(2, 3, 0, 1).to(out.device)
+                out[:, :, start_index:start_index + pred.shape[2], :].add_(pred, alpha=0.4)
                 start_index += pred.shape[2]
 
             else:
-                pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1).to(pred_prob.device)
-                pred_prob[start_index:start_index + pred.shape[0], :, :, :].add_(pred, alpha=0.2)
+                pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1).to(out.device)
+                out[start_index:start_index + pred.shape[0], :, :, :].add_(pred, alpha=0.2)
                 start_index += pred.shape[0]
 
             logger.info("---> Batch {} {} Testing Done.".format(batch_idx, self.cfg.DATA.PLANE))
 
-        return pred_prob
+        return out
 
     @torch.no_grad()
-    def run(self, img_filename, orig_data, orig_zoom, pred_prob, noise=0, out_res=None):
+    def run(self, img_filename, orig_data, orig_zoom, out, noise=0, out_res=None):
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg, gn_noise=noise,
                                                      transforms=transforms.Compose([ToTensorTest()]))
@@ -168,8 +168,8 @@ class Inference:
 
         # Run evaluation
         start = time.time()
-        pred_prob = self.eval(test_data_loader, pred_prob, out_scale=out_res)
-        logger.info("Inference on {} finished in {:0.4f} seconds".format(img_filename, time.time()-start))
+        out = self.eval(test_data_loader, out, out_scale=out_res)
+        logger.info("{}-Inference on {} finished in {:0.4f} seconds".format(self.cfg.DATA.PLANE, img_filename, time.time()-start))
 
-        return pred_prob
+        return out
 

@@ -16,6 +16,7 @@
 # IMPORTS
 import typing as _T
 from numbers import Number
+from logging import getLogger as _getLogger
 
 import torch
 import torch.nn as nn
@@ -23,6 +24,7 @@ from torch import Tensor
 from torch.nn import functional as _F
 import numpy as np
 
+LOGGER = _getLogger(__name__)
 
 T_Scale = _T.TypeVar('T_Scale', _T.List[float], Tensor)
 T_ScaleAll = _T.TypeVar('T_ScaleAll', _T.Sequence[float], Tensor, np.ndarray, float)
@@ -40,23 +42,30 @@ class _ZoomNd(nn.Module):
                                       (default: 'neareast')
         """
         super(_ZoomNd, self).__init__()
-        self._target_shape = target_shape
         self._mode = interpolation_mode
-        self._N = 0
+        if not hasattr(self, "_N"):
+            self._N = -1
+        self._target_shape: _T.Tuple[int, ...] = tuple()
+        self.target_shape = target_shape
 
-    def set_target_shape(self, target_shape: _T.Optional[_T.Sequence[int]]) -> None:
-        """Validates and sets the target_shape."""
-        if target_shape is None or isinstance(target_shape, _T.Sequence) and len(target_shape) == self._N:
-            self._target_shape = target_shape
-        else:
-            raise TypeError(f"invalid type or dimension of target_shape, must be None or {self._N}-sequence of ints, "
-                            f"got {target_shape}.")
-
-    def get_target_shape(self) -> _T.Optional[_T.Sequence[int]]:
+    @property
+    def target_shape(self) -> _T.Tuple[int, ...]:
         """Returns the target shape."""
         return self._target_shape
 
-    target_shape = property(get_target_shape, set_target_shape)
+    @target_shape.setter
+    def target_shape(self, target_shape: _T.Optional[_T.Sequence[int]]) -> None:
+        """Validates and sets the target_shape."""
+        tup_target_shape = tuple(target_shape) if isinstance(target_shape, _T.Iterable) else tuple()
+        if tup_target_shape != self._target_shape:
+            LOGGER.debug(f"Changing the target_shape of {type(self).__name__} to {tup_target_shape} from {self._target_shape}.")
+        elif (target_shape is None) != (self._target_shape is None):
+            LOGGER.debug(f"Changing the target_shape of {type(self).__name__} to {target_shape} from {self._target_shape}.")
+        if len(tup_target_shape) in [0, self._N]:
+            self._target_shape = tup_target_shape
+        else:
+            raise TypeError(f"invalid type or dimension of target_shape, must be None or {self._N}-sequence of ints, "
+                            f"got {target_shape}.")
 
     def forward(self,
                 input_tensor: Tensor,
@@ -88,8 +97,8 @@ class _ZoomNd(nn.Module):
         if input_tensor.dim() != 2 + self._N:
             raise ValueError("Expected {self._N+2}-dimensional input tensor, got {input.dim()}")
 
-        if self._target_shape is None:
-            raise AttributeError("The target_shape was None, but a value is required.")
+        if len(self._target_shape) == 0:
+            raise AttributeError("The target_shape was not set, but a valid value is required.")
 
         scales, aggregate = zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]))
         scales, aggregate = list(scales), list(aggregate)
@@ -260,10 +269,9 @@ class Zoom2d(_ZoomNd):
         if crop_position not in ['top_left', 'bottom_left', 'top_right', 'bottom_right', 'center']:
             raise ValueError(f"invalid crop_position, got {crop_position}")
 
-        super(Zoom2d, self).__init__(None, interpolation_mode)
-        self._crop_position = crop_position
         self._N = 2
-        self.set_target_shape(target_shape)
+        super(Zoom2d, self).__init__(target_shape, interpolation_mode)
+        self._crop_position = crop_position
 
     def _interpolate(self, tensor: Tensor,
                      scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[float]]) \
@@ -320,11 +328,13 @@ class Zoom3d(_ZoomNd):
     """
     Performs a crop and interpolation on a Five-dimensional Tensor respecting batch and channel.
     """
-    def __init__(self, target_shape: _T.Sequence[int], interpolation_mode: str="nearest", crop_position: str="front_top_left"):
+    def __init__(self, target_shape: _T.Optional[_T.Sequence[int]],
+                 interpolation_mode: str = "nearest",
+                 crop_position: str = "front_top_left"):
         """
         Initialization of Interpolation.
         Args:
-            target_shape (len 2): Target tensor size for after this module,
+            target_shape (len 3): Target tensor size for after this module,
                 not including batchsize and channels.
             interpolation_mode: interpolation mode as in `torch.nn.interpolate`
                 (default: 'neareast')
@@ -336,27 +346,31 @@ class Zoom3d(_ZoomNd):
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
         if crop_position not in ['front_top_left', 'back_top_left',
-                'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
-                'front_bottom_right', 'back_bottom_right', 'center']:
+                                 'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
+                                 'front_bottom_right', 'back_bottom_right', 'center']:
             raise ValueError(f"invalid crop_position, got {crop_position}")
 
-        super(Zoom3d, self).__init__(None, interpolation_mode)
-        self._crop_position = crop_position
         self._N = 3
-        self.set_target_shape(target_shape)
+        super(Zoom3d, self).__init__(target_shape, interpolation_mode)
+        self._crop_position = crop_position
 
     def _interpolate(self, tensor: Tensor, scale_factor: _T.Sequence[int]):
         """
-        Crops, interpolates and pads the tensor acccording to the scale_factor. scale_factor must be 2-length sequence.
+        Crops, interpolates and pads the tensor acccording to the scale_factor. scale_factor must be 3-length sequence.
         """
-        if not isinstance(scale_factor, _T.Sequence) or len(scale_factor) != 3:
-            raise ValueError("target_shape must be a sequence of floats of length 3")
-
-        c = self._crop_position == "center"
-        depth_alignment, vertical_alignment, horizontal_alignment = ('from_start',) *3
+        scale_factor = scale_factor.tolist() if isinstance(scale_factor, np.ndarray) else scale_factor
+        if isinstance(scale_factor, Tensor) and scale_factor.shape == (3,):
+            pass
+        elif isinstance(scale_factor, _T.Sequence) and len(scale_factor) == 3:
+            scale_factor = list(scale_factor)
+        else:
+            raise ValueError(f"target_shape must be a ndarray, Tensor, or sequence of floats of length 3, received a "
+                             f"{type(scale_factor).__name__}: {scale_factor}.")
 
         if self._crop_position == "center":
-            depth_alignment, vertical_alignment, horizontal_alignment = ('mid',) *3
+            depth_alignment, vertical_alignment, horizontal_alignment = ('mid',) * 3
+        else:
+            depth_alignment, vertical_alignment, horizontal_alignment = ('from_start',) * 3
 
         if self._crop_position.startswith("back"):
             depth_alignment = 'from_end'
