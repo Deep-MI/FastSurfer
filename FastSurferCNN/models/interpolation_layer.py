@@ -91,7 +91,7 @@ class _ZoomNd(nn.Module):
             If this Module is used to zoom images of different voxelsizes to the same voxelsize, then `scale_factor`
             should be equal to `target_voxelsize / source_voxelsize`.
         """
-        if self._N == 0:
+        if self._N == -1:
             raise RuntimeError("Direct instantiation of _InterpolateNd is not supported.")
 
         if input_tensor.dim() != 2 + self._N:
@@ -100,12 +100,14 @@ class _ZoomNd(nn.Module):
         if len(self._target_shape) == 0:
             raise AttributeError("The target_shape was not set, but a valid value is required.")
 
-        scales, aggregate = zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]))
-        scales, aggregate = list(scales), list(aggregate)
+        scales_chunks = list(zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0])))
+        if len(scales_chunks) == 0:
+            raise ValueError(f"Invalid scale_factors {scale_factors}, no chunks returned.")
+        scales, chunks = map(list, scales_chunks)
         interp, scales_out = [], []
 
         # Pytorch Tensor shape BxCxHxW --> loop over batches, interpolate single images, concatenate output at end
-        for tensor, scale_f, num in zip(torch.split(input_tensor, aggregate, dim=0), scales, aggregate):
+        for tensor, scale_f, num in zip(torch.split(input_tensor, chunks, dim=0), scales, chunks):
             if rescale:
                 if isinstance(scale_f, list):
                     scale_f = [1/sf for sf in scale_f]
@@ -167,13 +169,10 @@ class _ZoomNd(nn.Module):
                     # reset the counter
                     num = 0
                 last_sf = sf
-            if last_sf is None:
-                return []
-            else:
+            if last_sf is not None:
                 yield last_sf, num
         elif isinstance(scale_factors, Number):
-            return [([scale_factors] * self._N, batch_size)]
-
+            yield [scale_factors] * self._N, batch_size
         else:
             raise ValueError("scale_factors is not the correct type, must be sequence of floats or float.")
 
