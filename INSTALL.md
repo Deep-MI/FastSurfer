@@ -12,10 +12,10 @@ We also provide information on a native installs on some operating systems, but 
 ## Linux
 
 Recommendation: 8 GB CPU RAM, NVIDIA GPU with 8GB RAM
-Minimal: 8GB CPU RAM, 2 GB GPU RAM
+(minimal: 2GB GPU RAM can work with special flags).
 
 You can also run a non-GPU (CPU only) but that will be much slower. 
-Non NVIDIA GPU architectures have not been tested. 
+Non NVIDIA GPU architectures are not supported. 
 
 ### Singularity
 
@@ -126,7 +126,7 @@ Once all dependencies are installed, run the FastSurfer segmentation only (!!) b
 
 To run the full pipeline, install also FreeSurfer v7.2 according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you into problems during this step. 
 
-### Docker (Currently only Intel)
+### Docker (currently only Intel)
 
 Docker can be used on Intel Macs as it should be similarly fast than a native install there.
 
