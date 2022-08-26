@@ -110,6 +110,7 @@ class RunModelOnData:
         self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda, self.small_gpu)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
+        self.hires = args.hires
 
     def set_view_ops(self, args):
         cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
@@ -131,7 +132,7 @@ class RunModelOnData:
         LOGGER.info("Saving original image to {}".format(self.input_img_name))
         self.save_img(self.input_img_name, self.orig_data)
 
-        if not conf.is_conform(self.orig, conform_min=True, check_dtype=True, verbose=False):
+        if not conf.is_conform(self.orig, conform_min=self.hires, check_dtype=True, verbose=False):
             LOGGER.info("Conforming image")
             self.orig = conf.conform(self.orig, conform_min=True)
             self.orig_data = np.asanyarray(self.orig.dataobj)
@@ -322,6 +323,7 @@ if __name__ == "__main__":
     parser.add_argument("--single_img", default=False, action="store_true",
                         help="Run single image for testing purposes instead of entire csv-file")
     parser.add_argument('--save_img', action='store_true', default=False, help="Save prediction as mgz on disk.")
+    parser.add_argument('--hires', action="store_true", default=False, dest='hires')
 
 
     # 3. Checkpoint to load
