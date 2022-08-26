@@ -374,7 +374,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg $cuda"
+  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg $cuda"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
