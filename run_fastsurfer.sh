@@ -52,6 +52,7 @@ fstess=""
 fsqsphere=""
 fsaparc=""
 fssurfreg=""
+hires=""
 doParallel=""
 threads="1"
 python="python3.8"
@@ -94,6 +95,7 @@ function usage()
     echo -e "\t--fsqsphere                            Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
     echo -e "\t--fsaparc                              Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
     echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondence)"
+    echo -e "\t--hires                                Run FastSurfer recon-surf stream for hires image"
     echo -e "\t--parallel                             Run both hemispheres in parallel"
     echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
     echo -e "\t--py <python_cmd>                      Command for python, default 'python3.6'"
@@ -245,6 +247,10 @@ case $key in
     fssurfreg="--surfreg"
     shift # past argument
     ;;
+    --hires)
+    hires="--hires"
+    shift # past argument
+    ;;
     --parallel)
     doParallel="--parallel"
     shift # past argument
@@ -379,7 +385,7 @@ if [ "$seg_only" == "0" ]; then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd $reconsurfdir
-  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1"
+  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $hires $doParallel --threads $threads --py $python $vcheck $vfst1"
   $cmd
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   popd
