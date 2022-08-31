@@ -37,7 +37,8 @@ align_seg.py --srcseg <img> --flipped      [--affine] --outlta <out.lta>
 
 
 Dependencies:
-    Python 3.6
+    Python 3.8
+    numpy
     SimpleITK https://simpleitk.org/ (v2.1.1)
     
 
