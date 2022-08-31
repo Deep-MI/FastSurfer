@@ -123,7 +123,7 @@ def mapSurfLabel(src_label_name, out_label_name, trg_surf, trg_sid, rev_mapping)
     # correct coordinates (usually the white surface), can be vetrices or filename
     # trg_sid is the subject id (str) of the target subject (as 
     # stored in the output label file header)
-    print("Reading in label: {} ...".format(src_label_name))
+    print("Mapping label: {} ...".format(src_label_name))
     src_label, src_values = fs.read_label(src_label_name, read_scalars=True)
     smax = max(np.max(src_label),np.max(rev_mapping)) + 1
     tmax = rev_mapping.size
@@ -148,7 +148,7 @@ def mapSurfLabel(src_label_name, out_label_name, trg_surf, trg_sid, rev_mapping)
 
 if __name__ == "__main__":
 
-    # Command Line options are error checking done here
+    # Command line options and error checking done here
     options = options_parse()
 
     print()
