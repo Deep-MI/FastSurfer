@@ -51,7 +51,7 @@ hemisphere it will:
 3. map Grill-Spector labels 
 4. create annotations for each of those 
 5. compute surface stats files for the BA_exvivo labels (currently still using
-   FreeSurfer's' mris_anatomical_stats via command line execution)
+   FreeSurfer's mris_anatomical_stats via command line execution)
 Note, this script needs to be updated if FreeSurfer introduces changes into the -balabel 
 block of recon-all. Currently this is based on FreeSurfer 7.2.
 
