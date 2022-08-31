@@ -783,9 +783,9 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # command to generate new aparc to check if registration was OK
   # run only for debugging
   #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
-  #     -aseg $SUBJECTS_DIR/$sid/mri/aseg.presurf.mgz \
-  #     -seed 1234 $sid $hemi $SUBJECTS_DIR/$sid/surf/${hemi}.sphere.reg \
-  #     $SUBJECTS_DIR/$sid/label/${hemi}.aparc.DKTatlas-guided.annot"
+  #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
+  #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
+  #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
   
 fi
 
@@ -889,8 +889,9 @@ if [ "$fsaparc" == "1" ] ; then
   cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
   RunIt "$cmd" $LF
 
-  cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -segstats -balabels $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -segstats $hiresflag $fsthreads"
   RunIt "$cmd" $LF
+  # removed -balabels here and do that below independent of fsaparc flag
 
 fi  # (FS-APARC)
 
@@ -939,7 +940,7 @@ fi
 
 
 # creating aparc.DKTatlas+aseg.mapped.mgz by mapping aparc.DKTatlas.mapped from surface to aseg.mgz
-# (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)???
+# (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)
 cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
 RunIt "$cmd" $LF
 
@@ -949,13 +950,6 @@ if [ "$fsaparc" == "0" ] ; then
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
   cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
   RunIt "$cmd" $LF
-
-  # balabels need sphere.reg
-  if [ "$fssurfreg" == "1" ] ; then
-      # can be produced if surf registration exists
-      cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
-      RunIt "$cmd" $LF "$CMDF"
-  fi
 
 fi
 
@@ -1001,6 +995,21 @@ if [ "$fsaparc" == "0" ] ; then
   cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
   RunIt "$cmd" $LF
 fi
+
+
+
+# balabels need sphere.reg
+if [ "$fssurfreg" == "1" ] ; then
+  # can be produced if surf registration exists
+  #cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
+  #RunIt "$cmd" $LF 
+  # here we run our version of balabels: mapping and annot creation is very fast
+  # time is used in mris_anatomical_stats (called 4 times, BA and BA-thresh for each hemi)
+  cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR -sid $subject"
+  RunIt "$cmd" $LF
+fi
+
+
 
 echo " " |& tee -a $LF
 echo "================= DONE =========================================================" |& tee -a $LF
