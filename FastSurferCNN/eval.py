@@ -70,8 +70,8 @@ class Inference:
 
         if self.model_parallel:
             model = torch.nn.DataParallel(model)
-
         return model
+
 
     def set_cfg(self, cfg):
         self.cfg = cfg
