@@ -141,11 +141,7 @@ if __name__ == "__main__":
     vpnl = os.path.join(fshome,"average","colortable_vpnl.txt")
     colnames = [ ba, ba, vpnl ]
     colappend = ["",".thresh",".mpm.vpnl"]
-    annotnames = [ "BA_exvivio", "BA_exvivo.thresh", "mpm.vpnl"]
-    #colnames = [ ba, ba]
-    #colappend = ["",".thresh"]
-    #annotnames = [ "BA_exvivio", "BA_exvivo.thresh"]
-    
+    annotnames = [ "BA_exvivo", "BA_exvivo.thresh", "mpm.vpnl"]    
     label_ids, label_names, label_cols = read_colortables(colnames, colappend)
 
     labeldir = os.path.join(options.fsaverage,"label")
