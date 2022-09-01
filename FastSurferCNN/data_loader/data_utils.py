@@ -293,14 +293,10 @@ def map_label2aparc_aseg(mapped_aseg, labels):
     :param np.ndarray labels: list of labels defining LUT space
     :return:
     """
-    aseg = torch.zeros_like(mapped_aseg)
-    h, w, d = aseg.shape
-
-    aseg = labels[torch.ravel(mapped_aseg)]
-
-    aseg = torch.reshape(torch.from_numpy(aseg), (h, w, d))
-
-    return aseg
+    if isinstance(labels, np.ndarray):
+        labels = torch.from_numpy(labels)
+    labels.to(mapped_aseg.device)
+    return labels[mapped_aseg]
 
 
 def clean_cortex_labels(aparc):

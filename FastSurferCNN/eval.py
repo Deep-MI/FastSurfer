@@ -32,13 +32,12 @@ logger = logging.get_logger(__name__)
 
 
 class Inference:
-    def __init__(self, cfg, ckpt, no_cuda, small_gpu):
+    def __init__(self, cfg, ckpt, no_cuda):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
         self.cfg = cfg
         self.no_cuda = no_cuda
-        self.small_gpu = small_gpu
 
         # Set up logging
         logging.setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
@@ -122,7 +121,8 @@ class Inference:
         return self.device
 
     @torch.no_grad()
-    def eval(self, val_loader, pred_prob, out_scale=None):
+    def eval(self, val_loader, out: torch.Tensor, out_scale=None):
+        """Perform prediction and inplace-aggregate views into pred_prob. Return pred_prob."""
         self.model.eval()
 
         start_index = 0
@@ -131,44 +131,45 @@ class Inference:
             images, scale_factors = batch['image'].to(self.device), batch['scale_factor'].to(self.device)
             pred = self.model(images, scale_factors, out_scale)
 
+            # cut prediction to the image size
+            # TODO: a bit "hacky" to get the orig image size of the current plane...; maybe this can just be in batch
+            shape = val_loader.dataset.images.shape
+            pred = pred[:, :, :shape[1], :shape[2]]
+
             if self.cfg.DATA.PLANE == "axial":
-                pred = pred.permute(3, 0, 2, 1)
-                if self.small_gpu:
-                    pred = pred.cpu()
-                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4)
+                pred = pred.permute(3, 0, 2, 1).to(out.device)  # the to-operation is implicit
+                out[:, start_index:start_index + pred.shape[1], :, :].add_(pred, alpha=0.4)
                 start_index += pred.shape[1]
 
             elif self.cfg.DATA.PLANE == "coronal":
-                pred = pred.permute(2, 3, 0, 1)
-                if self.small_gpu:
-                    pred = pred.cpu()
-                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4)
+                pred = pred.permute(2, 3, 0, 1).to(out.device)
+                out[:, :, start_index:start_index + pred.shape[2], :].add_(pred, alpha=0.4)
                 start_index += pred.shape[2]
 
             else:
-                pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1)
-                if self.small_gpu:
-                    pred = pred.cpu()
-                pred_prob[start_index:start_index + pred.shape[0], :, :, :] += torch.mul(pred, 0.2)
+                pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1).to(out.device)
+                out[start_index:start_index + pred.shape[0], :, :, :].add_(pred, alpha=0.2)
                 start_index += pred.shape[0]
 
             logger.info("---> Batch {} {} Testing Done.".format(batch_idx, self.cfg.DATA.PLANE))
 
-        return pred_prob
+        return out
 
-    def run(self, img_filename, orig_data, orig_zoom, pred_prob, noise=0, out_res=None):
+    @torch.no_grad()
+    def run(self, img_filename, orig_data, orig_zoom, out, noise=0, out_res=None):
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg, gn_noise=noise,
-                                                     transforms=transforms.Compose([ZeroPad2DTest((self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE)),
-                                                                                    ToTensorTest()]))
+                                                     transforms=transforms.Compose([ToTensorTest()]))
+#                                                     transforms=transforms.Compose([ZeroPad2DTest((self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE)),
+#                                                                                    ToTensorTest()]))
 
         test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
                                       batch_size=self.cfg.TEST.BATCH_SIZE)
 
         # Run evaluation
         start = time.time()
-        pred_prob = self.eval(test_data_loader, pred_prob, out_scale=out_res)
-        logger.info("Inference on {} finished in {:0.4f} seconds".format(img_filename, time.time()-start))
+        out = self.eval(test_data_loader, out, out_scale=out_res)
+        logger.info("{}-Inference on {} finished in {:0.4f} seconds".format(self.cfg.DATA.PLANE, img_filename, time.time()-start))
 
-        return pred_prob
+        return out
 

@@ -14,6 +14,8 @@
 # limitations under the License.
 
 # IMPORTS
+from typing import Tuple, Optional, Union, Dict
+
 import numpy as np
 import torch
 import os
@@ -58,19 +60,26 @@ def set_up_cfgs(cfg, args):
 ##
 class RunModelOnData:
 
+    current_subject: str
+    subject_name: str
+    gt: Optional[nib.analyze.SpatialImage]
+    gt_data: Optional[np.ndarray]
+    orig: Optional[nib.analyze.SpatialImage]
+    orig_data: Optional[np.ndarray]
+
     def __init__(self, args):
-        self.current_subject = ""
-        self.subject_name = ""
-        self.gt, self.gt_data, self.orig, self.orig_data = "", "", "", ""
+        self.current_subject: str = ""
+        self.subject_name: str = ""
+        self.gt, self.gt_data, self.orig, self.orig_data = None, None, None, None
         self.sf = 1.0
         self.s = ""
         self.out_dir = args.out_dir
         self.orig_filename = os.path.join(self.current_subject, args.orig_name)
 
-        if args.gt_dir is None:
-            self.gt_filename = os.path.join(self.current_subject, args.gt_name)
-        else:
-            self.gt_filename = os.path.join(args.gt_dir, self.subject_name, args.gt_name)
+#        if args.gt_dir is None:
+#            self.gt_filename = os.path.join(self.current_subject, args.gt_name)
+#        else:
+#            self.gt_filename = os.path.join(args.gt_dir, self.subject_name, args.gt_name)
 
         if args.out_dir is not None:
             self.pred_name = os.path.join(args.out_dir, self.subject_name, args.pred_name)
@@ -107,7 +116,7 @@ class RunModelOnData:
         self.gn_noise = args.gn
         self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda, self.small_gpu)
+        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.no_cuda)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
         self.hires = args.hires
@@ -119,11 +128,11 @@ class RunModelOnData:
         cfg_fin = cfg_cor if cfg_cor is not None else cfg_sag if cfg_sag is not None else cfg_ax
         ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
         return {"coronal": {"cfg": cfg_cor,
-                     "ckpt": args.ckpt_cor},
-         "sagittal": {"cfg": cfg_sag,
-                      "ckpt": args.ckpt_sag},
-         "axial": {"cfg": cfg_ax,
-                   "ckpt": args.ckpt_ax}}, cfg_fin, ckpt_fin
+                            "ckpt": args.ckpt_cor},
+                "sagittal": {"cfg": cfg_sag,
+                             "ckpt": args.ckpt_sag},
+                "axial": {"cfg": cfg_ax,
+                          "ckpt": args.ckpt_ax}}, cfg_fin, ckpt_fin
 
     def set_orig(self, orig_str):
         self.orig, self.orig_data = self.get_img(orig_str)
@@ -161,71 +170,57 @@ class RunModelOnData:
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
 
-    def run_model(self, pred_prob):
+    @torch.no_grad()
+    def run_model(self, out):
         # get prediction
-        pred_prob = self.model.run(self.orig_filename, self.orig_data, self.orig.header.get_zooms(),
-                                   pred_prob, noise=self.gn_noise)
+        return self.model.run(self.orig_filename, self.orig_data, self.orig.header.get_zooms(),
+                              out, noise=self.gn_noise)
 
-        # Post processing
-        h, w, d = self.orig_data.shape
-        pred_prob = pred_prob[0:h, 0:w, 0:d, :]
-
-        return pred_prob
-
-    def get_gt(self):
+    def get_gt(self) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
         return self.gt, self.gt_data
 
-    def get_orig(self):
+    def get_orig(self) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
         return self.orig, self.orig_data
 
     def get_prediction(self):
-        oh, ow, od = self.orig.shape
+        shape = self.orig.shape + (self.model.get_num_classes(),)
+        kwargs = {
+            "device": "cpu" if self.small_gpu else self.device,
+            "dtype": torch.float16,  # TODO add a flag to choose between single and half precision?
+            "requires_grad": False
+        }
+
+        pred_prob = torch.zeros(shape, **kwargs)
 
         # coronal inference
         if self.view_ops["coronal"]["cfg"] is not None:
-            if self.view_ops["axial"]["cfg"] is not None or self.view_ops["sagittal"]["cfg"] is not None:
-                self.set_model("coronal")
-            pred_prob = torch.zeros((self.dim, self.dim, od, self.get_num_classes()),
-                                    dtype=torch.float, device='cpu' if self.small_gpu else self.device)
+            LOGGER.info("Run coronal prediction")
+            self.set_model("coronal")
             pred_prob = self.run_model(pred_prob)
 
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
-            if self.view_ops["coronal"]["cfg"] is not None:
-                self.set_model("axial")
-                ax_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
-                                      dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob += self.run_model(ax_prob)
-                del ax_prob
-            else:
-                pred_prob = torch.zeros((self.dim, ow, self.dim, self.get_num_classes()),
-                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob = self.run_model(pred_prob)
+            self.set_model("axial")
+            pred_prob = self.run_model(pred_prob)
 
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
-            if self.view_ops["coronal"]["cfg"] is not None or self.view_ops["axial"]["cfg"] is not None:
-                sag_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
-                                       dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                self.set_model("sagittal")
-                pred_prob += self.run_model(sag_prob)
-                del sag_prob
-            else:
-                pred_prob = torch.zeros((oh, self.dim, self.dim, self.get_num_classes()),
-                                        dtype=torch.float, device='cpu' if self.small_gpu else self.device)
-                pred_prob = self.run_model(pred_prob)
+            self.set_model("sagittal")
+            pred_prob = self.run_model(pred_prob)
 
-        # Get hard predictions and map to freesurfer label space
-        _, pred_prob = torch.max(pred_prob, 3)
-        pred_prob = du.map_label2aparc_aseg(pred_prob.cpu(), self.labels)
-        pred_prob = du.split_cortex_labels(pred_prob)
-        # return numpy array
-        return pred_prob
+        # Get hard predictions
+        pred_classes = torch.argmax(pred_prob, 3)
+        del pred_prob
+        # map to freesurfer label space
+        pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
+        # return numpy array TODO: split_cortex_labels requires a numpy ndarry input
+        pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
+        return pred_classes
 
     @staticmethod
-    def get_img(filename):
+    def get_img(filename: Union[str, os.PathLike]) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
         img = nib.load(filename)
         data = np.asanyarray(img.dataobj)
 
@@ -287,6 +282,26 @@ class RunModelOnData:
         return 79
 
 
+def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory: bool = True) -> bool:
+    if not isinstance(exception, RuntimeError):
+        return False
+    message = exception.args[0]
+    if message.startswith("CUDA out of memory. "):
+        LOGGER.critical("ERROR - INSUFFICIENT GPU MEMORY")
+        LOGGER.info("The memory requirements exceeds the available GPU memory, try using a smaller batch size "
+                    "(--batch_size <int>) and/or view aggregation on the cpu (--run_viewagg_on 'cpu')."
+                    "Note: View Aggregation on the GPU is particularly memory-hungry at approx. 5 GB for standard "
+                    "256x256x256 images.")
+        memory_message = message[message.find("(") + 1:message.find(")")]
+        LOGGER.info(f"Using {memory_message}.")
+        if exit_on_out_of_memory:
+            sys.exit("----------------------------\nERROR: INSUFFICIENT GPU MEMORY\n")
+        else:
+            return True
+    else:
+        return False
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -295,8 +310,6 @@ if __name__ == "__main__":
     # 1. Options for input directories and filenames
     parser.add_argument("--in_dir", type=str, default=None,
                         help="Directory in which input volume(s) are located.")
-    parser.add_argument('--gt_name', type=str, default="mri/aseg.mgz",
-                        help="Default name for ground truth segmentations. Default: mri/aseg.filled.mgz")
     parser.add_argument('--orig_name', type=str, dest="orig_name", default='mri/orig.mgz', help="Name of orig input")
     parser.add_argument('--pred_name', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
                         help="Filename to save prediction. Default: mri/aparc.DKTatlas+aseg.deep.mgz")
@@ -342,15 +355,15 @@ if __name__ == "__main__":
 
     parser.add_argument('--no_cuda', action='store_true', default=False, help="Disables GPU usage")
     parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
-                    default="check", choices=["gpu", "cpu", "check"],
-                    help="Define where the view aggregation should be run on. \
-                          By default, the program checks if you have enough memory \
-                          to run the view aggregation on the gpu. The total memory \
-                          is considered for this decision. If this fails, or \
-                          you actively overwrote the check with setting \
-                          > --run_viewagg_on cpu <, view agg is run on the cpu. \
-                          Equivalently, if you define > --run_viewagg_on gpu <,\
-                          view agg will be run on the gpu (no memory check will be done).")
+                        default="check", choices=["gpu", "cpu", "check"],
+                        help="Define where the view aggregation should be run on. \
+                             By default, the program checks if you have enough memory \
+                             to run the view aggregation on the gpu. The total memory \
+                             is considered for this decision. If this fails, or \
+                             you actively overwrote the check with setting \
+                             > --run_viewagg_on cpu <, view agg is run on the cpu. \
+                             Equivalently, if you define > --run_viewagg_on gpu <,\
+                             view agg will be run on the gpu (no memory check will be done).")
 
     args = parser.parse_args()
 
@@ -364,9 +377,8 @@ if __name__ == "__main__":
         sys.exit('----------------------------\nERROR: Please specify data output directory '
                  '(can be same as input directory)\n')
 
-    LOGGER.info("Ground truth: {}, Origs: {}".format(args.gt_name, args.orig_name))
+    LOGGER.info("Origs: {}".format(args.orig_name))
 
-    torch.set_flush_denormal(True)
 
     # Set Up Model
     eval = RunModelOnData(args)
@@ -389,8 +401,7 @@ if __name__ == "__main__":
             os.makedirs(args.out_dir)
 
         for subject in s_dirs:
-            # Set orig and gt for testing now
-            eval.set_gt(os.path.join(subject, args.gt_name))
+            # Set subject and orig
             eval.set_subject(subject)
             eval.set_orig(os.path.join(subject, args.orig_name))
             pred_name = os.path.join(args.out_dir, subject.strip('/'), args.pred_name)
@@ -398,7 +409,6 @@ if __name__ == "__main__":
             # Run model
             pred_data = eval.get_prediction()
 
-            gt, gt_data = eval.get_gt()
             if args.save_img:
                 eval.save_img(pred_name, pred_data, seg=True)
 
@@ -410,12 +420,17 @@ if __name__ == "__main__":
             os.makedirs(out_dir)
 
         # Set orig and gt for testing now
-        # Note: assumes orig_name, gt_name, and pred_name are absolute paths when --single_img:
+        # Note: assumes orig_name, and pred_name are absolute paths when --single_img:
         subject, img_name = os.path.split(args.orig_name)
         eval.set_subject(subject)
         eval.set_orig(args.orig_name)
 
         # Run model
-        pred_data = eval.get_prediction() #
-        if args.save_img:
+        try:
+            pred_data = eval.get_prediction()
+        except RuntimeError as e:
+            if not handle_cuda_memory_exception(e):
+                raise e
+
+        if args.save_img is not None:
             eval.save_img(args.pred_name, pred_data, seg=True)
