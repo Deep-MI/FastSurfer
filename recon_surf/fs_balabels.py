@@ -62,7 +62,7 @@ Date: Aug-31-2022
 h_sid        = 'subject id (name of directory within the subject directory)'
 h_sd         = 'subject directory path'
 h_hemi       = 'optioal: "lh" or "rh" (default run both hemispheres)'
-h_fsaverage  = 'optional: path to fsaverage (default is subject_dir/fsaverage)'
+h_fsaverage  = 'optional: path to fsaverage (default is $FREESURFER_HOME/subjects/fsaverage)'
 
 
 def options_parse():
@@ -79,8 +79,6 @@ def options_parse():
 
     if options.sid is None or options.sd is None:
         sys.exit('\nERROR: Please specify --sid and --sd !\n   Use --help to see all options.\n')
-    if options.fsaverage is None:
-        options.fsaverage=options.sd+"/fsaverage"
     if options.hemi is None:
         options.hemi = ["lh","rh"]
     else:
@@ -134,7 +132,10 @@ if __name__ == "__main__":
         if sdir != options.sd:
             print("WARNING environment $SUBJECTS_DIR is set differently to --sd !")
             os.environ['SUBJECTS_DIR'] = options.sd
-    
+    if options.fsaverage is None:
+        options.fsaverage=os.path.join(fshome,"subjects","fsaverage")
+
+
     # read and stack colortable labels
     ba   = os.path.join(fshome,"average","colortable_BA.txt")
     vpnl = os.path.join(fshome,"average","colortable_vpnl.txt")
@@ -187,9 +188,4 @@ if __name__ == "__main__":
             pos=pos+1
     
     print("...done\n")
-
-
-
-
-
 
