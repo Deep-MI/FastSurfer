@@ -1005,7 +1005,7 @@ if [ "$fssurfreg" == "1" ] ; then
   #RunIt "$cmd" $LF 
   # here we run our version of balabels: mapping and annot creation is very fast
   # time is used in mris_anatomical_stats (called 4 times, BA and BA-thresh for each hemi)
-  cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR -sid $subject"
+  cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
   RunIt "$cmd" $LF
 fi
 
