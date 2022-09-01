@@ -58,47 +58,117 @@ vfst1=""
 
 function usage()
 {
-    echo ""
-    echo "run_fastsurfer.sh takes a T1 full head image and creates
-              (i) a segmentation using FastSurferCNN (equivalent to FreeSurfers aparc.DKTatlas+aseg.mgz)
-              (ii) surfaces, thickness etc as a FS subject dir using recon-surf"
-    echo ""
-    echo "./run_fastsurfer.sh"
-    echo -e "\t--fs_license <freesurfer_license_file>  Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
-    echo -e "\t--sid <subjectID>                      Subject ID for directory inside \$SUBJECTS_DIR to be created"
-    echo -e "\t--sd  <subjects_dir>                   Output directory \$SUBJECTS_DIR (pass via environment or here)"
-    echo -e "\t--t1  <T1_input>                       T1 full head input (not bias corrected)"
-    echo -e "\t--seg <segmentation_input>             Name of intermediate DL-based segmentation file (similar to aparc+aseg). When using FastSurfer, this segmentation is already conformed, since inference is always based on a conformed image. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
-    echo -e "\t--conformed_name <conformed_image_name>             Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz."
-    echo -e "\t--seg_log <segmentation_log>           Log-file for the segmentation (FastSurferCNN). Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log"
-    echo -e "\t--weights_sag <weights_sagittal>       Pretrained weights of sagittal network. Default: \$FASTSURFER_HOME/checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--weights_ax <weights_axial>           Pretrained weights of axial network. Default: \$FASTSURFER_HOME/checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--weights_cor <weights_coronal>        Pretrained weights of coronal network. Default: \$FASTSURFER_HOME/checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl"
-    echo -e "\t--clean_seg <clean_segmentation>       Flag to clean up FastSurferCNN segmentation"
-    echo -e "\t--run_viewagg_on <check,gpu,cpu>       Define where the view aggregation should be run on. By default, the program checks if you have enough memory \
-                                                      to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or \
-                                                      you actively overwrote the check with setting > --run_viewagg_on cpu <, view agg is run on the cpu. \
-                                                      Equivalently, if you define > --run_viewagg_on gpu <, view agg will be run on the gpu (no memory check will be done)."
-    echo -e "\t--no_cuda <disable_cuda>               Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)"
-    echo -e "\t--batch <batch_size>                   Batch size for inference. Default: 8."
-    echo -e "\t--order <order_of_interpolation>       Order of interpolation for mri_convert T1 before segmentation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
-    echo -e "\t--seg_only                             Run only FastSurferCNN (generate segmentation, do not run surface pipeline)"
-    echo -e "\t--seg_with_cc_only                     Run FastSurferCNN (generate segmentation) and recon_surf until corpus callosum (CC) is added in (no surface models will be created in this case!)"
-    echo -e "\t--surf_only                            Run surface pipeline only. The segmentation input has to exist already in this case."
-    echo -e "\t--vol_segstats                         Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces). Can be used in combination with --seg_only in which case recon-surf only runs till CC is added (akin to --seg_with_cc_only)."
-    echo -e "\t--fstess                               Switch on mri_tesselate for surface creation (default: mri_mc)"
-    echo -e "\t--fsqsphere                            Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
-    echo -e "\t--fsaparc                              Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
-    echo -e "\t--surfreg                              Run Surface registration with FreeSurfer (for cross-subject correspondence)"
-    echo -e "\t--parallel                             Run both hemispheres in parallel"
-    echo -e "\t--threads <int>                        Set openMP and ITK threads to <int>"
-    echo -e "\t--py <python_cmd>                      Command for python, default 'python3.6'"
-    echo -e "\t-h --help                              Print Help"
-    echo ""
-    echo "Dev Flags"
-    echo -e "\t--ignore_fs_version                    Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if v6.0 is not sourced. Can be used for testing dev versions."
-    echo -e "\t--no_fs_T1                             Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves approx. 1:30 min."
-    echo ""
+cat << EOF
+
+Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
+
+run_fastsurfer.sh takes a T1 full head image and creates:
+     (i)  a segmentation using FastSurferCNN (equivalent to FreeSurfer
+          aparc.DKTatlas+aseg.mgz)
+     (ii) surfaces, thickness etc as a FS subject dir using recon-surf
+
+FLAGS:
+
+  --fs_license <license>  Path to FreeSurfer license key file. Register at
+                            https://surfer.nmr.mgh.harvard.edu/registration.html
+                            for free to obtain it if you do not have FreeSurfer
+                            installed already
+  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR 
+  --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
+  --t1  <T1_input>        T1 full head input (not bias corrected)
+  --seg <seg_input>       Name of intermediate DL-based segmentation file
+                            (similar to aparc+aseg). When using FastSurfer, this
+                            segmentation is already conformed, since inference
+                            is always based on a conformed image. Requires an
+                            ABSOLUTE Path! Default location:
+			    \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --conformed_name <conf.mgz>
+                          Name of the file in which the conformed input
+                            image will be saved. Default location:
+                           \$SUBJECTS_DIR/\$sid/mri/orig.mgz
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferCNN)
+                            Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
+  --weights_sag <w_sag>   Pretrained weights of sagittal network. Default:
+                            \$FASTSURFER_HOME/checkpoints/
+                            Sagittal_Weights_FastSurferCNN/ckpts/
+                            Epoch_30_training_state.pkl
+  --weights_ax <w_axial>  Pretrained weights of axial network. Default:
+                           \$FASTSURFER_HOME/checkpoints/
+                            Axial_Weights_FastSurferCNN/ckpts/
+                            Epoch_30_training_state.pkl
+  --weights_cor <w_cor>   Pretrained weights of coronal network. Default:
+                           \$FASTSURFER_HOME/checkpoints/
+                            Coronal_Weights_FastSurferCNN/ckpts/
+                            Epoch_30_training_state.pkl
+  --clean_seg             Flag to clean up FastSurferCNN segmentation
+  --run_viewagg_on <str>  Define where the view aggregation should be run on.
+                            Can be "check", "gpu", "cpu". By default, the
+                            program checks if you have enough memory to run the
+                            view aggregation on the gpu. The total memory is
+                            considered for this decision. If this fails, or you
+                            actively overwrote the check with setting with "cpu"
+			    view agg is run on the cpu. Equivalently, if you
+                            pass "gpu", view agg will be run on the gpu (no
+                            memory check will be done.
+  --no_cuda               Flag to disable CUDA usage in FastSurferCNN (no GPU
+                            usage, inference on CPU)
+  --batch <batch_size>    Batch size for inference. Default: 8
+  --order <int>           Order of interpolation for mri_convert T1 before
+                            segmentation (0=nearest, 1=linear(default),
+                            2=quadratic, 3=cubic)
+  --seg_only              Run only FastSurferCNN (generate segmentation, do not
+                            run surface pipeline)
+  --seg_with_cc_only      Run FastSurferCNN (generate segmentation) and
+                            recon_surf until corpus callosum (CC) is added in
+                            (no surface models will be created in this case!)
+  --surf_only             Run surface pipeline only. The segmentation input has
+                            to exist already in this case.
+  --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
+                            statistics for DL-based segmentation (does not
+                            require surfaces). Can be used in combination with
+                            --seg_only in which case recon-surf only runs till
+                            CC is added (akin to --seg_with_cc_only).
+  --fstess                Switch on mri_tesselate for surface creation (default:
+                            mri_mc)
+  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
+                            (default: spectral spherical projection)
+  --fsaparc               Additionally create FS aparc segmentations and ribbon.
+                            Skipped by default (--> DL prediction is used which
+                            is faster, and usually these mapped ones are fine)
+  --surfreg               Run Surface registration with FreeSurfer (for
+                            cross-subject correspondence), Recommended!
+  --parallel              Run both hemispheres in parallel
+  --threads <int>         Set openMP and ITK threads to <int>
+  --py <python_cmd>       Command for python, default defined in recon-surf.sh
+  -h --help               Print Help
+
+ Dev Flags:
+  --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
+                            Program will terminate if the supported version
+                            (see recon-surf.sh) is not sourced. Can be used for
+                            testing dev versions.
+  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
+                            standard FreeSurfer output) and create brainmask.mgz
+                            directly from norm.mgz instead. Saves 1:30 min.
+
+
+REFERENCES:
+
+If you use this for research publications, please cite:
+
+Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
+ fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
+ (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+
+Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
+ Resolution-Independence into Deep Learning Segmentation Methods - A Solution
+ for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
+ http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+
+
+EOF
+
+
 }
 
 # PRINT USAGE if called without params

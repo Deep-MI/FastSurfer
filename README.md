@@ -136,30 +136,18 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --parallel
 ```
 
-<<<<<<< HEAD
 Docker Flags:
-* The --gpus flag is used to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
-=======
-Docker flags:
 * The --gpus flag is used to allow Docker to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
->>>>>>> d704301 (Update to use pre-build docker etc)
 * The -v commands mount your data, output, and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 * The --rm flag takes care of removing the container once the analysis finished. 
 * The --user XXXX part should be changed to the appropriate user id (a four-digit number; can be checked with the command "id -u" on linux systems). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
 
-<<<<<<< HEAD
 FastSurfer Flags to pass through:
 * The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 * Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
 * A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 You can also run a CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
-=======
-run_fastsurfer.sh flags:
-* The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
-* Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
-* A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
->>>>>>> d704301 (Update to use pre-build docker etc)
 
 ### Example 4: FastSurfer Singularity
 After building the Singularity image (see instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the --fs_license flag.
@@ -179,42 +167,25 @@ singularity exec --nv -B /home/user/my_mri_data:/data \
                       --parallel
 ```
 
-<<<<<<< HEAD
 Singularity Flags:
 * The `--nv` flag is used to access GPU resources. 
 * The -B commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 
 FastSurfer Flags to pass through:
-=======
-Singularity flags:
-* The `--nv` flag is used to access GPU resources. 
-* The -B commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
-
-run_fastsurfer.sh flags:
->>>>>>> d704301 (Update to use pre-build docker etc)
 * The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 * Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -B arguments. 
 * A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-<<<<<<< HEAD
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
-=======
->>>>>>> d704301 (Update to use pre-build docker etc)
-                               
+
 ## System Requirements
 
 Recommendation: At least 8GB CPU RAM and 8GB NVIDIA GPU RAM ```--batch 1 --run_viewagg_on gpu```  
 
 Minimum: 8 GB CPU RAM and 2 GB GPU RAM ```--batch 1 --run_viewagg_on cpu```
 
-<<<<<<< HEAD
-CPU-only: 8 GB CPU RAM (much slower, not recommended) ```--device cpu --batch 4``` 
-                               
-=======
 CPU-only: 8 GB CPU RAM (much slower, not recommended) ```--no_cuda --batch 4``` 
 
-
->>>>>>> d704301 (Update to use pre-build docker etc)
 ## FreeSurfer Downstream Modules
 
 FreeSurfer provides several Add-on modules for downstream processing, such as subfield segmentation ( [hippocampus/amygdala](https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala), [brainstrem](https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures), [thalamus](https://freesurfer.net/fswiki/ThalamicNuclei) and [hypothalamus](https://surfer.nmr.mgh.harvard.edu/fswiki/HypothalamicSubunits) ) as well as [TRACULA](https://surfer.nmr.mgh.harvard.edu/fswiki/Tracula). We now provide symlinks to the required files, as FastSurfer creates them with a different name (e.g. using "mapped" or "DKT" to make clear that these file are from our segmentation using the DKT Atlas protocol, and mapped to the surface). Most subfield segmentations require `wmparc.mgz` and work very well with FastSurfer,  so feel free to run those pipelines after FastSurfer. TRACULA requires `aparc+aseg.mgz` which we now link, but have not tested if it works, given that [DKT-atlas](https://mindboggle.readthedocs.io/en/latest/labels.html) merged a few labels. You should source FreeSurfer 7.2 to run these modules. 
