@@ -183,7 +183,7 @@ class RunModelOnData:
         return self.orig, self.orig_data
 
     def get_prediction(self):
-        shape = self.orig.shape + (self.model.get_num_classes(),)
+        shape = self.orig.shape + (self.get_num_classes(),)
         kwargs = {
             "device": "cpu" if self.small_gpu else self.device,
             "dtype": torch.float16,  # TODO add a flag to choose between single and half precision?
