@@ -591,12 +591,29 @@ def sagittal_coronal_remap_lookup(x):
     }[x]
 
 
-def map_prediction_sagittal2full(prediction_sag, num_classes=51):
+def infer_mapping_from_lut(num_classes_full, lut):
+    labels, labels_sag = unify_lateralized_labels(lut)
+    idx_list = np.ndarray(shape=(num_classes_full,), dtype=np.int16)
+    for idx in range(len(labels)):
+        idx_in_sag = np.where(labels_sag == labels[idx])[0]
+        if idx_in_sag.size == 0:  # Empty not subcortical
+            idx_in_sag = np.where(labels_sag == (labels[idx] - 1000))[0]
+
+        if idx_in_sag.size == 0:
+            current_label_sag = sagittal_coronal_remap_lookup(labels[idx])
+            idx_in_sag = np.where(labels_sag == current_label_sag)[0]
+
+        idx_list[idx] = idx_in_sag
+    return idx_list
+
+
+def map_prediction_sagittal2full(prediction_sag, num_classes=51, lut=None):
     """
     Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
     (full aparc.DKTatlas+aseg.mgz)
     :param prediction_sag: sagittal prediction (labels)
     :param int num_classes: number of SAGGITAL classes (96 for full classes, 51 for hemi split, 21 for aseg)
+    :param str/None lut: look-up table listing class labels
     :return: Remapped prediction
     """
     if num_classes == 96:
@@ -621,7 +638,8 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=51):
     elif num_classes == 1:
         idx_list = np.asarray([0, 1, 1])
     else:
-        print(f"Number of classes {num_classes} does not match. Must be one of 96, 51, 21 or 2")
+        assert lut is not None, 'lut is not defined!'
+        idx_list = infer_mapping_from_lut(num_classes, lut)
     prediction_full = prediction_sag[:, idx_list, :, :]
     return prediction_full
 
