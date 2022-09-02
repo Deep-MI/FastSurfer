@@ -124,7 +124,7 @@ pip3 install --no-binary=h5py h5py
 
 Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [README](README.md). 
 
-To run the full pipeline, install also FreeSurfer v7.2 according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you into problems during this step. 
+To run the full pipeline, install also FreeSurfer v7.2 according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
 
 ### Docker (currently only Intel)
 

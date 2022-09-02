@@ -55,6 +55,7 @@ Date: Jun-8-2022
 
 # In the future, maybe add a way to specify what labels to align as a list or 
 # txt file to pass to the routine. 
+# Also add output as LTA instead of registration angles.
 
 h_srcsphere = 'path to src ?h.sphere'
 h_srcaparc  = 'path to src corresponding cortical parcellation'
@@ -66,7 +67,7 @@ def options_parse():
     """
     Command line option parser
     """
-    parser = optparse.OptionParser(version='$Id: N4_bias_correct.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: rotate_sphere.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $', usage=HELPTEXT)
     parser.add_option('--srcsphere', dest='srcsphere', help=h_srcsphere)
     parser.add_option('--srcaparc',  dest='srcaparc',  help=h_srcaparc)
     parser.add_option('--trgsphere', dest='trgsphere', help=h_trgsphere)
