@@ -127,9 +127,7 @@ class FastSurferVINN(FastSurferCNNBase):
         self.height = params['height']
         self.width = params['width']
 
-        self.out_tensor_shape = (params['out_tensor_width'], params[
-            'out_tensor_height']) if 'out_tensor_width' in params and 'out_tensor_height' in params else (
-        padded_size, padded_size)
+        self.out_tensor_shape = tuple(params.get('out_tensor_' + k, padded_size) for k in ['width', 'height'])
 
         self.interpolation_mode = params['interpolation_mode'] if 'interpolation_mode' in params else 'bilinear'
         if self.interpolation_mode not in ['nearest', 'bilinear', 'bicubic', 'area']:
@@ -185,8 +183,13 @@ class FastSurferVINN(FastSurferCNNBase):
             scale_factor_out = rescale_factor
         else:
             scale_factor_out = np.asarray(scale_factor_out) * np.asarray(rescale_factor) / np.asarray(scale_factor)
-        decoder_output0, sf = self.interpol2(decoder_output1, scale_factor_out, rescale=True)
 
+        prior_target_shape = self.interpol2.target_shape
+        self.interpol2.target_shape = skip_encoder_0.shape[2:]
+        try:
+            decoder_output0, sf = self.interpol2(decoder_output1, scale_factor_out, rescale=True)
+        finally:
+            self.interpol2.target_shape = prior_target_shape
         outblock = self.outp_block(decoder_output0, skip_encoder_0)
 
         # Final logits layer

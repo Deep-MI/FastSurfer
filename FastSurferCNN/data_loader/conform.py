@@ -47,7 +47,7 @@ def options_parse():
                         version='$Id: conform.py,v 1.0 2019/07/19 10:52:08 mreuter Exp $')
     parser.add_argument('--input', '-i', dest='input', help=h_input)
     parser.add_argument('--output', '-o', dest='output', help=h_output)
-    parser.add_argument('--order', dest='order', help=h_order, type="int", default=1)
+    parser.add_argument('--order', dest='order', help=h_order, type=int, default=1)
     parser.add_argument('--check_only', dest='check_only', default=False, action='store_true',
                         help='If True, only checks if the input image is conformed, and does not return an output.')
     parser.add_argument('--seg_input', dest='seg_input', default=False, action='store_true',
@@ -58,14 +58,14 @@ def options_parse():
                              'minimal voxel size (used for high-res processing)')
     parser.add_argument('--verbose', dest='verbose', default=False, action='store_true',
                         help='If verbose, more specific messages are printed')
-    (fin_options, args) = parser.parse_args()
-    if fin_options.input is None:
+    args = parser.parse_args()
+    if args.input is None:
         sys.exit('ERROR: Please specify input image')
-    if not fin_options.check_only and fin_options.output is None:
+    if not args.check_only and args.output is None:
         sys.exit('ERROR: Please specify output image')
-    if fin_options.check_only and fin_options.output is not None:
+    if args.check_only and args.output is not None:
         sys.exit('ERROR: You passed in check_only. Please do not also specify output image')
-    return fin_options
+    return args
 
 
 def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]),

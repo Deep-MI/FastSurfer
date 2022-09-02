@@ -108,7 +108,7 @@ The actual filename and segmentation ground truth name is specfied via --image_n
 #### Example Command Axial (Single Resolution)
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_axial.hdf5 \
+--hdf5_name ../data/training_set_axial.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --thickness 3 \
 --plane axial \
@@ -125,7 +125,7 @@ python3 generate_hdf5.py \
 #### Example Command Coronal (Single Resolution)
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_coronal.hdf5 \
+--hdf5_name ../data/training_set_coronal.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --plane coronal \
 --image_name mri/orig.mgz \
@@ -141,7 +141,7 @@ python3 generate_hdf5.py \
 #### Example Command Sagittal (Multiple Resolutions)
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_multires_sagittal.hdf5 \
+--hdf5_name ../data/training_set_sagittal.hdf5 \
 --csv_file ../training_set_subjects_dirs.csv \
 --plane sagittal \
 --image_name mri/orig.mgz \
@@ -185,7 +185,7 @@ Now, if only a subset should be used for the hdf5-file (e.g. subject 10 till sub
 
 ```
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_cispa_axial.hdf5 \
+--hdf5_name ../data/training_set_axial.hdf5 \
 --data_dir ../data \
 --pattern "subject1[0-9]" \
 --plane sagittal \
@@ -239,10 +239,6 @@ The configuration options include:
 * NUM_EPOCHS: Number of epochs to train. Default: 30
 * SIZES: Available image sizes for the multi-scale dataloader. Default: [128, 183, 257, 256, 311, 320]
 * AUG: Augmentations. Default: ["Flip", "Elastic", "Scaling", "Rotation", "Translation", "RAnisotropy", "BiasField", "RGamma"]
-
-#### Testing Options
-
-* BATCH_SIZE: Input batch size for training. Default: 16
 
 #### Misc. Options
 

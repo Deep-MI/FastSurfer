@@ -293,14 +293,10 @@ def map_label2aparc_aseg(mapped_aseg, labels):
     :param np.ndarray labels: list of labels defining LUT space
     :return:
     """
-    aseg = torch.zeros_like(mapped_aseg)
-    h, w, d = aseg.shape
-
-    aseg = labels[torch.ravel(mapped_aseg)]
-
-    aseg = torch.reshape(torch.from_numpy(aseg), (h, w, d))
-
-    return aseg
+    if isinstance(labels, np.ndarray):
+        labels = torch.from_numpy(labels)
+    labels.to(mapped_aseg.device)
+    return labels[mapped_aseg]
 
 
 def clean_cortex_labels(aparc):
@@ -446,8 +442,9 @@ def split_cortex_labels(aparc):
     # Problematic classes: 1026, 1011, 1029, 1019
     for prob_class_lh in [1011, 1019, 1026, 1029]:
         prob_class_rh = prob_class_lh + 1000
-        mask_lh = ((aparc == prob_class_lh) | (aparc == prob_class_rh)) & (lh_rh_split == 0)
-        mask_rh = ((aparc == prob_class_lh) | (aparc == prob_class_rh)) & (lh_rh_split == 1)
+        mask_prob_class = (aparc == prob_class_lh) | (aparc == prob_class_rh)
+        mask_lh = np.logical_and(mask_prob_class, lh_rh_split == 0)
+        mask_rh = np.logical_and(mask_prob_class, lh_rh_split == 1)
 
         aparc[mask_lh] = prob_class_lh
         aparc[mask_rh] = prob_class_rh
@@ -455,7 +452,7 @@ def split_cortex_labels(aparc):
     return aparc
 
 
-def unify_lateralized_labels(lut, combi=["Left-", "Right-"]):
+def unify_lateralized_labels(lut, combi=("Left-", "Right-")):
     """
     Function to generate lookup dictionary of left-right labels
     :param str or pd.DataFrame lut: either lut-file string to load or pandas dataframe

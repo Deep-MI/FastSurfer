@@ -3,7 +3,8 @@
 FROM ubuntu:20.04 AS build
 ENV LANG=C.UTF-8
 ARG PYTHON_VERSION=3.8
-ARG CONDA_FILE=Miniconda3-py38_4.11.0-Linux-x86_64.sh
+ARG TARGETARCH
+ARG CONDA_FILE=Miniconda3-py38_4.11.0-Linux-${TARGETARCH}.sh
 ENV DEBIAN_FRONTEND=noninteractive
 
 # get install scripts into docker
@@ -20,11 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
-# Install conda
-RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/$CONDA_FILE  && \
-     chmod +x ~/miniconda.sh && \
-     ~/miniconda.sh -b -p /opt/conda && \
-     rm ~/miniconda.sh 
+# Install conda for target architecture
+RUN CONDA_FILE=$(echo $CONDA_FILE | sed 's/arm64/aarch64/g' | sed 's/amd64/x86_64/g') && \
+    wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/$CONDA_FILE && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b -p /opt/conda && \
+    rm ~/miniconda.sh 
 
 ENV PATH /opt/conda/bin:$PATH
 
@@ -36,8 +38,8 @@ RUN conda install -c conda-forge conda-pack
 
 # Use conda-pack to create a standalone enviornment in /venv:
 RUN conda-pack -n fastsurfer_cpu -o /tmp/env.tar && \
-  mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
-  rm /tmp/env.tar
+    mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
+    rm /tmp/env.tar
 
 # Now that venv in a new location, fix up paths:
 RUN /venv/bin/conda-unpack

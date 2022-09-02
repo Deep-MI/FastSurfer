@@ -47,36 +47,82 @@ fi
 # fs_time command from fs60, fs72 fails in parallel mode
 timecmd="${binpath}fs_time"
 
+
 function usage()
 {
-    echo ""
-    echo "recon-surf.sh takes a segmentation and T1 full head image and creates surfaces, thickness etc as a FS subject dir"
-    echo ""
-    echo "./recon-surf.sh"
-    echo -e "\t--sid <subjectID>             Subject ID for directory inside \$SUBJECTS_DIR to be created"
-    echo -e "\t--sd  <subjects_dir>          Output directory \$SUBJECTS_DIR (pass via environment or here)"
-    echo -e "\t--t1  <T1_input>              T1 full head input (not bias corrected). This must be a conformed image (dimensions: 256x256x256, voxel size: 1x1x1,
-    LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's conform.py script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>)."
-    echo -e "\t--seg <segmentation_input>    Name of intermediate DL-based segmentation file (similar to aparc+aseg). This must be conformed (dimensions: 256x256x256, voxel size: 1x1x1, LIA orientation). FastSurferCNN's segmentations are conformed by default; please ensure that segmentations produced otherwise are conformed. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz."
-    echo -e "\t--seg_with_cc_only            Run recon_surf until corpus callosum is added in (no surface models will be created in this case!)"
-    echo -e "\t--vol_segstats                Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces)."
-    echo -e "\t--fstess                      Switch on mri_tesselate for surface creation (default: mri_mc)"
-    echo -e "\t--fsqsphere                   Use FreeSurfer iterative inflation for qsphere (default: spectral spherical projection)"
-    echo -e "\t--fsaparc                     Additionally create FS aparc segmentations and ribbon. Skipped by default (--> DL prediction is used which is faster, and usually these mapped ones are fine)"
-    echo -e "\t--surfreg                     Run Surface registration with FreeSurfer (for cross-subject correspondence)"
-    echo -e "\t--hires                       Run FastSurfer recon-surf stream for hires image"
-    echo -e "\t--parallel                    Run both hemispheres in parallel"
-    echo -e "\t--threads <int>               Set openMP and ITK threads to <int>"
-    echo -e "\t--py <python_cmd>             Command for python, default $python"
-    echo -e "\t--fs_license <license_file>   Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far."
-    echo -e "\t-h --help                     Print Help"
-    echo ""
-    echo "Dev Flags"
-    echo -e "\t--ignore_fs_version           Switch on to avoid check for FreeSurfer version. Program will otherwise terminate if $FS_VERSION_SUPPORT is not sourced. Can be used for testing dev versions."
-    echo -e "\t--no_fs_T1                    Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves approx. 1:30 min."
-    echo ""
-}
+cat << EOF
 
+Usage: recon-surf.sh --sid <sid> --sd <sdir> --t1 <t1> --seg <seg> [OPTIONS]
+
+recon-surf.sh takes a segmentation and T1 full head image and creates surfaces,
+thickness etc as a FS subject dir.
+
+FLAGS:
+  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR 
+  --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
+  --t1  <T1_input>        T1 full head input (not bias corrected). This must be
+                            a conformed image (dimensions: 256x256x256, voxel
+			    size: 1x1x1, LIA orientation, and data type UCHAR).
+			    Images can be conformed using FastSurferCNN's
+			    conform.py script (usage example: python3
+			    FastSurferCNN/data_loader/conform.py -i <T1_input>
+			    -o <conformed_T1_output>).
+  --seg <seg_input>       Name of intermediate DL-based segmentation file
+                            (similar to aparc+aseg). This must be conformed
+                            (dimensions: 256x256x256, voxel size: 1x1x1, LIA
+                            orientation). FastSurferCNN's segmentations are
+                            conformed by default; please ensure that
+                            segmentations produced otherwise are conformed.
+                            Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --seg_with_cc_only      Run recon_surf until corpus callosum is added in (no
+                            surface models will be created in this case!)
+  --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
+                            statistics for DL-based segmentation (does not
+                            require surfaces)
+  --fstess                Switch on mri_tesselate for surface creation
+                            (default: mri_mc)
+  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
+                            (default: spectral spherical projection)
+  --fsaparc               Additionally create FS aparc segmentations and ribbon.
+                            Skipped by default (--> DL prediction is used which
+                            is faster, and usually these mapped ones are fine)
+  --surfreg               Run Surface registration with FreeSurfer (for
+                            cross-subject correspondence)
+  --hires                 Run FastSurfer recon-surf stream for hires image
+  --parallel              Run both hemispheres in parallel
+  --threads <int>         Set openMP and ITK threads to <int>
+  --py <python_cmd>       Command for python, default $python
+  --fs_license <license>  Path to FreeSurfer license key file. Register at
+                            https://surfer.nmr.mgh.harvard.edu/registration.html
+                            for free to obtain it if you do not have FreeSurfer
+			    installed already
+  -h --help               Print Help
+
+Dev Flags:
+  --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
+                            Program will otherwise terminate if $FS_VERSION_SUPPORT is 
+                            not sourced. Can be used for testing dev versions.
+  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
+                            standard FreeSurfer output) and create brainmask.mgz
+                            directly from norm.mgz instead. Saves 1:30 min.
+
+REFERENCES:
+
+If you use this for research publications, please cite:
+
+Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
+ fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
+ (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+
+Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
+ Resolution-Independence into Deep Learning Segmentation Methods - A Solution
+ for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
+ http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+
+EOF
+
+}
 
 
 function RunIt()
@@ -737,9 +783,9 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # command to generate new aparc to check if registration was OK
   # run only for debugging
   #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
-  #     -aseg $SUBJECTS_DIR/$sid/mri/aseg.presurf.mgz \
-  #     -seed 1234 $sid $hemi $SUBJECTS_DIR/$sid/surf/${hemi}.sphere.reg \
-  #     $SUBJECTS_DIR/$sid/label/${hemi}.aparc.DKTatlas-guided.annot"
+  #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
+  #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
+  #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
   
 fi
 
@@ -843,8 +889,9 @@ if [ "$fsaparc" == "1" ] ; then
   cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
   RunIt "$cmd" $LF
 
-  cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -segstats -balabels $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -segstats $hiresflag $fsthreads"
   RunIt "$cmd" $LF
+  # removed -balabels here and do that below independent of fsaparc flag
 
 fi  # (FS-APARC)
 
@@ -893,7 +940,7 @@ fi
 
 
 # creating aparc.DKTatlas+aseg.mapped.mgz by mapping aparc.DKTatlas.mapped from surface to aseg.mgz
-# (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)???
+# (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)
 cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
 RunIt "$cmd" $LF
 
@@ -903,13 +950,6 @@ if [ "$fsaparc" == "0" ] ; then
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
   cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
   RunIt "$cmd" $LF
-
-  # balabels need sphere.reg
-  if [ "$fssurfreg" == "1" ] ; then
-      # can be produced if surf registration exists
-      cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
-      RunIt "$cmd" $LF "$CMDF"
-  fi
 
 fi
 
@@ -955,6 +995,21 @@ if [ "$fsaparc" == "0" ] ; then
   cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
   RunIt "$cmd" $LF
 fi
+
+
+
+# balabels need sphere.reg
+if [ "$fssurfreg" == "1" ] ; then
+  # can be produced if surf registration exists
+  #cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
+  #RunIt "$cmd" $LF 
+  # here we run our version of balabels: mapping and annot creation is very fast
+  # time is used in mris_anatomical_stats (called 4 times, BA and BA-thresh for each hemi)
+  cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
+  RunIt "$cmd" $LF
+fi
+
+
 
 echo " " |& tee -a $LF
 echo "================= DONE =========================================================" |& tee -a $LF

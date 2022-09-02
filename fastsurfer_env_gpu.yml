@@ -7,7 +7,7 @@ channels:
   
 dependencies:
   - cudatoolkit=11.3
-  - h5py==3.6.0
+  - h5py=3.6.0
   - matplotlib=3.5.1
   - pytorch=1.10.0 
   - torchvision=0.11.1 
@@ -19,6 +19,7 @@ dependencies:
   - python-dateutil=2.8.2
   - pyyaml=6.0
   - scikit-image=0.19.2
+  - scikit-learn=1.1.2
   - scipy=1.8.0
   - pip=21.2.4
   - yacs=0.1.8
