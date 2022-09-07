@@ -317,10 +317,18 @@ echo T1  $t1
 echo seg $seg
 echo
 
+if [ "$subject" == "subject" ]
+then
+  echo "Subject ID cannot be \"subject\", please choose a different sid"
+  # Explanation, see https://github.com/Deep-MI/FastSurfer/issues/186
+  # this is a bug in FreeSurfer's argparse when calling "mri_brainvol_stats subject"
+  exit 1
+fi
+
 if [ -z "$SUBJECTS_DIR" ]
 then
   echo "\$SUBJECTS_DIR not set. Either set it via the shell prior to running recon_surf.sh or supply it via the --sd flag."
-  exit 1;
+  exit 1
 fi
 
 if [ -z "$FREESURFER_HOME" ]
@@ -329,7 +337,7 @@ then
   echo "Make sure to export and source FreeSurfer before running recon-surf.sh: "
   echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
   echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
-  exit 1;
+  exit 1
 fi
 # needed in FS72 due to a bug in recon-all --fill using FREESURFER instead of FREESURFER_HOME
 export FREESURFER=$FREESURFER_HOME   
@@ -343,7 +351,7 @@ then
     echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
     echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
     echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
-    exit 1;
+    exit 1
   fi
 fi
 
@@ -356,13 +364,13 @@ if [ -z "$t1" ] || [ ! -f "$t1" ]
 then
   echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (conformed, full head) via --t1 (absolute path and name)."
   # needed to create orig.mgz and to get file name. This will eventually be changed.
-  exit 1;
+  exit 1
 fi
 
 if [ -z "$subject" ]
 then
   echo "ERROR: must supply subject name via --sid"
-  exit 1;
+  exit 1
 fi
 
 if [ -z "$seg" ]
@@ -376,7 +384,7 @@ then
   # No segmentation found, exit with error
   echo "ERROR: Segmentation ($seg) could not be found! "
   echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --seg."
-  exit 1;
+  exit 1
 fi
 
 # set threads for openMP and itk
