@@ -50,6 +50,7 @@ class Inference:
         # Define device and transfer model
         if not torch.cuda.is_available and device != "cpu":
             logger.info("cuda not available, switching inference to cpu!")
+            device = "cpu"
         self.device = torch.device(device)
 
         # Options for parallel run
