@@ -357,21 +357,27 @@ if __name__ == "__main__":
 
 
     # 3. Checkpoint to load
-    parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load", required=True,
-                        default="./checkpoints/FastSurferVINN_training_state_coronal.pkl")
-    parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load", required=True,
-                        default="./checkpoints/FastSurferVINN_training_state_axial.pkl")
-    parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load", required=True,
-                        default="./checkpoints/FastSurferVINN_training_state_sagittal.pkl")
+    parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
+                        default=os.path.join(os.path.dirname(__file__),
+                                             "checkpoints/FastSurferVINN_training_state_coronal.pkl"))
+    parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load",
+                        default=os.path.join(os.path.dirname(__file__),
+                                             "checkpoints/FastSurferVINN_training_state_axial.pkl"))
+    parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load",
+                        default=os.path.join(os.path.dirname(__file__),
+                                             "checkpoints/FastSurferVINN_training_state_sagittal.pkl"))
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default=8")
 
     # 4. CFG-file with default options for network
     parser.add_argument("--cfg_cor", dest="cfg_cor", help="Path to the config file",
-                        default="./config/FastSurferVINN_coronal.yaml", type=str, required=True)
+                        default=os.path.join(os.path.dirname(__file__),
+                                             "config/FastSurferVINN_coronal.yaml"), type=str)
     parser.add_argument("--cfg_ax", dest="cfg_ax", help="Path to the axial config file",
-                        default="./config/FastSurferVINN_axial.yaml", type=str, required=True)
+                        default=os.path.join(os.path.dirname(__file__),
+                                             "config/FastSurferVINN_axial.yaml"), type=str)
     parser.add_argument("--cfg_sag", dest="cfg_sag", help="Path to the sagittal config file",
-                        default="./config/FastSurferVINN_sagittal.yaml", type=str, required=True)
+                        default=os.path.join(os.path.dirname(__file__),
+                                             "config/FastSurferVINN_sagittal.yaml"), type=str)
 
     parser.add_argument('--no_cuda', action='store_true', default=False, help="Disables GPU usage")
     parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
