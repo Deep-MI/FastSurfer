@@ -71,6 +71,8 @@ pyyaml==6.0
     # via -r requirements.in
 scikit-image==0.19.2
     # via -r requirements.in
+scikit-learn==1.1.2
+    # via -r requirements.in
 scipy==1.8.0
     # via
     #   -r requirements.in
