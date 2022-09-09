@@ -38,12 +38,16 @@ class Inference:
         torch.manual_seed(cfg.RNG_SEED)
         self.cfg = cfg
         self.no_cuda = no_cuda
-
+        
         # Set up logging
         logging.setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
         logger.info("Run Inference with config:")
         logger.info(pprint.pformat(cfg))
 
+        # Switch on denormal flushing for faster CPU processing
+        # seems to have less of an effect on VINN than old CNN
+        torch.set_flush_denormal(True)
+        
         # Define device and transfer model
         self.device = torch.device("cuda" if torch.cuda.is_available() and not self.no_cuda else "cpu")
 
