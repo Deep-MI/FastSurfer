@@ -32,12 +32,11 @@ logger = logging.get_logger(__name__)
 
 
 class Inference:
-    def __init__(self, cfg, ckpt, no_cuda):
+    def __init__(self, cfg, ckpt, device):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
         self.cfg = cfg
-        self.no_cuda = no_cuda
         
         # Set up logging
         logging.setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
@@ -49,7 +48,9 @@ class Inference:
         torch.set_flush_denormal(True)
         
         # Define device and transfer model
-        self.device = torch.device("cuda" if torch.cuda.is_available() and not self.no_cuda else "cpu")
+        if not torch.cuda.is_available and device != "cpu":
+            logger.info("cuda not available, switching inference to cpu!")
+        self.device = torch.device(device)
 
         # Options for parallel run
         if torch.cuda.device_count() > 0 and self.device == "cuda":
