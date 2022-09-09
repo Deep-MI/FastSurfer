@@ -302,6 +302,23 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
         return False
 
 
+def curl(url, target):
+    import requests
+    response = requests.get(url)
+    with open(target, 'wb') as f:
+        f.write(response.content)
+
+
+def check_and_download_ckpts(ckptpath):
+    downloadurl = "https://b2share.fz-juelich.de/api/files/0114331a-f788-48d2-9d09-f85d7494ed48"
+
+    if not os.path.exists(ckptpath):
+        ckptdir, ckptname = os.path.dirname(ckptpath)
+        if not os.path.exists(ckptdir):
+            os.makedirs(ckptdir)
+        curl(os.path.join(downloadurl, ckptname), ckptpath)
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -340,9 +357,12 @@ if __name__ == "__main__":
 
 
     # 3. Checkpoint to load
-    parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load", required=True)
-    parser.add_argument('--ckpt_ax', type=str, default=None, help="axial checkpoint to load", required=True)
-    parser.add_argument('--ckpt_sag', type=str, default=None, help="sagittal checkpoint to load", required=True)
+    parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load", required=True,
+                        default="./checkpoints/FastSurferVINN_training_state_coronal.pkl")
+    parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load", required=True,
+                        default="./checkpoints/FastSurferVINN_training_state_axial.pkl")
+    parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load", required=True,
+                        default="./checkpoints/FastSurferVINN_training_state_sagittal.pkl")
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default=8")
 
     # 4. CFG-file with default options for network
@@ -379,6 +399,10 @@ if __name__ == "__main__":
 
     LOGGER.info("Origs: {}".format(args.orig_name))
 
+    # Download checkpoints if they do not exist
+    check_and_download_ckpts(args.ckpt_cor)
+    check_and_download_ckpts(args.ckpt_ax)
+    check_and_download_ckpts(args.ckpt_sag)
 
     # Set Up Model
     eval = RunModelOnData(args)
