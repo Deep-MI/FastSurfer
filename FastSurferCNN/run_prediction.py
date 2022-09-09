@@ -313,7 +313,7 @@ def check_and_download_ckpts(ckptpath):
     downloadurl = "https://b2share.fz-juelich.de/api/files/0114331a-f788-48d2-9d09-f85d7494ed48"
 
     if not os.path.exists(ckptpath):
-        ckptdir, ckptname = os.path.dirname(ckptpath)
+        ckptdir, ckptname = os.path.split(ckptpath)
         if not os.path.exists(ckptdir):
             os.makedirs(ckptdir)
         curl(os.path.join(downloadurl, ckptname), ckptpath)
