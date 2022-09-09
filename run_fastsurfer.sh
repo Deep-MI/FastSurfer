@@ -33,15 +33,16 @@ seg=""
 conformed_name=""
 seg_log=""
 ## TODO: If included with FastSurfer, set the default paths of the following files:
-weights_sag=""
-weights_ax=""
-weights_cor=""
-config_cor=""
-config_ax=""
-config_sag=""
+weights_sag="$fastsurfercnndir/checkpoints/FastSurferVINN_training_state_sagittal.pkl"
+weights_ax="$fastsurfercnndir/checkpoints/FastSurferVINN_training_state_axial.pkl"
+weights_cor="$fastsurfercnndir/checkpoints/FastSurferVINN_training_state_coronal.pkl"
+config_cor="$fastsurfercnndir/config/FastSurferVINN_coronal.yaml"
+config_ax="$fastsurfercnndir/config/FastSurferVINN_axial.yaml"
+config_sag="$fastsurfercnndir/config/FastSurferVINN_sagittal.yaml"
 clean_seg=""
 viewagg="check"
 cuda=""
+device="cuda"
 batch_size="8"
 order="1"
 seg_only="0"
@@ -115,8 +116,10 @@ FLAGS:
 			    view agg is run on the cpu. Equivalently, if you
                             pass "gpu", view agg will be run on the gpu (no
                             memory check will be done.
-  --no_cuda               Flag to disable CUDA usage in FastSurferCNN (no GPU
+  --no_cuda               (Deprecated)Flag to disable CUDA usage in FastSurferCNN (no GPU
                             usage, inference on CPU)
+  --device                Set device on which inference should be run (cuda for GPU (default),
+                          cpu for CPU, or pass a specific device e.g. cuda:1)
   --batch <batch_size>    Batch size for inference. Default: 8
   --order <int>           Order of interpolation for mri_convert T1 before
                             segmentation (0=nearest, 1=linear(default),
@@ -271,6 +274,11 @@ case $key in
     --no_cuda)
     cuda="--no_cuda"
     shift # past argument
+    ;;
+    --device)
+    device=$2
+    shift # past argument
+    shift # past value
     ;;
     --batch)
     batch_size="$2"
@@ -441,7 +449,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg $cuda"
+  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg --device $device $cuda"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
