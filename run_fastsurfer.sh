@@ -41,8 +41,7 @@ config_ax="$fastsurfercnndir/config/FastSurferVINN_axial.yaml"
 config_sag="$fastsurfercnndir/config/FastSurferVINN_sagittal.yaml"
 clean_seg=""
 viewagg="check"
-cuda=""
-device="cuda"
+device="auto"
 batch_size="8"
 order="1"
 seg_only="0"
@@ -116,10 +115,9 @@ FLAGS:
 			    view agg is run on the cpu. Equivalently, if you
                             pass "gpu", view agg will be run on the gpu (no
                             memory check will be done.
-  --no_cuda               (Deprecated)Flag to disable CUDA usage in FastSurferCNN (no GPU
-                            usage, inference on CPU)
-  --device                Set device on which inference should be run (cuda for GPU (default),
-                          cpu for CPU, or pass a specific device e.g. cuda:1)
+  --device                Set device on which inference should be run ("cpu" for 
+                            CPU, "cuda" for Nvidia GPU, or pass specific device,
+                            e.g. cuda:1), default check GPU and then CPU
   --batch <batch_size>    Batch size for inference. Default: 8
   --order <int>           Order of interpolation for mri_convert T1 before
                             segmentation (0=nearest, 1=linear(default),
@@ -272,7 +270,8 @@ case $key in
     shift # past value
     ;;
     --no_cuda)
-    cuda="--no_cuda"
+    echo "WARNING: --no_cuda is deprecated, use --device cpu"
+    device="cpu"
     shift # past argument
     ;;
     --device)
@@ -449,7 +448,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg --device $device $cuda"
+  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg --device $device"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi

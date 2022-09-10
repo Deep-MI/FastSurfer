@@ -379,10 +379,10 @@ if __name__ == "__main__":
                         default=os.path.join(os.path.dirname(__file__),
                                              "config/FastSurferVINN_sagittal.yaml"), type=str)
 
-    parser.add_argument('--no_cuda', help="Deprecated: Use --device flag instead!")
-    parser.add_argument('--device', default="cuda",
-                        help="select device to run inference on - cuda (=gpu), cpu or "
-                             "specify a certain gpu (e.g. cuda:1), default: cuda")
+#    parser.add_argument('--no_cuda', help="Deprecated: Use --device flag instead!")
+    parser.add_argument('--device', default="auto",
+                        help="select device to run inference on: cpu, or cuda (=Nvidia gpu) or "
+                             "specify a certain gpu (e.g. cuda:1), default: auto")
     parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
                         default="check", choices=["gpu", "cpu", "check"],
                         help="Define where the view aggregation should be run on. \

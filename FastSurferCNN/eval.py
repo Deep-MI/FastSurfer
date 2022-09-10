@@ -47,10 +47,19 @@ class Inference:
         # seems to have less of an effect on VINN than old CNN
         torch.set_flush_denormal(True)
         
+        # if specific device is requested, check and stop if not available:
+        if device.split(':')[0] == "cuda" and not torch.cuda.is_available():
+            logger.info("cuda not available, try switching to cpu: --device cpu")
+            raise ValueError("--device cuda not available, try --device cpu !")
+        # If auto detect:
+        if device == "auto":
+            # 1st check cuda
+            if torch.cuda.is_available(): 
+                device="cuda"
+            else:
+                device="cpu"
+                logger.info("Accellerator not available, switching inference to cpu!")
         # Define device and transfer model
-        if not torch.cuda.is_available and device != "cpu":
-            logger.info("cuda not available, switching inference to cpu!")
-            device = "cpu"
         self.device = torch.device(device)
 
         # Options for parallel run
