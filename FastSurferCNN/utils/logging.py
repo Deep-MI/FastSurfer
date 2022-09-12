@@ -14,33 +14,28 @@
 # limitations under the License.
 
 # IMPORTS
-import sys
-import logging
-from os import makedirs
-from os.path import join
+from logging import *
+from typing import Union as _Union
+from sys import stdout as _stdout
+from pathlib import Path as _Path
+from os import makedirs as _makedirs
+from os.path import join as _join
 
 
-def setup_logging(output_dir, expr_num):
+def setup_logging(output_dir: _Union[str, _Path], expr_num: str):
     """
     Sets up the logging
     """
     # Set up logging format.
     _FORMAT = "[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s"
-    log_folder = join(output_dir, "logs")
-    makedirs(log_folder, exist_ok=True)
-    log_file = join(log_folder, f"expr_{expr_num}.log")
+    log_folder = _join(output_dir, "logs")
+    _makedirs(log_folder, exist_ok=True)
+    log_file = _join(log_folder, f"expr_{expr_num}.log")
 
-    fh = logging.FileHandler(filename=log_file, mode='a')
-    ch = logging.StreamHandler(sys.stdout)
+    fh = FileHandler(filename=log_file, mode='a')
+    ch = StreamHandler(_stdout)
 
-    logging.basicConfig(level=logging.INFO, format=_FORMAT, handlers=[fh, ch])
+    basicConfig(level=INFO, format=_FORMAT, handlers=[fh, ch])
 
-
-def get_logger(name):
-    """
-    Retrieve the logger with the given name or, if name is None, return a
-    logger which is the root logger of the hierarchy.
-    Args:
-        name (string): name of the logger.
-    """
-    return logging.getLogger(name)
+# At this point, this is just an alias for compatibility’s sake
+get_logger = getLogger

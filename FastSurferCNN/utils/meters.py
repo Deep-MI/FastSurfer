@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 
 from utils.metrics import DiceScore
 from utils.misc import plot_confusion_matrix
-import utils.logging_script as logging
+from utils import logging
 
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Meter:

@@ -27,9 +27,9 @@ from data_loader.data_utils import transform_axial, transform_sagittal, \
     get_thick_slices, filter_blank_slices_thick, \
     read_classes_from_lut, get_labels_from_lut, unify_lateralized_labels
 
-from utils import logging_script as ls
+from utils import logging as ls
 
-LOGGER = ls.get_logger(__name__)
+LOGGER = ls.getLogger(__name__)
 
 
 class H5pyDataset:

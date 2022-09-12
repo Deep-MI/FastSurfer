@@ -21,9 +21,9 @@ import data_loader.dataset as dset
 from data_loader.augmentation import ToTensor, ZeroPad2D, AddGaussianNoise
 import torchio as tio
 
-import utils.logging_script as logging
+from utils import logging
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_dataloader(cfg, mode):
