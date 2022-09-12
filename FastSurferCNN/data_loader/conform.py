@@ -203,22 +203,31 @@ def rescale(data, dst_min, dst_max, f_low=0.0, f_high=0.999):
     return data_new
 
 
-def findMinSizeConformDim(img):
+def findMinSizeConformDim(img, max_size=1, min_dim=256):
+    """
+    Function to find minimal voxel size <= 1mm and required cube dimension (>= 256) to cover field of view
+    
+    :param nibabel.MGHImage img: loaded source image
+    :param float max_size: maximale voxel size in mm (default 1)
+    :param int min_dim: minimale image dimension in voxles (default 256)
+    :return: float min_size: rounded minimal voxel size
+    :return: int conform_dim: number of voxels needed to cover field of view
+    """
+    # find minimal voxel side length
     sizes = np.array(img.header.get_zooms()[:3])
-
-    min_size = np.round(np.min(sizes) * 10000) / 10000
-
-    if min_size > 1:
-        min_size = 1
-    # compute widths in mm
+    min_size = np.round(np.min(sizes)*10000) /10000
+    # set to max_size mm if larger than that (usually 1mm)
+    if min_size > max_size:
+        min_size = max_size
+    # compute field of view dimensions in mm
     widths = sizes * np.array(img.shape[:3])
-
+    # get maximal extend
     max_width = np.max(widths)
-
-    conform_dim = int(np.ceil(int(max_width / min_size * 10000) / 10000))
-
-    if conform_dim < 256:
-        conform_dim = 256
+    # compute number of voxels needed to cover field of view
+    conform_dim = int(np.ceil(int(max_width/min_size * 10000) / 10000))
+    # use cube with min_dim (default 256) in each direction as minimum
+    if conform_dim < min_dim:
+        conform_dim = min_dim
     return min_size, conform_dim
 
 
@@ -329,7 +338,8 @@ def check_affine_in_nifti(img, logger=None):
     """
     Function to check affine in nifti Image. Sets affine with qform if it exists and differs from sform.
     If qform does not exist, voxelsizes between header information and information in affine are compared.
-    In case these do not match, the function returns False (otherwise returns True.
+    In case these do not match, the function returns False (otherwise True).
+
     :param nibabel.NiftiImage img: loaded nifti-image
     :return bool: True, if: affine was reset to qform
                             voxelsizes in affine are equivalent to voxelsizes in header

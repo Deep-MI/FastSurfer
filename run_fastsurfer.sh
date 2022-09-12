@@ -431,7 +431,7 @@ fi
 if [ "$seg_only" == "1" ] && [ ! -z "$vol_segstats" ]
   then
     seg_cc="--seg_with_cc_only"
-    seg_only=0
+    seg_only="0"
     echo "You requested segstats without running the surface pipeline. In this case, recon-surf will"
     echo "run until the corpus callsoum is added to the segmentation and the norm.mgz is generated "
     echo "(needed for partial volume correction). "
