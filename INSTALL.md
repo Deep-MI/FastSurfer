@@ -58,7 +58,7 @@ This is enough to run the FastSurfer neural network segmentation, if you want to
 
 #### FastSurfer
 
-Get a FastSurfer version from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly).
+Get a FastSurfer version from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly). 
 
 #### Conda
 
@@ -78,6 +78,11 @@ conda env create -f /fastsurfer/fastsurfer_env_gpu.yml
 ```
 
 (in the above step you can select from other fastsurfer...yml files for CPU and recon-surf-only versions).
+
+You should also make sure that all network checkpoint files are downloaded at install time:
+```
+python3 FastSurferCNN/download_checkpoints.py --all
+```
 
 Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [README](README.md). 
 
@@ -120,6 +125,11 @@ M1 Macs, we also had issues with the h5py pacakge, which could be solved by usin
 brew install hdf5
 export HDF5_DIR="$(brew --prefix hdf5)"
 pip3 install --no-binary=h5py h5py
+```
+
+You should also make sure that all network checkpoint files are downloaded at install time:
+```
+python3 FastSurferCNN/download_checkpoints.py --all
 ```
 
 Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [README](README.md). 
