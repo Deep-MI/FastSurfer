@@ -104,6 +104,16 @@ class _ZoomNd(nn.Module):
         if len(scales_chunks) == 0:
             raise ValueError(f"Invalid scale_factors {scale_factors}, no chunks returned.")
         scales, chunks = map(list, scales_chunks)
+
+        if len(scales) == 1:
+            if isinstance(scales[0], Tensor):
+                skip_interp = torch.all(torch.stack(scales, -1) == 1)
+            else:
+                skip_interp = np.all(np.asarray(scales) == 1)
+            if skip_interp:
+                # skip rescaling, this is the same resolution
+                return input_tensor, scales[:1] * chunks[0]
+
         interp, scales_out = [], []
 
         # Pytorch Tensor shape BxCxHxW --> loop over batches, interpolate single images, concatenate output at end
