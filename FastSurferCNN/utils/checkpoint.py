@@ -1,5 +1,5 @@
 
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,13 @@ import glob
 
 import requests
 import torch
+
+
+# Defaults
+URL="https://b2share.fz-juelich.de/api/files/0114331a-f788-48d2-9d09-f85d7494ed48"
+VINN_AXI="checkpoints/FastSurferVINN_training_state_axial.pkl"
+VINN_COR="checkpoints/FastSurferVINN_training_state_coronal.pkl"
+VINN_SAG="checkpoints/FastSurferVINN_training_state_sagittal.pkl"
 
 
 def create_checkpoint_dir(expr_dir, expr_num):
@@ -129,9 +136,34 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
     :return:
     """
     response = requests.get(os.path.join(download_url, checkpoint_name))
-
     # Raise error if file does not exist:
     response.raise_for_status()
-
     with open(checkpoint_path, 'wb') as f:
         f.write(response.content)
+
+
+def check_and_download_ckpts(checkpoint_path, url):
+    """
+        Check and download a checkpoint file, if it does not exist.
+    :param checkpoint_path: str: path of the file in which the checkpoint will be saved
+    :param download_url: str: URL of checkpoint hosting site
+    :return:
+    """
+    # Download checkpoint file from url if it does not exist
+    if not os.path.exists(checkpoint_path):
+        ckptdir, ckptname = os.path.split(checkpoint_path)
+        if not os.path.exists(ckptdir) and ckptdir:
+            os.makedirs(ckptdir)
+        download_checkpoint(url, ckptname, checkpoint_path)     
+
+
+def get_checkpoints_vinn(url=URL):
+    """
+        Check and download VINN default checkpoint files if not exist
+    :param download_url: str: URL of checkpoint hosting site
+    :return:
+    """
+    check_and_download_ckpts(VINN_AXI,URL)
+    check_and_download_ckpts(VINN_COR,URL)
+    check_and_download_ckpts(VINN_SAG,URL)
+

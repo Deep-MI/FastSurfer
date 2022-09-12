@@ -28,6 +28,7 @@ print("Run pred", sys.path)
 
 from eval import Inference
 from utils.load_config import load_config
+from utils.checkpoint import get_checkpoints_vinn, VINN_AXI, VINN_COR, VINN_SAG
 import sys
 
 import data_loader.data_utils as du
@@ -39,7 +40,6 @@ import data_loader.conform as conf
 LOGGER = logging.getLogger("eval")
 LOGGER.setLevel(logging.DEBUG)
 LOGGER.addHandler(logging.StreamHandler(stream=sys.stdout))
-
 
 ##
 # Processing
@@ -302,23 +302,6 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
         return False
 
 
-def curl(url, target):
-    import requests
-    response = requests.get(url)
-    with open(target, 'wb') as f:
-        f.write(response.content)
-
-
-def check_and_download_ckpts(ckptpath):
-    downloadurl = "https://b2share.fz-juelich.de/api/files/0114331a-f788-48d2-9d09-f85d7494ed48"
-
-    if not os.path.exists(ckptpath):
-        ckptdir, ckptname = os.path.split(ckptpath)
-        if not os.path.exists(ckptdir):
-            os.makedirs(ckptdir)
-        curl(os.path.join(downloadurl, ckptname), ckptpath)
-
-
 if __name__ == "__main__":
     import argparse
 
@@ -353,23 +336,22 @@ if __name__ == "__main__":
     parser.add_argument("--single_img", default=False, action="store_true",
                         help="Run single image for testing purposes instead of entire csv-file")
     parser.add_argument('--save_img', action='store_true', default=False, help="Save prediction as mgz on disk.")
-    parser.add_argument('--hires', action="store_true", default=False, dest='hires')
+    parser.add_argument('--hires', action="store_true", default=False, dest='hires',
+                        help="Switch on hires processing (no conforming to 1mm, but to smallest voxel size.")
 
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__),
-                                             "checkpoints/FastSurferVINN_training_state_coronal.pkl"))
+                        default=os.path.join(os.path.dirname(__file__), VINN_COR))
     parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__),
-                                             "checkpoints/FastSurferVINN_training_state_axial.pkl"))
+                        default=os.path.join(os.path.dirname(__file__), VINN_AXI))
     parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__),
-                                             "checkpoints/FastSurferVINN_training_state_sagittal.pkl"))
+                        default=os.path.join(os.path.dirname(__file__), VINN_SAG))
+
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default=8")
 
     # 4. CFG-file with default options for network
-    parser.add_argument("--cfg_cor", dest="cfg_cor", help="Path to the config file",
+    parser.add_argument("--cfg_cor", dest="cfg_cor", help="Path to the coronal config file",
                         default=os.path.join(os.path.dirname(__file__),
                                              "config/FastSurferVINN_coronal.yaml"), type=str)
     parser.add_argument("--cfg_ax", dest="cfg_ax", help="Path to the axial config file",
@@ -379,10 +361,10 @@ if __name__ == "__main__":
                         default=os.path.join(os.path.dirname(__file__),
                                              "config/FastSurferVINN_sagittal.yaml"), type=str)
 
-#    parser.add_argument('--no_cuda', help="Deprecated: Use --device flag instead!")
     parser.add_argument('--device', default="auto",
-                        help="select device to run inference on: cpu, or cuda (=Nvidia gpu) or "
+                        help="select device to run inference on: cpu, or cuda (= Nvidia gpu) or "
                              "specify a certain gpu (e.g. cuda:1), default: auto")
+
     parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
                         default="check", choices=["gpu", "cpu", "check"],
                         help="Define where the view aggregation should be run on. \
@@ -409,9 +391,9 @@ if __name__ == "__main__":
     LOGGER.info("Origs: {}".format(args.orig_name))
 
     # Download checkpoints if they do not exist
-    check_and_download_ckpts(args.ckpt_cor)
-    check_and_download_ckpts(args.ckpt_ax)
-    check_and_download_ckpts(args.ckpt_sag)
+    # see utils/checkpoint.py for default paths
+    LOGGER.info("Checking or downloading default checkpoints ...")
+    get_checkpoints_vinn()
 
     # Set Up Model
     eval = RunModelOnData(args)
