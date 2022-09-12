@@ -69,8 +69,11 @@ COPY ./FastSurferCNN /FastSurferCNN/
 COPY ./checkpoints /FastSurferCNN/checkpoints/
 COPY ./Docker/entrypoint.sh /FastSurferCNN/entrypoint.sh
 
+# Download all remote network checkpoints already
+RUN cd /FastSurferCNN/ ; python3 download_checkpoints.py --all
+
 # Set FastSurferCNN workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
 WORKDIR "/FastSurferCNN"
-ENTRYPOINT ["./entrypoint.sh", "python3.8", "eval.py"]
+ENTRYPOINT ["./entrypoint.sh", "python3.8", "run_prediction.py"]
 CMD ["--help"]

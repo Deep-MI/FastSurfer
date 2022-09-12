@@ -90,6 +90,9 @@ COPY --from=build /venv /venv
 COPY --from=build /opt/freesurfer /opt/freesurfer
 COPY . /fastsurfer/
 
+# Download all remote network checkpoints already
+RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all
+
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
 WORKDIR "/fastsurfer"
