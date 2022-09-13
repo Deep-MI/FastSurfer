@@ -49,15 +49,21 @@ class Inference:
         if device.split(':')[0] == "cuda" and not torch.cuda.is_available():
             logger.info("cuda not available, try switching to cpu: --device cpu")
             raise ValueError("--device cuda not available, try --device cpu !")
+        if device == "mps" and not torch.backends.mps.is_available():
+            logger.info("mps not available, try switching to cpu: --device cpu")
+            raise ValueError("--device mps not available, try --device cpu !")
+           
         # If auto detect:
-        if device == "auto":
+        if device == "auto" or not device:
             # 1st check cuda
             if torch.cuda.is_available(): 
                 device="cuda"
+            elif torch.backends.mps.is_available():
+                device="mps"
             else:
                 device="cpu"
-                logger.info("Accellerator not available, switching inference to cpu!")
         # Define device and transfer model
+        logger.info("Using device: {}".format(device))
         self.device = torch.device(device)
 
         # Options for parallel run
