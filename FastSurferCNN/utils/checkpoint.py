@@ -135,7 +135,7 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
     :param checkpoint_path: str: path of the file in which the checkpoint will be saved
     :return:
     """
-    response = requests.get(os.path.join(download_url, checkpoint_name))
+    response = requests.get(os.path.join(download_url, checkpoint_name), verify=False)
     # Raise error if file does not exist:
     response.raise_for_status()
     with open(checkpoint_path, 'wb') as f:
@@ -157,13 +157,13 @@ def check_and_download_ckpts(checkpoint_path, url):
         download_checkpoint(url, ckptname, checkpoint_path)     
 
 
-def get_checkpoints_vinn(url=URL):
+def get_checkpoints(axi, cor, sag, url=URL):
     """
-        Check and download VINN default checkpoint files if not exist
+        Check and download checkpoint files if not exist
     :param download_url: str: URL of checkpoint hosting site
     :return:
     """
-    check_and_download_ckpts(VINN_AXI,URL)
-    check_and_download_ckpts(VINN_COR,URL)
-    check_and_download_ckpts(VINN_SAG,URL)
+    check_and_download_ckpts(axi, url)
+    check_and_download_ckpts(cor, url)
+    check_and_download_ckpts(sag, url)
 

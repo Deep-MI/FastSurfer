@@ -15,8 +15,9 @@
 # limitations under the License.
 
 import argparse
+import os
 
-from utils.checkpoint import check_and_download_ckpts, get_checkpoints_vinn, URL
+from utils.checkpoint import check_and_download_ckpts, get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG, URL
 
 
 if __name__ == "__main__":
@@ -31,8 +32,17 @@ if __name__ == "__main__":
                         help="Checkpoint file paths to download, e.g. checkpoints/FastSurferVINN_training_state_axial.pkl ...")
     args = parser.parse_args()
 
+    if not args.vinn and not args.files:
+        print("Specify either files to download or --vinn, see help -h.")
+        exit(1)
+
+    # use default location in ../checkpoints/...
+    axi = os.path.join(os.path.dirname(__file__), "..", VINN_AXI)
+    cor = os.path.join(os.path.dirname(__file__), "..", VINN_COR)
+    sag = os.path.join(os.path.dirname(__file__), "..", VINN_SAG)
+
     if args.vinn or args.all:
-        get_checkpoints_vinn(args.url)
+        get_checkpoints(axi, cor, sag, args.url)
 
     # later we can add more defaults here (for other sub-segmentation networks, or old CNN)
 
