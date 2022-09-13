@@ -52,8 +52,8 @@ List them by running the following command:
                     The total memory is considered for this decision. 
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
                     Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
-* --no_cuda: Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
-* --batch: Batch size for inference. Default: 16. Lower this to reduce memory requirement
+* --device <str>: Device to run segmentation ("cpu","cuda"), default cuda which is Nvidia GPU
+* --batch: Batch size for inference. Default: 8. Lower this to reduce memory requirement
 * --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
 
 ### Surface pipeline arguments (optional)
@@ -181,7 +181,7 @@ Recommendation: At least 8GB CPU RAM and 8GB NVIDIA GPU RAM ```--batch 1 --run_v
 
 Minimum: 8 GB CPU RAM and 2 GB GPU RAM ```--batch 1 --run_viewagg_on cpu```
 
-CPU-only: 8 GB CPU RAM (much slower, not recommended) ```--no_cuda --batch 4``` 
+CPU-only: 8 GB CPU RAM (much slower, not recommended) ```--device cpu --batch 4``` 
 
 
 ## FreeSurfer Downstream Modules

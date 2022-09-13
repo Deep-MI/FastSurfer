@@ -32,7 +32,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
                     The total memory is considered for this decision. 
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
                     Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
-* --no_cuda: Disable CUDA training (optional)
+* --device <str>: Device for processing ("cpu","cuda") (optional, default: cuda)
 
 
 ### Example Command Evaluation Single Subject
