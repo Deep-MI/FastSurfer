@@ -23,7 +23,8 @@ from scipy.ndimage import binary_erosion, binary_closing, filters, uniform_filte
 import scipy.ndimage.morphology as morphology
 import nibabel as nib
 import pandas as pd
-import logging
+
+from utils import logging
 from .conform import is_conform, conform, check_affine_in_nifti
 
 
@@ -31,9 +32,7 @@ from .conform import is_conform, conform, check_affine_in_nifti
 # Global Vars
 ##
 SUPPORTED_OUTPUT_FILE_FORMATS = ['mgz', 'nii', 'nii.gz']
-LOGGER = logging.getLogger("eval")
-LOGGER.setLevel(logging.DEBUG)
-LOGGER.addHandler(logging.StreamHandler(stream=sys.stdout))
+LOGGER = logging.getLogger(__name__)
 
 ##
 # Helper Functions

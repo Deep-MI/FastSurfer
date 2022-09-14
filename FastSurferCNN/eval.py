@@ -17,7 +17,7 @@
 import pprint
 import torch
 import numpy as np
-import utils.logging_script as logging
+import utils.logging as logging
 import time
 
 from torch.utils.data import DataLoader
@@ -28,7 +28,7 @@ from data_loader.data_utils import map_prediction_sagittal2full
 from data_loader.dataset import MultiScaleOrigDataThickSlices
 
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Inference:
@@ -38,8 +38,6 @@ class Inference:
         torch.manual_seed(cfg.RNG_SEED)
         self.cfg = cfg
         
-        # Set up logging
-        logging.setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
         logger.info("Run Inference with config:")
         logger.info(pprint.pformat(cfg))
 
@@ -141,32 +139,39 @@ class Inference:
         self.model.eval()
 
         start_index = 0
-        for batch_idx, batch in enumerate(val_loader):
+        from tqdm.contrib.logging import logging_redirect_tqdm
+        from tqdm import tqdm
+        with logging_redirect_tqdm():
+            try:
+                for batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader), unit="batch"):
 
-            images, scale_factors = batch['image'].to(self.device), batch['scale_factor'].to(self.device)
-            pred = self.model(images, scale_factors, out_scale)
+                    images, scale_factors = batch['image'].to(self.device), batch['scale_factor'].to(self.device)
+                    pred = self.model(images, scale_factors, out_scale)
 
-            # cut prediction to the image size
-            # TODO: a bit "hacky" to get the orig image size of the current plane...; maybe this can just be in batch
-            shape = val_loader.dataset.images.shape
-            pred = pred[:, :, :shape[1], :shape[2]]
+                    # cut prediction to the image size
+                    # TODO: a bit "hacky" to get the orig image size of the current plane...; maybe this can just be in batch
+                    shape = val_loader.dataset.images.shape
+                    pred = pred[:, :, :shape[1], :shape[2]]
 
-            if self.cfg.DATA.PLANE == "axial":
-                pred = pred.permute(3, 0, 2, 1).to(out.device)  # the to-operation is implicit
-                out[:, start_index:start_index + pred.shape[1], :, :].add_(pred, alpha=0.4)
-                start_index += pred.shape[1]
+                    if self.cfg.DATA.PLANE == "axial":
+                        pred = pred.permute(3, 0, 2, 1).to(out.device)  # the to-operation is implicit
+                        out[:, start_index:start_index + pred.shape[1], :, :].add_(pred, alpha=0.4)
+                        start_index += pred.shape[1]
 
-            elif self.cfg.DATA.PLANE == "coronal":
-                pred = pred.permute(2, 3, 0, 1).to(out.device)
-                out[:, :, start_index:start_index + pred.shape[2], :].add_(pred, alpha=0.4)
-                start_index += pred.shape[2]
+                    elif self.cfg.DATA.PLANE == "coronal":
+                        pred = pred.permute(2, 3, 0, 1).to(out.device)
+                        out[:, :, start_index:start_index + pred.shape[2], :].add_(pred, alpha=0.4)
+                        start_index += pred.shape[2]
 
+                    else:
+                        pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1).to(out.device)
+                        out[start_index:start_index + pred.shape[0], :, :, :].add_(pred, alpha=0.2)
+                        start_index += pred.shape[0]
+            except:
+                logger.exception("Exception in batch {} of {} inference.".format(batch_idx, self.cfg.DATA.PLANE))
+                raise
             else:
-                pred = map_prediction_sagittal2full(pred).permute(0, 3, 2, 1).to(out.device)
-                out[start_index:start_index + pred.shape[0], :, :, :].add_(pred, alpha=0.2)
-                start_index += pred.shape[0]
-
-            logger.info("---> Batch {} {} Testing Done.".format(batch_idx, self.cfg.DATA.PLANE))
+                logger.info("Inference on {} batches for {} successful".format(batch_idx, self.cfg.DATA.PLANE))
 
         return out
 
@@ -175,8 +180,6 @@ class Inference:
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg, gn_noise=noise,
                                                      transforms=transforms.Compose([ToTensorTest()]))
-#                                                     transforms=transforms.Compose([ZeroPad2DTest((self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE)),
-#                                                                                    ToTensorTest()]))
 
         test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
                                       batch_size=self.cfg.TEST.BATCH_SIZE)

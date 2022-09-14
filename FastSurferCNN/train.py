@@ -31,12 +31,12 @@ from utils.meters import Meter
 from utils.metrics import iou_score, precision_recall
 from utils.misc import update_num_steps, plot_predictions
 from config.global_var import get_class_names
-import utils.logging_script as logging
+import utils.logging as logging
 import time
 import os
 from collections import defaultdict
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Trainer:

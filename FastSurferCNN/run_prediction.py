@@ -19,17 +19,18 @@ from typing import Tuple, Optional, Union, Dict
 import numpy as np
 import torch
 import os
-import logging
 import nibabel as nib
 import time
 import glob
 import sys
+import argparse
+
 print("Run pred", sys.path)
 
 from eval import Inference
 from utils.load_config import load_config
 from utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
-import sys
+from utils import logging as logging
 
 import data_loader.data_utils as du
 import data_loader.conform as conf
@@ -37,9 +38,7 @@ import data_loader.conform as conf
 ##
 # Global Variables
 ##
-LOGGER = logging.getLogger("eval")
-LOGGER.setLevel(logging.DEBUG)
-LOGGER.addHandler(logging.StreamHandler(stream=sys.stdout))
+LOGGER = logging.getLogger(__name__)
 
 ##
 # Processing
@@ -53,6 +52,16 @@ def set_up_cfgs(cfg, args):
     cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
     cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
     return cfg
+
+
+def args2cfg(args: argparse.Namespace):
+    """Extract the configuration objects from the arguments."""
+    cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
+    cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
+    cfg_ax = set_up_cfgs(args.cfg_ax, args) if args.cfg_ax is not None else None
+    cfg_fin = cfg_cor if cfg_cor is not None else cfg_sag if cfg_sag is not None else cfg_ax
+    return cfg_fin, cfg_cor, cfg_sag, cfg_ax
+
 
 
 ##
@@ -96,7 +105,7 @@ class RunModelOnData:
             # check, if GPU is big enough to run view agg on it
             # (this currently takes only the total memory into account, not the occupied on)
             total_gpu_memory = sum([torch.cuda.get_device_properties(i).__getattribute__("total_memory") for i in
-                                    range(torch.cuda.device_count())])
+                                    range(torch.cuda.device_count())]) if torch.cuda.is_available() else 0
             self.small_gpu = total_gpu_memory < 8000000000
 
         elif args.run_viewagg_on == "cpu":
@@ -114,25 +123,15 @@ class RunModelOnData:
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
         self.gn_noise = args.gn
-        self.view_ops, self.cfg_fin, self.ckpt_fin = self.set_view_ops(args)
+        self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(args)
+        self.view_ops = {"coronal": {"cfg": cfg_cor, "ckpt": args.ckpt_cor},
+                         "sagittal": {"cfg": cfg_sag, "ckpt": args.ckpt_sag},
+                         "axial": {"cfg": cfg_ax, "ckpt": args.ckpt_ax}}
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
         self.model = Inference(self.cfg_fin, self.ckpt_fin, args.device)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
         self.hires = args.hires
-
-    def set_view_ops(self, args):
-        cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
-        cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
-        cfg_ax = set_up_cfgs(args.cfg_ax, args) if args.cfg_ax is not None else None
-        cfg_fin = cfg_cor if cfg_cor is not None else cfg_sag if cfg_sag is not None else cfg_ax
-        ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        return {"coronal": {"cfg": cfg_cor,
-                            "ckpt": args.ckpt_cor},
-                "sagittal": {"cfg": cfg_sag,
-                             "ckpt": args.ckpt_sag},
-                "axial": {"cfg": cfg_ax,
-                          "ckpt": args.ckpt_ax}}, cfg_fin, ckpt_fin
 
     def set_orig(self, orig_str):
         self.orig, self.orig_data = self.get_img(orig_str)
@@ -237,9 +236,9 @@ class RunModelOnData:
         if seg:
             header = self.orig.header.copy()
             header.set_data_dtype(np.int16)
-            du.save_image(header, self.orig.header.get_affine(), data, save_as)
+            du.save_image(header, self.orig.affine, data, save_as)
         else:
-            du.save_image(self.orig.header, self.orig.header.get_affine(), data, save_as)
+            du.save_image(self.orig.header, self.orig.affine, data, save_as)
         LOGGER.info("Successfully saved image as {}".format(save_as))
 
     def run(self, csv, save_img, metrics, logger=LOGGER):
@@ -303,8 +302,6 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
@@ -387,6 +384,12 @@ if __name__ == "__main__":
         parser.print_help(sys.stderr)
         sys.exit('----------------------------\nERROR: Please specify data output directory '
                  '(can be same as input directory)\n')
+
+
+    # Set up logging
+    from utils.logging import setup_logging
+    cfg = args2cfg(args)[0]
+    setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
 
     LOGGER.info("Origs: {}".format(args.orig_name))
 

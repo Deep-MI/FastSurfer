@@ -16,9 +16,9 @@
 # IMPORTS
 import torch
 import numpy as np
-import utils.logging_script as logging
+from utils import logging
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def iou_score(pred_cls, true_cls, nclass=79):
