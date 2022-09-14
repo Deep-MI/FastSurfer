@@ -29,7 +29,7 @@ print("Run pred", sys.path)
 
 from eval import Inference
 from utils.load_config import load_config
-from utils.checkpoint import get_checkpoints_vinn, VINN_AXI, VINN_COR, VINN_SAG
+from utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
 from utils import logging as logging
 
 import data_loader.data_utils as du
@@ -339,11 +339,11 @@ if __name__ == "__main__":
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), VINN_COR))
+                        default=os.path.join(os.path.dirname(__file__), "..", VINN_COR))
     parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), VINN_AXI))
+                        default=os.path.join(os.path.dirname(__file__), "..", VINN_AXI))
     parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), VINN_SAG))
+                        default=os.path.join(os.path.dirname(__file__), "..", VINN_SAG))
 
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default=8")
 
@@ -396,7 +396,7 @@ if __name__ == "__main__":
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
     LOGGER.info("Checking or downloading default checkpoints ...")
-    get_checkpoints_vinn()
+    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag)
 
     # Set Up Model
     eval = RunModelOnData(args)
