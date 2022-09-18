@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class Inference:
-    def __init__(self, cfg, ckpt, device):
+    def __init__(self, cfg, ckpt="", device=""):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -77,7 +77,8 @@ class Inference:
         self.model_name = self.cfg.MODEL.MODEL_NAME
 
         # Initial checkpoint loading
-        self.load_checkpoint(ckpt)
+        if ckpt:
+            self.load_checkpoint(ckpt)
 
     def setup_model(self, cfg=None):
         if cfg is not None:
@@ -109,8 +110,18 @@ class Inference:
 
     def load_checkpoint(self, ckpt):
         logger.info("Loading checkpoint {}".format(ckpt))
-        model_state = torch.load(ckpt, map_location=self.device)
-        self.model.load_state_dict(model_state["model_state"])
+        # workaround for mps (directly loading to map_location=mps results in zeros)
+        if (self.device.type == 'mps'):
+            model_state=torch.load(ckpt, map_location='cpu')
+            self.model.to('cpu')
+            self.model.load_state_dict(model_state['model_state'])
+            self.model.to(self.device)
+        else:
+            model_state = torch.load(ckpt, map_location=self.device)
+            self.model.load_state_dict(model_state['model_state'])
+        #print(model_state['model_state']['inp_block.bn0.weight'])
+        #print("bn params: {}".format(self.model.inp_block.bn0.weight))
+        #exit(0)
 
     def get_modelname(self):
         return self.model_name
