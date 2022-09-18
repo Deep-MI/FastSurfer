@@ -115,7 +115,7 @@ class RunModelOnData:
                          "axial": {"cfg": cfg_ax, "ckpt": args.ckpt_ax}}
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
         self.num_classes = self.cfg_fin.MODEL.NUM_CLASSES
-        self.model = Inference(self.cfg_fin, self.ckpt_fin, args.device)
+        self.model = Inference(self.cfg_fin, device = args.device)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
         self.hires = args.hires
