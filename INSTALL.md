@@ -75,6 +75,7 @@ Install dependencies into a new environment:
 
 ```
 conda env create -f /fastsurfer/fastsurfer_env_gpu.yml 
+conda activate fastsurfer_gpu
 ```
 
 (in the above step you can select from other fastsurfer...yml files for CPU and recon-surf-only versions).
