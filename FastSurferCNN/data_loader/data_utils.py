@@ -294,7 +294,7 @@ def map_label2aparc_aseg(mapped_aseg, labels):
     """
     if isinstance(labels, np.ndarray):
         labels = torch.from_numpy(labels)
-    labels.to(mapped_aseg.device)
+    labels = labels.to(mapped_aseg.device)
     return labels[mapped_aseg]
 
 
