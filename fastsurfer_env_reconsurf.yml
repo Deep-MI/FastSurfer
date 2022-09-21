@@ -6,7 +6,7 @@ channels:
   
 dependencies:
   - nibabel=3.2.2
-  - numpy=1.22.3
+  - numpy=1.23.2
   - pillow=9.0.1
   - python=3.8
   - python-dateutil=2.8.2

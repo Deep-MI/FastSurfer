@@ -30,7 +30,7 @@ google-auth-oauthlib==0.4.6
     # via tensorboard
 grpcio==1.47.0
     # via tensorboard
-h5py==3.6.0
+h5py==3.7.0
     # via -r requirements.in
 humanize==4.2.3
     # via torchio
@@ -54,7 +54,7 @@ nibabel==3.2.2
     # via
     #   -r requirements.in
     #   torchio
-numpy==1.22.3
+numpy==1.23.2
     # via
     #   -r requirements.in
     #   h5py
