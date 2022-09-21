@@ -14,18 +14,15 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Tuple, Optional, Union, Dict
+from typing import Tuple, Union
 
 import numpy as np
 import torch
 import os
 import nibabel as nib
-import time
 import glob
 import sys
 import argparse
-
-print("Run pred", sys.path)
 
 from eval import Inference
 from utils.load_config import load_config
@@ -39,6 +36,7 @@ import data_loader.conform as conf
 # Global Variables
 ##
 LOGGER = logging.getLogger(__name__)
+
 
 ##
 # Processing
@@ -55,7 +53,9 @@ def set_up_cfgs(cfg, args):
 
 
 def args2cfg(args: argparse.Namespace):
-    """Extract the configuration objects from the arguments."""
+    """
+    Extract the configuration objects from the arguments.
+    """
     cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
     cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
     cfg_ax = set_up_cfgs(args.cfg_ax, args) if args.cfg_ax is not None else None
@@ -63,39 +63,25 @@ def args2cfg(args: argparse.Namespace):
     return cfg_fin, cfg_cor, cfg_sag, cfg_ax
 
 
-
 ##
 # Input array preparation
 ##
 class RunModelOnData:
 
-    current_subject: str
-    subject_name: str
-    gt: Optional[nib.analyze.SpatialImage]
-    gt_data: Optional[np.ndarray]
-    orig: Optional[nib.analyze.SpatialImage]
-    orig_data: Optional[np.ndarray]
+    pred_name: str
+    conf_name: str
+    orig_name: str
+    gn_noise: bool
+    hires: bool
 
     def __init__(self, args):
-        self.current_subject: str = ""
-        self.subject_name: str = ""
-        self.gt, self.gt_data, self.orig, self.orig_data = None, None, None, None
-        self.sf = 1.0
-        self.s = ""
-        self.out_dir = args.out_dir
-        self.orig_filename = os.path.join(self.current_subject, args.orig_name)
-
-#        if args.gt_dir is None:
-#            self.gt_filename = os.path.join(self.current_subject, args.gt_name)
-#        else:
-#            self.gt_filename = os.path.join(args.gt_dir, self.subject_name, args.gt_name)
-
-        if args.out_dir is not None:
-            self.pred_name = os.path.join(args.out_dir, self.subject_name, args.pred_name)
-        else:
-            self.pred_name = os.path.join(self.current_subject, args.pred_name)
-
+        self.pred_name = args.pred_name
         self.conf_name = args.conf_name
+        self.orig_name = args.orig_name
+        self.strip = args.strip
+
+        self.sf = 1.0
+        self.out_dir = self.set_and_create_outdir(args.out_dir)
 
         if args.run_viewagg_on == "gpu":
             # run view agg on the gpu (force)
@@ -128,61 +114,67 @@ class RunModelOnData:
                          "sagittal": {"cfg": cfg_sag, "ckpt": args.ckpt_sag},
                          "axial": {"cfg": cfg_ax, "ckpt": args.ckpt_ax}}
         self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
+        self.num_classes = self.cfg_fin.MODEL.NUM_CLASSES
         self.model = Inference(self.cfg_fin, self.ckpt_fin, args.device)
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
         self.hires = args.hires
 
-    def set_orig(self, orig_str):
-        self.orig, self.orig_data = self.get_img(orig_str)
+    def set_and_create_outdir(self, out_dir: str) -> str:
+        if os.path.isabs(self.pred_name):
+            # Full path defined for input image, extract out_dir from there
+            tmp = os.path.dirname(self.pred_name)
+
+            # remove potential subject/mri doubling in outdir name
+            out_dir = tmp if os.path.basename(tmp) != "mri" else os.path.dirname(os.path.dirname(tmp))
+        LOGGER.info("Output will be stored in: {}".format(out_dir))
+
+        if not os.path.exists(out_dir):
+            LOGGER.info("Output directory does not exist. Creating it now...")
+            os.makedirs(out_dir)
+        return out_dir
+
+    def get_out_dir(self) -> str:
+        return self.out_dir
+
+    def conform_and_save_orig(self, orig_str: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+        orig, orig_data = self.get_img(orig_str)
 
         # Save input image to standard location
-        LOGGER.info("Saving original image to {}".format(self.input_img_name))
-        self.save_img(self.input_img_name, self.orig_data)
+        self.save_img(self.input_img_name, orig_data, orig, seg=False)
 
-        if not conf.is_conform(self.orig, conform_min=self.hires, check_dtype=True, verbose=False):
+        if not conf.is_conform(orig, conform_min=self.hires, check_dtype=True, verbose=False):
             LOGGER.info("Conforming image")
-            self.orig = conf.conform(self.orig, conform_min=True)
-            self.orig_data = np.asanyarray(self.orig.dataobj)
+            orig = conf.conform(orig, conform_min=self.hires)
+            orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
-        LOGGER.info("Saving conformed image to {}".format(self.subject_conf_name))
-        self.save_img(self.subject_conf_name, self.orig_data)
+        self.save_img(self.subject_conf_name, orig_data, orig, seg=False)
+        return orig, orig_data
 
-    def set_gt(self, gt_str):
-        self.gt, self.gt_data = self.get_img(gt_str)
+    def set_subject(self, subject: str):
+        self.subject_name = os.path.basename(subject[:-len(self.strip)])
+        self.subject_conf_name = os.path.join(self.out_dir, self.subject_name, self.conf_name)
+        self.input_img_name = os.path.join(self.out_dir, self.subject_name,
+                                           os.path.dirname(self.conf_name), 'orig', '001.mgz')
 
-    def set_subject(self, subject):
-        self.subject_name = subject.split("/")[-1]
+    def get_subject_name(self) -> str:
+        return self.subject_name
 
-        if args.single_img:
-            out_dir, _ = os.path.split(args.pred_name)
-            self.subject_conf_name = self.conf_name
-            self.input_img_name = os.path.join(out_dir, 'orig', '001.mgz')
-        else:
-            self.subject_conf_name = os.path.join(self.out_dir, subject.strip('/'), self.conf_name)
-            self.input_img_name = os.path.join(self.out_dir, subject.strip('/'), 'mri/orig', '001.mgz')
-
-    def set_model(self, plane):
+    def set_model(self, plane: str):
         self.model.set_model(self.view_ops[plane]["cfg"])
         self.model.load_checkpoint(self.view_ops[plane]["ckpt"])
         self.device = self.model.get_device()
         self.dim = self.model.get_max_size()
 
     @torch.no_grad()
-    def run_model(self, out):
+    def run_model(self, out: torch.Tensor, orig_f: str, orig_data: np.ndarray, zooms: Union[np.ndarray, tuple]) -> torch.Tensor:
         # get prediction
-        return self.model.run(self.orig_filename, self.orig_data, self.orig.header.get_zooms(),
+        return self.model.run(orig_f, orig_data, zooms,
                               out, noise=self.gn_noise)
 
-    def get_gt(self) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-        return self.gt, self.gt_data
-
-    def get_orig(self) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-        return self.orig, self.orig_data
-
-    def get_prediction(self):
-        shape = self.orig.shape + (self.get_num_classes(),)
+    def get_prediction(self, orig_f: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]) -> np.ndarray:
+        shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": "cpu" if self.small_gpu else self.device,
             "dtype": torch.float16,  # TODO add a flag to choose between single and half precision?
@@ -195,19 +187,19 @@ class RunModelOnData:
         if self.view_ops["coronal"]["cfg"] is not None:
             LOGGER.info("Run coronal prediction")
             self.set_model("coronal")
-            pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob, orig_f, orig_data, zoom)
 
         # axial inference
         if self.view_ops["axial"]["cfg"] is not None:
             LOGGER.info("Run axial view agg")
             self.set_model("axial")
-            pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob, orig_f, orig_data, zoom)
 
         # sagittal inference
         if self.view_ops["sagittal"]["cfg"] is not None:
             LOGGER.info("Run sagittal view agg")
             self.set_model("sagittal")
-            pred_prob = self.run_model(pred_prob)
+            pred_prob = self.run_model(pred_prob, orig_f, orig_data, zoom)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
@@ -225,60 +217,29 @@ class RunModelOnData:
 
         return img, data
 
-    def save_img(self, save_as, data, seg=False):
+    @staticmethod
+    def save_img(save_as: str, data: np.ndarray, orig: nib.analyze.SpatialImage, seg=False):
         # Create output directory if it does not already exist.
-        if not os.path.exists("/".join(save_as.split("/")[0:-1])):
+        if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info("Output image directory does not exist. Creating it now...")
-            os.makedirs("/".join(save_as.split("/")[0:-1]))
+            os.makedirs(os.path.dirname(save_as))
         if not isinstance(data, np.ndarray):
             data = data.cpu().numpy()
 
         if seg:
-            header = self.orig.header.copy()
+            header = orig.header.copy()
             header.set_data_dtype(np.int16)
-            du.save_image(header, self.orig.affine, data, save_as)
+            du.save_image(header, orig.affine, data, save_as)
         else:
-            du.save_image(self.orig.header, self.orig.affine, data, save_as)
+            du.save_image(orig.header, orig.affine, data, save_as)
         LOGGER.info("Successfully saved image as {}".format(save_as))
-
-    def run(self, csv, save_img, metrics, logger=LOGGER):
-        start = time.time()
-
-        for _ in self.get_subjects(csv):
-            logger.info(f"Generating {self.pred_name} for {self.subject_name}:\nnet VINN, ckpt {self.ckpt_fin}")
-
-            # Load and prepare ground truth data
-            load = time.time()
-            self.set_gt(self.gt_filename)
-            self.set_orig(self.orig_filename)
-            logger.info("Ground truth loaded in {:0.4f} seconds".format(time.time() - load))
-
-            # Load prediction or generate it from scratch
-            load = time.time()
-            pred_data = self.get_prediction()
-            logger.info("Model prediction finished in {:0.4f}.".format(time.time() - load))
-
-            # Save Image
-            if save_img:
-                save = time.time()
-                self.save_img(self.pred_name, pred_data)
-                logger.info("Image successfully saved as {} in {:0.4f} seconds".format(self.pred_name, time.time() - save))
-
-        logger.info("Processing finished in {:0.4f} seconds".format(time.time() - start))
 
     def set_up_model_params(self, plane, cfg, ckpt):
         self.view_ops[plane]["cfg"] = cfg
         self.view_ops[plane]["ckpt"] = ckpt
 
-    def get_subjects(self, csv):
-        with open(csv, "r") as f:
-            for line in f.readlines():
-                self.current_subject = line.strip()
-                self.subject_name = line.split("/")[-1] if line.split("/")[-1] != "mri" else line.split("/")[-2]
-                yield
-
-    def get_num_classes(self):
-        return 79
+    def get_num_classes(self) -> int:
+        return self.num_classes
 
 
 def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory: bool = True) -> bool:
@@ -305,37 +266,38 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
+    parser.add_argument('--orig_name', type=str, dest="orig_name", default='mri/orig.mgz',
+                        help="Name of orig input. Absolute path if single image else common image name. "
+                             "Default: mri/orig.mgz")
+    parser.add_argument('--strip', type=str, dest="strip", default='',
+                        help="Optional: strip suffix from path definition of input file to yield correct subject name."
+                             "(e.g. ses-x/anat/ for BIDS or mri/ for FreeSurfer input). Default: do not strip anything.")
     parser.add_argument("--in_dir", type=str, default=None,
-                        help="Directory in which input volume(s) are located.")
-    parser.add_argument('--orig_name', type=str, dest="orig_name", default='mri/orig.mgz', help="Name of orig input")
-    parser.add_argument('--pred_name', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
-                        help="Filename to save prediction. Default: mri/aparc.DKTatlas+aseg.deep.mgz")
-    parser.add_argument('--conf_name', type=str, dest='conf_name', default='orig.mgz',
-                        help="Name under which the conformed input image will be saved, in the same directory as the segmentation "
-                             "(the input image is always conformed first, if it is not already conformed). "
-                             "The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: orig.mgz.")
-    parser.add_argument('--gt_dir', type=str, default=None,
-                        help="Directory of ground truth (if different from orig input).")
-    parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --pattern)",
+                        help="Directory in which input volume(s) are located. "
+                             "Optional, if full path is defined for --orig_name.")
+    parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag",
                         default=None)
+    parser.add_argument('--t', '--tag', dest='search_tag', default="*",
+                        help='Search tag to process only certain subjects. If a single image should be analyzed, '
+                             'set the tag with its id. Default: processes all.')
     parser.add_argument("--lut", type=str, default=os.path.join(os.path.dirname(__file__), "config/FastSurfer_ColorLUT.tsv"),
                         help="Path and name of LUT to use.")
     parser.add_argument("--gn", type=int, default=0,
                         help="How often to sample from gaussian and run inference on same sample with added noise on scale factor.")
-    parser.add_argument('--t', '--tag', dest='search_tag', default="*",
-                        help='Search tag to process only certain subjects. If a single image should be analyzed, '
-                             'set the tag with its id. Default: processes all.')
 
     # 2. Options for output
+    parser.add_argument('--pred_name', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
+                        help="Filename to save prediction. Absolute path if single image else common image name. "
+                             "Default:mri/aparc.DKTatlas+aseg.deep.mgz")
+    parser.add_argument('--conf_name', type=str, dest='conf_name', default='mri/orig.mgz',
+                        help="Name under which the conformed input image will be saved, in the same directory as the segmentation "
+                             "(the input image is always conformed first, if it is not already conformed). "
+                             "The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: mri/orig.mgz.")
     parser.add_argument("--out_dir", type=str, default=None,
                         help="Directory in which evaluation results should be written. "
-                             "Will be created if it does not exist")
-    parser.add_argument("--single_img", default=False, action="store_true",
-                        help="Run single image for testing purposes instead of entire csv-file")
-    parser.add_argument('--save_img', action='store_true', default=False, help="Save prediction as mgz on disk.")
+                             "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
     parser.add_argument('--hires', action="store_true", default=False, dest='hires',
                         help="Switch on hires processing (no conforming to 1mm, but to smallest voxel size.")
-
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
@@ -376,22 +338,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Check input and output options
-    if args.in_dir is None and args.csv_file is None and not args.single_img:
+    if args.in_dir is None and args.csv_file is None and not os.path.isfile(args.orig_name):
         parser.print_help(sys.stderr)
-        sys.exit('----------------------------\nERROR: Please specify data directory or input volume\n')
+        sys.exit('----------------------------\nERROR: Please specify data input directory or full path to input volume\n')
 
-    if args.out_dir is None and not args.single_img:
+    if args.out_dir is None and not os.path.isabs(args.pred_name):
         parser.print_help(sys.stderr)
-        sys.exit('----------------------------\nERROR: Please specify data output directory '
+        sys.exit('----------------------------\nERROR: Please specify data output directory or absolute path to output volume'
                  '(can be same as input directory)\n')
-
 
     # Set up logging
     from utils.logging import setup_logging
     cfg = args2cfg(args)[0]
     setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
-
-    LOGGER.info("Origs: {}".format(args.orig_name))
 
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
@@ -401,54 +360,29 @@ if __name__ == "__main__":
     # Set Up Model
     eval = RunModelOnData(args)
 
-    if not args.single_img:
+    # Get all subjects of interest
+    if args.csv_file is not None:
+        with open(args.csv_file, "r") as s_dirs:
+            s_dirs = [line.strip() for line in s_dirs.readlines()]
+        LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
 
-        # Get all subjects of interest
-        if args.csv_file is not None:
-            with open(args.csv_file, "r") as s_dirs:
-                s_dirs = [line.strip() for line in s_dirs.readlines()]
-            LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
-        else:
-            s_dirs = glob.glob(os.path.join(args.in_dir, args.search_tag))
-            LOGGER.info("Analyzing all {} subjects from in_dir {}".format(len(s_dirs), args.in_dir))
-            LOGGER.info("Output will be stored in: {}".format(args.out_dir))
-
-        # Create output directory if it does not already exist.
-        if args.out_dir is not None and not os.path.exists(args.out_dir):
-            LOGGER.info("Output directory does not exist. Creating it now...")
-            os.makedirs(args.out_dir)
-
-        for subject in s_dirs:
-            # Set subject and orig
-            eval.set_subject(subject)
-            eval.set_orig(os.path.join(subject, args.orig_name))
-            pred_name = os.path.join(args.out_dir, subject.strip('/'), args.pred_name)
-
-            # Run model
-            pred_data = eval.get_prediction()
-
-            if args.save_img:
-                eval.save_img(pred_name, pred_data, seg=True)
+    elif args.in_dir is not None:
+        s_dirs = glob.glob(os.path.join(args.in_dir, args.search_tag))
+        LOGGER.info("Analyzing all {} subjects from in_dir {}".format(len(s_dirs), args.in_dir))
 
     else:
-        # Create output directory if it does not already exist.
-        out_dir, _ = os.path.split(args.pred_name)
-        if not os.path.exists(out_dir):
-            LOGGER.info("Output directory does not exist. Creating it now...")
-            os.makedirs(out_dir)
+        s_dirs = [os.path.dirname(args.orig_name)]
+        LOGGER.info("Analyzing single subject {}".format(args.orig_name))
 
-        # Set orig and gt for testing now
-        # Note: assumes orig_name, and pred_name are absolute paths when --single_img:
-        subject, img_name = os.path.split(args.orig_name)
+    for subject in s_dirs:
+        # Set subject and load orig
         eval.set_subject(subject)
-        eval.set_orig(args.orig_name)
+        orig_fn = args.orig_name if os.path.isfile(args.orig_name) else os.path.join(subject, args.orig_name)
+        orig_img, data_array = eval.conform_and_save_orig(orig_fn)
+
+        pred_name = args.pred_name if os.path.isabs(args.pred_name) else \
+            os.path.join(eval.get_out_dir(), eval.get_subject_name(), args.pred_name)
 
         # Run model
-        try:
-            pred_data = eval.get_prediction()
-        except RuntimeError as e:
-            if not handle_cuda_memory_exception(e):
-                raise e
-
-        if args.save_img is not None:
-            eval.save_img(args.pred_name, pred_data, seg=True)
+        pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
+        eval.save_img(pred_name, pred_data, orig_img, seg=True)
