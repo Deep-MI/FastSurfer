@@ -33,7 +33,7 @@ Our [README](README.md) explains how to run FastSurfer (for the full pipeline yo
 This is very similar to Singularity. Assuming you have Docker installed (by a system admin) you just need to pull one of our pre-build Docker images from dockerhub:
 
 ```
-docker pull deepmi/fastsurfer:gpu
+docker pull deepmi/fastsurfer:gpu-v1.1.1
 ```
 
 Our [README](README.md) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file !) and you can find details on how to build your own Images here: [Docker](docker/README.md) and [Singularity](singularity/README.md). 
@@ -129,7 +129,7 @@ To run the full pipeline, install also FreeSurfer v7.2 according to their [Instr
 
 ### Docker (currently only Intel)
 
-Docker can be used on Intel Macs as it should be similarly fast than a native install there.
+Docker can be used on Intel Macs as it should be similarly fast as a native install there.
 
 First install Docker Desktop for Mac from https://docs.docker.com/get-docker/
 Start it and under Preferences -> Resources set Memory to 15 GB (or the largest you have, if you are below 15GB, it may fail). Pull one of our pre-compiled Docker containers. For that open a terminal window and copy this command:
