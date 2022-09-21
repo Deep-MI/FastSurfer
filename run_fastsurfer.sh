@@ -33,9 +33,9 @@ seg=""
 conformed_name=""
 seg_log=""
 ## TODO: If included with FastSurfer, set the default paths of the following files:
-weights_sag="$fastsurfercnndir/checkpoints/FastSurferVINN_training_state_sagittal.pkl"
-weights_ax="$fastsurfercnndir/checkpoints/FastSurferVINN_training_state_axial.pkl"
-weights_cor="$fastsurfercnndir/checkpoints/FastSurferVINN_training_state_coronal.pkl"
+weights_sag="$FASTSURFER_HOME/checkpoints/FastSurferVINN_training_state_sagittal.pkl"
+weights_ax="$FASTSURFER_HOME/checkpoints/FastSurferVINN_training_state_axial.pkl"
+weights_cor="$FASTSURFER_HOME/checkpoints/FastSurferVINN_training_state_coronal.pkl"
 config_cor="$fastsurfercnndir/config/FastSurferVINN_coronal.yaml"
 config_ax="$fastsurfercnndir/config/FastSurferVINN_axial.yaml"
 config_sag="$fastsurfercnndir/config/FastSurferVINN_sagittal.yaml"
@@ -448,7 +448,7 @@ if [ "$surf_only" == "0" ]; then
   echo "" |& tee -a $seg_log
 
   pushd $fastsurfercnndir
-  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --single_img --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --save_img --run_viewagg_on $viewagg --device $device"
+  cmd="$python run_prediction.py --orig_name $t1 --pred_name $seg --conf_name $conformed_name $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --run_viewagg_on $viewagg --device $device"
   echo $cmd |& tee -a $seg_log
   $cmd |& tee -a $seg_log
   if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
