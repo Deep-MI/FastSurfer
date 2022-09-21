@@ -32,6 +32,10 @@ if __name__ == "__main__":
                         help="Checkpoint file paths to download, e.g. checkpoints/FastSurferVINN_training_state_axial.pkl ...")
     args = parser.parse_args()
 
+    # download all sets of weights:
+    if args.all:
+        args.vinn = True
+
     if not args.vinn and not args.files:
         print("Specify either files to download or --vinn, see help -h.")
         exit(1)
