@@ -34,7 +34,7 @@ N4_bias_correct  --invol <img.nii> --outvol <corrected.nii> OPTIONS
 
 
 Dependencies:
-    Python 3.6
+    Python 3.8
 
     SimpleITK https://simpleitk.org/ (v2.1.1)
 
