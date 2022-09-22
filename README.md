@@ -136,7 +136,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --parallel
 ```
 
-Docker flags:
+Docker Flags:
 * The --gpus flag is used to allow Docker to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
 * The -v commands mount your data, output, and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 * The --rm flag takes care of removing the container once the analysis finished. 
