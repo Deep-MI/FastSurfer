@@ -52,7 +52,7 @@ List them by running the following command:
                     The total memory is considered for this decision. 
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
                     Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
-* --device <str>: Select device for NN segmentation ("cpu", "cuda"), where cuda (default) means Nvidia GPU, you can select which one "cuda:1".
+* --no_cuda: Flag to disable CUDA usage in FastSurferCNN (no GPU usage, inference on CPU)
 * --batch: Batch size for inference. Default: 8. Lower this to reduce memory requirement
 * --order: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
 
