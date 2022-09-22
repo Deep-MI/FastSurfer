@@ -4,7 +4,7 @@ FastSurfer is a pipeline for the segmentation of human brain MRI data. It consis
 
 The preferred way of installing and running FastSurfer is via Singularity or Docker containers. We provide pre-build images at Dockerhub for various application cases: i) for only the segmentation (both GPU and CPU), ii) for only the CPU-based recon-surf pipeline, and iii) for the full pipeline (GPU or CPU). 
 
-We also provide information on a native installs on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. 
+We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 20.04 via our provided Docker images.
 
 
 # Installation
@@ -58,7 +58,7 @@ This is enough to run the FastSurfer neural network segmentation, if you want to
 
 #### FastSurfer
 
-Get a FastSurfer version from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly). 
+Get a FastSurfer version from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly).
 
 #### Conda
 
@@ -91,17 +91,16 @@ To run the full pipeline, install also FreeSurfer v7.2 according to their [Instr
 
 ## MacOS 
 
-Currently only CPU based procesing is supported. GPU processing on Apple Silicon Chips is under developoment.
+Processing on Mac CPUs (both Intel and Apple Silicon) is possible. On Apple Silicon you can even use the GPU (experimental) by passing ```--device mps```
 
 Recommended: Mac with Apple Silicon M Chip and 16 GB RAM
-You can also run on older Intel chips but it will be 2-4 times slower. 
-
+You can also run on older Intel CPUs but it will be 2-4 times slower. 
 
 ### Native
 
-On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native CPU install as it runs much faster than Docker in our tests. On Intel chips you can also use Docker (see below).
+On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native install as it runs much faster than Docker in our tests. On Intel chips you can also use Docker (see below).
 
-We exepct you to already have git and a recent bash (version > 4.0) installed, e.g. via the packet manager brew.
+We expect you to already have git and a recent bash (version > 4.0) installed, e.g. via the packet manager brew.
 This installs brew and then bash:
 
 ```
@@ -109,6 +108,7 @@ This installs brew and then bash:
 brew install bash
 ```
 
+Make sure you use this bash and not the older one provided with MacOS!
 Clone FastSurfer:dev, create a python environment, activate it, upgrade pip and install the requirements:
 
 ```
@@ -135,11 +135,21 @@ python3 FastSurferCNN/download_checkpoints.py --all
 
 Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [README](README.md). 
 
+You can also try out running on the Apple Silicon GPU by:
+
+```
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+./run_fastsurfer.sh --seg_only --device mps ....
+```
+
+This will be at least twice as fast as CPU. The fallback environment variable is necessary as one function is not yet implemented for 
+the GPU and will fall back to CPU. 
+
 To run the full pipeline, install also FreeSurfer v7.2 according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
 
 ### Docker (currently only Intel)
 
-Docker can be used on Intel Macs as it should be similarly fast as a native install there.
+Docker can be used on Intel Macs as it should be similarly fast as a native install there. It would allow you to run the full pipeline.
 
 First install Docker Desktop for Mac from https://docs.docker.com/get-docker/
 Start it and under Preferences -> Resources set Memory to 15 GB (or the largest you have, if you are below 15GB, it may fail). Pull one of our pre-compiled Docker containers. For that open a terminal window and copy this command:
@@ -153,5 +163,5 @@ and run is as the example in our [README](README.md).
 
 ## Windows
 
-Nothing has been tested so far on Windows. We expect the CPU-based containers to work here. GPU passthrough will be explored in the future. If you want to make use of your GPU, you need to install a dual-boot with Ubuntu on your system.
+Nothing has been tested so far on Windows. We expect the CPU-based containers to work here. GPU passthrough will be explored in the future. If you want to make use of your GPU, you need to install a dual-boot with Ubuntu (or another liunx) on your system.
 
