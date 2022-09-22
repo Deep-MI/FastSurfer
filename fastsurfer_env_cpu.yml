@@ -8,7 +8,7 @@ channels:
 dependencies:
   - cpuonly=1.0
   - cudatoolkit=11.3
-  - h5py=3.6.0
+  - h5py==3.6.0
   - matplotlib=3.5.1
   - pytorch=1.10.0 
   - torchvision=0.11.1 
