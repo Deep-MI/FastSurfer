@@ -38,9 +38,6 @@ class Inference:
         torch.manual_seed(cfg.RNG_SEED)
         self.cfg = cfg
         
-        logger.info("Run Inference with config:")
-        logger.info(pprint.pformat(cfg))
-
         # Switch on denormal flushing for faster CPU processing
         # seems to have less of an effect on VINN than old CNN
         torch.set_flush_denormal(True)
