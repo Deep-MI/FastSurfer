@@ -293,6 +293,8 @@ if __name__ == "__main__":
                         help="Name under which the conformed input image will be saved, in the same directory as the segmentation "
                              "(the input image is always conformed first, if it is not already conformed). "
                              "The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: mri/orig.mgz.")
+    parser.add_argument('--log_name', type=str, dest='log_name', default="",
+                        help="Absolute path to file in which run logs will be saved. If not set, logs will not be saved.")
     parser.add_argument("--out_dir", type=str, default=None,
                         help="Directory in which evaluation results should be written. "
                              "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
@@ -349,8 +351,7 @@ if __name__ == "__main__":
 
     # Set up logging
     from utils.logging import setup_logging
-    cfg = args2cfg(args)[0]
-    setup_logging(cfg.OUT_LOG_DIR, cfg.OUT_LOG_NAME)
+    setup_logging(args.log_name)
 
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
