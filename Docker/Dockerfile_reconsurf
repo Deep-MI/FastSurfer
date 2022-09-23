@@ -65,7 +65,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       time \
       bc \
       gawk \
-      libgomp1 && \
+      libgomp1 \
+      libquadmath0 && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
