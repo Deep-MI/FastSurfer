@@ -15,7 +15,7 @@
 # limitations under the License.
 
 VERSION='$Id$'
-FS_VERSION_SUPPORT="7.2.0"
+FS_VERSION_SUPPORT="7.3.2"
 
 # Regular flags default
 t1=""               # Path and name of T1 input
