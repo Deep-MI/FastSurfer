@@ -178,6 +178,41 @@ FastSurfer Flags to pass through:
 
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
 
+### Example 5 Quick Segmentation
+
+For many applications you won't need the surfaces. You can run only the segmentation (in 1 minute on a GPU) via
+
+```bash
+./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
+                    --seg $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --conformed_name $ouputdir/subject1/conformed.mgz \
+                    --parallel --threads 4 --seg_only
+```
+
+This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
+Conformed means that the image will be 1mm isotropic in LIA orientation. 
+
+If you also need a brainmask or an aseg (reduced lables) you can run:
+
+```bash
+python3 ./recon-surf/reduce_to_aseg.py \
+                    -i $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    -o $ouputdir/subject1/aseg.auto_noCCseg.mgz \
+                    --outmask $ouputdir/subject1/mask.mgz \
+                    --fixwm
+```
+
+Alternatively - but this requires a FreeSurfer install - you can get mask and also statistics after insertion of the corpus callosum by replacing ```--seg_only``` with ```--seg_with_cc_only``` in the run_fastsurfer.sh command:
+
+```bash
+./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
+                    --seg $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --conformed_name $ouputdir/subject1/conformed.mgz \
+                    --parallel --threads 4 --seg_with_cc_only
+```
+
+The above ```run_fastsurfer.sh``` commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker of -B in Singularity). For the ```reduce_to_aseg.py you would need to enter the container interactively. 
+
 ## System Requirements
 
 Recommendation: At least 8GB CPU RAM and 8GB NVIDIA GPU RAM ```--batch 1 --run_viewagg_on gpu```  
