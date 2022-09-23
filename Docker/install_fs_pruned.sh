@@ -1,6 +1,19 @@
 #!/bin/bash --login
-
 # --login to read bashrc for conda inside docker
+
+# This file downloads the FreeSurfer tar ball and extracts from it only what is needed to run
+# FastSurfer
+#
+# In order to update to a new FreeSurfer version you need to update the fslink and then build a 
+# docker with this setup. Run it and whenever it crashes/exits, find the missing file (binary,
+# atlas, datafile, or dependency) and add it here or if a dependeny is missing install it in the 
+# docker and rebuild and re-run. Repeat until recon-surf finishes sucessfullly. Then repeat with
+# all supported recon-surf flags (--hires, --fsaparc etc.).
+
+
+# Link where to find the FreeSurfer tarball: 
+fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz"
+
 
 if [ "$#" -lt 1 ]; then
     echo
@@ -22,10 +35,9 @@ fsd=$where/freesurfer
 echo
 echo "Will install FreeSurfer to $fsd"
 echo
-
-#fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer-linux-ubuntu18_amd64-7.2.0.tar.gz"
-fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz"
-echo "FreeSurfer package: $fslink"
+echo "FreeSurfer package to download:"
+echo
+echo "$fslink"
 echo
 
 
@@ -122,6 +134,8 @@ copy_files="
   bin/compute_vox2vox
   bin/avi2talxfm
   bin/fs_temp_dir
+  bin/fs_temp_file
+  bin/fs-check-version
   bin/mri_info
   bin/mri_matrix_multiply
   bin/lta_convert
@@ -368,12 +382,6 @@ if [ "$p3" == "" ]; then
   exit 1
 fi
 ln -s $p3 $fsd/bin/fspython
-
-# modify rca_config to work with python3.8
-# (it misunderstands -hemi as -h for help and emi)
-# sed -i 's/allow_abbrev=False/allow_abbrev=False,add_help=False/' $fsd/python/scripts/rca-config 
-# this and problem with -s has been fixed in freesurfer dev, so we get it from there:
-wget https://raw.githubusercontent.com/freesurfer/freesurfer/c10e63484a3cfda5c272641241427fa154777cc2/scripts/rca-config -O $fsd/python/scripts/rca-config
 
 #cleanup
 rm -rf $fss
