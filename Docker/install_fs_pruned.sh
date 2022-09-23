@@ -23,9 +23,15 @@ echo
 echo "Will install FreeSurfer to $fsd"
 echo
 
+#fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer-linux-ubuntu18_amd64-7.2.0.tar.gz"
+fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz"
+echo "FreeSurfer package: $fslink"
+echo
+
+
 # get Freesurfer and upack (some of it)
 echo "Downloading FS and unpacking portions ..."
-wget --no-check-certificate -qO- https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.2.0/freesurfer-linux-ubuntu18_amd64-7.2.0.tar.gz  | tar zxv --no-same-owner -C $where \
+wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/average/mult-comp-cor' \
       --exclude='freesurfer/average/samseg' \
       --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
