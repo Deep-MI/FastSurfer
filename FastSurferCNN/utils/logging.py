@@ -14,28 +14,29 @@
 # limitations under the License.
 
 # IMPORTS
+import os
+
 from logging import *
-from typing import Union as _Union
 from sys import stdout as _stdout
-from pathlib import Path as _Path
-from os import makedirs as _makedirs
-from os.path import join as _join
 
 
-def setup_logging(output_dir: _Union[str, _Path], expr_num: str):
+def setup_logging(log_file_path: str):
     """
     Sets up the logging
     """
     # Set up logging format.
     _FORMAT = "[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s"
-    log_folder = _join(output_dir, "logs")
-    _makedirs(log_folder, exist_ok=True)
-    log_file = _join(log_folder, f"expr_{expr_num}.log")
+    handlers = [StreamHandler(_stdout)]
 
-    fh = FileHandler(filename=log_file, mode='a')
-    ch = StreamHandler(_stdout)
+    if log_file_path:
+        log_dir_path = os.path.dirname(log_file_path)
+        log_file_name = os.path.basename(log_file_path)
+        if not os.path.exists(log_dir_path):
+            os.makedirs(log_dir_path)
 
-    basicConfig(level=INFO, format=_FORMAT, handlers=[fh, ch])
+        handlers.append(FileHandler(filename=log_file_path, mode='a'))
+
+    basicConfig(level=INFO, format=_FORMAT, handlers=handlers)
 
 # At this point, this is just an alias for compatibility’s sake
 get_logger = getLogger
