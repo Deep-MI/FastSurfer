@@ -443,7 +443,7 @@ if [ "$surf_only" == "0" ]; then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
   mkdir -p "$(dirname "$seg_log")"
-  echo "Log file for fastsurfercnn eval.py" > $seg_log
+  echo "Log file for fastsurfercnn run_prediction.py" > $seg_log
   date  |& tee -a $seg_log
   echo "" |& tee -a $seg_log
 
