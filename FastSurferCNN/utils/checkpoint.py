@@ -135,9 +135,14 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
     :param checkpoint_path: str: path of the file in which the checkpoint will be saved
     :return:
     """
-    response = requests.get(os.path.join(download_url, checkpoint_name), verify=False)
-    # Raise error if file does not exist:
-    response.raise_for_status()
+    try:
+        response = requests.get(os.path.join(download_url, checkpoint_name), verify=True)
+        # Raise error if file does not exist:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print('[checkpoint] Response code: {}'.format(e.response.status_code))
+        response = requests.get(os.path.join(download_url, checkpoint_name), verify=False)
+
     with open(checkpoint_path, 'wb') as f:
         f.write(response.content)
 
