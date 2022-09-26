@@ -142,6 +142,7 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
     except requests.exceptions.HTTPError as e:
         print('[checkpoint] Response code: {}'.format(e.response.status_code))
         response = requests.get(os.path.join(download_url, checkpoint_name), verify=False)
+        response.raise_for_status()
 
     with open(checkpoint_path, 'wb') as f:
         f.write(response.content)
