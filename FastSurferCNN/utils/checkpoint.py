@@ -16,10 +16,13 @@
 # IMPORTS
 import os
 import glob
+import logging
 
 import requests
 import torch
 
+
+LOGGER = logging.getLogger(__name__)
 
 # Defaults
 URL="https://b2share.fz-juelich.de/api/files/0114331a-f788-48d2-9d09-f85d7494ed48"
@@ -140,7 +143,7 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
         # Raise error if file does not exist:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        print('[checkpoint] Response code: {}'.format(e.response.status_code))
+        LOGGER.info('Response code: {}'.format(e.response.status_code))
         response = requests.get(os.path.join(download_url, checkpoint_name), verify=False)
         response.raise_for_status()
 
