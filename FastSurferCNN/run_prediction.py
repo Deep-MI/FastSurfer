@@ -24,7 +24,7 @@ import glob
 import sys
 import argparse
 
-from eval import Inference
+from inference import Inference
 from utils.load_config import load_config
 from utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
 from utils import logging as logging
@@ -385,5 +385,4 @@ if __name__ == "__main__":
             os.path.join(eval.get_out_dir(), eval.get_subject_name(), args.pred_name)
 
         # Run model
-        pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
-        eval.save_img(pred_name, pred_data, orig_img, seg=True)
+        
