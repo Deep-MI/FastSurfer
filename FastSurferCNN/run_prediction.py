@@ -303,11 +303,11 @@ if __name__ == "__main__":
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), "..", VINN_COR))
+                        default=os.path.join(os.path.dirname(__file__), VINN_COR))
     parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), "..", VINN_AXI))
+                        default=os.path.join(os.path.dirname(__file__), VINN_AXI))
     parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), "..", VINN_SAG))
+                        default=os.path.join(os.path.dirname(__file__), VINN_SAG))
 
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default=8")
 
@@ -385,4 +385,5 @@ if __name__ == "__main__":
             os.path.join(eval.get_out_dir(), eval.get_subject_name(), args.pred_name)
 
         # Run model
-        
+        pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
+        eval.save_img(pred_name, pred_data, orig_img, seg=True)
