@@ -89,7 +89,6 @@ class Inference:
             model = torch.nn.DataParallel(model)
         return model
 
-
     def set_cfg(self, cfg):
         self.cfg = cfg
 
@@ -116,9 +115,6 @@ class Inference:
         else:
             model_state = torch.load(ckpt, map_location=self.device)
             self.model.load_state_dict(model_state['model_state'])
-        #print(model_state['model_state']['inp_block.bn0.weight'])
-        #print("bn params: {}".format(self.model.inp_block.bn0.weight))
-        #exit(0)
 
     def get_modelname(self):
         return self.model_name
