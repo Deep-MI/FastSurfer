@@ -266,36 +266,41 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
-    parser.add_argument('--orig_name', type=str, dest="orig_name", default='mri/orig.mgz',
-                        help="Name of orig input. Absolute path if single image else common image name. "
-                             "Default: mri/orig.mgz")
+    parser.add_argument('--t1', type=str, dest="orig_name", default='mri/orig.mgz',
+                        help="Name of orig input (T1 full head input). Absolute path if single image else "
+                             "common image name. Default: mri/orig.mgz")
     parser.add_argument('--strip', type=str, dest="strip", default='',
                         help="Optional: strip suffix from path definition of input file to yield correct subject name."
                              "(e.g. ses-x/anat/ for BIDS or mri/ for FreeSurfer input). Default: do not strip anything.")
     parser.add_argument("--in_dir", type=str, default=None,
                         help="Directory in which input volume(s) are located. "
                              "Optional, if full path is defined for --orig_name.")
-    parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag",
-                        default=None)
     parser.add_argument('--t', '--tag', dest='search_tag', default="*",
                         help='Search tag to process only certain subjects. If a single image should be analyzed, '
                              'set the tag with its id. Default: processes all.')
-    parser.add_argument("--lut", type=str, default=os.path.join(os.path.dirname(__file__), "config/FastSurfer_ColorLUT.tsv"),
-                        help="Path and name of LUT to use.")
+    parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag",
+                        default=None)
+    parser.add_argument("--lut", type=str, help="Path and name of LUT to use.",
+                        default=os.path.join(os.path.dirname(__file__), "config/FastSurfer_ColorLUT.tsv"))
     parser.add_argument("--gn", type=int, default=0,
-                        help="How often to sample from gaussian and run inference on same sample with added noise on scale factor.")
+                        help="How often to sample from gaussian and run inference on same sample with added noise on "
+                             "scale factor.")
 
     # 2. Options for output
-    parser.add_argument('--pred_name', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
-                        help="Filename to save prediction. Absolute path if single image else common image name. "
-                             "Default:mri/aparc.DKTatlas+aseg.deep.mgz")
-    parser.add_argument('--conf_name', type=str, dest='conf_name', default='mri/orig.mgz',
-                        help="Name under which the conformed input image will be saved, in the same directory as the segmentation "
-                             "(the input image is always conformed first, if it is not already conformed). "
-                             "The original input image is saved in the output directory as $id/mri/orig/001.mgz. Default: mri/orig.mgz.")
-    parser.add_argument('--log_name', type=str, dest='log_name', default="",
-                        help="Absolute path to file in which run logs will be saved. If not set, logs will not be saved.")
-    parser.add_argument("--out_dir", type=str, default=None,
+    parser.add_argument('--seg', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
+                        help="Name of intermediate DL-based segmentation file (similar to aparc+aseg). "
+                             "When using FastSurfer, this segmentation is already conformed, since inference "
+                             "is always based on a conformed image. Absolute path if single image else common "
+                             "image name. Default:mri/aparc.DKTatlas+aseg.deep.mgz")
+    parser.add_argument('--conformed_name', type=str, dest='conf_name', default='mri/orig.mgz',
+                        help="Name under which the conformed input image will be saved, in the same directory "
+                             "as the segmentation (the input image is always conformed first, if it is not "
+                             "already conformed). The original input image is saved in the output directory "
+                             "as $id/mri/orig/001.mgz. Default: mri/orig.mgz.")
+    parser.add_argument('--seg_log', type=str, dest='log_name', default="",
+                        help="Absolute path to file in which run logs will be saved. If not set, logs will "
+                             "not be saved.")
+    parser.add_argument("--sd", type=str, default=None,
                         help="Directory in which evaluation results should be written. "
                              "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
     parser.add_argument('--hires', action="store_true", default=False, dest='hires',
