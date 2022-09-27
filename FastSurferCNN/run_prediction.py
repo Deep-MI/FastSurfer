@@ -300,7 +300,7 @@ if __name__ == "__main__":
     parser.add_argument('--seg_log', type=str, dest='log_name', default="",
                         help="Absolute path to file in which run logs will be saved. If not set, logs will "
                              "not be saved.")
-    parser.add_argument("--sd", type=str, default=None,
+    parser.add_argument("--sd", type=str, default=None, dest="out_dir",
                         help="Directory in which evaluation results should be written. "
                              "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
     parser.add_argument('--hires', action="store_true", default=False, dest='hires',
