@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--url", type=str, default=URL, 
                         help="Specify you own base URL. Default: {}".format(URL))
     parser.add_argument('files', nargs='*', 
-                        help="Checkpoint file paths to download, e.g. checkpoints/FastSurferVINN_training_state_axial.pkl ...")
+                        help="Checkpoint file paths to download, e.g. checkpoints/aparc_vinn_axial_v2.0.0.pkl ...")
     args = parser.parse_args()
 
     # download all sets of weights:
@@ -41,9 +41,9 @@ if __name__ == "__main__":
         exit(1)
 
     # use default location in ../checkpoints/...
-    axi = os.path.join(os.path.dirname(__file__), "..", VINN_AXI)
-    cor = os.path.join(os.path.dirname(__file__), "..", VINN_COR)
-    sag = os.path.join(os.path.dirname(__file__), "..", VINN_SAG)
+    axi = os.path.join(os.path.dirname(__file__), VINN_AXI)
+    cor = os.path.join(os.path.dirname(__file__), VINN_COR)
+    sag = os.path.join(os.path.dirname(__file__), VINN_SAG)
 
     if args.vinn or args.all:
         get_checkpoints(axi, cor, sag, args.url)
