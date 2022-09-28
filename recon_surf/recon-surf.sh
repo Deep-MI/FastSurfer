@@ -39,13 +39,27 @@ get_t1=1;           # Generate T1.mgz from nu.mgz and brainmask from it (default
 
 if [ -z "$FASTSURFER_HOME" ]
 then
-  binpath="./"
+  binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
 else
   binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 
-# fs_time command from fs60, fs72 fails in parallel mode
+# fs_time command from fs60, fs72 fails in parallel mode, use local one
+# also check for failure (e.g. on mac it fails)
 timecmd="${binpath}fs_time"
+$timecmd echo testing &> /dev/null
+if [ ${PIPESTATUS[0]} -ne 0 ] ; then 
+  echo "time command failing, not using time..."
+  timecmd=""
+fi
+
+
+# check bash version > 4
+function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+if [ $(version ${BASH_VERSION}) -lt $(version "4.0.0") ]; then
+    echo "bash ${BASH_VERSION} is too old. Should be newer than 4.0, please upgrade!"
+    exit 1
+fi
 
 
 function usage()
@@ -413,6 +427,13 @@ if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mr
   exit 1
 fi
 
+# Check input segmentation quality
+echo "Checking Input Segmentation Quality ..."
+cmd="$python ${binpath}/quick_qc.py --seg $seg"
+echo $cmd
+$cmd
+if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+echo
 
 # collect info
 StartTime=`date`;
