@@ -406,6 +406,13 @@ then
   exit 1
 fi
 
+# Check if running on an existing subject directory
+if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]; then
+  echo "ERROR: running on top of an existing subject directory!"
+  echo "The output directory must not contain data from a previous invocation of recon-surf."
+  exit 1
+fi
+
 
 # collect info
 StartTime=`date`;
