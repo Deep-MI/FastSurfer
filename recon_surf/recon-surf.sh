@@ -398,6 +398,14 @@ then
   fsthreads="-threads $threads -itkthreads $threads"
 fi
 
+if [ $(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m) -gt 185 ]
+then
+  echo "ERROR: subject directory path is very long."
+  echo "This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
+  echo "--sd + --sid should be less than 185 characters long."
+  exit 1
+fi
+
 
 # collect info
 StartTime=`date`;
