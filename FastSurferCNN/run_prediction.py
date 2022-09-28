@@ -153,7 +153,7 @@ class RunModelOnData:
         return orig, orig_data
 
     def set_subject(self, subject: str):
-        self.subject_name = os.path.basename(subject[:-len(self.strip)])
+        self.subject_name = os.path.basename(subject[:-len(self.strip)]) if self.strip else os.path.basename(subject)
         self.subject_conf_name = os.path.join(self.out_dir, self.subject_name, self.conf_name)
         self.input_img_name = os.path.join(self.out_dir, self.subject_name,
                                            os.path.dirname(self.conf_name), 'orig', '001.mgz')
