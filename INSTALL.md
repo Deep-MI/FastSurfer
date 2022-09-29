@@ -105,7 +105,8 @@ Then you can build a Docker with ROCm support and run it.
 
 ```
 docker build --rm=true -t fastsurfer:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
-docker run --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video 
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/kfd \
+           --device=/dev/dri --group-add video --ipc=host --shm-size 8G \
                       -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
@@ -115,6 +116,7 @@ docker run --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined
                       --sid subject2 --sd /output \
                       --seg_only
 ```
+Note, that this is using an older Python version and packages, so results can differ from our validation results. So please do visual QC.
 
 ## MacOS 
 
