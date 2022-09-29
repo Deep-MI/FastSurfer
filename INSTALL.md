@@ -41,6 +41,7 @@ Our [README](README.md) explains how to run FastSurfer (for the full pipeline yo
 
 ### Native - Ubuntu 20.04
 
+In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need.
 
 #### System Packages
 
@@ -54,18 +55,25 @@ sudo apt-get update && apt-get install -y --no-install-recommends \
       file
 ```
 
-This is enough to run the FastSurfer neural network segmentation, if you want to run the full pipeline, you also need a working installation of FreeSurfer (and its dependencies).
+You also need a working version of python3 (currently we test with version 3.8). These packages shoule be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a working installation of FreeSurfer (and its dependencies).
 
 #### FastSurfer
 
 Get a FastSurfer version from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly).
 
+```
+git clone https://github.com/Deep-MI/FastSurfer.git
+cd FastSurfer
+```
+
+Get a FastSurfer version from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly).
+
 #### Conda
 
-The easiest way to install FastSurfer dependencies is with conda:
+The easiest way to install FastSurfer dependencies is with conda. If you don't have conda on your system, an admin needs to install it:
 
 ```
-wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/$CONDA_FILE
+wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.11.0-Linux-x86_64.sh
 chmod +x ~/miniconda.sh
 sudo ~/miniconda.sh -b -p /opt/conda && \
 rm ~/miniconda.sh 
@@ -74,7 +82,7 @@ rm ~/miniconda.sh
 Install dependencies into a new environment:
 
 ```
-conda env create -f /fastsurfer/fastsurfer_env_gpu.yml 
+conda env create -f ./fastsurfer_env_gpu.yml 
 conda activate fastsurfer_gpu
 ```
 
@@ -82,12 +90,31 @@ conda activate fastsurfer_gpu
 
 You should also make sure that all network checkpoint files are downloaded at install time:
 ```
-python3 FastSurferCNN/download_checkpoints.py --all
+python3 ./FastSurferCNN/download_checkpoints.py --all
 ```
 
 Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [README](README.md). 
 
-To run the full pipeline, install also FreeSurfer v7.2 according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
+To run the full pipeline, install also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
+
+### AMD GPUs (experimental)
+
+We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using ROCm. For this to work you need to make sure you are using a supported (or semi-supported) GPU and the correct kernel version. AMD kernel modules need to be installed on the host system according to ROCm installation instructions and additional groups need to be setup and user added. 
+See https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction_to_AMD_ROCm_Installation_Guide_for_Linux.html 
+Then you can build a Docker with ROCm support and run it.
+
+```
+docker build --rm=true -t fastsurfer:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+docker run --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video 
+                      -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurfer_analysis:/output \
+                      -v /home/user/my_fs_license_dir:/fs_license \
+                      --rm --user 123X fastsurfer:amd \
+                      --fs_license /fs_license/license.txt \
+                      --t1 /data/subject2/orig.mgz \
+                      --sid subject2 --sd /output \
+                      --seg_only
+
 
 ## MacOS 
 
@@ -98,9 +125,9 @@ You can also run on older Intel CPUs but it will be 2-4 times slower.
 
 ### Native
 
-On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native install as it runs much faster than Docker in our tests. On Intel chips you can also use Docker (see below).
+On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native install as it runs much faster than Docker in our tests. It is also the only way to make use of the built-in GPU. On Intel chips you can use either native install or Docker (see below).
 
-We expect you to already have git and a recent bash (version > 4.0) installed, e.g. via the packet manager brew.
+We expect you to already have git and a recent bash (version > 4.0 required!) installed, e.g. via the packet manager brew.
 This installs brew and then bash:
 
 ```
@@ -109,18 +136,18 @@ brew install bash
 ```
 
 Make sure you use this bash and not the older one provided with MacOS!
-Clone FastSurfer:dev, create a python environment, activate it, upgrade pip and install the requirements:
+Clone FastSurfer, create a python environment, activate it, upgrade pip and install the requirements. Here we use pip, but you should also be able to use conda as described above: 
 
 ```
-git clone -b dev https://github.com/Deep-MI/FastSurfer.git
+git clone https://github.com/Deep-MI/FastSurfer.git
 python3 -m venv $HOME/python-envs/fastsurfer 
 source $HOME/python-envs/fastsurfer/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.mac.txt
 ```
 
-If the last step fails, you may need to edit requirements.mac.txt and adjust version number to what is available. On newer
-M1 Macs, we also had issues with the h5py pacakge, which could be solved by using brew for help:
+If the last step fails, you may need to edit ```requirements.mac.txt``` and adjust version number to what is available. On newer
+M1 Macs, we also had issues with the h5py pacakge, which could be solved by using brew for help (not sure this is needed any longer):
 
 ```
 brew install hdf5
@@ -143,9 +170,9 @@ export PYTORCH_ENABLE_MPS_FALLBACK=1
 ```
 
 This will be at least twice as fast as CPU. The fallback environment variable is necessary as one function is not yet implemented for 
-the GPU and will fall back to CPU. 
+the GPU and will fall back to CPU. Note: you may need to prepend the command with ```bash ./run_fastsurfer.sh ...``` and ensure that the installed bash is used instead of the system one. 
 
-To run the full pipeline, install also FreeSurfer v7.2 according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
+To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
 
 ### Docker (currently only Intel)
 
