@@ -114,7 +114,7 @@ docker run --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined
                       --t1 /data/subject2/orig.mgz \
                       --sid subject2 --sd /output \
                       --seg_only
-
+```
 
 ## MacOS 
 
