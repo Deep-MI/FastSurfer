@@ -44,7 +44,7 @@ def options_parse():
     return options
 
 
-def check_volume(seg, voxvol, thres=0.6):
+def check_volume(seg, voxvol, thres=0.77):
     print("Checking total volume ...")
     mask = (seg > 0)
     total_vol = np.sum(mask) * voxvol / 1000000
