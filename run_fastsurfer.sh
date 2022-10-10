@@ -245,17 +245,17 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --config_ax)
-    config_cor="$2"
-    shift # past argument
-    shift # past value
-    ;;
     --config_sag)
     config_sag="$2"
     shift # past argument
     shift # past value
     ;;
     --config_ax)
+    config_ax="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --config_cor)
     config_cor="$2"
     shift # past argument
     shift # past value
