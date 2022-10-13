@@ -49,7 +49,7 @@ system for the cortical surface. Human Brain Mapping 8:272-284, 1999
 
 
 Dependencies:
-    Python 3.5
+    Python 3.8
 
     Scipy 0.10 or later to solve the generalized eigenvalue problem.
     http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html
