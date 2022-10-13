@@ -543,7 +543,7 @@ pushd $mdir
 
 # nu processing is changed here compared to recon-all: we use the brainmask from the
 # segmentation to improve the nu correction (and speedup)
-# orig_nu N3 in FS6 took 44 sec, FS 7.2 uses --ants-n4 (takes 3 min and does not accept
+# orig_nu N3 in FS6 took 44 sec, FS 7.3.2 uses --ants-n4 (takes 3 min and does not accept
 # the mask due to a bug in AntsN4BiasFieldCorrectionFs wrapper).
 # This re-implementation uses N4 from simpleITK with our brainmask, we also directly 
 # scale WM to 110 using a ball at the center of the mask with radius 50 (similar to FS,

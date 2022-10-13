@@ -8,7 +8,7 @@ such as the one provided by the FastSurferCNN deep learning architecture.
 
 # Usage
 The *recon_surf* directory contains all the source code and binaries (mris_make_surfaces from the FreeSurfer dev version)
-to run the analysis. In addition, a working distribution of __FreeSurfer__ (v6.0 or dev) is needed.
+to run the analysis. In addition, a working distribution of __FreeSurfer__ (v7.3.2 or dev) is needed.
 
 The main script is called __recon-surf.sh__ which accepts certain arguments via the command line.
 List them by running the following command:
@@ -41,7 +41,7 @@ run the following command from the console (do not forget to source FreeSurfer!)
 
 ```bash
 # Source FreeSurfer
-export FREESURFER_HOME=/path/to/freesurfer/fs60
+export FREESURFER_HOME=/path/to/freesurfer/fs732
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
@@ -73,7 +73,7 @@ And invoke the following command (make sure you have enough ressources to run th
 
 ```bash
 # Source FreeSurfer
-export FREESURFER_HOME=/path/to/freesurfer/fs60
+export FREESURFER_HOME=/path/to/freesurfer/fs732
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
