@@ -59,12 +59,12 @@ docker run -v /home/user/my_mri_data:/data \
            --rm --user 123X fastsurfer:cpu \
            --fs_license /fs_license/license.txt \
            --t1 /data/subject2/orig.mgz \
-           --no_cuda \
+           --device cpu \
            --sid subject2 --sd /output \
            --parallel
 ```
 
-As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn of GPU usage inside FastSurferCNN.
+As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --device cpu flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
 
 ### Example 3: Build GPU FastSurferCNN container (segmentation only)
 
@@ -114,10 +114,10 @@ docker run -v /home/user/my_mri_data:/data \
            --o_dir /output \
            --out_name mri/aparc.DKTatlas+aseg.deep.mgz \
            --log deep_surfer.log \
-           --no_cuda
+           --device cpu
 ```
 
-Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --no_cuda flag is passed to explicitly turn off GPU usage inside FastSurferCNN.
+Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --device cpu flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
 
 ### Example 5: Build CPU FastSurfer recon-surf container (surface pipeline only)
 
