@@ -59,7 +59,7 @@ Dependencies:
     Matplotlib
     h5py
     scipy
-    Python 3.5
+    Python 3.8
     Nibabel (to read and write neuroimaging data, http://nipy.org/nibabel/)
 
 

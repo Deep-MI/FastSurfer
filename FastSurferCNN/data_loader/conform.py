@@ -29,7 +29,7 @@ conform.py  -i <input> -o <output> <options>
 
 
 Dependencies:
-    Python 3.5
+    Python 3.8
 
     Numpy
     http://www.numpy.org
