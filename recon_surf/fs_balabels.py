@@ -39,7 +39,7 @@ Dependencies:
     Python 3.8
     numpy, nibabel, sklearn
     
-    Also FreeSurfer v7.2 is needed
+    Also FreeSurfer v7.3.2 is needed
     
 Description:
 This script replaces recon-all --balabels with mostly our own python based mapping 
@@ -53,7 +53,7 @@ hemisphere it will:
 5. compute surface stats files for the BA_exvivo labels (currently still using
    FreeSurfer's mris_anatomical_stats via command line execution)
 Note, this script needs to be updated if FreeSurfer introduces changes into the -balabel 
-block of recon-all. Currently this is based on FreeSurfer 7.2.
+block of recon-all. Currently this is based on FreeSurfer 7.3.2.
 
 Original Author: Martin Reuter
 Date: Aug-31-2022
