@@ -10,20 +10,25 @@ The network was trained with conformed images (UCHAR, 256x256x256, 1 mm voxels a
 The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __eval.py__ within which certain options can be selected and set via the command line:
 
 #### General
-* --i_dir: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
+* --in_dir: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
 * --csv_file: Path to csv-file listing input volume directories
-* --in_name: name of the MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
+* --t1: name of the MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
 * --conformed_name: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and the result is saved under the given name, __default: orig.mgz__)
 * --t: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*...)
-* --o_dir: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
-* --out_name: name of the prediction; the extension determines the output file format, which can be one of: mgz, nii, or nii.gz (__default: aparc.DKTatlas+aseg.deep.mgz__)
-* --log: name of log-file (information about processing is stored here; __default: deep-seg.log__). Saved in the same directory as the predictions.
-* --order: order of interpolation (0=nearest,__1=linear(default)__, 2=quadratic, 3=cubic) for conformation (if not already done).
+* --sd: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
+* --seg_log: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved in the same directory as the predictions.
+* --strip: strip suffix from path definition of input file to yield correct subject name. (Optional, if full path is defined for --t1)
+* --lut: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv
+* --gn: How often to sample from gaussian and run inference on same sample with added noise on scale factor
+* --seg: Name of intermediate DL-based segmentation file (similar to aparc+aseg).
+* --cfg_cor: Path to the coronal config file
+* --cfg_sag: Path to the axial config file
+* --cfg_ax: Path to the sagittal config file
 
 #### Checkpoints
-* --network_sagittal_path: path to sagittal network checkpoint
-* --network_coronal_path: path to coronal network checkpoint
-* --network_axial_path: path to axial network checkpoint
+* --ckpt_sag: path to sagittal network checkpoint
+* --ckpt_cor: path to coronal network checkpoint
+* --ckpt_ax: path to axial network checkpoint
 
 #### Optional commands
 * --clean: clean up segmentation after running it (optional)
@@ -33,19 +38,21 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
                     Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
 * --device <str>: Device for processing ("cpu","cuda") (optional, default: cuda)
+* --hires: Switch on hires processing (no conforming to 1mm, but to smallest voxel size).
+* --batch_size: Batch size for inference. Default=8
 
 
 ### Example Command Evaluation Single Subject
 To run the network on MRI-volumes of subject1 in ./data (specified by --i_dir flag; e.g. ./data/subject1/orig.mgz), change into the *FastSurferCNN* directory and run the following commands: 
 
 ```
-python3 eval.py --i_dir ../data \
---o_dir ../data \
+python3 eval.py --in_dir ../data \
+--sd ../data \
 --t subject1 \
---log temp_Competitive.log \
---network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
+--sg_log temp_Competitive.log \
+--ckpt_sag ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+--ckpt_cor ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+--ckpt_ax ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
 ```
 
 The output will be saved in ./data/subject1/aparc.DKTatlas+aseg.deep.mgz.
@@ -54,12 +61,12 @@ The output will be saved in ./data/subject1/aparc.DKTatlas+aseg.deep.mgz.
 To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
 
 ```
-python3 eval.py --i_dir ../data \
---o_dir ../data \
---log temp_Competitive.log \
---network_sagittal_path ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---network_coronal_path ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---network_axial_path ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
+python3 eval.py --in_dir ../data \
+--sd ../data \
+--seg_log temp_Competitive.log \
+--ckpt_sag ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+--ckpt_cor ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
+--ckpt_ax ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
 ```
 
 The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
@@ -70,8 +77,8 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __generate_hdf5.py__ within which certain options can be selected and set via the command line:
 
 #### General
-* --hdf5_name: Path and name of the to-be-created hdf5-file
-* --data_dir: Directory with images to load
+* --hdf5_name: Path and name of the to-be-created hdf5-file. Default: ../data/hdf5_set/Multires_coronal.hdf5
+* --data_dir: Directory with images to load. Default: /testsuite
 * --pattern: Pattern to match only certain files in the directory
 * --csv_file: Csv-file listing subjects to load (can be used instead of data_dir; one complete path per line (up to the subject directory))
               Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
@@ -84,7 +91,7 @@ A list of python libraries used within the code can be found in __requirements.t
               /dataset/D2/subject20
 * --lut: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv
               
-The actual filename and segmentation ground truth name is specfied via --image_name and --gt_name (e.g. the actual file could be sth. like /dataset/D1/subject1/mri_volume.mgz and /dataset/D1/subject1/segmentation.mgz)
+The actual filename and segmentation ground truth name is specified via --image_name and --gt_name (e.g. the actual file could be sth. like /dataset/D1/subject1/mri_volume.mgz and /dataset/D1/subject1/segmentation.mgz)
 
 #### Image Names
 * --image_name: Default name of original images. FreeSurfer orig.mgz is default (mri/orig.mgz)
@@ -95,7 +102,7 @@ The actual filename and segmentation ground truth name is specfied via --image_n
 * --plane: Which anatomical plane to use for slicing (axial, coronal or sagittal)
 * --height: Slice height (256 for conformed volumes)
 * --width: Slice width (256 for conformed volumes)
-* --thickness: Number of pre- and suceeding slices (we use 3 --> total of 7 slices is fed to the network)
+* --thickness: Number of pre- and succeeding slices (we use 3 --> total of 7 slices is fed to the network; default: 3)
 * --combi: Suffixes of labels names to combine. Default: Left- and Right-
 * --sag_mask: Suffixes of labels names to mask for final sagittal labels. Default: Left- and ctx-rh
 * --max_w: Overall max weight for any voxel in weight mask. Default: 5
@@ -104,6 +111,7 @@ The actual filename and segmentation ground truth name is specfied via --image_n
 * --gm: Turn on to add cortex mask for hires-processing. Default: False
 * --processing: Use aseg, aparc or no specific mapping processing. Default: aparc
 * --sizes: Resolutions of images in the dataset. Default: 256
+* --edge_w: Weight for edges in weight mask. Default=5
 
 #### Example Command Axial (Single Resolution)
 ```
