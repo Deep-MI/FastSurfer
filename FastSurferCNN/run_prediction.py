@@ -28,6 +28,7 @@ from inference import Inference
 from utils.load_config import load_config
 from utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
 from utils import logging as logging
+from quick_qc import check_volume
 
 import data_loader.data_utils as du
 import data_loader.conform as conf
@@ -380,6 +381,8 @@ if __name__ == "__main__":
         s_dirs = [os.path.dirname(args.orig_name)]
         LOGGER.info("Analyzing single subject {}".format(args.orig_name))
 
+    qc_failed_subjects = []
+
     for subject in s_dirs:
         # Set subject and load orig
         eval.set_subject(subject)
@@ -392,3 +395,20 @@ if __name__ == "__main__":
         # Run model
         pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
         eval.save_img(pred_name, pred_data, orig_img, seg=True)
+
+        # Run QC check (subject list may later be written out)
+        LOGGER.info("Running volume-based QC check on segmentation...")
+        seg_voxvol = np.product(orig_img.header["delta"])
+        if not check_volume(pred_data, seg_voxvol):
+            LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
+            qc_failed_subjects.append(subject)
+
+    # Single case: exit with error if qc fails. Batch case: report ratio of failures.
+    if len(s_dirs) == 1:
+        if qc_failed_subjects:
+            LOGGER.error("Single subject failed the volume-based QC check.")
+            sys.exit(1)
+    else:
+        LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(len(qc_failed_subjects), len(s_dirs)))
+
+    sys.exit(0)
