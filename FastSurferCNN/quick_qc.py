@@ -51,8 +51,9 @@ def check_volume(seg, voxvol, thres=0.77):
     print("Voxel size in mm3: {}".format(voxvol))
     print("Total segmentation volume in liter: {}".format(np.round(total_vol,2)))
     if (total_vol < thres):
-    	sys.exit('ERROR: Total segmentation volume is too small. Segmentation may be corrupted.')
-    return
+        return False
+
+    return True
 
 
 if __name__ == "__main__":
@@ -64,6 +65,7 @@ if __name__ == "__main__":
     inseg_header = inseg.header
     inseg_voxvol = np.product(inseg_header["delta"])
 
-    check_volume(inseg_data, inseg_voxvol)
-    
-    sys.exit(0)
+    if not check_volume(inseg_data, inseg_voxvol):
+    	sys.exit('ERROR: Total segmentation volume is too small. Segmentation may be corrupted.')
+    else:
+        sys.exit(0)
