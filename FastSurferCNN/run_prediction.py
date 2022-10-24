@@ -274,7 +274,7 @@ if __name__ == "__main__":
                              "(e.g. ses-x/anat/ for BIDS or mri/ for FreeSurfer input). Default: do not strip anything.")
     parser.add_argument("--in_dir", type=str, default=None,
                         help="Directory in which input volume(s) are located. "
-                             "Optional, if full path is defined for --orig_name.")
+                             "Optional, if full path is defined for --t1.")
     parser.add_argument('--t', '--tag', dest='search_tag', default="*",
                         help='Search tag to process only certain subjects. If a single image should be analyzed, '
                              'set the tag with its id. Default: processes all.')
@@ -304,7 +304,7 @@ if __name__ == "__main__":
                         help="Directory in which evaluation results should be written. "
                              "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
     parser.add_argument('--hires', action="store_true", default=False, dest='hires',
-                        help="Switch on hires processing (no conforming to 1mm, but to smallest voxel size.")
+                        help="Switch on hires processing (no conforming to 1mm, but to smallest voxel size).")
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
