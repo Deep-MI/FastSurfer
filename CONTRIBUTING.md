@@ -26,6 +26,7 @@ We use GitHub issues to track bugs and errors. If you run into an issue with the
 - Explain the behavior you would expect and the actual behavior.
 - Please provide as much context as possible and describe the *reproduction steps* that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
 - Provide the information you collected in the previous section.
+- Also provide the $subjid/scripts/recon-surf.log (if existent) and in the case of a parallel run, also the $subjid/scripts/[l/r]h.processing.cmdf.log (if existent).
 
 Once it's filed:
 
