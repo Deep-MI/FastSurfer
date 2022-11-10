@@ -20,7 +20,7 @@ import numpy as np
 import nibabel as nib
 
 HELPTEXT = """
-Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropic voxels
+Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
 USAGE:
 conform.py  -i <input> -o <output> <options>
 Dependencies:
@@ -235,7 +235,7 @@ def conform(img, order=1, conform_min=False):
     """
     Python version of mri_convert -c, which turns image intensity values into UCHAR,
     reslices images to standard position, fills up slices to standard 256x256x256
-    format and enforces 1 mm isotropic voxel sizes.
+    format and enforces 1mm or minimum isotropic voxel sizes.
     Difference to mri_convert -c is that we first interpolate (float image), and then rescale to uchar. mri_convert is
     doing it the other way. However, we compute the scale factor from the input to be more similar again
     :param nibabel.MGHImage img: loaded source image

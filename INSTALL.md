@@ -33,7 +33,7 @@ Our [README](README.md) explains how to run FastSurfer (for the full pipeline yo
 This is very similar to Singularity. Assuming you have Docker installed (by a system admin) you just need to pull one of our pre-build Docker images from dockerhub:
 
 ```
-docker pull deepmi/fastsurfer:gpu-v1.1.1
+docker pull deepmi/fastsurfer:gpu-v2.0.0
 ```
 
 Our [README](README.md) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file !) and you can find details on how to build your own Images here: [Docker](docker/README.md) and [Singularity](singularity/README.md). 
@@ -104,16 +104,16 @@ See https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction
 Then you can build a Docker with ROCm support and run it.
 
 ```
-docker build --rm=true -t fastsurfer:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+docker build --rm=true -t deepmi/fastsurfer:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/kfd \
            --device=/dev/dri --group-add video --ipc=host --shm-size 8G \
                       -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
-                      --rm --user 123X fastsurfer:amd \
+                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:amd \
                       --fs_license /fs_license/license.txt \
-                      --t1 /data/subject2/orig.mgz \
-                      --sid subject2 --sd /output \
+                      --t1 /data/subjectX/orig.mgz \
+                      --sid subjectX --sd /output \
                       --seg_only
 ```
 Note, that this is using an older Python version and packages, so results can differ from our validation results. So please do visual QC.

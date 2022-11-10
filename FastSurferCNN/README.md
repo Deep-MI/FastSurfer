@@ -3,11 +3,11 @@
 This directory contains all information needed to run inference with the readily trained FastSurferCNN or train it from scratch. FastSurferCNN is capable of whole brain segmentation into 95 classes in under 1 minute, mimicking FreeSurfer's anatomical segmentation and cortical parcellation (DKTatlas). The network architecture incorporates local and global competition via competitive dense blocks and competitive skip pathways, as well as multi-slice information aggregation that specifically tailor network performance towards accurate segmentation of both cortical and sub-cortical structures. 
 ![](/images/FastSurfer_v5.png)
 
-The network was trained with conformed images (UCHAR, 256x256x256, 1 mm voxels and standard slice orientation). These specifications are checked in the eval.py script and the image is automatically conformed if it does not comply.
+The network was trained with conformed images (UCHAR, 256x256x256, 1-0.7 mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply.
 
 # 1. Inference
 
-The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __eval.py__ within which certain options can be selected and set via the command line:
+The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __run_prediction.py__ within which certain options can be selected and set via the command line:
 
 #### General
 * --in_dir: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
@@ -43,33 +43,35 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 
 
 ### Example Command Evaluation Single Subject
-To run the network on MRI-volumes of subject1 in ./data (specified by --i_dir flag; e.g. ./data/subject1/orig.mgz), change into the *FastSurferCNN* directory and run the following commands: 
+To run the network on MRI-volumes of subjectX in ./data (specified by --t1 flag; e.g. ./data/subjectX/orig.mgz), change into the *FastSurferCNN* directory and run the following commands: 
 
 ```
-python3 eval.py --in_dir ../data \
+python3 run_prediction.py --t1 ../data/subjectX/orig.mgz \
 --sd ../data \
---t subject1 \
---sg_log temp_Competitive.log \
---ckpt_sag ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---ckpt_cor ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---ckpt_ax ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
+--t subjectX \
+--seg_log ../data/temp_Competitive.log \
+--ckpt_sag ../checkpoints/aparc_vinn_sagittal_v2.0.0.pkl \
+--ckpt_cor ../checkpoints/aparc_vinn_coronal_v2.0.0.pkl \
+--ckpt_ax ../checkpoints/aparc_vinn_axial_v2.0.0.pkl 
 ```
 
-The output will be saved in ./data/subject1/aparc.DKTatlas+aseg.deep.mgz.
+The output will be saved in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
+Here the logfile "temp_Competitive.log" will include the logfiles of all subjects. If left out, the logs will be written to stdout
 
 ### Example Command Evaluation whole directory
 To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
 
 ```
-python3 eval.py --in_dir ../data \
+python3 run_prediction.py --in_dir ../data \
 --sd ../data \
---seg_log temp_Competitive.log \
---ckpt_sag ../checkpoints/Sagittal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---ckpt_cor ../checkpoints/Coronal_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl \
---ckpt_ax ../checkpoints/Axial_Weights_FastSurferCNN/ckpts/Epoch_30_training_state.pkl 
+--seg_log ../data/temp_Competitive.log \
+--ckpt_sag ../checkpoints/aparc_vinn_sagittal_v2.0.0.pkl \
+--ckpt_cor ../checkpoints/aparc_vinn_coronal_v2.0.0.pkl \
+--ckpt_ax ../checkpoints/aparc_vinn_axial_v2.0.0.pkl 
 ```
 
-The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
+The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz and the log in ./data/temp_Competitive.log
+
 
 # 2. Hdf5-Trainingset Generation
 
@@ -78,7 +80,7 @@ A list of python libraries used within the code can be found in __requirements.t
 
 #### General
 * --hdf5_name: Path and name of the to-be-created hdf5-file. Default: ../data/hdf5_set/Multires_coronal.hdf5
-* --data_dir: Directory with images to load. Default: /testsuite
+* --data_dir: Directory with images to load. Default: /data
 * --pattern: Pattern to match only certain files in the directory
 * --csv_file: Csv-file listing subjects to load (can be used instead of data_dir; one complete path per line (up to the subject directory))
               Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
@@ -100,8 +102,6 @@ The actual filename and segmentation ground truth name is specified via --image_
 
 #### Image specific options
 * --plane: Which anatomical plane to use for slicing (axial, coronal or sagittal)
-* --height: Slice height (256 for conformed volumes)
-* --width: Slice width (256 for conformed volumes)
 * --thickness: Number of pre- and succeeding slices (we use 3 --> total of 7 slices is fed to the network; default: 3)
 * --combi: Suffixes of labels names to combine. Default: Left- and Right-
 * --sag_mask: Suffixes of labels names to mask for final sagittal labels. Default: Left- and ctx-rh
@@ -215,7 +215,7 @@ The --cfg file configures the model to be trained. See config/FastSurferVINN.yam
 The configuration options include:
 
 #### Model options
-* MODEL_NAMEL: Name of model [FastSurferCNN, FastSurferVINN]. Default: FastSurferVINN
+* MODEL_NAME: Name of model [FastSurferCNN, FastSurferVINN]. Default: FastSurferVINN
 * NUM_CLASSES: Number of classes to predict including background. Axial and coronal: 79 (default), Sagittal: 51.
 * NUM_FILTERS: Filter dimensions for Networks (all layers same). Default: 71
 * NUM_CHANNELS: Number of input channels (slice thickness). Default: 7
@@ -245,8 +245,8 @@ The configuration options include:
 
 * BATCH_SIZE: Input batch size for training. Default: 16
 * NUM_EPOCHS: Number of epochs to train. Default: 30
-* SIZES: Available image sizes for the multi-scale dataloader. Default: [128, 183, 257, 256, 311, 320]
-* AUG: Augmentations. Default: ["Flip", "Elastic", "Scaling", "Rotation", "Translation", "RAnisotropy", "BiasField", "RGamma"]
+* SIZES: Available image sizes for the multi-scale dataloader. Default: [256, 311 and 320]
+* AUG: Augmentations. Default: ["Scaling", "Translation"]
 
 #### Misc. Options
 

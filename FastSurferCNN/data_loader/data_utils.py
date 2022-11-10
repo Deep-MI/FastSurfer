@@ -39,23 +39,24 @@ LOGGER = logging.getLogger(__name__)
 ##
 
 
-# Conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropic voxels
-def load_and_conform_image(img_filename, interpol=1, logger=LOGGER):
+# Conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
+def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min = False):
     """
-    Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm isotropic voxels size
+    Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size
     (if it does not already have this format)
     :param str img_filename: path and name of volume to read
     :param int interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
     :param logger logger: Logger to write output to (default = STDOUT)
+    :param: boolean: conform_min: conform image to minimal voxel size (for high-res) (Default = False)
     :return: nibabel.MGHImage header_info: header information of the conformed image
     :return: np.ndarray affine_info: affine information of the conformed image
     :return: nibabel.MGHImage orig: conformed image
     """
     orig = nib.load(img_filename)
 
-    if not is_conform(orig):
+    if not is_conform(orig, conform_min=conform_min):
 
-        logger.info('Conforming image to UCHAR, RAS orientation, and 1mm isotropic voxels')
+        logger.info('Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels')
 
         if len(orig.shape) > 3 and orig.shape[3] != 1:
             sys.exit('ERROR: Multiple input frames (' + format(orig.shape[3]) + ') not supported!')
@@ -66,7 +67,7 @@ def load_and_conform_image(img_filename, interpol=1, logger=LOGGER):
                 sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
         # conform
-        orig = conform(orig, interpol)
+        orig = conform(orig, interpol, conform_min=conform_min)
 
     # Collect header and affine information
     header_info = orig.header
