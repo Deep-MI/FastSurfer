@@ -27,8 +27,8 @@ singularity exec --nv -B /home/user/my_mri_data:/data \
                        /home/user/fastsurfer-gpu.sif \
                        /fastsurfer/run_fastsurfer.sh \
                       --fs_license /fs/license.txt \
-                      --t1 /data/subject2/orig.mgz \
-                      --sid subject2 --sd /output \
+                      --t1 /data/subjectX/orig.mgz \
+                      --sid subjectX --sd /output \
                       --parallel
 ```
 
@@ -36,7 +36,7 @@ singularity exec --nv -B /home/user/my_mri_data:/data \
 * The -B commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs). 
 * The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 * Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -B arguments. 
-* A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+* A directory with the name as specified in --sid (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 * You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
 
 

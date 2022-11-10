@@ -189,7 +189,7 @@ if __name__ == '__main__':
                         help='path and name of hdf5-data_loader (default: ../data/hdf5_set/Multires_coronal.hdf5)')
     parser.add_argument('--plane', type=str, default="axial", choices=["axial", "coronal", "sagittal"],
                         help="Which plane to put into file (axial (default), coronal or sagittal)")
-    parser.add_argument('--data_dir', type=str, default="/testsuite", help="Directory with images to load")
+    parser.add_argument('--data_dir', type=str, default="/data", help="Directory with images to load")
     parser.add_argument('--thickness', type=int, default=3, help="Number of pre- and succeeding slices (default: 3)")
     parser.add_argument('--csv_file', type=str, default=None, help="Csv-file listing subjects to include in file")
     parser.add_argument('--pattern', type=str, help="Pattern to match files in directory.")
@@ -223,7 +223,7 @@ if __name__ == '__main__':
                         help="Turn on to add cortex mask for hires-processing.")
     parser.add_argument('--processing', type=str, default="aparc", choices=["aparc", "aseg", "none"],
                         help="Use aseg, aparc or no specific mapping processing")
-    parser.add_argument('--sizes', nargs='+', type=int, default=256)
+    parser.add_argument('--sizes', nargs='+', type=int, default=256, help="Resolutions of images in the dataset. Default: 256")
 
 
     args = parser.parse_args()

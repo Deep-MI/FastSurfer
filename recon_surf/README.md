@@ -34,9 +34,9 @@ List them by running the following command:
 ### Other
 * --py: which python version to use. Default: python3.8
 
-### Example 1: recon-surf on a single subject (subject1)
+### Example 1: recon-surf on a single subject (subjectX)
 
-Given you want to analyze data for subject1 which is stored on your computer under /home/user/my_mri_data/subject1/orig.mgz, 
+Given you want to analyze data for subjectX which is stored on your computer under /home/user/my_mri_data/subjectX/orig.mgz, 
 run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
@@ -50,14 +50,14 @@ segdir=/home/user/my_segmentation_data
 targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_DIR
 
 # Run recon-surf
-./recon-surf.sh --sid subject1 \
+./recon-surf.sh --sid subjectX \
                 --sd $targetdir \
-                --t1 $datadir/subject1/orig.mgz 
+                --t1 $datadir/subjectX/orig.mgz 
                 --py python3.8
 
 ```
 
-A subfolder within the target directory named after the subject (here: subject1) will automatically be created and populated
+A subfolder within the target directory named after the subject (here: subjectX) will automatically be created and populated
 with the generated image, surface, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
 
 ### Example 2: recon-surf on multiple subjects (using nohup)
