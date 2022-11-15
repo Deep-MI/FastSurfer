@@ -301,6 +301,10 @@ if __name__ == "__main__":
     parser.add_argument('--seg_log', type=str, dest='log_name', default="",
                         help="Absolute path to file in which run logs will be saved. If not set, logs will "
                              "not be saved.")
+    parser.add_argument('--qc_log', type=str, dest='qc_log', default="",
+                        help="Absolute path to file in which a list of subjects that failed QC check "
+                             "(when processing multiple subjects) will be saved. "
+                             "If not set, the file will not be saved.")
     parser.add_argument("--sd", type=str, default=None, dest="out_dir",
                         help="Directory in which evaluation results should be written. "
                              "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
@@ -355,6 +359,14 @@ if __name__ == "__main__":
         sys.exit('----------------------------\nERROR: Please specify data output directory or absolute path to output volume'
                  '(can be same as input directory)\n')
 
+    qc_file_handle = None
+    if args.qc_log != "":
+        try:
+            qc_file_handle = open(args.qc_log, 'w')
+        except NotADirectoryError:
+            LOGGER.warning("The directory in the provided QC log file path does not exist!")
+            LOGGER.warning("The QC log file will not be saved.")
+
     # Set up logging
     from utils.logging import setup_logging
     setup_logging(args.log_name)
@@ -388,6 +400,11 @@ if __name__ == "__main__":
         eval.set_subject(subject)
         orig_fn = args.orig_name if os.path.isfile(args.orig_name) else os.path.join(subject, args.orig_name)
         orig_img, data_array = eval.conform_and_save_orig(orig_fn)
+        # try:
+        #     orig_img, data_array = eval.conform_and_save_orig(orig_fn)
+        # except FileNotFoundError:
+        #     LOGGER.warning("Subject image file was not found! Skipping...")
+        #     continue
 
         pred_name = args.pred_name if os.path.isabs(args.pred_name) else \
             os.path.join(eval.get_out_dir(), eval.get_subject_name(), args.pred_name)
@@ -401,7 +418,13 @@ if __name__ == "__main__":
         seg_voxvol = np.product(orig_img.header["delta"])
         if not check_volume(pred_data, seg_voxvol):
             LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
+            if qc_file_handle is not None:
+                qc_file_handle.write(subject.split('/')[-1]+"\n")
+                qc_file_handle.flush()
             qc_failed_subjects.append(subject)
+
+    if qc_file_handle is not None:
+        qc_file_handle.close()
 
     # Single case: exit with error if qc fails. Batch case: report ratio of failures.
     if len(s_dirs) == 1:
