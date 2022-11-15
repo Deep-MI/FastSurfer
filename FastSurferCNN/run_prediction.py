@@ -400,11 +400,6 @@ if __name__ == "__main__":
         eval.set_subject(subject)
         orig_fn = args.orig_name if os.path.isfile(args.orig_name) else os.path.join(subject, args.orig_name)
         orig_img, data_array = eval.conform_and_save_orig(orig_fn)
-        # try:
-        #     orig_img, data_array = eval.conform_and_save_orig(orig_fn)
-        # except FileNotFoundError:
-        #     LOGGER.warning("Subject image file was not found! Skipping...")
-        #     continue
 
         pred_name = args.pred_name if os.path.isabs(args.pred_name) else \
             os.path.join(eval.get_out_dir(), eval.get_subject_name(), args.pred_name)
