@@ -29,30 +29,24 @@ reconsurfdir="$FASTSURFER_HOME/recon_surf"
 # Regular flags defaults
 subject=""
 t1=""
-seg=""
+main_segfile=""
+aparc_aseg_segfile=""
 conformed_name=""
 seg_log=""
-weights_sag="$FASTSURFER_HOME/checkpoints/aparc_vinn_sagittal_v2.0.0.pkl"
-weights_ax="$FASTSURFER_HOME/checkpoints/aparc_vinn_axial_v2.0.0.pkl"
-weights_cor="$FASTSURFER_HOME/checkpoints/aparc_vinn_coronal_v2.0.0.pkl"
-config_cor="$fastsurfercnndir/config/FastSurferVINN_coronal.yaml"
-config_ax="$fastsurfercnndir/config/FastSurferVINN_axial.yaml"
-config_sag="$fastsurfercnndir/config/FastSurferVINN_sagittal.yaml"
-clean_seg=""
-viewagg="check"
+viewagg="auto"
 device="auto"
-batch_size="8"
-order="1"
-seg_only="0"
+batch_size="1"
+run_seg_pipeline="1"
 seg_cc=""
 vol_segstats=""
-surf_only="0"
+run_surf_pipeline="1"
 fstess=""
 fsqsphere=""
 fsaparc=""
 fssurfreg=""
-hires=""
+vox_size="auto"
 doParallel=""
+run_aparc_module="1"
 threads="1"
 python="python3.8"
 
@@ -77,57 +71,59 @@ FLAGS:
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
                             installed already
-  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR 
+  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected)
-  --seg <seg_input>       Name of intermediate DL-based segmentation file
-                            (similar to aparc+aseg). When using FastSurfer, this
-                            segmentation is already conformed, since inference
-                            is always based on a conformed image. Requires an
-                            ABSOLUTE Path! Default location:
-			    \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --vox_size 1|auto       Force processing at a specific voxel size. Only "auto"
+                            and "1" are supported values. If "1" is specified,
+                            the T1w image will be conformed to 1mm voxel size
+                            and processed, if "auto" is specified (default),
+                            the T1w image will be conformed isometric voxels
+                            of the smallest voxel edge in the image for highres
+                            processing.
+  -h --help               Print Help
+
+  PIPELINES:
+  By default, both the segmentation and the surface pipelines are run.
+
+  SEGMENTATION PIPELINE:
+  --seg_only              Run only FastSurferCNN (generate segmentation, do not
+                            run surface pipeline)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferCNN)
+                            Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
                             image will be saved. Default location:
                            \$SUBJECTS_DIR/\$sid/mri/orig.mgz
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferCNN)
-                            Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
-  --weights_sag <w_sag>   Pretrained weights of sagittal network. Default:
-                            \$FASTSURFER_HOME/checkpoints/
-                            Sagittal_Weights_FastSurferCNN/ckpts/
-                            Epoch_30_training_state.pkl
-  --weights_ax <w_axial>  Pretrained weights of axial network. Default:
-                           \$FASTSURFER_HOME/checkpoints/
-                            Axial_Weights_FastSurferCNN/ckpts/
-                            Epoch_30_training_state.pkl
-  --weights_cor <w_cor>   Pretrained weights of coronal network. Default:
-                           \$FASTSURFER_HOME/checkpoints/
-                            Coronal_Weights_FastSurferCNN/ckpts/
-                            Epoch_30_training_state.pkl
-  --clean_seg             Flag to clean up FastSurferCNN segmentation
-  --run_viewagg_on <str>  Define where the view aggregation should be run on.
-                            Can be "check", "gpu", "cpu". By default, the
-                            program checks if you have enough memory to run the
-                            view aggregation on the gpu. The total memory is
-                            considered for this decision. If this fails, or you
-                            actively overwrote the check with setting with "cpu"
-			    view agg is run on the cpu. Equivalently, if you
-                            pass "gpu", view agg will be run on the gpu (no
-                            memory check will be done.
-  --device                Set device on which inference should be run ("cpu" for 
-                            CPU, "cuda" for Nvidia GPU, or pass specific device,
-                            e.g. cuda:1), default check GPU and then CPU
-  --batch <batch_size>    Batch size for inference. Default: 8
-  --order <int>           Order of interpolation for mri_convert T1 before
-                            segmentation (0=nearest, 1=linear(default),
-                            2=quadratic, 3=cubic)
-  --seg_only              Run only FastSurferCNN (generate segmentation, do not
-                            run surface pipeline)
-  --seg_with_cc_only      Run FastSurferCNN (generate segmentation) and
-                            recon_surf until corpus callosum (CC) is added in
-                            (no surface models will be created in this case!)
+  --main_segfile <filename>
+                          Name of the segmentation file, which includes all labels
+                            (currently similar to aparc+aseg). When using
+                            FastSurfer, this segmentation is already conformed,
+                            since inference is always based on a conformed image.
+                            Requires an ABSOLUTE Path! Currently, this is the same
+                            as the aparc+aseg and just a symlink to the
+                            aparc_aseg_segfile.
+                            Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
+
+  APARC MODULE:
+  --no_aparc              Skip the aparc segmentation (aseg+aparc segmentation)
+  --aparc_aseg_segfile <filename>
+                          Name of the segmentation file, which includes the
+                            aparc+DKTatlas-aseg segmentations. If not provided,
+                            this intermediate DL-based segmentation will not be
+                            stored, but only the merged segmentation will be stored
+                            (see --main_segfile <filename>).
+                            Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+
+  SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
+  --aparc_aseg_segfile <filename>
+                          Name of the input aparc aseg segmentation file (see above).
+                            Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
                             statistics for DL-based segmentation (does not
                             require surfaces). Can be used in combination with
@@ -144,8 +140,23 @@ FLAGS:
                             cross-subject correspondence), Recommended!
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
-  --py <python_cmd>       Command for python, default defined in recon-surf.sh
-  -h --help               Print Help
+
+  Resource Options:
+  --device                Set device on which inference should be run ("cpu" for
+                            CPU, "cuda" for Nvidia GPU, or pass specific device,
+                            e.g. cuda:1), default check GPU and then CPU
+  --viewagg_device <str>  Define where the view aggregation should be run on.
+                            Can be "auto" or a device (see --device). By default, the
+                            program checks if you have enough memory to run the
+                            view aggregation on the gpu. The total memory is
+                            considered for this decision. If this fails, or you
+                            actively overwrote the check with setting with "cpu"
+                            view agg is run on the cpu. Equivalently, if you
+                            pass a different device, view agg will be run on that
+                            device (no memory check will be done).
+  --batch <batch_size>    Batch size for inference. Default: 1
+  --py <python_cmd>       Command for python, used in both pipelines.
+                            Default: python3.8
 
  Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
@@ -169,7 +180,6 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  Resolution-Independence into Deep Learning Segmentation Methods - A Solution
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
  http://dx.doi.org/10.1016/j.neuroimage.2022.118933
-
 
 EOF
 }
@@ -214,8 +224,16 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --seg)
-    seg="$2"
+    --seg | --main_segfile)
+    if [ "$1" == "--seg"]; then
+      echo "WARNING: --seg <filename> is deprecated, use --main_segfile <filename>."
+    fi
+    main_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --aparc_aseg_segfile)
+    aparc_aseg_segfile="$2"
     shift # past argument
     shift # past value
     ;;
@@ -229,49 +247,34 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --weights_sag)
-    weights_sag="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --weights_ax)
-    weights_ax="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --weights_cor)
-    weights_cor="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --config_sag)
-    config_sag="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --config_ax)
-    config_ax="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --config_cor)
-    config_cor="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --clean_seg)
-    clean_seg="--clean"
-    shift # past argument
-    ;;
-    --run_viewagg_on)
-    viewagg="$2"
+    --viewagg_device | --run_viewagg_on)
+    if [ "$1" == "--run_viewagg_on" ]
+    then
+      echo "WARNING: --run_viewagg_on (cpu|gpu|check) is deprecated, use --viewagg_device <device|auto>."
+    fi
+    case "$2" in
+      check)
+      echo "WARNING: the option \"check\" is deprecated for --viewagg_device <device>, use \"auto\"."
+      viewagg="auto"
+      ;;
+      gpu)
+      viewagg="cuda"
+      ;;
+      *)
+      viewagg="$2"
+      ;;
+    esac
     shift # past argument
     shift # past value
     ;;
     --no_cuda)
-    echo "WARNING: --no_cuda is deprecated, use --device cpu"
+    echo "WARNING: --no_cuda is deprecated, use --device cpu."
     device="cpu"
     shift # past argument
+    ;;
+    --no_aparc)
+    run_aparc_module="0"
+    shift  # past argument
     ;;
     --device)
     device=$2
@@ -283,21 +286,12 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --order)
-    order=$2
-    shift # past argument
-    shift # past value
-    ;;
     --seg_only)
-    seg_only="1"
-    shift # past argument
-    ;;
-    --seg_with_cc_only)
-    seg_cc="--seg_with_cc_only"
+    run_surf_pipeline="0"
     shift # past argument
     ;;
     --surf_only)
-    surf_only="1"
+    run_seg_pipeline="0"
     shift # past argument
     ;;
     --vol_segstats)
@@ -320,9 +314,10 @@ case $key in
     fssurfreg="--surfreg"
     shift # past argument
     ;;
-    --hires)
-    hires="--hires"
+    --vox_size)
+    vox_size="$2"
     shift # past argument
+    shift # past value
     ;;
     --parallel)
     doParallel="--parallel"
@@ -373,9 +368,14 @@ if [ -z "$subject" ]
     exit 1;
 fi
 
-if [ -z "$seg" ]
+if [ -z "$main_segfile" ]
   then
-    seg="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+    main_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz"
+fi
+
+if [ -z "$aparc_aseg_segfile" ]
+  then
+    aparc_aseg_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
 if [ -z "$conformed_name" ]
@@ -393,21 +393,38 @@ then
   export PYTHONUNBUFFERED=0
 fi
 
-if [ "${seg: -3}" != "${conformed_name: -3}" ]
+# make sure FastSurfer is in the PYTHONPATH
+if [ "$PYTHONPATH" == "" ]
+then
+  export PYTHONPATH="$FASTSURFER_HOME"
+else
+  export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
+fi
+
+if [ "${aparc_aseg_segfile: -3}" != "${main_segfile: -3}" ]
   then
-    echo "ERROR: Specified segmentation output and conformed image output do not have same file type."
-    echo "You passed --seg ${seg} and --conformed_name ${conformed_name}."
+    # This is because we currently only do a symlink
+    echo "ERROR: Specified segmentation outputs do not have same file type."
+    echo "You passed --aparc_aseg_segfile ${aparc_aseg_segfile} and --main_segfile ${main_segfile}."
     echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
     exit 1;
 fi
 
-if [ "$surf_only" == "1" ]
+if [ "${aparc_aseg_segfile: -3}" != "${conformed_name: -3}" ]
   then
-    if [ ! -f "$seg" ]
+    echo "ERROR: Specified segmentation output and conformed image output do not have same file type."
+    echo "You passed --aparc_aseg_segfile ${aparc_aseg_segfile} and --conformed_name ${conformed_name}."
+    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
+    exit 1;
+fi
+
+if [ "$run_surf_pipeline" == "1" ] && { [ "$run_aparc_module" != "1" ] || [ "$run_seg_pipeline" == "0" ]; }
+  then
+    if [ ! -z "$aparc_aseg_segfile" ]
     then
-        echo "ERROR: To run the surface pipeline only, whole brain segmentation must already exist."
-        echo "You passed --surf_only but the whole-brain segmentation ($seg) could not be found."
-        echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --seg"
+        echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
+        echo "You passed --surf_only or --no_aparc, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
+        echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --aparc_aseg_segfile"
         exit 1;
     fi
     if [ ! -f "$conformed_name" ]
@@ -420,52 +437,66 @@ if [ "$surf_only" == "1" ]
     fi
 fi
 
-if [ "$surf_only" == "1" ] && [ "$seg_only" == "1" ]
+
+if [ "$run_surf_pipeline" == "0" ] && [ "$run_seg_pipeline" == "0" ]
   then
     echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
     echo "To run the whole FastSurfer pipeline, omit both flags."
     exit 1;
 fi
 
-if [ "$seg_only" == "1" ] && [ ! -z "$vol_segstats" ]
+if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
   then
     seg_cc="--seg_with_cc_only"
-    seg_only="0"
+    run_surf_pipeline="1"
     echo "You requested segstats without running the surface pipeline. In this case, recon-surf will"
     echo "run until the corpus callsoum is added to the segmentation and the norm.mgz is generated "
     echo "(needed for partial volume correction). "
     echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
 fi
+
+if [ "$vox_size" != "auto" ] && [ "$vox_size" != "1" ]
+  then
+    echo "You passed '$vox_size' as the voxel size to conform to, but this is an invalid value. It must be '1' or 'auto'."
+fi
 ########################################## START ########################################################
 
-if [ "$surf_only" == "0" ]; then
-  # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
-  # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
-  mkdir -p "$(dirname "$seg_log")"
-  echo "Log file for fastsurfercnn run_prediction.py" > $seg_log
-  date  |& tee -a $seg_log
-  echo "" |& tee -a $seg_log
+if [ "$run_seg_pipeline" == "1" ]
+  then
+    # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
+    # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
+    mkdir -p "$(dirname "$seg_log")"
+    echo "Log file for segmentation FastSurferCNN/run_prediction.py" > $seg_log
+    date  |& tee -a $seg_log
+    echo "" |& tee -a $seg_log
 
-  pushd $fastsurfercnndir
-  cmd="$python run_prediction.py --t1 $t1 --seg $seg --conformed_name $conformed_name --seg_log $seg_log $hires --ckpt_sag $weights_sag --ckpt_ax $weights_ax --ckpt_cor $weights_cor --batch_size $batch_size --cfg_cor $config_cor --cfg_ax $config_ax --cfg_sag $config_sag --run_viewagg_on $viewagg --device $device"
-  echo $cmd |& tee -a $seg_log
-  $cmd
-  if [ ${PIPESTATUS[0]} -ne 0 ]
-    then
-      echo "ERROR: Segmentation failed QC checks."
-      exit 1
-  fi
-  popd
+    if [ "$run_aparc_module" == "1" ]; then
+      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
+      echo $cmd |& tee -a $seg_log
+      $cmd
+      if [ ${PIPESTATUS[0]} -ne 0 ]
+        then
+          echo "ERROR: Segmentation failed QC checks."
+          exit 1
+      fi
+    fi
+
+    if [ ! -f "$main_file"]
+      then
+        ln -s -r "$aparc_aseg_segfile" "$main_segfile"
+    fi
 fi
 
-if [ "$seg_only" == "0" ]; then
-  # ============= Running recon-surf (surfaces, thickness etc.) ===============
-  # use recon-surf to create surface models based on the FastSurferCNN segmentation.
-  pushd $reconsurfdir
-  cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --seg $seg $seg_cc $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $hires $doParallel --threads $threads --py $python $vcheck $vfst1"
-  $cmd
-  if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-  popd
+if [ "$run_surf_pipeline" == "1" ]
+  then
+    # ============= Running recon-surf (surfaces, thickness etc.) ===============
+    # use recon-surf to create surface models based on the FastSurferCNN segmentation.
+    pushd $reconsurfdir
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg --vox_size $vox_size $doParallel --threads $threads --py $python $vcheck $vfst1"
+    echo $cmd
+    $cmd
+    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+    popd
 fi
 
 ########################################## End ########################################################

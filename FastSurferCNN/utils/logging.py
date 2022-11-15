@@ -14,9 +14,9 @@
 # limitations under the License.
 
 # IMPORTS
-import os
-
 from logging import *
+from logging import getLogger as get_logger, StreamHandler, FileHandler, INFO, DEBUG, getLogger, basicConfig
+from os import path, makedirs
 from sys import stdout as _stdout
 
 
@@ -29,14 +29,11 @@ def setup_logging(log_file_path: str):
     handlers = [StreamHandler(_stdout)]
 
     if log_file_path:
-        log_dir_path = os.path.dirname(log_file_path)
-        log_file_name = os.path.basename(log_file_path)
-        if not os.path.exists(log_dir_path):
-            os.makedirs(log_dir_path)
+        log_dir_path = path.dirname(log_file_path)
+        log_file_name = path.basename(log_file_path)
+        if not path.exists(log_dir_path):
+            makedirs(log_dir_path)
 
         handlers.append(FileHandler(filename=log_file_path, mode='a'))
 
     basicConfig(level=INFO, format=_FORMAT, handlers=handlers)
-
-# At this point, this is just an alias for compatibility’s sake
-get_logger = getLogger

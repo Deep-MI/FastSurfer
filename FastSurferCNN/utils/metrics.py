@@ -16,7 +16,8 @@
 # IMPORTS
 import torch
 import numpy as np
-from utils import logging
+
+from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 

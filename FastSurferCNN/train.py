@@ -15,26 +15,25 @@
 
 # IMPORTS
 import pprint
+import time
+import os
+from collections import defaultdict
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from tqdm import tqdm
 
-from models.networks import build_model
-from models.optimizer import get_optimizer
-import data_loader.loader as loader
-from models.losses import get_loss_func
-import utils.checkpoint as cp
-from utils.lr_scheduler import get_lr_scheduler
-from utils.meters import Meter
-from utils.metrics import iou_score, precision_recall
-from utils.misc import update_num_steps, plot_predictions
-from config.global_var import get_class_names
-import utils.logging as logging
-import time
-import os
-from collections import defaultdict
+from FastSurferCNN.data_loader import loader
+from FastSurferCNN.models.networks import build_model
+from FastSurferCNN.models.optimizer import get_optimizer
+from FastSurferCNN.models.losses import get_loss_func
+from FastSurferCNN.utils import logging, checkpoint as cp
+from FastSurferCNN.utils.lr_scheduler import get_lr_scheduler
+from FastSurferCNN.utils.meters import Meter
+from FastSurferCNN.utils.metrics import iou_score, precision_recall
+from FastSurferCNN.utils.misc import update_num_steps, plot_predictions
+from FastSurferCNN.config.global_var import get_class_names
 
 logger = logging.getLogger(__name__)
 

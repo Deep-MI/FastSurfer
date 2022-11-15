@@ -14,17 +14,16 @@
 # limitations under the License.
 
 # IMPORTS
+import time
+
 import h5py
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torchvision import transforms
 import torchio as tio
-import time
 
-import data_loader.data_utils as du
-
-from utils import logging
+from FastSurferCNN.data_loader import data_utils as du
+from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 

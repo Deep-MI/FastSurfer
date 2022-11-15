@@ -15,7 +15,7 @@
 
 from os.path import join, split, splitext
 
-from config.defaults import get_cfg_defaults
+from FastSurferCNN.config.defaults import get_cfg_defaults
 
 
 def get_config(args):

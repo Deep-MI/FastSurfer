@@ -18,18 +18,17 @@ import time
 import glob
 from os.path import join
 from collections import defaultdict
+
 import numpy as np
 import nibabel as nib
 import h5py
 
-from data_loader.data_utils import transform_axial, transform_sagittal, \
-    map_aparc_aseg2label, create_weight_mask,\
-    get_thick_slices, filter_blank_slices_thick, \
-    read_classes_from_lut, get_labels_from_lut, unify_lateralized_labels
+from FastSurferCNN.data_loader.data_utils import (transform_axial, transform_sagittal, map_aparc_aseg2label,
+                                                  create_weight_mask, get_thick_slices, filter_blank_slices_thick,
+                                                  read_classes_from_lut, get_labels_from_lut, unify_lateralized_labels)
+from FastSurferCNN.utils import logging
 
-from utils import logging as ls
-
-LOGGER = ls.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class H5pyDataset:

@@ -16,9 +16,9 @@
 
 # IMPORTS
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.nn.modules.loss import _Loss
-import torch.nn.functional as F
+from torch.nn import functional as F
 
 
 class DiceLoss(_Loss):

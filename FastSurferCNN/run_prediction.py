@@ -14,28 +14,28 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Tuple, Union
-
-import numpy as np
-import torch
-import os
-import nibabel as nib
+from typing import Tuple, Union, Literal, Dict, Any
 import glob
 import sys
 import argparse
+import os
 
-from inference import Inference
-from utils.load_config import load_config
-from utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
-from utils import logging as logging
-from quick_qc import check_volume
+import numpy as np
+import torch
+import nibabel as nib
 
-import data_loader.data_utils as du
-import data_loader.conform as conf
+from FastSurferCNN.inference import Inference
+from FastSurferCNN.utils import logging, parser_defaults
+from FastSurferCNN.utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
+from FastSurferCNN.utils.load_config import load_config
+from FastSurferCNN.utils.misc import find_device
+from FastSurferCNN.data_loader import data_utils as du, conform as conf
+from FastSurferCNN.quick_qc import check_volume
 
 ##
 # Global Variables
 ##
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -64,6 +64,15 @@ def args2cfg(args: argparse.Namespace):
     return cfg_fin, cfg_cor, cfg_sag, cfg_ax
 
 
+def removesuffix(string, suffix):
+    import sys
+    if sys.version_info.minor >= 9:
+        # removesuffix is a Python3.9 feature
+        return string.removesuffix(suffix)
+    else:
+        return string[:-len(suffix)] if string.endswith(suffix) else string
+
+
 ##
 # Input array preparation
 ##
@@ -72,54 +81,69 @@ class RunModelOnData:
     pred_name: str
     conf_name: str
     orig_name: str
-    gn_noise: bool
-    hires: bool
+    vox_size: Union[float, Literal["auto"]]
+    current_plane: str
+    models: Dict[str, Inference]
+    view_ops: Dict[str, Dict[str, Any]]
 
     def __init__(self, args):
         self.pred_name = args.pred_name
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
-        self.strip = args.strip
+        self.remove_suffix = args.remove_suffix
 
         self.sf = 1.0
         self.out_dir = self.set_and_create_outdir(args.out_dir)
 
-        if args.run_viewagg_on == "gpu":
-            # run view agg on the gpu (force)
-            self.small_gpu = False
+        device = find_device(args.device)
 
-        elif args.run_viewagg_on == "check":
+        if args.viewagg_device == "auto":
             # check, if GPU is big enough to run view agg on it
-            # (this currently takes only the total memory into account, not the occupied on)
-            total_gpu_memory = sum([torch.cuda.get_device_properties(i).__getattribute__("total_memory") for i in
-                                    range(torch.cuda.device_count())]) if torch.cuda.is_available() else 0
-            self.small_gpu = total_gpu_memory < 8000000000
+            # (this currently takes the memory of the passed device)
+            if device.type == "cuda" and torch.cuda.is_available():  # TODO update the automatic device selection
+                dev_num = torch.cuda.current_device() if device.index is None else device.index
+                total_gpu_memory = torch.cuda.get_device_properties(dev_num).__getattribute__("total_memory")
+                # TODO this rule here should include the batch_size ?!
+                self.viewagg_device = device if total_gpu_memory > 4000000000 else "cpu"
+            else:
+                self.viewagg_device = "cpu"
 
-        elif args.run_viewagg_on == "cpu":
+        else:
+            try:
+                self.viewagg_device = torch.device(args.viewagg_device)
+            except:
+                LOGGER.exception(f"Invalid device {args.viewagg_device}")
+                raise
             # run view agg on the cpu (either if the available GPU RAM is not big enough (<8 GB),
             # or if the model is anyhow run on cpu)
-            self.small_gpu = True
 
-        if self.small_gpu:
-            LOGGER.info("Running view aggregation on CPU")
-        else:
-            LOGGER.info("Running view aggregation on GPU")
+        LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
 
-        self.lut = du.read_classes_from_lut(args.lut)
+        try:
+            self.lut = du.read_classes_from_lut(args.lut)
+        except FileNotFoundError as e:
+            raise ValueError(f"Could not find the ColorLUT in {args.lut}, please make sure the --lut argument is valid.")
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
-        self.gn_noise = args.gn
         self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(args)
+        # the order in this dictionary dictates the order in the view aggregation
         self.view_ops = {"coronal": {"cfg": cfg_cor, "ckpt": args.ckpt_cor},
                          "sagittal": {"cfg": cfg_sag, "ckpt": args.ckpt_sag},
                          "axial": {"cfg": cfg_ax, "ckpt": args.ckpt_ax}}
-        self.ckpt_fin = args.ckpt_cor if args.ckpt_cor is not None else args.ckpt_sag if args.ckpt_sag is not None else args.ckpt_ax
-        self.num_classes = self.cfg_fin.MODEL.NUM_CLASSES
-        self.model = Inference(self.cfg_fin, device = args.device)
-        self.device = self.model.get_device()
-        self.dim = self.model.get_max_size()
-        self.hires = args.hires
+        self.num_classes = max(view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values())
+        self.models = {}
+        for plane, view in self.view_ops.items():
+            if view["cfg"] is not None and view["ckpt"] is not None:
+                self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=device)
+
+        vox_size = args.vox_size
+        if vox_size == "auto":
+            self.vox_size = "auto"
+        else:
+            self.vox_size = float(vox_size) if isinstance(vox_size, str) and vox_size.isnumeric() else self.vox_size
+            if self.vox_size != 1.0:
+                raise ValueError(f"Invalid value for vox_size, must be 1 or auto, was {vox_size}.")
 
     def set_and_create_outdir(self, out_dir: str) -> str:
         if os.path.isabs(self.pred_name):
@@ -144,9 +168,10 @@ class RunModelOnData:
         # Save input image to standard location
         self.save_img(self.input_img_name, orig_data, orig, seg=False)
 
-        if not conf.is_conform(orig, conform_min=self.hires, check_dtype=True, verbose=False):
+        conform_min = self.vox_size == "auto"
+        if not conf.is_conform(orig, conform_min=conform_min, check_dtype=True, verbose=False):
             LOGGER.info("Conforming image")
-            orig = conf.conform(orig, conform_min=self.hires)
+            orig = conf.conform(orig, conform_min=conform_min)
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
@@ -154,7 +179,7 @@ class RunModelOnData:
         return orig, orig_data
 
     def set_subject(self, subject: str):
-        self.subject_name = os.path.basename(subject[:-len(self.strip)]) if self.strip else os.path.basename(subject)
+        self.subject_name = os.path.basename(removesuffix(subject, self.remove_suffix))
         self.subject_conf_name = os.path.join(self.out_dir, self.subject_name, self.conf_name)
         self.input_img_name = os.path.join(self.out_dir, self.subject_name,
                                            os.path.dirname(self.conf_name), 'orig', '001.mgz')
@@ -163,51 +188,31 @@ class RunModelOnData:
         return self.subject_name
 
     def set_model(self, plane: str):
-        self.model.set_model(self.view_ops[plane]["cfg"])
-        self.model.load_checkpoint(self.view_ops[plane]["ckpt"])
-        self.device = self.model.get_device()
-        self.dim = self.model.get_max_size()
-
-    @torch.no_grad()
-    def run_model(self, out: torch.Tensor, orig_f: str, orig_data: np.ndarray, zooms: Union[np.ndarray, tuple]) -> torch.Tensor:
-        # get prediction
-        return self.model.run(orig_f, orig_data, zooms,
-                              out, noise=self.gn_noise)
+        self.current_plane = plane
 
     def get_prediction(self, orig_f: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]) -> np.ndarray:
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
-            "device": "cpu" if self.small_gpu else self.device,
-            "dtype": torch.float16,  # TODO add a flag to choose between single and half precision?
+            "device": self.viewagg_device,
+            "dtype": torch.float16,
             "requires_grad": False
         }
 
         pred_prob = torch.zeros(shape, **kwargs)
 
-        # coronal inference
-        if self.view_ops["coronal"]["cfg"] is not None:
-            LOGGER.info("Run coronal prediction")
-            self.set_model("coronal")
-            pred_prob = self.run_model(pred_prob, orig_f, orig_data, zoom)
-
-        # axial inference
-        if self.view_ops["axial"]["cfg"] is not None:
-            LOGGER.info("Run axial view agg")
-            self.set_model("axial")
-            pred_prob = self.run_model(pred_prob, orig_f, orig_data, zoom)
-
-        # sagittal inference
-        if self.view_ops["sagittal"]["cfg"] is not None:
-            LOGGER.info("Run sagittal view agg")
-            self.set_model("sagittal")
-            pred_prob = self.run_model(pred_prob, orig_f, orig_data, zoom)
+        # inference and view aggregation
+        for plane, model in self.models.items():
+            LOGGER.info(f"Run {plane} prediction")
+            self.set_model(plane)
+            # pred_prob is updated inplace to conserve memory
+            pred_prob = model.run(pred_prob, orig_f, orig_data, zoom, out=pred_prob)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
         del pred_prob
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
-        # return numpy array TODO: split_cortex_labels requires a numpy ndarry input
+        # return numpy array TODO: split_cortex_labels requires a numpy ndarray input
         pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
         return pred_classes
 
@@ -219,20 +224,19 @@ class RunModelOnData:
         return img, data
 
     @staticmethod
-    def save_img(save_as: str, data: np.ndarray, orig: nib.analyze.SpatialImage, seg=False):
+    def save_img(save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage, seg=False):
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info("Output image directory does not exist. Creating it now...")
             os.makedirs(os.path.dirname(save_as))
-        if not isinstance(data, np.ndarray):
-            data = data.cpu().numpy()
+        np_data = data if isinstance(data, np.ndarray) else data.cpu().numpy()
 
         if seg:
             header = orig.header.copy()
             header.set_data_dtype(np.int16)
-            du.save_image(header, orig.affine, data, save_as)
+            du.save_image(header, orig.affine, np_data, save_as)
         else:
-            du.save_image(orig.header, orig.affine, data, save_as)
+            du.save_image(orig.header, orig.affine, np_data, save_as)
         LOGGER.info("Successfully saved image as {}".format(save_as))
 
     def set_up_model_params(self, plane, cfg, ckpt):
@@ -250,7 +254,7 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
     if message.startswith("CUDA out of memory. "):
         LOGGER.critical("ERROR - INSUFFICIENT GPU MEMORY")
         LOGGER.info("The memory requirements exceeds the available GPU memory, try using a smaller batch size "
-                    "(--batch_size <int>) and/or view aggregation on the cpu (--run_viewagg_on 'cpu')."
+                    "(--batch_size <int>) and/or view aggregation on the cpu (--viewagg_device 'cpu')."
                     "Note: View Aggregation on the GPU is particularly memory-hungry at approx. 5 GB for standard "
                     "256x256x256 images.")
         memory_message = message[message.find("(") + 1:message.find(")")]
@@ -267,85 +271,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
-    parser.add_argument('--t1', type=str, dest="orig_name", default='mri/orig.mgz',
-                        help="Name of orig input (T1 full head input). Absolute path if single image else "
-                             "common image name. Default: mri/orig.mgz")
-    parser.add_argument('--strip', type=str, dest="strip", default='',
-                        help="Optional: strip suffix from path definition of input file to yield correct subject name."
-                             "(e.g. ses-x/anat/ for BIDS or mri/ for FreeSurfer input). Default: do not strip anything.")
-    parser.add_argument("--in_dir", type=str, default=None,
-                        help="Directory in which input volume(s) are located. "
-                             "Optional, if full path is defined for --orig_name.")
-    parser.add_argument('--t', '--tag', dest='search_tag', default="*",
-                        help='Search tag to process only certain subjects. If a single image should be analyzed, '
-                             'set the tag with its id. Default: processes all.')
-    parser.add_argument('--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag",
-                        default=None)
-    parser.add_argument("--lut", type=str, help="Path and name of LUT to use.",
-                        default=os.path.join(os.path.dirname(__file__), "config/FastSurfer_ColorLUT.tsv"))
-    parser.add_argument("--gn", type=int, default=0,
-                        help="How often to sample from gaussian and run inference on same sample with added noise on "
-                             "scale factor.")
+    parser = parser_defaults.add_arguments(parser, ["t1", "in_dir", "tag", "csv_file", "lut", "remove_suffix"])
 
     # 2. Options for output
-    parser.add_argument('--seg', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
-                        help="Name of intermediate DL-based segmentation file (similar to aparc+aseg). "
-                             "When using FastSurfer, this segmentation is already conformed, since inference "
-                             "is always based on a conformed image. Absolute path if single image else common "
-                             "image name. Default:mri/aparc.DKTatlas+aseg.deep.mgz")
-    parser.add_argument('--conformed_name', type=str, dest='conf_name', default='mri/orig.mgz',
-                        help="Name under which the conformed input image will be saved, in the same directory "
-                             "as the segmentation (the input image is always conformed first, if it is not "
-                             "already conformed). The original input image is saved in the output directory "
-                             "as $id/mri/orig/001.mgz. Default: mri/orig.mgz.")
-    parser.add_argument('--seg_log', type=str, dest='log_name', default="",
-                        help="Absolute path to file in which run logs will be saved. If not set, logs will "
-                             "not be saved.")
-    parser.add_argument('--qc_log', type=str, dest='qc_log', default="",
-                        help="Absolute path to file in which a list of subjects that failed QC check "
-                             "(when processing multiple subjects) will be saved. "
-                             "If not set, the file will not be saved.")
-    parser.add_argument("--sd", type=str, default=None, dest="out_dir",
-                        help="Directory in which evaluation results should be written. "
-                             "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
-    parser.add_argument('--hires', action="store_true", default=False, dest='hires',
-                        help="Switch on hires processing (no conforming to 1mm, but to smallest voxel size.")
+    parser = parser_defaults.add_arguments(parser, ["aparc_aseg_segfile", "conformed_name", "sd", "seg_log", "qc_log"])
 
     # 3. Checkpoint to load
-    parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), VINN_COR))
-    parser.add_argument('--ckpt_ax', type=str, help="axial checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), VINN_AXI))
-    parser.add_argument('--ckpt_sag', type=str, help="sagittal checkpoint to load",
-                        default=os.path.join(os.path.dirname(__file__), VINN_SAG))
-
-    parser.add_argument('--batch_size', type=int, default=8, help="Batch size for inference. Default=8")
+    parser = parser_defaults.add_plane_flags(parser, "checkpoint", {"coronal": VINN_COR, "axial": VINN_AXI, "sagittal": VINN_SAG})
 
     # 4. CFG-file with default options for network
-    parser.add_argument("--cfg_cor", dest="cfg_cor", help="Path to the coronal config file",
-                        default=os.path.join(os.path.dirname(__file__),
-                                             "config/FastSurferVINN_coronal.yaml"), type=str)
-    parser.add_argument("--cfg_ax", dest="cfg_ax", help="Path to the axial config file",
-                        default=os.path.join(os.path.dirname(__file__),
-                                             "config/FastSurferVINN_axial.yaml"), type=str)
-    parser.add_argument("--cfg_sag", dest="cfg_sag", help="Path to the sagittal config file",
-                        default=os.path.join(os.path.dirname(__file__),
-                                             "config/FastSurferVINN_sagittal.yaml"), type=str)
+    parser = parser_defaults.add_plane_flags(parser, "config", {"coronal": "FastSurferCNN/config/FastSurferVINN_coronal.yaml",
+                                                                "axial": "FastSurferCNN/config/FastSurferVINN_axial.yaml",
+                                                                "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"})
 
-    parser.add_argument('--device', default="auto",
-                        help="select device to run inference on: cpu, or cuda (= Nvidia gpu) or "
-                             "specify a certain gpu (e.g. cuda:1), default: auto")
-
-    parser.add_argument('--run_viewagg_on', dest='run_viewagg_on', type=str,
-                        default="check", choices=["gpu", "cpu", "check"],
-                        help="Define where the view aggregation should be run on. \
-                             By default, the program checks if you have enough memory \
-                             to run the view aggregation on the gpu. The total memory \
-                             is considered for this decision. If this fails, or \
-                             you actively overwrote the check with setting \
-                             > --run_viewagg_on cpu <, view agg is run on the cpu. \
-                             Equivalently, if you define > --run_viewagg_on gpu <,\
-                             view agg will be run on the gpu (no memory check will be done).")
+    # 5. technical parameters
+    parser = parser_defaults.add_arguments(parser, ["vox_size", "device", "viewagg_device", "batch_size"])
 
     args = parser.parse_args()
 

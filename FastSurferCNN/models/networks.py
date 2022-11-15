@@ -16,9 +16,10 @@
 
 # IMPORTS
 import torch.nn as nn
-import models.sub_module as sm
-import models.interpolation_layer as il
 import numpy as np
+
+import FastSurferCNN.models.sub_module as sm
+import FastSurferCNN.models.interpolation_layer as il
 
 
 class FastSurferCNNBase(nn.Module):
@@ -193,7 +194,7 @@ class FastSurferVINN(FastSurferCNNBase):
         outblock = self.outp_block(decoder_output0, skip_encoder_0)
 
         # Final logits layer
-        logits = self.classifier.forward(outblock) # 1x1 convolution
+        logits = self.classifier.forward(outblock)  # 1x1 convolution
 
         return logits
 
