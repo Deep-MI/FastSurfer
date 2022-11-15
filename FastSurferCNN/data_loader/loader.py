@@ -16,12 +16,11 @@
 # IMPORTS
 from torchvision import transforms
 from torch.utils.data import DataLoader
-
-import data_loader.dataset as dset
-from data_loader.augmentation import ToTensor, ZeroPad2D, AddGaussianNoise
 import torchio as tio
 
-from utils import logging
+from FastSurferCNN.data_loader import dataset as dset
+from FastSurferCNN.data_loader.augmentation import ToTensor, ZeroPad2D, AddGaussianNoise
+from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 

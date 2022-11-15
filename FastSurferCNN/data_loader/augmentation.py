@@ -17,8 +17,6 @@
 # IMPORTS
 import numpy as np
 import torch
-import torchio as tio
-from scipy.ndimage import distance_transform_edt as eucl_distance
 
 
 ##

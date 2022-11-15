@@ -17,9 +17,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils.metrics import DiceScore
-from utils.misc import plot_confusion_matrix
-from utils import logging
+from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.metrics import DiceScore
+from FastSurferCNN.utils.misc import plot_confusion_matrix
 
 
 logger = logging.getLogger(__name__)

@@ -19,9 +19,9 @@ import sys
 import argparse
 import json
 
-import utils.misc as misc
-from utils.load_config import get_config
-from train import Trainer
+from FastSurferCNN.utils import misc
+from FastSurferCNN.utils.load_config import get_config
+from FastSurferCNN.train import Trainer
 
 
 def setup_options():

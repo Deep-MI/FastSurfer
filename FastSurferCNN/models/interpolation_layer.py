@@ -16,13 +16,14 @@
 # IMPORTS
 import typing as _T
 from numbers import Number
-from logging import getLogger as _getLogger
 
-import torch
-import torch.nn as nn
-from torch import Tensor
-from torch.nn import functional as _F
 import numpy as np
+import torch
+from torch import nn, Tensor
+from torch.nn import functional as _F
+
+from FastSurferCNN.utils.logging import getLogger as _getLogger
+
 
 LOGGER = _getLogger(__name__)
 

@@ -18,20 +18,20 @@ VERSION='$Id$'
 FS_VERSION_SUPPORT="7.3.2"
 
 # Regular flags default
-t1=""               # Path and name of T1 input
-seg=""              # Path and name of segmentation
-subject=""          # Subject name
-seg_cc=0            # if 1, run pipeline only until corpus callosum is added (no surfaces will be created)
-vol_segstats=0      # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
-fstess=0            # run mri_tesselate (FS way), if 0 = run mri_mc
-fsqsphere=0         # run inflate1 and qsphere (FSway), if 0 run spectral projection
-fsaparc=0	          # run FS aparc (and cortical ribbon), if 0 map aparc from seg input
-fssurfreg=0         # run FS surface registration to fsaverage, if 0 omit this step
-python="python3.8"  # python version
-DoParallel=0        # if 1, run hemispheres in parallel
-threads="1"         # number of threads to use for running FastSurfer
-hires=0             # hires processing
-hiresflag=""        # flag for recon-all calls for hires (default empty)
+t1=""                 # Path and name of T1 input
+aparc_aseg_segfile="" # Path and name of segmentation
+subject=""            # Subject name
+seg_cc=0              # if 1, run pipeline only until corpus callosum is added (no surfaces will be created)
+vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
+fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
+fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
+fsaparc=0	            # run FS aparc (and cortical ribbon), if 0 map aparc from aparc_aseg_segfile
+fssurfreg=0           # run FS surface registration to fsaverage, if 0 omit this step
+python="python3.8"    # python version
+DoParallel=0          # if 1, run hemispheres in parallel
+threads="1"           # number of threads to use for running FastSurfer
+vox_size="auto"       # hires processing
+hiresflag=""          # flag for recon-all calls for hires (default empty)
 
 # Dev flags default
 check_version=1;    # Check for supported FreeSurfer version (terminate if not detected)
@@ -66,7 +66,7 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surf.sh --sid <sid> --sd <sdir> --t1 <t1> --seg <seg> [OPTIONS]
+Usage: recon-surf.sh --sid <sid> --sd <sdir> --t1 <t1> --aparc_aseg_segfile <aparc_aseg_segfile> [OPTIONS]
 
 recon-surf.sh takes a segmentation and T1 full head image and creates surfaces,
 thickness etc as a FS subject dir.
@@ -76,12 +76,13 @@ FLAGS:
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected). This must be
                             a conformed image (dimensions: 256x256x256, voxel
-			    size: 1x1x1, LIA orientation, and data type UCHAR).
-			    Images can be conformed using FastSurferCNN's
-			    conform.py script (usage example: python3
-			    FastSurferCNN/data_loader/conform.py -i <T1_input>
-			    -o <conformed_T1_output>).
-  --seg <seg_input>       Name of intermediate DL-based segmentation file
+                            size: 1x1x1, LIA orientation, and data type UCHAR).
+                            Images can be conformed using FastSurferCNN's
+                            conform.py script (usage example: python3
+                            FastSurferCNN/data_loader/conform.py -i <T1_input>
+                            -o <conformed_T1_output>).
+  --aparc_aseg_segfile <aparc_aseg_segfile>
+                          Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
                             (dimensions: 256x256x256, voxel size: 1x1x1, LIA
                             orientation). FastSurferCNN's segmentations are
@@ -103,14 +104,16 @@ FLAGS:
                             is faster, and usually these mapped ones are fine)
   --surfreg               Run Surface registration with FreeSurfer (for
                             cross-subject correspondence)
-  --hires                 Run FastSurfer recon-surf stream for hires image
+  --vox_size auto|1       Run FastSurfer recon-surf stream for 1mm (1) or in the
+                            hires stream (auto) at the voxel size conformed to
+                            the minimum voxel edge.
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
   --py <python_cmd>       Command for python, default $python
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
-			    installed already
+                            installed already
   -h --help               Print Help
 
 Dev Flags:
@@ -247,7 +250,13 @@ case $key in
     shift # past value
     ;;
     --seg)
-    seg="$2"
+    echo "WARNING: --seg <filename> is deprecated, use --aparc_aseg_segfile <filename>."
+    aparc_aseg_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --aparc_aseg_segfile)
+    aparc_aseg_segfile="$2"
     shift # past argument
     shift # past value
     ;;
@@ -276,9 +285,20 @@ case $key in
     shift # past argument
     ;;
     --hires)
-    hires=1
+    echo "WARNING: --hires is deprecated, use --vox_size auto."
+    vox_size=1
     hiresflag="-hires"
     shift # past argument
+    ;;
+    --vox_size)
+    if [ "$2" == "auto "]; then
+      hiresflag="-hires"
+    elif [ "$2" == "1" ]; then
+      exit "Invalid option for --vox_size, only 1 or 'auto' are valid."
+    fi
+    vox_size=$2
+    shift # past argument
+    shift # past value
     ;;
     --parallel)
     DoParallel=1
@@ -328,7 +348,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 echo
 echo sid $subject
 echo T1  $t1
-echo seg $seg
+echo aparc_aseg_segfile $aparc_aseg_segfile
 echo
 
 if [ "$subject" == "subject" ]
@@ -387,17 +407,17 @@ then
   exit 1
 fi
 
-if [ -z "$seg" ]
+if [ -z "$aparc_aseg_segfile" ]
 then
   # Set to default
-  seg="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+  aparc_aseg_segfile="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
-if [ ! -f "$seg" ]
+if [ ! -f "$aparc_aseg_segfile" ]
 then
   # No segmentation found, exit with error
-  echo "ERROR: Segmentation ($seg) could not be found! "
-  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --seg."
+  echo "ERROR: Segmentation ($aparc_aseg_segfile) could not be found! "
+  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --aparc_aseg_segfile."
   exit 1
 fi
 
@@ -429,7 +449,7 @@ fi
 
 # Check input segmentation quality
 echo "Checking Input Segmentation Quality ..."
-cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --seg $seg"
+cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --aparc_aseg_segfile $aparc_aseg_segfile"
 echo $cmd
 $cmd
 if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
@@ -502,21 +522,21 @@ echo " " |& tee -a $LF
 
 # check for input conformance
 cmin=""
-if  [ "$hires" == "1" ]
+if  [ "$vox_size" == "auto" ]
 then
   cmin="--conform_min"
 fi
 cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only $cmin --verbose"
 RunIt "$cmd" $LF
 
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $seg --check_only $cmin --seg_input --verbose"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $aparc_aseg_segfile --check_only $cmin --seg_input --verbose"
 RunIt "$cmd" $LF
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of segmentation)
 cmd="mri_convert $t1 $mdir/orig.mgz"
 RunIt "$cmd" $LF
 
-cmd="mri_convert $seg $mdir/aparc.DKTatlas+aseg.orig.mgz"
+cmd="mri_convert $aparc_aseg_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" $LF
 
 # link to rawavg (needed by pctsurfcon)
@@ -598,7 +618,7 @@ if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
   cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz"
-  if [ "$hires" == "1" ]
+  if [ "$vox_size" == "auto" ]
   then
     cmd="$cmd -noconform"
   fi
@@ -622,13 +642,13 @@ cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/c
 RunIt "$cmd" $LF
 
 # add cc into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
-cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $seg -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
+cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $aparc_aseg_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
 RunIt "$cmd" $LF
 
 # Calculate volume-based segstats for deep learning prediction (with CC, requires norm.mgz as invol)
 if [ "$vol_segstats" == "1" ]
 then
-    cmd="mri_segstats --seed 1234 --seg $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz --sum $mdir/../stats/aparc.DKTatlas+aseg.deep.volume.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --id 2, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63, 77, 251, 252, 253, 254, 255, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2034, 2035 --ctab /$FREESURFER_HOME/FreeSurferColorLUT.txt --subject $subject"
+    cmd="mri_segstats --seed 1234 --aparc_aseg_segfile $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz --sum $mdir/../stats/aparc.DKTatlas+aseg.deep.volume.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-aparc_aseg_segfile --excludeid 0 --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --id 2, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63, 77, 251, 252, 253, 254, 255, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2034, 2035 --ctab /$FREESURFER_HOME/FreeSurferColorLUT.txt --subject $subject"
     RunIt "$cmd" $LF
 fi
 
@@ -689,7 +709,7 @@ else
 
     # Marching cube does not return filename and wrong volume info!
     outmesh=$sdir/$hemi.orig.nofix
-    if [ "$hires" == "1" ]; then
+    if [ "$vox_size" == "auto" ]; then
       outmesh=$sdir/$hemi.orig.nofix.predec
     fi
     cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
@@ -710,7 +730,7 @@ else
     RunIt "$cmd" $LF $CMDF
     
     # for hires decimate mesh 
-    if [ "$hires" == "1" ]; then
+    if [ "$vox_size" == "auto" ]; then
       DecimationFaceArea="0.5"
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
@@ -779,7 +799,7 @@ RunIt "$cmd" $LF $CMDF
 
 
 echo "echo \" \"" |& tee -a $CMDF
-echo "echo \"=========== Creating surfaces $hemi - map input seg to surf ===============\"" |& tee -a $CMDF
+echo "echo \"=========== Creating surfaces $hemi - map input aparc_aseg_segfile to surf ===============\"" |& tee -a $CMDF
 echo "echo \" \"" |& tee -a $CMDF
 
     # sample input segmentation (aparc.DKTatlas+aseg orig) onto wm surface:
@@ -837,7 +857,7 @@ fi
 if [ "$fsaparc" == "1" ] ; then
 
   echo "echo \" \"" |& tee -a $CMDF
-  echo "echo \"============ Creating surfaces $hemi - FS seg..pial ===============\"" |& tee -a $CMDF
+  echo "echo \"============ Creating surfaces $hemi - FS aparc_aseg_segfile..pial ===============\"" |& tee -a $CMDF
   echo "echo \" \"" |& tee -a $CMDF
 
   # 20-25 min for traditional surface segmentation (each hemi)
@@ -856,10 +876,10 @@ else
 
     # 4 min compute white :
     echo "pushd $mdir" >> $CMDF
-    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white.preaparc --o ../surf/$hemi.white --white --nsmooth 0 --rip-label ../label/$hemi.cortex.label --rip-bg --rip-surf ../surf/$hemi.white.preaparc --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot"
+    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --aparc_aseg_segfile aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white.preaparc --o ../surf/$hemi.white --white --nsmooth 0 --rip-label ../label/$hemi.cortex.label --rip-bg --rip-surf ../surf/$hemi.white.preaparc --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot"
     RunIt "$cmd" $LF $CMDF
     # 4 min compute pial :
-    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white --o ../surf/$hemi.pial.T1 --pial --nsmooth 0 --rip-label ../label/$hemi.cortex+hipamyg.label --pin-medial-wall ../label/$hemi.cortex.label --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot --repulse-surf ../surf/$hemi.white --white-surf ../surf/$hemi.white"
+    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --aparc_aseg_segfile aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white --o ../surf/$hemi.pial.T1 --pial --nsmooth 0 --rip-label ../label/$hemi.cortex+hipamyg.label --pin-medial-wall ../label/$hemi.cortex.label --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot --repulse-surf ../surf/$hemi.white --white-surf ../surf/$hemi.white"
     RunIt "$cmd" $LF $CMDF
     echo "popd" >> $CMDF
 
@@ -927,7 +947,7 @@ echo " " |& tee -a $LF
 if [ "$fsaparc" == "1" ] ; then
 
   echo " " |& tee -a $LF
-  echo "============= Creating surfaces - other FS seg and stats =======================" |& tee -a $LF
+  echo "============= Creating surfaces - other FS aparc_aseg_segfile and stats =======================" |& tee -a $LF
   echo " " |& tee -a $LF
 
   cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
@@ -1005,15 +1025,15 @@ echo " " |& tee -a $LF
 
   # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and hypos)
   # difference between this and the surface improved one above are probably tiny, so the surface improvement above can probably be skipped to save time
-  cmd="mri_segstats --seed 1234 --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
+  cmd="mri_segstats --seed 1234 --aparc_aseg_segfile $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-aparc_aseg_segfile --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
   RunIt "$cmd" $LF
 
-  # -wmparc based on mapped aparc labels (from input seg) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
+  # -wmparc based on mapped aparc labels (from input aparc_aseg_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" $LF
 
   # takes a few mins
-  cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
+  cmd="mri_segstats --seed 1234 --aparc_aseg_segfile $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   RunIt "$cmd" $LF
 
 # Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)

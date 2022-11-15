@@ -16,11 +16,11 @@
 # IMPORTS
 import os
 import glob
-import logging
 
 import requests
 import torch
 
+from FastSurferCNN.utils import logging
 
 LOGGER = logging.getLogger(__name__)
 

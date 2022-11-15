@@ -17,7 +17,7 @@
 import argparse
 import os
 
-from utils.checkpoint import check_and_download_ckpts, get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG, URL
+from FastSurferCNN.utils.checkpoint import check_and_download_ckpts, get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG, URL
 
 
 if __name__ == "__main__":

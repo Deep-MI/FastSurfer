@@ -16,6 +16,7 @@
 # IMPORTS
 import argparse
 import sys
+
 import numpy as np
 import nibabel as nib
 
@@ -238,7 +239,7 @@ def conform(img, order=1, conform_min=False):
     format and enforces 1 mm isotropic voxel sizes.
     Difference to mri_convert -c is that we first interpolate (float image), and then rescale to uchar. mri_convert is
     doing it the other way. However, we compute the scale factor from the input to be more similar again
-    :param nibabel.MGHImage img: loaded source image
+    :param nibabel.SpatialImage img: loaded source image
     :param int order: interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic)
     :param bool conform_min: conform image to minimal voxel size (for high-res)
     :return: nibabel.MGHImage new_img: conformed image
@@ -286,7 +287,7 @@ def is_conform(img, conform_min=False, eps=1e-06, check_dtype=True, verbose=True
     """
     Function to check if an image is already conformed or not (Dimensions: 256x256x256, Voxel size: 1x1x1,
     LIA orientation, and data type UCHAR).
-    :param nibabel.MGHImage img: Loaded source image
+    :param nibabel.SpatialImage img: Loaded source image
     :param bool conform_min: check if conformed to minimal voxels size (for high-res)
     :param float eps: allowed deviation from zero for LIA orientation check (default 1e-06).
                       Small inaccuracies can occur through the inversion operation. Already conformed images are
