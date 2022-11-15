@@ -408,7 +408,7 @@ if __name__ == "__main__":
         pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
         eval.save_img(pred_name, pred_data, orig_img, seg=True)
 
-        # Run QC check (subject list may later be written out)
+        # Run QC check
         LOGGER.info("Running volume-based QC check on segmentation...")
         seg_voxvol = np.product(orig_img.header["delta"])
         if not check_volume(pred_data, seg_voxvol):
