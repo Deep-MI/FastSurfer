@@ -27,7 +27,6 @@ Values can also be extracted by
 >>> # 'help': 'Allow execution as root user.'}
 """
 
-import enum
 import multiprocessing
 from typing import Iterable, Mapping, Union, Literal, Optional, Dict, Any, Protocol
 import argparse

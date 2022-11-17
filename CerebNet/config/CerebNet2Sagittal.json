@@ -1,0 +1,32 @@
+{
+  "labels": {
+    "Unknown": 0,
+    "Left_I_IV": 1,
+    "Right_I_IV": 1,
+    "Left_V": 2,
+    "Right_V": 2,
+    "Left_VI": 3,
+    "Vermis_VI": 4,
+    "Right_VI": 3,
+    "Left_CrusI": 5,
+    "Right_CrusI": 5,
+    "Left_CrusII": 6,
+    "Right_CrusII": 6,
+    "Left_VIIb": 7,
+    "Right_VIIb": 7,
+    "Vermis_VII": 8,
+    "Left_VIIIa": 9,
+    "Right_VIIIa": 9,
+    "Left_VIIIb": 10,
+    "Right_VIIIb": 10,
+    "Vermis_VIII": 11,
+    "Left_IX": 12,
+    "Vermis_IX": 13,
+    "Right_IX": 12,
+    "Left_X": 14,
+    "Vermis_X": 15,
+    "Right_X": 14,
+    "Right_Corpus_Medullare": 16,
+    "Left_Corpus_Medullare": 16
+  }
+}

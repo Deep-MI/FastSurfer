@@ -30,13 +30,16 @@ then
   export FASTSURFER_HOME
 fi
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
+cerebnetdir="$FASTSURFER_HOME/CerebNet"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 # Regular flags defaults
 subject=""
 t1=""
 main_segfile=""
+cereb_segfile=""
 aparc_aseg_segfile=""
+aparc_aseg_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
 conformed_name=""
 seg_log=""
 viewagg="auto"
@@ -51,6 +54,8 @@ fsaparc=""
 fssurfreg=""
 vox_size="min"
 doParallel=""
+run_aparc_module="1"
+run_cereb_module="1"
 threads="1"
 python="python3.8"
 allow_root=""
@@ -108,10 +113,10 @@ FLAGS:
   PIPELINES:
   By default, both the segmentation and the surface pipelines are run.
 
-  SEGMENTATION PIPELINE:
+SEGMENTATION PIPELINE:
   --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN, CerebNet)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
@@ -127,6 +132,39 @@ FLAGS:
                             a symlink to the aparc_aseg_segfile.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
+
+  MODULES:
+  By default, all modules are run.
+
+  APARC MODULE:
+  --no_aparc              Skip the aparc segmentation (aseg+aparc segmentation)
+  --aparc_aseg_segfile <filename>
+                          Name of the segmentation file, which includes the
+                            aparc+DKTatlas-aseg segmentations. If not provided,
+                            this intermediate DL-based segmentation will not be
+                            stored, but only the merged segmentation will be stored
+                            (see --main_segfile <filename>).
+                            Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+
+  CEREBELLUM MODULE:
+  --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
+  --aparc_aseg_segfile <seg_input>
+                          Name of the segmentation file (similar to aparc+aseg)
+                            for cerebellum localization (typically the output of the
+                            APARC module (see above). Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+	--cereb_segfile <seg_input>
+	                        Name of DL-based segmentation file of the cerebellum.
+	                          This segmentation is always at 1mm isotropic
+	                          resolution, since inference is always based on a
+	                          1mm conformed image, if the conformed image is *NOT*
+	                          already an 1mm image, an additional conformed image
+	                          at 1mm will be stored at the --conformed_name, but
+	                          with an additional file suffix of "_1mm".
+	                          Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
 
 SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
@@ -190,6 +228,11 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
  http://dx.doi.org/10.1016/j.neuroimage.2022.118933
 
+Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
+ reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
+ NeuroImage 264 (2022), 119703.
+ https://doi.org/10.1016/j.neuroimage.2022.119703
+
 EOF
 }
 
@@ -246,6 +289,11 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --cereb_segfile)
+    cereb_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --conformed_name)
     conformed_name="$2"
     shift # past argument
@@ -280,6 +328,14 @@ case $key in
     echo "WARNING: --no_cuda is deprecated, use --device cpu."
     device="cpu"
     shift # past argument
+    ;;
+    --no_aparc)
+    run_aparc_module="0"
+    shift  # past argument
+    ;;
+    --no_cereb)
+    run_cereb_module="0"
+    shift  # past argument
     ;;
     --device)
     device=$2
@@ -427,7 +483,8 @@ then
   # a number
   if (( $(echo "$vox_size < 0" | bc -l) || $(echo "$vox_size > 1" | bc -l) ))
   then
-    exit "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
+    echo "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
+    exit 1;
   elif (( $(echo "$vox_size < 0.7" | bc -l) ))
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
@@ -435,7 +492,8 @@ then
 elif [ "$vox_size" != "min" ]
 then
   # not a number or "min"
-  exit "Invalid option for --vox_size, only a number or 'min' are valid."
+  echo "Invalid option for --vox_size, only a number or 'min' are valid."
+  exit 1;
 fi
 
 if [ "${aparc_aseg_segfile: -3}" != "${main_segfile: -3}" ]
@@ -455,13 +513,13 @@ if [ "${aparc_aseg_segfile: -3}" != "${conformed_name: -3}" ]
     exit 1;
 fi
 
-if [ "$run_surf_pipeline" == "1" ] && [ "$run_seg_pipeline" == "0" ]
+if [ "$run_surf_pipeline" == "1" ] && { [ "$run_aparc_module" == "0" ] || [ "$run_seg_pipeline" == "0" ]; }
   then
     if [ ! -f "$aparc_aseg_segfile" ]
     then
         echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
-        echo "You passed --surf_only, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
-        echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --aparc_aseg_segfile"
+        echo "You passed --surf_only or --no_aparc, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
+        echo "If the segmentation is not saved in the default location ($aparc_aseg_segfile_default), specify the absolute path and name via --aparc_aseg_segfile"
         exit 1;
     fi
     if [ ! -f "$conformed_name" ]
@@ -470,6 +528,17 @@ if [ "$run_surf_pipeline" == "1" ] && [ "$run_seg_pipeline" == "0" ]
         echo "You passed --surf_only but the conformed image ($conformed_name) could not be found."
         echo "If the conformed image is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/orig.mgz),"
         echo "specify the absolute path and name via --conformed_name."
+        exit 1;
+    fi
+fi
+
+if [ "$run_seg_pipeline" == "1" ] && { [ "$run_aparc_module" == "0" ] && [ "$run_cereb_module" == "1" ]; }
+  then
+    if [ ! -f "$aparc_aseg_segfile" ]
+    then
+        echo "ERROR: To run the cerebellum segmentation but no aparc, the whole brain segmentation must already exist."
+        echo "You passed --no_aparc but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
+        echo "If the segmentation is not saved in the default location ($aparc_aseg_segfile_default), specify the absolute path and name via --aparc_aseg_segfile"
         exit 1;
     fi
 fi
@@ -502,17 +571,32 @@ if [ "$run_seg_pipeline" == "1" ]
     date  |& tee -a $seg_log
     echo "" |& tee -a $seg_log
 
-    cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
-    echo $cmd |& tee -a $seg_log
-    $cmd
-    exit_code=${PIPESTATUS[0]}
-    if [ ${exit_code} -ne 0 ]
-    then
-      if [ ${exit_code} == 2 ]
+    if [ "$run_aparc_module" == "1" ]
       then
-        echo "ERROR: Segmentation failed QC checks."
+        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
+        echo $cmd |& tee -a $seg_log
+        $cmd
+        exit_code=${PIPESTATUS[0]}
+        if [ ${exit_code} == 2 ]
+          then
+            echo "ERROR: FastSurfer aseg+aparc segmentation failed QC checks."
+            exit 1
+        elif [ ${exit_code} -ne 0 ]
+          then
+            echo "ERROR: FastSurfer aseg+aparc segmentation failed."
+            exit 1
+        fi
+    fi
+
+    if [ "$run_cereb_module" == "1" ]; then
+      cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device"
+      echo $cmd |& tee -a $seg_log
+      $cmd
+      if [ ${PIPESTATUS[0]} -ne 0 ]
+        then
+          echo "ERROR: Cerebellum Segmentation failed"
+          exit 1
       fi
-      exit 1
     fi
 
     if [ ! -f "$main_segfile" ]

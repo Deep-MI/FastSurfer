@@ -97,7 +97,8 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
 
 
 def pipeline(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]) -> Iterator[Tuple[_Ti, _T]]:
-    """Function to pipeline a function to be executed in the pool"""
+    """Function to pipeline a function to be executed in the pool. Analogous to iterate, but run func in a different
+    thread for the next element while the current element is returned."""
     # do pipeline loading the next element
     return_in_future, element = None, None
     for next_element in iterable:
@@ -109,6 +110,12 @@ def pipeline(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti])
         element = next_element
         return_in_future = return_of_next_in_future
     yield element, return_in_future.result()
+
+
+def iterate(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]) -> Iterator[Tuple[_Ti, _T]]:
+    """Iterate over iterable, yield pairs of elements and func(element)."""
+    for element in iterable:
+        yield element, func(element)
 
 
 def removesuffix(string: str, suffix: str) -> str:

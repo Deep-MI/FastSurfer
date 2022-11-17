@@ -1,0 +1,33 @@
+{
+  "labels": {
+    "Unknown": "Unknown",
+    "Right_Corpus_Medullare": "Right-Cerebellum-White-Matter",
+    "Left_Corpus_Medullare": "Left-Cerebellum-White-Matter",
+    "Left_I_IV": "Cbm_Left_I_IV",
+    "Right_I_IV": "Cbm_Right_I_IV",
+    "Left_V": "Cbm_Left_V",
+    "Right_V": "Cbm_Right_V",
+    "Vermis_VI": "Cbm_Vermis_VI",
+    "Left_VI": "Cbm_Left_VI",
+    "Right_VI": "Cbm_Right_VI",
+    "Vermis_VII": "Cbm_Vermis_VIIb",
+    "Left_CrusI": "Cbm_Left_CrusI",
+    "Left_CrusII": "Cbm_Left_CrusII",
+    "Left_VIIb": "Cbm_Left_VIIb",
+    "Right_CrusI": "Cbm_Right_CrusI",
+    "Right_CrusII": "Cbm_Right_CrusII",
+    "Right_VIIb": "Cbm_Right_VIIb",
+    "Vermis_VIII": "Cbm_Vermis_VIIIa",
+    "Left_VIIIa": "Cbm_Left_VIIIa",
+    "Left_VIIIb": "Cbm_Left_VIIIb",
+    "Right_VIIIa": "Cbm_Right_VIIIa",
+    "Right_VIIIb": "Cbm_Right_VIIIb",
+    "Vermis_IX": "Cbm_Vermis_IX",
+    "Left_IX": "Cbm_Left_IX",
+    "Right_IX": "Cbm_Right_IX",
+    "Vermis_X": "Cbm_Vermis_X",
+    "Left_X": "Cbm_Left_X",
+    "Right_X": "Cbm_Right_X"
+  }
+}
+
