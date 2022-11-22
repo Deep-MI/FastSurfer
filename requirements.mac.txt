@@ -49,7 +49,7 @@ packaging==21.3
     #   matplotlib
     #   nibabel
     #   scikit-image
-pillow==9.0.1
+pillow==9.3.0
     # via
     #   imageio
     #   matplotlib
