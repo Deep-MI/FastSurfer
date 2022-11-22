@@ -114,7 +114,7 @@ def getscale(data, dst_min, dst_max, f_low=0.0, f_high=0.999):
     src_max = np.max(data)
 
     if src_min < 0.0:
-        sys.exit('ERROR: Min value in input is below 0.0!')
+        print("WARNING: Input image has value(s) below 0.0 !")
 
     print("Input:    min: " + format(src_min) + "  max: " + format(src_max))
 
@@ -262,12 +262,16 @@ def conform(img, order=1, conform_min=False):
     # Pxyz is the center of the image in world coords
 
     # get scale for conversion on original input before mapping to be more similar to mri_convert
-    src_min, scale = getscale(np.asanyarray(img.dataobj), 0, 255)
+    if not img.get_data_dtype() == np.dtype(np.uint8):
+        src_min, scale = getscale(np.asanyarray(img.dataobj), 0, 255)
 
     mapped_data = map_image(img, h1.get_affine(), h1.get_data_shape(), order=order)
 
     if not img.get_data_dtype() == np.dtype(np.uint8):
-        mapped_data = scalecrop(mapped_data, 0, 255, src_min, scale)
+        scaled_data = scalecrop(mapped_data, 0, 255, src_min, scale)
+        # map zero in input to zero in ouput (usually background)
+        scaled_data[mapped_data==0] = 0
+        mapped_data = scaled_data
 
     new_data = np.uint8(np.rint(mapped_data))
     new_img = nib.MGHImage(new_data, h1.get_affine(), h1)
