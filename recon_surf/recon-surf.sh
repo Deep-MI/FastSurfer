@@ -429,7 +429,7 @@ fi
 
 # Check input segmentation quality
 echo "Checking Input Segmentation Quality ..."
-cmd="$python ${binpath}/quick_qc.py --seg $seg"
+cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --seg $seg"
 echo $cmd
 $cmd
 if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
