@@ -24,7 +24,7 @@ Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm isotropi
 USAGE:
 conform.py  -i <input> -o <output> <options>
 Dependencies:
-    Python 3.5
+    Python 3.8
     Numpy
     http://www.numpy.org
     Nibabel to read and write FreeSurfer data

@@ -136,7 +136,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --parallel
 ```
 
-Docker flags:
+Docker Flags:
 * The --gpus flag is used to allow Docker to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
 * The -v commands mount your data, output, and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 * The --rm flag takes care of removing the container once the analysis finished. 
@@ -177,6 +177,41 @@ FastSurfer Flags to pass through:
 * A directory with the name as specified in --sid (here subject2) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subject2/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
+
+### Example 5 Quick Segmentation
+
+For many applications you won't need the surfaces. You can run only the segmentation (in 1 minute on a GPU) via
+
+```bash
+./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
+                    --seg $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --conformed_name $ouputdir/subject1/conformed.mgz \
+                    --parallel --threads 4 --seg_only
+```
+
+This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
+Conformed means that the image will be 1mm isotropic in LIA orientation. 
+
+If you also need a brainmask or an aseg (reduced lables) you can run:
+
+```bash
+python3 ./recon-surf/reduce_to_aseg.py \
+                    -i $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    -o $ouputdir/subject1/aseg.auto_noCCseg.mgz \
+                    --outmask $ouputdir/subject1/mask.mgz \
+                    --fixwm
+```
+
+Alternatively - but this requires a FreeSurfer install - you can get mask and also statistics after insertion of the corpus callosum by replacing ```--seg_only``` with ```--seg_with_cc_only``` in the run_fastsurfer.sh command:
+
+```bash
+./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
+                    --seg $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --conformed_name $ouputdir/subject1/conformed.mgz \
+                    --parallel --threads 4 --seg_with_cc_only
+```
+
+The above ```run_fastsurfer.sh``` commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker of -B in Singularity). For the ```reduce_to_aseg.py you would need to enter the container interactively. 
 
 ## System Requirements
 
