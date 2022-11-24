@@ -223,7 +223,7 @@ if __name__ == '__main__':
                         help="Turn on to add cortex mask for hires-processing.")
     parser.add_argument('--processing', type=str, default="aparc", choices=["aparc", "aseg", "none"],
                         help="Use aseg, aparc or no specific mapping processing")
-    parser.add_argument('--sizes', nargs='+', type=int, default=256, help="Resolutions of images in the dataset. Default: 256")
+    parser.add_argument('--sizes', nargs='+', type=int, default=256, help="Sizes of images in the dataset. Default: 256")
 
 
     args = parser.parse_args()
