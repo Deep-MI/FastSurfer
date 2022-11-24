@@ -71,7 +71,6 @@ class RunModelOnData:
     pred_name: str
     conf_name: str
     orig_name: str
-    gn_noise: bool
     hires: bool
 
     def __init__(self, args):
@@ -108,7 +107,6 @@ class RunModelOnData:
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
-        self.gn_noise = args.gn
         self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(args)
         self.view_ops = {"coronal": {"cfg": cfg_cor, "ckpt": args.ckpt_cor},
                          "sagittal": {"cfg": cfg_sag, "ckpt": args.ckpt_sag},
@@ -171,7 +169,7 @@ class RunModelOnData:
     def run_model(self, out: torch.Tensor, orig_f: str, orig_data: np.ndarray, zooms: Union[np.ndarray, tuple]) -> torch.Tensor:
         # get prediction
         return self.model.run(orig_f, orig_data, zooms,
-                              out, noise=self.gn_noise)
+                              out)
 
     def get_prediction(self, orig_f: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]) -> np.ndarray:
         shape = orig_data.shape + (self.get_num_classes(),)
@@ -282,9 +280,6 @@ if __name__ == "__main__":
                         default=None)
     parser.add_argument("--lut", type=str, help="Path and name of LUT to use.",
                         default=os.path.join(os.path.dirname(__file__), "config/FastSurfer_ColorLUT.tsv"))
-    parser.add_argument("--gn", type=int, default=0,
-                        help="How often to sample from gaussian and run inference on same sample with added noise on "
-                             "scale factor.")
 
     # 2. Options for output
     parser.add_argument('--seg', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',

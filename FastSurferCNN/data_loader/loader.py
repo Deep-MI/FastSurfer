@@ -106,8 +106,7 @@ def get_dataloader(cfg, mode):
             all_augs = {"Elastic": elastic, "Scaling": scaling, "Rotation": rot, "Translation": tl,
                         "RAnisotropy": ra, "BiasField": bias_field, "RGamma": random_gamma}
 
-            all_tfs = {all_augs[aug]: 0.8 for aug in cfg.DATA.AUG if aug != "Gaussian"}
-            gaussian_noise = True if "Gaussian" in cfg.DATA.AUG else False
+            all_tfs = {all_augs[aug]: 0.8 for aug in cfg.DATA.AUG}
 
             transform = tio.Compose([tio.Compose(all_tfs, p=0.8)], include=["img", "label", "weight"])
 
@@ -116,7 +115,7 @@ def get_dataloader(cfg, mode):
 
             logger.info(f"Loading {mode.capitalize()} data ... from {data_path}. Using torchio Aug")
 
-            dataset = dset.MultiScaleDataset(data_path, cfg, gaussian_noise, transform)
+            dataset = dset.MultiScaleDataset(data_path, cfg, transform)
 
     elif mode == 'val':
         data_path = cfg.DATA.PATH_HDF5_VAL

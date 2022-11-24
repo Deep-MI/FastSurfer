@@ -34,13 +34,12 @@ class MultiScaleOrigDataThickSlices(Dataset):
     """
     Class to load MRI-Image and process it to correct format for network inference
     """
-    def __init__(self, img_filename, orig_data, orig_zoom, cfg, gn_noise=0, transforms=None):
+    def __init__(self, img_filename, orig_data, orig_zoom, cfg, transforms=None):
         assert orig_data.max() > 0.8, f"Multi Dataset - orig fail, max removed {orig_data.max()}"
         self.img_filename = img_filename
         self.plane = cfg.DATA.PLANE
         self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
         self.base_res = cfg.MODEL.BASE_RES
-        self.gn_noise = gn_noise
 
         if self.plane == "sagittal":
             orig_data = du.transform_sagittal(orig_data)
@@ -78,9 +77,6 @@ class MultiScaleOrigDataThickSlices(Dataset):
         """
         scale = self.base_res / np.asarray(self.zoom)
 
-        if self.gn_noise != 0:
-            scale += self.gn_noise
-
         return scale
 
     def __getitem__(self, index):
@@ -101,11 +97,10 @@ class MultiScaleDataset(Dataset):
     """
     Class for loading aseg file with augmentations (transforms)
     """
-    def __init__(self, dataset_path, cfg, gn_noise=False, transforms=None):
+    def __init__(self, dataset_path, cfg, transforms=None):
 
         self.max_size = cfg.DATA.PADDED_SIZE
         self.base_res = cfg.MODEL.BASE_RES
-        self.gn_noise = gn_noise
 
         # Load the h5 file and save it to the datase
         self.images = []
@@ -161,10 +156,6 @@ class MultiScaleDataset(Dataset):
             img_zoom *= (1 / scale_aug)
 
         scale = self.base_res / img_zoom
-
-        if self.gn_noise:
-            scale += torch.randn(1) * 0.1 + 0 # needs to be changed to torch.tensor stuff
-            scale = torch.clamp(scale, min=0.1)
 
         return scale
 

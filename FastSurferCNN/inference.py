@@ -186,9 +186,9 @@ class Inference:
         return out
 
     @torch.no_grad()
-    def run(self, img_filename, orig_data, orig_zoom, out, noise=0, out_res=None):
+    def run(self, img_filename, orig_data, orig_zoom, out, out_res=None):
         # Set up DataLoader
-        test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg, gn_noise=noise,
+        test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg,
                                                      transforms=transforms.Compose([ToTensorTest()]))
 
         test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
