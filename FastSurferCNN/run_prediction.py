@@ -304,7 +304,7 @@ if __name__ == "__main__":
                         help="Directory in which evaluation results should be written. "
                              "Will be created if it does not exist. Optional if full path is defined for --pred_name.")
     parser.add_argument('--hires', action="store_true", default=False, dest='hires',
-                        help="Switch on hires processing (no conforming to 1mm, but to smallest voxel size).")
+                        help="Switch on high resolution processing (no conforming to 1mm, but to smallest voxel size).")
 
     # 3. Checkpoint to load
     parser.add_argument('--ckpt_cor', type=str, help="coronal checkpoint to load",

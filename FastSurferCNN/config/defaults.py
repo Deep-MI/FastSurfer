@@ -140,13 +140,13 @@ _C.DATA.CLASS_OPTIONS = ["aseg", "aparc"]
 
 # Available size for dataloader
 # This for the multi-scale dataloader
-_C.DATA.SIZES = [128, 183, 257, 256, 311, 320]
+_C.DATA.SIZES = [256, 311, 320]
 
 # the size that all inputs are padded to
 _C.DATA.PADDED_SIZE = 320
 
 # Augmentations
-_C.DATA.AUG = ["Flip", "Elastic", "Scaling", "Rotation", "Translation", "RAnisotropy", "BiasField", "RGamma"]
+_C.DATA.AUG = ["Scaling", "Translation"]
 
 # ---------------------------------------------------------------------------- #
 # DataLoader options (common for test and train)

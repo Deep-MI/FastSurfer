@@ -81,6 +81,7 @@ FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR 
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected)
+  --hires                 Switch on higher resolution processing (no conforming to 1mm, but to smallest voxel size).
   --seg <seg_input>       Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). When using FastSurfer, this
                             segmentation is already conformed, since inference

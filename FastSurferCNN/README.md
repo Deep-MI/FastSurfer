@@ -3,7 +3,7 @@
 This directory contains all information needed to run inference with the readily trained FastSurferCNN or train it from scratch. FastSurferCNN is capable of whole brain segmentation into 95 classes in under 1 minute, mimicking FreeSurfer's anatomical segmentation and cortical parcellation (DKTatlas). The network architecture incorporates local and global competition via competitive dense blocks and competitive skip pathways, as well as multi-slice information aggregation that specifically tailor network performance towards accurate segmentation of both cortical and sub-cortical structures. 
 ![](/images/detailed_network.png)
 
-The network was trained with conformed images (UCHAR, 256x256x256, 1-0.7 mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply.
+The network was trained with conformed images (UCHAR, 1-0.7 mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply.
 
 # 1. Inference
 
@@ -12,7 +12,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 #### General
 * --in_dir: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
 * --csv_file: Path to csv-file listing input volume directories
-* --t1: name of the MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
+* --t1: name of the T1-weighted MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
 * --conformed_name: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and the result is saved under the given name, __default: orig.mgz__)
 * --t: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*...)
 * --sd: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
@@ -38,7 +38,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
                     If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
                     Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
 * --device <str>: Device for processing ("cpu","cuda") (optional, default: cuda)
-* --hires: Switch on hires processing (no conforming to 1mm, but to smallest voxel size).
+* --hires: Switch on high resolution processing (no conforming to 1mm, but to smallest voxel size).
 * --batch_size: Batch size for inference. Default=8
 
 
@@ -106,7 +106,7 @@ The actual filename and segmentation ground truth name is specified via --image_
 * --combi: Suffixes of labels names to combine. Default: Left- and Right-
 * --sag_mask: Suffixes of labels names to mask for final sagittal labels. Default: Left- and ctx-rh
 * --max_w: Overall max weight for any voxel in weight mask. Default: 5
-* --hires_w: Weight for hires elements (sulci, WM strands, cortex border) in weight mask. Default: None
+* --hires_w: Weight for high resolution elements (sulci, WM strands, cortex border) in weight mask. Default: None
 * --no_grad: Turn on to only use median weight frequency (no gradient). Default: False
 * --gm: Turn on to add cortex mask for hires-processing. Default: False
 * --processing: Use aseg, aparc or no specific mapping processing. Default: aparc
