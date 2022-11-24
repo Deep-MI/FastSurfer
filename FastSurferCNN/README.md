@@ -19,7 +19,6 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * --seg_log: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved in the same directory as the predictions.
 * --strip: strip suffix from path definition of input file to yield correct subject name. (Optional, if full path is defined for --t1)
 * --lut: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv
-* --gn: How often to sample from gaussian and run inference on same sample with added noise on scale factor
 * --seg: Name of intermediate DL-based segmentation file (similar to aparc+aseg).
 * --cfg_cor: Path to the coronal config file
 * --cfg_sag: Path to the axial config file
