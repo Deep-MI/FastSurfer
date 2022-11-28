@@ -70,7 +70,7 @@ In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; o
 
 ```bash
 cd ..
-docker build --rm=true -t fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
+docker build --rm=true -t deepmi/fastsurfer:cpu-v2.0.0 -f ./Docker/Dockerfile_CPU .
 ```
 
 For running the analysis, the command is basically the same as above for the GPU option:
@@ -94,14 +94,14 @@ In order to build the docker image for FastSurferCNN (segmentation only; on GPU;
 
 ```bash
 cd ..
-docker build --rm=true -t fastsurfercnn:gpu -f ./Docker/Dockerfile_FastSurferCNN .
+docker build --rm=true -t deepmi/fastsurfer:gpu-segonly-v2.0.0 -f ./Docker/Dockerfile_FastSurferCNN .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurferCNN_analysis:/output \
-                      --rm --user $(id -u):$(id -g) fastsurfercnn:gpu \
+                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:gpu-segonly-v2.0.0 \
                       --t1 /data/subjectX/orig.mgz \
                       --sid subjectX --sd /output \
                       --seg_only
@@ -121,14 +121,14 @@ In order to build the docker image for FastSurferCNN (segmentation only; on CPU;
 
 ```bash
 cd ..
-docker build --rm=true -t fastsurfercnn:cpu -f ./Docker/Dockerfile_FastSurferCNN_CPU .
+docker build --rm=true -t deepmi/fastsurfer:cpu-segonly-v2.0.0 -f ./Docker/Dockerfile_FastSurferCNN_CPU .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurferCNN_analysis:/output \
-                      --rm --user $(id -u):$(id -g) fastsurfercnn:cpu \
+                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-segonly-v2.0.0 \
                       --t1 /data/subjectX/orig.mgz \
                       --sid subjectX --sd /output \
                       --seg_only \
@@ -143,7 +143,7 @@ In order to build the docker image for FastSurfer recon-surf (surface pipeline o
 
 ```bash
 cd ..
-docker build --rm=true -t fastsurfer_reconsurf:cpu -f ./Docker/Dockerfile_reconsurf .
+docker build --rm=true -t deepmi/fastsurfer:cpu-surfonly-v2.0.0 -f ./Docker/Dockerfile_reconsurf .
 ```
 
 For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
@@ -151,7 +151,7 @@ For running the analysis, start the container (e.g. to run segmentation on __all
 docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
            -v /home/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) fastsurfer_reconsurf:cpu \
+           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-surfonly-v2.0.0 \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/orig.mgz \
            --sid subjectX --sd /output \
@@ -176,7 +176,7 @@ https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction_to_
 
 ```bash
 cd ..
-docker build --rm=true -t fastsurfercnn:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+docker build --rm=true -t deepmi/fastsurfer:gpu-amd-v2.0.0 -f ./Docker/Dockerfile_FastSurferCNN_AMD .
 ```
 
 and run segmentation only:
@@ -187,7 +187,7 @@ docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
 	   --shm-size 8G \
 	   -v /home/user/my_mri_data:/data \
 	   -v /home/user/my_fastsurfer_analysis:/output \
-	   fastsurfercnn:amd \
+	   deepmi/fastsurfer:gpu-amd-v2.0.0 \
 	   --orig_name /data/subjectX/orig.mgz \
 	   --pred_name /output/subjectX/aparc.DKTatlas+aseg.deep.mgz
 ```
