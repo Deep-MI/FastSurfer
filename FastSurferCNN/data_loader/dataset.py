@@ -96,10 +96,11 @@ class MultiScaleDataset(Dataset):
     """
     Class for loading aseg file with augmentations (transforms)
     """
-    def __init__(self, dataset_path, cfg, transforms=None):
+    def __init__(self, dataset_path, cfg, gn_noise=False, transforms=None):
 
         self.max_size = cfg.DATA.PADDED_SIZE
         self.base_res = cfg.MODEL.BASE_RES
+        self.gn_noise = gn_noise
 
         # Load the h5 file and save it to the datase
         self.images = []
@@ -155,6 +156,10 @@ class MultiScaleDataset(Dataset):
             img_zoom *= (1 / scale_aug)
 
         scale = self.base_res / img_zoom
+
+        if self.gn_noise:
+            scale += torch.randn(1) * 0.1 + 0 # needs to be changed to torch.tensor stuff
+            scale = torch.clamp(scale, min=0.1)
 
         return scale
 
