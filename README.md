@@ -162,7 +162,7 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 You can also run a CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
 
 ### Example 4: FastSurfer Singularity
-After building the Singularity image (see instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag.
+After building the Singularity image (see instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
 
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following commands from a directory where you want to store singularity images. This will create a singularity image from our Dockerhub image and execute it:
 

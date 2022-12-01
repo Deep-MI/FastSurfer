@@ -25,7 +25,7 @@ For how to create your own Docker images see our [Docker guide](../Docker/README
 
 # FastSurfer Singularity Image Usage
 
-After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag.
+After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
 
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:
 
