@@ -69,7 +69,7 @@ COPY ./Docker/entrypoint.sh /fastsurfer/Docker/entrypoint.sh
 
 # Download all remote network checkpoints already
 ENV PYTHONPATH=/fastsurfer:$PYTHONPATH
-RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all; chmod w+r -R checkpoints
+RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all; chmod +r -R checkpoints
 
 # Set FastSurferCNN workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
