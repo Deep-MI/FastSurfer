@@ -22,7 +22,11 @@ ALL_FLAGS = {
     "remove_suffix": __arg(
         '--remove_suffix', type=str, dest="remove_suffix", default='',
         help="Optional: remove suffix from path definition of input file to yield correct subject name "
-             "(e.g. ses-x/anat/ for BIDS or mri/ for FreeSurfer input). Default: do not remove anything."),
+             "(e.g. /ses-x/anat/ for BIDS or /mri/ for FreeSurfer input). Default: do not remove anything."),
+    "sid": __arg(
+        '--sid', type=str, dest="sid", default=None,
+        help="Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject "
+             "processing, use remove suffix if sid is not second to last element of input file passed to --t1"),
     "aparc_aseg_segfile": __arg(
         '--aparc_aseg_segfile', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
         help="Name of intermediate DL-based segmentation file (similar to aparc+aseg). "
@@ -35,6 +39,16 @@ ALL_FLAGS = {
              "as the segmentation (the input image is always conformed first, if it is not "
              "already conformed). The original input image is saved in the output directory "
              "as $id/mri/orig/001.mgz. Default: mri/orig.mgz."),
+    "brainmask_name": __arg(
+        '--brainmask_name', type=str, dest='brainmask_name', default='mri/mask.mgz',
+        help="Name under which the brainmask image will be saved, in the same directory "
+             "as the segmentation. The brainmask is created from the aparc_aseg segmentation "
+             "(dilate 5, erode 4, largest component). Default: mri/mask.mgz."),
+    "aseg_name": __arg(
+        '--aseg_name', type=str, dest='aseg_name', default='mri/aseg.auto_noCCseg.mgz',
+        help="Name under which the reduced aseg segmentation will be saved, in the same directory "
+             "as the aparc-aseg segmentation (labels of full aparc segmentation are reduced to aseg). "
+             "Default: mri/aseg.auto_noCCseg.mgz."),
     "seg_log": __arg(
         '--seg_log', type=str, dest='log_name', default="",
         help="Absolute path to file in which run logs will be saved. If not set, logs will "

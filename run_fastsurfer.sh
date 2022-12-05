@@ -471,7 +471,7 @@ if [ "$run_seg_pipeline" == "1" ]
     echo "" |& tee -a $seg_log
 
     if [ "$run_aparc_module" == "1" ]; then
-      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
+      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
       echo $cmd |& tee -a $seg_log
       $cmd
       if [ ${PIPESTATUS[0]} -ne 0 ]
