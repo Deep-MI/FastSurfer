@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +18,7 @@ import glob
 import sys
 import argparse
 import os
+import copy
 
 import numpy as np
 import torch
@@ -31,6 +31,7 @@ from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.misc import find_device
 from FastSurferCNN.data_loader import data_utils as du, conform as conf
 from FastSurferCNN.quick_qc import check_volume
+import recon_surf.reduce_to_aseg as rta
 
 ##
 # Global Variables
@@ -77,7 +78,6 @@ def removesuffix(string, suffix):
 # Input array preparation
 ##
 class RunModelOnData:
-
     pred_name: str
     conf_name: str
     orig_name: str
@@ -122,7 +122,8 @@ class RunModelOnData:
         try:
             self.lut = du.read_classes_from_lut(args.lut)
         except FileNotFoundError as e:
-            raise ValueError(f"Could not find the ColorLUT in {args.lut}, please make sure the --lut argument is valid.")
+            raise ValueError(
+                f"Could not find the ColorLUT in {args.lut}, please make sure the --lut argument is valid.")
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
@@ -166,7 +167,7 @@ class RunModelOnData:
         orig, orig_data = self.get_img(orig_str)
 
         # Save input image to standard location
-        self.save_img(self.input_img_name, orig_data, orig, seg=False)
+        self.save_img(self.input_img_name, orig_data, orig)
 
         conform_min = self.vox_size == "auto"
         if not conf.is_conform(orig, conform_min=conform_min, check_dtype=True, verbose=False):
@@ -175,11 +176,11 @@ class RunModelOnData:
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
-        self.save_img(self.subject_conf_name, orig_data, orig, seg=False)
+        self.save_img(self.subject_conf_name, orig_data, orig)
         return orig, orig_data
 
-    def set_subject(self, subject: str):
-        self.subject_name = os.path.basename(removesuffix(subject, self.remove_suffix))
+    def set_subject(self, subject: str, sid: Union[str, None]):
+        self.subject_name = os.path.basename(removesuffix(subject, self.remove_suffix)) if sid is None else sid
         self.subject_conf_name = os.path.join(self.out_dir, self.subject_name, self.conf_name)
         self.input_img_name = os.path.join(self.out_dir, self.subject_name,
                                            os.path.dirname(self.conf_name), 'orig', '001.mgz')
@@ -224,19 +225,21 @@ class RunModelOnData:
         return img, data
 
     @staticmethod
-    def save_img(save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage, seg=False):
+    def save_img(save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage,
+                 dtype: Union[None, type] = None):
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info("Output image directory does not exist. Creating it now...")
             os.makedirs(os.path.dirname(save_as))
         np_data = data if isinstance(data, np.ndarray) else data.cpu().numpy()
 
-        if seg:
+        if dtype is not None:
             header = orig.header.copy()
-            header.set_data_dtype(np.int16)
-            du.save_image(header, orig.affine, np_data, save_as)
+            header.set_data_dtype(dtype)
         else:
-            du.save_image(orig.header, orig.affine, np_data, save_as)
+            header = orig.header
+
+        du.save_image(header, orig.affine, np_data, save_as)
         LOGGER.info("Successfully saved image as {}".format(save_as))
 
     def set_up_model_params(self, plane, cfg, ckpt):
@@ -271,18 +274,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
-    parser = parser_defaults.add_arguments(parser, ["t1", "in_dir", "tag", "csv_file", "lut", "remove_suffix"])
+    parser = parser_defaults.add_arguments(parser, ["t1", "sid", "in_dir", "tag", "csv_file", "lut", "remove_suffix"])
 
     # 2. Options for output
-    parser = parser_defaults.add_arguments(parser, ["aparc_aseg_segfile", "conformed_name", "sd", "seg_log", "qc_log"])
+    parser = parser_defaults.add_arguments(parser, ["aparc_aseg_segfile", "conformed_name", "brainmask_name",
+                                                    "aseg_name", "sd", "seg_log", "qc_log"])
 
     # 3. Checkpoint to load
-    parser = parser_defaults.add_plane_flags(parser, "checkpoint", {"coronal": VINN_COR, "axial": VINN_AXI, "sagittal": VINN_SAG})
+    parser = parser_defaults.add_plane_flags(parser, "checkpoint",
+                                             {"coronal": VINN_COR, "axial": VINN_AXI, "sagittal": VINN_SAG})
 
     # 4. CFG-file with default options for network
-    parser = parser_defaults.add_plane_flags(parser, "config", {"coronal": "FastSurferCNN/config/FastSurferVINN_coronal.yaml",
-                                                                "axial": "FastSurferCNN/config/FastSurferVINN_axial.yaml",
-                                                                "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"})
+    parser = parser_defaults.add_plane_flags(parser, "config",
+                                             {"coronal": "FastSurferCNN/config/FastSurferVINN_coronal.yaml",
+                                              "axial": "FastSurferCNN/config/FastSurferVINN_axial.yaml",
+                                              "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"})
 
     # 5. technical parameters
     parser = parser_defaults.add_arguments(parser, ["vox_size", "device", "viewagg_device", "batch_size"])
@@ -292,12 +298,14 @@ if __name__ == "__main__":
     # Check input and output options
     if args.in_dir is None and args.csv_file is None and not os.path.isfile(args.orig_name):
         parser.print_help(sys.stderr)
-        sys.exit('----------------------------\nERROR: Please specify data input directory or full path to input volume\n')
+        sys.exit(
+            '----------------------------\nERROR: Please specify data input directory or full path to input volume\n')
 
     if args.out_dir is None and not os.path.isabs(args.pred_name):
         parser.print_help(sys.stderr)
-        sys.exit('----------------------------\nERROR: Please specify data output directory or absolute path to output volume'
-                 '(can be same as input directory)\n')
+        sys.exit(
+            '----------------------------\nERROR: Please specify data output directory or absolute path to output volume'
+            '(can be same as input directory)\n')
 
     qc_file_handle = None
     if args.qc_log != "":
@@ -309,6 +317,7 @@ if __name__ == "__main__":
 
     # Set up logging
     from utils.logging import setup_logging
+
     setup_logging(args.log_name)
 
     # Download checkpoints if they do not exist
@@ -337,16 +346,35 @@ if __name__ == "__main__":
 
     for subject in s_dirs:
         # Set subject and load orig
-        eval.set_subject(subject)
+        eval.set_subject(subject, args.sid)
         orig_fn = args.orig_name if os.path.isfile(args.orig_name) else os.path.join(subject, args.orig_name)
         orig_img, data_array = eval.conform_and_save_orig(orig_fn)
 
+        # Set prediction name
+        out_dir, sbj_name = eval.get_out_dir(), eval.get_subject_name()
         pred_name = args.pred_name if os.path.isabs(args.pred_name) else \
-            os.path.join(eval.get_out_dir(), eval.get_subject_name(), args.pred_name)
+            os.path.join(out_dir, sbj_name, args.pred_name)
 
         # Run model
         pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
-        eval.save_img(pred_name, pred_data, orig_img, seg=True)
+        eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
+
+        # Create aseg and brainmask
+        # Change datatype to np.uint8, else mri_cc will fail!
+
+        # get mask
+        LOGGER.info("Creating brainmask based on segmentation...")
+        bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
+        mask_name = os.path.join(out_dir, sbj_name, args.brainmask_name)
+        eval.save_img(mask_name, bm, orig_img, dtype=np.uint8)
+
+        # reduce aparc to aseg and mask regions
+        LOGGER.info("Creating aseg based on segmentation...")
+        aseg = rta.reduce_to_aseg(pred_data)
+        aseg[bm == 0] = 0
+        aseg = rta.flip_wm_islands(aseg)
+        aseg_name = os.path.join(out_dir, sbj_name, args.aseg_name)
+        eval.save_img(aseg_name, aseg, orig_img, dtype=np.uint8)
 
         # Run QC check
         LOGGER.info("Running volume-based QC check on segmentation...")
@@ -354,7 +382,7 @@ if __name__ == "__main__":
         if not check_volume(pred_data, seg_voxvol):
             LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
             if qc_file_handle is not None:
-                qc_file_handle.write(subject.split('/')[-1]+"\n")
+                qc_file_handle.write(subject.split('/')[-1] + "\n")
                 qc_file_handle.flush()
             qc_failed_subject_count += 1
 
@@ -367,6 +395,7 @@ if __name__ == "__main__":
             LOGGER.error("Single subject failed the volume-based QC check.")
             sys.exit(1)
     else:
-        LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(qc_failed_subject_count, len(s_dirs)))
+        LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
+            qc_failed_subject_count, len(s_dirs)))
 
     sys.exit(0)
