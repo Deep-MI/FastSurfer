@@ -291,7 +291,7 @@ case $key in
     shift # past argument
     ;;
     --vox_size)
-    if [ "$2" == "auto "]; then
+    if [ "$2" == "auto" ]; then
       hiresflag="-hires"
     elif [ "$2" == "1" ]; then
       exit "Invalid option for --vox_size, only 1 or 'auto' are valid."

@@ -225,7 +225,7 @@ case $key in
     shift # past value
     ;;
     --seg | --main_segfile)
-    if [ "$1" == "--seg"]; then
+    if [ "$1" == "--seg" ]; then
       echo "WARNING: --seg <filename> is deprecated, use --main_segfile <filename>."
     fi
     main_segfile="$2"
