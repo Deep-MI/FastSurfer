@@ -31,7 +31,7 @@ from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.misc import find_device
 from FastSurferCNN.data_loader import data_utils as du, conform as conf
 from FastSurferCNN.quick_qc import check_volume
-import recon_surf.reduce_to_aseg as rta
+import FastSurferCNN.reduce_to_aseg as rta
 
 ##
 # Global Variables

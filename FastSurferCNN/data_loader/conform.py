@@ -73,7 +73,7 @@ def map_image(img, out_affine, out_shape, ras2ras=np.array([[1.0, 0, 0, 0], [0, 
               order=1):
     """
     Function to map image to new voxel space (RAS orientation)
-    :param nibabel.MGHImage img: the src 3D image with data and affine set
+    :param nibabel.SpatialImage img: the src 3D image with data and affine set
     :param np.ndarray out_affine: trg image affine
     :param np.ndarray out_shape: the trg shape information
     :param np.ndarray ras2ras: ras2ras an additional maping that should be applied (default=id to just reslice)
@@ -208,7 +208,7 @@ def findMinSizeConformDim(img, max_size=1, min_dim=256):
     """
     Function to find minimal voxel size <= 1mm and required cube dimension (>= 256) to cover field of view
     
-    :param nibabel.MGHImage img: loaded source image
+    :param nibabel.SpatialImage img: loaded source image
     :param float max_size: maximale voxel size in mm (default 1)
     :param int min_dim: minimale image dimension in voxles (default 256)
     :return: float min_size: rounded minimal voxel size
@@ -242,7 +242,7 @@ def conform(img, order=1, conform_min=False):
     :param nibabel.SpatialImage img: loaded source image
     :param int order: interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic)
     :param bool conform_min: conform image to minimal voxel size (for high-res)
-    :return: nibabel.MGHImage new_img: conformed image
+    :return: nibabel.SpatialImage new_img: conformed image
     """
     from nibabel.freesurfer.mghformat import MGHHeader
 
