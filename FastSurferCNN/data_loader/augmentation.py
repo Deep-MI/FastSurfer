@@ -41,6 +41,38 @@ class ToTensorTest(object):
         return img
 
 
+class ZeroPad2DTest(object):
+    def __init__(self, output_size, pos='top_left'):
+        """
+         Pad the input with zeros to get output size
+        :param output_size:
+        :param pos: position to put the input
+        """
+        if isinstance(output_size, float):
+            output_size = (output_size, ) * 2
+        self.output_size = output_size
+        self.pos = pos
+
+    def _pad(self, image):
+        if len(image.shape) == 2:
+            h, w = image.shape
+            padded_img = np.zeros(self.output_size, dtype=image.dtype)
+        else:
+            h, w, c = image.shape
+            padded_img = np.zeros(self.output_size + (c,), dtype=image.dtype)
+
+        if self.pos == 'top_left':
+            padded_img[0: h, 0: w] = image
+
+        return padded_img
+
+    def __call__(self, img):
+
+        img = self._pad(img)
+
+        return img
+
+
 ##
 # Transformations for training
 ##
@@ -50,7 +82,7 @@ class ToTensor(object):
     """
 
     def __call__(self, sample):
-        img, label, weight = sample['img'], sample['label'], sample['weight']
+        img, label, weight, sf = sample['img'], sample['label'], sample['weight'], sample['scale_factor']
 
         img = img.astype(np.float32)
 
@@ -62,7 +94,57 @@ class ToTensor(object):
         # torch image: C X H X W
         img = img.transpose((2, 0, 1))
 
-        return {'img': torch.from_numpy(img), 'label': label, 'weight': weight}
+        return {'img': torch.from_numpy(img),
+                'label': torch.from_numpy(label),
+                'weight': torch.from_numpy(weight),
+                'scale_factor': torch.from_numpy(sf)}
+
+
+class ZeroPad2D(object):
+    def __init__(self, output_size, pos='top_left'):
+        """
+         Pad the input with zeros to get output size
+        :param output_size:
+        :param pos: position to put the input
+        """
+        if isinstance(output_size, float):
+            output_size = (output_size, ) * 2
+        self.output_size = output_size
+        self.pos = pos
+
+    def _pad(self, image):
+        if len(image.shape) == 2:
+            h, w = image.shape
+            padded_img = np.zeros(self.output_size, dtype=image.dtype)
+        else:
+            h, w, c = image.shape
+            padded_img = np.zeros(self.output_size + (c,), dtype=image.dtype)
+
+        if self.pos == 'top_left':
+            padded_img[0: h, 0: w] = image
+
+        return padded_img
+
+    def __call__(self, sample):
+        img, label, weight, sf = sample['img'], sample['label'], sample['weight'], sample['scale_factor']
+
+        img = self._pad(img)
+        label = self._pad(label)
+        weight = self._pad(weight)
+
+        return {'img': img, 'label': label, 'weight': weight, 'scale_factor': sf}
+
+
+class AddGaussianNoise(object):
+    def __init__(self, mean=0, std=0.1):
+        self.std = std
+        self.mean = mean
+
+    def __call__(self, sample):
+        img, label, weight, sf = sample['img'], sample['label'], sample['weight'], sample['scale_factor']
+        # change 1 to sf.size() for isotropic scale factors (now same noise change added to both dims)
+        sf = sf + torch.randn(1) * self.std + self.mean
+        return {'img': img, 'label': label, 'weight': weight, 'scale_factor': sf}
 
 
 class AugmentationPadImage(object):
@@ -86,13 +168,13 @@ class AugmentationPadImage(object):
         self.pad_type = pad_type
 
     def __call__(self, sample):
-        img, label, weight = sample['img'], sample['label'], sample['weight']
+        img, label, weight, sf = sample['img'], sample['label'], sample['weight'], sample['scale_factor']
 
         img = np.pad(img, self.pad_size_image, self.pad_type)
         label = np.pad(label, self.pad_size_mask, self.pad_type)
         weight = np.pad(weight, self.pad_size_mask, self.pad_type)
 
-        return {'img': img, 'label': label, 'weight': weight}
+        return {'img': img, 'label': label, 'weight': weight, 'scale_factor': sf}
 
 
 class AugmentationRandomCrop(object):
@@ -113,7 +195,7 @@ class AugmentationRandomCrop(object):
         self.crop_type = crop_type
 
     def __call__(self, sample):
-        img, label, weight = sample['img'], sample['label'], sample['weight']
+        img, label, weight, sf = sample['img'], sample['label'], sample['weight'], sample['scale_factor']
 
         h, w, _ = img.shape
 
@@ -133,4 +215,5 @@ class AugmentationRandomCrop(object):
         label = label[top:bottom, left:right]
         weight = weight[top:bottom, left:right]
 
-        return {'img': img, 'label': label, 'weight': weight}
+        return {'img': img, 'label': label, 'weight': weight, 'scale_factor': sf}
+

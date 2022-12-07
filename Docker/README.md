@@ -147,3 +147,31 @@ docker run -v /home/user/my_mri_data:/data \
 * Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
+
+
+### Example 6: Experimental build for AMD GPUs
+
+Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into 
+your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to work. For this follow:
+https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction_to_AMD_ROCm_Installation_Guide_for_Linux.html
+
+
+```bash
+cd ..
+docker build --rm=true -t fastsurfercnn:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+```
+
+and run segmentation only:
+
+```bash
+docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+           --device=/dev/kfd --device=/dev/dri --group-add video --ipc=host \
+	   --shm-size 8G \
+	   -v /home/user/my_mri_data:/data \
+	   -v /home/user/my_fastsurfer_analysis:/output \
+	   fastsurfercnn:amd \
+	   --orig_name /data/subject2/orig.mgz \
+	   --pred_name /output/subject2/aparc.DKTatlas+aseg.deep.mgz
+```
+
+Note, we tested on an AMD Radeon Pro W6600, which is not officially supported, but setting HSA_OVERRIDE_GFX_VERSION=10.3.0 inside docker did the trick.

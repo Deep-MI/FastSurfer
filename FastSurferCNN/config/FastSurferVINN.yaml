@@ -1,0 +1,33 @@
+MODEL:
+  MODEL_NAME: "FastSurferVINN"
+  NUM_CLASSES: 79
+  NUM_FILTERS: 71
+  KERNEL_H: 3
+  KERNEL_W: 3
+  BASE_RES: 1.0
+  OUT_TENSOR_WIDTH: 320
+  OUT_TENSOR_HEIGHT: 320
+  HEIGHT: 256
+  WIDTH: 256
+
+DATA:
+  SIZES: [256, 311, 320]
+  PADDED_SIZE: 320
+  PLANE: "coronal"
+  PATH_HDF5_TRAIN: "./hdf5_sets/training_coronal.hdf5"
+  PATH_HDF5_VAL: "./hdf5_sets/validation_coronal.hdf5"
+  AUG: ["None", "Gaussian"]
+
+DATA_LOADER:
+  NUM_WORKERS: 3
+
+OPTIMIZER:
+  LR_SCHEDULER: cosineWarmRestarts
+  OPTIMIZING_METHOD: adamW
+
+TRAIN:
+  NUM_EPOCHS: 30
+  BATCH_SIZE: 8
+
+LOG_DIR: "./experiments"
+EXPR_NUM: "FastSurferVINN"

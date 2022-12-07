@@ -125,11 +125,11 @@ After pulling one of our images from Dockerhub, you do not need to have a separa
 To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:
 
 ```bash
-docker pull deepmi/fastsurfer:gpu-v1.1.1
+docker pull deepmi/fastsurfer
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
-                      --rm --user XXXX fastsurfer:gpu \
+                      --rm --user XXXX deepmi/fastsurfer \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subject2/orig.mgz \
                       --sid subject2 --sd /output \

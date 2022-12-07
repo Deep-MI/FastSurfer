@@ -19,7 +19,8 @@ import sys
 import numpy as np
 import nibabel as nib
 import copy
-from skimage.morphology import binary_dilation, binary_erosion
+
+import scipy.ndimage
 from skimage.measure import label
 from skimage.filters import gaussian
 
@@ -104,10 +105,12 @@ def create_mask(aseg_data, dnum, enum):
     datab = (aseg_data > 0)
     datab[frontal_mask] = 0
     # dilate and erode
-    for x in range(dnum):
-        datab = binary_dilation(datab, np.ones((3, 3, 3)))
-    for x in range(enum):
-        datab = binary_erosion(datab, np.ones((3, 3, 3)))
+    datab = scipy.ndimage.binary_dilation(datab, np.ones((3, 3, 3)), iterations=dnum)
+    datab = scipy.ndimage.binary_erosion(datab, np.ones((3, 3, 3)), iterations=enum)
+    #for x in range(dnum):
+    #    datab = binary_dilation(datab, np.ones((3, 3, 3)))
+    #for x in range(enum):
+    #    datab = binary_erosion(datab, np.ones((3, 3, 3)))
 
     # extract largest component
     labels = label(datab)

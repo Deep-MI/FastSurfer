@@ -1,0 +1,74 @@
+MODEL: 
+  MODEL_NAME: "FastSurferVINN"
+  NUM_CLASSES: 79
+  LOSS_FUNC: "combined"
+  NUM_FILTERS: 71
+  NUM_FILTERS_INTERPOL: 32
+  NUM_CHANNELS: 7
+  KERNEL_H: 3
+  KERNEL_W: 3
+  KERNEL_C: 1
+  STRIDE_CONV: 1
+  STRIDE_POOL: 2
+  POOL: 2
+  HEIGHT: 256
+  WIDTH: 256
+  BASE_RES: 1.0
+  INTERPOLATION_MODE: "bilinear"
+  CROP_POSITION: "top_left"
+  OUT_TENSOR_WIDTH: 320
+  OUT_TENSOR_HEIGHT: 320
+
+TRAIN:
+  BATCH_SIZE: 8
+  LOG_INTERVAL: 50
+  RESUME: false
+  RESUME_EXPR_NUM: "Default"
+  NUM_EPOCHS: 70
+  NUM_STEPS: 10
+  FINE_TUNE: false
+  CHECKPOINT_PERIOD: 2
+  NUM_WORKERS: 1
+
+TEST:
+  BATCH_SIZE: 16
+
+DATA:
+  PATH_HDF5_TRAIN: "axial_train_hiresW.hdf5"
+  PATH_HDF5_VAL: "axial_val_hiresW.hdf5"
+  PLANE: "axial"
+  SIZES: [
+      256
+      311
+      320
+    ]
+  PADDED_SIZE: 320
+  AUG: [
+    None"
+    Gaussian"
+    ]
+
+DATA_LOADER:
+  NUM_WORKERS: 8
+  PIN_MEMORY: true
+
+OPTIMIZER:
+  BASE_LR: 0.01
+  LR_SCHEDULER: "cosineWarmRestarts"
+  GAMMA: 0.3
+  STEP_SIZE: 5
+  ETA_MIN: 0.0001
+  T_ZERO: 10
+  T_MULT: 2
+  MOMENTUM: 0.9
+  DAMPENING: 0.0
+  NESTEROV: true
+  WEIGHT_DECAY: 0.0001
+  OPTIMIZING_METHOD: "adamW"
+
+NUM_GPUS: 1
+LOG_DIR: "FastsurferVINN"
+EXPR_NUM: "FastSurferVINN_axial"
+RNG_SEED: 1
+SUMMARY_PATH: "FastSurferVINN/summary/FastSurferVINN_axial"
+CONFIG_LOG_PATH: "FastSurferVINN/config/FastSurferVINN_axial"

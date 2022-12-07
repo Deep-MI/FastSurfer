@@ -1,3 +1,4 @@
+
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,218 +13,290 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # IMPORTS
-import argparse
+import pprint
+import time
 import os
-import shutil
-import logging
+from collections import defaultdict
 
 import torch
-import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
+import numpy as np
+from tqdm import tqdm
 
-from torch.utils.data.dataloader import DataLoader
-from torchvision import transforms, utils
+from FastSurferCNN.data_loader import loader
+from FastSurferCNN.models.networks import build_model
+from FastSurferCNN.models.optimizer import get_optimizer
+from FastSurferCNN.models.losses import get_loss_func
+from FastSurferCNN.utils import logging, checkpoint as cp
+from FastSurferCNN.utils.lr_scheduler import get_lr_scheduler
+from FastSurferCNN.utils.meters import Meter
+from FastSurferCNN.utils.metrics import iou_score, precision_recall
+from FastSurferCNN.utils.misc import update_num_steps, plot_predictions
+from FastSurferCNN.config.global_var import get_class_names
 
-from data_loader.load_neuroimaging_data import AsegDatasetWithAugmentation
-from data_loader.augmentation import AugmentationPadImage, AugmentationRandomCrop, ToTensor
-
-from models.networks import FastSurferCNN
-from models.solver import Solver
-
-##
-# GLOBAL VARS
-##
-CLASS_NAMES_SAG = ["3rd-Ventricle", "4th-Ventricle", "Brain-Stem", "CSF", "Cerebral-White-Matter",
-                   "Lateral-Ventricle", "Inf-Lat-Vent", "Cerebellum-White-Matter",
-                   "Cerebellum-Cortex", "Thalamus-Proper", "Caudate", "Putamen",
-                   "Pallidum", "Hippocampus", "Amygdala", "Accumbens-area",
-                   "VentralDC", "choroid-plexus", "WM-hypointensities",
-                   "ctx-both-caudalanteriorcingulate", "ctx-both-caudalmiddlefrontal",
-                   "ctx-both-cuneus", "ctx-both-entorhinal", "ctx-both-fusiform",
-                   "ctx-both-inferiorparietal", "ctx-both-inferiortemporal", "ctx-both-isthmuscingulate",
-                   "ctx-both-lateraloccipital", "ctx-both-lateralorbitofrontal", "ctx-both-lingual",
-                   "ctx-both-medialorbitofrontal", "ctx-both-middletemporal", "ctx-both-parahippocampal",
-                   "ctx-both-paracentral", "ctx-both-parsopercularis", "ctx-both-parsorbitalis",
-                   "ctx-both-parstriangularis", "ctx-both-pericalcarine", "ctx-both-postcentral",
-                   "ctx-both-posteriorcingulate", "ctx-both-precentral", "ctx-both-precuneus",
-                   "ctx-both-rostralanteriorcingulate", "ctx-both-rostralmiddlefrontal", "ctx-both-superiorfrontal",
-                   "ctx-both-superiorparietal", "ctx-both-superiortemporal", "ctx-both-supramarginal",
-                   "ctx-both-transversetemporal", "ctx-both-insula"
-                   ]
-
-CLASS_NAMES = ["Left-Cerebral-White-Matter", "Left-Lateral-Ventricle", "Left-Inf-Lat-Vent",
-               "Left-Cerebellum-White-Matter", "Left-Cerebellum-Cortex", "Left-Thalamus-Proper",
-               "Left-Caudate", "Left-Putamen", "Left-Pallidum", "3rd-Ventricle", "4th-Ventricle",
-               "Brain-Stem", "Left-Hippocampus", "Left-Amygdala", "CSF", "Left-Accumbens-area",
-               "Left-VentralDC", "Left-choroid-plexus", "Right-Cerebral-White-Matter",
-               "Right-Lateral-Ventricle", "Right-Inf-Lat-Vent", "Right-Cerebellum-White-Matter",
-               "Right-Cerebellum-Cortex", "Right-Thalamus-Proper", "Right-Caudate", "Right-Putamen",
-               "Right-Pallidum", "Right-Hippocampus", "Right-Amygdala", "Right-Accumbens-area",
-               "Right-VentralDC", "Right-choroid-plexus", "WM-hypointensities", "ctx-lh-caudalanteriorcingulate",
-               "ctx-both-caudalmiddlefrontal", "ctx-lh-cuneus", "ctx-both-entorhinal", "ctx-both-fusiform",
-               "ctx-both-inferiorparietal", "ctx-both-inferiortemporal", "ctx-lh-isthmuscingulate",
-               "ctx-both-lateraloccipital", "ctx-lh-lateralorbitofrontal", "ctx-lh-lingual",
-               "ctx-lh-medialorbitofrontal", "ctx-both-middletemporal", "ctx-lh-parahippocampal",
-               "ctx-lh-paracentral", "ctx-both-parsopercularis", "ctx-both-parsorbitalis",
-               "ctx-both-parstriangularis", "ctx-lh-pericalcarine", "ctx-lh-postcentral",
-               "ctx-lh-posteriorcingulate", "ctx-lh-precentral", "ctx-lh-precuneus",
-               "ctx-both-rostralanteriorcingulate", "ctx-both-rostralmiddlefrontal", "ctx-lh-superiorfrontal",
-               "ctx-both-superiorparietal", "ctx-both-superiortemporal", "ctx-both-supramarginal",
-               "ctx-both-transversetemporal", "ctx-both-insula", "ctx-rh-caudalanteriorcingulate",
-               "ctx-rh-cuneus", "ctx-rh-isthmuscingulate", "ctx-rh-lateralorbitofrontal", "ctx-rh-lingual",
-               "ctx-rh-medialorbitofrontal", "ctx-rh-parahippocampal", "ctx-rh-paracentral",
-               "ctx-rh-pericalcarine", "ctx-rh-postcentral", "ctx-rh-posteriorcingulate", "ctx-rh-precentral",
-               "ctx-rh-precuneus", "ctx-rh-superiorfrontal"]
+logger = logging.getLogger(__name__)
 
 
-def setup_options():
-    # Training settings
-    parser = argparse.ArgumentParser(description='Segmentation')
+class Trainer:
+    def __init__(self, cfg):
+        # Set random seed from configs.
+        np.random.seed(cfg.RNG_SEED)
+        torch.manual_seed(cfg.RNG_SEED)
+        self.cfg = cfg
 
-    parser.add_argument('--batch_size', type=int, default=16, metavar='N',
-                        help='input batch size for training (default: 16)')
-    parser.add_argument('--validation_batch_size', type=int, default=16, metavar='N',
-                        help='input batch size for validation (default: 16)')
+        # Create the checkpoint dir.
+        self.checkpoint_dir = cp.create_checkpoint_dir(cfg.LOG_DIR, cfg.EXPR_NUM)
+        logging.setup_logging(cfg.LOG_DIR, cfg.EXPR_NUM)
+        logger.info("Training with config:")
+        logger.info(pprint.pformat(cfg))
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = build_model(cfg)
+        self.loss_func = get_loss_func(cfg)
 
-    parser.add_argument('--hdf5_name_train', type=str,
-                        help='path to training hdf5-dataset')
-    parser.add_argument('--hdf5_name_val', type=str,
-                        help='path to validation hdf5-dataset')
+        # set up class names
+        self.class_names = get_class_names(cfg.DATA.PLANE, cfg.DATA.CLASS_OPTIONS)
 
-    parser.add_argument('--plane', type=str, default="axial", choices=["axial", "coronal", "sagittal"],
-                        help="Which plane to train on (axial (default), coronal or sagittal)")
-    parser.add_argument('--img_height', dest="height", type=int, default=256,
-                        help='Height of image instances as returned by hdf5_loader (Default 256)')
-    parser.add_argument('--img_width', dest="width", type=int, default=256,
-                        help='Width of image instances as returned by hdf5_loader (Default 256)')
+        # Set up logger format
+        self.a = "{}\t" * (cfg.MODEL.NUM_CLASSES - 2) + "{}"
+        self.num_classes = cfg.MODEL.NUM_CLASSES
+        self.plot_dir = os.path.join(cfg.LOG_DIR, "pred", str(cfg.EXPR_NUM))
+        os.makedirs(self.plot_dir, exist_ok=True)
 
-    parser.add_argument('--log-interval', type=int, default=2, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--log_dir', type=str,
-                        help='log directory for run')
+        self.subepoch = False if self.cfg.TRAIN.BATCH_SIZE == 16 else True
 
-    parser.add_argument('--num_filters', type=int, default=64,
-                        help='Filter dimensions for DenseNet (all layers same). Default=64')
-    parser.add_argument('--num_classes', type=int, default=79,
-                        help='Number of classes to predict, including background. Default=79')
-    parser.add_argument('--num_channels', type=int, default=7,
-                        help='Number of input channels. Default=7 (thick slices)')
+    def train(self, train_loader, optimizer, scheduler, train_meter, epoch):
+        self.model.train()
+        logger.info("Training started ")
+        epoch_start = time.time()
+        loss_batch = np.zeros(1)
 
-    parser.add_argument('--kernel_height', type=int, default=5, help='Height of Kernel (Default 5)')
-    parser.add_argument('--kernel_width', type=int, default=5, help='Width of Kernel (Default 5)')
-    parser.add_argument('--stride', type=int, default=1, help="Stride during convolution (Default 1)")
-    parser.add_argument('--stride_pool', type=int, default=2, help="Stride during pooling (Default 2)")
-    parser.add_argument('--pool', type=int, default=2, help='Size of pooling filter (Default 2)')
+        for curr_iter, batch in tqdm(enumerate(train_loader), total=len(train_loader)):
 
-    parser.add_argument('--epochs', type=int, default=30, metavar='N', help='number of epochs to train (default: 30)')
-    parser.add_argument('--lr', type=float, default=1e-2, metavar='LR', help='learning rate (default: 0.01)')
-    parser.add_argument('--optim', type=str, default="adam", choices=["adam", "sgd"])
-    parser.add_argument('--resume', action="store_true", default=False, help="Flag if resume is needed")
-    parser.add_argument('--torchv11', action="store_true", default=False,
-                        help="Flag if torch version below 1.2 is used."
-                             " Order of learning rate schedule update and optimizer step is changed between the versions.")
-    parser.add_argument('--scheduler', type=str, default="StepLR", choices=["StepLR", "None"],
-                        help="type of learning rate scheduler to use. Default: StepLR")
-    parser.add_argument('--momentum', type=float, default=0.9, help='Momentum for optimizer (SGD).')
-    parser.add_argument('--nesterov', action='store_true', default=False, help='Enables Nesterov for optimizer (SGD)')
+            images, labels, weights, scale_factors = batch['image'].to(self.device), \
+                                                     batch['label'].to(self.device), \
+                                                     batch['weight'].float().to(self.device), \
+                                                     batch['scale_factor']
 
-    parser.add_argument('--no-cuda', action='store_true', default=False, help='disables CUDA training')
-    parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed (default: 1)')
+            if not self.subepoch or (curr_iter)%(16/self.cfg.TRAIN.BATCH_SIZE) == 0:
+                optimizer.zero_grad() # every second epoch to get batchsize of 16 if using 8
 
-    args = parser.parse_args()
-    return args
+            pred = self.model(images, scale_factors)
+            loss_total, loss_dice, loss_ce = self.loss_func(pred, labels, weights)
 
+            train_meter.update_stats(pred, labels, loss_total)
+            train_meter.log_iter(curr_iter, epoch)
+            if scheduler is not None:
+                train_meter.write_summary(loss_total, scheduler.get_lr(), loss_ce, loss_dice)
+            else:
+                train_meter.write_summary(loss_total, [self.cfg.OPTIMIZER.BASE_LR], loss_ce, loss_dice)
 
-def train():
-    """
-    Function to train a network with the given input parameters
-    :return: None
-    """
-    args = setup_options()
+            loss_total.backward()
+            if not self.subepoch or (curr_iter+1)%(16/self.cfg.TRAIN.BATCH_SIZE) == 0:
+                optimizer.step() # every second epoch to get batchsize of 16 if using 8
+                if scheduler is not None:
+                    scheduler.step(epoch + curr_iter / len(train_loader))
 
-    # logger and snapshot current code
-    if not os.path.exists(args.log_dir):
-        os.makedirs(args.log_dir)
-    shutil.copy2(__file__, os.path.join(args.log_dir, "train.py"))
-    shutil.copy2("./models/networks.py", os.path.join(args.log_dir, "networks.py"))
-    shutil.copy2("./models/sub_module.py", os.path.join(args.log_dir, "sub_module.py"))
+            loss_batch += loss_total.item()
 
-    logger = logging.getLogger("train")
-    logger.setLevel(logging.DEBUG)
-    logger.handlers = []
-    ch = logging.StreamHandler()
-    logger.addHandler(ch)
-    fh = logging.FileHandler(os.path.join(args.log_dir, "log.txt"))
-    logger.addHandler(fh)
+            # Plot sample predictions
+            if curr_iter == len(train_loader)-2:
+                plt_title = 'Training Results Epoch ' + str(epoch)
 
-    logger.info("%s", repr(args))
+                file_save_name = os.path.join(self.plot_dir,
+                                              'Epoch_' + str(epoch) + '_Training_Predictions.pdf')
 
-    # Define augmentations
-    transform_train = transforms.Compose([AugmentationPadImage(pad_size=8),
-                                          AugmentationRandomCrop(output_size=(args.height, args.width)),
-                                          ToTensor()])
-    transform_test = transforms.Compose([ToTensor()])
+                _, batch_output = torch.max(pred, dim=1)
+                plot_predictions(images, labels, batch_output, plt_title, file_save_name)
 
-    # Prepare and load data
-    params_dataset_train = {'dataset_name': args.hdf5_name_train, 'plane': args.plane}
-    params_dataset_test = {'dataset_name': args.hdf5_name_val, 'plane': args.plane}
+        train_meter.log_epoch(epoch)
+        logger.info("Training epoch {} finished in {:.04f} seconds".format(epoch, time.time() - epoch_start))
 
-    dataset_train = AsegDatasetWithAugmentation(params_dataset_train, transforms=transform_train)
-    dataset_validation = AsegDatasetWithAugmentation(params_dataset_test, transforms=transform_test)
+    @torch.no_grad()
+    def eval(self, val_loader, val_meter, epoch):
+        logger.info(f"Evaluating model at epoch {epoch}")
+        self.model.eval()
 
-    train_dataloader = DataLoader(dataset=dataset_train, batch_size=args.batch_size, shuffle=True)
-    validation_dataloader = DataLoader(dataset=dataset_validation, batch_size=args.validation_batch_size, shuffle=True)
+        val_loss_total = defaultdict(float)
+        val_loss_dice = defaultdict(float)
+        val_loss_ce = defaultdict(float)
 
-    # Set up network
-    params_network = {'num_channels': args.num_channels, 'num_filters': args.num_filters,
-                      'kernel_h': args.kernel_height, 'kernel_w': args.kernel_width, 'stride_conv': args.stride,
-                      'pool': args.pool, 'stride_pool': args.stride_pool, 'num_classes': args.num_classes,
-                      'kernel_c': 1, 'kernel_d': 1, 'batch_size': args.batch_size,
-                      'height': args.height, 'width': args.width}
+        ints_ = defaultdict(lambda: np.zeros(self.num_classes - 1))
+        unis_ = defaultdict(lambda: np.zeros(self.num_classes - 1))
+        miou = np.zeros(self.num_classes - 1)
+        per_cls_counts_gt = defaultdict(lambda: np.zeros(self.num_classes - 1))
+        per_cls_counts_pred = defaultdict(lambda: np.zeros(self.num_classes - 1))
+        accs = defaultdict(lambda: np.zeros(self.num_classes - 1))  # -1 to exclude background (still included in val loss)
 
-    # Select the model
-    model = FastSurferCNN(params_network)
+        val_start = time.time()
+        for curr_iter, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
 
-    # Put model on GPU
-    if torch.cuda.is_available():
-        if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model)
-        model.cuda()
+            images, labels, weights, scale_factors = batch['image'].to(self.device), \
+                                                     batch['label'].to(self.device), \
+                                                     batch['weight'].float().to(self.device), \
+                                                     batch['scale_factor']
 
-    # Define labels
-    if args.plane == "sagittal":
-        curr_labels = CLASS_NAMES_SAG
+            pred = self.model(images, scale_factors)
+            loss_total, loss_dice, loss_ce = self.loss_func(pred, labels, weights)
 
-    else:
-        curr_labels = CLASS_NAMES
+            sf = torch.unique(scale_factors)
+            if len(sf) == 1:
+                sf = sf.item()
+                val_loss_total[sf] += loss_total.item()
+                val_loss_dice[sf] += loss_dice.item()
+                val_loss_ce[sf] += loss_ce.item()
 
-    # optimizer selection
-    if args.optim == "sgd":
-        optim = torch.optim.SGD
+                _, batch_output = torch.max(pred, dim=1)
 
-        # Global optimization parameters for adam
-        default_optim_args = {"lr": args.lr,
-                              "momentum": args.momentum,
-                              "dampening": 0,
-                              "weight_decay": 0,
-                              "nesterov": args.nesterov}
-    else:
-        optim = torch.optim.Adam
+                # Calculate iou_scores, accuracy and dice confusion matrix + sum over previous batches
+                int_, uni_ = iou_score(batch_output, labels, self.num_classes)
+                ints_[sf] += int_
+                unis_[sf] += uni_
 
-        # Global optimization parameters for adam
-        default_optim_args = {"lr": args.lr,
-                              "betas": (0.9, 0.999),
-                              "eps": 1e-8,
-                              "weight_decay": 0.0001}
+                tpos, pcc_gt, pcc_pred = precision_recall(batch_output, labels, self.num_classes)
+                accs[sf] += tpos
+                per_cls_counts_gt[sf] += pcc_gt
+                per_cls_counts_pred[sf] += pcc_pred
 
-    # Run network
-    solver = Solver(num_classes=params_network["num_classes"], optimizer_args=default_optim_args, optimizer=optim)
-    solver.train(model, train_dataloader, validation_dataloader, class_names=curr_labels, num_epochs=args.epochs,
-                 log_params={'logdir': os.path.join(args.log_dir, "logs"), 'log_iter': args.log_interval, 'logger': logger},
-                 expdir=os.path.join(args.log_dir, "ckpts"), scheduler_type=args.scheduler, torch_v11=args.torchv11,
-                 resume=args.resume)
+            # Plot sample predictions
+            if curr_iter == (len(val_loader) // 2):
+                plt_title = 'Validation Results Epoch ' + str(epoch)
 
+                file_save_name = os.path.join(self.plot_dir,
+                                              'Epoch_' + str(epoch) + '_Validations_Predictions.pdf')
 
-if __name__ == "__main__":
-    train()
+                plot_predictions(images, labels, batch_output, plt_title, file_save_name)
+
+            val_meter.update_stats(pred, labels, loss_total)
+            val_meter.write_summary(loss_total)
+            val_meter.log_iter(curr_iter, epoch)
+
+        val_meter.log_epoch(epoch)
+        logger.info("Validation epoch {} finished in {:.04f} seconds".format(epoch, time.time() - val_start))
+
+        # Get final measures and log them
+        for key in accs.keys():
+            ious = ints_[key] / unis_[key]
+            miou += ious
+            val_loss_total[key] /= (curr_iter + 1)
+            val_loss_dice[key] /= (curr_iter + 1)
+            val_loss_ce[key] /= (curr_iter + 1)
+
+            # Log metrics
+            logger.info("[Epoch {} stats]: SF: {}, MIoU: {:.4f}; "
+                                  "Mean Recall: {:.4f}; "
+                                  "Mean Precision: {:.4f}; "
+                                  "Avg loss total: {:.4f}; "
+                                  "Avg loss dice: {:.4f}; "
+                                  "Avg loss ce: {:.4f}".format(epoch, key, np.mean(ious),
+                                                               np.mean(accs[key] / per_cls_counts_gt[key]),
+                                                               np.mean(accs[key] / per_cls_counts_pred[key]),
+                                                               val_loss_total[key], val_loss_dice[key], val_loss_ce[key]))
+
+            logger.info(self.a.format(*self.class_names))
+            logger.info(self.a.format(*ious))
+
+        return np.mean(np.mean(miou))
+
+    def run(self):
+        if self.cfg.NUM_GPUS > 1:
+            assert self.cfg.NUM_GPUS <= torch.cuda.device_count(), \
+                "Cannot use more GPU devices than available"
+            print("Using ", self.cfg.NUM_GPUS, "GPUs!")
+            self.model = torch.nn.DataParallel(self.model)
+
+        val_loader = loader.get_dataloader(self.cfg, "val")
+        train_loader = loader.get_dataloader(self.cfg, "train")
+
+        update_num_steps(train_loader, self.cfg)
+
+        # Transfer the model to device(s)
+        self.model = self.model.to(self.device)
+
+        optimizer = get_optimizer(self.model, self.cfg)
+        scheduler = get_lr_scheduler(optimizer, self.cfg)
+
+        checkpoint_paths = cp.get_checkpoint_path(self.cfg.LOG_DIR,
+                                                 self.cfg.TRAIN.RESUME_EXPR_NUM)
+        if self.cfg.TRAIN.RESUME and checkpoint_paths:
+            try:
+                checkpoint_path = checkpoint_paths.pop()
+                checkpoint_epoch, best_metric = cp.load_from_checkpoint(
+                    checkpoint_path,
+                    self.model,
+                    optimizer,
+                    scheduler,
+                    self.cfg.TRAIN.FINE_TUNE
+                )
+                start_epoch = checkpoint_epoch
+                best_miou = best_metric
+                logger.info(f"Resume training from epoch {start_epoch}")
+            except Exception as e:
+                print("No model to restore. Resuming training from Epoch 0. {}".format(e))
+        else:
+            logger.info("Training from scratch")
+            start_epoch = 0
+            best_miou = 0
+
+        logger.info("{} parameters in total".format(sum(x.numel() for x in self.model.parameters())))
+
+        # Create tensorboard summary writer
+
+        writer = SummaryWriter(self.cfg.SUMMARY_PATH, flush_secs=15)
+
+        train_meter = Meter(self.cfg,
+                            mode='train',
+                            global_step=start_epoch*len(train_loader),
+                            total_iter=len(train_loader),
+                            total_epoch=self.cfg.TRAIN.NUM_EPOCHS,
+                            device=self.device,
+                            writer=writer)
+
+        val_meter = Meter(self.cfg,
+                          mode='val',
+                          global_step=start_epoch,
+                          total_iter=len(val_loader),
+                          total_epoch=self.cfg.TRAIN.NUM_EPOCHS,
+                          device=self.device,
+                          writer=writer)
+
+        logger.info("Summary path {}".format(self.cfg.SUMMARY_PATH))
+        # Perform the training loop.
+        logger.info("Start epoch: {}".format(start_epoch + 1))
+
+        for epoch in range(start_epoch, self.cfg.TRAIN.NUM_EPOCHS):
+            self.train(train_loader, optimizer, scheduler, train_meter, epoch=epoch)
+
+            if epoch % 10 == 0:
+                val_meter.enable_confusion_mat()
+                miou = self.eval(val_loader, val_meter, epoch=epoch)
+                val_meter.disable_confusion_mat()
+
+            else:
+                miou = self.eval(val_loader, val_meter, epoch=epoch)
+
+            if (epoch+1) % self.cfg.TRAIN.CHECKPOINT_PERIOD == 0:
+                logger.info(f"Saving checkpoint at epoch {epoch+1}")
+                cp.save_checkpoint(self.checkpoint_dir,
+                                   epoch+1,
+                                   best_miou,
+                                   self.cfg.NUM_GPUS,
+                                   self.cfg,
+                                   self.model,
+                                   optimizer,
+                                   scheduler
+                                   )
+
+            if miou > best_miou:
+                best_miou = miou
+                logger.info(f"New best checkpoint reached at epoch {epoch+1} with miou of {best_miou}\nSaving new best model.")
+                cp.save_checkpoint(self.checkpoint_dir,
+                                   epoch+1,
+                                   best_miou,
+                                   self.cfg.NUM_GPUS,
+                                   self.cfg,
+                                   self.model,
+                                   optimizer,
+                                   scheduler,
+                                   best=True
+                                   )

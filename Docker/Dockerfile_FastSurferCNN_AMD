@@ -1,0 +1,32 @@
+## Experimental Dockerimage for testing AMD GPUs
+
+## Start with rocm/pytorch latest
+FROM rocm/pytorch
+ENV LANG=C.UTF-8
+ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
+ARG PYTHON_VERSION=3.7
+
+# install our python dependencies (manually here, as version for 3.7 are behind
+# our requirements files that are based on 3.8, and rocm/pytorch is working
+# with 3.7 still
+
+RUN pip3 install \
+     numpy==1.21.6 \
+     nibabel==4.0.2 \
+     torchio==0.18.84 \
+     pandas==1.3.5 \
+     h5py==3.7.0 \
+     yacs==0.1.8
+     
+
+# Copy FastSurferCNN 
+COPY ./FastSurferCNN /FastSurferCNN/
+
+# Download all remote network checkpoints already
+RUN cd /FastSurferCNN/ ; python3 download_checkpoints.py --all --vinn
+
+# Set FastSurferCNN workdir and entrypoint
+#  the script entrypoint ensures that our conda env is active
+WORKDIR "/FastSurferCNN"
+ENTRYPOINT ["python3.7", "run_prediction.py"]
+CMD ["--help"]
