@@ -26,9 +26,9 @@ LOGGER = logging.getLogger(__name__)
 
 # Defaults
 URL = "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
-VINN_AXI = "checkpoints/aparc_vinn_axial_v2.0.0.pkl"
-VINN_COR = "checkpoints/aparc_vinn_coronal_v2.0.0.pkl"
-VINN_SAG = "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl"
+VINN_AXI = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/aparc_vinn_axial_v2.0.0.pkl")
+VINN_COR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/aparc_vinn_coronal_v2.0.0.pkl")
+VINN_SAG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl")
 
 
 def create_checkpoint_dir(expr_dir, expr_num):
@@ -175,4 +175,3 @@ def get_checkpoints(axi, cor, sag, url=URL):
     check_and_download_ckpts(axi, url)
     check_and_download_ckpts(cor, url)
     check_and_download_ckpts(sag, url)
-

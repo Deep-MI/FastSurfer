@@ -15,7 +15,6 @@
 # limitations under the License.
 
 import argparse
-import os
 
 from FastSurferCNN.utils.checkpoint import check_and_download_ckpts, get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG, URL
 
@@ -26,9 +25,9 @@ if __name__ == "__main__":
                         help="Check and download all default checkpoints")
     parser.add_argument("--vinn", default=False, action="store_true",
                         help="Check and download VINN default checkpoints")
-    parser.add_argument("--url", type=str, default=URL, 
+    parser.add_argument("--url", type=str, default=URL,
                         help="Specify you own base URL. Default: {}".format(URL))
-    parser.add_argument('files', nargs='*', 
+    parser.add_argument('files', nargs='*',
                         help="Checkpoint file paths to download, e.g. checkpoints/aparc_vinn_axial_v2.0.0.pkl ...")
     args = parser.parse_args()
 
@@ -40,13 +39,8 @@ if __name__ == "__main__":
         print("Specify either files to download or --vinn, see help -h.")
         exit(1)
 
-    # use default location in ../checkpoints/...
-    axi = os.path.join(os.path.dirname(__file__), VINN_AXI)
-    cor = os.path.join(os.path.dirname(__file__), VINN_COR)
-    sag = os.path.join(os.path.dirname(__file__), VINN_SAG)
-
     if args.vinn or args.all:
-        get_checkpoints(axi, cor, sag, args.url)
+        get_checkpoints(VINN_AXI, VINN_COR, VINN_SAG, args.url)
 
     # later we can add more defaults here (for other sub-segmentation networks, or old CNN)
 
