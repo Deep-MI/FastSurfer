@@ -41,7 +41,7 @@ def setup_options():
 
     parser.add_argument(
         "opts",
-        help="See SuperResSegm/config/defaults.py for all options",
+        help="See FastSurferCNN/config/defaults.py for all options",
         default=None,
         nargs=argparse.REMAINDER,
     )
