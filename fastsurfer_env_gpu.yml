@@ -9,12 +9,12 @@ dependencies:
   - cudatoolkit=11.3
   - h5py=3.7.0
   - matplotlib=3.5.1
-  - pytorch=1.10.0 
-  - torchvision=0.11.1 
+  - pytorch=1.12.0 
+  - torchvision=0.13.0 
+  - pillow=9.2.0
   - nibabel=3.2.2
-  - numpy=1.23.2
+  - numpy=1.23.5
   - pandas=1.4.3
-  - pillow=9.0.1
   - python=3.8
   - python-dateutil=2.8.2
   - pyyaml=6.0
