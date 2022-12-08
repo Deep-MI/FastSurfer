@@ -59,6 +59,8 @@ def options_parse():
     parser.add_argument('--conform_min', dest='conform_min', default=False, action='store_true',
                         help='Specifies whether the input is or should be conformed to the '
                              'minimal voxel size (used for high-res processing)')
+    parser.add_argument('--dtype', dest="dtype", default="uint8",
+                        help='Specifies the target data type of the target image (default: uint8, as in FreeSurfer)')
     parser.add_argument('--verbose', dest='verbose', default=False, action='store_true',
                         help='If verbose, more specific messages are printed')
     args = parser.parse_args()
@@ -73,7 +75,7 @@ def options_parse():
 
 def map_image(img: nib.analyze.SpatialImage, out_affine: np.ndarray, out_shape: np.ndarray,
               ras2ras: Optional[np.ndarray] = None,
-              order: int = 1) -> np.ndarray:
+              order: int = 1, dtype: Optional[Type] = None) -> np.ndarray:
     """
     Function to map image to new voxel space (RAS orientation)
 
@@ -83,6 +85,7 @@ def map_image(img: nib.analyze.SpatialImage, out_affine: np.ndarray, out_shape: 
         out_shape: the trg shape information
         ras2ras: an additional mapping that should be applied (default=id to just reslice)
         order: order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)
+        dtype: target dtype of the resulting image (relevant for reorientation, default=same as img)
 
     Returns:
         mapped image data array
@@ -103,6 +106,9 @@ def map_image(img: nib.analyze.SpatialImage, out_affine: np.ndarray, out_shape: 
         if any(s != 1 for s in image_data.shape[3:]):
             raise ValueError(f'Multiple input frames {tuple(image_data.shape)} not supported!')
         image_data = np.squeeze(image_data, axis=tuple(range(3, len(image_data.shape))))
+
+    if dtype is not None:
+        image_data = image_data.astype(dtype)
 
     new_data = affine_transform(image_data, inv(vox2vox), output_shape=out_shape, order=order)
     return new_data
@@ -272,6 +278,7 @@ def conform(img: nib.analyze.SpatialImage, order: int = 1, conform_min: bool = F
         img: loaded source image
         order: interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic)
         conform_min: conform image to minimal voxel size (for high-res)
+        dtype: the dtype to enforce in the image (default: UCHAR, as mri_convert -c)
 
     Returns:
          conformed image
@@ -300,30 +307,42 @@ def conform(img: nib.analyze.SpatialImage, order: int = 1, conform_min: bool = F
     # from_header does not compute Pxyz_c (and probably others) when importing from nii
     # Pxyz is the center of the image in world coords
 
+    # target scalar type and dtype
+    sctype = np.uint8 if dtype is None else np.obj2sctype(dtype, default=np.uint8)
+    target_dtype = np.dtype(sctype)
+
+    src_min, scale = 0, 1.
     # get scale for conversion on original input before mapping to be more similar to mri_convert
-    if not img.get_data_dtype() == np.dtype(np.uint8):
+    if img.get_data_dtype() != np.dtype(np.uint8) or img.get_data_dtype() != target_dtype:
         src_min, scale = getscale(np.asanyarray(img.dataobj), 0, 255)
 
+    kwargs = {"dtype": "float"} if sctype != np.uint else {}
+    mapped_data = map_image(img, affine, h1.get_data_shape(), order=order, **kwargs)
 
-    mapped_data = map_image(img, affine, h1.get_data_shape(), order=order)
-
-    if not img.get_data_dtype() == np.dtype(np.uint8):
+    if img.get_data_dtype() != np.dtype(np.uint8) or (img.get_data_dtype() != target_dtype and scale != 1.):
         scaled_data = scalecrop(mapped_data, 0, 255, src_min, scale)
         # map zero in input to zero in ouput (usually background)
         scaled_data[mapped_data == 0] = 0
         mapped_data = scaled_data
 
-    new_data = np.uint8(np.rint(mapped_data))
-    new_img = nib.MGHImage(new_data, affine, h1)
+    mapped_data = sctype(np.rint(mapped_data) if target_dtype == np.dtype(np.uint8) else mapped_data)
+    new_img = nib.MGHImage(mapped_data, affine, h1)
 
     # make sure we store uchar
-    new_img.set_data_dtype(np.uint8)
+    try:
+        new_img.set_data_dtype(target_dtype)
+    except nib.freesurfer.mghformat.MGHError as e:
+        if "not recognized" in e.args[0]:
+            codes = set(k.name for k in nib.freesurfer.mghformat.data_type_codes.code.keys() if isinstance(k, np.dtype))
+            print(f'The data type "{options.dtype}" is not recognized for MGH images, switching '
+                  f'to "{new_img.get_data_dtype()}" (supported: {tuple(codes)}).')
 
     return new_img
 
 
 def is_conform(img: nib.analyze.SpatialImage,
-               conform_min: bool = False, eps: float = 1e-06, check_dtype: bool = True, verbose: bool = True) -> bool:
+               conform_min: bool = False, eps: float = 1e-06, check_dtype: bool = True,
+               dtype: Optional[Type] = None, verbose: bool = True) -> bool:
     """
     Function to check if an image is already conformed or not (Dimensions: 256x256x256,
     Voxel size: 1x1x1, LIA orientation, and data type UCHAR).
@@ -338,6 +357,7 @@ def is_conform(img: nib.analyze.SpatialImage,
             these small shifts.
         check_dtype: specifies whether the UCHAR dtype condition is checked for;
             this is not done when the input is a segmentation (default: True).
+        dtype: specifies the intended target dtype (default: uint8 = UCHAR)
         verbose: if True, details of which conformance conditions are violated (if any)
             are displayed (default: True).
 
@@ -370,7 +390,13 @@ def is_conform(img: nib.analyze.SpatialImage,
 
     # check dtype uchar
     if check_dtype:
-        criteria['Dtype uint8'] = (img.get_data_dtype() == 'uint8')
+        if dtype is None:
+            dtype = 'uint8'
+        elif isinstance(dtype, str) and dtype.lower() == "uchar":
+            dtype = 'uint8'
+        else:  # assume obj
+            dtype = np.dtype(np.obj2sctype(dtype)).name
+        criteria[f'Dtype {dtype}'] = (img.get_data_dtype() == dtype)
 
     if all(criteria.values()):
         return True
@@ -458,9 +484,9 @@ if __name__ == "__main__":
     if len(image.shape) > 3 and image.shape[3] != 1:
         sys.exit('ERROR: Multiple input frames (' + format(image.shape[3]) + ') not supported!')
 
-    if not options.seg_input:
+    if not options.seg_input or options.dtype != "uint8":
         image_is_conformed = is_conform(image, conform_min=options.conform_min, check_dtype=True,
-                                        verbose=options.verbose)
+                                        dtype=options.dtype, verbose=options.verbose)
     else:
         image_is_conformed = is_conform(image, conform_min=options.conform_min, check_dtype=False,
                                         verbose=options.verbose)
@@ -480,7 +506,7 @@ if __name__ == "__main__":
         if not check_affine_in_nifti(image):
             sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
-    new_image = conform(image, order=options.order, conform_min=options.conform_min)
+    new_image = conform(image, order=options.order, conform_min=options.conform_min, dtype=options.dtype)
     print("Writing conformed image: {}".format(options.output))
 
     nib.save(new_image, options.output)
