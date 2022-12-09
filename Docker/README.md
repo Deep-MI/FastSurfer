@@ -19,6 +19,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --sid subjectX --sd /output \
                       --parallel
 ```
+
 ##### Docker Flags:
 * `--gpus`: This flag is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set `--gpus device=0`. To use multiple specific ones (e.g. GPU 0, 1 and 3), set `--gpus "device=0,1,3"`.
 * `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
@@ -42,7 +43,7 @@ All other available flags are identical to the ones explained on the main page [
 
 # FastSurfer Docker Image Creation
 
-Within this directory we currently provide different Dockerfiles for users (usually developers) who wish to create their own Docker images for:
+Within this directory, we options to currently provide a Dockerfile to create multiple Docker images for users (usually developers) who wish to create their own Docker images for:
 
 * the whole FastSurfer pipeline (FastSurferVINN + recon-surf, Example 1 (GPU) and 2 (CPU))
 * only the segmentation network (FastSurferVINN, Example 3 (GPU) and 4 (CPU))
@@ -55,6 +56,21 @@ Note, for many HPC users with limited GPUs or with very large datasets, it may b
 
 Also note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
 
+### General build settings
+The Dockerfile also supports additional build-args and targets:
+- `--build-arg DEVICE=cuda` (default) build with cuda/nVidia support for segmentation
+- `--build-arg DEVICE=cpu` build for segmentation on the cpu
+- `--build-arg DEVICE=amd` build for amd rocm support for segmentation (experimental/alpha)
+- `--build-arg DEVICE=none` build without support for segmentation
+- `--build-arg FREESURFER=pruned` (default) install Freesurfer for the recon-surf pipeline
+- `--build-arg FREESURFER=none` do not install Freesurfer; recon-surf pipeline not supported, but much smaller image
+- `--target runtime` standard `run_fastsurfer.sh` entrypoint (use for both seg and surf) 
+- `--target runtime_seg_only` entrypoint changed to `FastSurferCNN/run_prediction.py` (use for seg only) 
+- `--target runtime_surf_only` standard `reconsurf/recon-surf.sh` entrypoint (use for surf only) 
+
+Note: a couple of combinations will lead to errors, `DEVICE=none` NEVER supports the segmentation and should mostly be 
+used with `--target runtime_surf_only`. `--build-arg FREESURFER=none` NEVER supports the surface pipeline and should mostly 
+be used with `--target runtime_seg_only`.
 
 ### Example 1: Build GPU FastSurfer Image (default)
 
@@ -62,7 +78,7 @@ In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-su
 
 ```bash
 cd ..
-docker build --rm=true -t my_fastsurfer:gpu -f ./Docker/Dockerfile .
+docker build --rm=true --target runtime -t my_fastsurfer:gpu -f ./Docker/Dockerfile .
 ```
 
 For running the analysis, the command is basically the same as above for the prebuild option:
@@ -84,7 +100,7 @@ In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; o
 
 ```bash
 cd ..
-docker build --rm=true -t my_fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
+docker build --rm=true --target runtime --build-arg DEVICE=cpu -t my_fastsurfer:cpu -f ./Docker/Dockerfile .
 ```
 
 For running the analysis, the command is basically the same as above for the GPU option:
@@ -109,7 +125,7 @@ In order to build the Docker image for FastSurferCNN (segmentation only; on GPU;
 
 ```bash
 cd ..
-docker build --rm=true -t my_fastsurfer:gpu-segonly -f ./Docker/Dockerfile_FastSurferCNN .
+docker build --rm=true --target runtime_seg_only --build_arg FREESURFER=none -t my_fastsurfer:gpu-segonly -f ./Docker/Dockerfile .
 ```
 
 For running the analysis, start the container:
@@ -132,7 +148,7 @@ In order to build the Docker image for FastSurferCNN (segmentation only; on CPU;
 
 ```bash
 cd ..
-docker build --rm=true -t my_fastsurfer:cpu-segonly -f ./Docker/Dockerfile_FastSurferCNN_CPU .
+docker build --rm=true --target runtime_seg_only --build-arg DEVICE=cpu --build-arg FREESURFER=none -t my_fastsurfer:cpu-segonly -f ./Docker/Dockerfile .
 ```
 
 For running the analysis, start the container:
@@ -155,7 +171,7 @@ In order to build the docker image for FastSurfer recon-surf (surface pipeline o
 
 ```bash
 cd ..
-docker build --rm=true -t my_fastsurfer:cpu-surfonly -f ./Docker/Dockerfile_reconsurf .
+docker build --rm=true- -target runtime_surf_only --build-arg DEVICE=none -t my_fastsurfer:cpu-surfonly -f ./Docker/Dockerfile .
 ```
 
 For running the analysis (segmentation, mask, etc needs to exist already in the default location in the output directory!) start the container:
@@ -171,7 +187,7 @@ docker run -v /home/user/my_fastsurfer_analysis:/output \
 All flags are identical to the ones explained above and on the main page [README](../README.md).
 
 
-### Example 6: Experimental Built for AMD GPUs
+### Example 6: Experimental Build for AMD GPUs
 
 Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into 
 your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to work. For this follow:
@@ -180,7 +196,7 @@ https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction_to_
 
 ```bash
 cd ..
-docker build --rm=true -t my_fastsurfer:gpu-amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+docker build --rm=true --target runtime --device=amd -t my_fastsurfer:gpu-amd -f ./Docker/Dockerfile .
 ```
 
 and run segmentation only:
