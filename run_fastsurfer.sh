@@ -49,6 +49,7 @@ doParallel=""
 run_aparc_module="1"
 threads="1"
 python="python3.8"
+allow_root="0"
 
 # Dev flags defaults
 vcheck=""
@@ -166,6 +167,7 @@ FLAGS:
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
+  --allow_root            Allows execution as root user.
 
 
 REFERENCES:
@@ -341,6 +343,10 @@ case $key in
     vfst1="--no_fs_T1"
     shift # past argument
     ;;
+    --allow_root)
+    allow_root="1"
+    shift # past argument
+    ;;
     -h|--help)
     usage
     exit
@@ -352,6 +358,17 @@ case $key in
 esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
+
+# Warning if run as root user
+if [ "$allow_root" == "0" ] && [ "$(whoami)" == "root" ]
+  then
+    echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
+    echo "because it will lead to files and folders created as root."
+    echo "If you are running FastSurfer in a docker container, you can specify the user with "
+    echo "the -u or --user flag (see https://docs.docker.com/engine/reference/run/#user)."
+    echo "If you want to force running as root, you may pass --allow_root to run_fastsurfer.sh."
+    exit 1;
+fi
 
 
 # CHECKS
