@@ -28,8 +28,6 @@ RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/min
 
 ENV PATH /opt/conda/bin:$PATH
 
-# Install our dependencies
-RUN conda env create -f /fastsurfer/fastsurfer_env_gpu.yml 
 
 # create a stage for reconsurf (no deep learning)
 FROM build_conda_base AS build_conda_none
@@ -68,7 +66,7 @@ RUN conda install cudatoolkit=11.3  # this should already be satisfied through d
 ENV DEVICE=cuda
 
 
-FROM build_conda_base AS build_conda_cpu
+FROM build_conda_common AS build_conda_cpu
 # install additional packages for cpu
 RUN conda install --channel pytorch cpuonly=1.0
 
@@ -106,6 +104,7 @@ RUN mkdir /opt/freesurfer && echo "FreeSurfer is not installed in this Docker im
 
 FROM ubuntu:22.04 AS base_cuda
 FROM ubuntu:22.04 AS base_cpu
+FROM ubuntu:22.04 AS base_none
 
 ## Start the amd image with rocm/pytorch latest
 FROM rocm/pytorch AS base_amd
