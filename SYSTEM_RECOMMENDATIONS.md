@@ -2,7 +2,7 @@
 ## List of minimum requirements and recommended flags 
 
 In order to run the FastSurfer segmentation we provide a list of minimum requirements for 1.0, 0.8, 0.7mm resolution.
-The following list recommends values for the **--run_viewagg_on** flag depending on resolution, available GPU/CPU memory and are based on our benchmark times found [here]().
+The following list recommends values for the **--viewagg_device** flag depending on resolution, available GPU/CPU memory and are based on our benchmark times found [here]().
 
 To check your memory follow these steps:
 - Windows: 
@@ -15,7 +15,7 @@ To check your memory follow these steps:
 
 ### Minimum Requirements:
 
-|       | --run_viewagg_on | Min GPU (in GB) | Min CPU (in GB) |
+|       | --viewagg_device | Min GPU (in GB) | Min CPU (in GB) |
 |:------|------------------|----------------:|----------------:|
 | 1mm   | gpu              |               5 |               5 |
 | 1mm   | cpu              |               2 |               7 |
@@ -29,7 +29,7 @@ To check your memory follow these steps:
 ### Recommended flags
 
 We recommend running the view aggregation on the GPU as it is generally faster, as long as you have enough VRAM. 
-You can change the device by using the flag **--run_viewagg_on** _[cpu/gpu/check]_. By default, _check_ ist being used, which checks 
+You can change the device by using the flag **--viewagg_device** _[cpu/gpu/check]_. By default, _check_ ist being used, which checks 
 if your device has enough memory to run it on the GPU.
 View the following table to see which device you should be using.
 

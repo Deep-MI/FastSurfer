@@ -80,7 +80,7 @@ ALL_FLAGS = {
         '--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag",
         default=None),
     "batch_size": __arg(
-        '--batch_size', type=int, default=8, help="Batch size for inference. Default=8"),
+        '--batch_size', type=int, default=1, help="Batch size for inference. Default=1"),
     "sd": __arg(
         "--sd", type=str, default=None, dest="out_dir",
         help="Directory in which evaluation results should be written. "
