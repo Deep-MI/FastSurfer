@@ -291,9 +291,20 @@ if __name__ == "__main__":
                                               "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"})
 
     # 5. technical parameters
-    parser = parser_defaults.add_arguments(parser, ["vox_size", "device", "viewagg_device", "batch_size"])
+    parser = parser_defaults.add_arguments(parser, ["vox_size", "device", "viewagg_device", "batch_size", "allow_root"])
 
     args = parser.parse_args()
+
+    # Warning if run as root user
+    if not args.allow_root and os.name == 'posix' and os.getuid() == 0:
+        sys.exit(
+            """----------------------------
+            ERROR: You are trying to run 'run_prediction.py' as root. We advice to avoid running 
+            FastSurfer as root, because it will lead to files and folders created as root.
+            If you are running FastSurfer in a docker container, you can specify the user with 
+            '-u $(id -u):$(id -g)' (see https://docs.docker.com/engine/reference/run/#user).
+            If you want to force running as root, you may pass --allow_root to run_prediction.py.
+            """)
 
     # Check input and output options
     if args.in_dir is None and args.csv_file is None and not os.path.isfile(args.orig_name):

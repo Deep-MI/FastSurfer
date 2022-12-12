@@ -96,7 +96,11 @@ ALL_FLAGS = {
              " to the smallest voxel edge length). Select 'auto' (default) for hires processing."),
     "lut": __arg(
         "--lut", type=str, help="Path and name of LUT to use.",
-        default=path.join(FASTSURFER_ROOT, "FastSurferCNN/config/FastSurfer_ColorLUT.tsv"))
+        default=path.join(FASTSURFER_ROOT, "FastSurferCNN/config/FastSurfer_ColorLUT.tsv")),
+    "allow_root": __arg(
+        "--allow_root", action="store_true", dest="allow_root",
+        help="Allow execution as root user."
+    )
 }
 
 
