@@ -91,6 +91,7 @@ COPY --from=build /opt/freesurfer /opt/freesurfer
 COPY . /fastsurfer/
 
 # Download all remote network checkpoints already
+ENV PYTHONPATH=/fastsurfer:$PYTHONPATH
 RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all
 
 # Set FastSurfer workdir and entrypoint
