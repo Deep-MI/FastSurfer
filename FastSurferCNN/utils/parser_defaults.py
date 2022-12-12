@@ -17,7 +17,7 @@ def __arg(*args, **kwargs):
 ALL_FLAGS = {
     "t1": __arg(
         '--t1', type=str, dest="orig_name", default='mri/orig.mgz',
-        help="Name of orig input (T1 full head input). Absolute path if single image else "
+        help="Name of T1 full head MRI. Absolute path if single image else "
              "common image name. Default: mri/orig.mgz"),
     "remove_suffix": __arg(
         '--remove_suffix', type=str, dest="remove_suffix", default='',
@@ -71,7 +71,7 @@ ALL_FLAGS = {
     "in_dir": __arg(
         "--in_dir", type=str, default=None,
         help="Directory in which input volume(s) are located. "
-             "Optional, if full path is defined for --orig_name."),
+             "Optional, if full path is defined for --t1."),
     "tag": __arg(
         '--tag', dest='search_tag', default="*",
         help='Search tag to process only certain subjects. If a single image should be analyzed, '
