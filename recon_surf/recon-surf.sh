@@ -545,6 +545,18 @@ cmd="ln -sf orig.mgz rawavg.mgz"
 RunIt "$cmd" $LF
 popd
 
+if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
+  # Mask or aseg.auto_noCCseg not found; create them
+  echo " " |& tee -a $LF
+  echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ===============" |& tee -a $LF
+  echo " " |& tee -a $LF
+
+  # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
+  # output will be uchar (else mri_cc will fail below)
+  cmd="$python ${binpath}/../FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
+  RunIt "$cmd" $LF
+fi
+
 echo " " |& tee -a $LF
 echo "============= Computing Talairach Transform and NU (bias corrected) ============" |& tee -a $LF
 echo " " |& tee -a $LF
