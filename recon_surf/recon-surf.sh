@@ -32,6 +32,7 @@ DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 vox_size="auto"       # hires processing
 hiresflag=""          # flag for recon-all calls for hires (default empty)
+allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
 check_version=1;    # Check for supported FreeSurfer version (terminate if not detected)
@@ -123,6 +124,7 @@ Dev Flags:
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
+  --allow_root            Allow execution as root user.
 
 REFERENCES:
 
@@ -332,6 +334,10 @@ case $key in
     get_t1=0
     shift # past argument
     ;;
+    --allow_root)
+    allow_root="--allow_root"
+    shift # past argument
+    ;;
     -h|--help)
     usage
     exit
@@ -350,6 +356,18 @@ echo sid $subject
 echo T1  $t1
 echo aparc_aseg_segfile $aparc_aseg_segfile
 echo
+
+
+# Warning if run as root user
+if [ -z "$allow_root" ] && [ "$(whoami)" == "root" ]
+  then
+    echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
+    echo "because it will lead to files and folders created as root."
+    echo "If you are running FastSurfer in a docker container, you can specify the user with "
+    echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
+    echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
+    exit 1;
+fi
 
 if [ "$subject" == "subject" ]
 then

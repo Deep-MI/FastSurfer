@@ -49,7 +49,7 @@ doParallel=""
 run_aparc_module="1"
 threads="1"
 python="python3.8"
-allow_root="0"
+allow_root=""
 
 # Dev flags defaults
 vcheck=""
@@ -167,7 +167,7 @@ FLAGS:
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
-  --allow_root            Allows execution as root user.
+  --allow_root            Allow execution as root user.
 
 
 REFERENCES:
@@ -344,7 +344,7 @@ case $key in
     shift # past argument
     ;;
     --allow_root)
-    allow_root="1"
+    allow_root="--allow_root"
     shift # past argument
     ;;
     -h|--help)
@@ -360,12 +360,12 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # Warning if run as root user
-if [ "$allow_root" == "0" ] && [ "$(whoami)" == "root" ]
+if [ -z "$allow_root" ] && [ "$(whoami)" == "root" ]
   then
     echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
     echo "because it will lead to files and folders created as root."
     echo "If you are running FastSurfer in a docker container, you can specify the user with "
-    echo "the -u or --user flag (see https://docs.docker.com/engine/reference/run/#user)."
+    echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
     echo "If you want to force running as root, you may pass --allow_root to run_fastsurfer.sh."
     exit 1;
 fi
@@ -488,7 +488,7 @@ if [ "$run_seg_pipeline" == "1" ]
     echo "" |& tee -a $seg_log
 
     if [ "$run_aparc_module" == "1" ]; then
-      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
+      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
       echo $cmd |& tee -a $seg_log
       $cmd
       if [ ${PIPESTATUS[0]} -ne 0 ]
@@ -509,7 +509,7 @@ if [ "$run_surf_pipeline" == "1" ]
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
     pushd $reconsurfdir
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg --vox_size $vox_size $doParallel --threads $threads --py $python $vcheck $vfst1"
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg --vox_size $vox_size $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
     echo $cmd
     $cmd
     if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
