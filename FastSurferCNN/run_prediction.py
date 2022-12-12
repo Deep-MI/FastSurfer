@@ -305,7 +305,7 @@ if __name__ == "__main__":
         parser.print_help(sys.stderr)
         sys.exit(
             '----------------------------\nERROR: Please specify data output directory or absolute path to output volume'
-            '(can be same as input directory)\n')
+            ' (can be same as input directory)\n')
 
     qc_file_handle = None
     if args.qc_log != "":
