@@ -135,7 +135,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libgomp1 \
       libquadmath0 && \
     apt clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Add FreeSurfer Environment variables
 ENV OS=Linux \
@@ -147,11 +147,13 @@ ENV OS=Linux \
     PYTHONUNBUFFERED=0 \
     MPLCONFIGDIR=/tmp \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
-    PYTHONPATH=/fastsurfer:$PYTHONPATH
+    PYTHONPATH=/fastsurfer:$PYTHONPATH \
+    MPLCONFIGDIR=/tmp/matplotlib-config
 
-# make sure we use bash and activate conda env
+# create matplotlib config dir; make sure we use bash and activate conda env
 #  (in case someone starts this interactively)
-RUN echo "source /venv/bin/activate" >> ~/.bashrc
+RUN mkdir -m 777 $MPLCONFIGDIR && \
+    echo "source /venv/bin/activate" >> ~/.bashrc
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Copy venv fastsurfer and pruned freesurfer from builder
