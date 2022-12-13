@@ -360,7 +360,7 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(whoami)" == "root" ]
+if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
   then
     echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
     echo "because it will lead to files and folders created as root."
@@ -437,7 +437,7 @@ fi
 
 if [ "$run_surf_pipeline" == "1" ] && { [ "$run_aparc_module" != "1" ] || [ "$run_seg_pipeline" == "0" ]; }
   then
-    if [ ! -z "$aparc_aseg_segfile" ]
+    if [ ! -f "$aparc_aseg_segfile" ]
     then
         echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
         echo "You passed --surf_only or --no_aparc, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
