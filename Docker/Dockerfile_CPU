@@ -77,6 +77,7 @@ ENV OS=Linux \
     FSF_OUTPUT_FORMAT=nii.gz \
     FREESURFER_HOME=/opt/freesurfer \
     PYTHONUNBUFFERED=0 \
+    MPLCONFIGDIR=/tmp \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH
 
 # make sure we use bash and activate conda env

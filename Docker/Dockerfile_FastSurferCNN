@@ -67,7 +67,8 @@ COPY ./checkpoints /fastsurfer/FastSurferCNN/checkpoints/
 COPY ./Docker/entrypoint.sh /fastsurfer/Docker/entrypoint.sh
 
 # Download all remote network checkpoints already
-ENV PYTHONPATH=/fastsurfer:$PYTHONPATH
+ENV PYTHONPATH=/fastsurfer:$PYTHONPATH \
+    MPLCONFIGDIR=/tmp
 RUN python3 /fastsurfer/FastSurferCNN/download_checkpoints.py --all; chmod +r -R /fastsurfer/FastSurferCNN/checkpoints
 
 # Set FastSurfer workdir and entrypoint
