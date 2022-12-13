@@ -361,7 +361,7 @@ echo
 
 
 # Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(whoami)" == "root" ]
+if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
   then
     echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
     echo "because it will lead to files and folders created as root."
