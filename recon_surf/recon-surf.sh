@@ -296,6 +296,8 @@ case $key in
     if [ "$2" == "auto" ]; then
       hiresflag="-hires"
     elif [ "$2" == "1" ]; then
+      hiresflag=""
+    else
       exit "Invalid option for --vox_size, only 1 or 'auto' are valid."
     fi
     vox_size=$2
