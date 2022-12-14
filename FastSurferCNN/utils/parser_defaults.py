@@ -1,11 +1,14 @@
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Union, Literal
 import argparse
 from os import path
+
+from FastSurferCNN.utils.arg_types import vox_size as __vox_size, conform_to_one as __conform_to_one
 
 FASTSURFER_ROOT = path.dirname(path.dirname(path.dirname(__file__)))
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
 PLANE_HELP = {"checkpoint": "{} checkpoint to load",
               "config": "Path to the {} config file"}
+VoxSize = Union[Literal['min'], float]
 
 
 def __arg(*args, **kwargs):
@@ -55,19 +58,16 @@ ALL_FLAGS = {
              "not be saved."),
     "device": __arg(
         '--device', default="auto",
-        help="select device to run inference on: cpu, or cuda (= Nvidia gpu) or "
-             "specify a certain gpu (e.g. cuda:1), default: auto"),
+        help="Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu "
+             "(e.g. cuda:1), default: auto"),
     "viewagg_device": __arg(
         '--viewagg_device', dest='viewagg_device', type=str,
         default="auto",
-        help="Define the device, where the view aggregation should be run. \
-                 By default, the program checks if you have enough memory \
-                 to run the view aggregation on the gpu (cuda). The total memory \
-                 is considered for this decision. If this fails, or \
-                 you actively overwrote the check with setting \
-                 > --viewagg_device cpu <, view agg is run on the cpu. \
-                 Equivalently, if you define > --viewagg_device cuda <,\
-                 view agg will be run on the gpu (no memory check will be done)."),
+        help="Define the device, where the view aggregation should be run. By default, the program checks "
+             "if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is "
+             "considered for this decision. If this fails, or you actively overwrote the check with setting "
+             "> --viewagg_device cpu <, view agg is run on the cpu. Equivalently, if you define "
+             "> --viewagg_device cuda <, view agg will be run on the gpu (no memory check will be done)."),
     "in_dir": __arg(
         "--in_dir", type=str, default=None,
         help="Directory in which input volume(s) are located. "
@@ -90,10 +90,16 @@ ALL_FLAGS = {
         help="Absolute path to file in which a list of subjects that failed QC check  (when processing multiple "
              "subjects) will be saved. If not set, the file will not be saved."),
     "vox_size": __arg(
-        '--vox_size', choices=["auto", "1"], default="auto", dest='vox_size',
-        help="Choose the primary voxelsize to process, must be either '1' or 'auto'. '1' forces "
-             "processing at 1mm voxel size, 'auto' enables processing at higher resolutions (conforming"
-             " to the smallest voxel edge length). Select 'auto' (default) for hires processing."),
+        '--vox_size', type=__vox_size, default="min", dest='vox_size',
+        help="Choose the primary voxelsize to process, must be either a number between 0 and 1 (below 0.7 is "
+             "experimental) or 'min' (default). A number forces processing at that specific voxel size, 'min' "
+             "determines the voxel size from the image itself (conforming to the minimum voxel size, or 1 if "
+             "the minimum voxel size is above 0.95mm). "),
+    "conform_to_1_threshold": __arg(
+        '--conform_to_1_threshold', type=__conform_to_one, default=0.95, dest="conform_to_1_threshold",
+        help="The voxelsize threshold, above which images will be conformed to 1mm isotropic, if the --vox_size "
+             "argument is also 'min' (the --vox_size default setting). Contrary to conform.py, the default behavior"
+             "of %(prog)s is to resample all images _above 0.95mm_ to 1mm."),
     "lut": __arg(
         "--lut", type=str, help="Path and name of LUT to use.",
         default=path.join(FASTSURFER_ROOT, "FastSurferCNN/config/FastSurfer_ColorLUT.tsv")),

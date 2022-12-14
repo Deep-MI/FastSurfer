@@ -53,8 +53,9 @@ def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min 
     :return: nibabel.MGHImage orig: conformed image
     """
     orig = nib.load(img_filename)
-
-    if not is_conform(orig, conform_min=conform_min):
+    # is_conform and conform accept numeric values and the string 'min' instead of the bool value
+    _conform_vox_size = 'min' if conform_min else 1.
+    if not is_conform(orig, conform_vox_size=_conform_vox_size):
 
         logger.info('Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels')
 
@@ -67,7 +68,7 @@ def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min 
                 sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
         # conform
-        orig = conform(orig, interpol, conform_min=conform_min)
+        orig = conform(orig, interpol, conform_vox_size=_conform_vox_size)
 
     # Collect header and affine information
     header_info = orig.header

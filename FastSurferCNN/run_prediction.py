@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Tuple, Union, Literal, Dict, Any
+from typing import Tuple, Union, Literal, Dict, Any, Optional
 import glob
 import sys
 import argparse
@@ -81,10 +81,11 @@ class RunModelOnData:
     pred_name: str
     conf_name: str
     orig_name: str
-    vox_size: Union[float, Literal["auto"]]
+    vox_size: Union[float, Literal["min"]]
     current_plane: str
     models: Dict[str, Inference]
     view_ops: Dict[str, Dict[str, Any]]
+    conform_to_1_threshold: Optional[float]
 
     def __init__(self, args):
         self.pred_name = args.pred_name
@@ -139,12 +140,13 @@ class RunModelOnData:
                 self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=device)
 
         vox_size = args.vox_size
-        if vox_size == "auto":
-            self.vox_size = "auto"
+        if vox_size == "min":
+            self.vox_size = "min"
+        elif isinstance(vox_size, str) and vox_size.isnumeric() and (0. < float(vox_size) <= 1.):
+            self.vox_size = float(vox_size)
         else:
-            self.vox_size = float(vox_size) if isinstance(vox_size, str) and vox_size.isnumeric() else self.vox_size
-            if self.vox_size != 1.0:
-                raise ValueError(f"Invalid value for vox_size, must be 1 or auto, was {vox_size}.")
+            raise ValueError(f"Invalid value for vox_size, must be between 0 and 1 or 'min', was {vox_size}.")
+        self.conform_to_1_threshold = args.conform_to_1_threshold
 
     def set_and_create_outdir(self, out_dir: str) -> str:
         if os.path.isabs(self.pred_name):
@@ -169,10 +171,10 @@ class RunModelOnData:
         # Save input image to standard location
         self.save_img(self.input_img_name, orig_data, orig)
 
-        conform_min = self.vox_size == "auto"
-        if not conf.is_conform(orig, conform_min=conform_min, check_dtype=True, verbose=False):
+        if not conf.is_conform(orig, conform_vox_size=self.vox_size, check_dtype=True, verbose=False,
+                               conform_to_1_threshold=self.conform_to_1_threshold):
             LOGGER.info("Conforming image")
-            orig = conf.conform(orig, conform_min=conform_min)
+            orig = conf.conform(orig, conform_vox_size=self.vox_size, conform_to_1_threshold=self.conform_to_1_threshold)
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
@@ -291,7 +293,8 @@ if __name__ == "__main__":
                                               "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"})
 
     # 5. technical parameters
-    parser = parser_defaults.add_arguments(parser, ["vox_size", "device", "viewagg_device", "batch_size", "allow_root"])
+    parser = parser_defaults.add_arguments(parser, ["vox_size", "conform_to_1_threshold", "device", "viewagg_device",
+                                                    "batch_size", "allow_root"])
 
     args = parser.parse_args()
 
@@ -367,35 +370,39 @@ if __name__ == "__main__":
             os.path.join(out_dir, sbj_name, args.pred_name)
 
         # Run model
-        pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
-        eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
+        try:
+            pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
+            eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
 
-        # Create aseg and brainmask
-        # Change datatype to np.uint8, else mri_cc will fail!
+            # Create aseg and brainmask
+            # Change datatype to np.uint8, else mri_cc will fail!
 
-        # get mask
-        LOGGER.info("Creating brainmask based on segmentation...")
-        bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
-        mask_name = os.path.join(out_dir, sbj_name, args.brainmask_name)
-        eval.save_img(mask_name, bm, orig_img, dtype=np.uint8)
+            # get mask
+            LOGGER.info("Creating brainmask based on segmentation...")
+            bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
+            mask_name = os.path.join(out_dir, sbj_name, args.brainmask_name)
+            eval.save_img(mask_name, bm, orig_img, dtype=np.uint8)
 
-        # reduce aparc to aseg and mask regions
-        LOGGER.info("Creating aseg based on segmentation...")
-        aseg = rta.reduce_to_aseg(pred_data)
-        aseg[bm == 0] = 0
-        aseg = rta.flip_wm_islands(aseg)
-        aseg_name = os.path.join(out_dir, sbj_name, args.aseg_name)
-        eval.save_img(aseg_name, aseg, orig_img, dtype=np.uint8)
+            # reduce aparc to aseg and mask regions
+            LOGGER.info("Creating aseg based on segmentation...")
+            aseg = rta.reduce_to_aseg(pred_data)
+            aseg[bm == 0] = 0
+            aseg = rta.flip_wm_islands(aseg)
+            aseg_name = os.path.join(out_dir, sbj_name, args.aseg_name)
+            eval.save_img(aseg_name, aseg, orig_img, dtype=np.uint8)
 
-        # Run QC check
-        LOGGER.info("Running volume-based QC check on segmentation...")
-        seg_voxvol = np.product(orig_img.header["delta"])
-        if not check_volume(pred_data, seg_voxvol):
-            LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
-            if qc_file_handle is not None:
-                qc_file_handle.write(subject.split('/')[-1] + "\n")
-                qc_file_handle.flush()
-            qc_failed_subject_count += 1
+            # Run QC check
+            LOGGER.info("Running volume-based QC check on segmentation...")
+            seg_voxvol = np.product(orig_img.header["delta"])
+            if not check_volume(pred_data, seg_voxvol):
+                LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
+                if qc_file_handle is not None:
+                    qc_file_handle.write(subject.split('/')[-1] + "\n")
+                    qc_file_handle.flush()
+                qc_failed_subject_count += 1
+        except RuntimeError as e:
+            if not handle_cuda_memory_exception(e):
+                raise e
 
     if qc_file_handle is not None:
         qc_file_handle.close()
