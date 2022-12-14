@@ -545,6 +545,7 @@ cmin=""
 if  [ "$vox_size" == "auto" ]
 then
   cmin="--conform_min"
+  hiresflag="--hires"
 fi
 cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only $cmin --verbose"
 RunIt "$cmd" $LF
