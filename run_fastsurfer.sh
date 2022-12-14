@@ -372,10 +372,10 @@ fi
 
 
 # CHECKS
-if [ -z "$t1" ] || [ ! -f "$t1" ]
+if [ "$run_seg_pipeline" == "1" ] && { [ -z "$t1" ] || [ ! -f "$t1" ]; }
   then
-    echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (conformed, full head) via --t1 (absolute path and name)."
-    # needed to create orig.mgz and to get file name. This will eventually be changed.
+    echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
+    echo "--t1 (absolute path and name) for generating the segmentation."
     exit 1;
 fi
 
