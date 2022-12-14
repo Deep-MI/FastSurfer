@@ -288,7 +288,7 @@ case $key in
     ;;
     --hires)
     echo "WARNING: --hires is deprecated, use --vox_size auto."
-    vox_size=1
+    vox_size="auto"
     hiresflag="-hires"
     shift # past argument
     ;;
@@ -545,7 +545,7 @@ cmin=""
 if  [ "$vox_size" == "auto" ]
 then
   cmin="--conform_min"
-  hiresflag="--hires"
+  hiresflag="-hires"
 fi
 cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only $cmin --verbose"
 RunIt "$cmd" $LF
