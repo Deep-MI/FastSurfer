@@ -31,7 +31,7 @@ python="python3.8"    # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 vox_size="auto"       # hires processing
-hiresflag=""          # flag for recon-all calls for hires (default empty)
+hiresflag="-hires"    # flag for recon-all calls for hires (default "-hires", which is the "hires" setting)
 allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
@@ -288,7 +288,7 @@ case $key in
     ;;
     --hires)
     echo "WARNING: --hires is deprecated, use --vox_size auto."
-    vox_size=1
+    vox_size="auto"
     hiresflag="-hires"
     shift # past argument
     ;;
