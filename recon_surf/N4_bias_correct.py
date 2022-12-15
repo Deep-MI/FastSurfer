@@ -143,6 +143,7 @@ def N4correctITK(itkimage, itkmask=None, shrink=4, levels=4, numiter=50, thres=0
     corrector.SetConvergenceThreshold(thres)
 
     # bias correct image
+    sitk.ProcessObject.SetGlobalDefaultCoordinateTolerance(1e-04)
     corrector.Execute(itkimage, itkmask)
 
     # we need to apply bias field to original input
@@ -197,10 +198,10 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
     print("- size: {}".format(itkimage.GetSize()))
     print("- spacing: {}".format(itkimage.GetSpacing()))
 
-    # distance image (never tested with anisotropic images, could fail)
+    # distance image
     isize = itkimage.GetSize()
     ispace = itkimage.GetSpacing()
-    zz, yy, xx = np.meshgrid(range(isize[0]), range(isize[1]), range(isize[2]), indexing='ij')
+    zz, yy, xx = np.meshgrid(range(isize[2]), range(isize[1]), range(isize[0]), indexing='ij')
     xx = ispace[0] * (xx - centroid[0])
     yy = ispace[1] * (yy - centroid[1])
     zz = ispace[2] * (zz - centroid[2])
@@ -211,6 +212,7 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
     #  warning do not use otsu mask as it is cropping low-intensity values
     if mask_passed:
         ball = ball * sitk.GetArrayFromImage(itkmask)
+    # for debugging the ball location and size:
     #balli = sitk.GetImageFromArray(1.0 * ball)
     #balli.CopyInformation(itkimage)
     #sitk.WriteImage(balli, "ball.nii.gz")
@@ -228,10 +230,6 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
 
     # itkImage already is Float32 and output should be also Float32, we clamp outside as well
     normed = itkimage * m + b
-
-#    normed = sitk.Cast(sitk.Clamp(sitk.Cast(itkimage, sitk.sitkFloat32) * m + b, upperBound=255, lowerBound=0),
-#                       sitk.sitkUInt8)
-    # sitk.WriteImage(normed, "normed.nii.gz")
 
     return normed
 
