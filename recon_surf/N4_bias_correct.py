@@ -196,7 +196,7 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
 
     print("- centroid: {}".format(centroid))
     print("- size: {}".format(itkimage.GetSize()))
-    print("- spacing: {}".format(itkimage.GetSpacing()))
+    print("- spacing: "+ ' '.join(format(f, '.2f') for f in itkimage.GetSpacing()))
 
     # distance image
     isize = itkimage.GetSize()
@@ -221,7 +221,7 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
     mask = np.extract(ball, sitk.GetArrayFromImage(itkimage))
     percentiles = np.percentile(mask, [1, 90])
     percentile01, percentile90 = percentiles.tolist()
-    print("-  1st percentile: {}\n- 90th percentile: {}".format(percentile01, percentile90))
+    print("-  1st percentile: {:.2f}\n- 90th percentile: {:.2f}".format(percentile01, percentile90))
 
     # compute intensity transformation
     m = (targetWM - 2.55) / (percentile90 - percentile01)
