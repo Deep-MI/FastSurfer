@@ -143,6 +143,7 @@ def N4correctITK(itkimage, itkmask=None, shrink=4, levels=4, numiter=50, thres=0
     corrector.SetConvergenceThreshold(thres)
 
     # bias correct image
+    sitk.ProcessObject.SetGlobalDefaultCoordinateTolerance(1e-04)
     corrector.Execute(itkimage, itkmask)
 
     # we need to apply bias field to original input
@@ -188,37 +189,39 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
         label_stats.Execute(itkmask)
         # centroid_world = label_stats.GetCenterGravity(1)
         centroid_world = label_stats.GetCentroid(1)
-        # print("centroid pyhsical: {}".format(centroid_world))
-        # centroidf = itkmask.TransformPhysicalPointToContinuousIndex(centroid_world)
-        # print("centroid voxel: {}".format(centroidf))
+        #print("centroid pyhsical: {}".format(centroid_world))
+        #centroidf = itkmask.TransformPhysicalPointToContinuousIndex(centroid_world)
+        #print("centroid voxel: {}".format(centroidf))
         centroid = itkmask.TransformPhysicalPointToIndex(centroid_world)
 
     print("- centroid: {}".format(centroid))
+    print("- size: {}".format(itkimage.GetSize()))
+    print("- spacing: "+ ' '.join(format(f, '.2f') for f in itkimage.GetSpacing()))
 
-    # create mask from ball around centroid with radius
-    # create a spherical gaussian blob
-    gaussian = sitk.GaussianSource(sitk.sitkUInt8,
-                                   size=itkimage.GetSize(),
-                                   sigma=[radius - 1, radius - 1, radius - 1],
-                                   mean=centroid,
-                                   spacing=itkimage.GetSpacing())
-    # threshold to create a binary ball
-    gaussian.CopyInformation(itkimage)
-    # sitk.WriteImage(gaussian, "gaussian.nii.gz")
-    ball = sitk.BinaryThreshold(gaussian, 150.0, 255.0, 1, 0)
+    # distance image
+    isize = itkimage.GetSize()
+    ispace = itkimage.GetSpacing()
+    zz, yy, xx = np.meshgrid(range(isize[2]), range(isize[1]), range(isize[0]), indexing='ij')
+    xx = ispace[0] * (xx - centroid[0])
+    yy = ispace[1] * (yy - centroid[1])
+    zz = ispace[2] * (zz - centroid[2])
+    distance = xx * xx + yy * yy + zz * zz
+    ball = distance < radius * radius
+
     # make sure to crop non-brain regions (if masked was passed)
     #  warning do not use otsu mask as it is cropping low-intensity values
     if mask_passed:
-        ball = ball * itkmask
-    # sitk.WriteImage(ball, "ball.nii.gz")
+        ball = ball * sitk.GetArrayFromImage(itkmask)
+    # for debugging the ball location and size:
+    #balli = sitk.GetImageFromArray(1.0 * ball)
+    #balli.CopyInformation(itkimage)
+    #sitk.WriteImage(balli, "ball.nii.gz")
 
     # get 1 and 90 percentiles of intensities in ball
-    aimg = sitk.GetArrayFromImage(itkimage)
-    amask = sitk.GetArrayFromImage(ball)
-    mask = np.extract(amask, aimg)
+    mask = np.extract(ball, sitk.GetArrayFromImage(itkimage))
     percentiles = np.percentile(mask, [1, 90])
     percentile01, percentile90 = percentiles.tolist()
-    print("-  1st percentile: {}\n- 90th percentile: {}".format(percentile01, percentile90))
+    print("-  1st percentile: {:.2f}\n- 90th percentile: {:.2f}".format(percentile01, percentile90))
 
     # compute intensity transformation
     m = (targetWM - 2.55) / (percentile90 - percentile01)
@@ -227,10 +230,6 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
 
     # itkImage already is Float32 and output should be also Float32, we clamp outside as well
     normed = itkimage * m + b
-
-#    normed = sitk.Cast(sitk.Clamp(sitk.Cast(itkimage, sitk.sitkFloat32) * m + b, upperBound=255, lowerBound=0),
-#                       sitk.sitkUInt8)
-    # sitk.WriteImage(normed, "normed.nii.gz")
 
     return normed
 
@@ -282,6 +281,8 @@ if __name__ == "__main__":
     print("- number iterations: {}".format(options.numiter))
     print("- convergence threshold: {}".format(options.thres))
     print("- skipwm: {}".format(bool(options.skipwm)))
+    if options.tal:
+        print("- talairach: {}".format(options.tal))
     print("- threads: {}".format(options.threads))
 
     # set number of threads
@@ -300,7 +301,6 @@ if __name__ == "__main__":
 
     # read mask (as uchar)
     if options.mask:
-        # itkmask = sitk.ReadImage(options.mask, sitk.sitkUInt8)
         itkmask = iio.readITKimage(options.mask, sitk.sitkUInt8)
     else:
         itkmask = None
