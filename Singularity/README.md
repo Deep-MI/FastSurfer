@@ -51,11 +51,11 @@ Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command as following:
+You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image (replace # with the current version number) and excluding the `--nv` argument in your Singularity exec command as following:
 
 ```bash
 cd /home/user/my_singlarity_images
-singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:gpu-v2.0.0
+singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:cpu-v#.#.#
 
 singularity exec      -B /home/user/my_mri_data:/data \
                       -B /home/user/my_fastsurfer_analysis:/output \
