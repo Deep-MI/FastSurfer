@@ -71,9 +71,10 @@ List them by running the following command:
 * `--ignore_fs_version`: Switch on to avoid check for FreeSurfer version. Program will terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions.
 * `-h`, `--help`: Prints help text 
 
+
 ### Example 1: Native FastSurfer on subjectX (with parallel processing of hemis)
 
-Given you want to analyze data for subject which is stored on your computer under /home/user/my_mri_data/subjectX/orig.mgz, run the following command from the console (do not forget to source FreeSurfer!):
+Given you want to analyze data for subject which is stored on your computer under /home/user/my_mri_data/subjectX/t1-weighted.nii.gz, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
 # Source FreeSurfer
@@ -85,16 +86,17 @@ datadir=/home/user/my_mri_data
 fastsurferdir=/home/user/my_fastsurfer_analysis
 
 # Run FastSurfer
-./run_fastsurfer.sh --t1 $datadir/subjectX/orig.mgz \
+./run_fastsurfer.sh --t1 $datadir/subjectX/t1-weighted-nii.gz \
                     --sid subjectX --sd $fastsurferdir \
                     --parallel --threads 4
 ```
 
 The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subjectX/mri (default location)). Processing of the hemispheres will be run in parallel (--parallel flag). Omit this flag to run the processing sequentially.
 
+
 ### Example 2: Native FastSurfer on multiple subjects
 
-In order to run FastSurfer on multiple cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line per line:
+In order to run FastSurfer on multiple cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line by line:
 subject1\n
 subject2\n
 subject3\n
@@ -114,14 +116,15 @@ mkdir -p $fastsurferdir/logs # create log dir for storing nohup output log (opti
 
 while read p ; do
   echo $p
-  nohup ./run_fastsurfer.sh --t1 $datadir/$p/orig.mgz 
+  nohup ./run_fastsurfer.sh --t1 $datadir/$p/t1-weighted.nii.gz
                             --sid $p --sd $fastsurferdir > $fastsurferdir/logs/out-${p}.log &
   sleep 90s 
 done < ./data/subjects_list.txt
 ```
 
+
 ### Example 3: FastSurfer Docker
-After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run more than just the segmentation CNN, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license for free. This license needs to be passed to the script via the `--fs_license` flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mouting (linking) the input and output directories to inside the container image. In the second half of that call you pass paramters to our run_fastsurfer.sh script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags). 
+After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run more than just the segmentation CNN, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license for free. The directory containint the license needs to be mounted and passed to the script via the `--fs_license` flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to inside the container image. In the second half of that call you pass paramters to our run_fastsurfer.sh script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags). 
 
 To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:
 
@@ -132,7 +135,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/orig.mgz \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
                       --parallel
 ```
@@ -141,17 +144,18 @@ Docker Flags:
 * The `--gpus` flag is used to allow Docker to access GPU resources. With it you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set `--gpus` device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set `--gpus 'device=0,1,3'`.
 * The `-v` commands mount your data, output, and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 * The `--rm` flag takes care of removing the container once the analysis finished. 
-* The `--user $(id -u):$(id -g)` part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+* The `--user $(id -u):$(id -g)` part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root which is discouraged.
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 
-FastSurfer Flags to pass through:
+FastSurfer Flags to Pass Through:
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-You can also run a CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
+If you do not have a GPU, you can also run our CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
+
 
 ### Example 4: FastSurfer Singularity
 After building the Singularity image (see instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
@@ -166,7 +170,7 @@ singularity exec --nv -B /home/user/my_mri_data:/data \
                        ./fastsurfer-gpu.sif \
                        /fastsurfer/run_fastsurfer.sh \
                       --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/orig.mgz \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
                       --parallel
 ```
@@ -184,12 +188,13 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
 
+
 ### Example 5 Quick Segmentation
 
 For many applications you won't need the surfaces. You can run only the segmentation (in 1 minute on a GPU) via
 
 ```bash
-./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
+./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
                     --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
                     --conformed_name $ouputdir/subject1/conformed.mgz \
                     --parallel --threads 4 --seg_only
@@ -203,7 +208,7 @@ It will furthermore output a brain mask (mask.mgz) and a simplified segmentation
 Alternatively - but this requires a FreeSurfer install - you can get mask and also statistics after insertion of the corpus callosum by adding```--vol_segstats``` in the run_fastsurfer.sh command:
 
 ```bash
-./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
+./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
                     --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
                     --conformed_name $ouputdir/subject1/conformed.mgz \
                     --parallel --threads 4 --seg_only --vol_segstats
