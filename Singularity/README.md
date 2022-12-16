@@ -18,7 +18,7 @@ If you want to use a locally available image that you created yourself, instead 
 
 ```bash
 cd /home/user/my_singlarity_images
-singularity build fastsurfer-myimage.sif docker-daemon://deepmi/fastsurfer:myimage
+singularity build fastsurfer-myimage.sif docker-daemon://fastsurfer:myimage
 ```
 
 For how to create your own Docker images see our [Docker guide](../Docker/README.md)
