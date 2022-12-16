@@ -101,9 +101,8 @@ FLAGS:
                             (currently similar to aparc+aseg). When using
                             FastSurfer, this segmentation is already conformed,
                             since inference is always based on a conformed image.
-                            Requires an ABSOLUTE Path! Currently, this is the same
-                            as the aparc+aseg and just a symlink to the
-                            aparc_aseg_segfile.
+                            Currently, this is the same as the aparc+aseg and just
+                            a symlink to the aparc_aseg_segfile.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
 
@@ -115,7 +114,7 @@ FLAGS:
                             this intermediate DL-based segmentation will not be
                             stored, but only the merged segmentation will be stored
                             (see --main_segfile <filename>).
-                            Requires an ABSOLUTE Path! Default location:
+                            Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 
   SURFACE PIPELINE:
@@ -123,8 +122,8 @@ FLAGS:
                             to exist already in this case.
   --aparc_aseg_segfile <filename>
                           Name of the input aparc aseg segmentation file (see above).
-                            Requires an ABSOLUTE Path! Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+                          Default location:
+                          \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
                             statistics for DL-based segmentation (does not
                             require surfaces). Can be used in combination with
