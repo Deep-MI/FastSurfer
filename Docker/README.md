@@ -2,9 +2,10 @@
 
 Within this directory we currently provide five different Dockerfiles that are set up for running: 
 
-* the whole FastSurfer pipeline (FastSurferVINN + recon-surf, Example 1 (GPU) and 2 (CPU))
-* only the segmentation network (FastSurferVINN, Example 3 (GPU) and 4 (CPU))
-* only the surface module (recon-surf, Example 5 (CPU))
+* the whole FastSurfer pipeline (FastSurferVINN + recon-surf, Example 2 (GPU) and 3 (CPU))
+* only the segmentation network (FastSurferVINN, Example 4 (GPU) and 5 (CPU))
+* only the surface module (recon-surf, Example 6 (CPU))
+* for AMD GPUs (experimental, Example 7)
 
 In order to run the surface module (alone or in the full pipeline), you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
 
