@@ -32,15 +32,19 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --sid subjectX --sd /output \
                       --parallel
 ```
+##### Docker Flags:
+* `--gpus`: This flag is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set `--gpus device=0`. To use multiple specific ones (e.g. GPU 0, 1 and 3), set `--gpus "device=0,1,3"`.
+* `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
+* `--rm`: The flag takes care of removing the container once the analysis finished. 
+* `-d`: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)
+* `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
 
-* The --gpus flag is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
-* The -v commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
-* The --rm flag takes care of removing the container once the analysis finished. 
-* Optionally, you can add a -d flag to run in detached mode (no screen output and you return to shell)
-* The --user $(id -u):$(id -g) part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
-* The --fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
-* Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
-* A directory with the name as specified in --sid (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+##### Fastsurfer Flags:
+* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+
+Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
+
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
@@ -107,14 +111,21 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --seg_only
 ```
 
-* The --gpus flag is used to access GPU resources. Specify how many GPUs to use: In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set --gpus device=0. To use multiple specific ones (e.g. GPU 0, 1 and 3), set --gpus '"device=0,1,3"'.
-* The -v command mounts your data and output directory into the docker image. Inside it is visible under the name following the colon (in this case /data or /output).
-* The --rm flag takes care of removing the container once the analysis finished. 
-* Optionally, you can add a -d flag to run in detached mode (no screen output and you return to shell)
-* Again, the --user $(id -u):$(id -g) part automatically runs the container with your group- _(id -g)_ and user-id _(id -u)_
-* Also here, the paths after --i_dir and --o_dir refer to local paths inside the container, as they were mapped above with the -v commands.
+##### Docker Flags:
+* `--gpus`: This flag is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set `--gpus device=0`. To use multiple specific ones (e.g. GPU 0, 1 and 3), set `--gpus "device=0,1,3"`.
+* `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
+* `--rm`: The flag takes care of removing the container once the analysis finished. 
+* `-d`: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)
+* `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+
+Note, that the paths following `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
+
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
+
+
+
 
 ### Example 5: Build CPU FastSurferCNN container (segmentation only)
 In order to build the docker image for FastSurferCNN (segmentation only; on CPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
@@ -146,7 +157,7 @@ cd ..
 docker build --rm=true -t deepmi/fastsurfer:cpu-surfonly-v2.0.0 -f ./Docker/Dockerfile_reconsurf .
 ```
 
-For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
+For running the analysis, start the container:
 ```bash
 docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
@@ -157,15 +168,20 @@ docker run -v /home/user/my_mri_data:/data \
            --sid subjectX --sd /output \
            --parallel
 ```
-* The -v commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
-* The --rm flag takes care of removing the container once the analysis finished. 
-* Optionally, you can add a -d flag to run in detached mode (no screen output and you return to shell)
-* Again, the --user $(id -u):$(id -g) part automatically runs the container with your group- _(id -g)_ and user-id _(id -u)_
-* The fs_license points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
-* Note, that the paths following --fs_license, --t1, and --sd are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the -v arguments. 
+##### Docker Flags:
+* `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
+* `--rm`: The flag takes care of removing the container once the analysis finished. 
+* `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+* `-d`: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)
+
+##### Fastsurfer Flags:
+* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+
+Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
+
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
-
 
 ### Example 7: Experimental build for AMD GPUs
 
