@@ -1,27 +1,13 @@
-# FastSurfer Docker Image Creation
+# Pull FastSurfer from DockerHub
 
-Within this directory we currently provide five different Dockerfiles that are set up for running: 
-
-* the whole FastSurfer pipeline (FastSurferVINN + recon-surf, Example 2 (GPU) and 3 (CPU))
-* only the segmentation network (FastSurferVINN, Example 4 (GPU) and 5 (CPU))
-* only the surface module (recon-surf, Example 6 (CPU))
-* for AMD GPUs (experimental, Example 7)
-
-In order to run the surface module (alone or in the full pipeline), you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
-
-Note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
-
-
-### Example 1: Pull FastSurfer Image
-
-We provide a number of prebuild docker images. In order to get them you simply need to execute the following command:
+We provide a number of prebuild docker images on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags). In order to get the latest GPU image you simply need to execute the following command:
 
 ```bash 
 docker pull deepmi/fastsurfer
 ```
-By default, you fetch the deepmi/fastsurfer:latest image. You can get a different one by simply adding the corresponding tag at the end of "deepmi/fastsurfer" as in "deepmi/fastsurfer:latest". For a list of provided tags, visit our [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags).
+You can get a different one by simply adding the corresponding tag at the end of "deepmi/fastsurfer" as in "deepmi/fastsurfer:gpu-v#.#.#", where the # should be replaced with the version. 
 
-This script builds a docker image with the name fastsurfer:latest. With it, you basically execute the script __run_fastsurfer.sh__ from the parent directory. It takes as input a single T1-weighted MRI brain scan (from the /data directory) and first produces the aparc.DKTatlas+aseg.mgz segmentation followed by the surface construction (output stored in /output directory).
+After pulling the image, you can start a FastSurfer container and process a T1-weighted image (both segmentation and surface reconstruction) with the following command:
 
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
@@ -29,7 +15,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/orig.mgz \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
                       --parallel
 ```
@@ -38,25 +24,37 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
 * `--rm`: The flag takes care of removing the container once the analysis finished. 
 * `-d`: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)
-* `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
+* `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root which is strongly discouraged.
 
-##### Fastsurfer Flags:
-* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+##### FastSurfer Flags:
+* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. In order to run the surface module (alone or in the full pipeline), you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
 
-### Example 2: Build GPU FastSurfer Image (default)
+# FastSurfer Docker Image Creation
 
-In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command after traversing into the *Docker* directory: 
+Within this directory we currently provide different Dockerfiles for users (usually developers) who wish to create their own Docker images for:
+
+* the whole FastSurfer pipeline (FastSurferVINN + recon-surf, Example 1 (GPU) and 2 (CPU))
+* only the segmentation network (FastSurferVINN, Example 3 (GPU) and 4 (CPU))
+* only the surface module (recon-surf, Example 5 (CPU))
+* for AMD GPUs (experimental, Example 6)
+
+Note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
+
+
+### Example 1: Build GPU FastSurfer Image (default)
+
+In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command after traversing into the *Docker* directory: 
 
 ```bash
 cd ..
-docker build --rm=true -t deepmi/fastsurfer:gpu-v2.0.0 -f ./Docker/Dockerfile .
+docker build --rm=true -t my_fastsurfer:gpu -f ./Docker/Dockerfile .
 ```
 
 For running the analysis, the command is basically the same as above for the prebuild option:
@@ -64,20 +62,21 @@ For running the analysis, the command is basically the same as above for the pre
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
-                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:gpu-v2.0.0 \
+                      --rm --user $(id -u):$(id -g) my_fastsurfer:gpu \
                       --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/orig.mgz \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
                       --parallel
 ```
 
 
-### Example 3: Build CPU FastSurfer Image
+### Example 2: Build CPU FastSurfer Image
+
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
 cd ..
-docker build --rm=true -t deepmi/fastsurfer:cpu-v2.0.0 -f ./Docker/Dockerfile_CPU .
+docker build --rm=true -t my_fastsurfer:cpu -f ./Docker/Dockerfile_CPU .
 ```
 
 For running the analysis, the command is basically the same as above for the GPU option:
@@ -85,32 +84,32 @@ For running the analysis, the command is basically the same as above for the GPU
 docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
            -v /home/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v2.0.0 \
+           --rm --user $(id -u):$(id -g) my_fastsurfer:cpu \
            --fs_license /fs_license/license.txt \
-           --t1 /data/subjectX/orig.mgz \
+           --t1 /data/subjectX/t1-weighed.nii.gz \
            --device cpu \
            --sid subjectX --sd /output \
            --parallel
 ```
 
-As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --device cpu flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
+As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the `--device cpu` flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
 
 
-### Example 4: Build GPU FastSurferCNN Image (segmentation only)
+### Example 3: Build GPU FastSurferCNN Image (segmentation only)
 
 In order to build the Docker image for FastSurferCNN (segmentation only; on GPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
 cd ..
-docker build --rm=true -t deepmi/fastsurfer:gpu-segonly-v2.0.0 -f ./Docker/Dockerfile_FastSurferCNN .
+docker build --rm=true -t my_fastsurfer:gpu-segonly -f ./Docker/Dockerfile_FastSurferCNN .
 ```
 
-For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
+For running the analysis, start the container:
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurferCNN_analysis:/output \
-                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:gpu-segonly-v2.0.0 \
-                      --t1 /data/subjectX/orig.mgz \
+                      --rm --user $(id -u):$(id -g) my_fastsurfer:gpu-segonly \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
                       --seg_only
 ```
@@ -129,50 +128,48 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
 
-### Example 5: Build CPU FastSurferCNN Image (segmentation only)
-In order to build the docker image for FastSurferCNN (segmentation only; on CPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
+### Example 4: Build CPU FastSurferCNN Image (segmentation only)
+In order to build the Docker image for FastSurferCNN (segmentation only; on CPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
 cd ..
-docker build --rm=true -t deepmi/fastsurfer:cpu-segonly-v2.0.0 -f ./Docker/Dockerfile_FastSurferCNN_CPU .
+docker build --rm=true -t my_fastsurfer:cpu-segonly -f ./Docker/Dockerfile_FastSurferCNN_CPU .
 ```
 
-For running the analysis, start the container (e.g. to run segmentation on __all__ subjects (scans named orig.mgz inside /home/user/my_mri_data/subjectX/mri/):
+For running the analysis, start the container:
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurferCNN_analysis:/output \
-                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-segonly-v2.0.0 \
-                      --t1 /data/subjectX/orig.mgz \
+                      --rm --user $(id -u):$(id -g) my_fastsurfer:cpu-segonly \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
                       --seg_only \
                       --device cpu
 ```
 
-Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --device cpu flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
+Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the `--device cpu` flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
 
 
-### Example 6: Build CPU FastSurfer recon-surf Image (surface pipeline only)
+### Example 5: Build CPU FastSurfer recon-surf Image (surface pipeline only)
 
-In order to build the docker image for FastSurfer recon-surf (surface pipeline only, segmentation needs to exist already!) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
+In order to build the docker image for FastSurfer recon-surf (surface pipeline only), simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
 cd ..
-docker build --rm=true -t deepmi/fastsurfer:cpu-surfonly-v2.0.0 -f ./Docker/Dockerfile_reconsurf .
+docker build --rm=true -t my_fastsurfer:cpu-surfonly -f ./Docker/Dockerfile_reconsurf .
 ```
 
-For running the analysis, start the container:
+For running the analysis (segmentation, mask, etc needs to exist already in the default location in the output directory!) start the container:
 ```bash
-docker run -v /home/user/my_mri_data:/data \
-           -v /home/user/my_fastsurfer_analysis:/output \
+docker run -v /home/user/my_fastsurfer_analysis:/output \
            -v /home/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-surfonly-v2.0.0 \
+           --rm --user $(id -u):$(id -g) my_fastsurfer:cpu-surfonly \
            --fs_license /fs_license/license.txt \
-           --t1 /data/subjectX/orig.mgz \
            --sid subjectX --sd /output \
            --parallel
 ```
 ##### Docker Flags:
-* `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
+* `-v`: This commands mount your output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
 * `--rm`: The flag takes care of removing the container once the analysis finished. 
 * `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root.
 * `-d`: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)
@@ -180,14 +177,14 @@ docker run -v /home/user/my_mri_data:/data \
 ##### Fastsurfer Flags:
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 
-Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
+Note, that the paths following `--fs_license` and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name as specified in `--sid` (here subjectX) needs to exist with the orig.mgz, mask.mgz, segmentation etc in the output directory. In this example surface module output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . 
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
 
-### Example 7: Experimental Built for AMD GPUs
+### Example 6: Experimental Built for AMD GPUs
 
 Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into 
 your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to work. For this follow:
@@ -196,7 +193,7 @@ https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction_to_
 
 ```bash
 cd ..
-docker build --rm=true -t deepmi/fastsurfer:gpu-amd-v2.0.0 -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+docker build --rm=true -t my_fastsurfer:gpu-amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
 ```
 
 and run segmentation only:
@@ -207,9 +204,9 @@ docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
 	   --shm-size 8G \
 	   -v /home/user/my_mri_data:/data \
 	   -v /home/user/my_fastsurfer_analysis:/output \
-	   deepmi/fastsurfer:gpu-amd-v2.0.0 \
-	   --orig_name /data/subjectX/orig.mgz \
-	   --pred_name /output/subjectX/aparc.DKTatlas+aseg.deep.mgz
+	   my_fastsurfer:gpu-amd \
+	   --t1 /data/subjectX/t1-weighted.nii.gz \
+	   --sid subjectX --sd /output 
 ```
 
 Note, we tested on an AMD Radeon Pro W6600, which is not officially supported, but setting HSA_OVERRIDE_GFX_VERSION=10.3.0 inside docker did the trick.
