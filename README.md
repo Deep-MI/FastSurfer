@@ -40,44 +40,36 @@ List them by running the following command:
 ### Required for docker when running surface module
 * `--fs_license`: Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far. Strictly necessary if you use Docker, optional for local install (your local FreeSurfer license will automatically be used). The license file is usually located in $FREESURFER_HOME/license.txt or $FREESURFER_HOME/.license .
 
-### Network specific arguments (optional)
-* `--seg`: Global path with filename of segmentation (where and under which name to store it). The file can be in mgz, nii, or nii.gz format. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-* `--weights_sag`: Pretrained weights of sagittal network. Optional, will download checkpoint if missing.
-* `--weights_ax`: Pretrained weights of axial network. Optional, will download checkpoint if missing.
-* `--weights_cor`: Pretrained weights of coronal network. Optional, will download checkpoint if missing.
+### Segmentation pipeline arguments (optional)
+* `--seg_only`: only run FastSurferCNN (generate segmentation, do not run the surface pipeline)
+* `--main_segfile`: Global path with filename of segmentation (where and under which name to store it). The file can be in mgz, nii, or nii.gz format. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * `--seg_log`: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
-* `--clean_seg`: Flag to clean up NN segmentation
-* `--run_viewagg_on`: Define where the view aggregation should be run on. 
-                    By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
-                    The total memory is considered for this decision. 
-                    If this fails, or you actively overwrote the check with setting "--run_viewagg_on cpu", view agg is run on the cpu. 
-                    Equivalently, if you define "--run_viewagg_on gpu", view agg will be run on the gpu (no memory check will be done).
-* `--device <str>`: Select device for NN segmentation ("cpu", "cuda"), where cuda (default) means Nvidia GPU, you can select which one "cuda:1".
-* `--batch`: Batch size for inference. Default: 8. Lower this to reduce memory requirement
-* `--order`: Order of interpolation for mri_convert T1 before segmentation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)
-* `--hires`: Switch on hires processing (no conforming to 1mm, but to smallest voxel size).
+* `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting with "cpu" view agg is run on the cpu. Equivalently, if you pass a different device, view agg will be run on that device (no memory check will be done).
+* `--device`: Select device for NN segmentation ("cpu", "cuda"), where cuda means Nvidia GPU, you can select which one "cuda:1". Default: "auto", check GPU and then CPU
+* `--batch`: Batch size for inference. Default: 1. 
 * `--vol_segstats`: Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not  require surfaces). Can be used in combination with `--seg_only` in which case recon-surf only runs till CC is added (akin to --seg_with_cc_only).
 
+### Aparc module arguments:
+* `--no_aparc`: Skip the aparc segmentation (aseg+aparc segmentation)
+* `--aparc_aseg_segfile <filename>`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+                          
+
 ### Surface pipeline arguments (optional)
+* `--surf_only`: only run the surface pipeline recon_surf. The segmentation created by FastSurferCNN must already exist in this case.
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
-* `--surfreg`: Create Surface-Atlas (sphere.reg) registration with FreeSurfer (for cross-subject correspondence or other mappings)
+* `--surfreg`: Run Surface registration with FreeSurfer (for cross-subject correspondence), Recommended!
 * `--parallel`: Run both hemispheres in parallel
 * `--threads`: Set openMP and ITK threads to <int>
 * `--no_fs_T1`: Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves 1:30 min.
 
 ### Other
-* `--py`: which python version to use. Default: python3.8
-* `--seg_only`: only run FastSurferCNN (generate segmentation, do not run the surface pipeline)
-* `--surf_only`: only run the surface pipeline recon_surf. The segmentation created by FastSurferCNN must already exist in this case.
-* `--seg_with_cc_only`: Run FastSurferCNN (generate segmentation) and recon_surf until corpus callosum (CC) is added in (no surface models will be created in this case!)
+* `--vox_size 1|auto`:  Force processing at a specific voxel size. Only "auto" and "1" are supported values. If "1" is specified, the T1w image will be conformed to 1mm voxel size and processed, if "auto" is specified (default), the T1w image will be conformed isometric voxels of the smallest voxel edge in the image for highres processing.
+* `--py`: Command for python, used in both pipelines. Default: python3.8
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
-* `--config_sag`: Path to the sagittal config file
-* `--config_ax`: Path to the axial config file
-* `--config_cor`: Path to the axial coronal file
 * `--ignore_fs_version`: Switch on to avoid check for FreeSurfer version. Program will terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions.
-* `--help`: Prints helptext out 
+* `-h`, `--help`: Prints help text 
 
 ### Example 1: Native FastSurfer on subjectX (with parallel processing of hemis)
 
@@ -198,42 +190,46 @@ For many applications you won't need the surfaces. You can run only the segmenta
 
 ```bash
 ./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
-                    --seg $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
                     --conformed_name $ouputdir/subject1/conformed.mgz \
                     --parallel --threads 4 --seg_only
 ```
 
 This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
-Conformed means that the image will be 1mm isotropic in LIA orientation. 
+Conformed means that the image will be isotropic in LIA orientation. 
+It will furthermore output a brain mask (mask.mgz) and a simplified segmentation file (aseg.auto_noCCseg.mgz). 
 
-If you also need a brainmask or an aseg (reduced lables) you can run:
 
-```bash
-python3 ./recon-surf/reduce_to_aseg.py \
-                    -i $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                    -o $ouputdir/subject1/aseg.auto_noCCseg.mgz \
-                    --outmask $ouputdir/subject1/mask.mgz \
-                    --fixwm
-```
-
-Alternatively - but this requires a FreeSurfer install - you can get mask and also statistics after insertion of the corpus callosum by replacing ```--seg_only``` with ```--seg_with_cc_only``` in the run_fastsurfer.sh command:
+Alternatively - but this requires a FreeSurfer install - you can get mask and also statistics after insertion of the corpus callosum by adding```--vol_segstats``` in the run_fastsurfer.sh command:
 
 ```bash
 ./run_fastsurfer.sh --t1 $datadir/subject1/orig.mgz \
-                    --seg $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
                     --conformed_name $ouputdir/subject1/conformed.mgz \
-                    --parallel --threads 4 --seg_with_cc_only
+                    --parallel --threads 4 --seg_only --vol_segstats
 ```
 
 The above ```run_fastsurfer.sh``` commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker of -B in Singularity). For the ```reduce_to_aseg.py you would need to enter the container interactively. 
 
 ## System Requirements
 
-Recommendation: At least 8GB CPU RAM and 8GB NVIDIA GPU RAM ```--batch 1 --run_viewagg_on gpu```  
+Recommendation: At least 8GB CPU RAM and 8GB NVIDIA GPU RAM ``--viewagg_device gpu``  
 
-Minimum: 8 GB CPU RAM and 2 GB GPU RAM ```--batch 1 --run_viewagg_on cpu```
+Minimum: 7 GB CPU RAM and 2 GB GPU RAM ``--viewagg_device cpu --vox_size 1``
 
-CPU-only: 8 GB CPU RAM (much slower, not recommended) ```--device cpu --batch 4``` 
+Minimum CPU-only: 8 GB CPU RAM (much slower, not recommended) ``--device cpu --vox_size 1`` 
+
+### Minimum Requirements:
+
+|       | --viewagg_device | Min GPU (in GB) | Min CPU (in GB) |
+|:------|------------------|----------------:|----------------:|
+| 1mm   | gpu              |               5 |               5 |
+| 1mm   | cpu              |               2 |               7 |
+| 0.8mm | gpu              |               8 |               6 |
+| 0.8mm | cpu              |               3 |               9 |
+| 0.7mm | gpu              |               8 |               6 |
+| 0.7mm | cpu              |               3 |               9 |
+
 
 ## FreeSurfer Downstream Modules
 
