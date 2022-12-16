@@ -1,17 +1,17 @@
-# FastSurfer Docker image creation
+# FastSurfer Docker Image Creation
 
 Within this directory we currently provide five different Dockerfiles that are set up for running: 
 
-* the whole FastSurfer pipeline (FastSurferCNN + recon-surf, Example 1 (GPU) and 2 (CPU))
-* only the segmentation network (FastSurferCNN, Example 3 (GPU) and 4 (CPU))
-* only the surface pipeline (recon-surf, Example 5 (CPU))
+* the whole FastSurfer pipeline (FastSurferVINN + recon-surf, Example 1 (GPU) and 2 (CPU))
+* only the segmentation network (FastSurferVINN, Example 3 (GPU) and 4 (CPU))
+* only the surface module (recon-surf, Example 5 (CPU))
 
-In order to run the whole FastSurfer pipeline or the surface part, you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
+In order to run the surface module (alone or in the full pipeline), you need a valid FreeSurfer license (either from your local FreeSurfer installation or from the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html)). 
 
-Note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). Also for the new M1 Chip, try adding ´--platform linux/x86_64´ to the build and run commands below. 
+Note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
 
 
-### Example 1: Pull FastSurfer container 
+### Example 1: Pull FastSurfer Image
 
 We provide a number of prebuild docker images. In order to get them you simply need to execute the following command:
 
@@ -48,7 +48,8 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
-### Example 2: Build GPU FastSurfer container (default)
+
+### Example 2: Build GPU FastSurfer Image (default)
 
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command after traversing into the *Docker* directory: 
 
@@ -69,7 +70,8 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --parallel
 ```
 
-### Example 3: Build CPU FastSurfer container
+
+### Example 3: Build CPU FastSurfer Image
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
@@ -92,9 +94,10 @@ docker run -v /home/user/my_mri_data:/data \
 
 As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --device cpu flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
 
-### Example 4: Build GPU FastSurferCNN container (segmentation only)
 
-In order to build the docker image for FastSurferCNN (segmentation only; on GPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
+### Example 4: Build GPU FastSurferCNN Image (segmentation only)
+
+In order to build the Docker image for FastSurferCNN (segmentation only; on GPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
 cd ..
@@ -125,9 +128,7 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
 
-
-
-### Example 5: Build CPU FastSurferCNN container (segmentation only)
+### Example 5: Build CPU FastSurferCNN Image (segmentation only)
 In order to build the docker image for FastSurferCNN (segmentation only; on CPU; no FreeSurfer needed) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
@@ -148,7 +149,8 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 
 Again, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the --device cpu flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
 
-### Example 6: Build CPU FastSurfer recon-surf container (surface pipeline only)
+
+### Example 6: Build CPU FastSurfer recon-surf Image (surface pipeline only)
 
 In order to build the docker image for FastSurfer recon-surf (surface pipeline only, segmentation needs to exist already!) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
@@ -183,7 +185,8 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 
 All other flags are identical to the ones explained on the main page [README](../README.md).
 
-### Example 7: Experimental build for AMD GPUs
+
+### Example 7: Experimental Built for AMD GPUs
 
 Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into 
 your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to work. For this follow:
