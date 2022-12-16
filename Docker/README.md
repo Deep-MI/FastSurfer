@@ -45,7 +45,11 @@ Within this directory we currently provide different Dockerfiles for users (usua
 * only the surface module (recon-surf, Example 5 (CPU))
 * for AMD GPUs (experimental, Example 6)
 
-Note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
+Having different images exposes non-standard flags of their respective entry points. E.g. the segmentation only exposes flags of run_predictions which permits batch processing. The surface module image exposes recon-surf.sh directly. 
+
+Note, for many HPC users with limited GPUs or with very large datasets, it may be most efficient to run the full pipeline on the CPU, trading a longer run-time for the segmentation with massive parallelization on the subject level. 
+
+Also note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
 
 
 ### Example 1: Build GPU FastSurfer Image (default)
