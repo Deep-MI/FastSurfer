@@ -42,34 +42,45 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 
 
 ### Example Command Evaluation Single Subject
-To run the network on MRI-volumes of subjectX in ./data (specified by `--t1` flag; e.g. ./data/subjectX/orig.mgz), change into the *FastSurferCNN* directory and run the following commands: 
+To run the network on MRI-volumes of subjectX in ./data (specified by `--t1` flag; e.g. ./data/subjectX/t1-weighted.nii.gz), change into the *FastSurferCNN* directory and run the following commands: 
 
 ```
-python3 run_prediction.py --t1 ../data/subjectX/orig.mgz \
---sd ../data \
+python3 run_prediction.py --t1 ../data/subjectX/t1-weighted.nii.gz \
+--sd ../output \
 --t subjectX \
---seg_log ../data/temp_Competitive.log \
+--seg_log ../output/temp_Competitive.log \
 --ckpt_sag ../checkpoints/aparc_vinn_sagittal_v2.0.0.pkl \
 --ckpt_cor ../checkpoints/aparc_vinn_coronal_v2.0.0.pkl \
 --ckpt_ax ../checkpoints/aparc_vinn_axial_v2.0.0.pkl 
 ```
 
-The output will be saved in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz.
+The output will be stored in:
+
+- ../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz (large segmentation)
+- ../output/subjectX/mri/mask.mgz (brain mask)
+- ../output/subjectX/mri/aseg_noCC.mgz (reduced segmentation)
+
 Here the logfile "temp_Competitive.log" will include the logfiles of all subjects. If left out, the logs will be written to stdout
+
 
 ### Example Command Evaluation whole directory
 To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
 
 ```
 python3 run_prediction.py --in_dir ../data \
---sd ../data \
---seg_log ../data/temp_Competitive.log \
+--sd ../output \
+--seg_log ../output/temp_Competitive.log \
 --ckpt_sag ../checkpoints/aparc_vinn_sagittal_v2.0.0.pkl \
 --ckpt_cor ../checkpoints/aparc_vinn_coronal_v2.0.0.pkl \
 --ckpt_ax ../checkpoints/aparc_vinn_axial_v2.0.0.pkl 
 ```
 
-The output will be stored in ./data/subjectX/aparc.DKTatlas+aseg.deep.mgz and the log in ./data/temp_Competitive.log
+The output will be stored in:
+
+- ../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz (large segmentation)
+- ../output/subjectX/mri/mask.mgz (brain mask)
+- ../output/subjectX/mri/aseg_noCC.mgz (reduced segmentation)
+- and the log in ../output/temp_Competitive.log
 
 
 # 2. Hdf5-Trainingset Generation
