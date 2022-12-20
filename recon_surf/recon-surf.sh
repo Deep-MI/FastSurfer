@@ -26,7 +26,7 @@ vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats base
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0	            # run FS aparc (and cortical ribbon), if 0 map aparc from aparc_aseg_segfile
-fssurfreg=0           # run FS surface registration to fsaverage, if 0 omit this step
+fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
 python="python3.8"    # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
@@ -102,8 +102,6 @@ FLAGS:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine)
-  --surfreg               Run Surface registration with FreeSurfer (for
-                            cross-subject correspondence)
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
   --py <python_cmd>       Command for python, default $python
@@ -121,6 +119,9 @@ Dev Flags:
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
   --allow_root            Allow execution as root user.
+  --no_surfreg              Do not run Surface registration with FreeSurfer (for
+                            cross-subject correspondence), Not recommended, but
+                            speeds up processing if you e.g. just need the segmentation stats!
 
 REFERENCES:
 
@@ -278,8 +279,8 @@ case $key in
     fsaparc=1
     shift # past argument
     ;;
-    --surfreg)
-    fssurfreg=1
+    --no_surfreg)
+    fssurfreg=0
     shift # past argument
     ;;
     --parallel)
