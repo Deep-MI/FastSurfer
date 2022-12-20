@@ -30,13 +30,12 @@ fssurfreg=0           # run FS surface registration to fsaverage, if 0 omit this
 python="python3.8"    # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
-vox_size="auto"       # hires processing
-hiresflag=""          # flag for recon-all calls for hires (default empty)
 allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
 check_version=1;    # Check for supported FreeSurfer version (terminate if not detected)
 get_t1=1;           # Generate T1.mgz from nu.mgz and brainmask from it (default)
+hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed.
 
 if [ -z "$FASTSURFER_HOME" ]
 then
@@ -105,9 +104,6 @@ FLAGS:
                             is faster, and usually these mapped ones are fine)
   --surfreg               Run Surface registration with FreeSurfer (for
                             cross-subject correspondence)
-  --vox_size auto|1       Run FastSurfer recon-surf stream for 1mm (1) or in the
-                            hires stream (auto) at the voxel size conformed to
-                            the minimum voxel edge.
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
   --py <python_cmd>       Command for python, default $python
@@ -286,24 +282,6 @@ case $key in
     fssurfreg=1
     shift # past argument
     ;;
-    --hires)
-    echo "WARNING: --hires is deprecated, use --vox_size auto."
-    vox_size="auto"
-    hiresflag="-hires"
-    shift # past argument
-    ;;
-    --vox_size)
-    if [ "$2" == "auto" ]; then
-      hiresflag="-hires"
-    elif [ "$2" == "1" ]; then
-      hiresflag=""
-    else
-      exit "Invalid option for --vox_size, only 1 or 'auto' are valid."
-    fi
-    vox_size=$2
-    shift # past argument
-    shift # past value
-    ;;
     --parallel)
     DoParallel=1
     shift # past argument
@@ -442,7 +420,7 @@ then
 fi
 
 # set threads for openMP and itk
-# if OMP_NUM_THREADS is not set and available ressources are too vast, mc will fail with segmentation fault!
+# if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
 # Therefore we set it to 1 as default above, if nothing is specified.
 fsthreads=""
 export OMP_NUM_THREADS=$threads
@@ -540,18 +518,35 @@ echo " " |& tee -a $LF
 echo "================== Creating orig and rawavg from input =========================" |& tee -a $LF
 echo " " |& tee -a $LF
 
+CONFORM_LF=$SUBJECTS_DIR/$subject/scripts/conform.log
+if [ $CONFORM_LF != /dev/null ] ; then  rm -f $CONFORM_LF ; fi
+echo "Log file for Conform test" > $CONFORM_LF
+
 # check for input conformance
-cmin=""
-if  [ "$vox_size" == "auto" ]
-then
-  cmin="--conform_min"
-  hiresflag="-hires"
-fi
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only $cmin --verbose"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
+RunIt "$cmd" "$LF -a $CONFORM_LF"
+
+# look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
+vox_size=`cat $CONFORM_LF | grep -E " - Voxel Size " | cut -d' ' -f5 | cut -d'x' -f1`
+# remove the temporary conform_log (all info is also in the recon-surf logfile)
+if [ -f "$CONFORM_LF" ]; then rm -f $CONFORM_LF ; fi
+
+# here, we check the correct vox_size by passing it to the next conform, so errors in this line might be caused above
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $aparc_aseg_segfile --check_only --vox_size $vox_size --dtype any --verbose"
 RunIt "$cmd" $LF
 
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $aparc_aseg_segfile --check_only $cmin --seg_input --verbose"
-RunIt "$cmd" $LF
+if [ "$vox_size" -lt "$hires_voxsize_threshold" ]
+then
+  echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." |& tee -a $LF
+  hiresflag="-hires"
+  noconform_if_hires=" -noconform"
+  hires_surface_suffix=".predec"
+else
+  echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." |& tee -a $LF
+  hiresflag=""
+  noconform_if_hires=""
+  hires_surface_suffix=""
+fi
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of segmentation)
 cmd="mri_convert $t1 $mdir/orig.mgz"
@@ -640,11 +635,7 @@ RunIt "$cmd" $LF
 if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
-  cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz"
-  if [ "$vox_size" == "auto" ]
-  then
-    cmd="$cmd -noconform"
-  fi
+  cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
   RunIt "$cmd" $LF
 
   # create brainmask by masking T1
@@ -731,10 +722,7 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Marching cube does not return filename and wrong volume info!
-    outmesh=$sdir/$hemi.orig.nofix
-    if [ "$vox_size" == "auto" ]; then
-      outmesh=$sdir/$hemi.orig.nofix.predec
-    fi
+    outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix
     cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
     RunIt "$cmd" $LF $CMDF
 
@@ -753,7 +741,7 @@ else
     RunIt "$cmd" $LF $CMDF
     
     # for hires decimate mesh 
-    if [ "$vox_size" == "auto" ]; then
+    if [ ! -z "$hiresflag" ]; then
       DecimationFaceArea="0.5"
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
