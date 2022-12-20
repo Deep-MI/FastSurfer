@@ -32,8 +32,8 @@ def vox_size(a: str) -> VoxSizeOption:
         raise argparse.ArgumentError(f"'{a}' is not 'min' or a float between 0 and 1 (vox_size).")
 
 
-def conform_to_one(a: str) -> Optional[float]:
-    """Helper function to convert conform_to_1 thresholds to numbers."""
+def conform_to_one_mm(a: str) -> Optional[float]:
+    """Helper function to convert conform_to_1mm thresholds to numbers."""
     if a is None or a.lower() in ["none", "infinity"]:
         return None
     a_float = float(a)

@@ -85,7 +85,7 @@ class RunModelOnData:
     current_plane: str
     models: Dict[str, Inference]
     view_ops: Dict[str, Dict[str, Any]]
-    conform_to_1_threshold: Optional[float]
+    conform_to_1mm_threshold: Optional[float]
 
     def __init__(self, args):
         self.pred_name = args.pred_name
@@ -146,7 +146,7 @@ class RunModelOnData:
             self.vox_size = float(vox_size)
         else:
             raise ValueError(f"Invalid value for vox_size, must be between 0 and 1 or 'min', was {vox_size}.")
-        self.conform_to_1_threshold = args.conform_to_1_threshold
+        self.conform_to_1mm_threshold = args.conform_to_1mm_threshold
 
     def set_and_create_outdir(self, out_dir: str) -> str:
         if os.path.isabs(self.pred_name):
@@ -172,9 +172,10 @@ class RunModelOnData:
         self.save_img(self.input_img_name, orig_data, orig)
 
         if not conf.is_conform(orig, conform_vox_size=self.vox_size, check_dtype=True, verbose=False,
-                               conform_to_1_threshold=self.conform_to_1_threshold):
+                               conform_to_1mm_threshold=self.conform_to_1mm_threshold):
             LOGGER.info("Conforming image")
-            orig = conf.conform(orig, conform_vox_size=self.vox_size, conform_to_1_threshold=self.conform_to_1_threshold)
+            orig = conf.conform(orig,
+                                conform_vox_size=self.vox_size, conform_to_1mm_threshold=self.conform_to_1mm_threshold)
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
@@ -293,7 +294,7 @@ if __name__ == "__main__":
                                               "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"})
 
     # 5. technical parameters
-    parser = parser_defaults.add_arguments(parser, ["vox_size", "conform_to_1_threshold", "device", "viewagg_device",
+    parser = parser_defaults.add_arguments(parser, ["vox_size", "conform_to_1mm_threshold", "device", "viewagg_device",
                                                     "batch_size", "allow_root"])
 
     args = parser.parse_args()

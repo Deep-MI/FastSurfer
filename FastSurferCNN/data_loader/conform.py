@@ -23,7 +23,7 @@ import numpy as np
 import nibabel as nib
 
 from FastSurferCNN.utils.arg_types import (vox_size as __vox_size, target_dtype as __target_dtype,
-                                           conform_to_one as __conform_to_one, VoxSizeOption)
+                                           conform_to_one_mm as __conform_to_one_mm, VoxSizeOption)
 
 HELPTEXT = """
 Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
@@ -70,7 +70,7 @@ def options_parse():
                         help='Specifies whether the input is or should be conformed to the '
                              'minimal voxel size (used for high-res processing) - overwrites --vox_size.')
     advanced = parser.add_argument_group("Advanced options")
-    advanced.add_argument('--conform_to_1_threshold', type=__conform_to_one,
+    advanced.add_argument('--conform_to_1mm_threshold', type=__conform_to_one_mm,
                           help="Advanced option to change the threshold beyond which images are conformed to 1"
                                "(default: infinity, all images are conformed to their minimum voxel size).",
                           )
@@ -292,7 +292,7 @@ def find_img_size_by_fov(img: nib.analyze.SpatialImage, vox_size: float, min_dim
 
 def conform(img: nib.analyze.SpatialImage,
             order: int = 1, conform_vox_size: VoxSizeOption = 1., dtype: Optional[Type] = None,
-            conform_to_1_threshold: Optional[float] = None) -> nib.MGHImage:
+            conform_to_1mm_threshold: Optional[float] = None) -> nib.MGHImage:
     f"""
     Python version of mri_convert -c, which by default turns image intensity values
     into UCHAR, reslices images to standard position, fills up slices to standard
@@ -311,7 +311,7 @@ def conform(img: nib.analyze.SpatialImage,
             determine the 'minimum voxel size' from the image (value 'min').
             This assumes the smallest of the three voxel sizes.
         dtype: the dtype to enforce in the image (default: UCHAR, as mri_convert -c)
-        conform_to_1_threshold: the threshold above which the image is conformed to 1mm 
+        conform_to_1mm_threshold: the threshold above which the image is conformed to 1mm 
             (default: ignore). 
 
     Returns:
@@ -320,7 +320,7 @@ def conform(img: nib.analyze.SpatialImage,
     from nibabel.freesurfer.mghformat import MGHHeader
 
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(img, conform_vox_size,
-                                                                        conform_to_1_threshold=conform_to_1_threshold)
+                                                                        conform_to_1mm_threshold=conform_to_1mm_threshold)
 
     h1 = MGHHeader.from_header(img.header)  # may copy some parameters if input was MGH format
 
@@ -375,7 +375,7 @@ def conform(img: nib.analyze.SpatialImage,
 def is_conform(img: nib.analyze.SpatialImage,
                conform_vox_size: VoxSizeOption = 1., eps: float = 1e-06, check_dtype: bool = True,
                dtype: Optional[Type] = None, verbose: bool = True,
-               conform_to_1_threshold: Optional[float] = None) -> bool:
+               conform_to_1mm_threshold: Optional[float] = None) -> bool:
     f"""
     Function to check if an image is already conformed or not (Dimensions: 256x256x256,
     Voxel size: 1x1x1, LIA orientation, and data type UCHAR).
@@ -394,7 +394,7 @@ def is_conform(img: nib.analyze.SpatialImage,
         dtype: specifies the intended target dtype (default: uint8 = UCHAR)
         verbose: if True, details of which conformance conditions are violated (if any)
             are displayed (default: True).
-        conform_to_1_threshold: the threshold above which the image is conformed to 1mm 
+        conform_to_1mm_threshold: the threshold above which the image is conformed to 1mm 
             (default: ignore). 
 
     Returns:
@@ -402,7 +402,7 @@ def is_conform(img: nib.analyze.SpatialImage,
     """
 
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(img, conform_vox_size,
-                                                                        conform_to_1_threshold=conform_to_1_threshold)
+                                                                        conform_to_1mm_threshold=conform_to_1mm_threshold)
 
     ishape = img.shape
     # check 3d
@@ -446,12 +446,12 @@ def is_conform(img: nib.analyze.SpatialImage,
 
 
 def get_conformed_vox_img_size(img: nib.analyze.SpatialImage, conform_vox_size: VoxSizeOption,
-                               conform_to_1_threshold: Optional[float] = None) -> Tuple[float, int]:
+                               conform_to_1mm_threshold: Optional[float] = None) -> Tuple[float, int]:
     """Extract the voxel size and the image size."""
     # this is similar to mri_convert --conform_min
     if isinstance(conform_vox_size, str) and conform_vox_size.lower() in ["min", "auto"]:
         conformed_vox_size = find_min_size(img)
-        if conform_to_1_threshold is not None and conformed_vox_size > conform_to_1_threshold:
+        if conform_to_1mm_threshold is not None and conformed_vox_size > conform_to_1mm_threshold:
             conformed_vox_size = 1.
     # this is similar to mri_convert --conform_size <float>
     elif isinstance(conform_vox_size, float) and 0. < conform_vox_size <= 1.0:
@@ -537,8 +537,8 @@ if __name__ == "__main__":
     if check_dtype:
         opt_kwargs["dtype"] = target_dtype
 
-    if hasattr(options, "conform_to_1_threshold"):
-        opt_kwargs["conform_to_1_threshold"] = options.conform_to_1_threshold
+    if hasattr(options, "conform_to_1mm_threshold"):
+        opt_kwargs["conform_to_1mm_threshold"] = options.conform_to_1mm_threshold
 
     _vox_size = 'min' if options.conform_min else options.vox_size
     try:

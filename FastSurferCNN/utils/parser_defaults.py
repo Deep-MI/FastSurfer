@@ -2,7 +2,7 @@ from typing import Iterable, Mapping, Union, Literal
 import argparse
 from os import path
 
-from FastSurferCNN.utils.arg_types import vox_size as __vox_size, conform_to_one as __conform_to_one
+from FastSurferCNN.utils.arg_types import vox_size as __vox_size, conform_to_one_mm as __conform_to_one_mm
 
 FASTSURFER_ROOT = path.dirname(path.dirname(path.dirname(__file__)))
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
@@ -95,8 +95,8 @@ ALL_FLAGS = {
              "experimental) or 'min' (default). A number forces processing at that specific voxel size, 'min' "
              "determines the voxel size from the image itself (conforming to the minimum voxel size, or 1 if "
              "the minimum voxel size is above 0.95mm). "),
-    "conform_to_1_threshold": __arg(
-        '--conform_to_1_threshold', type=__conform_to_one, default=0.95, dest="conform_to_1_threshold",
+    "conform_to_1mm_threshold": __arg(
+        '--conform_to_1mm_threshold', type=__conform_to_one_mm, default=0.95, dest="conform_to_1mm_threshold",
         help="The voxelsize threshold, above which images will be conformed to 1mm isotropic, if the --vox_size "
              "argument is also 'min' (the --vox_size default setting). Contrary to conform.py, the default behavior"
              "of %(prog)s is to resample all images _above 0.95mm_ to 1mm."),

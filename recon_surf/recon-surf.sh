@@ -539,9 +539,13 @@ if [ "$vox_size" -lt "$hires_voxsize_threshold" ]
 then
   echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." |& tee -a $LF
   hiresflag="-hires"
+  noconform_if_hires=" -noconform"
+  hires_surface_suffix=".predec"
 else
   echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." |& tee -a $LF
   hiresflag=""
+  noconform_if_hires=""
+  hires_surface_suffix=""
 fi
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of segmentation)
@@ -631,11 +635,7 @@ RunIt "$cmd" $LF
 if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
-  cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz"
-  if [ "$vox_size" -lt "$hires_voxsize_threshold" ]
-  then
-    cmd="$cmd -noconform"
-  fi
+  cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
   RunIt "$cmd" $LF
 
   # create brainmask by masking T1
@@ -722,10 +722,7 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Marching cube does not return filename and wrong volume info!
-    outmesh=$sdir/$hemi.orig.nofix
-    if [ "$vox_size" -lt "$hires_voxsize_threshold" ]; then
-      outmesh=$sdir/$hemi.orig.nofix.predec
-    fi
+    outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix
     cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
     RunIt "$cmd" $LF $CMDF
 
@@ -744,7 +741,7 @@ else
     RunIt "$cmd" $LF $CMDF
     
     # for hires decimate mesh 
-    if [ "$vox_size" -lt "$hires_voxsize_threshold" ]; then
+    if [ ! -z "$hiresflag" ]; then
       DecimationFaceArea="0.5"
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
