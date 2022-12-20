@@ -132,13 +132,6 @@ FLAGS:
                             require surfaces). Can be used in combination with
                             --seg_only in which case recon-surf only runs till
                             CC is added (akin to --seg_with_cc_only).
-  --fstess                Switch on mri_tesselate for surface creation (default:
-                            mri_mc)
-  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
-                            (default: spectral spherical projection)
-  --fsaparc               Additionally create FS aparc segmentations and ribbon.
-                            Skipped by default (--> DL prediction is used which
-                            is faster, and usually these mapped ones are fine)
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
@@ -164,13 +157,20 @@ FLAGS:
                             Program will terminate if the supported version
                             (see recon-surf.sh) is not sourced. Can be used for
                             testing dev versions.
+  --fstess                Switch on mri_tesselate for surface creation (default:
+                            mri_mc)
+  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
+                            (default: spectral spherical projection)
+  --fsaparc               Additionally create FS aparc segmentations and ribbon.
+                            Skipped by default (--> DL prediction is used which
+                            is faster, and usually these mapped ones are fine)
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
-  --allow_root            Allow execution as root user.
   --no_surfreg             Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence), Not recommended, but
                             speeds up processing if you e.g. just need the segmentation stats!
+  --allow_root            Allow execution as root user.
 
 
 REFERENCES:
