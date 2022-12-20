@@ -46,7 +46,6 @@ fsaparc=""
 fssurfreg=""
 vox_size="min"
 doParallel=""
-run_aparc_module="1"
 threads="1"
 python="python3.8"
 allow_root=""
@@ -277,10 +276,6 @@ case $key in
     device="cpu"
     shift # past argument
     ;;
-    --no_aparc)
-    run_aparc_module="0"
-    shift  # past argument
-    ;;
     --device)
     device=$2
     shift # past argument
@@ -455,12 +450,12 @@ if [ "${aparc_aseg_segfile: -3}" != "${conformed_name: -3}" ]
     exit 1;
 fi
 
-if [ "$run_surf_pipeline" == "1" ] && { [ "$run_aparc_module" != "1" ] || [ "$run_seg_pipeline" == "0" ]; }
+if [ "$run_surf_pipeline" == "1" ] && [ "$run_seg_pipeline" == "0" ]
   then
     if [ ! -f "$aparc_aseg_segfile" ]
     then
         echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
-        echo "You passed --surf_only or --no_aparc, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
+        echo "You passed --surf_only, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
         echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --aparc_aseg_segfile"
         exit 1;
     fi
@@ -503,15 +498,13 @@ if [ "$run_seg_pipeline" == "1" ]
     date  |& tee -a $seg_log
     echo "" |& tee -a $seg_log
 
-    if [ "$run_aparc_module" == "1" ]; then
-      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
-      echo $cmd |& tee -a $seg_log
-      $cmd
-      if [ ${PIPESTATUS[0]} -ne 0 ]
-        then
-          echo "ERROR: Segmentation failed QC checks."
-          exit 1
-      fi
+    cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
+    echo $cmd |& tee -a $seg_log
+    $cmd
+    if [ ${PIPESTATUS[0]} -ne 0 ]
+    then
+      echo "ERROR: Segmentation failed QC checks."
+      exit 1
     fi
 
     if [ ! -f "$main_file"]
