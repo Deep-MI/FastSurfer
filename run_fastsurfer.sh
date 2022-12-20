@@ -75,6 +75,14 @@ FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected)
+  --aparc_aseg_segfile <filename>
+                          Name of the segmentation file, which includes the
+                          aparc+DKTatlas-aseg segmentations. If not provided,
+                          this intermediate DL-based segmentation will not be
+                          stored, but only the merged segmentation will be stored
+                          (see --main_segfile <filename>).
+                          Requires an ABSOLUTE Path! Default location:
+                          \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
@@ -116,24 +124,9 @@ FLAGS:
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
 
-  APARC MODULE:
-  --no_aparc              Skip the aparc segmentation (aseg+aparc segmentation)
-  --aparc_aseg_segfile <filename>
-                          Name of the segmentation file, which includes the
-                            aparc+DKTatlas-aseg segmentations. If not provided,
-                            this intermediate DL-based segmentation will not be
-                            stored, but only the merged segmentation will be stored
-                            (see --main_segfile <filename>).
-                            Requires an ABSOLUTE Path! Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-
   SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
-  --aparc_aseg_segfile <filename>
-                          Name of the input aparc aseg segmentation file (see above).
-                            Requires an ABSOLUTE Path! Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
                             statistics for DL-based segmentation (does not
                             require surfaces). Can be used in combination with
@@ -146,8 +139,6 @@ FLAGS:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine)
-  --surfreg               Run Surface registration with FreeSurfer (for
-                            cross-subject correspondence), Recommended!
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
@@ -177,6 +168,9 @@ FLAGS:
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
   --allow_root            Allow execution as root user.
+  --no_surfreg             Do not run Surface registration with FreeSurfer (for
+                            cross-subject correspondence), Not recommended, but
+                            speeds up processing if you e.g. just need the segmentation stats!
 
 
 REFERENCES:
@@ -321,8 +315,8 @@ case $key in
     fsaparc="--fsaparc"
     shift # past argument
     ;;
-    --surfreg)
-    fssurfreg="--surfreg"
+    --no_surfreg)
+    fssurfreg="--no_surfreg"
     shift # past argument
     ;;
     --vox_size)
