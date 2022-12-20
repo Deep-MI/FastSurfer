@@ -62,7 +62,7 @@ cat << EOF
 Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
 
 run_fastsurfer.sh takes a T1 full head image and creates:
-     (i)  a segmentation using FastSurferCNN (equivalent to FreeSurfer
+     (i)  a segmentation using FastSurferVINN (equivalent to FreeSurfer
           aparc.DKTatlas+aseg.mgz)
      (ii) surfaces, thickness etc as a FS subject dir using recon-surf
 
@@ -105,9 +105,9 @@ FLAGS:
   By default, both the segmentation and the surface pipelines are run.
 
   SEGMENTATION PIPELINE:
-  --seg_only              Run only FastSurferCNN (generate segmentation, do not
+  --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferCNN)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
