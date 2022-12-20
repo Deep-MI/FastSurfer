@@ -44,7 +44,7 @@ fstess=""
 fsqsphere=""
 fsaparc=""
 fssurfreg=""
-vox_size="auto"
+vox_size="min"
 doParallel=""
 run_aparc_module="1"
 threads="1"
@@ -75,13 +75,22 @@ FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected)
-  --vox_size 1|auto       Force processing at a specific voxel size. Only "auto"
-                            and "1" are supported values. If "1" is specified,
-                            the T1w image will be conformed to 1mm voxel size
-                            and processed, if "auto" is specified (default),
-                            the T1w image will be conformed isometric voxels
-                            of the smallest voxel edge in the image for highres
-                            processing.
+  --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
+                            If a number between 0.7 and 1 is specified (below
+                            is experimental) the T1w image is conformed to
+                            that voxel size and processed.
+                            If "min" is specified (default), the voxel size is
+                            read from the size of the minimal voxel size
+                            (smallest per-direction voxel size) in the T1w
+                            image:
+                              If the minimal voxel size is bigger than 0.98mm,
+                                the image is conformed to 1mm isometric.
+                              If the minimal voxel size is smaller or equal to
+                                0.98mm, the T1w image will be conformed to
+                                isometric voxels of that voxel size.
+                            The voxel size (whether set manually or derived)
+                            determines whether the surfaces are processed with
+                            highres options (below 1mm) or not.
   -h --help               Print Help
 
   PIPELINES:
@@ -372,10 +381,10 @@ fi
 
 
 # CHECKS
-if [ -z "$t1" ] || [ ! -f "$t1" ]
+if [ "$run_seg_pipeline" == "1" ] && { [ -z "$t1" ] || [ ! -f "$t1" ]; }
   then
-    echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (conformed, full head) via --t1 (absolute path and name)."
-    # needed to create orig.mgz and to get file name. This will eventually be changed.
+    echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
+    echo "--t1 (absolute path and name) for generating the segmentation."
     exit 1;
 fi
 
@@ -416,6 +425,23 @@ then
   export PYTHONPATH="$FASTSURFER_HOME"
 else
   export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
+fi
+
+# check the vox_size setting
+if [[ "$vox_size" =~ "^[01](\.[0-9]*)?$" ]]
+then
+  # a number
+  if [ "$vox_size" -lt "0" ] || [ "$vox_size" -gt "1" ]
+  then
+    exit "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
+  elif [ "$vox_size" -lt "0.7" ]
+  then
+    echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
+  fi
+elif [ "$vox_size" != "min" ]
+then
+  # not a number or "min"
+  exit "Invalid option for --vox_size, only a number or 'min' are valid."
 fi
 
 if [ "${aparc_aseg_segfile: -3}" != "${main_segfile: -3}" ]
@@ -472,10 +498,6 @@ if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
     echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
 fi
 
-if [ "$vox_size" != "auto" ] && [ "$vox_size" != "1" ]
-  then
-    echo "You passed '$vox_size' as the voxel size to conform to, but this is an invalid value. It must be '1' or 'auto'."
-fi
 ########################################## START ########################################################
 
 if [ "$run_seg_pipeline" == "1" ]
@@ -509,7 +531,7 @@ if [ "$run_surf_pipeline" == "1" ]
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
     pushd $reconsurfdir
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg --vox_size $vox_size $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
     echo $cmd
     $cmd
     if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
