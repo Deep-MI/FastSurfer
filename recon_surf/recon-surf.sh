@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ FLAGS:
                             Images can be conformed using FastSurferCNN's
                             conform.py script (usage example: python3
                             FastSurferCNN/data_loader/conform.py -i <T1_input>
-                            -o <conformed_T1_output>).
+                            -o <conformed_T1_output>)
   --aparc_aseg_segfile <aparc_aseg_segfile>
                           Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
@@ -118,10 +118,11 @@ Dev Flags:
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
-  --allow_root            Allow execution as root user.
-  --no_surfreg              Do not run Surface registration with FreeSurfer (for
+  --no_surfreg            Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence), Not recommended, but
-                            speeds up processing if you e.g. just need the segmentation stats!
+                            speeds up processing if you e.g. just need the
+                            segmentation stats
+  --allow_root            Allow execution as root user
 
 REFERENCES:
 
