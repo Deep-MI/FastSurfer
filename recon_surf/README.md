@@ -26,12 +26,14 @@ List them by running the following command:
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
-* `--surfreg`: Run Surface registration with FreeSurfer (for cross-subject correspondance)
 * `--parallel`: Run both hemispheres in parallel
-* `-threads`: Set openMP and ITK threads to <int>
+* `--threads`: Set openMP and ITK threads to <int>
 
 ### Other
 * `--py`: Command for python, used in both pipelines. Default: python3.8
+* `--no_surfreg`: Skip surface registration with FreeSurfer (if only stats are needed)
+
+For more details see `--help`.
 
 ### Example 1: recon-surf on a single subject (subjectX)
 
