@@ -25,7 +25,7 @@ seg_cc=0              # if 1, run pipeline only until corpus callosum is added (
 vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
-fsaparc=0.            # run FS aparc (and cortical ribbon), if 0 map aparc from aparc_aseg_segfile
+fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from aparc_aseg_segfile
 fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
 python="python3.8"    # python version
 DoParallel=0          # if 1, run hemispheres in parallel
