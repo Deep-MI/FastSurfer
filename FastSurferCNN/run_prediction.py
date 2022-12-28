@@ -142,7 +142,7 @@ class RunModelOnData:
         vox_size = args.vox_size
         if vox_size == "min":
             self.vox_size = "min"
-        elif isinstance(vox_size, str) and vox_size.isnumeric() and (0. < float(vox_size) <= 1.):
+        elif 0. < float(vox_size) <= 1.:
             self.vox_size = float(vox_size)
         else:
             raise ValueError(f"Invalid value for vox_size, must be between 0 and 1 or 'min', was {vox_size}.")
