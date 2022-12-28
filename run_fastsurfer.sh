@@ -417,7 +417,7 @@ else
 fi
 
 # check the vox_size setting
-if [[ "$vox_size" =~ "^[01](\.[0-9]*)?$" ]]
+if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
   if [ "$vox_size" -lt "0" ] || [ "$vox_size" -gt "1" ]
