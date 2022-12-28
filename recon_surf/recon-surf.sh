@@ -537,7 +537,7 @@ if [ -f "$CONFORM_LF" ]; then rm -f $CONFORM_LF ; fi
 cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $aparc_aseg_segfile --check_only --vox_size $vox_size --dtype any --verbose"
 RunIt "$cmd" $LF
 
-if [ "$vox_size" -lt "$hires_voxsize_threshold" ]
+if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
 then
   echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." |& tee -a $LF
   hiresflag="-hires"
