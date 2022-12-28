@@ -420,10 +420,10 @@ fi
 if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
-  if [ "$vox_size" -lt "0" ] || [ "$vox_size" -gt "1" ]
+  if (( $(echo "$vox_size < 0" | bc -l) || $(echo "$vox_size > 1" | bc -l) ))
   then
     exit "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
-  elif [ "$vox_size" -lt "0.7" ]
+  elif (( $(echo "$vox_size < 0.7" | bc -l) ))
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
   fi
