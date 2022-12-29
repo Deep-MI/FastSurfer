@@ -187,10 +187,35 @@ Start it and under Preferences -> Resources set Memory to 15 GB (or the largest 
 docker pull deepmi/fastsurfer
 ```
 
-and run is as the example in our [README](README.md). 
+and run is as the example in our [README](./README.md). 
 
 
 ## Windows
 
-Nothing has been tested so far on Windows. We expect the CPU-based containers to work here. GPU passthrough will be explored in the future. If you want to make use of your GPU, you need to install a dual-boot with Ubuntu (or another liunx) on your system.
+### Docker (CPU version only)
 
+In order to run Fastsurfer on your Windows system using docker make sure that:
+* you have [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
+* as well as [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) installed and running
+
+Start Windows PowerShell and run the following command to pull the CPU Docker image:
+
+```bash
+docker pull deepmi/fastsurfer:cpu-v2.0.0
+```
+
+Now you can run Fastsurfer the same way as described in our [Docker README](./Docker/README.md) for the CPU build
+```bash
+docker run -v C:/Users/user/my_mri_data:/data \
+           -v C:/Users/user/my_fastsurfer_analysis:/output \
+           -v C:/Users/user/my_fs_license_dir:/fs_license \
+           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v2.0.0 \
+           --fs_license /fs_license/license.txt \
+           --t1 /data/subjectX/orig.mgz \
+           --device cpu \
+           --sid subjectX --sd /output \
+           --parallel
+```
+Note that the CPU version requires at least 8GB of RAM. If the process fails, check if your [WSL2 distribution has enough reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
+
+This was tested using Windows 10 Pro version 21H1 and the WSL Ubuntu 20.04  distribution

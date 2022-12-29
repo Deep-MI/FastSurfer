@@ -37,7 +37,6 @@ viewagg="auto"
 device="auto"
 batch_size="1"
 run_seg_pipeline="1"
-seg_cc=""
 vol_segstats=""
 run_surf_pipeline="1"
 fstess=""
@@ -128,7 +127,7 @@ FLAGS:
                             statistics for DL-based segmentation (does not
                             require surfaces). Can be used in combination with
                             --seg_only in which case recon-surf only runs till
-                            CC is added (akin to --seg_with_cc_only).
+                            CC is added.
   --fstess                Switch on mri_tesselate for surface creation (default:
                             mri_mc)
   --fsqsphere             Use FreeSurfer iterative inflation for qsphere
@@ -463,7 +462,6 @@ fi
 
 if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
   then
-    seg_cc="--seg_with_cc_only"
     run_surf_pipeline="1"
     echo "You requested segstats without running the surface pipeline. In this case, recon-surf will"
     echo "run until the corpus callsoum is added to the segmentation and the norm.mgz is generated "
