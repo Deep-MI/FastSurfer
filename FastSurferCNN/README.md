@@ -31,13 +31,13 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 
 #### Optional commands
 * `--clean`: clean up segmentation after running it (optional)
-* `--viewagg_device`: Define where the view aggregation should be run on. 
-                    By default, the program checks if you have enough memory to run the view aggregation on the gpu. 
+* `--device <str>`:Device for processing (_auto_, _cpu_, _cuda_, _cuda:<device_num>_), where cuda means Nvidia GPU; you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU
+* `--viewagg_device <str>`: Define where the view aggregation should be run on. 
+                    Can be _auto_ or a device (see --device).
+                    By default (_auto_), the program checks if you have enough memory to run the view aggregation on the gpu. 
                     The total memory is considered for this decision. 
                     If this fails, or you actively overwrote the check with setting `--viewagg_device cpu`, view agg is run on the cpu. 
                     Equivalently, if you define `--viewagg_device gpu`, view agg will be run on the gpu (no memory check will be done).
-* `--device <str>`: Device for processing ("cpu","cuda") (optional, default: cuda)
-* `--hires`: Switch on high resolution processing (no conforming to 1mm, but to smallest voxel size).
 * `--batch_size`: Batch size for inference. Default=1
 
 
@@ -49,9 +49,6 @@ python3 run_prediction.py --t1 ../data/subjectX/t1-weighted.nii.gz \
 --sd ../output \
 --t subjectX \
 --seg_log ../output/temp_Competitive.log \
---ckpt_sag ../checkpoints/aparc_vinn_sagittal_v2.0.0.pkl \
---ckpt_cor ../checkpoints/aparc_vinn_coronal_v2.0.0.pkl \
---ckpt_ax ../checkpoints/aparc_vinn_axial_v2.0.0.pkl 
 ```
 
 The output will be stored in:
@@ -70,9 +67,6 @@ To run the network on all subjects MRI-volumes in ./data, change into the *FastS
 python3 run_prediction.py --in_dir ../data \
 --sd ../output \
 --seg_log ../output/temp_Competitive.log \
---ckpt_sag ../checkpoints/aparc_vinn_sagittal_v2.0.0.pkl \
---ckpt_cor ../checkpoints/aparc_vinn_coronal_v2.0.0.pkl \
---ckpt_ax ../checkpoints/aparc_vinn_axial_v2.0.0.pkl 
 ```
 
 The output will be stored in:

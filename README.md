@@ -45,9 +45,9 @@ List them by running the following command:
 * `--main_segfile`: Global path with filename of segmentation (where and under which name to store it). The file can be in mgz, nii, or nii.gz format. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * `--seg_log`: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting with "cpu" view agg is run on the cpu. Equivalently, if you pass a different device, view agg will be run on that device (no memory check will be done).
-* `--device`: Select device for NN segmentation ("cpu", "cuda"), where cuda means Nvidia GPU, you can select which one "cuda:1". Default: "auto", check GPU and then CPU
+* `--device`: Select device for NN segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU
 * `--batch`: Batch size for inference. Default: 1. 
-* `--vol_segstats`: Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not  require surfaces). Can be used in combination with `--seg_only` in which case recon-surf only runs till CC is added (akin to --seg_with_cc_only).
+* `--vol_segstats`: Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not  require surfaces). Can be used in combination with `--seg_only` in which case recon-surf only runs till CC is added.
 * `--aparc_aseg_segfile <filename>`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 
 ### Surface pipeline arguments (optional)
@@ -61,7 +61,22 @@ List them by running the following command:
 * `--no_fs_T1`: Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves 1:30 min.
 
 ### Other
-* `--vox_size 1|auto`:  Force processing at a specific voxel size. Only "auto" and "1" are supported values. If "1" is specified, the T1w image will be conformed to 1mm voxel size and processed, if "auto" is specified (default), the T1w image will be conformed isometric voxels of the smallest voxel edge in the image for highres processing.
+* `--vox_size <0.7-1|min>`  Forces processing at a specific voxel size.
+                            If a number between 0.7 and 1 is specified (below
+                            is experimental) the T1w image is conformed to
+                            that voxel size and processed.
+                            If "min" is specified (default), the voxel size is
+                            read from the size of the minimal voxel size
+                            (smallest per-direction voxel size) in the T1w
+                            image:
+                              If the minimal voxel size is bigger than 0.98mm,
+                                the image is conformed to 1mm isometric.
+                              If the minimal voxel size is smaller or equal to
+                                0.98mm, the T1w image will be conformed to
+                                isometric voxels of that voxel size.
+                            The voxel size (whether set manually or derived)
+                            determines whether the surfaces are processed with
+                            highres options (below 1mm) or not.
 * `--py`: Command for python, used in both pipelines. Default: python3.8
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
 * `--ignore_fs_version`: Switch on to avoid check for FreeSurfer version. Program will terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions.
