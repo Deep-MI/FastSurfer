@@ -179,7 +179,8 @@ class RunModelOnData:
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
-        self.save_img(self.subject_conf_name, orig_data, orig)
+        self.save_img(self.subject_conf_name, orig_data, orig, dtype=np.uint8)
+
         return orig, orig_data
 
     def set_subject(self, subject: str, sid: Union[str, None]):
@@ -242,7 +243,7 @@ class RunModelOnData:
         else:
             header = orig.header
 
-        du.save_image(header, orig.affine, np_data, save_as)
+        du.save_image(header, orig.affine, np_data, save_as, dtype=dtype)
         LOGGER.info("Successfully saved image as {}".format(save_as))
 
     def set_up_model_params(self, plane, cfg, ckpt):
