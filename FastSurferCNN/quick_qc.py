@@ -63,7 +63,7 @@ if __name__ == "__main__":
     inseg = nib.load(options.aparc_aseg_segfile)
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
-    inseg_voxvol = np.product(inseg_header["delta"])
+    inseg_voxvol = np.product(inseg_header.get_zooms())
 
     if not check_volume(inseg_data, inseg_voxvol):
     	sys.exit('ERROR: Total segmentation volume is too small. Segmentation may be corrupted.')
