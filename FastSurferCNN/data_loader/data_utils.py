@@ -79,7 +79,7 @@ def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min 
 
 
 # Save image routine
-def save_image(header_info, affine_info, img_array, save_as):
+def save_image(header_info, affine_info, img_array, save_as, dtype=None):
     """
     Save an image (nibabel MGHImage), according to the desired output file format.
     Supported formats are defined in supported_output_file_formats.
@@ -87,6 +87,7 @@ def save_image(header_info, affine_info, img_array, save_as):
     :param numpy.ndarray affine_info: image affine information
     :param nibabel.freesurfer.mghformat.MGHHeader header_info: image header information
     :param str save_as: name under which to save prediction; this determines output file format
+    :param type dtype: image array type; if provided, the image object is explicitly set to match this type
     :return None: saves predictions to save_as
     """
 
@@ -99,6 +100,9 @@ def save_image(header_info, affine_info, img_array, save_as):
         mgh_img = nib.MGHImage(img_array, affine_info, header_info)
     elif any(save_as.endswith(file_ext) for file_ext in ['nii', 'nii.gz']):
         mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
+
+    if dtype is not None:
+        mgh_img.set_data_dtype(dtype)
 
     if any(save_as.endswith(file_ext) for file_ext in ['mgz', 'nii']):
         nib.save(mgh_img, save_as)
