@@ -23,7 +23,7 @@ import numpy as np
 import nibabel as nib
 
 from FastSurferCNN.utils.arg_types import (vox_size as __vox_size, target_dtype as __target_dtype,
-                                           conform_to_one_mm as __conform_to_one_mm, VoxSizeOption)
+                                           float_gt_zero_and_le_one as __conform_to_one_mm, VoxSizeOption)
 
 HELPTEXT = """
 Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
