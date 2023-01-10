@@ -161,14 +161,11 @@ COPY --from=build_conda /venv /venv
 COPY --from=build_fs /opt/freesurfer /opt/freesurfer
 COPY . /fastsurfer/
 
-# Download all remote network checkpoints already
+# Download all remote network checkpoints already and compile all FastSurfer scripts into bytecode
 ENV PYTHONPATH=/fastsurfer:$PYTHONPATH
-RUN if [ "$DEVICE" != "none" ]; then \
-    cd /fastsurfer ;  \
-    mkdir checkpoints ; \
-    python3 FastSurferCNN/download_checkpoints.py --all ; \
-    chmod +r -R checkpoints ; \
-  fi
+RUN cd /fastsurfer ; \
+  if [ "$DEVICE" != "none" ]; then ; python3 FastSurferCNN/download_checkpoints.py --all ; fi ; \
+  python3 -m compileall *
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active

@@ -5,4 +5,8 @@ Singularity
 images
 venv
 Tutorial
-*.md
+**/*.md
+Docker/Dockerfile*
+*.txt
+venv
+
