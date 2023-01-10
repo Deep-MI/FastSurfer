@@ -37,7 +37,6 @@ viewagg="auto"
 device="auto"
 batch_size="1"
 run_seg_pipeline="1"
-seg_cc=""
 vol_segstats=""
 run_surf_pipeline="1"
 fstess=""
@@ -73,7 +72,7 @@ FLAGS:
                             installed already
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <T1_input>        T1 full head input (not bias corrected)
+  --t1  <T1_input>        T1 full head input (not bias corrected). Requires an ABSOLUTE Path!
   --aparc_aseg_segfile <filename>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations. If not provided,
@@ -110,27 +109,27 @@ FLAGS:
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
-                            image will be saved. Default location:
-                           \$SUBJECTS_DIR/\$sid/mri/orig.mgz
+                            image will be saved. Requires an ABSOLUTE Path!
+                            Default location:
+                           \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
   --main_segfile <filename>
                           Name of the segmentation file, which includes all labels
                             (currently similar to aparc+aseg). When using
                             FastSurfer, this segmentation is already conformed,
                             since inference is always based on a conformed image.
-                            Requires an ABSOLUTE Path! Currently, this is the same
-                            as the aparc+aseg and just a symlink to the
-                            aparc_aseg_segfile.
+                            Currently, this is the same as the aparc+aseg and just
+                            a symlink to the aparc_aseg_segfile.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
 
-  SURFACE PIPELINE:
+SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
   --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
                             statistics for DL-based segmentation (does not
                             require surfaces). Can be used in combination with
                             --seg_only in which case recon-surf only runs till
-                            CC is added (akin to --seg_with_cc_only).
+                            CC is added.
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
@@ -479,7 +478,6 @@ fi
 
 if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
   then
-    seg_cc="--seg_with_cc_only"
     run_surf_pipeline="1"
     echo "You requested segstats without running the surface pipeline. In this case, recon-surf will"
     echo "run until the corpus callsoum is added to the segmentation and the norm.mgz is generated "

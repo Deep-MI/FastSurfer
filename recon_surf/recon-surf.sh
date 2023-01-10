@@ -21,7 +21,6 @@ FS_VERSION_SUPPORT="7.3.2"
 t1=""                 # Path and name of T1 input
 aparc_aseg_segfile="" # Path and name of segmentation
 subject=""            # Subject name
-seg_cc=0              # if 1, run pipeline only until corpus callosum is added (no surfaces will be created)
 vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
@@ -80,21 +79,19 @@ FLAGS:
                             Images can be conformed using FastSurferCNN's
                             conform.py script (usage example: python3
                             FastSurferCNN/data_loader/conform.py -i <T1_input>
-                            -o <conformed_T1_output>)
+                            -o <conformed_T1_output>). Requires an ABSOLUTE Path!
   --aparc_aseg_segfile <aparc_aseg_segfile>
                           Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
-                            (dimensions: 256x256x256, voxel size: 1x1x1, LIA
+                            (dimensions: 256x256x256, voxel size: isotropic, LIA
                             orientation). FastSurferCNN's segmentations are
                             conformed by default; please ensure that
                             segmentations produced otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --seg_with_cc_only      Run recon_surf until corpus callosum is added in (no
-                            surface models will be created in this case!)
   --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
                             statistics for DL-based segmentation (does not
-                            require surfaces)
+                            require surfaces and stops after incorporation of the corpus callosum)
   --fstess                Switch on mri_tesselate for surface creation
                             (default: mri_mc)
   --fsqsphere             Use FreeSurfer iterative inflation for qsphere
@@ -259,10 +256,6 @@ case $key in
     aparc_aseg_segfile="$2"
     shift # past argument
     shift # past value
-    ;;
-    --seg_with_cc_only)
-    seg_cc=1
-    shift # past argument
     ;;
     --vol_segstats)
     vol_segstats=1
@@ -666,13 +659,8 @@ if [ "$vol_segstats" == "1" ]
 then
     cmd="mri_segstats --seed 1234 --segfile $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz --sum $mdir/../stats/aparc.DKTatlas+aseg.deep.volume.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --id 2, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63, 77, 251, 252, 253, 254, 255, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2034, 2035 --ctab /$FREESURFER_HOME/FreeSurferColorLUT.txt --subject $subject"
     RunIt "$cmd" $LF
-fi
-
-if [ "$seg_cc" == "1" ]
-  # stop workflow at this point (only segmentation with corpus callosum was requested, surface models will be skipped.
-then
     echo " " |& tee -a $LF
-    echo "User requested segmentation only (with Corpus Callosum and/or vol segstats)." |& tee -a $LF
+    echo "User requested segmentation only (with Corpus Callosum and vol segstats)." |& tee -a $LF
     echo "Therefore, pipeline finishes at this point. No surfaces will be created." |& tee -a $LF
     echo "================= DONE =========================================================" |& tee -a $LF
     echo " " |& tee -a $LF
