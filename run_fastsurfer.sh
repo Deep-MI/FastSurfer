@@ -43,9 +43,8 @@ fstess=""
 fsqsphere=""
 fsaparc=""
 fssurfreg=""
-vox_size="auto"
+vox_size="min"
 doParallel=""
-run_aparc_module="1"
 threads="1"
 python="python3.8"
 allow_root=""
@@ -61,7 +60,7 @@ cat << EOF
 Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
 
 run_fastsurfer.sh takes a T1 full head image and creates:
-     (i)  a segmentation using FastSurferCNN (equivalent to FreeSurfer
+     (i)  a segmentation using FastSurferVINN (equivalent to FreeSurfer
           aparc.DKTatlas+aseg.mgz)
      (ii) surfaces, thickness etc as a FS subject dir using recon-surf
 
@@ -74,22 +73,39 @@ FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected)
-  --vox_size 1|auto       Force processing at a specific voxel size. Only "auto"
-                            and "1" are supported values. If "1" is specified,
-                            the T1w image will be conformed to 1mm voxel size
-                            and processed, if "auto" is specified (default),
-                            the T1w image will be conformed isometric voxels
-                            of the smallest voxel edge in the image for highres
-                            processing.
+  --aparc_aseg_segfile <filename>
+                          Name of the segmentation file, which includes the
+                          aparc+DKTatlas-aseg segmentations. If not provided,
+                          this intermediate DL-based segmentation will not be
+                          stored, but only the merged segmentation will be stored
+                          (see --main_segfile <filename>).
+                          Requires an ABSOLUTE Path! Default location:
+                          \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
+                            If a number between 0.7 and 1 is specified (below
+                            is experimental) the T1w image is conformed to
+                            that voxel size and processed.
+                            If "min" is specified (default), the voxel size is
+                            read from the size of the minimal voxel size
+                            (smallest per-direction voxel size) in the T1w
+                            image:
+                              If the minimal voxel size is bigger than 0.98mm,
+                                the image is conformed to 1mm isometric.
+                              If the minimal voxel size is smaller or equal to
+                                0.98mm, the T1w image will be conformed to
+                                isometric voxels of that voxel size.
+                            The voxel size (whether set manually or derived)
+                            determines whether the surfaces are processed with
+                            highres options (below 1mm) or not.
   -h --help               Print Help
 
   PIPELINES:
   By default, both the segmentation and the surface pipelines are run.
 
   SEGMENTATION PIPELINE:
-  --seg_only              Run only FastSurferCNN (generate segmentation, do not
+  --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferCNN)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
@@ -105,38 +121,14 @@ FLAGS:
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
 
-  APARC MODULE:
-  --no_aparc              Skip the aparc segmentation (aseg+aparc segmentation)
-  --aparc_aseg_segfile <filename>
-                          Name of the segmentation file, which includes the
-                            aparc+DKTatlas-aseg segmentations. If not provided,
-                            this intermediate DL-based segmentation will not be
-                            stored, but only the merged segmentation will be stored
-                            (see --main_segfile <filename>).
-                            Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-
-  SURFACE PIPELINE:
+SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
-  --aparc_aseg_segfile <filename>
-                          Name of the input aparc aseg segmentation file (see above).
-                          Default location:
-                          \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
                             statistics for DL-based segmentation (does not
                             require surfaces). Can be used in combination with
                             --seg_only in which case recon-surf only runs till
                             CC is added.
-  --fstess                Switch on mri_tesselate for surface creation (default:
-                            mri_mc)
-  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
-                            (default: spectral spherical projection)
-  --fsaparc               Additionally create FS aparc segmentations and ribbon.
-                            Skipped by default (--> DL prediction is used which
-                            is faster, and usually these mapped ones are fine)
-  --surfreg               Run Surface registration with FreeSurfer (for
-                            cross-subject correspondence), Recommended!
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
@@ -162,9 +154,19 @@ FLAGS:
                             Program will terminate if the supported version
                             (see recon-surf.sh) is not sourced. Can be used for
                             testing dev versions.
+  --fstess                Switch on mri_tesselate for surface creation (default:
+                            mri_mc)
+  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
+                            (default: spectral spherical projection)
+  --fsaparc               Additionally create FS aparc segmentations and ribbon.
+                            Skipped by default (--> DL prediction is used which
+                            is faster, and usually these mapped ones are fine)
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
+  --no_surfreg             Do not run Surface registration with FreeSurfer (for
+                            cross-subject correspondence), Not recommended, but
+                            speeds up processing if you e.g. just need the segmentation stats!
   --allow_root            Allow execution as root user.
 
 
@@ -272,10 +274,6 @@ case $key in
     device="cpu"
     shift # past argument
     ;;
-    --no_aparc)
-    run_aparc_module="0"
-    shift  # past argument
-    ;;
     --device)
     device=$2
     shift # past argument
@@ -310,8 +308,8 @@ case $key in
     fsaparc="--fsaparc"
     shift # past argument
     ;;
-    --surfreg)
-    fssurfreg="--surfreg"
+    --no_surfreg)
+    fssurfreg="--no_surfreg"
     shift # past argument
     ;;
     --vox_size)
@@ -416,6 +414,23 @@ else
   export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
 fi
 
+# check the vox_size setting
+if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
+then
+  # a number
+  if (( $(echo "$vox_size < 0" | bc -l) || $(echo "$vox_size > 1" | bc -l) ))
+  then
+    exit "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
+  elif (( $(echo "$vox_size < 0.7" | bc -l) ))
+  then
+    echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
+  fi
+elif [ "$vox_size" != "min" ]
+then
+  # not a number or "min"
+  exit "Invalid option for --vox_size, only a number or 'min' are valid."
+fi
+
 if [ "${aparc_aseg_segfile: -3}" != "${main_segfile: -3}" ]
   then
     # This is because we currently only do a symlink
@@ -433,12 +448,12 @@ if [ "${aparc_aseg_segfile: -3}" != "${conformed_name: -3}" ]
     exit 1;
 fi
 
-if [ "$run_surf_pipeline" == "1" ] && { [ "$run_aparc_module" != "1" ] || [ "$run_seg_pipeline" == "0" ]; }
+if [ "$run_surf_pipeline" == "1" ] && [ "$run_seg_pipeline" == "0" ]
   then
     if [ ! -f "$aparc_aseg_segfile" ]
     then
         echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
-        echo "You passed --surf_only or --no_aparc, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
+        echo "You passed --surf_only, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
         echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --aparc_aseg_segfile"
         exit 1;
     fi
@@ -469,10 +484,6 @@ if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
     echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
 fi
 
-if [ "$vox_size" != "auto" ] && [ "$vox_size" != "1" ]
-  then
-    echo "You passed '$vox_size' as the voxel size to conform to, but this is an invalid value. It must be '1' or 'auto'."
-fi
 ########################################## START ########################################################
 
 if [ "$run_seg_pipeline" == "1" ]
@@ -484,15 +495,13 @@ if [ "$run_seg_pipeline" == "1" ]
     date  |& tee -a $seg_log
     echo "" |& tee -a $seg_log
 
-    if [ "$run_aparc_module" == "1" ]; then
-      cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
-      echo $cmd |& tee -a $seg_log
-      $cmd
-      if [ ${PIPESTATUS[0]} -ne 0 ]
-        then
-          echo "ERROR: Segmentation failed QC checks."
-          exit 1
-      fi
+    cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
+    echo $cmd |& tee -a $seg_log
+    $cmd
+    if [ ${PIPESTATUS[0]} -ne 0 ]
+    then
+      echo "ERROR: Segmentation failed QC checks."
+      exit 1
     fi
 
     if [ ! -f "$main_file"]
@@ -506,7 +515,7 @@ if [ "$run_surf_pipeline" == "1" ]
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
     pushd $reconsurfdir
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg --vox_size $vox_size $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
     echo $cmd
     $cmd
     if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
