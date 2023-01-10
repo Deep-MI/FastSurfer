@@ -2,7 +2,7 @@ from typing import Iterable, Mapping, Union, Literal
 import argparse
 from os import path
 
-from FastSurferCNN.utils.arg_types import vox_size as __vox_size, conform_to_one_mm as __conform_to_one_mm
+from FastSurferCNN.utils.arg_types import vox_size as __vox_size, float_gt_zero_and_le_one as __conform_to_one_mm
 
 FASTSURFER_ROOT = path.dirname(path.dirname(path.dirname(__file__)))
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
