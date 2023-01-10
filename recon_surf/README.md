@@ -6,6 +6,10 @@ alternative for cortical surface reconstruction, mapping of cortical labels and 
 The basis for the reconstruction pipeline is the accurate anatomical whole brain segmentation following the DKTatlas 
 such as the one provided by the FastSurferCNN or FastSurferVINN deep learning architectures.
 
+The T1-weighted full head input image and the segmentation need to be equivalent in voxel size, dimension and orientation (LIA). 
+With FastSurferCNN or VINN this is always ensured. If the image resolution is below 0.999, the surface pipeline
+will be run in hires mode.  
+
 # Usage
 The *recon_surf* directory contains scripts to run the analysis. In addition, a working installation of __FreeSurfer__ (v7.3.2) is needed for a native install (or use our Docker/Singularity images). 
 
@@ -21,8 +25,8 @@ List them by running the following command:
 * `--sid`: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
 
 ### Optional arguments
-* `--t1`: T1 full head input (not bias corrected). This must be conformed (dimensions: 256x256x256, voxel size: isotropic, LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's [conform.py](https://github.com/Deep-MI/FastSurfer/blob/stable/FastSurferCNN/data_loader/conform.py) script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>). If not passed we use the orig.mgz in the output subject mri directory if available. 
-* `--aparc_aseg_segfile`: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: 256x256x256, voxel size: isotropic, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz 
+* `--t1`: T1 full head input (not bias corrected). This must be conformed (dimensions: same along each axis, voxel size: isotropic, LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's [conform.py](https://github.com/Deep-MI/FastSurfer/blob/stable/FastSurferCNN/data_loader/conform.py) script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>). If not passed we use the orig.mgz in the output subject mri directory if available. 
+* `--aparc_aseg_segfile`: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: same along each axis, voxel size: isotropic, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed and equivalent in dimension and voxel size to the --t1 image. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz 
 * `--vol_segstats`: Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces and stops after cc-incorporation).
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
