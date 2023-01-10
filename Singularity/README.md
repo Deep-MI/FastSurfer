@@ -45,9 +45,13 @@ Singularity Flags:
 * `-B`: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs). 
 
 FastSurfer Flags:
-* `--fs_license`: This points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above, if you want to run the full surface analysis. 
+* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
+* The `--sid` is the subject ID name (output folder name)
+* The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
+* The `--parallel` activates processing left and right hemisphere in parallel
 
-Note, that the paths following `--fs_license`, `--t1`, and `--sd` are inside the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-B` arguments. 
+Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-B` arguments. 
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
@@ -57,13 +61,13 @@ You can run the Singularity equivalent of CPU-Docker by building a Singularity i
 cd /home/user/my_singlarity_images
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:cpu-v#.#.#
 
-singularity exec      -B /home/user/my_mri_data:/data \
-                      -B /home/user/my_fastsurfer_analysis:/output \
-                      -B /home/user/my_fs_license_dir:/fs \
-                       /home/user/fastsurfer-cpu.sif \
-                       /fastsurfer/run_fastsurfer.sh \
-                      --fs_license /fs/license.txt \
-                      --t1 /data/subjectX/orig.mgz \
-                      --sid subjectX --sd /output \
-                      --parallel
+singularity exec -B /home/user/my_mri_data:/data \
+                 -B /home/user/my_fastsurfer_analysis:/output \
+                 -B /home/user/my_fs_license_dir:/fs \
+                  /home/user/fastsurfer-cpu.sif \
+                  /fastsurfer/run_fastsurfer.sh \
+                  --fs_license /fs/license.txt \
+                  --t1 /data/subjectX/orig.mgz \
+                  --sid subjectX --sd /output \
+                  --parallel
 ```
