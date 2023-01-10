@@ -15,6 +15,8 @@
 
 
 # IMPORTS
+from numbers import Number
+
 import numpy as np
 import torch
 
@@ -48,8 +50,8 @@ class ZeroPad2DTest(object):
         :param output_size:
         :param pos: position to put the input
         """
-        if isinstance(output_size, int):
-            output_size = (output_size, ) * 2
+        if isinstance(output_size, Number):
+            output_size = (int(output_size), ) * 2
         self.output_size = output_size
         self.pos = pos
 
@@ -107,8 +109,8 @@ class ZeroPad2D(object):
         :param output_size:
         :param pos: position to put the input
         """
-        if isinstance(output_size, int):
-            output_size = (output_size, ) * 2
+        if isinstance(output_size, Number):
+            output_size = (int(output_size), ) * 2
         self.output_size = output_size
         self.pos = pos
 
