@@ -72,7 +72,7 @@ FLAGS:
                             installed already
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <T1_input>        T1 full head input (not bias corrected)
+  --t1  <T1_input>        T1 full head input (not bias corrected). Requires an ABSOLUTE Path!
   --aparc_aseg_segfile <filename>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations. If not provided,
@@ -109,8 +109,9 @@ FLAGS:
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
-                            image will be saved. Default location:
-                           \$SUBJECTS_DIR/\$sid/mri/orig.mgz
+                            image will be saved. Requires an ABSOLUTE Path!
+                            Default location:
+                           \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
   --main_segfile <filename>
                           Name of the segmentation file, which includes all labels
                             (currently similar to aparc+aseg). When using
