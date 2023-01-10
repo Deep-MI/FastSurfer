@@ -271,7 +271,8 @@ def find_min_size(img: nib.analyze.SpatialImage, max_size: float = 1) -> float:
 
 def find_img_size_by_fov(img: nib.analyze.SpatialImage, vox_size: float, min_dim: int = 256) -> int:
     """
-    Function to find the cube dimension (>= 256) to cover the field of view of img.
+    Function to find the cube dimension (>= 256) to cover the field of view of img. If vox_size is one, the img_size
+    MUST always be min_dim (the FreeSurfer standard).
 
     Args:
         img: loaded source image
@@ -281,6 +282,10 @@ def find_img_size_by_fov(img: nib.analyze.SpatialImage, vox_size: float, min_dim
     Returns:
         The number of voxels needed to cover field of view.
     """
+    if vox_size == 1.:
+        return min_dim
+    # else (other voxel sizes may use different sizes)
+
     # compute field of view dimensions in mm
     sizes = np.array(img.header.get_zooms()[:3])
     max_fov = np.max(sizes * np.array(img.shape[:3]))
