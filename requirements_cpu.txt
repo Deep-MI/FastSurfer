@@ -91,7 +91,7 @@ pillow==9.2.0
     #   torchvision
 plotly==5.9.0
     # via lapy
-protobuf==3.19.4
+protobuf==3.19.5
     # via tensorboard
 pyasn1==0.4.8
     # via
