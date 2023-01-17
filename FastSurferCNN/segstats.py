@@ -549,8 +549,9 @@ def patch_filter(pos: Tuple[int, int, int], mask: npt.NDArray[bool],
 def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
                        sub_patch: Optional[Sequence[slice]] = None) \
         -> Tuple[bool, Sequence[slice]]:
-    """Crop the patch to regions of the patch that are non-zero. Assumes mask is always positive. Returns whether there
-    is any mask>0 in the patch and a patch shrunk to mask>0 regions.
+    """Crop the patch to regions of the mask that are non-zero. Assumes mask is always positive. Returns whether there
+    is any mask>0 in the patch and a patch shrunk to mask>0 regions. The optional subpatch constrains this operation to
+    the sub-region defined by a sequence of slicing operations.
 
     Args:
         mask: to crop to
