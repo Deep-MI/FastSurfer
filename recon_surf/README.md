@@ -155,4 +155,51 @@ As the --t1 and --aparc_aseg_segfile flags are not set, a subfolder within the t
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/$p/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)). 
 The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
-A log-file will additionally be  stored in the $targetdir/logs directory. If you do not need this, remove the corresponding redirect (> $targetdir/logs/out-${p}.log).
+A log-file will additionally be  stored in the ```$targetdir/logs``` directory. If you do not need this, remove the corresponding redirect ( ```> $targetdir/logs/out-${p}.log```).
+
+
+# Manual Edits
+
+### Brainmask Edits
+
+Currently, FastSurfer has only very limited functionality for manual edits due to missing entrypoints into the recon-surf script. Starting with FastSurfer v2.0.0 one frequently requested edit type (brainmask editing) is now possible, as the initial mask is created in the first segmentation stage. By running segmentation and surface processing in two steps, the mask can be edited in-between.
+
+For a **Docker setup** one can:
+
+1. Run segmentation only:
+```
+docker run --gpus=all --rm --name $CONTAINER_NAME \
+                      -v $PATH_TO_IMAGE_DIR:$IMAGE_DIR \
+                      -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
+                      --user $UID:$GID deepmi/fastsurfer:gpu-v2.0.0 \
+                      --t1 $IMAGE_DIR/input.mgz \
+                      --sd $OUTPUT_DIR \
+                      --sid $SUBJECT_ID \
+                      --seg_only
+```
+2. Modify the ```$PATH_TO_OUTPUT_DIR/$SUBJECT_ID/mri/mask.mgz``` file as required.
+3. Run the following Docker command to run the surface processing pipeline:
+```
+docker run --rm --name $CONTAINER_NAME \
+           -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
+           -v $PATH_TO_FS_LICENSE_DIR:$FS_LICENSE_DIR \
+           --user $UID:$GID deepmi/fastsurfer:gpu-v2.0.0 \
+           --sid $SUBJECT_ID  \
+           --sd $OUTPUT_DIR/$SUBJECT_ID \
+           --surf_only \
+           --fs_license $FS_LICENSE_DIR/license_file
+```
+
+For a **local install** you can similarly:
+
+1. Go to the FastSurfer directory, source FreeSurfer 7.3.2 and run the segmentation step:
+```
+cd $FASTSURFER_HOME
+source $FREESURFER_HOME/SetUpFreeSurfer.sh
+./run_fastsurfer.sh --t1 $IMAGE_DIR/input.mgz --sd $OUTPUT_DIR --sid $SUBJECT_ID --seg_only
+```
+2. Modify the ```$OUTPUT_DIR/$SUBJECT_ID/mri/mask.mgz``` file.
+3. Run the surface pipeline:
+```
+./run_fastsurfer.sh --sd $OUTPUT_DIR --sid $SUBJECT_ID --fs_license $FS_LICENSE_DIR/license_file --surf_only
+```
