@@ -23,6 +23,7 @@ python="python3.8" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
+hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -64,15 +65,6 @@ thickness etc as a FS subject dir.
 FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --aparc_aseg_segfile <aparc_aseg_segfile>
-                          Name of intermediate DL-based segmentation file
-                            (similar to aparc+aseg). This must be conformed
-                            (dimensions: 256x256x256, voxel size: 1x1x1, LIA
-                            orientation). FastSurferCNN's segmentations are
-                            conformed by default; please ensure that
-                            segmentations produced otherwise are conformed.
-                            Requires an ABSOLUTE Path! Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
   --py <python_cmd>       Command for python, default $python
@@ -208,17 +200,6 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --seg)
-    echo "WARNING: --seg <filename> is deprecated, use --aparc_aseg_segfile <filename>."
-    aparc_aseg_segfile="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --aparc_aseg_segfile)
-    aparc_aseg_segfile="$2"
-    shift # past argument
-    shift # past value
-    ;;
     --parallel)
     DoParallel=1
     shift # past argument
@@ -262,7 +243,6 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 # CHECKS
 echo
 echo sid $subject
-echo aparc_aseg_segfile $aparc_aseg_segfile
 echo
 
 
@@ -327,20 +307,6 @@ then
   exit 1
 fi
 
-if [ -z "$aparc_aseg_segfile" ]
-then
-  # Set to default
-  aparc_aseg_segfile="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
-fi
-
-if [ ! -f "$aparc_aseg_segfile" ]
-then
-  # No segmentation found, exit with error
-  echo "ERROR: Segmentation ($aparc_aseg_segfile) could not be found! "
-  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --aparc_aseg_segfile."
-  exit 1
-fi
-
 # set threads for openMP and itk
 # if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
 # Therefore we set it to 1 as default above, if nothing is specified.
@@ -360,14 +326,16 @@ then
   exit 1
 fi
 
+for hemi in rh lh; do
 
-# Check input segmentation quality
-echo "Checking Input Segmentation Quality ..."
-cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --aparc_aseg_segfile $aparc_aseg_segfile"
-echo $cmd
-$cmd
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-echo
+  # Check if running on an existing registry
+  if [ -f "$SUBJECTS_DIR/$subject/surf/$hemi.sphere" ] || [ -f "$SUBJECTS_DIR/$subject/surf/$hemi.sphere.reg" ] || [ -f "$SUBJECTS_DIR/$subject/surf/$hemi.angles.txt" ]; then
+    echo "ERROR: running on top of an existing registry!"
+    echo "The output directory must not contain a surfreg from a previous invocation of recon-surf."
+    exit 1
+  fi
+
+done
 
 # collect info
 StartTime=`date`;
@@ -379,19 +347,8 @@ hour=`date +%H`
 min=`date +%M`
 
 
-# Setup dirs
-mkdir -p $SUBJECTS_DIR/$subject/scripts
-mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
-mkdir -p $SUBJECTS_DIR/$subject/mri/tmp
-mkdir -p $SUBJECTS_DIR/$subject/surf
-mkdir -p $SUBJECTS_DIR/$subject/label
-mkdir -p $SUBJECTS_DIR/$subject/stats
-
-mdir=$SUBJECTS_DIR/$subject/mri
 sdir=$SUBJECTS_DIR/$subject/surf
 ldir=$SUBJECTS_DIR/$subject/label
-
-mask=$mdir/mask.mgz
 
 
 # Set up log file
@@ -424,70 +381,76 @@ echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " |& 
 echo " " |& tee -a $LF
 
 
-
-
 #if false; then
 
 ########################################## START ########################################################
 
 
-
 # ================================================== SURFACES ==========================================================
 
+# look into the recon-surf.log to find the voxel sizes
+vox_size=`cat $SUBJECTS_DIR/$subject/scripts/recon-surf.log | grep -E " - Voxel Size " | cut -d' ' -f5 | cut -d'x' -f1 | sed '1p;d'`
+
+
+if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
+then
+  echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." |& tee -a $LF
+  hiresflag="-hires"
+else
+  echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." |& tee -a $LF
+  hiresflag=""
+fi
 
 CMDFS=""
 
 for hemi in lh rh; do
 
-CMDF="$SUBJECTS_DIR/$subject/scripts/$hemi.processing.cmdf"
-CMDFS="$CMDFS $CMDF"
-rm -rf $CMDF
+  CMDF="$SUBJECTS_DIR/$subject/scripts/$hemi.processing.cmdf"
+  CMDFS="$CMDFS $CMDF"
+  rm -rf $CMDF
 
+  echo "echo \" \"" |& tee -a $CMDF
+  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
+  echo "echo \" \"" |& tee -a $CMDF
 
+  # Surface registration for cross-subject correspondance (registration to fsaverage)
+    cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
+  RunIt "$cmd" $LF "$CMDF"
 
-echo "echo \" \"" |& tee -a $CMDF
-echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
-echo "echo \" \"" |& tee -a $CMDF
+  # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
+  # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
+  # seem to do this, so we initialize the spherical registration with the better
+  # cortical segmentation from FastSurferCNN, this replaces recon-al -surfreg
+  # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
+  # (note the former fix, initializing with pre-central label, is not working in FS7.2
+  # as they broke the label initializiation in mris_register)
+  cmd="$python ${binpath}/rotate_sphere.py \
+       --srcsphere $sdir/${hemi}.sphere \
+       --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
+       --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
+       --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
+       --out $sdir/${hemi}.angles.txt"
+  RunIt "$cmd" $LF "$CMDF"
+  # 2. use global rotation as initialization to non-linear registration:
+  cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
+       $sdir/${hemi}.sphere \
+       $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+       $sdir/${hemi}.sphere.reg"
+  RunIt "$cmd" $LF "$CMDF"
+  # command to generate new aparc to check if registration was OK
+  # run only for debugging
+  #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
+  #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
+  #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
+  #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
 
-# Surface registration for cross-subject correspondance (registration to fsaverage)
-  cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
-RunIt "$cmd" $LF "$CMDF"
-  
-# (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
-# one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
-# seem to do this, so we initialize the spherical registration with the better
-# cortical segmentation from FastSurferCNN, this replaces recon-al -surfreg
-# 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
-# (note the former fix, initializing with pre-central label, is not working in FS7.2
-# as they broke the label initializiation in mris_register)
-cmd="$python ${binpath}/rotate_sphere.py \
-     --srcsphere $sdir/${hemi}.sphere \
-     --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
-     --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
-     --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
-     --out $sdir/${hemi}.angles.txt"
-RunIt "$cmd" $LF "$CMDF"
-# 2. use global rotation as initialization to non-linear registration:
-cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
-     $sdir/${hemi}.sphere \
-     $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
-     $sdir/${hemi}.sphere.reg"
-RunIt "$cmd" $LF "$CMDF"
-# command to generate new aparc to check if registration was OK
-# run only for debugging
-#cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
-#     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
-#     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
-#     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
-
-if [ "$DoParallel" == "0" ] ; then
-    echo " " |& tee -a $LF
-    echo " RUNNING $hemi sequentially ... " |& tee -a $LF
-    echo " " |& tee -a $LF
-  chmod u+x $CMDF
-  RunIt "$CMDF" $LF
-fi
-
+  if [ "$DoParallel" == "0" ] ; then
+      echo " " |& tee -a $LF
+      echo " RUNNING $hemi sequentially ... " |& tee -a $LF
+      echo " " |& tee -a $LF
+    chmod u+x $CMDF
+    RunIt "$CMDF" $LF
+  fi
 
 done  # hemi loop ----------------------------------
 
