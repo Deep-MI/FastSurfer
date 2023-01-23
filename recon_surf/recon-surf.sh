@@ -354,7 +354,7 @@ fi
 
 if [ -z "$SUBJECTS_DIR" ]
 then
-  echo "\$SUBJECTS_DIR not set. Either set it via the shell prior to running recon_surf.sh or supply it via the --sd flag."
+  echo "\$SUBJECTS_DIR not set. Either set it via the shell prior to running recon-surf.sh or supply it via the --sd flag."
   exit 1
 fi
 
@@ -828,7 +828,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central 
   # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not 
   # seem to do this, so we initialize the spherical registration with the better 
-  # cortical segmentation from FastSurferCNN, this replaces recon-al -surfreg
+  # cortical segmentation from FastSurferCNN, this replaces recon-all -surfreg
   # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
   # (note the former fix, initializing with pre-central label, is not working in FS7.2
   # as they broke the label initializiation in mris_register)
