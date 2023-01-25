@@ -15,12 +15,12 @@
 
 # IMPORTS
 import argparse
+import logging
 import multiprocessing
-from functools import partial, wraps, reduce
-from itertools import product, repeat
+from functools import partial, reduce
+from itertools import product
 from numbers import Number
-from packaging import version as _version
-from typing import Sequence, Tuple, Union, Optional, Dict, overload, cast, TypeVar, List, Iterable
+from typing import Sequence, Tuple, Union, Optional, Dict, overload, cast, TypeVar, List, Iterable, Callable
 
 import nibabel as nib
 import numpy as np
@@ -57,6 +57,7 @@ _IntType = TypeVar("_IntType", bound=np.integer)
 _DType = TypeVar('_DType', bound=np.dtype)
 _ArrayType = TypeVar("_ArrayType", bound=np.ndarray)
 PVStats = Dict[str, Union[int, float]]
+VirtualLabel = Dict[int, Sequence[int]]
 
 UNITS = {"Volume_mm3": "mm^3", "normMean": "MR", "normStdDev": "MR", "normMin": "MR", "normMax": "MR",
          "normRange": "MR"}
@@ -83,7 +84,7 @@ def make_arguments() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(usage=USAGE, epilog=HELPTEXT, description=DESCRIPTION,
                                      formatter_class=HelpFormatter)
     parser.add_argument('-norm', '--normfile', type=str, required=True, dest='normfile',
-                        help="Biasfield corrected image in the same image space as segmentation (required).")
+                        help="Biasfield-corrected image in the same image space as segmentation (required).")
     parser.add_argument('-i', '--segfile', type=str, dest='segfile', required=True,
                         help="Segmentation file to read and use for evaluation (required).")
     parser.add_argument('-o', '--segstatsfile', type=str, required=True, dest='segstatsfile',
@@ -95,6 +96,10 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.add_argument('--ids', type=id_type, nargs="*",
                         help="List of exclusive segmentation ids (integers) to use "
                              "(default: all ids in --lut or all ids in image).")
+    parser.add_argument('--merged_label', type=id_type, nargs="+", dest='merged_labels', default=[], action='append',
+                        help="Add a 'virtual' label (first value) that is the combination of all following values, "
+                             "e.g. `--merged_label 100 3 4 8` will compute the statistics for label 100 by aggregating "
+                             "labels 3, 4 and 8.")
     parser.add_argument('--robust', type=robust_threshold, dest='robust', default=None,
                         help="Whether to calculate robust segmentation metrics. This parameter "
                              "expects the fraction of values to keep, e.g. `--robust 0.95` will "
@@ -175,11 +180,19 @@ def main(args):
         "threads": threads
     }
 
+    if args.merged_labels is not None and len(args.merged_labels) > 0:
+        kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
+
     table = pv_calc(seg_data, norm_data, labels, patch_size=args.patch_size, **kwargs)
 
     if lut is not None:
         for i in range(len(table)):
-            table[i]["StructName"] = lut[lut["ID"] == table[i]["SegId"]]["LabelName"].item()
+            lut_idx = lut["ID"] == table[i]["SegId"]
+            if lut_idx.any():
+                table[i]["StructName"] = lut[lut_idx]["LabelName"].item()
+            elif "merged_labels" in kwargs and table[i]["SegId"] in kwargs["merged_labels"].keys():
+                # noinspection PyTypeChecker
+                table[i]["StructName"] = "merged label " + str(table[i]["SegId"])
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
     dataframe = dataframe[dataframe["NVoxels"] != 0].sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
@@ -376,21 +389,21 @@ def uniform_filter(arr: _ArrayType, filter_size: int,
 @overload
 def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType], patch_size: int = 32,
             vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            return_maps: False = False) -> List[PVStats]:
+            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: False = False) -> List[PVStats]:
     ...
 
 
 @overload
 def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType],
             patch_size: int = 32, vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            return_maps: True = True) \
+            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: True = True) \
         -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
     ...
 
 
 def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType],
             patch_size: int = 32, vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            return_maps: bool = False, threads: int = -1) \
+            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: bool = False) \
         -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
     """Function to compute volume effects.
 
@@ -403,6 +416,8 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         eps: threshold for computation of equality (default: 1e-6)
         robust_percentage: fraction for robust calculation of statistics (e.g. 0.95 drops both the 2.5%
             lowest and highest values per region) (default: None/1. == off)
+        merged_labels: defines labels to compute statistics for that are "just" merged. Definition by a dictionary of
+            merged label ID (key) and to be merged IDs (sequence of values). (default: None)
         threads: Number of parallel threads to use in calculation (default: -1, one per hardware thread; 0 deactivates
             parallelism).
         return_maps: returns a dictionary containing the computed maps.
@@ -411,20 +426,26 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, StructName, normMean, normStdDev,
             normMin, normMax, and normRange. (Note: StructName is unfilled)
         if return_maps: a dictionary with the 5 meta-information pv-maps:
-                nbr: An image of alternative labels that were considered instead of the voxel's label
-                nbrmean: The local mean intensity of the label nbr at the specific voxel
-                segmean: The local mean intensity of the primary label at the specific voxel
-                pv: The partial volume of the primary label at the location
-                ipv: The partial volume of the alternative (nbr) label at the location
+            nbr: An image of alternative labels that were considered instead of the voxel's label
+            nbrmean: The local mean intensity of the label nbr at the specific voxel
+            segmean: The local mean intensity of the primary label at the specific voxel
+            pv: The partial volume of the primary label at the location
+            ipv: The partial volume of the alternative (nbr) label at the location
     """
 
     mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [{} for _ in range(7)]
     loc_border = {}
 
+    if merged_labels is not None:
+        all_labels = set(labels)
+        all_labels = all_labels | reduce(lambda i, j: i | j, (set(s) for s in merged_labels.values()))
+    else:
+        all_labels = labels
+
     # initialize global_crop with the full image
     global_crop: Tuple[slice, ...] = tuple(slice(0, _shape) for _shape in seg.shape)
     # ignore all regions of the image that are background only
-    if 0 not in labels:
+    if 0 not in all_labels:
         # crop global_crop to the data (plus one extra voxel)
         any_in_global, global_crop = crop_patch_to_mask(seg != 0, sub_patch=global_crop)
         # grow global_crop by one, so all border voxels are included
@@ -445,7 +466,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(threads) as pool:
 
-        global_stats_future = pool.map(global_stats_filled, labels, **map_kwargs)
+        global_stats_future = pool.map(global_stats_filled, all_labels, **map_kwargs)
 
         if return_maps:
             _ndarray_alloc = np.full
@@ -493,6 +514,25 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
               "StructName": "", "normMean": means.get(lab, 0.), "normStdDev": stds.get(lab, 0.),
               "normMin": mins.get(lab, 0.), "normMax": maxes.get(lab, 0.),
               "normRange": maxes.get(lab, 0.) - mins.get(lab, 0.)} for lab in labels]
+    if merged_labels is not None:
+        def agg(f: Callable[..., np.ndarray], source: Dict[int, _NumberType], merge_labels: Iterable[int]) -> _NumberType:
+            return f([source.get(l, 0) for l in merge_labels if __voxel_counts.get(l) is not None]).item()
+
+        for lab, merge in merged_labels.items():
+            if all(__voxel_counts.get(l) is None for l in merge):
+                logging.getLogger(__name__).warning(f"None of the labels {merge} for merged label {lab} exist in the "
+                                                    f"segmentation.")
+                continue
+
+            nvoxels, _min, _max = agg(np.sum, voxel_counts, merge), agg(np.min, mins, merge), agg(np.max, maxes, merge)
+            _sums = [(l, sums.get(l, 0)) for l in merge]
+            _std_tmp = np.sum([s * s / __voxel_counts.get(l, 0) for l, s in _sums if __voxel_counts.get(l, 0) > 0])
+            _std = np.sqrt((agg(np.sum, sums_2, merge) - _std_tmp) / (nvoxels - 1)).item()
+            merge_row = {"SegId": lab,  "NVoxels": nvoxels, "Volume_mm3": agg(np.sum, volumes, merge),
+                         "StructName": "", "normMean": agg(np.sum, sums, merge) / nvoxels, "normStdDev": _std,
+                         "normMin": _min, "normMax": _max, "normRange": _max - _min}
+            table.append(merge_row)
+
     if return_maps:
         return table, {"nbr": full_nbr_label, "segmean": full_seg_mean, "nbrmean": full_nbr_mean, "pv": full_pv,
                        "ipv": full_ipv}
