@@ -23,7 +23,7 @@ As part of the ISMRM Sofware Demo 2021, a presentation giving an overview of how
 
 ## Requierements
 If you want to follow along on your local machine, you need a working installation of FastSurfer. The steps are also covered in the second notebook (Sections B for Use case 1 and 2). In order to follow the installation instructions, some basic requierements have to be met.
-In general, you need either a Linux OS or a MacOS (+Docker) to run FastSurfer. Further, the segmentation requieres a little less than 10 GB RAM. If you are using Docker on MAC, you have to make sure to adjust the memory settings accordingly (by default, they are limited to 2 GB runtime memory).
+In general, you need either a Linux OS,  MacOS (+Docker) or Windows (+Docker) to run FastSurfer. Further, the segmentation requires a little less than 10 GB RAM. If you are using Docker on MAC, you have to make sure to adjust the memory settings accordingly (by default, they are limited to 2 GB runtime memory).
 
 ### 1. Recommendation - Docker
 Docker is an open platform for developing, shipping, and running applications. In a way, it allows the user to create software-packages which you as a user can simply download (or pull) and directly use. These include all dependencies you need for running the application. You do not need to install anything else. See the detailed documentation on [how to install docker](https://docs.docker.com/get-docker/) on your local machine.

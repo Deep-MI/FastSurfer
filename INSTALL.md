@@ -192,13 +192,13 @@ and run is as the example in our [README](./README.md).
 
 ## Windows
 
-### Docker (CPU version only)
+### Docker (CPU version)
 
 In order to run Fastsurfer on your Windows system using docker make sure that:
 * you have [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
 * as well as [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) installed and running
 
-Start Windows PowerShell and run the following command to pull the CPU Docker image:
+After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image:
 
 ```bash
 docker pull deepmi/fastsurfer:cpu-v2.0.0
@@ -216,6 +216,38 @@ docker run -v C:/Users/user/my_mri_data:/data \
            --sid subjectX --sd /output \
            --parallel
 ```
-Note that the CPU version requires at least 8GB of RAM. If the process fails, check if your [WSL2 distribution has enough reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
+Note the [system requirements](https://github.com/Deep-MI/FastSurfer#system-requirements) of at least 8GB of RAM for the CPU version. If the process fails, check if your [WSL2 distribution has enough memory reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
 
 This was tested using Windows 10 Pro version 21H1 and the WSL Ubuntu 20.04  distribution
+
+### Docker (GPU version)
+
+In addition to the requirements from the CPU version, you also need to make sure that:
+* you have Windows 11 or Windows 10 21H2 or greater,
+* the latest WSL Kernel or at least 4.19.121+ (5.10.16.3 or later for better performance and functional fixes),
+* an NVIDIA GPU and the latest [NVIDIA CUDA driver](https://developer.nvidia.com/cuda/wsl)
+* CUDA toolkit installed on WSL. See: _[CUDA Support for WSL 2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html#cuda-support-for-wsl-2)_
+
+Follow the following tutorial for installing the correct drivers and software: [Enable NVIDIA CUDA on WSL](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)
+
+After everything is installed, start Windows PowerShell and run the following command to pull the GPU Docker image:
+
+```bash
+docker pull deepmi/fastsurfer:latest
+```
+
+Now you can run Fastsurfer the same way as described in our [Docker README](./Docker/README.md)
+```bash
+docker run --gpus all
+           -v C:/Users/user/my_mri_data:/data \
+           -v C:/Users/user/my_fastsurfer_analysis:/output \
+           -v C:/Users/user/my_fs_license_dir:/fs_license \
+           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
+           --fs_license /fs_license/license.txt \
+           --t1 /data/subjectX/orig.mgz \
+           --sid subjectX --sd /output \
+           --parallel
+```
+
+Note the [system requirements](https://github.com/Deep-MI/FastSurfer#system-requirements) of at least 7 GB CPU RAM and 2 GB GPU RAM for the GPU version. If the process fails, check if your [WSL2 distribution has enough memory reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
+
