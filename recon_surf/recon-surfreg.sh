@@ -23,7 +23,6 @@ python="python3.8" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
-hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -388,18 +387,6 @@ echo " " |& tee -a $LF
 
 # ================================================== SURFACES ==========================================================
 
-# look into the recon-surf.log to find the voxel sizes
-vox_size=`cat $SUBJECTS_DIR/$subject/scripts/recon-surf.log | grep -E " - Voxel Size " | cut -d' ' -f5 | cut -d'x' -f1 | sed '1p;d'`
-
-
-if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
-then
-  echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." |& tee -a $LF
-  hiresflag="-hires"
-else
-  echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." |& tee -a $LF
-  hiresflag=""
-fi
 
 CMDFS=""
 
@@ -414,7 +401,7 @@ for hemi in lh rh; do
   echo "echo \" \"" |& tee -a $CMDF
 
   # Surface registration for cross-subject correspondance (registration to fsaverage)
-    cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
+  cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning $fsthreads"
   RunIt "$cmd" $LF "$CMDF"
 
   # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
