@@ -413,7 +413,7 @@ if __name__ == "__main__":
     if len(s_dirs) == 1:
         if qc_failed_subject_count:
             LOGGER.error("Single subject failed the volume-based QC check.")
-            sys.exit(1)
+            sys.exit(2)
     else:
         LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
             qc_failed_subject_count, len(s_dirs)))
