@@ -499,9 +499,13 @@ if [ "$run_seg_pipeline" == "1" ]
     cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
     echo $cmd |& tee -a $seg_log
     $cmd
-    if [ ${PIPESTATUS[0]} -ne 0 ]
+    exit_code=${PIPESTATUS[0]}
+    if [ ${exit_code} -ne 0 ]
     then
-      echo "ERROR: Segmentation failed QC checks."
+      if [ ${exit_code} == 2 ]
+      then
+        echo "ERROR: Segmentation failed QC checks."
+      fi
       exit 1
     fi
 
