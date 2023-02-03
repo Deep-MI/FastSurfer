@@ -139,12 +139,12 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
     :return:
     """
     try:
-        response = requests.get(os.path.join(download_url, checkpoint_name), verify=True)
+        response = requests.get(download_url + "/" + checkpoint_name, verify=True)
         # Raise error if file does not exist:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
         LOGGER.info('Response code: {}'.format(e.response.status_code))
-        response = requests.get(os.path.join(download_url, checkpoint_name), verify=False)
+        response = requests.get(download_url + "/" + checkpoint_name, verify=False)
         response.raise_for_status()
 
     with open(checkpoint_path, 'wb') as f:
