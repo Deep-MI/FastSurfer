@@ -16,6 +16,7 @@
 # IMPORTS
 import os
 from itertools import product
+from typing import Optional, Union
 
 import torch
 import numpy as np
@@ -134,27 +135,37 @@ def update_num_steps(dataloader, cfg):
     cfg.TRAIN.NUM_STEPS = len(dataloader)
 
 
-def find_device(device: str = "auto", flag_name:str = "device") -> torch.device:
+def find_device(device: Union[torch.device, str] = "auto", flag_name:str = "device", min_memory: int = 0) -> torch.device:
     """Create a device object from the device string passed, including detection of devices if device is not defined
-    or "auto".
-    """
+    or "auto". """
     logger = logging.get_logger(__name__ + ".auto_device")
     # if specific device is requested, check and stop if not available:
-    if device.split(':')[0] == "cuda" and not torch.cuda.is_available():
+    if str(device).startswith("cuda") and not torch.cuda.is_available():
         logger.info(f"cuda not available, try switching to cpu: --{flag_name} cpu")
-        raise ValueError(f"--device cuda not available, try --{flag_name} cpu !")
-    if device == "mps" and not torch.backends.mps.is_available():
+        raise ValueError(f"--{flag_name} cuda not available, try --{flag_name} cpu !")
+    if str(device) == "mps" and not torch.backends.mps.is_available():
         logger.info(f"mps not available, try switching to cpu: --{flag_name} cpu")
-        raise ValueError(f"--device mps not available, try --{flag_name} cpu !")
+        raise ValueError(f"--{flag_name} mps not available, try --{flag_name} cpu !")
     # If auto detect:
-    if device == "auto" or not device:
-        # 1st check cuda
+    if str(device) == "auto" or not device:
+        # 1st check cuda / also finds AMD ROCm
         if torch.cuda.is_available():
             device = "cuda"
-        elif torch.backends.mps.is_available():
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             device = "mps"
         else:
             device = "cpu"
+
+    device = torch.device(device)
+
+    if device.type == "cuda" and min_memory > 0:
+        dev_num = torch.cuda.current_device() if device.index is None else device.index
+        total_gpu_memory = torch.cuda.get_device_properties(dev_num).__getattribute__("total_memory")
+        if total_gpu_memory < min_memory:
+            giga = 1024 ** 3
+            logger.info(f"Found {total_gpu_memory/giga:.1f} GB GPU memory, but {min_memory/giga:.f} GB was required.")
+            device = torch.device("cpu")
+
     # Define device and transfer model
     logger.info(f"Using {flag_name}: {device}")
-    return torch.device(device)
+    return device

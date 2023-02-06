@@ -128,9 +128,8 @@ def loadfile_full(file: str, name: str) \
 
 def main(args):
     import os
-    # TODO: Testing of allow_root should a shared FastSurfer function.
-    if os.getuid() == 0 and hasattr(args, 'allow_root') and getattr(args, 'allow_root') is not True:
-        return "Trying to run script as root without passing --allow_root."
+    from FastSurferCNN.utils.common import assert_no_root
+    getattr(args, "allow_root", False) or assert_no_root()
 
     if not hasattr(args, 'segfile') or not os.path.exists(args.segfile):
         return "No segfile was passed or it does not exist."
