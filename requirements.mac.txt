@@ -73,7 +73,7 @@ numpy==1.23.5
     #   tifffile
     #   torchio
     #   torchvision
-oauthlib==3.2.0
+oauthlib==3.2.2
     # via requests-oauthlib
 packaging==21.3
     # via
