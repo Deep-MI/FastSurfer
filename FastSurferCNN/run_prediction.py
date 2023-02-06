@@ -27,6 +27,7 @@ import nibabel as nib
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
+from FastSurferCNN.utils.common import assert_no_root, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.misc import find_device
 from FastSurferCNN.data_loader import data_utils as du, conform as conf
@@ -65,14 +66,14 @@ def args2cfg(args: argparse.Namespace):
     return cfg_fin, cfg_cor, cfg_sag, cfg_ax
 
 
-def removesuffix(string, suffix):
+def removesuffix(string: str, suffix: str) -> str:
+    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string."""
     import sys
     if sys.version_info.minor >= 9:
         # removesuffix is a Python3.9 feature
         return string.removesuffix(suffix)
     else:
-        return string[:-len(suffix)] if string.endswith(suffix) else string
-
+        return string[:-len(suffix)] if len(suffix) > 0 and string.endswith(suffix) else string
 
 ##
 # Input array preparation
@@ -98,25 +99,10 @@ class RunModelOnData:
 
         device = find_device(args.device)
 
-        if args.viewagg_device == "auto":
-            # check, if GPU is big enough to run view agg on it
-            # (this currently takes the memory of the passed device)
-            if device.type == "cuda" and torch.cuda.is_available():  # TODO update the automatic device selection
-                dev_num = torch.cuda.current_device() if device.index is None else device.index
-                total_gpu_memory = torch.cuda.get_device_properties(dev_num).__getattribute__("total_memory")
-                # TODO this rule here should include the batch_size ?!
-                self.viewagg_device = device if total_gpu_memory > 4000000000 else "cpu"
-            else:
-                self.viewagg_device = "cpu"
-
-        else:
-            try:
-                self.viewagg_device = torch.device(args.viewagg_device)
-            except:
-                LOGGER.exception(f"Invalid device {args.viewagg_device}")
-                raise
-            # run view agg on the cpu (either if the available GPU RAM is not big enough (<8 GB),
-            # or if the model is anyhow run on cpu)
+        # check, if GPU is big enough to run view agg on it
+        # (this currently takes the memory of the passed device)
+        self.viewagg_device = torch.device(find_device(args.viewagg_device,
+                                                       flag_name='viewagg_device', min_memory=4*(2**30)))
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
 
@@ -166,7 +152,7 @@ class RunModelOnData:
         return self.out_dir
 
     def conform_and_save_orig(self, orig_str: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-        orig, orig_data = self.get_img(orig_str)
+        orig, orig_data = du.load_image(orig_str, "orig image")
 
         # Save input image to standard location
         self.save_img(self.input_img_name, orig_data, orig)
@@ -190,6 +176,8 @@ class RunModelOnData:
                                            os.path.dirname(self.conf_name), 'orig', '001.mgz')
 
     def get_subject_name(self) -> str:
+        if not hasattr(self, 'subject_name'):
+            raise RuntimeError("The subject name has never been set, use set_subject to set it.")
         return self.subject_name
 
     def set_model(self, plane: str):
@@ -222,7 +210,7 @@ class RunModelOnData:
         return pred_classes
 
     @staticmethod
-    def get_img(filename: Union[str, os.PathLike]) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+    def get_img(filename: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
         img = nib.load(filename)
         data = np.asanyarray(img.dataobj)
 
@@ -254,26 +242,6 @@ class RunModelOnData:
         return self.num_classes
 
 
-def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory: bool = True) -> bool:
-    if not isinstance(exception, RuntimeError):
-        return False
-    message = exception.args[0]
-    if message.startswith("CUDA out of memory. "):
-        LOGGER.critical("ERROR - INSUFFICIENT GPU MEMORY")
-        LOGGER.info("The memory requirements exceeds the available GPU memory, try using a smaller batch size "
-                    "(--batch_size <int>) and/or view aggregation on the cpu (--viewagg_device 'cpu')."
-                    "Note: View Aggregation on the GPU is particularly memory-hungry at approx. 5 GB for standard "
-                    "256x256x256 images.")
-        memory_message = message[message.find("(") + 1:message.find(")")]
-        LOGGER.info(f"Using {memory_message}.")
-        if exit_on_out_of_memory:
-            sys.exit("----------------------------\nERROR: INSUFFICIENT GPU MEMORY\n")
-        else:
-            return True
-    else:
-        return False
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
@@ -301,15 +269,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Warning if run as root user
-    if not args.allow_root and os.name == 'posix' and os.getuid() == 0:
-        sys.exit(
-            """----------------------------
-            ERROR: You are trying to run 'run_prediction.py' as root. We advice to avoid running 
-            FastSurfer as root, because it will lead to files and folders created as root.
-            If you are running FastSurfer in a docker container, you can specify the user with 
-            '-u $(id -u):$(id -g)' (see https://docs.docker.com/engine/reference/run/#user).
-            If you want to force running as root, you may pass --allow_root to run_prediction.py.
-            """)
+    args.allow_root or assert_no_root()
 
     # Check input and output options
     if args.in_dir is None and args.csv_file is None and not os.path.isfile(args.orig_name):
@@ -332,7 +292,7 @@ if __name__ == "__main__":
             LOGGER.warning("The QC log file will not be saved.")
 
     # Set up logging
-    from utils.logging import setup_logging
+    from FastSurferCNN.utils.logging import setup_logging
 
     setup_logging(args.log_name)
 
@@ -362,8 +322,17 @@ if __name__ == "__main__":
 
     for subject in s_dirs:
         # Set subject and load orig
+        if os.path.isfile(args.orig_name):
+            orig_fn = args.orig_name
+        elif os.path.isfile(subject):
+            orig_fn = subject
+            if eval.remove_suffix == '' and args.sid is None:
+                LOGGER.info("We detected that the full filename is used to infer the subject name. You can remove "
+                            "trailing parts of the filename such as file extensions and other suffixes by passing "
+                            "--remove_suffix <suffix>, e.g. --remove_suffix '_t1.nii.gz'.")
+        else:
+            orig_fn = os.path.join(subject, args.orig_name)
         eval.set_subject(subject, args.sid)
-        orig_fn = args.orig_name if os.path.isfile(args.orig_name) else os.path.join(subject, args.orig_name)
         orig_img, data_array = eval.conform_and_save_orig(orig_fn)
 
         # Set prediction name
@@ -399,7 +368,7 @@ if __name__ == "__main__":
             if not check_volume(pred_data, seg_voxvol):
                 LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
                 if qc_file_handle is not None:
-                    qc_file_handle.write(subject.split('/')[-1] + "\n")
+                    qc_file_handle.write(eval.get_subject_name() + "\n")
                     qc_file_handle.flush()
                 qc_failed_subject_count += 1
         except RuntimeError as e:

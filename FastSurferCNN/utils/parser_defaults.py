@@ -129,7 +129,7 @@ def add_arguments(parser: argparse.ArgumentParser, flags: Iterable[str]) -> argp
     return parser
 
 
-def add_plane_flags(parser: argparse.ArgumentParser, type: str, files: Mapping[str, str]) -> argparse.ArgumentParser:
+def add_plane_flags(parser: argparse.ArgumentParser, type: Literal["checkpoint", "config"], files: Mapping[str, str]) -> argparse.ArgumentParser:
     """
     Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
     and the values is the file name (relative for path relative to FASTSURFER_HOME.
@@ -137,7 +137,7 @@ def add_plane_flags(parser: argparse.ArgumentParser, type: str, files: Mapping[s
     Args:
         parser: The parser to add flags to.
         type: The type of files (for help text and prefix from "checkpoint" and "config".
-            "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_ {plane}"
+            "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
         files: A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
             directory.
 
