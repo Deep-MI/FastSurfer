@@ -682,8 +682,7 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=51, lut=None):
         idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 2, 3, 15, 16, 4,
                                17, 18, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
                                19, 20], dtype=np.int16)
-    elif num_classes == 1:
-        idx_list = np.asarray([0, 1, 1])
+
     else:
         assert lut is not None, 'lut is not defined!'
         idx_list = infer_mapping_from_lut(num_classes, lut)

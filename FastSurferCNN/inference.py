@@ -15,7 +15,7 @@
 
 # IMPORTS
 import time
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union
 
 import numpy as np
 import torch
@@ -38,7 +38,7 @@ class Inference:
     device: Optional[torch.device]
     default_device: torch.device
 
-    def __init__(self, cfg, device: torch.device, ckpt: str = ""):
+    def __init__(self, cfg, device: torch.device, ckpt: str = "", lut: Union[None, str, np.ndarray] = None):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -64,6 +64,7 @@ class Inference:
         self.alpha = {"sagittal": 0.2}
         self.permute_order = {"axial": (3, 0, 2, 1), "coronal": (2, 3, 0, 1), "sagittal": (0, 3, 2, 1)}
         self.post_predition_mapping_hook = {"sagittal": map_prediction_sagittal2full}
+        self.lut = lut
 
         # Initial checkpoint loading
         if ckpt:
@@ -178,7 +179,9 @@ class Inference:
                     end_index = start_index + batch_size
 
                     # check if we need a special mapping (e.g. as for sagittal)
-                    pred = self.post_predition_mapping_hook.get(plane, lambda x: x)(pred)
+                    pred = self.post_predition_mapping_hook.get(plane, lambda x: x)(pred,
+                                                                                    num_classes=self.get_num_classes(),
+                                                                                    lut=self.lut)
 
                     # permute the prediction into the out slice order
                     pred = pred.permute(*self.permute_order[plane]).to(out.device)  # the to-operation is implicit

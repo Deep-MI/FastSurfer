@@ -123,7 +123,7 @@ class RunModelOnData:
         self.models = {}
         for plane, view in self.view_ops.items():
             if view["cfg"] is not None and view["ckpt"] is not None:
-                self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=device)
+                self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=device, lut=self.lut)
 
         vox_size = args.vox_size
         if vox_size == "min":
