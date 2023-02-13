@@ -37,8 +37,6 @@ def setup_options():
     )
     parser.add_argument("--aug", action='append', help="List of augmentations to use.", default=None)
 
-    parser.add_argument("--opt", action='append', help="List of augmentations to use.")
-
     parser.add_argument(
         "opts",
         help="See FastSurferCNN/config/defaults.py for all options",
@@ -57,9 +55,6 @@ def main():
 
     if args.aug is not None:
         cfg.DATA.AUG = args.aug
-
-    if args.opt:
-        cfg.DATA.CLASS_OPTIONS = args.opt
 
     summary_path = misc.check_path(join(cfg.LOG_DIR, 'summary'))
     if cfg.EXPR_NUM == "Default":
