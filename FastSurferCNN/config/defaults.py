@@ -229,6 +229,8 @@ _C.EXPR_NUM = "Default"
 # operator implementations in GPU operator libraries.
 _C.RNG_SEED = 1
 
+_C.SUMMARY_PATH = "FastSurferVINN/summary/FastSurferVINN_coronal"
+_C.CONFIG_LOG_PATH = "FastSurferVINN/config/FastSurferVINN_coronal"
 
 def get_cfg_defaults():
     """Get a yacs CfgNode object with default values for my_project."""
