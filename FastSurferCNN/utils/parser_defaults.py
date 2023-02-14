@@ -1,4 +1,35 @@
-from typing import Iterable, Mapping, Union, Literal
+
+# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Contaons the ALL_FLAGS dictionary, which can be used as follows to add default flags:
+
+>>> parser = argparse.ArgumentParser()
+>>> ALL_FLAGS["allow_root"](parser, dest="root")
+>>> args = parser.parse_args()
+>>> allows_root = args.root  # instead of the default dest args.allow_root
+
+Values can also be extracted by
+>>> print(ALL_FLAGS["allow_root"](dict, dest="root")
+>>> # {'flag': '--allow_root', 'flags': ('--allow_root',), 'action': 'store_true', 'dest': 'root',
+>>> # 'help': 'Allow execution as root user.'}
+"""
+
+import enum
+import multiprocessing
+from typing import Iterable, Mapping, Union, Literal, Optional, Dict, Any, Protocol
 import argparse
 from os import path
 
@@ -11,9 +42,40 @@ PLANE_HELP = {"checkpoint": "{} checkpoint to load",
 VoxSize = Union[Literal['min'], float]
 
 
-def __arg(*args, **kwargs):
-    def _stub(parser):
-        return parser.add_argument(*args, **kwargs)
+class CanAddArguments(Protocol):
+    def add_argument(self, *args, **kwargs): ...
+
+
+def __arg(*default_flags, **default_kwargs):
+    """
+    Function to create stub function, which sets default settings for argparse arguments.
+    The positional and keyword arguments function as if they were directly passed to parser.add_arguments().
+
+    The result will be a stub function, which has as first argument a parser (or other object with an
+    add_argument method) to which the argument is added. The stub function also accepts positional and
+    keyword arguments, which overwrite the default arguments. Additionally, these specific values can be callables,
+    which will be called upon the default values (to alter the default value).
+
+    This function is private for this module.
+    """
+    def _stub(parser: Union[CanAddArguments, Dict], *flags, **kwargs):
+        # prefer the value passed to the "new" call
+        for kw, arg in kwargs.items():
+            if callable(arg) and kw in default_kwargs.keys():
+                kwargs[kw] = arg(default_kwargs[kw])
+        # if no new value is provided to _stub (which is the callable in ALL_FLAGS), use the
+        # default value (stored in the callable/passed to the default below)
+        for kw, default in default_kwargs.items():
+            if kw not in kwargs.keys():
+                kwargs[kw] = default
+
+        _flags = flags if len(flags) != 0 else default_flags
+        if hasattr(parser, 'add_argument'):
+            return parser.add_argument(*_flags, **kwargs)
+        elif parser == dict:
+            return {"flag": _flags[0], "flags": _flags, **kwargs}
+        else:
+            raise ValueError(f"Unclear parameter, should be dict or argparse.ArgumentParser, not {type(parser).__name__}.")
     return _stub
 
 
@@ -42,6 +104,9 @@ ALL_FLAGS = {
              "as the segmentation (the input image is always conformed first, if it is not "
              "already conformed). The original input image is saved in the output directory "
              "as $id/mri/orig/001.mgz. Default: mri/orig.mgz."),
+    "norm_name": __arg(
+        '--norm_name', type=str, dest='norm_name', default='mri/norm.mgz',
+        help="Name under which the bias field corrected image is stored. Default: mri/norm.mgz."),
     "brainmask_name": __arg(
         '--brainmask_name', type=str, dest='brainmask_name', default='mri/mask.mgz',
         help="Name under which the brainmask image will be saved, in the same directory "
@@ -77,7 +142,7 @@ ALL_FLAGS = {
         help='Search tag to process only certain subjects. If a single image should be analyzed, '
              'set the tag with its id. Default: processes all.'),
     "csv_file": __arg(
-        '--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag",
+        '--csv_file', type=str, help="Csv-file with subjects to analyze (alternative to --tag)",
         default=None),
     "batch_size": __arg(
         '--batch_size', type=int, default=1, help="Batch size for inference. Default=1"),
@@ -105,8 +170,11 @@ ALL_FLAGS = {
         default=path.join(FASTSURFER_ROOT, "FastSurferCNN/config/FastSurfer_ColorLUT.tsv")),
     "allow_root": __arg(
         "--allow_root", action="store_true", dest="allow_root",
-        help="Allow execution as root user."
-    )
+        help="Allow execution as root user."),
+    "threads": __arg(
+        '--threads', dest='threads', default=multiprocessing.cpu_count(), type=int,
+        help=f"Number of threads to use (defaults to number of hardware threads: {multiprocessing.cpu_count()})")
+
 }
 
 

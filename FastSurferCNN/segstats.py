@@ -195,12 +195,15 @@ def main(args):
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
     dataframe = dataframe[dataframe["NVoxels"] != 0].sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
-    args.strict = True
-    write_statsfile(args.segstatsfile, dataframe, exclude_id, vox_vol=kwargs["vox_vol"], args=args)
+    write_statsfile(args.segstatsfile, dataframe,
+                    exclude_id=exclude_id, vox_vol=kwargs["vox_vol"], segfile=args.segfile,
+                    normfile=args.normfile, lut=getattr(args, "lut", None))
     return 0
 
 
-def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, exclude_id: Iterable[int], vox_vol: float, args):
+def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, exclude_id: Iterable[int] = (),
+                    segfile: str = None, normfile: str = None, lut: str = None):
+    """Write a segstatsfile very similar and compatible with mri_segstats output."""
     import sys
     import os
     with open(segstatsfile, "w") as fp:
@@ -217,12 +220,14 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, exclude_id: Iter
                      f"# hostname {gethostname()}\n")
         from getpass import getuser
         fp.write(f"# user       {getuser()}\n"
-                 f"# anatomy_type volume\n#\n"
-                 f"# SegVolFile {args.segfile}\n")
-        if hasattr(args, "lut") and args.lut is not None:
-            fp.write(f"# ColorTable {args.lut}\n")
-        fp.write(f"# InVolFile {args.normfile}\n"
-                 "".join([f"# ExcludeId {id}\n" for id in exclude_id]))
+                 f"# anatomy_type volume\n#\n")
+        if segfile is not None:
+             fp.write(f"# SegVolFile {segfile}\n")
+        if lut is not None:
+            fp.write(f"# ColorTable {lut}\n")
+        if normfile is not None:
+            fp.write(f"# InVolFile {normfile}\n")
+        fp.write("".join([f"# ExcludeId {id}\n" for id in exclude_id]))
         fp.write("# Only reporting non-empty segmentations\n"
                  f"# VoxelVolume_mm3 {vox_vol}\n")
         for i, col in enumerate(dataframe.columns):
