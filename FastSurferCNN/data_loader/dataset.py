@@ -33,9 +33,8 @@ class MultiScaleOrigDataThickSlices(Dataset):
     """
     Class to load MRI-Image and process it to correct format for network inference
     """
-    def __init__(self, img_filename, orig_data, orig_zoom, cfg, transforms=None):
+    def __init__(self, orig_data, orig_zoom, cfg, transforms=None):
         assert orig_data.max() > 0.8, f"Multi Dataset - orig fail, max removed {orig_data.max()}"
-        self.img_filename = img_filename
         self.plane = cfg.DATA.PLANE
         self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
         self.base_res = cfg.MODEL.BASE_RES
@@ -60,8 +59,6 @@ class MultiScaleOrigDataThickSlices(Dataset):
         self.images = orig_thick
         self.count = self.images.shape[0]
         self.transforms = transforms
-
-        logger.info(f"Successfully loaded Image from {img_filename}")
 
     def _get_scale_factor(self):
         """

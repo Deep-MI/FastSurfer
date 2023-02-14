@@ -13,12 +13,12 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Tuple, Union, Literal, Dict, Any, Optional
-import glob
 import sys
-import argparse
 import os
 import copy
+import argparse
+from typing import Tuple, Union, Literal, Dict, Any, Optional, Iterator
+from concurrent.futures import Executor
 
 import numpy as np
 import torch
@@ -27,9 +27,9 @@ import nibabel as nib
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
-from FastSurferCNN.utils.common import assert_no_root, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
-from FastSurferCNN.utils.misc import find_device
+from FastSurferCNN.utils.common import (find_device, assert_no_root, handle_cuda_memory_exception, SubjectList,
+                                        SubjectDirectory, NoParallelExecutor)
 from FastSurferCNN.data_loader import data_utils as du, conform as conf
 from FastSurferCNN.quick_qc import check_volume
 import FastSurferCNN.reduce_to_aseg as rta
@@ -78,6 +78,7 @@ def removesuffix(string: str, suffix: str) -> str:
 ##
 # Input array preparation
 ##
+
 class RunModelOnData:
     pred_name: str
     conf_name: str
@@ -89,13 +90,13 @@ class RunModelOnData:
     conform_to_1mm_threshold: Optional[float]
 
     def __init__(self, args):
+        self.wait = False
         self.pred_name = args.pred_name
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
-        self.remove_suffix = args.remove_suffix
+        self._threads = getattr(args, 'threads', 1)
 
         self.sf = 1.0
-        self.out_dir = self.set_and_create_outdir(args.out_dir)
 
         device = find_device(args.device)
 
@@ -134,28 +135,29 @@ class RunModelOnData:
             raise ValueError(f"Invalid value for vox_size, must be between 0 and 1 or 'min', was {vox_size}.")
         self.conform_to_1mm_threshold = args.conform_to_1mm_threshold
 
-    def set_and_create_outdir(self, out_dir: str) -> str:
-        if os.path.isabs(self.pred_name):
-            # Full path defined for input image, extract out_dir from there
-            tmp = os.path.dirname(self.pred_name)
+    @property
+    def pool(self) -> Executor:
+        if not hasattr(self, '_pool'):
+            if self._threads == 1:
+                self._pool = NoParallelExecutor()
+            else:
+                from concurrent.futures import ThreadPoolExecutor
+                self._pool = ThreadPoolExecutor(self._threads)
+        return self._pool
 
-            # remove potential subject/mri doubling in outdir name
-            out_dir = tmp if os.path.basename(tmp) != "mri" else os.path.dirname(os.path.dirname(tmp))
-        LOGGER.info("Output will be stored in: {}".format(out_dir))
+    def __del__(self):
+        if hasattr(self, '_pool'):
+            # only wait on futures, if we specifically ask (see end of the script, so we do not wait if we encounter a
+            # fail case)
+            self._pool.shutdown(self.wait)
 
-        if not os.path.exists(out_dir):
-            LOGGER.info("Output directory does not exist. Creating it now...")
-            os.makedirs(out_dir)
-        return out_dir
+    def conform_and_save_orig(self, subject: SubjectDirectory) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+        orig, orig_data = du.load_image(subject.orig_name, "orig image")
+        LOGGER.info(f"Successfully loaded image from {subject.orig_name}.")
 
-    def get_out_dir(self) -> str:
-        return self.out_dir
-
-    def conform_and_save_orig(self, orig_str: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-        orig, orig_data = du.load_image(orig_str, "orig image")
-
-        # Save input image to standard location
-        self.save_img(self.input_img_name, orig_data, orig)
+        # Save input image to standard location, but only
+        if subject.can_resolve_attribute('copy_orig_name'):
+            self.pool.submit(self.save_img, subject.copy_orig_name, orig_data, orig)
 
         if not conf.is_conform(orig, conform_vox_size=self.vox_size, check_dtype=True, verbose=False,
                                conform_to_1mm_threshold=self.conform_to_1mm_threshold):
@@ -165,25 +167,17 @@ class RunModelOnData:
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
-        self.save_img(self.subject_conf_name, orig_data, orig, dtype=np.uint8)
+        if subject.can_resolve_attribute('conf_name'):
+            self.pool.submit(self.save_img, subject.conf_name, orig_data, orig, dtype=np.uint8)
+        else:
+            raise RuntimeError("Cannot resolve the name to the conformed image, please specify an absolute path.")
 
         return orig, orig_data
-
-    def set_subject(self, subject: str, sid: Union[str, None]):
-        self.subject_name = os.path.basename(removesuffix(subject, self.remove_suffix)) if sid is None else sid
-        self.subject_conf_name = os.path.join(self.out_dir, self.subject_name, self.conf_name)
-        self.input_img_name = os.path.join(self.out_dir, self.subject_name,
-                                           os.path.dirname(self.conf_name), 'orig', '001.mgz')
-
-    def get_subject_name(self) -> str:
-        if not hasattr(self, 'subject_name'):
-            raise RuntimeError("The subject name has never been set, use set_subject to set it.")
-        return self.subject_name
 
     def set_model(self, plane: str):
         self.current_plane = plane
 
-    def get_prediction(self, orig_f: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]) -> np.ndarray:
+    def get_prediction(self, image_name: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]) -> np.ndarray:
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": self.viewagg_device,
@@ -198,41 +192,40 @@ class RunModelOnData:
             LOGGER.info(f"Run {plane} prediction")
             self.set_model(plane)
             # pred_prob is updated inplace to conserve memory
-            pred_prob = model.run(pred_prob, orig_f, orig_data, zoom, out=pred_prob)
+            pred_prob = model.run(pred_prob, image_name, orig_data, zoom, out=pred_prob)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
         del pred_prob
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
-        # return numpy array TODO: split_cortex_labels requires a numpy ndarray input
+        # return numpy array TODO: split_cortex_labels requires a numpy ndarray input, maybe we can also use Mapper here
         pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
         return pred_classes
 
     @staticmethod
-    def get_img(filename: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-        img = nib.load(filename)
-        data = np.asanyarray(img.dataobj)
-
-        return img, data
-
-    @staticmethod
     def save_img(save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage,
                  dtype: Union[None, type] = None):
+        """Saves the image."""
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info("Output image directory does not exist. Creating it now...")
             os.makedirs(os.path.dirname(save_as))
+
         np_data = data if isinstance(data, np.ndarray) else data.cpu().numpy()
-
         if dtype is not None:
-            header = orig.header.copy()
-            header.set_data_dtype(dtype)
+            _header = orig.header.copy()
+            _header.set_data_dtype(dtype)
         else:
-            header = orig.header
+            _header = orig.header
+        r = du.save_image(_header, orig.affine, np_data, save_as, dtype=dtype)
+        LOGGER.info("Successfully saved image asynchronously as {}".format(save_as))
+        return r
 
-        du.save_image(header, orig.affine, np_data, save_as, dtype=dtype)
-        LOGGER.info("Successfully saved image as {}".format(save_as))
+    def async_save_img(self, save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage,
+                 dtype: Union[None, type] = None):
+        """Saves the image asynchronously and returns a concurrent.futures.Future to track, when this finished."""
+        return self.pool.submit(self.save_img, save_as, data, orig, dtype)
 
     def set_up_model_params(self, plane, cfg, ckpt):
         self.view_ops[plane]["cfg"] = cfg
@@ -240,6 +233,26 @@ class RunModelOnData:
 
     def get_num_classes(self) -> int:
         return self.num_classes
+
+    def pipeline_conform_and_save_orig(self, subjects: SubjectList) \
+            -> Iterator[Tuple[SubjectDirectory, Tuple[nib.analyze.SpatialImage, np.ndarray]]]:
+        # do not pipeline
+        if self._threads == 1:
+            for subject in subjects:
+                # Set subject and load orig
+                yield subject, eval.conform_and_save_orig(subject)
+        else:
+            # do pipeline loading the next subject
+            data_in_future, subject = None, None
+            for next_subject in subjects:
+                # pre-load next subject/data
+                data_of_next_in_future = self.pool.submit(eval.conform_and_save_orig, next_subject)
+                # first iteration, just 'rotate' the pipeline once
+                if data_in_future is not None:
+                    yield subject, data_in_future.result()
+                subject = next_subject
+                data_in_future = data_of_next_in_future
+            yield subject, data_in_future.result()
 
 
 if __name__ == "__main__":
@@ -264,24 +277,12 @@ if __name__ == "__main__":
 
     # 5. technical parameters
     parser = parser_defaults.add_arguments(parser, ["vox_size", "conform_to_1mm_threshold", "device", "viewagg_device",
-                                                    "batch_size", "allow_root"])
+                                                    "batch_size", "threads", "allow_root"])
 
     args = parser.parse_args()
 
     # Warning if run as root user
     args.allow_root or assert_no_root()
-
-    # Check input and output options
-    if args.in_dir is None and args.csv_file is None and not os.path.isfile(args.orig_name):
-        parser.print_help(sys.stderr)
-        sys.exit(
-            '----------------------------\nERROR: Please specify data input directory or full path to input volume\n')
-
-    if args.out_dir is None and not os.path.isabs(args.pred_name):
-        parser.print_help(sys.stderr)
-        sys.exit(
-            '----------------------------\nERROR: Please specify data output directory or absolute path to output volume'
-            ' (can be same as input directory)\n')
 
     qc_file_handle = None
     if args.qc_log != "":
@@ -304,63 +305,55 @@ if __name__ == "__main__":
     # Set Up Model
     eval = RunModelOnData(args)
 
+    args.copy_orig_name = os.path.join('mri', 'orig', '001.mgz')
     # Get all subjects of interest
-    if args.csv_file is not None:
-        with open(args.csv_file, "r") as s_dirs:
-            s_dirs = [line.strip() for line in s_dirs.readlines()]
-        LOGGER.info("Analyzing all {} subjects from csv_file {}".format(len(s_dirs), args.csv_file))
-
-    elif args.in_dir is not None:
-        s_dirs = glob.glob(os.path.join(args.in_dir, args.search_tag))
-        LOGGER.info("Analyzing all {} subjects from in_dir {}".format(len(s_dirs), args.in_dir))
-
-    else:
-        s_dirs = [os.path.dirname(args.orig_name)]
-        LOGGER.info("Analyzing single subject {}".format(args.orig_name))
+    subjects = SubjectList(args, segfile='pred_name', copy_orig_name='copy_orig_name')
+    subjects.make_subjects_dir()
 
     qc_failed_subject_count = 0
 
-    for subject in s_dirs:
-        # Set subject and load orig
-        if os.path.isfile(args.orig_name):
-            orig_fn = args.orig_name
-        elif os.path.isfile(subject):
-            orig_fn = subject
-            if eval.remove_suffix == '' and args.sid is None:
-                LOGGER.info("We detected that the full filename is used to infer the subject name. You can remove "
-                            "trailing parts of the filename such as file extensions and other suffixes by passing "
-                            "--remove_suffix <suffix>, e.g. --remove_suffix '_t1.nii.gz'.")
-        else:
-            orig_fn = os.path.join(subject, args.orig_name)
-        eval.set_subject(subject, args.sid)
-        orig_img, data_array = eval.conform_and_save_orig(orig_fn)
-
-        # Set prediction name
-        out_dir, sbj_name = eval.get_out_dir(), eval.get_subject_name()
-        pred_name = args.pred_name if os.path.isabs(args.pred_name) else \
-            os.path.join(out_dir, sbj_name, args.pred_name)
+    for subject, (orig_img, data_array) in eval.pipeline_conform_and_save_orig(subjects):
+        futures = []
 
         # Run model
         try:
-            pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
-            eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
+            # The orig_t1_file is only used to populate verbose messages here
+            pred_data = eval.get_prediction(subject.orig_name, data_array, orig_img.header.get_zooms())
+            futures.append(eval.async_save_img(subject.segfile, pred_data, orig_img, dtype=np.int16))
 
             # Create aseg and brainmask
-            # Change datatype to np.uint8, else mri_cc will fail!
 
-            # get mask
-            LOGGER.info("Creating brainmask based on segmentation...")
-            bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
-            mask_name = os.path.join(out_dir, sbj_name, args.brainmask_name)
-            eval.save_img(mask_name, bm, orig_img, dtype=np.uint8)
+            # There is a funny edge case in legacy FastSurfer 2.0, where the behavior is not well-defined, if orig_name
+            # is an absolute path, but out_dir is not set. Then, we would create a sub-folder in the folder of orig_name
+            # using the subject_id (passed by --sid or extracted from the orig_name) and use that as the subject folder.
+            bm = None
+            store_brainmask = subject.can_resolve_filename(args.brainmask_name)
+            store_aseg = subject.can_resolve_filename(args.aseg_name)
+            if store_brainmask or store_aseg:
+                LOGGER.info("Creating brainmask based on segmentation...")
+                bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
+            if store_brainmask:
+                # get mask
+                mask_name = subject.filename_in_subject_folder(args.brainmask_name)
+                futures.append(eval.async_save_img(mask_name, bm, orig_img, dtype=np.uint8))
+            else:
+                LOGGER.info("Not saving the brainmask, because we could not figure out where to store it. Please "
+                            "specify a subject id with {sid[flag]}, or an absolute brainmask path with "
+                            "{brainmask_name[flag]}.".format(**subjects.DEFAULT_FLAGS))
 
-            # reduce aparc to aseg and mask regions
-            LOGGER.info("Creating aseg based on segmentation...")
-            aseg = rta.reduce_to_aseg(pred_data)
-            aseg[bm == 0] = 0
-            aseg = rta.flip_wm_islands(aseg)
-            aseg_name = os.path.join(out_dir, sbj_name, args.aseg_name)
-            eval.save_img(aseg_name, aseg, orig_img, dtype=np.uint8)
+            if store_aseg:
+                # reduce aparc to aseg and mask regions
+                LOGGER.info("Creating aseg based on segmentation...")
+                aseg = rta.reduce_to_aseg(pred_data)
+                aseg[bm == 0] = 0
+                aseg = rta.flip_wm_islands(aseg)
+                aseg_name = subject.filename_in_subject_folder(args.aseg_name)
+                # Change datatype to np.uint8, else mri_cc will fail!
+                futures.append(eval.async_save_img(aseg_name, aseg, orig_img, dtype=np.uint8))
+            else:
+                LOGGER.info("Not saving the aseg file, because we could not figure out where to store it. Please "
+                            "specify a subject id with {sid[flag]}, or an absolute aseg path with "
+                            "{aseg_name[flag]}.".format(**subjects.DEFAULT_FLAGS))
 
             # Run QC check
             LOGGER.info("Running volume-based QC check on segmentation...")
@@ -368,7 +361,7 @@ if __name__ == "__main__":
             if not check_volume(pred_data, seg_voxvol):
                 LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
                 if qc_file_handle is not None:
-                    qc_file_handle.write(eval.get_subject_name() + "\n")
+                    qc_file_handle.write(subject.id + "\n")
                     qc_file_handle.flush()
                 qc_failed_subject_count += 1
         except RuntimeError as e:
@@ -379,12 +372,14 @@ if __name__ == "__main__":
         qc_file_handle.close()
 
     # Single case: exit with error if qc fails. Batch case: report ratio of failures.
-    if len(s_dirs) == 1:
+    if len(subjects) == 1:
         if qc_failed_subject_count:
             LOGGER.error("Single subject failed the volume-based QC check.")
             sys.exit(2)
     else:
         LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
-            qc_failed_subject_count, len(s_dirs)))
+            qc_failed_subject_count, len(subjects)))
+
+    eval.wait = True
 
     sys.exit(0)
