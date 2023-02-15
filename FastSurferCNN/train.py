@@ -47,7 +47,7 @@ class Trainer:
 
         # Create the checkpoint dir.
         self.checkpoint_dir = cp.create_checkpoint_dir(cfg.LOG_DIR, cfg.EXPR_NUM)
-        logging.setup_logging(cfg.LOG_DIR)
+        logging.setup_logging(cfg.LOG_DIR, cfg.EXPR_NUM)
         logger.info("Training with config:")
         logger.info(pprint.pformat(cfg))
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
