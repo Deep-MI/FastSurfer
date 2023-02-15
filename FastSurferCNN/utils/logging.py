@@ -20,20 +20,17 @@ from os import path, makedirs
 from sys import stdout as _stdout
 
 
-def setup_logging(log_file_path: str):
+def setup_logging(output_dir: str, expr_num: str):
     """
     Sets up the logging
     """
     # Set up logging format.
     _FORMAT = "[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s"
-    handlers = [StreamHandler(_stdout)]
+    log_folder = path.join(output_dir, "logs")
+    makedirs(log_folder, exist_ok=True)
+    log_file = path.join(log_folder, f"expr_{expr_num}.log")
 
-    if log_file_path:
-        log_dir_path = path.dirname(log_file_path)
-        log_file_name = path.basename(log_file_path)
-        if not path.exists(log_dir_path):
-            makedirs(log_dir_path)
+    fh = FileHandler(filename=log_file, mode='a')
+    ch = StreamHandler(_stdout)
 
-        handlers.append(FileHandler(filename=log_file_path, mode='a'))
-
-    basicConfig(level=INFO, format=_FORMAT, handlers=handlers)
+    basicConfig(level=INFO, format=_FORMAT, handlers=[fh, ch])
