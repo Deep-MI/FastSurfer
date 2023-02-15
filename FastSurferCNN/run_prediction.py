@@ -29,7 +29,7 @@ from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.common import (find_device, assert_no_root, handle_cuda_memory_exception, SubjectList,
-                                        SubjectDirectory, NoParallelExecutor)
+                                        SubjectDirectory, NoParallelExecutor, pipeline)
 from FastSurferCNN.data_loader import data_utils as du, conform as conf
 from FastSurferCNN.quick_qc import check_volume
 import FastSurferCNN.reduce_to_aseg as rta
@@ -95,15 +95,20 @@ class RunModelOnData:
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
         self._threads = getattr(args, 'threads', 1)
+        torch.set_num_threads(self._threads)
+        self._async_io = getattr(args, 'async_io', False)
 
         self.sf = 1.0
 
         device = find_device(args.device)
 
-        # check, if GPU is big enough to run view agg on it
-        # (this currently takes the memory of the passed device)
-        self.viewagg_device = torch.device(find_device(args.viewagg_device,
-                                                       flag_name='viewagg_device', min_memory=4*(2**30)))
+        if device.type == 'cpu' and args.viewagg_device == "auto":
+            self.viewagg_device = device
+        else:
+            # check, if GPU is big enough to run view agg on it
+            # (this currently takes the memory of the passed device)
+            self.viewagg_device = torch.device(find_device(args.viewagg_device,
+                                                           flag_name='viewagg_device', min_memory=4*(2**30)))
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
 
@@ -138,7 +143,7 @@ class RunModelOnData:
     @property
     def pool(self) -> Executor:
         if not hasattr(self, '_pool'):
-            if self._threads == 1:
+            if not self._async_io:
                 self._pool = NoParallelExecutor()
             else:
                 from concurrent.futures import ThreadPoolExecutor
@@ -203,13 +208,12 @@ class RunModelOnData:
         pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
         return pred_classes
 
-    @staticmethod
-    def save_img(save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage,
+    def save_img(self, save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage,
                  dtype: Union[None, type] = None):
         """Saves the image."""
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
-            LOGGER.info("Output image directory does not exist. Creating it now...")
+            LOGGER.info(f"Output image directory {os.path.basename(save_as)} does not exist. Creating it now...")
             os.makedirs(os.path.dirname(save_as))
 
         np_data = data if isinstance(data, np.ndarray) else data.cpu().numpy()
@@ -219,7 +223,7 @@ class RunModelOnData:
         else:
             _header = orig.header
         r = du.save_image(_header, orig.affine, np_data, save_as, dtype=dtype)
-        LOGGER.info("Successfully saved image asynchronously as {}".format(save_as))
+        LOGGER.info(f"Successfully saved image {'asynchronously ' if self._async_io else ''}  as {save_as}.")
         return r
 
     def async_save_img(self, save_as: str, data: Union[np.ndarray, torch.Tensor], orig: nib.analyze.SpatialImage,
@@ -236,23 +240,15 @@ class RunModelOnData:
 
     def pipeline_conform_and_save_orig(self, subjects: SubjectList) \
             -> Iterator[Tuple[SubjectDirectory, Tuple[nib.analyze.SpatialImage, np.ndarray]]]:
-        # do not pipeline
-        if self._threads == 1:
+        if not self._async_io:
+            # do not pipeline, direct iteration and function call
             for subject in subjects:
-                # Set subject and load orig
-                yield subject, eval.conform_and_save_orig(subject)
+                # yield subject and load orig
+                yield subject, self.conform_and_save_orig(subject)
         else:
-            # do pipeline loading the next subject
-            data_in_future, subject = None, None
-            for next_subject in subjects:
-                # pre-load next subject/data
-                data_of_next_in_future = self.pool.submit(eval.conform_and_save_orig, next_subject)
-                # first iteration, just 'rotate' the pipeline once
-                if data_in_future is not None:
-                    yield subject, data_in_future.result()
-                subject = next_subject
-                data_in_future = data_of_next_in_future
-            yield subject, data_in_future.result()
+            # pipeline the same
+            for data in pipeline(self.pool, self.conform_and_save_orig, subjects):
+                yield data
 
 
 if __name__ == "__main__":
@@ -277,7 +273,7 @@ if __name__ == "__main__":
 
     # 5. technical parameters
     parser = parser_defaults.add_arguments(parser, ["vox_size", "conform_to_1mm_threshold", "device", "viewagg_device",
-                                                    "batch_size", "threads", "allow_root"])
+                                                    "batch_size", "async_io", "threads", "allow_root"])
 
     args = parser.parse_args()
 
@@ -312,7 +308,8 @@ if __name__ == "__main__":
 
     qc_failed_subject_count = 0
 
-    for subject, (orig_img, data_array) in eval.pipeline_conform_and_save_orig(subjects):
+    iter_subjects = eval.pipeline_conform_and_save_orig(subjects)
+    for subject, (orig_img, data_array) in iter_subjects:
         futures = []
 
         # Run model

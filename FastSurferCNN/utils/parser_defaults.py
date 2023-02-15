@@ -173,8 +173,11 @@ ALL_FLAGS = {
         help="Allow execution as root user."),
     "threads": __arg(
         '--threads', dest='threads', default=multiprocessing.cpu_count(), type=int,
-        help=f"Number of threads to use (defaults to number of hardware threads: {multiprocessing.cpu_count()})")
-
+        help=f"Number of threads to use (defaults to number of hardware threads: {multiprocessing.cpu_count()})"),
+    "async_io": __arg(
+        '--async_io', dest="async_io", action="store_true",
+        help="Allow asynchronous file operations (default: off). Note, this may impact the order of "
+             "messages in the log, but speed up the segmentation specifically for slow file systems.")
 }
 
 
