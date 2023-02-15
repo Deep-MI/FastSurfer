@@ -16,13 +16,15 @@
 # IMPORTS
 import os
 from concurrent.futures import Executor, Future
-from typing import List, Union, TypeVar, Callable, Iterable, Any, Iterator, Optional
+from typing import List, Union, TypeVar, Callable, Iterable, Any, Iterator, Optional, Tuple
 
 import torch
 
 from FastSurferCNN.utils import logging, parser_defaults
 
 LOGGER = logging.getLogger(__name__)
+_T = TypeVar("_T")
+_Ti = TypeVar("_Ti")
 
 
 def find_device(device: Union[torch.device, str] = "auto", flag_name:str = "device", min_memory: int = 0) -> torch.device:
@@ -92,6 +94,21 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
         return True
     else:
         return False
+
+
+def pipeline(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]) -> Iterator[Tuple[_Ti, _T]]:
+    """Function to pipeline a function to be executed in the pool"""
+    # do pipeline loading the next element
+    return_in_future, element = None, None
+    for next_element in iterable:
+        # pre-load next element/data
+        return_of_next_in_future = pool.submit(func, next_element)
+        # first iteration, just 'rotate' the pipeline once
+        if return_in_future is not None:
+            yield element, return_in_future.result()
+        element = next_element
+        return_in_future = return_of_next_in_future
+    yield element, return_in_future.result()
 
 
 def removesuffix(string: str, suffix: str) -> str:
@@ -326,20 +343,7 @@ class SubjectList:
             self._num_subjects = len(self._subjects)
             LOGGER.info(f"Analyzing all {self._num_subjects} subjects from csv_file {args.csv_file}.")
 
-        # 2. do we search in a directory
-        elif hasattr(args, 'search_tag'):
-            if not os.path.isdir(args.in_dir):
-                raise RuntimeError(f'The input directory {args.in_dir} does not exist.')
-            from glob import glob
-            search_tag = args.search_tag
-            if not os.path.isabs(search_tag):
-                search_tag = os.path.join(args.in_dir, search_tag)
-            self._subjects = glob(search_tag)
-            self._num_subjects = len(self._subjects)
-            LOGGER.info(f"Analyzing all {self._num_subjects} subjects from in_dir {args.in_dir} with search pattern "
-                        f"{search_tag}.")
-
-        # 3. are we doing a single file (absolute path to the file)
+        # 2. are we doing a single file (absolute path to the file)
         elif os.path.isabs(self._orig_name_):
             LOGGER.info('Single subject with absolute file path for input.')
             if not os.path.isfile(self._orig_name_):
@@ -378,15 +382,32 @@ class SubjectList:
             self._subjects = [self._orig_name_]
             self._num_subjects = 1
             LOGGER.info("Analyzing single subject {}".format(self._orig_name_))
+        # 3. do we search in a directory
+        elif hasattr(args, 'search_tag'):
+            search_tag = args.search_tag
+            if not os.path.isabs(search_tag) and args.in_dir is not None:
+                if not os.path.isdir(args.in_dir):
+                    raise RuntimeError(f'The input directory {args.in_dir} does not exist.')
+                search_tag = os.path.join(args.in_dir, search_tag)
+                where = f"in_dir {args.in_dir}"
+            else:
+                where = f"the working directory {os.getcwd()}"
+            from glob import glob
+            self._subjects = glob(search_tag)
+            self._num_subjects = len(self._subjects)
+            LOGGER.info(f"Analyzing all {self._num_subjects} subjects from {where} with search pattern "
+                        f"{search_tag}.")
+
         else:
             from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
             flags = {f: a(dict) for f, a in ALL_FLAGS}
             raise RuntimeError("Could not identify how to find images to segment. Options are:\n1. Provide a text "
                                "file with one subject directory or image file per line via {csv_file[flag]};\n2. "
-                               "Provide a search pattern to search for subject directories or images via {tag[flag]};\n"
-                               "3. specify an absolute path for relevant files, specifically the t1 file via "
+                               "specify an absolute path for relevant files, specifically the t1 file via "
                                "{t1[flag]}, but ideally also for expected output files such as the segmentation "
-                               "output file.\n Note also, that the input directory (specified via {in_dir[flag]}) "
+                               "output file,\n 3. provide a search pattern to search for subject directories or images "
+                               "via {tag[flag]} (default {tag[flag]} {tag[default]}).\n "
+                               "Note also, that the input directory (specified via {in_dir[flag]}) "
                                "will be used as the base path for relative file paths of input files.".format(**flags))
 
         self._remove_suffix = args.remove_suffix
@@ -415,9 +436,13 @@ class SubjectList:
         return self._num_subjects
 
     def make_subjects_dir(self):
-        LOGGER.info("Output will be stored in: {}".format(self._out_dir))
+        if self._out_dir is None:
+            LOGGER.info("No Subjects directory found, absolute paths for filenames are required.")
+            return
 
-        if self._out_dir is not None and not os.path.exists(self._out_dir):
+        LOGGER.info("Output will be stored in Subjects Directory: {}".format(self._out_dir))
+
+        if not os.path.exists(self._out_dir):
             LOGGER.info("Output directory does not exist. Creating it now...")
             os.makedirs(self._out_dir)
 
@@ -462,9 +487,6 @@ class SubjectList:
             return await gather(*[is_file(s) for s in files])
 
         return all(run(check_files(self._subjects)))
-
-
-_T = TypeVar("_T")
 
 
 class NoParallelExecutor(Executor):
