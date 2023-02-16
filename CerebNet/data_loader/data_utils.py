@@ -15,12 +15,14 @@
 
 
 # IMPORTS
-from typing import Literal
+from typing import Literal, TypeVar
 
 import numpy as np
+import torch
 from numpy import typing as npt
 
 Plane = Literal['axial', 'coronal', 'sagittal']
+AT = TypeVar('AT', np.ndarray, torch.Tensor)
 
 # CLASSES for final evaluation
 EVAL_CLASS_NAMES = {
@@ -330,29 +332,59 @@ def get_binary_map(lbl_map, class_names):
     return bin_map
 
 
-def slice_lia2ras(plane: Plane, data):
-    """Maps the data from [plane, Channels, H, W] to [plane, channels, W, H] following the LIA and RAS conventions"""
+def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
+    """Maps the data from LIA to RAS orientation.
+
+    Args:
+        plane: the slicing direction (usually moved into batch dimension)
+        data: the data array of shape [plane, Channels, H, W]
+        thick_slices: whether the channels are thick slices and should also be flipped (default: False).
+
+    Returns:
+        data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
+            [plane, Channels, W, H] (plane: 'axial').
+    """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes
     else:  # Tensor
         from torch import flip, swapaxes
+
+    if thick_slices:
+        data = flip(data, (1,))
     if plane == 'sagittal':
         return flip(data, (-1,))
     elif plane == "coronal":
         return flip(data, (-1, -2))
-    else:  # axial
+    elif plane == "axial":
         return flip(swapaxes(data, -1, -2), (-2,))
+    else:
+        raise ValueError("invalid plane")
 
 
-def slice_ras2lia(plane: Plane, data):
-    """Maps the data from [plane, Channels, H, W] to [plane, channels, W, H] following the LIA and RAS conventions"""
+def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
+    """Maps the data from RAS to LIA orientation.
+
+    Args:
+        plane: the slicing direction (usually moved into batch dimension)
+        data: the data array of shape [plane, Channels, H, W]
+        thick_slices: whether the channels are thick slices and should also be flipped (default: False).
+
+    Returns:
+        data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
+            [plane, Channels, W, H] (plane: 'axial').
+    """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes
     else:  # Tensor
         from torch import flip, swapaxes
+
+    if thick_slices:
+        data = flip(data, (1,))
     if plane == 'sagittal':
         return flip(data, (-1,))
     elif plane == "coronal":
         return flip(data, (-1, -2))
-    else:  # axial
+    elif plane == "axial":
         return swapaxes(flip(data, (-2,)), -1, -2)
+    else:
+        raise ValueError("invalid plane")

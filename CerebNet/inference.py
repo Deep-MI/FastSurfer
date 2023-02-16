@@ -148,7 +148,7 @@ class Inference:
                 for img in img_loader:
                     # CerebNet is trained on RAS+ conventions, so we need to map between lia (FastSurfer) and RAS+
                     # map LIA 2 RAS
-                    img = slice_lia2ras(plane, img)
+                    img = slice_lia2ras(plane, img, thick_slices=True)
                     batch = img.to(self.device)
                     pred = self.models[plane](batch)
                     # map RAS 2 LIA
