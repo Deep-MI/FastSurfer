@@ -349,7 +349,7 @@ def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
     else:  # Tensor
         from torch import flip, swapaxes
 
-    if thick_slices:
+    if thick_slices and plane in ["sagittal", "coronal"]:
         data = flip(data, (1,))
     if plane == 'sagittal':
         return flip(data, (-1,))
@@ -378,7 +378,7 @@ def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
     else:  # Tensor
         from torch import flip, swapaxes
 
-    if thick_slices:
+    if thick_slices and plane in ["sagittal", "coronal"]:
         data = flip(data, (1,))
     if plane == 'sagittal':
         return flip(data, (-1,))
