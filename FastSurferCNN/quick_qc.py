@@ -66,6 +66,7 @@ if __name__ == "__main__":
     inseg_voxvol = np.product(inseg_header.get_zooms())
 
     if not check_volume(inseg_data, inseg_voxvol):
-    	sys.exit('ERROR: Total segmentation volume is too small. Segmentation may be corrupted.')
+        print('WARNING: Total segmentation volume is very small. Segmentation may be corrupted! Please check.')
+    	sys.exit(0)
     else:
         sys.exit(0)
