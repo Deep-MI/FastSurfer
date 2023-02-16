@@ -176,7 +176,7 @@ typing-extensions==4.3.0
     #   torchvision
 urllib3==1.26.10
     # via requests
-werkzeug==2.1.2
+werkzeug==2.2.3
     # via tensorboard
 wheel==0.37.1
     # via tensorboard
