@@ -67,6 +67,6 @@ if __name__ == "__main__":
 
     if not check_volume(inseg_data, inseg_voxvol):
         print('WARNING: Total segmentation volume is very small. Segmentation may be corrupted! Please check.')
-    	sys.exit(0)
+        sys.exit(0)
     else:
         sys.exit(0)
