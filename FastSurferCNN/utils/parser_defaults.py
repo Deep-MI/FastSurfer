@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Contaons the ALL_FLAGS dictionary, which can be used as follows to add default flags:
+Contains the ALL_FLAGS dictionary, which can be used as follows to add default flags:
 
 >>> parser = argparse.ArgumentParser()
 >>> ALL_FLAGS["allow_root"](parser, dest="root")
