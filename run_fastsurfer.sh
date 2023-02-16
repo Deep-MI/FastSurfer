@@ -454,6 +454,11 @@ if [ -z "$aparc_aseg_segfile" ]
     aparc_aseg_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
+if [ -z "$cereb_segfile" ]
+  then
+    cereb_segfile="${sd}/${subject}/mri/mri/cerebellum.CerebNet.nii.gz"
+fi
+
 if [ -z "$conformed_name" ]
   then
     conformed_name="${sd}/${subject}/mri/orig.mgz"
@@ -589,7 +594,7 @@ if [ "$run_seg_pipeline" == "1" ]
     fi
 
     if [ "$run_cereb_module" == "1" ]; then
-      cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device"
+      cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --seg_log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device --async_io"
       echo $cmd |& tee -a $seg_log
       $cmd
       if [ ${PIPESTATUS[0]} -ne 0 ]
