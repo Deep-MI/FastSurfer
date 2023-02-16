@@ -40,15 +40,12 @@ logger = logging.get_logger(__name__)
 
 class Inference:
     def __init__(self, cfg: 'yacs.ConfigNode',
-                 image_space: Literal['conform', 'native'] = 'conform', threads: int = -1, async_io: bool = False,
-                 device: str = 'auto', viewagg_device: str = 'auto'):
+                 threads: int = -1, async_io: bool = False, device: str = 'auto', viewagg_device: str = 'auto'):
         """
         Create the inference object to manage inferencing, batch processing, data loading, etc.
 
         Args:
             cfg: yaml configuration to populate default values for parameters
-            image_space: select image space to segment in: 'conform' segments in the conformed image space (default,
-                same as aparc-aseg, etc.), 'native' segments in the original image.
             threads: number of threads to use, -1 is max (all), which is also the default.
             async_io: whether io is run asynchronously (default: False)
             device: device to perform inference on (default: auto)
@@ -61,10 +58,6 @@ class Inference:
         self.pool = ThreadPoolExecutor(self._threads) if async_io else NoParallelExecutor()
         self.cfg = cfg
         self._async_io = async_io
-
-        if image_space not in ('conform', 'native'):
-            raise ValueError(f"The image_space must be either 'conform' or 'native', but was {image_space}.")
-        self.image_space = image_space
 
         # Set random seed from config_files.
         np.random.seed(cfg.RNG_SEED)
@@ -295,58 +288,53 @@ class Inference:
             raise RuntimeError(f"The aparc-aseg-segmentation file '{subject.aparc_aseg_segfile}' did not exist, "
                                "please run FastSurferVINN first.")
         seg = self.pool.submit(load_image, subject.aparc_aseg_segfile)
-        if self.image_space == 'native':
-            if not subject.fileexists_by_attribute('orig_name'):
-                raise ValueError(f"An orig file was needed, but none could be found at {subject.orig_name}.")
-            conf_img = load_reorient_lia(subject.orig_name)
-        else:  # image_space == "conform"
-            # create conformed image
-            conf_file, is_conform, conf_img = subject.conf_name, False, None
-            if subject.fileexists_by_attribute("conf_name"):
-                # see if the file is 1mm
-                conf_img = nib.load(conf_file)
+        # create conformed image
+        conf_file, is_conform, conf_img = subject.conf_name, False, None
+        if subject.fileexists_by_attribute("conf_name"):
+            # see if the file is 1mm
+            conf_img = nib.load(conf_file)
 
-                from FastSurferCNN.data_loader.conform import is_conform
-                # is_conform only needs the header, not the data
-                is_conform = is_conform(conf_img, conform_vox_size=1., verbose=False)
+            from FastSurferCNN.data_loader.conform import is_conform
+            # is_conform only needs the header, not the data
+            is_conform = is_conform(conf_img, conform_vox_size=1., verbose=False)
 
-            if is_conform:
-                # calling np.asarray here, forces the load of conf_img.dataobj into memory (which is parallel with the
-                # loading of aparc_aseg, if done here)
-                conf_data = np.asarray(conf_img)
+        if is_conform:
+            # calling np.asarray here, forces the load of conf_img.dataobj into memory (which is parallel with the
+            # loading of aparc_aseg, if done here)
+            conf_data = np.asarray(conf_img)
+        else:
+            # the image is not conformed to 1mm, do this now.
+            from FastSurferCNN.data_loader.data_utils import (SUPPORTED_OUTPUT_FILE_FORMATS, load_and_conform_image,
+                                                              save_image)
+            from nibabel.filebasedimages import FileBasedHeader as _Header
+            fileext = list(filter(lambda ext: conf_file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS))
+            if len(fileext) != 1:
+                raise RuntimeError(f"Invalid file extension of conf_name: {conf_file}, must be one of "
+                                   f"{SUPPORTED_OUTPUT_FILE_FORMATS}.")
+            conf_no_fileext = conf_file[:-len(fileext[0])-1]
+            if not conf_no_fileext.endswith(".1mm"):
+                conf_no_fileext += ".1mm"
+            # if the orig file is neither absolute nor in the subject path, use the conformed file
+            if isfile(subject.orig_name):
+                orig_file = subject.orig_name
             else:
-                # the image is not conformed to 1mm, do this now.
-                from FastSurferCNN.data_loader.data_utils import (SUPPORTED_OUTPUT_FILE_FORMATS, load_and_conform_image,
-                                                                  save_image)
-                from nibabel.filebasedimages import FileBasedHeader as _Header
-                fileext = list(filter(lambda ext: conf_file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS))
-                if len(fileext) != 1:
-                    raise RuntimeError(f"Invalid file extension of conf_name: {conf_file}, must be one of "
-                                       f"{SUPPORTED_OUTPUT_FILE_FORMATS}.")
-                conf_no_fileext = conf_file[:-len(fileext)-1]
-                if not conf_no_fileext.endswith(".1mm"):
-                    conf_no_fileext += ".1mm"
-                # if the orig file is neither absolute nor in the subject path, use the conformed file
-                if isfile(subject.orig_name):
-                    orig_file = subject.orig_name
-                else:
-                    orig_file = conf_file
-                    logger.warn("No path to a valid orig file was given, so we might lose quality due to mutiple "
-                                "chained interpolations.")
+                orig_file = conf_file
+                logger.warn("No path to a valid orig file was given, so we might lose quality due to mutiple "
+                            "chained interpolations.")
 
-                conf_file = conf_no_fileext + "." + fileext[0]
-                # conform to 1mm
-                conformed = self.pool.submit(load_and_conform_image, orig_file, conform_min=False,
-                                             logger=logging.getLogger(__name__ + ".conform"))
+            conf_file = conf_no_fileext + "." + fileext[0]
+            # conform to 1mm
+            conformed = self.pool.submit(load_and_conform_image, orig_file, conform_min=False,
+                                         logger=logging.getLogger(__name__ + ".conform"))
 
-                def save_conformed_image(__conf: 'Future[Tuple[_Header, np.ndarray, np.ndarray]]') -> None:
-                    save_image(*__conf.result(), conf_file)
+            def save_conformed_image(__conf: 'Future[Tuple[_Header, np.ndarray, np.ndarray]]') -> None:
+                save_image(*__conf.result(), conf_file)
 
-                # after conforming, save the conformed file
-                conformed.add_done_callback(save_conformed_image)
+            # after conforming, save the conformed file
+            conformed.add_done_callback(save_conformed_image)
 
-                conf_header, conf_affine, conf_data = conformed.result()
-                conf_img = nib.MGHImage(conf_data, conf_affine, conf_header)
+            conf_header, conf_affine, conf_data = conformed.result()
+            conf_img = nib.MGHImage(conf_data, conf_affine, conf_header)
 
         seg, seg_data = seg.result()
         subj_dset = SubjectDataset(img_org=conf_img,

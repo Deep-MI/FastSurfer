@@ -48,12 +48,7 @@ def setup_options():
 
     # 4. Options for advanced, technical parameters
     advanced = parser.add_argument_group(title="Advanced options")
-    advanced.add_argument('--image_space', dest='image_space', default='conform', choices=['conform', 'native'],
-                          help=f"Image format to produce output predictions in from: 'conform' and 'native', where "
-                               f"'conform' (default) produces predictions in the conformed space (1mm, same as when "
-                               f"image was conformed with FastSurfer or FreeSurfer) and 'native' is the native image, "
-                               f"which MUST BE 1mm iso.")
-    parser_defaults.add_arguments(advanced, ["device", "viewagg_device", "threads", "batch_size", "allow_root"])
+    parser_defaults.add_arguments(advanced, ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"])
 
     from CerebNet.utils.checkpoint import CEREBNET_COR, CEREBNET_AXI, CEREBNET_SAG
     parser_defaults.add_plane_flags(advanced, "checkpoint",
@@ -104,7 +99,6 @@ def main(args):
 
     try:
         tester = Inference(cfg,
-                           image_space=args.image_space,
                            threads=getattr(args, "threads", 1), device=args.device, viewagg_device=args.viewagg_device)
         return tester.run(subjects)
     except Exception as e:

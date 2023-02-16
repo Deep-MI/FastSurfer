@@ -242,11 +242,6 @@ class SubjectDataset(Dataset):
                         "is being resampled to localize it in the conformed image.")
             from scipy.ndimage import affine_transform
             cereb_aseg = affine_transform(cereb_aseg_mask.astype(np.float32), affine, output_shape=img_org.shape)
-
-            # TODO remove this save statement, if the cereb_aseg_float_mask lines up with the conformed image
-            #from FastSurferCNN.data_loader.data_utils import save_image
-            #save_image(img_org.header, img_org.affine, cereb_aseg, "/tmp/cereb_mask_on_conformed.mgz", dtype=np.float32)
-
             cereb_aseg_mask = cereb_aseg > 0.5
 
         bbox = self.locate_mask_bbox(cereb_aseg_mask)

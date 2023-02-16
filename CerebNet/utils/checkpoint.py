@@ -24,7 +24,7 @@ from FastSurferCNN.utils.checkpoint import (FASTSURFER_ROOT, load_from_checkpoin
 logger = logging.get_logger(__name__)
 
 # Defaults
-URL = "https://b2share.fz-juelich.de/api/files/"  # TODO: update the paths here
+URL = "https://b2share.fz-juelich.de/api/files/c6cf7bc6-2ae5-4d0e-814d-2a3cf0e1a8c5"
 CEREBNET_AXI = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_axial_v1.0.0.pkl")
 CEREBNET_COR = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_coronal_v1.0.0.pkl")
 CEREBNET_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_sagittal_v1.0.0.pkl")
