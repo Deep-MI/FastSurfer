@@ -395,9 +395,9 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     list_parcels = list_parcels[mask]
 
     # For each closest parcel, blur label with gaussian filter (spread), append resulting blurred images
-    blur_vals = np.ndarray((h, w, d, 0), dtype=np.float)
+    blur_vals = np.ndarray((h, w, d, 0), dtype=float)
     for idx in range(len(list_parcels)):
-        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=np.float), sigma=5)
+        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=float), sigma=5)
         blur_vals = np.append(blur_vals, np.expand_dims(aseg_blur, axis=3), axis=3)
 
     # Get for each position parcel with maximum value after blurring (= closest parcel)
@@ -483,8 +483,8 @@ def split_cortex_labels(aparc):
                     aparc[mask] = label_current + 1000
 
     # Quick Fixes for overlapping classes
-    aseg_lh = filters.gaussian_filter(1000 * np.asarray(aparc == 2, dtype=np.float), sigma=3)
-    aseg_rh = filters.gaussian_filter(1000 * np.asarray(aparc == 41, dtype=np.float), sigma=3)
+    aseg_lh = filters.gaussian_filter(1000 * np.asarray(aparc == 2, dtype=float), sigma=3)
+    aseg_rh = filters.gaussian_filter(1000 * np.asarray(aparc == 41, dtype=float), sigma=3)
 
     lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
                             axis=3)
