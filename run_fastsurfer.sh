@@ -509,7 +509,7 @@ if [ "$run_seg_pipeline" == "1" ]
       exit 1
     fi
 
-    if [ ! -f "$main_segfile"]
+    if [ ! -f "$main_segfile" ]
       then
         ln -s -r "$aparc_aseg_segfile" "$main_segfile"
     fi
