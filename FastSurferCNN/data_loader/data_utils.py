@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,14 +14,16 @@
 
 
 # IMPORTS
-import sys
+from typing import Optional, Tuple
 
 import numpy as np
+from numpy import typing as npt
 import torch
 from skimage.measure import label, regionprops
 from scipy.ndimage import binary_erosion, binary_closing, filters, uniform_filter, generate_binary_structure
 import scipy.ndimage.morphology as morphology
 import nibabel as nib
+from nibabel.filebasedimages import FileBasedHeader as _Header
 import pandas as pd
 
 from FastSurferCNN.utils import logging
@@ -40,17 +42,22 @@ LOGGER = logging.getLogger(__name__)
 
 
 # Conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
-def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min = False):
+def load_and_conform_image(img_filename: str, interpol: int = 1, logger: logging.Logger = LOGGER,
+                           conform_min: bool = False) -> Tuple[_Header, np.ndarray, np.ndarray]:
     """
     Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size
     (if it does not already have this format)
-    :param str img_filename: path and name of volume to read
-    :param int interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
-    :param logger logger: Logger to write output to (default = STDOUT)
-    :param: boolean: conform_min: conform image to minimal voxel size (for high-res) (Default = False)
-    :return: nibabel.MGHImage header_info: header information of the conformed image
-    :return: np.ndarray affine_info: affine information of the conformed image
-    :return: nibabel.MGHImage orig: conformed image
+
+    Args:
+        img_filename: path and name of volume to read
+        interpol: interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
+        logger: Logger to write output to (default = STDOUT)
+        conform_min: conform image to minimal voxel size (for high-res) (Default = False)
+
+    Returns:
+        nibabel.Header header_info: header information of the conformed image
+        numpy.ndarray affine_info: affine information of the conformed image
+        numpy.ndarray orig_data: conformed image data
     """
     orig = nib.load(img_filename)
     # is_conform and conform accept numeric values and the string 'min' instead of the bool value
@@ -60,12 +67,12 @@ def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min 
         logger.info('Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels')
 
         if len(orig.shape) > 3 and orig.shape[3] != 1:
-            sys.exit('ERROR: Multiple input frames (' + format(orig.shape[3]) + ') not supported!')
+            raise RuntimeError(f'ERROR: Multiple input frames ({orig.shape[3]}) not supported!')
 
         # Check affine if image is nifti image
-        if img_filename[-7:] == ".nii.gz" or img_filename[-4:] == ".nii":
+        if any(img_filename.endswith(ext) for ext in (".nii.gz", ".nii")):
             if not check_affine_in_nifti(orig, logger=logger):
-                sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
+                raise RuntimeError("ERROR: inconsistency in nifti-header. Exiting now.")
 
         # conform
         orig = conform(orig, interpol, conform_vox_size=_conform_vox_size)
@@ -73,22 +80,54 @@ def load_and_conform_image(img_filename, interpol=1, logger=LOGGER, conform_min 
     # Collect header and affine information
     header_info = orig.header
     affine_info = orig.affine
-    orig = np.asanyarray(orig.dataobj)
+    orig_data = np.asanyarray(orig.dataobj)
 
-    return header_info, affine_info, orig
+    return header_info, affine_info, orig_data
+
+
+def load_image(file: str, name: str = "image", **kwargs) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+    """Load file 'file' with nibabel, including all data.
+
+    Args:
+        file: path to the file to load.
+        name: name of the file (optional), only effects error messages.
+        kwargs: Additional kwargs to nibabel.load().
+
+    Returns:
+        The nibabel image object and a numpy array of the data.
+
+    nibabel releases the GIL, so the following is a parallel example.
+    >>> from concurrent.futures import ThreadPoolExecutor
+    >>> with ThreadPoolExecutor() as pool:
+    >>>     future1 = pool.submit(load_image, filename1)
+    >>>     future2 = pool.submit(load_image, filename2)
+    >>>     image, data = future1.result()
+    >>>     image2, data2 = future2.result()
+
+    """
+    try:
+        img = nib.load(file, **kwargs)
+    except (IOError, FileNotFoundError) as e:
+        raise IOError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
+    data = np.asarray(img.dataobj)
+    return img, data
 
 
 # Save image routine
-def save_image(header_info, affine_info, img_array, save_as, dtype=None):
+def save_image(header_info: _Header, affine_info: np.ndarray, img_array: np.ndarray, save_as: str,
+               dtype: Optional[npt.DTypeLike] = None):
     """
     Save an image (nibabel MGHImage), according to the desired output file format.
     Supported formats are defined in supported_output_file_formats.
-    :param numpy.ndarray img_array: an array containing image data
-    :param numpy.ndarray affine_info: image affine information
-    :param nibabel.freesurfer.mghformat.MGHHeader header_info: image header information
-    :param str save_as: name under which to save prediction; this determines output file format
-    :param type dtype: image array type; if provided, the image object is explicitly set to match this type
-    :return None: saves predictions to save_as
+
+    Args:
+        header_info: image header information
+        affine_info: image affine information
+        img_array: an array containing image data
+        save_as: name under which to save prediction; this determines output file format
+        dtype: image array type; if provided, the image object is explicitly set to match this type
+
+    Returns: nothing/None, saves predictions to save_as
     """
 
     assert any(save_as.endswith(file_ext) for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS), \
@@ -112,13 +151,16 @@ def save_image(header_info, affine_info, img_array, save_as, dtype=None):
 
 
 # Transformation for mapping
-def transform_axial(vol, coronal2axial=True):
+def transform_axial(vol: np.ndarray, coronal2axial: bool = True) -> np.ndarray:
     """
     Function to transform volume into Axial axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool coronal2axial: transform from coronal to axial = True (default),
-                               transform from axial to coronal = False
-    :return:
+
+    Args:
+        vol: image volume to transform
+        coronal2axial: transform from coronal to axial = True (default),
+                       transform from axial to coronal = False
+    Returns:
+        the transformed image
     """
     if coronal2axial:
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
@@ -126,13 +168,16 @@ def transform_axial(vol, coronal2axial=True):
         return np.moveaxis(vol, [0, 1, 2], [2, 0, 1])
 
 
-def transform_sagittal(vol, coronal2sagittal=True):
+def transform_sagittal(vol: np.ndarray, coronal2sagittal: bool = True) -> np.ndarray:
     """
     Function to transform volume into Sagittal axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool coronal2sagittal: transform from coronal to sagittal = True (default),
-                                transform from sagittal to coronal = False
-    :return:
+
+    Args:
+        vol: image volume to transform
+        coronal2sagittal: transform from coronal to sagittal = True (default),
+                          transform from sagittal to coronal = False
+    Returns:
+        the transformed image
     """
     if coronal2sagittal:
         return np.moveaxis(vol, [0, 1, 2], [2, 1, 0])
@@ -141,24 +186,24 @@ def transform_sagittal(vol, coronal2sagittal=True):
 
 
 # Thick slice generator (for eval) and blank slices filter (for training)
-def get_thick_slices(img_data, slice_thickness=3):
+def get_thick_slices(img_data: np.ndarray, slice_thickness: int = 3) -> np.ndarray:
     """
     Function to extract thick slices from the image
     (feed slice_thickness preceeding and suceeding slices to network,
     label only middle one)
-    :param np.ndarray img_data: 3D MRI image read in with nibabel
-    :param int slice_thickness: number of slices to stack on top and below slice of interest (default=3)
-    :return:
+
+    Args:
+        img_data: 3D MRI image read in with nibabel
+        slice_thickness: number of slices to stack on top and below slice of interest (default=3)
+
+    Returns:
+        image data with the thick slices of the n-th axis appended into the n+1-th axis.
     """
-    h, w, d = img_data.shape
-    img_data_pad = np.expand_dims(np.pad(img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode='edge'),
-                                  axis=3)
-    img_data_thick = np.ndarray((h, w, d, 0), dtype=np.uint8)
-
-    for slice_idx in range(2 * slice_thickness + 1):
-        img_data_thick = np.append(img_data_thick, img_data_pad[:, :, slice_idx:d + slice_idx, :], axis=3)
-
-    return img_data_thick
+    img_data_pad = np.pad(img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode='edge')
+    from numpy.lib.stride_tricks import sliding_window_view
+    # sliding_window_view will automatically create thick slices through a sliding window, but as this in only a view,
+    # less memory copies are required
+    return sliding_window_view(img_data_pad, 2*slice_thickness+1, axis=2)
 
 
 def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
@@ -350,9 +395,9 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     list_parcels = list_parcels[mask]
 
     # For each closest parcel, blur label with gaussian filter (spread), append resulting blurred images
-    blur_vals = np.ndarray((h, w, d, 0), dtype=np.float)
+    blur_vals = np.ndarray((h, w, d, 0), dtype=float)
     for idx in range(len(list_parcels)):
-        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=np.float), sigma=5)
+        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=float), sigma=5)
         blur_vals = np.append(blur_vals, np.expand_dims(aseg_blur, axis=3), axis=3)
 
     # Get for each position parcel with maximum value after blurring (= closest parcel)
@@ -438,8 +483,8 @@ def split_cortex_labels(aparc):
                     aparc[mask] = label_current + 1000
 
     # Quick Fixes for overlapping classes
-    aseg_lh = filters.gaussian_filter(1000 * np.asarray(aparc == 2, dtype=np.float), sigma=3)
-    aseg_rh = filters.gaussian_filter(1000 * np.asarray(aparc == 41, dtype=np.float), sigma=3)
+    aseg_lh = filters.gaussian_filter(1000 * np.asarray(aparc == 2, dtype=float), sigma=3)
+    aseg_rh = filters.gaussian_filter(1000 * np.asarray(aparc == 41, dtype=float), sigma=3)
 
     lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
                             axis=3)
@@ -637,8 +682,7 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=51, lut=None):
         idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 2, 3, 15, 16, 4,
                                17, 18, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
                                19, 20], dtype=np.int16)
-    elif num_classes == 1:
-        idx_list = np.asarray([0, 1, 1])
+
     else:
         assert lut is not None, 'lut is not defined!'
         idx_list = infer_mapping_from_lut(num_classes, lut)

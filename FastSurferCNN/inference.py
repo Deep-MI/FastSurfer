@@ -15,7 +15,7 @@
 
 # IMPORTS
 import time
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union
 
 import numpy as np
 import torch
@@ -38,7 +38,7 @@ class Inference:
     device: Optional[torch.device]
     default_device: torch.device
 
-    def __init__(self, cfg, device: torch.device, ckpt: str = ""):
+    def __init__(self, cfg, device: torch.device, ckpt: str = "", lut: Union[None, str, np.ndarray] = None):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -63,7 +63,7 @@ class Inference:
 
         self.alpha = {"sagittal": 0.2}
         self.permute_order = {"axial": (3, 0, 2, 1), "coronal": (2, 3, 0, 1), "sagittal": (0, 3, 2, 1)}
-        self.post_predition_mapping_hook = {"sagittal": map_prediction_sagittal2full}
+        self.lut = lut
 
         # Initial checkpoint loading
         if ckpt:
@@ -178,7 +178,8 @@ class Inference:
                     end_index = start_index + batch_size
 
                     # check if we need a special mapping (e.g. as for sagittal)
-                    pred = self.post_predition_mapping_hook.get(plane, lambda x: x)(pred)
+                    if self.get_plane() == "sagittal":
+                        pred = map_prediction_sagittal2full(pred, num_classes=self.get_num_classes(), lut=self.lut)
 
                     # permute the prediction into the out slice order
                     pred = pred.permute(*self.permute_order[plane]).to(out.device)  # the to-operation is implicit
@@ -200,11 +201,11 @@ class Inference:
         return out
 
     @torch.no_grad()
-    def run(self, init_pred: torch.Tensor, img_filename, orig_data, orig_zoom,
+    def run(self, init_pred: torch.Tensor, image_name, orig_data, orig_zoom,
             out: Optional[torch.Tensor] = None, out_res=None, batch_size: int = None):
-        """Run the loaded model on the data (T1) from orig_data and filename img_filename with scale factors orig_zoom."""
+        """Run the loaded model on the data (T1) from orig_data and image_name (for messages only) with scale factors orig_zoom."""
         # Set up DataLoader
-        test_dataset = MultiScaleOrigDataThickSlices(img_filename, orig_data, orig_zoom, self.cfg,
+        test_dataset = MultiScaleOrigDataThickSlices(orig_data, orig_zoom, self.cfg,
                                                      transforms=transforms.Compose([ToTensorTest()]))
 
         test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
@@ -214,7 +215,7 @@ class Inference:
         start = time.time()
         out = self.eval(init_pred, test_data_loader, out=out, out_scale=out_res)
         time_delta = time.time() - start
-        logger.info(f"{self.cfg.DATA.PLANE.capitalize()} inference on {img_filename} finished in "
+        logger.info(f"{self.cfg.DATA.PLANE.capitalize()} inference on {image_name} finished in "
                     f"{time_delta:0.4f} seconds")
 
         return out

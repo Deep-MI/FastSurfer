@@ -38,14 +38,14 @@ DATA:
   PATH_HDF5_VAL: "coronal_val_hiresW.hdf5"
   PLANE: "coronal"
   SIZES: [
-      256
-      311
+      256,
+      311,
       320
     ]
   PADDED_SIZE: 320
   AUG: [
-    None"
-    Gaussian"
+    "None",
+    "Gaussian"
     ]
 
 DATA_LOADER:

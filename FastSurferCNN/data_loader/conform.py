@@ -23,7 +23,7 @@ import numpy as np
 import nibabel as nib
 
 from FastSurferCNN.utils.arg_types import (vox_size as __vox_size, target_dtype as __target_dtype,
-                                           conform_to_one_mm as __conform_to_one_mm, VoxSizeOption)
+                                           float_gt_zero_and_le_one as __conform_to_one_mm, VoxSizeOption)
 
 HELPTEXT = """
 Script to conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
@@ -261,6 +261,9 @@ def find_min_size(img: nib.analyze.SpatialImage, max_size: float = 1) -> float:
 
     Returns:
         The rounded minimal voxel size
+
+    Note:
+        This function only needs the header (not the data).
     """
     # find minimal voxel side length
     sizes = np.array(img.header.get_zooms()[:3])
@@ -281,6 +284,9 @@ def find_img_size_by_fov(img: nib.analyze.SpatialImage, vox_size: float, min_dim
 
     Returns:
         The number of voxels needed to cover field of view.
+
+    Note:
+        This function only needs the header (not the data).
     """
     if vox_size == 1.:
         return min_dim
@@ -404,6 +410,9 @@ def is_conform(img: nib.analyze.SpatialImage,
 
     Returns:
         whether the image is already conformed.
+        
+    Note:
+        This function only needs the header (not the data).
     """
 
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(img, conform_vox_size,
@@ -452,7 +461,7 @@ def is_conform(img: nib.analyze.SpatialImage,
 
 def get_conformed_vox_img_size(img: nib.analyze.SpatialImage, conform_vox_size: VoxSizeOption,
                                conform_to_1mm_threshold: Optional[float] = None) -> Tuple[float, int]:
-    """Extract the voxel size and the image size."""
+    """Extract the voxel size and the image size. This function only needs the header (not the data)."""
     # this is similar to mri_convert --conform_min
     if isinstance(conform_vox_size, str) and conform_vox_size.lower() in ["min", "auto"]:
         conformed_vox_size = find_min_size(img)

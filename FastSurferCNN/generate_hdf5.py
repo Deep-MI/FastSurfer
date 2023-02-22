@@ -16,7 +16,7 @@
 # IMPORTS
 import time
 import glob
-from os.path import join
+from os.path import join, dirname
 from collections import defaultdict
 
 import numpy as np
@@ -42,6 +42,7 @@ class H5pyDataset:
         self.aparc_name = params["gt_name"]
         self.aparc_nocc = params["gt_nocc"]
         self.processing = processing
+        self.plane = params["plane"]
 
         self.available_sizes = params["sizes"]
         self.max_weight = params["max_weight"]
@@ -82,18 +83,18 @@ class H5pyDataset:
 
         return orig, aseg, aseg_nocc, zoom
 
-    def transform(self, plane, imgs, zoom):
+    def transform(self, imgs, zoom):
 
         for i in range(len(imgs)):
-            if plane == "sagittal":
+            if self.plane == "sagittal":
                 imgs[i] = transform_sagittal(imgs[i])
-                zoom = zoom[::-1][:2]
-            elif plane == "axial":
+                zooms = zoom[::-1][:2]
+            elif self.plane == "axial":
                 imgs[i] = transform_axial(imgs[i])
-                zoom = zoom[1:]
+                zooms = zoom[1:]
             else:
-                zoom = zoom[:2]
-        return imgs, zoom
+                zooms = zoom[:2]
+        return imgs, zooms
 
     def _pad_image(self, img, max_out):
         # Get correct size = max along shape
@@ -103,7 +104,7 @@ class H5pyDataset:
         padded_img[0: h, 0: w, 0:d] = img
         return padded_img
 
-    def create_hdf5_dataset(self, plane='axial'):
+    def create_hdf5_dataset(self, blt):
         data_per_size = defaultdict(lambda: defaultdict(list))
         start_d = time.time()
 
@@ -121,7 +122,7 @@ class H5pyDataset:
                                                                     self.lateralization, aseg_nocc,
                                                                     processing=self.processing)
 
-                if plane == 'sagittal':
+                if self.plane == 'sagittal':
                     mapped_aseg = mapped_aseg_sag
                     weights = create_weight_mask(mapped_aseg, max_weight=self.max_weight, ctx_thresh=19,
                                                  max_edge_weight=self.edge_weight, max_hires_weight=self.hires_weight,
@@ -137,12 +138,12 @@ class H5pyDataset:
                                                                   self.hires_weight, self.gm_mask))
 
                 # transform volumes to correct shape
-                [orig, mapped_aseg, weights], zoom = self.transform(plane, [orig, mapped_aseg, weights], zoom)
+                [orig, mapped_aseg, weights], zoom = self.transform([orig, mapped_aseg, weights], zoom)
 
                 # Create Thick Slices, filter out blanks
                 orig_thick = get_thick_slices(orig, self.slice_thickness)
 
-                orig, mapped_aseg, weights = filter_blank_slices_thick(orig_thick, mapped_aseg, weights)
+                orig, mapped_aseg, weights = filter_blank_slices_thick(orig_thick, mapped_aseg, weights, threshold=blt)
 
                 num_batch = orig.shape[2]
                 orig = np.transpose(orig, (2, 0, 1, 3))
@@ -163,7 +164,7 @@ class H5pyDataset:
         for key, data_dict in data_per_size.items():
             data_per_size[key]['orig'] = np.asarray(data_dict['orig'], dtype=np.uint8)
             data_per_size[key]['aseg'] = np.asarray(data_dict['aseg'], dtype=np.uint8)
-            data_per_size[key]['weight'] = np.asarray(data_dict['weight'], dtype=np.float)
+            data_per_size[key]['weight'] = np.asarray(data_dict['weight'], dtype=float)
 
         with h5py.File(self.dataset_name, "w") as hf:
             dt = h5py.special_dtype(vlen=str)
@@ -204,10 +205,11 @@ if __name__ == '__main__':
                         help="Segmentation without corpus callosum (used to mask this segmentation in ground truth)."
                              " If the used segmentation was already processed, do not set this argument."
                              " For a normal FreeSurfer input, use mri/aseg.auto_noCCseg.mgz.")
-    parser.add_argument('--lut', type=str, default='./config/FastSurfer_ColorLUT.tsv',
+    parser.add_argument('--lut', type=str,
+                        default=join(dirname(__file__), '/config/FastSurfer_ColorLUT.tsv'),
                         help="FreeSurfer-style Color Lookup Table with labels to use in final prediction. "
                              "Has to have columns: ID	LabelName	R	G	B	A"
-                             "Default: ./config/FastSurfer_ColorLUT.tsv.")
+                             "Default: FASTSURFERDIR/FastSurferCNN/config/FastSurfer_ColorLUT.tsv.")
     parser.add_argument('--combi', action='append', default=["Left-", "Right-"],
                         help="Suffixes of labels names to combine. Default: Left- and Right-.")
     parser.add_argument('--sag_mask', default=("Left-", "ctx-rh"),
@@ -223,6 +225,9 @@ if __name__ == '__main__':
                         help="Turn on to add cortex mask for hires-processing.")
     parser.add_argument('--processing', type=str, default="aparc", choices=["aparc", "aseg", "none"],
                         help="Use aseg, aparc or no specific mapping processing")
+    parser.add_argument('--blank_slice_thresh', type=int, default=50,
+                        help="Threshold value for function filter_blank_slices. Slices with number of"
+                             "labeled voxels below this threshold are discarded. Default: 50.")
     parser.add_argument('--sizes', nargs='+', type=int, default=256, help="Sizes of images in the dataset. Default: 256")
 
 
@@ -231,10 +236,10 @@ if __name__ == '__main__':
     dataset_params = {"dataset_name": args.hdf5_name, "data_path": args.data_dir, "thickness": args.thickness,
                       "csv_file": args.csv_file, "pattern": args.pattern, "image_name": args.image_name,
                       "gt_name": args.gt_name, "gt_nocc": args.gt_nocc, "sizes": args.sizes,
-                      "max_weight": args.max_w, "edge_weight": args.edge_w,
+                      "max_weight": args.max_w, "edge_weight": args.edge_w, "plane": args.plane,
                       "lut": args.lut, "combi": args.combi, "sag-mask": args.sag_mask,
                       "hires_weight": args.hires_w, "gm_mask": args.gm, "gradient": not args.no_grad}
 
     dataset_generator = H5pyDataset(params=dataset_params, processing=args.processing)
-    dataset_generator.create_hdf5_dataset(plane=args.plane)
+    dataset_generator.create_hdf5_dataset(args.blank_slice_thresh)
 
