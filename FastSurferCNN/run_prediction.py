@@ -409,12 +409,8 @@ if __name__ == "__main__":
     if qc_file_handle is not None:
         qc_file_handle.close()
 
-    # Single case: exit with error if qc fails. Batch case: report ratio of failures.
-    if len(s_dirs) == 1:
-        if qc_failed_subject_count:
-            LOGGER.error("Single subject failed the volume-based QC check.")
-            sys.exit(1)
-    else:
+    # Batch case: report ratio of QC warnings
+    if len(s_dirs) > 1:
         LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
             qc_failed_subject_count, len(s_dirs)))
 
