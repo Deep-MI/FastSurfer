@@ -456,7 +456,7 @@ fi
 
 if [ -z "$cereb_segfile" ]
   then
-    cereb_segfile="${sd}/${subject}/mri/mri/cerebellum.CerebNet.nii.gz"
+    cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
 fi
 
 if [ -z "$conformed_name" ]
