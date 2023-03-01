@@ -17,11 +17,17 @@
 VERSION='$Id$'
 
 # Set default values for arguments
+if [ -z "${BASH_SOURCE[0]}" ]; then
+    THIS_SCRIPT="$0"
+else
+    THIS_SCRIPT="${BASH_SOURCE[0]}"
+fi
 if [ -z "$FASTSURFER_HOME" ]
 then
-  echo "Setting ENV variable FASTSURFER_HOME to current working directory ${PWD}. "
+  FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
+  echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
   echo "Change via enviroment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
-  export FASTSURFER_HOME=${PWD}
+  export FASTSURFER_HOME
 fi
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
