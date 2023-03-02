@@ -574,19 +574,22 @@ echo " " |& tee -a $LF
 
 pushd $mdir
 
-# nu processing is changed here compared to recon-all: we use the brainmask from the
-# segmentation to improve the nu correction (and speedup)
-# orig_nu N3 in FS6 took 44 sec, FS 7.3.2 uses --ants-n4 (takes 3 min and does not accept
-# the mask due to a bug in AntsN4BiasFieldCorrectionFs wrapper).
-# This re-implementation uses N4 from simpleITK with our brainmask, we also directly 
-# scale WM to 110 using a ball at the center of the mask with radius 50 (similar to FS,
-# which uses origin of talaorach.xfm and grabs quite a few non brain region in the
-# frontal head), we don't. Also this avoids a second call to nu correct. 
-# talairach.xfm is also not needed here at all, it can be dropped if other places in the
-# stream can be changed to avoid it. 
-#cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
-RunIt "$cmd" $LF
+# only run the bias field correction, if the bias field corrected does not exist already
+if [ ! -f "$mdir/orig_nu.mgz" ]; then
+  # nu processing is changed here compared to recon-all: we use the brainmask from the
+  # segmentation to improve the nu correction (and speedup)
+  # orig_nu N3 in FS6 took 44 sec, FS 7.3.2 uses --ants-n4 (takes 3 min and does not accept
+  # the mask due to a bug in AntsN4BiasFieldCorrectionFs wrapper).
+  # This re-implementation uses N4 from simpleITK with our brainmask, we also directly
+  # scale WM to 110 using a ball at the center of the mask with radius 50 (similar to FS,
+  # which uses origin of talairach.xfm and grabs quite a few non brain region in the
+  # frontal head), we don't. Also this avoids a second call to nu correct.
+  # talairach.xfm is also not needed here at all, it can be dropped if other places in the
+  # stream can be changed to avoid it.
+  #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
+  cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
+  RunIt "$cmd" $LF
+fi
 
 # talairach.xfm: compute talairach full head (25sec)
 cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm"
@@ -657,6 +660,10 @@ RunIt "$cmd" $LF
 # Calculate volume-based segstats for deep learning prediction (with CC, requires norm.mgz as invol)
 if [ "$vol_segstats" == "1" ]
 then
+    # dependencies: aparc-aseg withCC, norm.mgz, brainmask
+    cmd="$python ${binpath}../FastSurferCNN/"
+
+
     cmd="mri_segstats --seed 1234 --seg $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz --sum $mdir/../stats/aparc.DKTatlas+aseg.deep.volume.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --id 2, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63, 77, 251, 252, 253, 254, 255, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2034, 2035 --ctab /$FREESURFER_HOME/FreeSurferColorLUT.txt --subject $subject"
     RunIt "$cmd" $LF
     echo " " |& tee -a $LF

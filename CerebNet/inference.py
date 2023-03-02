@@ -89,14 +89,14 @@ class Inference:
 
         self.cerebnet_labels = _cerebnet_mapper.result().labelname2id()
 
-        self.cereb_name2freesurfer_id = cereb2freesurfer.result().labelname2id()\
+        self.cereb_name2freesurfer_id = cereb2freesurfer.result().labelname2id() \
             .chain(fs_color_map.result().labelname2id())
 
         # the id in cereb2freesurfer is also a labelname, i.e. cereb2freesurfer is a map of Labelname2Labelname
-        self.cereb2fs = self.cerebnet_labels.__reversed__()\
+        self.cereb2fs = self.cerebnet_labels.__reversed__() \
             .chain(self.cereb_name2freesurfer_id)
 
-        self.cereb2cereb_sagittal = self.cerebnet_labels.__reversed__()\
+        self.cereb2cereb_sagittal = self.cerebnet_labels.__reversed__() \
             .chain(cereb2cereb_sagittal.result().labelname2id())
         self.models = {k: m.to(self.device) for k, m in _models.items()}
 
@@ -262,8 +262,9 @@ class Inference:
             -> Tuple[Optional[np.ndarray], Optional[str], SubjectDataset]:
         """Load and prepare input files asynchronously, then locate the cerebellum and provide a localized patch."""
 
-        from FastSurferCNN.data_loader.data_utils import load_image
+        from FastSurferCNN.data_loader.data_utils import load_image, load_maybe_conform
 
+        norm_file, norm_data, norm = None, None, None
         if subject.has_attribute('cereb_statsfile'):
             if not subject.can_resolve_attribute("cereb_statsfile"):
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
@@ -276,74 +277,28 @@ class Inference:
                                  f"bias field corrected image, maybe specify an absolute path via "
                                  f"{ALL_FLAGS['norm_name'](dict)['flag']} or the file does not exist.")
 
-            norm_file = subject.filename_in_subject_folder(subject.get_attribute('norm_name'))
+            norm_file = subject.filename_by_attribute('norm_name')
             # finally, load the bias field file
-            norm = self.pool.submit(load_image, norm_file)
-        else:
-            norm_file, norm = None, None
+            norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, vox_size=1.)
 
         # localization
         if not subject.fileexists_by_attribute("aparc_aseg_segfile"):
             raise RuntimeError(f"The aparc-aseg-segmentation file '{subject.aparc_aseg_segfile}' did not exist, "
                                "please run FastSurferVINN first.")
-        seg = self.pool.submit(load_image, subject.aparc_aseg_segfile)
+        seg = self.pool.submit(load_image, subject.filename_by_attribute("aparc_aseg_segfile"))
         # create conformed image
-        conf_file, is_conform, conf_img = subject.conf_name, False, None
-        if subject.fileexists_by_attribute("conf_name"):
-            # see if the file is 1mm
-            conf_img = nib.load(conf_file)
-
-            from FastSurferCNN.data_loader.conform import is_conform
-            # is_conform only needs the header, not the data
-            is_conform = is_conform(conf_img, conform_vox_size=1., verbose=False)
-
-        if is_conform:
-            # calling np.asarray here, forces the load of conf_img.dataobj into memory (which is parallel with the
-            # loading of aparc_aseg, if done here)
-            conf_data = np.asarray(conf_img)
-        else:
-            # the image is not conformed to 1mm, do this now.
-            from FastSurferCNN.data_loader.data_utils import (SUPPORTED_OUTPUT_FILE_FORMATS, load_and_conform_image,
-                                                              save_image)
-            from nibabel.filebasedimages import FileBasedHeader as _Header
-            fileext = list(filter(lambda ext: conf_file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS))
-            if len(fileext) != 1:
-                raise RuntimeError(f"Invalid file extension of conf_name: {conf_file}, must be one of "
-                                   f"{SUPPORTED_OUTPUT_FILE_FORMATS}.")
-            conf_no_fileext = conf_file[:-len(fileext[0])-1]
-            if not conf_no_fileext.endswith(".1mm"):
-                conf_no_fileext += ".1mm"
-            # if the orig file is neither absolute nor in the subject path, use the conformed file
-            if isfile(subject.orig_name):
-                orig_file = subject.orig_name
-            else:
-                orig_file = conf_file
-                logger.warn("No path to a valid orig file was given, so we might lose quality due to mutiple "
-                            "chained interpolations.")
-
-            conf_file = conf_no_fileext + "." + fileext[0]
-            # conform to 1mm
-            conformed = self.pool.submit(load_and_conform_image, orig_file, conform_min=False,
-                                         logger=logging.getLogger(__name__ + ".conform"))
-
-            def save_conformed_image(__conf: 'Future[Tuple[_Header, np.ndarray, np.ndarray]]') -> None:
-                save_image(*__conf.result(), conf_file)
-
-            # after conforming, save the conformed file
-            conformed.add_done_callback(save_conformed_image)
-
-            conf_header, conf_affine, conf_data = conformed.result()
-            conf_img = nib.MGHImage(conf_data, conf_affine, conf_header)
+        conf_img = self.pool.submit(load_maybe_conform, subject.filename_by_attribute("conf_name"),
+                                    subject.filename_by_attribute("orig_name"), vox_size=1.)
 
         seg, seg_data = seg.result()
-        subj_dset = SubjectDataset(img_org=conf_img,
-                                   patch_size=self.cfg.DATA.PATCH_SIZE,
-                                   slice_thickness=self.cfg.DATA.THICKNESS,
-                                   primary_slice=self.cfg.DATA.PRIMARY_SLICE_DIR,
-                                   brain_seg=seg)
-        subj_dset.transforms = ToTensorTest()
-        norm_data = norm if norm is None else norm.result()[1]
-        return norm_data, norm_file, subj_dset
+        conf_file, conf_img, conf_data = conf_img.result()
+        subject_dataset = SubjectDataset(img_org=conf_img, brain_seg=seg,
+                                         patch_size=self.cfg.DATA.PATCH_SIZE, slice_thickness=self.cfg.DATA.THICKNESS,
+                                         primary_slice=self.cfg.DATA.PRIMARY_SLICE_DIR)
+        subject_dataset.transforms = ToTensorTest()
+        if norm is not None:
+            norm_file, _, norm_data = norm.result()
+        return norm_data, norm_file, subject_dataset
 
     def run(self, subject_directories: SubjectList):
         logger.info(time.strftime("%y-%m-%d_%H:%M:%S"))

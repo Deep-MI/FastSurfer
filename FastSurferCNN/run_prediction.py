@@ -153,7 +153,7 @@ class RunModelOnData:
         if hasattr(self, '_pool'):
             # only wait on futures, if we specifically ask (see end of the script, so we do not wait if we encounter a
             # fail case)
-            self._pool.shutdown(self.wait)
+            self._pool.shutdown(True)
 
     def conform_and_save_orig(self, subject: SubjectDirectory) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
@@ -308,8 +308,8 @@ if __name__ == "__main__":
     qc_failed_subject_count = 0
 
     iter_subjects = eval.pipeline_conform_and_save_orig(subjects)
+    futures = []
     for subject, (orig_img, data_array) in iter_subjects:
-        futures = []
 
         # Run model
         try:
@@ -372,6 +372,8 @@ if __name__ == "__main__":
         LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
             qc_failed_subject_count, len(subjects)))
 
-    eval.wait = True
+    # wait for async processes to finish
+    for f in futures:
+        _ = f.result()
 
     sys.exit(0)

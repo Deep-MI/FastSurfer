@@ -211,6 +211,8 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
     """Write a segstatsfile very similar and compatible with mri_segstats output."""
     import sys
     import os
+
+    os.makedirs(os.path.dirname(segstatsfile), exist_ok=True)
     with open(segstatsfile, "w") as fp:
         fp.write("# Title Segmentation Statistics\n#\n"
                  "# generating_program segstats.py\n"
@@ -441,6 +443,9 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             pv: The partial volume of the primary label at the location
             ipv: The partial volume of the alternative (nbr) label at the location
     """
+
+    if seg.shape != norm.shape:
+        raise RuntimeError("The shape of the segmentation and the norm must be identical!")
 
     mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [{} for _ in range(7)]
     loc_border = {}

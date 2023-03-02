@@ -91,6 +91,10 @@ def main(args):
         args.cereb_statsfile = DEFAULT_CEREBELLUM_STATSFILE
     if cereb_statsfile is not None:
         subjects_kwargs["cereb_statsfile"] = "cereb_statsfile"
+        if not hasattr(args, 'norm_name'):
+            return f"Execution failed because `--cereb_statsfile {cereb_statsfile}` requires `--norm_name <filename>` " \
+                   f"to be passed!"
+        subjects_kwargs["norm_name"] = "norm_name"
 
     logger.info("Checking or downloading default checkpoints ...")
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=CEREBNET_URL)

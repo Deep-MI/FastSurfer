@@ -40,6 +40,7 @@ main_segfile=""
 cereb_segfile=""
 aparc_aseg_segfile=""
 aparc_aseg_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
+aparc_nosurf_statsfile=""
 conformed_name=""
 seg_log=""
 viewagg="auto"
@@ -289,8 +290,33 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --aparc_nosurf_statsfile)
+    aparc_nosurf_statsfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --cereb_segfile)
     cereb_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --cereb_statsfile)
+    cereb_statsfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --mask_name)
+    mask_name="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --norm_name)
+    norm_name="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --aseg_segfile)
+    aseg_segfile="$2"
     shift # past argument
     shift # past value
     ;;
@@ -454,14 +480,34 @@ if [ -z "$aparc_aseg_segfile" ]
     aparc_aseg_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
+if [ -z "$aseg_segfile" ]
+  then
+    aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"
+fi
+
 if [ -z "$cereb_segfile" ]
   then
     cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
 fi
 
+if [ -z "$cereb_statsfile" ]
+  then
+    cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats"
+fi
+
+if [ -z "$mask_name" ]
+  then
+    mask_name="${sd}/${subject}/mri/mask.mgz"
+fi
+
 if [ -z "$conformed_name" ]
   then
     conformed_name="${sd}/${subject}/mri/orig.mgz"
+fi
+
+if [ -z "$norm_name" ]
+  then
+    norm_name="${sd}/${subject}/mri/orig_nu.mgz"
 fi
 
 if [ -z "$seg_log" ]
@@ -572,32 +618,65 @@ if [ "$run_seg_pipeline" == "1" ]
     # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
     # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
     mkdir -p "$(dirname "$seg_log")"
-    echo "Log file for segmentation FastSurferCNN/run_prediction.py" > $seg_log
-    date  |& tee -a $seg_log
-    echo "" |& tee -a $seg_log
+    echo "Log file for segmentation FastSurferCNN/run_prediction.py" > "$seg_log"
+    date  |& tee -a "$seg_log"
+    echo "" |& tee -a "$seg_log"
 
     if [ "$run_aparc_module" == "1" ]
       then
-        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
-        echo $cmd |& tee -a $seg_log
+        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --mask $mask_name --aseg_name $aseg_segfile --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
+        echo "$cmd" |& tee -a "$seg_log"
         $cmd
-        exit_code=${PIPESTATUS[0]}
-        if [ ${exit_code} == 2 ]
+        exit_code="${PIPESTATUS[0]}"
+        if [ "${exit_code}" == 2 ]
           then
             echo "ERROR: FastSurfer aseg+aparc segmentation failed QC checks."
             exit 1
-        elif [ ${exit_code} -ne 0 ]
+        elif [ "${exit_code}" -ne 0 ]
           then
             echo "ERROR: FastSurfer aseg+aparc segmentation failed."
             exit 1
         fi
     fi
 
+    # compute the bias-field corrected image
+    if [ -n "$norm_name" ]
+      then
+        # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
+        echo "Running N4 bias-field correction"
+        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --threads $threads"
+        echo "$cmd" |& tee -a "$seg_log"
+        $cmd
+
+        if [ "${PIPESTATUS[0]}" -ne 0 ]
+          then
+            echo "ERROR: Biasfield correction failed"
+            exit 1
+        fi
+
+        if [ -n "$aparc_nosurf_statsfile" ]
+          then
+            cmd="$python ${fastsurfercnndir}/segstats.py --segfile $aparc_aseg_segfile --segstatsfile $aparc_nosurf_statsfile --normfile $norm_name --excludeid 0 --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035 --lut $fastsurfercnndir/config/FreeSurferColorLUT.txt --threads $threads"
+
+            echo "$cmd" |& tee -a "$seg_log"
+            $cmd
+
+            if [ "${PIPESTATUS[0]}" -ne 0 ]
+              then
+                echo "ERROR: APARC nosurf statsfile generation failed"
+                exit 1
+            fi
+
+        fi
+    fi
+
     if [ "$run_cereb_module" == "1" ]; then
-      cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --seg_log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device --async_io"
-      echo $cmd |& tee -a $seg_log
+      # this will always produce statsfiles, since norm_name and cereb_statsfile are set if they are undefined
+      # and there is no way to deactivate the stats-file generation
+      cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --norm_name $norm_name --cereb_segfile $cereb_segfile --cereb_statsfile $cereb_statsfile --seg_log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device --async_io --threads $threads"
+      echo "$cmd" |& tee -a "$seg_log"
       $cmd
-      if [ ${PIPESTATUS[0]} -ne 0 ]
+      if [ "${PIPESTATUS[0]}" -ne 0 ]
         then
           echo "ERROR: Cerebellum Segmentation failed"
           exit 1
@@ -614,11 +693,11 @@ if [ "$run_surf_pipeline" == "1" ]
   then
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
-    pushd $reconsurfdir
+    pushd "$reconsurfdir"
     cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
-    echo $cmd
+    echo "$cmd" |& tee -a "$seg_log"
     $cmd
-    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+    if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
     popd
 fi
 
