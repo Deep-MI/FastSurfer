@@ -154,6 +154,9 @@ class SubjectDirectory:
     def filename_in_subject_folder(self, filepath: str) -> str:
         return filepath if os.path.isabs(filepath) else os.path.join(self.subject_dir, self._id, filepath)
 
+    def filename_by_attribute(self, attr_name: str) -> str:
+        return self.filename_in_subject_folder(self.get_attribute(attr_name))
+
     def fileexists_in_subject_folder(self, filepath: str) -> bool:
         return os.path.exists(self.filename_in_subject_folder(filepath))
 

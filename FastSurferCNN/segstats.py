@@ -158,6 +158,11 @@ def main(args):
         try:
             seg, seg_data = seg_future.result()  # type: nib.analyze.SpatialImage, Union[np.ndarray, torch.IntTensor]
             norm, norm_data = norm_future.result()  # type: nib.analyze.SpatialImage, Union[np.ndarray, torch.Tensor]
+
+            if seg_data.shape != norm_data.shape or not np.allclose(seg.affine, norm.affine):
+                return "The shapes or affines of the segmentation and the norm image are not similar, both must be " \
+                       "the same!"
+
         except IOError as e:
             return e.args[0]
     if hasattr(args, 'ids') and args.ids is not None and len(args.ids) > 0:

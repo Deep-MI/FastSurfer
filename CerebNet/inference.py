@@ -111,7 +111,7 @@ class Inference:
     def __del__(self):
         """Make sure the pool gets shut down when the Inference object gets deleted."""
         if self.pool is not None:
-            self.pool.shutdown(False)
+            self.pool.shutdown(True)
 
     def _load_model(self, cfg) -> Dict[Plane, torch.nn.Module]:
         """Loads the three models per plane."""
@@ -207,24 +207,25 @@ class Inference:
         """
             Computes volume and volume similarity
         """
-        labels = [id for name, id in self.cereb_name2freesurfer_id]
+        def _get_ids_startswith(_label_map: Dict[int, str], prefix: str) -> List[int]:
+            return [id for id, name in _label_map.items() if name.startswith(prefix) and not name.endswith("Medullare")]
+
         freesurfer_id2cereb_name = self.cereb_name2freesurfer_id.__reversed__()
-        free_label_ids = range(freesurfer_id2cereb_name.max_label + 1, 640)
-        meta_labels = ["Left Cerebellar Gray Matter", "Right Cerebellar Gray Matter", "Vermis"]
-        meta_labels_short = [ml.split(" ")[0] for ml in meta_labels]
-        merged_labels = {id: filter(lambda lname: lname.startwith(l), freesurfer_id2cereb_name(labels)) for id, l in zip(free_label_ids, meta_labels_short)}
-        merged_labels_names = dict(zip(free_label_ids, meta_labels))
+        label_map = dict(freesurfer_id2cereb_name)
+        meta_labels = dict(zip(range(freesurfer_id2cereb_name.max_label + 1, 640),
+                               ["Left_Cerebellar_Gray_Matter", "Right_Cerebellar_Gray_Matter", "Vermis"]))
+        merge_map = {id: _get_ids_startswith(label_map, prefix=ml.split("_")[0]) for id, ml in meta_labels.items()}
 
         # calculate PVE
         from FastSurferCNN.segstats import pv_calc
-        table = pv_calc(seg_data, norm_data, labels, vox_vol=vox_vol,
-                        threads=self.threads, patch_size=32, merged_labels=merged_labels)
+        table = pv_calc(seg_data, norm_data, list(filter(lambda l: l != 0, label_map.keys())), vox_vol=vox_vol,
+                        threads=self.threads, patch_size=32, merged_labels=merge_map)
 
         # fill the StructName field
         for i in range(len(table)):
             _id = table[i]["SegId"]
-            if _id in merged_labels_names.keys():
-                table[i]["StructName"] = merged_labels_names[_id]
+            if _id in meta_labels.keys():
+                table[i]["StructName"] = meta_labels[_id]
             elif _id in freesurfer_id2cereb_name:
                 table[i]["StructName"] = freesurfer_id2cereb_name[_id]
             else:
@@ -237,7 +238,7 @@ class Inference:
         dataframe.index = np.arange(1, len(dataframe) + 1)
         return dataframe
 
-    def _save_cerebnet_seg(self, cerebnet_seg: torch.Tensor, filename: str, bounding_box: LocalizerROI,
+    def _save_cerebnet_seg(self, cerebnet_seg: np.ndarray, filename: str,
                            orig: nib.analyze.SpatialImage) -> 'Future[None]':
         """
         Saving the segmentations asynchronously.
@@ -251,13 +252,11 @@ class Inference:
         Returns:
             A Future to determine when the file was saved. Result is None.
         """
-        out_data = crop_transform(cerebnet_seg,
-                                  offsets=tuple(-o for o in bounding_box["offsets"]),
-                                  target_shape=bounding_box["source_shape"]).cpu()
-
         from FastSurferCNN.data_loader.data_utils import save_image
+        if cerebnet_seg.shape != orig.shape:
+            raise RuntimeError("Cereb segmentation shape inconsistent with Orig shape!")
         logger.info(f"Saving CerebNet cerebellum segmentation at {filename}")
-        return self.pool.submit(save_image, orig.header, orig.affine, out_data.numpy(), filename, dtype=np.int16)
+        return self.pool.submit(save_image, orig.header, orig.affine, cerebnet_seg, filename, dtype=np.int16)
 
     def _get_subject_dataset(self, subject: SubjectDirectory) \
             -> Tuple[Optional[np.ndarray], Optional[str], SubjectDataset]:
@@ -268,10 +267,10 @@ class Inference:
         if subject.has_attribute('cereb_statsfile'):
             if not subject.can_resolve_attribute("cereb_statsfile"):
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
-                raise ValueError(f"Cannot resolve the intended filename {subject.get_attribute('norm_name')} "
+                raise ValueError(f"Cannot resolve the intended filename {subject.get_attribute('cereb_statsfile')} "
                                  f"for the cereb_statsfile, maybe specify an absolute path via "
                                  f"{ALL_FLAGS['cereb_statsfile'](dict)['flag']}.")
-            if not subject.has_attribute('norm_name') or subject.fileexists_by_attribute('norm_name'):
+            if not subject.has_attribute('norm_name') or not subject.fileexists_by_attribute('norm_name'):
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
                 raise ValueError(f"Cannot resolve the file name {subject.get_attribute('norm_name')} for the "
                                  f"bias field corrected image, maybe specify an absolute path via "
@@ -343,7 +342,8 @@ class Inference:
                                    primary_slice=self.cfg.DATA.PRIMARY_SLICE_DIR,
                                    brain_seg=seg)
         subj_dset.transforms = ToTensorTest()
-        return (norm if norm is None else norm.result()), norm_file, subj_dset
+        norm_data = norm if norm is None else norm.result()[1]
+        return norm_data, norm_file, subj_dset
 
     def run(self, subject_directories: SubjectList):
         logger.info(time.strftime("%y-%m-%d_%H:%M:%S"))
@@ -356,6 +356,7 @@ class Inference:
             else:
                 from FastSurferCNN.utils.common import iterate
             iter_subjects = iterate(self.pool, self._get_subject_dataset, subject_directories)
+            futures = []
             for idx, (subject, (norm, norm_file, subject_dataset)) in tqdm(enumerate(iter_subjects),
                                                                            total=len(subject_directories),
                                                                            desc="Subject"):
@@ -370,25 +371,31 @@ class Inference:
                     # view aggregation in logit space and find max label
                     cerebnet_seg = self._view_aggregation(preds_per_plane)
 
-                    # map predictions into FreeSurfer Label space
-                    cerebnet_seg = self.cereb2fs.map(cerebnet_seg)
+                    # map predictions into FreeSurfer Label space & move segmentation to cpu
+                    cerebnet_seg = self.cereb2fs.map(cerebnet_seg).cpu()
                     pred_time = time.time()
 
+                    # uncrop the segmentation
+                    bounding_box = subject_dataset.get_bounding_offsets()
+                    full_cereb_seg = crop_transform(cerebnet_seg, offsets=tuple(-o for o in bounding_box["offsets"]),
+                                                    target_shape=bounding_box["source_shape"]).numpy()
+
                     _ = _mkdir.result()  # this is None, but synchronizes the creation of the directory
-                    self._save_cerebnet_seg(cerebnet_seg, subject.segfile,
-                                            subject_dataset.get_bounding_offsets(), subject_dataset.get_nibabel_img())
+                    futures.append(self._save_cerebnet_seg(full_cereb_seg, subject.segfile,
+                                                           subject_dataset.get_nibabel_img()))
 
                     if subject.has_attribute("cereb_statsfile"):
-                        # move the cereb segmentation to RAM
-                        cerebnet_seg = cerebnet_seg.cpu().numpy()
-                        norm, norm_data = norm.result()  # wait for the loading of the bias field file here
                         # vox_vol = np.prod(norm.header.get_zooms()).item()  # CerebNet always has vox_vol 1
-                        df = self._calc_segstats(cerebnet_seg, norm, vox_vol=1.)
+                        if norm is None:
+                            raise RuntimeError("norm not loaded as expected!")
+                        df = self._calc_segstats(full_cereb_seg, norm, vox_vol=1.)
                         from FastSurferCNN.segstats import write_statsfile
                         # in batch processing, we are finished with this subject and the output of this data can be
                         # outsourced to a different process
-                        self.pool.submit(write_statsfile, subject.cereb_statsfile, df, vox_vol=1.,
-                                         segfile=subject.segfile, normfile=norm_file, lut=self.freesurfer_color_lut_file)
+                        futures.append(self.pool.submit(write_statsfile,
+                                                        subject.filename_by_attribute('cereb_statsfile'), df,
+                                                        vox_vol=1., segfile=subject.segfile, normfile=norm_file,
+                                                        lut=self.freesurfer_color_lut_file))
 
                     logger.info(f"Subject {idx + 1}/{len(subject_directories)} with id '{subject.id}' "
                                 f"processed in {pred_time - start_time :.2f} sec.")
@@ -397,5 +404,9 @@ class Inference:
                     return "\n".join(map(str, e.args))
                 else:
                     start_time = time.time()
+
+            # wait for tasks to finish
+            for f in futures:
+                _ = f.result()
 
         return 0

@@ -35,7 +35,7 @@ def setup_options():
     parser = parser_defaults.add_arguments(parser, ["in_dir", "tag", "csv_file", "sd", "sid", "remove_suffix"])
 
     # 2. Options for the MRI volumes
-    parser = parser_defaults.add_arguments(parser, ["t1", "conformed_name", "aparc_aseg_segfile"])
+    parser = parser_defaults.add_arguments(parser, ["t1", "conformed_name", "norm_name", "aparc_aseg_segfile"])
     parser.add_argument('--cereb_segfile', dest='cereb_segfile', default='mri/cerebellum.CerebNet.nii.gz',
                         help='Name under which segmentation will be saved. Default: mri/cerebellum.CerebNet.nii.gz.')
 

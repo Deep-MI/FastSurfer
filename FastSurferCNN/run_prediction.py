@@ -90,7 +90,6 @@ class RunModelOnData:
     conform_to_1mm_threshold: Optional[float]
 
     def __init__(self, args):
-        self.wait = False
         self.pred_name = args.pred_name
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
