@@ -156,14 +156,14 @@ SEGMENTATION PIPELINE:
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 	--cereb_segfile <seg_input>
-	                        Name of DL-based segmentation file of the cerebellum.
-	                          This segmentation is always at 1mm isotropic
-	                          resolution, since inference is always based on a
-	                          1mm conformed image, if the conformed image is *NOT*
-	                          already an 1mm image, an additional conformed image
-	                          at 1mm will be stored at the --conformed_name, but
-	                          with an additional file suffix of "_1mm".
-	                          Requires an ABSOLUTE Path! Default location:
+                          Name of DL-based segmentation file of the cerebellum.
+                            This segmentation is always at 1mm isotropic
+                            resolution, since inference is always based on a
+                            1mm conformed image, if the conformed image is *NOT*
+                            already an 1mm image, an additional conformed image
+                            at 1mm will be stored at the --conformed_name, but
+                            with an additional file suffix of "_1mm".
+                            Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
 
 SURFACE PIPELINE:
