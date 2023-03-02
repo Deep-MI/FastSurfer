@@ -27,9 +27,8 @@ Values can also be extracted by
 >>> # 'help': 'Allow execution as root user.'}
 """
 
-import enum
 import multiprocessing
-from typing import Iterable, Mapping, Union, Literal, Optional, Dict, Any, Protocol
+from typing import Iterable, Mapping, Union, Literal, Optional, Dict, Any, Protocol, TypeVar, Type
 import argparse
 from os import path
 
@@ -58,7 +57,7 @@ def __arg(*default_flags, **default_kwargs):
 
     This function is private for this module.
     """
-    def _stub(parser: Union[CanAddArguments, Dict], *flags, **kwargs):
+    def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
             if callable(arg) and kw in default_kwargs.keys():
@@ -180,8 +179,10 @@ ALL_FLAGS = {
              "messages in the log, but speed up the segmentation specifically for slow file systems.")
 }
 
+T_AddArgs = TypeVar('T_AddArgs', bound=CanAddArguments)
 
-def add_arguments(parser: argparse.ArgumentParser, flags: Iterable[str]) -> argparse.ArgumentParser:
+
+def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
     """
     Add default flags to the parser from the flags list in order.
 

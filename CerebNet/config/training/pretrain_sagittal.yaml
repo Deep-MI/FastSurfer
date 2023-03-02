@@ -1,0 +1,36 @@
+MODEL:
+  MODEL_NAME: "FastSurferCNN"
+  NUM_CLASSES: 17
+  NUM_FILTERS: 64
+  KERNEL_H: 5
+  KERNEL_W: 5
+  LOSS_FUNC: combined
+DATA:
+  PLANE: sagittal
+  PRIMARY_SLICE_DIR: coronal
+  THICKNESS : 3
+  PATH_HDF5_TRAIN: data/160cases/SUIT_FS_train.hdf5
+  PATH_HDF5_VAL: data/160cases/SUIT_FS_val.hdf5
+AUGMENTATION:
+  TYPES: [ 'flip', 'warp', 'random_affine', 'bias_field' ]
+  PROB: 0.5
+  DEGREE: 20
+  SCALE: (0.95, 1.15)
+  TRANSLATE: 0.1
+  BIAS_FIELD_COEFFICIENTS: 0.5
+  BIAS_FIELD_ORDER: 2
+TRAIN:
+  NUM_EPOCHS: 30
+  BATCH_SIZE: 128
+  LOG_INTERVAL: 5
+OPTIMIZER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 1e-5
+  LR_SCHEDULER: "multiStep"
+  MILESTONES: [10, 20]
+  GAMMA: 0.1
+  OPTIMIZING_METHOD: adamW
+
+
+LOG_DIR: "./experiments/160cases"
+NUM_GPUS: 1

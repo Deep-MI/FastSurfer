@@ -1,0 +1,41 @@
+MODEL:
+  MODEL_NAME: "FastSurferCNN"
+  NUM_CLASSES: 28
+  NUM_FILTERS: 64
+  KERNEL_H: 5
+  KERNEL_W: 5
+  LOSS_FUNC: combined
+DATA:
+  PLANE: coronal
+  PRIMARY_SLICE_DIR: axial
+  THICKNESS : 3
+  LOAD_AUXILIARY_DATA: True
+  FRACTION: 1.0
+  PATH_HDF5_TRAIN: data/dzne_manual/train_test/Native_Manual_Auxiliary_train.hdf5
+  PATH_HDF5_VAL: data/dzne_manual/train_test/Native_Manual_Auxiliary_val.hdf5
+AUGMENTATION:
+  TYPES: [ 'flip', 'random_affine', 'bias_field' ]
+  PROB: 0.5
+  DEGREE: 20
+  SCALE: (0.95, 1.2)
+  TRANSLATE: 0.1
+  BIAS_FIELD_COEFFICIENTS: (-0.5, 0.5)
+  BIAS_FIELD_ORDER: 3
+TRAIN:
+  NUM_EPOCHS: 70
+  BATCH_SIZE: 128
+  LOG_INTERVAL: 5
+  FINE_TUNE: True
+  CHECKPOINT_PERIOD: 10
+  CHECKPOINT_PATH: experiments/160cases/CerebNet_AdamW_MultiStep_coronal/checkpoints/1
+OPTIMIZER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  GAMMA: 0.1
+  OPTIMIZING_METHOD: adamW
+  LR_SCHEDULER: "reduceOnPlateau"
+  METRIC_SCHEDULER: True
+  PATIENCE: 5
+
+LOG_DIR: "./experiments/dzne_manual/final_model"
+NUM_GPUS: 1

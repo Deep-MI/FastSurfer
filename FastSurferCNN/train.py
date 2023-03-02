@@ -217,7 +217,7 @@ class Trainer:
         scheduler = get_lr_scheduler(optimizer, self.cfg)
 
         checkpoint_paths = cp.get_checkpoint_path(self.cfg.LOG_DIR,
-                                                 self.cfg.TRAIN.RESUME_EXPR_NUM)
+                                                  self.cfg.TRAIN.RESUME_EXPR_NUM)
         if self.cfg.TRAIN.RESUME and checkpoint_paths:
             try:
                 checkpoint_path = checkpoint_paths.pop()

@@ -1,0 +1,13 @@
+HDF5:
+  FILE_PREFIX_NAME: SUIT_FS # SUIT_FS_data_[train, val].hdf5
+  PATH: data/160cases
+PATCH_SIZE: [128, 128, 128]
+NUM_SPLITS: 1
+PRIMARY_SLICE_DIR: coronal
+IMAGE_NAME: mri/orig.mgz
+CEREB_SUBSEG_NAME: SUIT+FS_vermis_merged.mgz
+WARP_FIELD_CSV: 160cases_subj2sub_ids.txt
+THICKNESS: 3
+STORE_WARPED_IMAGES: True
+TRAIN_CSV_FILE_PATH: train_subjects.csv
+VAL_CSV_FILE_PATH: valid_subjects.csv

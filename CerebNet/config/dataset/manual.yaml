@@ -1,0 +1,14 @@
+HDF5:
+  FILE_PREFIX_NAME: Native_Manual_Auxiliary # Native_Manual_[axial, coronal, sagittal]_[train, val].hdf5
+  PATH: data/dzne_manual/train_test/
+PATCH_SIZE: [128, 128, 128]
+PRIMARY_SLICE_DIR: axial
+IMAGE_NAME: T1.nii
+CEREB_SUBSEG_NAME: dzne_manual_label.nii.gz
+REG_DATA_CSV: subids_labeled2unlabeled.csv
+THICKNESS: 3
+LOAD_AUXILIARY_DATA: True
+AUXILIARY_IMAGE: T1_warped_cropped.nii.gz
+AUXILIARY_LABEL: label_warped_cropped.nii.gz
+TRAIN_CSV_FILE_PATH: train_all.csv
+VAL_CSV_FILE_PATH: test.csv
