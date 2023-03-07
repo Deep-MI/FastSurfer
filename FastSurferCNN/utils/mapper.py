@@ -492,7 +492,7 @@ class ColorLookupTable(Generic[KT]):
                 color_palette = [np.asarray(plt, dtype=float) / 255 if is_int(plt) else plt 
                                  for plt in color_palette]
                 color_palette = np.asarray(color_palette)
-            elif is_int(color_palette) > 1.0:
+            elif is_int(color_palette):
                 color_palette = np.asarray(color_palette, dtype=float) / 255
 
             self._color_palette = color_palette
