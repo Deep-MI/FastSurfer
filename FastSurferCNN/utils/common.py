@@ -96,20 +96,23 @@ def handle_cuda_memory_exception(exception: RuntimeError, exit_on_out_of_memory:
         return False
 
 
-def pipeline(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]) -> Iterator[Tuple[_Ti, _T]]:
+def pipeline(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti], *,
+             pipeline_size: int = 1) -> Iterator[Tuple[_Ti, _T]]:
     """Function to pipeline a function to be executed in the pool. Analogous to iterate, but run func in a different
     thread for the next element while the current element is returned."""
     # do pipeline loading the next element
-    return_in_future, element = None, None
-    for next_element in iterable:
+    from collections import deque
+    futures_queue = deque()
+    import itertools
+    for i, element in zip(itertools.count(-pipeline_size), iterable):
         # pre-load next element/data
-        return_of_next_in_future = pool.submit(func, next_element)
-        # first iteration, just 'rotate' the pipeline once
-        if return_in_future is not None:
-            yield element, return_in_future.result()
-        element = next_element
-        return_in_future = return_of_next_in_future
-    yield element, return_in_future.result()
+        futures_queue.append((element, pool.submit(func, element)))
+        if i >= 0:
+            element, future = futures_queue.popleft()
+            yield element, future.result()
+    while len(futures_queue) > 0:
+        element, future = futures_queue.popleft()
+        yield element, future.result()
 
 
 def iterate(pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]) -> Iterator[Tuple[_Ti, _T]]:
