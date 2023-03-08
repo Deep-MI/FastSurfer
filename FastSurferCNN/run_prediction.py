@@ -368,7 +368,7 @@ if __name__ == "__main__":
         qc_file_handle.close()
 
     # Batch case: report ratio of QC warnings
-    if len(s_dirs) > 1:
+    if len(subjects) > 1:
         LOGGER.info("Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
             qc_failed_subject_count, len(subjects)))
 
