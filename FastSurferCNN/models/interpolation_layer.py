@@ -174,11 +174,11 @@ class _ZoomNd(nn.Module):
                         raise ValueError(f"Invalid format of scale_factors[{i}]: Sequence contains {sf_dim} "
                                          f"scale factors, but only 1 or {self._N} are valid: {sf}.")
 
-                num += 1
                 if last_sf is not None and any(l != t for l, t in zip(last_sf, sf)):
                     yield last_sf, num
                     # reset the counter
                     num = 0
+                num += 1
                 last_sf = sf
             if last_sf is not None:
                 yield last_sf, num
