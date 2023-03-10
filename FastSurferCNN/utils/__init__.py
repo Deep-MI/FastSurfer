@@ -12,15 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'config',
-    'data_loader',
-    'models',
-    'utils',
-    'inference',
-    'quick_qc',
-    'reduce_to_aseg',
-    'run_prediction',
-    'segstats',
-    'train'
-]
+__all__ = ["checkpoint", "common", "load_config", "logging", "lr_scheduler", "mapper", "meters", "metrics", "misc",
+           "parser_defaults"]

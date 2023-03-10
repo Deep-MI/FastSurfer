@@ -335,7 +335,7 @@ if __name__ == "__main__":
             else:
                 LOGGER.info("Not saving the brainmask, because we could not figure out where to store it. Please "
                             "specify a subject id with {sid[flag]}, or an absolute brainmask path with "
-                            "{brainmask_name[flag]}.".format(**subjects.DEFAULT_FLAGS))
+                            "{brainmask_name[flag]}.".format(**subjects.flags))
 
             if store_aseg:
                 # reduce aparc to aseg and mask regions
@@ -349,7 +349,7 @@ if __name__ == "__main__":
             else:
                 LOGGER.info("Not saving the aseg file, because we could not figure out where to store it. Please "
                             "specify a subject id with {sid[flag]}, or an absolute aseg path with "
-                            "{aseg_name[flag]}.".format(**subjects.DEFAULT_FLAGS))
+                            "{aseg_name[flag]}.".format(**subjects.flags))
 
             # Run QC check
             LOGGER.info("Running volume-based QC check on segmentation...")
