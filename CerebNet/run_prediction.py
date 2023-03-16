@@ -82,6 +82,7 @@ def main(args):
 
     # Set up logging
     from FastSurferCNN.utils.logging import setup_logging
+    from CerebNet.utils.checkpoint import URL as CEREBNET_URL
     setup_logging(args.log_name)
 
     subjects_kwargs = {}
@@ -92,7 +93,7 @@ def main(args):
         subjects_kwargs["cereb_statsfile"] = "cereb_statsfile"
 
     logger.info("Checking or downloading default checkpoints ...")
-    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag)
+    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=CEREBNET_URL)
 
     # Check input and output options and get all subjects of interest
     subjects = SubjectList(args, aparc_aseg_segfile='pred_name', segfile='cereb_segfile', **subjects_kwargs)
