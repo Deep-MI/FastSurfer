@@ -36,12 +36,7 @@ if __name__ == "__main__":
                         help="Checkpoint file paths to download, e.g. checkpoints/aparc_vinn_axial_v2.0.0.pkl ...")
     args = parser.parse_args()
 
-    # download all sets of weights:
-    if args.all:
-        args.vinn = True
-        args.cerebnet = True
-
-    if not args.vinn and not args.files and not args.cerebnet:
+    if not args.vinn and not args.files and not args.cerebnet and not args.all:
         print("Specify either files to download or --vinn, --cerebnet or --all, see help -h.")
         exit(1)
 
@@ -54,6 +49,5 @@ if __name__ == "__main__":
         get_checkpoints(CEREBNET_AXI, CEREBNET_COR, CEREBNET_SAG, CEREBNET_URL if args.url is None else args.url)
 
     # later we can add more defaults here (for other sub-segmentation networks, or old CNN)
-
     for fname in args.files:
         check_and_download_ckpts(fname, URL if args.url is None else args.url)
