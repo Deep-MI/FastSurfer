@@ -41,12 +41,14 @@ cereb_segfile=""
 aparc_aseg_segfile=""
 aparc_aseg_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
 aparc_nosurf_statsfile=""
+cereb_statsfile=""
 conformed_name=""
 seg_log=""
 viewagg="auto"
 device="auto"
 batch_size="1"
 run_seg_pipeline="1"
+run_biasfield=""
 vol_segstats=""
 run_surf_pipeline="1"
 fstess=""
@@ -485,6 +487,12 @@ if [ -z "$aseg_segfile" ]
     aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"
 fi
 
+if [ -z "$aparc_nosurf_statsfile" ]
+  then
+    aparc_nosurf_statsfile="${sd}/${subject}/stats/aparc.nosurf.stats"
+fi
+
+
 if [ -z "$cereb_segfile" ]
   then
     cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
@@ -611,6 +619,11 @@ if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
     echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
 fi
 
+if [ -n "$vol_segstats" ] || [ "$run_cereb_name" ]
+  then
+    run_biasfield="1"
+fi
+
 ########################################## START ########################################################
 
 if [ "$run_seg_pipeline" == "1" ]
@@ -624,7 +637,7 @@ if [ "$run_seg_pipeline" == "1" ]
 
     if [ "$run_aparc_module" == "1" ]
       then
-        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --mask $mask_name --aseg_name $aseg_segfile --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
+        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --brainmask_name $mask_name --aseg_name $aseg_segfile --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         exit_code="${PIPESTATUS[0]}"
@@ -640,7 +653,7 @@ if [ "$run_seg_pipeline" == "1" ]
     fi
 
     # compute the bias-field corrected image
-    if [ -n "$norm_name" ]
+    if [ "$run_biasfield" == "1" ]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "Running N4 bias-field correction"
@@ -654,12 +667,12 @@ if [ "$run_seg_pipeline" == "1" ]
             exit 1
         fi
 
-        if [ -n "$aparc_nosurf_statsfile" ]
+        if [ -n "$vol_segstats" ]
           then
             cmd="$python ${fastsurfercnndir}/segstats.py --segfile $aparc_aseg_segfile --segstatsfile $aparc_nosurf_statsfile --normfile $norm_name --excludeid 0 --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035 --lut $fastsurfercnndir/config/FreeSurferColorLUT.txt --threads $threads"
 
             echo "$cmd" |& tee -a "$seg_log"
-            $cmd
+            $cmd |& tee -a "$seg_log"
 
             if [ "${PIPESTATUS[0]}" -ne 0 ]
               then

@@ -128,7 +128,7 @@ def load_maybe_conform(file: str, alt_file: str, vox_size: VoxSizeOption = 'min'
     if _is_conform:
         # calling np.asarray here, forces the load of img.dataobj into memory
         # (which is parallel with other operations, if done here)
-        data = np.asarray(img)
+        data = np.asarray(img.dataobj)
         dst_file = file
     else:
         # the image is not conformed to 1mm, do this now.
@@ -144,8 +144,8 @@ def load_maybe_conform(file: str, alt_file: str, vox_size: VoxSizeOption = 'min'
         # if the orig file is neither absolute nor in the subject path, use the conformed file
         src_file = alt_file if isfile(alt_file) else file
         if not isfile(alt_file):
-            LOGGER.warn(f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so we "
-                        f"might lose quality due to multiple chained interpolations.")
+            LOGGER.warning(f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so "
+                           f"we might lose quality due to multiple chained interpolations.")
 
         dst_file = file_no_fileext + "." + fileext[0]
         # conform to 1mm

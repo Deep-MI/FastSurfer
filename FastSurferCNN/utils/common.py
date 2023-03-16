@@ -345,7 +345,7 @@ class SubjectList:
         """
         # populate _flags with DEFAULT_FLAGS
         self._flags = flags.copy() if flags is not None else {}
-        for flag, default in self.DEFAULT_FLAGS:
+        for flag, default in self.DEFAULT_FLAGS.items():
             self._flags.setdefault(flag, default)
 
         # Check input and output options
@@ -483,7 +483,7 @@ class SubjectList:
     __init__.__doc__ = __init__.__doc__.format(**DEFAULT_FLAGS)
 
     @property
-    def flags(self) -> _T.Dict[str, _T.Dict]:
+    def flags(self) -> Dict[str, Dict]:
         return self._flags
 
     def __len__(self) -> int:
@@ -500,7 +500,7 @@ class SubjectList:
             LOGGER.info("Output directory does not exist. Creating it now...")
             os.makedirs(self._out_dir)
 
-    def __getitem__(self, item: _T.Union[int, str]) -> SubjectDirectory:
+    def __getitem__(self, item: Union[int, str]) -> SubjectDirectory:
         """Returns a SubjectDirectory object for the i-th subject (if item is an int) or for the subject with
         name/folder (if item is a str)."""
         if isinstance(item, int):

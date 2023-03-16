@@ -444,8 +444,16 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             ipv: The partial volume of the alternative (nbr) label at the location
     """
 
+    if not isinstance(seg, np.ndarray) and np.issubdtype(seg.dtype, np.integer):
+        raise TypeError("The seg object is not a numpy.ndarray of int type.")
+    if not isinstance(norm, np.ndarray) and np.issubdtype(seg.dtype, np.numeric):
+        raise TypeError("The norm object is not a numpy.ndarray of numeric type.")
+    if not isinstance(labels, Sequence) and all(isinstance(lab, int) for lab in labels):
+        raise TypeError("The labels list is not a sequence of ints.")
+
     if seg.shape != norm.shape:
-        raise RuntimeError("The shape of the segmentation and the norm must be identical!")
+        raise RuntimeError(f"The shape of the segmentation and the norm must be identical, but shapes are {seg.shape} "
+                           f"and {norm.shape}!")
 
     mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [{} for _ in range(7)]
     loc_border = {}
