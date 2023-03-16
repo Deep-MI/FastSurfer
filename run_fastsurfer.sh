@@ -619,7 +619,7 @@ if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
     echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
 fi
 
-if [ -n "$vol_segstats" ] || [ "$run_cereb_name" ]
+if [ -n "$vol_segstats" ] || [ "$run_cereb_module" == "1" ]
   then
     run_biasfield="1"
 fi

@@ -212,9 +212,10 @@ class Inference:
 
         freesurfer_id2cereb_name = self.cereb_name2freesurfer_id.__reversed__()
         label_map = dict(freesurfer_id2cereb_name)
-        meta_labels = dict(zip(range(freesurfer_id2cereb_name.max_label + 1, 640),
-                               ["Left_Cerebellar_Gray_Matter", "Right_Cerebellar_Gray_Matter", "Vermis"]))
-        merge_map = {id: _get_ids_startswith(label_map, prefix=ml.split("_")[0]) for id, ml in meta_labels.items()}
+        meta_labels = {8: ("Left", "Left-Cerebellum-Cortex"),
+                       47: ("Right", "Right-Cerebellum-Cortex"),
+                       632: ("Vermis", "Cbm_Vermis")}
+        merge_map = {id: _get_ids_startswith(label_map, prefix=prefix) for id, (prefix, _) in meta_labels.items()}
 
         # calculate PVE
         from FastSurferCNN.segstats import pv_calc
@@ -225,7 +226,7 @@ class Inference:
         for i in range(len(table)):
             _id = table[i]["SegId"]
             if _id in meta_labels.keys():
-                table[i]["StructName"] = meta_labels[_id]
+                table[i]["StructName"] = meta_labels[_id][1]
             elif _id in freesurfer_id2cereb_name:
                 table[i]["StructName"] = freesurfer_id2cereb_name[_id]
             else:

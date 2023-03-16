@@ -92,7 +92,7 @@ def main(args):
     if cereb_statsfile is not None:
         subjects_kwargs["cereb_statsfile"] = "cereb_statsfile"
         if not hasattr(args, 'norm_name'):
-            return f"Execution failed because `--cereb_statsfile {cereb_statsfile}` requires `--norm_name <filename>` " \
+            return f"Execution failed because `--cereb_statsfile {cereb_statsfile}` requires `--norm_name <filename>` "\
                    f"to be passed!"
         subjects_kwargs["norm_name"] = "norm_name"
 
