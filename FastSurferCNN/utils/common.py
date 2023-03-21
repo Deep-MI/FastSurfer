@@ -349,12 +349,11 @@ class SubjectList:
             self._flags.setdefault(flag, default)
 
         # Check input and output options
-        if getattr(args, "in_dir") is None and getattr(args, "csv_file") is None and \
+        if getattr(args, "in_dir", None) is None and getattr(args, "csv_file", None) is None and \
                 not os.path.isabs(getattr(args, "orig_name", "undefined")):
-            raise RuntimeError(('One of the following three options has to be passed {in_dir[flag]}, '
-                                '{csv_file[flag]} or {t1[flag]} with an absolute file path. Please specify the data '
-                                'input directory, the subject list file or the full path to input '
-                                'volume').format(**self._flags))
+            raise RuntimeError(('One of the following three options has to be passed {in_dir[flag]}, {csv_file[flag]} '
+                                'or {t1[flag]} with an absolute file path. Please specify the data input directory, '
+                                'the subject list file or the full path to input volume').format(**self._flags))
         assign.setdefault('segfile', 'segfile')
         assign.setdefault('orig_name', 'orig_name')
         assign.setdefault('conf_name', 'conf_name')
@@ -374,7 +373,7 @@ class SubjectList:
                                f"`SubjectList(args, subseg='subseg_param', out_filename='subseg')`.")
 
         # if out_dir is not set, fall back to in_dir by default
-        self._out_dir = getattr(args, "out_dir") or getattr(args, "in_dir")
+        self._out_dir = getattr(args, "out_dir", None) or getattr(args, "in_dir", None)
         if self._out_dir in [None, ''] and not os.path.isabs(self._out_segfile):
             raise RuntimeError(('Please specify, where the segmentation output should be stored by either the '
                                 '{sd[flag]} flag (output subject directory, this can be same as input directory) or an '
@@ -436,7 +435,7 @@ class SubjectList:
             self._num_subjects = 1
             LOGGER.info(f"Analyzing single subject {self._orig_name_}")
         # 3. do we search in a directory
-        elif getattr(args, 'search_tag') is not None:
+        elif getattr(args, 'search_tag', None) is not None:
             search_tag = args.search_tag
             if not os.path.isabs(search_tag) and getattr(args, "in_dir") is not None:
                 if not os.path.isdir(args.in_dir):

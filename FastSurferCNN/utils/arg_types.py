@@ -74,3 +74,10 @@ def int_ge_zero(value):
         raise argparse.ArgumentTypeError("Invalid value, must be greater than 0.")
     return val
 
+
+def unquote_str(value):
+    """Unquotes a (single quoted) string."""
+    val = str(value)
+    if val.startswith("'") and val.endswith("'"):
+        return val[1:-1]
+    return val

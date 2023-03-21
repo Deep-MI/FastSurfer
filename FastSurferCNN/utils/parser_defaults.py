@@ -32,7 +32,8 @@ import multiprocessing
 from os import path
 from typing import Iterable, Mapping, Union, Literal, Dict, Protocol, TypeVar, Type
 
-from FastSurferCNN.utils.arg_types import vox_size as __vox_size, float_gt_zero_and_le_one as __conform_to_one_mm
+from FastSurferCNN.utils.arg_types import (vox_size as __vox_size, float_gt_zero_and_le_one as __conform_to_one_mm,
+                                           unquote_str)
 
 FASTSURFER_ROOT = path.dirname(path.dirname(path.dirname(__file__)))
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
@@ -137,7 +138,7 @@ ALL_FLAGS = {
         help="Directory in which input volume(s) are located. "
              "Optional, if full path is defined for --t1."),
     "tag": __arg(
-        '--tag', dest='search_tag', default="*",
+        '--tag', type=unquote_str, dest='search_tag', default="*",
         help='Search tag to process only certain subjects. If a single image should be analyzed, '
              'set the tag with its id. Default: processes all.'),
     "csv_file": __arg(
