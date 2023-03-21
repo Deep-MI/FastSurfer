@@ -556,6 +556,8 @@ cmd="ln -sf orig.mgz rawavg.mgz"
 RunIt "$cmd" $LF
 popd
 
+### START SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### ----------
 if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   # Mask or aseg.auto_noCCseg not found; create them
   echo " " |& tee -a $LF
@@ -567,6 +569,8 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   cmd="$python ${binpath}/../FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
   RunIt "$cmd" $LF
 fi
+### END SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### ----------
 
 echo " " |& tee -a $LF
 echo "============= Computing Talairach Transform and NU (bias corrected) ============" |& tee -a $LF
@@ -574,6 +578,8 @@ echo " " |& tee -a $LF
 
 pushd $mdir
 
+### START SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### ----------
 # only run the bias field correction, if the bias field corrected does not exist already
 if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # nu processing is changed here compared to recon-all: we use the brainmask from the
@@ -590,6 +596,8 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
   RunIt "$cmd" $LF
 fi
+### END SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### ----------
 
 # talairach.xfm: compute talairach full head (25sec)
 cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm"
@@ -656,25 +664,6 @@ RunIt "$cmd" $LF
 # add cc into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
 cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $aparc_aseg_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
 RunIt "$cmd" $LF
-
-# Calculate volume-based segstats for deep learning prediction (with CC, requires norm.mgz as invol)
-if [ "$vol_segstats" == "1" ]
-then
-    # dependencies: aparc-aseg withCC, norm.mgz, brainmask
-    cmd="$python ${binpath}../FastSurferCNN/"
-
-
-    cmd="mri_segstats --seed 1234 --seg $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz --sum $mdir/../stats/aparc.DKTatlas+aseg.deep.volume.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --id 2, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 31, 41, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 63, 77, 251, 252, 253, 254, 255, 1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2034, 2035 --ctab /$FREESURFER_HOME/FreeSurferColorLUT.txt --subject $subject"
-    RunIt "$cmd" $LF
-    echo " " |& tee -a $LF
-    echo "User requested segmentation only (with Corpus Callosum and vol segstats)." |& tee -a $LF
-    echo "Therefore, pipeline finishes at this point. No surfaces will be created." |& tee -a $LF
-    echo "================= DONE =========================================================" |& tee -a $LF
-    echo " " |& tee -a $LF
-    echo "recon-surf.sh $subject finished without error at `date`"  |& tee -a $LF
-    echo " " |& tee -a $LF
-    exit 0;
-fi
 
 echo " " |& tee -a $LF
 echo "========= Creating filled from brain (brainfinalsurfs, wm.asegedit, wm)  =======" |& tee -a $LF
