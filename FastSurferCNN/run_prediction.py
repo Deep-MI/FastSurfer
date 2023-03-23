@@ -257,7 +257,7 @@ if __name__ == "__main__":
     parser = parser_defaults.add_arguments(parser, ["t1", "sid", "in_dir", "tag", "csv_file", "lut", "remove_suffix"])
 
     # 2. Options for output
-    parser = parser_defaults.add_arguments(parser, ["aparc_aseg_segfile", "conformed_name", "brainmask_name",
+    parser = parser_defaults.add_arguments(parser, ["asegdkt_segfile", "conformed_name", "brainmask_name",
                                                     "aseg_name", "sd", "seg_log", "qc_log"])
 
     # 3. Checkpoint to load

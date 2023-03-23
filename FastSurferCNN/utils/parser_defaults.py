@@ -91,8 +91,8 @@ ALL_FLAGS = {
         '--sid', type=str, dest="sid", default=None,
         help="Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject "
              "processing, use remove suffix if sid is not second to last element of input file passed to --t1"),
-    "aparc_aseg_segfile": __arg(
-        '--aparc_aseg_segfile', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
+    "asegdkt_segfile": __arg(
+        '--asegdkt_segfile', '--aparc_aseg_segfile', type=str, dest='pred_name', default='mri/aparc.DKTatlas+aseg.deep.mgz',
         help="Name of intermediate DL-based segmentation file (similar to aparc+aseg). "
              "When using FastSurfer, this segmentation is already conformed, since inference "
              "is always based on a conformed image. Absolute path if single image else common "

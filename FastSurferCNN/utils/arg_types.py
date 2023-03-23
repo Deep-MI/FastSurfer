@@ -62,7 +62,7 @@ def target_dtype(a: str) -> str:
 def int_gt_zero(value):
     """Conversion to positive integers."""
     val = int(value)
-    if val < 0:
+    if val <= 0:
         raise argparse.ArgumentTypeError("Invalid value, must not be negative.")
     return val
 
@@ -70,7 +70,7 @@ def int_gt_zero(value):
 def int_ge_zero(value):
     """Conversion to integers greater 0."""
     val = int(value)
-    if val <= 0:
+    if val < 0:
         raise argparse.ArgumentTypeError("Invalid value, must be greater than 0.")
     return val
 

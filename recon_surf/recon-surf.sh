@@ -19,12 +19,12 @@ FS_VERSION_SUPPORT="7.3.2"
 
 # Regular flags default
 t1=""                 # Path and name of T1 input
-aparc_aseg_segfile="" # Path and name of segmentation
+asegdkt_segfile=""    # Path and name of segmentation
 subject=""            # Subject name
 vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
-fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from aparc_aseg_segfile
+fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from asegdkt_segfile
 fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
 python="python3.8"    # python version
 DoParallel=0          # if 1, run hemispheres in parallel
@@ -65,7 +65,7 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surf.sh --sid <sid> --sd <sdir> --t1 <t1> --aparc_aseg_segfile <aparc_aseg_segfile> [OPTIONS]
+Usage: recon-surf.sh --sid <sid> --sd <sdir> --t1 <t1> --asegdkt_segfile <asegdkt_segfile> [OPTIONS]
 
 recon-surf.sh takes a segmentation and T1 full head image and creates surfaces,
 thickness etc as a FS subject dir.
@@ -80,18 +80,15 @@ FLAGS:
                             conform.py script (usage example: python3
                             FastSurferCNN/data_loader/conform.py -i <T1_input>
                             -o <conformed_T1_output>). Requires an ABSOLUTE Path!
-  --aparc_aseg_segfile <aparc_aseg_segfile>
+  --asegdkt_segfile <asegdkt_segfile>
                           Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
-                            (dimensions: 256x256x256, voxel size: isotropic, LIA
-                            orientation). FastSurferCNN's segmentations are
-                            conformed by default; please ensure that
-                            segmentations produced otherwise are conformed.
+                            (voxel size: isotropic, LIA orientation, and, if voxel
+                            size 1mm, dimensions: 256x256x256). FastSurferCNN's
+                            segmentations are conformed by default; please ensure
+                            that segmentations produced otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
-                            statistics for DL-based segmentation (does not
-                            require surfaces and stops after incorporation of the corpus callosum)
   --fstess                Switch on mri_tesselate for surface creation
                             (default: mri_mc)
   --fsqsphere             Use FreeSurfer iterative inflation for qsphere
@@ -228,7 +225,8 @@ inputargs=("$@")
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
-key="$1"
+# make key lowercase
+key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 case $key in
     --sid)
@@ -246,19 +244,16 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --seg)
-    echo "WARNING: --seg <filename> is deprecated, use --aparc_aseg_segfile <filename>."
-    aparc_aseg_segfile="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    --aparc_aseg_segfile)
-    aparc_aseg_segfile="$2"
+    --asegdkt_segfile | --aparc_aseg_segfile | --seg)
+    if [ "$key" == "--seg" ] || [ "$key" == "--aparc_aseg_segfile" ]; then
+      echo "WARNING: $1 <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
+    fi
+    asegdkt_segfile="$2"
     shift # past argument
     shift # past value
     ;;
     --vol_segstats)
-    vol_segstats=1
+    echo "WARNING: the --vol_segstats flag is obsolete and will be removed, --vol_segstats ignored."
     shift # past argument
     ;;
     --fstess)
@@ -329,7 +324,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 echo
 echo sid $subject
 echo T1  $t1
-echo aparc_aseg_segfile $aparc_aseg_segfile
+echo asegdkt_segfile $asegdkt_segfile
 echo
 
 
@@ -400,17 +395,17 @@ then
   exit 1
 fi
 
-if [ -z "$aparc_aseg_segfile" ]
+if [ -z "$asegdkt_segfile" ]
 then
   # Set to default
-  aparc_aseg_segfile="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+  asegdkt_segfile="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
-if [ ! -f "$aparc_aseg_segfile" ]
+if [ ! -f "$asegdkt_segfile" ]
 then
   # No segmentation found, exit with error
-  echo "ERROR: Segmentation ($aparc_aseg_segfile) could not be found! "
-  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --aparc_aseg_segfile."
+  echo "ERROR: Segmentation ($asegdkt_segfile) could not be found! "
+  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --asegdkt_segfile."
   exit 1
 fi
 
@@ -442,7 +437,7 @@ fi
 
 # Check input segmentation quality
 echo "Checking Input Segmentation Quality ..."
-cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --aparc_aseg_segfile $aparc_aseg_segfile"
+cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --asegdkt_segfile $asegdkt_segfile"
 echo $cmd
 $cmd
 if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
@@ -527,7 +522,7 @@ vox_size=`cat $CONFORM_LF | grep -E " - Voxel Size " | cut -d' ' -f5 | cut -d'x'
 if [ -f "$CONFORM_LF" ]; then rm -f $CONFORM_LF ; fi
 
 # here, we check the correct vox_size by passing it to the next conform, so errors in this line might be caused above
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $aparc_aseg_segfile --check_only --vox_size $vox_size --dtype any --verbose"
+cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $asegdkt_segfile --check_only --vox_size $vox_size --dtype any --verbose"
 RunIt "$cmd" $LF
 
 if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
@@ -547,7 +542,7 @@ fi
 cmd="mri_convert $t1 $mdir/orig.mgz"
 RunIt "$cmd" $LF
 
-cmd="mri_convert $aparc_aseg_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
+cmd="mri_convert $asegdkt_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" $LF
 
 # link to rawavg (needed by pctsurfcon)
@@ -662,7 +657,7 @@ cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/c
 RunIt "$cmd" $LF
 
 # add cc into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
-cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $aparc_aseg_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
+cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
 RunIt "$cmd" $LF
 
 echo " " |& tee -a $LF
@@ -796,7 +791,7 @@ RunIt "$cmd" $LF $CMDF
 
 
 echo "echo \" \"" |& tee -a $CMDF
-echo "echo \"=========== Creating surfaces $hemi - map input aparc_aseg_segfile to surf ===============\"" |& tee -a $CMDF
+echo "echo \"=========== Creating surfaces $hemi - map input asegdkt_segfile to surf ===============\"" |& tee -a $CMDF
 echo "echo \" \"" |& tee -a $CMDF
 
     # sample input segmentation (aparc.DKTatlas+aseg orig) onto wm surface:
@@ -854,7 +849,7 @@ fi
 if [ "$fsaparc" == "1" ] ; then
 
   echo "echo \" \"" |& tee -a $CMDF
-  echo "echo \"============ Creating surfaces $hemi - FS aparc_aseg_segfile..pial ===============\"" |& tee -a $CMDF
+  echo "echo \"============ Creating surfaces $hemi - FS asegdkt_segfile..pial ===============\"" |& tee -a $CMDF
   echo "echo \" \"" |& tee -a $CMDF
 
   # 20-25 min for traditional surface segmentation (each hemi)
@@ -944,7 +939,7 @@ echo " " |& tee -a $LF
 if [ "$fsaparc" == "1" ] ; then
 
   echo " " |& tee -a $LF
-  echo "============= Creating surfaces - other FS aparc_aseg_segfile and stats =======================" |& tee -a $LF
+  echo "============= Creating surfaces - other FS asegdkt_segfile and stats =======================" |& tee -a $LF
   echo " " |& tee -a $LF
 
   cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
@@ -1025,7 +1020,7 @@ echo " " |& tee -a $LF
   cmd="mri_segstats --seed 1234 --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
   RunIt "$cmd" $LF
 
-  # -wmparc based on mapped aparc labels (from input aparc_aseg_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
+  # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" $LF
 

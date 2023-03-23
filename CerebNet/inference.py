@@ -89,8 +89,9 @@ class Inference:
 
         self.cerebnet_labels = _cerebnet_mapper.result().labelname2id()
 
+        self.freesurfer_name2id = fs_color_map.result().labelname2id()
         self.cereb_name2freesurfer_id = cereb2freesurfer.result().labelname2id() \
-            .chain(fs_color_map.result().labelname2id())
+            .chain(self.freesurfer_name2id)
 
         # the id in cereb2freesurfer is also a labelname, i.e. cereb2freesurfer is a map of Labelname2Labelname
         self.cereb2fs = self.cerebnet_labels.__reversed__() \
@@ -211,6 +212,7 @@ class Inference:
             return [id for id, name in _label_map.items() if name.startswith(prefix) and not name.endswith("Medullare")]
 
         freesurfer_id2cereb_name = self.cereb_name2freesurfer_id.__reversed__()
+        freesurfer_id2name = self.freesurfer_name2id.__reversed__()
         label_map = dict(freesurfer_id2cereb_name)
         meta_labels = {8: ("Left", "Left-Cerebellum-Cortex"),
                        47: ("Right", "Right-Cerebellum-Cortex"),
@@ -228,10 +230,10 @@ class Inference:
             if _id in meta_labels.keys():
                 table[i]["StructName"] = meta_labels[_id][1]
             elif _id in freesurfer_id2cereb_name:
-                table[i]["StructName"] = freesurfer_id2cereb_name[_id]
+                table[i]["StructName"] = freesurfer_id2name[_id]
             else:
                 # noinspection PyTypeChecker
-                table[i]["StructName"] = "merged label " + str(_id)
+                table[i]["StructName"] = "Merged-Label-" + str(_id)
 
         import pandas as pd
         dataframe = pd.DataFrame(table, index=np.arange(len(table)))
@@ -283,10 +285,10 @@ class Inference:
             norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, vox_size=1.)
 
         # localization
-        if not subject.fileexists_by_attribute("aparc_aseg_segfile"):
-            raise RuntimeError(f"The aparc-aseg-segmentation file '{subject.aparc_aseg_segfile}' did not exist, "
+        if not subject.fileexists_by_attribute("asegdkt_segfile"):
+            raise RuntimeError(f"The aseg.DKT-segmentation file '{subject.asegdkt_segfile}' did not exist, "
                                "please run FastSurferVINN first.")
-        seg = self.pool.submit(load_image, subject.filename_by_attribute("aparc_aseg_segfile"))
+        seg = self.pool.submit(load_image, subject.filename_by_attribute("asegdkt_segfile"))
         # create conformed image
         conf_img = self.pool.submit(load_maybe_conform, subject.filename_by_attribute("conf_name"),
                                     subject.filename_by_attribute("orig_name"), vox_size=1.)

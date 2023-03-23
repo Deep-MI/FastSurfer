@@ -64,7 +64,7 @@ UNITS = {"Volume_mm3": "mm^3", "normMean": "MR", "normStdDev": "MR", "normMin": 
 FIELDS = {"Index": "Index", "SegId": "Segmentation Id", "NVoxels": "Number of Voxels", "Volume_mm3": "Volume",
           "StructName": "Structure Name", "normMean": "Intensity normMean", "normStdDev": "Intensity normStdDev",
           "normMin": "Intensity normMin", "normMax": "Intensity normMax", "normRange": "Intensity normRange"}
-FORMATS = {"SegId": "d", "NVoxels": "d", "Volume_mm3": ".1f", "StructName": "s", "normMean": ".4f",
+FORMATS = {"Index": "d", "SegId": "d", "NVoxels": "d", "Volume_mm3": ".1f", "StructName": "s", "normMean": ".4f",
            "normStdDev": ".4f", "normMin": ".4f", "normMax": ".4f", "normRange": ".4f"}
 
 
@@ -112,7 +112,7 @@ def make_arguments() -> argparse.ArgumentParser:
                                f"{multiprocessing.cpu_count()})")
     advanced.add_argument('--patch_size', type=patch_size, dest='patch_size', default=32,
                           help="Patch size to use in calculating the partial volumes (default: 32).")
-    parser = add_arguments(parser, ['device', 'lut', 'allow_root'])
+    advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
     return parser
 
 
@@ -196,21 +196,55 @@ def main(args):
                 table[i]["StructName"] = lut[lut_idx]["LabelName"].item()
             elif "merged_labels" in kwargs and table[i]["SegId"] in kwargs["merged_labels"].keys():
                 # noinspection PyTypeChecker
-                table[i]["StructName"] = "merged label " + str(table[i]["SegId"])
+                table[i]["StructName"] = "Merged-Label-" + str(table[i]["SegId"])
+            else:
+                # make the label unknown
+                table[i]["StructName"] = "Unknown-Label"
+        lut_idx = {i: lut["ID"] == i for i in exclude_id}
+        exclude = {i: lut[lut_idx[i]]["LabelName"].item() if lut_idx[i].any() else "" for i in exclude_id}
+    else:
+        exclude = {i: "" for i in exclude_id}
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
     dataframe = dataframe[dataframe["NVoxels"] != 0].sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
+    lines = []
+    if getattr(args, 'in_dir', None):
+        lines.append(f'SUBJECTS_DIR {getattr(args, "in_dir")}')
+    if getattr(args, 'sid', None):
+        lines.append(f'subjectname {getattr(args, "sid")}')
+
     write_statsfile(args.segstatsfile, dataframe,
-                    exclude_id=exclude_id, vox_vol=kwargs["vox_vol"], segfile=args.segfile,
-                    normfile=args.normfile, lut=getattr(args, "lut", None))
+                    exclude=exclude, vox_vol=kwargs["vox_vol"], segfile=args.segfile,
+                    normfile=args.normfile, lut=getattr(args, "lut", None), extra_header=lines)
     return 0
 
 
-def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, exclude_id: Iterable[int] = (),
-                    segfile: str = None, normfile: str = None, lut: str = None):
-    """Write a segstatsfile very similar and compatible with mri_segstats output."""
+def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, exclude: Optional[Dict[int, str]] = None,
+                    segfile: str = None, normfile: str = None, lut: str = None, extra_header: Sequence[str] = ()):
+    """Write a segstatsfile very similar and compatible with mri_segstats output.
+
+    Args:
+        segstatsfile: path to the output file
+        dataframe: data to write into the file
+        vox_vol: voxel volume for the header
+        exclude: dictionary of ids and class names that were excluded from the pv analysis (default: None)
+        segfile: path to the segmentation file (default: empty)
+        normfile: path to the bias-field corrected image (default: empty)
+        lut: path to the lookup table to find class names for label ids (default: empty)
+        extra_header: sequence of additional lines to add to the header. The initial # and newline characters will be
+            added. Should not include newline characters (expect at the end of strings). (default: empty sequence)
+    """
     import sys
     import os
+    import datetime
+
+    def file_annotation(_fp, name: str, file: Optional[str]) -> None:
+        if file is not None:
+            _fp.write(f"# {name} {segfile}\n")
+            stat = os.stat(segfile)
+            if stat.st_mtime:
+                mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
+                _fp.write(f"# {name}Timestamp {mtime:%Y/%m/%d %H:%M:%S}\n")
 
     os.makedirs(os.path.dirname(segstatsfile), exist_ok=True)
     with open(segstatsfile, "w") as fp:
@@ -228,19 +262,44 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
         from getpass import getuser
         fp.write(f"# user       {getuser()}\n"
                  f"# anatomy_type volume\n#\n")
-        if segfile is not None:
-             fp.write(f"# SegVolFile {segfile}\n")
+
+        file_annotation(fp, "SegVolFile", segfile)
+        file_annotation(fp, "ColorTable", lut)
+        file_annotation(fp, "InVolFile", normfile)
+        file_annotation(fp, "PVVolFile", normfile)
+        if exclude is not None and len(exclude) > 0:
+            if any(len(e) > 0 for e in exclude.values()):
+                fp.write(f"# Excluding {', '.join(filter(lambda x: len(x) > 0, exclude.values()))}\n")
+            fp.write("".join([f"# ExcludeSegId {id}\n" for id in exclude.keys()]))
+        warn_msg_sent = False
+        for i, line in enumerate(extra_header):
+            if line.endswith("\n"):
+                line = line[:-1]
+            if line.startswith("# "):
+                line = line[2:]
+            elif line.startswith("#"):
+                line = line[1:]
+            if "\n" in line:
+                line = line.replace("\n", " ")
+                from warnings import warn
+                warn_msg_sent or warn(f"extra_header[{i}] includes embedded newline characters. "
+                                      "Replacing all newline characters with <space>.")
+                warn_msg_sent = True
+            fp.write(f"# {line}\n")
+        fp.write(f"#\n")
         if lut is not None:
-            fp.write(f"# ColorTable {lut}\n")
-        if normfile is not None:
-            fp.write(f"# InVolFile {normfile}\n")
-        fp.write("".join([f"# ExcludeId {id}\n" for id in exclude_id]))
-        fp.write("# Only reporting non-empty segmentations\n"
-                 f"# VoxelVolume_mm3 {vox_vol}\n")
+            fp.write("# Only reporting non-empty segmentations\n")
+        fp.write(f"# VoxelVolume_mm3 {vox_vol}\n")
+        # add the Index column, if it is not in dataframe
+        if "Index" not in dataframe.columns:
+            index_df = pd.DataFrame.from_dict({"Index": dataframe.index})
+            index_df.index = dataframe.index
+            dataframe = index_df.join(dataframe)
+
         for i, col in enumerate(dataframe.columns):
             for v, name in zip((col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA")),
                                ("ColHeader", "FieldName", "Units    ")):
-                fp.write(f"# {i: 2d} {name} {v}\n")
+                fp.write(f"# {i+1: 2d} {name} {v}\n")
         fp.write(f"# NRows {len(dataframe)}\n"
                  f"# NTableCols {len(dataframe.columns)}\n")
         fp.write("# ColHeaders  " + " ".join(dataframe.columns) + "\n")
@@ -249,16 +308,16 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
         def fmt_field(code: str, data) -> str:
             is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
             filler = "<" if is_s else " >"
-            prec = int(data.map(len).max() if is_s else np.ceil(np.log10(data.max())))
+            prec = int(data.dropna().map(len).max() if is_s else np.ceil(np.log10(data.max())))
             if is_f:
                 prec += int(code[-2]) + 1
             return filler + str(prec) + code
 
         fmts = ("{:" + fmt_field(FORMATS[k], dataframe[k]) + "}" for k in dataframe.columns)
-        fmt = "{:>" + str(max_index) + "d} " + " ".join(fmts) + "\n"
+        fmt = " ".join(fmts) + "\n"
         for index, row in dataframe.iterrows():
             data = [row[k] for k in dataframe.columns]
-            fp.write(fmt.format(index, *data))
+            fp.write(fmt.format(*data))
 
 
 # Label mapping functions (to aparc (eval) and to label (train))
@@ -266,12 +325,14 @@ def read_classes_from_lut(lut_file):
     """This function is modified from datautils to allow support for FreeSurfer-distributed ColorLUTs
 
     Function to read in **FreeSurfer-like** LUT table
-    :param str lut_file: path and name of FreeSurfer-style LUT file with classes of interest
-                         Example entry:
-                         ID LabelName  R   G   B   A
-                         0   Unknown   0   0   0   0
-                         1   Left-Cerebral-Exterior 70  130 180 0
-    :return pd.Dataframe: DataFrame with ids present, name of ids, color for plotting
+    Args:
+         lut_file: path and name of FreeSurfer-style LUT file with classes of interest
+             Example entry:
+             ID LabelName  R   G   B   A
+             0   Unknown   0   0   0   0
+             1   Left-Cerebral-Exterior 70  130 180 0
+    Returns:
+        DataFrame with ids present, name of ids, color for plotting
     """
     if lut_file.endswith(".tsv"):
         return pd.read_csv(lut_file, sep="\t")

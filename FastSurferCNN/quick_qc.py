@@ -24,7 +24,7 @@ HELPTEXT = """
 Script to perform quick qualtiy checks for the input segmentation to identify gross errors.
 
 USAGE:
-quick_qc.py --aparc_aseg_segfile <aparc+aseg.mgz>
+quick_qc.py --asegdkt_segfile <aparc+aseg.mgz>
 
 
 """
@@ -34,19 +34,19 @@ def options_parse():
     Command line option parser
     """
     parser = optparse.OptionParser(version='$Id: quick_qc,v 1.0 2022/09/28 11:34:08 mreuter Exp $', usage=HELPTEXT)
-    parser.add_option('--aparc_aseg_segfile',  dest='aparc_aseg_segfile', help="Input aparc+aseg segmentation to be checked")
+    parser.add_option('--asegdkt_segfile', '--aparc_aseg_segfile',  dest='asegdkt_segfile', help="Input aparc+aseg segmentation to be checked")
 
     (options, args) = parser.parse_args()
 
-    if options.aparc_aseg_segfile is None:
-        sys.exit('ERROR: Please specify input segmentation --aparc_aseg_segfile <filename>')
+    if options.asegdkt_segfile is None:
+        sys.exit('ERROR: Please specify input segmentation --asegdkt_segfile <filename>')
 
     return options
 
 
-def check_volume(aparc_aseg_segfile, voxvol, thres=0.70):
+def check_volume(asegdkt_segfile, voxvol, thres=0.70):
     print("Checking total volume ...")
-    mask = (aparc_aseg_segfile > 0)
+    mask = (asegdkt_segfile > 0)
     total_vol = np.sum(mask) * voxvol / 1000000
     print("Voxel size in mm3: {}".format(voxvol))
     print("Total segmentation volume in liter: {}".format(np.round(total_vol,2)))
@@ -59,8 +59,8 @@ def check_volume(aparc_aseg_segfile, voxvol, thres=0.70):
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
-    print("Reading in aparc+aseg: {} ...".format(options.aparc_aseg_segfile))
-    inseg = nib.load(options.aparc_aseg_segfile)
+    print("Reading in aparc+aseg: {} ...".format(options.asegdkt_segfile))
+    inseg = nib.load(options.asegdkt_segfile)
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
     inseg_voxvol = np.product(inseg_header.get_zooms())

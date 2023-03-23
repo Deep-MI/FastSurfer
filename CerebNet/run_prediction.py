@@ -35,7 +35,7 @@ def setup_options():
     parser = parser_defaults.add_arguments(parser, ["in_dir", "tag", "csv_file", "sd", "sid", "remove_suffix"])
 
     # 2. Options for the MRI volumes
-    parser = parser_defaults.add_arguments(parser, ["t1", "conformed_name", "norm_name", "aparc_aseg_segfile"])
+    parser = parser_defaults.add_arguments(parser, ["t1", "conformed_name", "norm_name", "asegdkt_segfile"])
     parser.add_argument('--cereb_segfile', dest='cereb_segfile', default='mri/cerebellum.CerebNet.nii.gz',
                         help='Name under which segmentation will be saved. Default: mri/cerebellum.CerebNet.nii.gz.')
 
@@ -48,7 +48,8 @@ def setup_options():
 
     # 4. Options for advanced, technical parameters
     advanced = parser.add_argument_group(title="Advanced options")
-    parser_defaults.add_arguments(advanced, ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"])
+    parser_defaults.add_arguments(advanced,
+                                  ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"])
 
     from CerebNet.utils.checkpoint import CEREBNET_COR, CEREBNET_AXI, CEREBNET_SAG
     parser_defaults.add_plane_flags(advanced, "checkpoint",
@@ -86,7 +87,7 @@ def main(args):
     setup_logging(args.log_name)
 
     subjects_kwargs = {}
-    cereb_statsfile = getattr(args, 'cereb_statsfile')
+    cereb_statsfile = getattr(args, 'cereb_statsfile', None)
     if cereb_statsfile == 'default':
         args.cereb_statsfile = DEFAULT_CEREBELLUM_STATSFILE
     if cereb_statsfile is not None:
@@ -100,7 +101,7 @@ def main(args):
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=CEREBNET_URL)
 
     # Check input and output options and get all subjects of interest
-    subjects = SubjectList(args, aparc_aseg_segfile='pred_name', segfile='cereb_segfile', **subjects_kwargs)
+    subjects = SubjectList(args, asegdkt_segfile='pred_name', segfile='cereb_segfile', **subjects_kwargs)
 
     try:
         tester = Inference(cfg,
