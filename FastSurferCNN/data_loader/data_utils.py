@@ -28,7 +28,7 @@ import pandas as pd
 
 from FastSurferCNN.utils import logging
 from FastSurferCNN.data_loader.conform import is_conform, conform, check_affine_in_nifti
-
+from FastSurferCNN.utils.arg_types import VoxSizeOption
 
 ##
 # Global Vars
@@ -111,6 +111,51 @@ def load_image(file: str, name: str = "image", **kwargs) -> Tuple[nib.analyze.Sp
         raise IOError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
     data = np.asarray(img.dataobj)
     return img, data
+
+
+def load_maybe_conform(file: str, alt_file: str, vox_size: VoxSizeOption = 'min') \
+        -> Tuple[str, nib.analyze.SpatialImage, np.ndarray]:
+    """Load an image by file, check whether it is conformed to vox_size and conform to vox_size if it is not.
+    """
+    from os.path import isfile
+    _is_conform, img = False, None
+    if isfile(file):
+        # see if the file is 1mm
+        img = nib.load(file)
+        # is_conform only needs the header, not the data
+        _is_conform = is_conform(img, conform_vox_size=vox_size, verbose=False)
+
+    if _is_conform:
+        # calling np.asarray here, forces the load of img.dataobj into memory
+        # (which is parallel with other operations, if done here)
+        data = np.asarray(img.dataobj)
+        dst_file = file
+    else:
+        # the image is not conformed to 1mm, do this now.
+        from nibabel.filebasedimages import FileBasedHeader as _Header
+        fileext = list(filter(lambda ext: file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS))
+        if len(fileext) != 1:
+            raise RuntimeError(f"Invalid file extension of conf_name: {file}, must be one of "
+                               f"{SUPPORTED_OUTPUT_FILE_FORMATS}.")
+        file_no_fileext = file[:-len(fileext[0]) - 1]
+        vox_suffix = "." + ("min" if vox_size == "min" else str(vox_size) + "mm").replace(".", "")
+        if not file_no_fileext.endswith(vox_suffix):
+            file_no_fileext += vox_suffix
+        # if the orig file is neither absolute nor in the subject path, use the conformed file
+        src_file = alt_file if isfile(alt_file) else file
+        if not isfile(alt_file):
+            LOGGER.warning(f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so "
+                           f"we might lose quality due to multiple chained interpolations.")
+
+        dst_file = file_no_fileext + "." + fileext[0]
+        # conform to 1mm
+        header, affine, data = load_and_conform_image(src_file, conform_min=False,
+                                                      logger=logging.getLogger(__name__ + ".conform"))
+
+        # after conforming, save the conformed file
+        save_image(header, affine, data, dst_file)
+        img = nib.MGHImage(data, affine, header)
+    return dst_file, img, data
 
 
 # Save image routine

@@ -160,7 +160,7 @@ class SubjectDirectory:
     _copy_orig_name: str
     _conf_name: str
     _segfile: str
-    _aparc_aseg_segfile: str
+    _asegdkt_segfile: str
     _main_segfile: str
     _subject_dir: str
     _id: str
@@ -175,7 +175,7 @@ class SubjectDirectory:
             conf_name (str): relative or absolute filename of the conformed filename
             segfile (str): relative or absolute filename of the segmentation filename
             main_segfile (str): relative or absolute filename of the main segmentation filename
-            aparc_aseg_segfile (str): relative or absolute filename of the aparc+aseg segmentation filename
+            asegdkt_segfile (str): relative or absolute filename of the aparc+aseg segmentation filename
             subject_dir (str): path to the subjects directory (containing subject folders)
         """
         for k, v in kwargs.items():
@@ -256,15 +256,15 @@ class SubjectDirectory:
         self._segfile = _segfile
 
     @property
-    def aparc_aseg_segfile(self) -> str:
-        """This will typically try to return absolute path, if the aparc_aseg_segfile is a relative path, it will be
+    def asegdkt_segfile(self) -> str:
+        """This will typically try to return absolute path, if the asegdkt_segfile is a relative path, it will be
         interpreted as relative to folder."""
-        assert hasattr(self, '_segfile') or "The aparc_aseg_segfile attribute has not been set!"
-        return self.filename_in_subject_folder(self._aparc_aseg_segfile)
+        assert hasattr(self, '_segfile') or "The asegdkt_segfile attribute has not been set!"
+        return self.filename_in_subject_folder(self._asegdkt_segfile)
 
-    @aparc_aseg_segfile.setter
-    def aparc_aseg_segfile(self, _aparc_aseg_segfile: str):
-        self._aparc_aseg_segfile = _aparc_aseg_segfile
+    @asegdkt_segfile.setter
+    def asegdkt_segfile(self, _asegdkt_segfile: str):
+        self._asegdkt_segfile = _asegdkt_segfile
 
     @property
     def main_segfile(self) -> str:
@@ -345,7 +345,7 @@ class SubjectList:
         """
         # populate _flags with DEFAULT_FLAGS
         self._flags = flags.copy() if flags is not None else {}
-        for flag, default in self.DEFAULT_FLAGS:
+        for flag, default in self.DEFAULT_FLAGS.items():
             self._flags.setdefault(flag, default)
 
         # Check input and output options
@@ -378,7 +378,7 @@ class SubjectList:
         if self._out_dir in [None, ''] and not os.path.isabs(self._out_segfile):
             raise RuntimeError(('Please specify, where the segmentation output should be stored by either the '
                                 '{sd[flag]} flag (output subject directory, this can be same as input directory) or an '
-                                'absolute path to the {aparc_aseg_segfile[flag]} output segmentation volume.'
+                                'absolute path to the {asegdkt_segfile[flag]} output segmentation volume.'
                                 ).format(**self._flags))
 
         # 1. are we doing a csv file of subjects
@@ -483,7 +483,7 @@ class SubjectList:
     __init__.__doc__ = __init__.__doc__.format(**DEFAULT_FLAGS)
 
     @property
-    def flags(self) -> _T.Dict[str, _T.Dict]:
+    def flags(self) -> Dict[str, Dict]:
         return self._flags
 
     def __len__(self) -> int:
@@ -500,7 +500,7 @@ class SubjectList:
             LOGGER.info("Output directory does not exist. Creating it now...")
             os.makedirs(self._out_dir)
 
-    def __getitem__(self, item: _T.Union[int, str]) -> SubjectDirectory:
+    def __getitem__(self, item: Union[int, str]) -> SubjectDirectory:
         """Returns a SubjectDirectory object for the i-th subject (if item is an int) or for the subject with
         name/folder (if item is a str)."""
         if isinstance(item, int):

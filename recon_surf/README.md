@@ -26,7 +26,7 @@ List them by running the following command:
 
 ### Optional arguments
 * `--t1`: T1 full head input (not bias corrected). This must be conformed (dimensions: same along each axis, voxel size: isotropic, LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's [conform.py](https://github.com/Deep-MI/FastSurfer/blob/stable/FastSurferCNN/data_loader/conform.py) script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>). If not passed we use the orig.mgz in the output subject mri directory if available. 
-* `--aparc_aseg_segfile`: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: same along each axis, voxel size: isotropic, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed and equivalent in dimension and voxel size to the --t1 image. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz 
+* `--asegdkt_segfile`: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: same along each axis, voxel size: isotropic, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed and equivalent in dimension and voxel size to the --t1 image. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz 
 * `--vol_segstats`: Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces and stops after cc-incorporation).
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
@@ -61,7 +61,7 @@ docker run -v /home/user/my_fastsurfer_analysis:/output \
 Docker Flags: 
 * The `-v` commands mount your output, and directory with the FreeSurfer license file into the Docker container. Inside the container these are visible under the name following the colon (in this case /output and /fs_license). 
 
-As the --t1 and --aparc_aseg_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
+As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
 
@@ -85,7 +85,7 @@ singularity exec -B /home/user/my_fastsurfer_analysis:/output \
 Singularity Flags: 
 * The `-B` commands mount your output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 
-As the --t1 and --aparc_aseg_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
+As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
 
@@ -111,7 +111,7 @@ targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_
 
 ```
 
-As the --t1 and --aparc_aseg_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
+As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
 
@@ -151,7 +151,7 @@ done < /home/user/my_mri_data/subject_list.txt
 ```
 
 A dedicated subfolder will be used for each subject within the target directory. 
-As the --t1 and --aparc_aseg_segfile flags are not set, a subfolder within the target directory named after each subject ($p) needs to exist and contain t1-weighted conformed image, 
+As the --t1 and --asegdkt_segfile flags are not set, a subfolder within the target directory named after each subject ($p) needs to exist and contain t1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/$p/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)). 
 The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
