@@ -884,6 +884,8 @@ else
 
     echo "pushd $mdir" >> $CMDF
     # these are run automatically in fs7* recon-all and cannot be called directly without -pial flag (or other t2 flags)
+    cmd="mris_jacobian $hemi.white $hemi.sphere.reg $hemi.jacobian_white"
+    RunIt "$cmd" $LF $CMDF
     cmd="mris_place_surface --curv-map ../surf/$hemi.white 2 10 ../surf/$hemi.curv"
     RunIt "$cmd" $LF $CMDF
     cmd="mris_place_surface --area-map ../surf/$hemi.white ../surf/$hemi.area"
