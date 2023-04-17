@@ -260,8 +260,12 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
             fp.write(f"# platform {sys.platform}\n"
                      f"# hostname {gethostname()}\n")
         from getpass import getuser
-        fp.write(f"# user       {getuser()}\n"
-                 f"# anatomy_type volume\n#\n")
+        try:
+            fp.write(f"# user       {getuser()}\n")
+        except KeyError:
+            fp.write(f"# user       UNKNOWN\n")
+
+        fp.write(f"# anatomy_type volume\n#\n")
 
         file_annotation(fp, "SegVolFile", segfile)
         file_annotation(fp, "ColorTable", lut)
