@@ -88,7 +88,12 @@ conda activate fastsurfer_gpu
 
 (in the above step you can select from other fastsurfer...yml files for CPU and recon-surf-only versions).
 
-You should also make sure that all network checkpoint files are downloaded at install time:
+Next add the fastsurfer directory to the python path (make sure you have changed into it already):
+```
+export PYTHONPATH="${PYTHONPATH}:$PWD"
+```
+
+You can now make sure that all network checkpoint files are downloaded at install time:
 ```
 python3 ./FastSurferCNN/download_checkpoints.py --all
 ```
@@ -142,6 +147,8 @@ Clone FastSurfer, create a python environment, activate it, upgrade pip and inst
 
 ```
 git clone https://github.com/Deep-MI/FastSurfer.git
+cd FastSurfer
+export PYTHONPATH="${PYTHONPATH}:$PWD"
 python3 -m venv $HOME/python-envs/fastsurfer 
 source $HOME/python-envs/fastsurfer/bin/activate
 python3 -m pip install --upgrade pip
