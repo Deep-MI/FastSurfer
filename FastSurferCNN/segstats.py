@@ -112,6 +112,8 @@ def make_arguments() -> argparse.ArgumentParser:
                                f"{multiprocessing.cpu_count()})")
     advanced.add_argument('--patch_size', type=patch_size, dest='patch_size', default=32,
                           help="Patch size to use in calculating the partial volumes (default: 32).")
+    advanced.add_argument('--legacy_freesurfer', action='store_true', dest='legacy_freesurfer',
+                          help="Reproduce FreeSurfer mri_segstats numbers (default: off).")
     advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
     return parser
 
@@ -180,8 +182,9 @@ def main(args):
 
     kwargs = {
         "vox_vol": np.prod(seg.header.get_zooms()).item(),
-        "robust_percentage": args.robust if hasattr(args, 'robust') else None,
-        "threads": threads
+        "robust_percentage": getattr(args, 'robust', None),
+        "threads": threads,
+        "legacy_freesurfer": bool(getattr(args, 'legacy_freesurfer', False))
     }
 
     if args.merged_labels is not None and len(args.merged_labels) > 0:
@@ -722,7 +725,8 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
                   full_pv: Optional[npt.NDArray[float]] = None, full_ipv: Optional[npt.NDArray[float]] = None,
                   full_nbr_label: Optional[npt.NDArray[_IntType]] = None,
                   full_seg_mean: Optional[npt.NDArray[float]] = None,
-                  full_nbr_mean: Optional[npt.NDArray[float]] = None, eps: float = 1e-6) \
+                  full_nbr_mean: Optional[npt.NDArray[float]] = None, eps: float = 1e-6,
+                  legacy_freesurfer: bool = False) \
         -> Dict[_IntType, float]:
     """Calculates PV for patch. If full* keyword arguments are passed, also fills, per voxel results for the respective
     voxels in the patch."""
@@ -796,10 +800,13 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     pat1d_pv[pat1d_pv > 1.] = 1.
     pat1d_pv[pat1d_pv < 0.] = 0.
 
-    # re-create the "supposed" freesurfer inconsistency that does not count vertex neighbors, if the voxel label
-    # is not of question
-    mask_by_6border = np.take_along_axis(pat1d_is_this_6border, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0)[0]
-    pat1d_inv_pv = (1. - pat1d_pv) * mask_by_6border
+    if legacy_freesurfer:
+        # re-create the "supposed" freesurfer inconsistency that does not count vertex neighbors, if the voxel label
+        # is not of question
+        mask_by_6border = np.take_along_axis(pat1d_is_this_6border, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0)[0]
+        pat1d_inv_pv = (1. - pat1d_pv) * mask_by_6border
+    else:
+        pat1d_inv_pv = 1. - pat1d_pv
 
     if full_pv is not None:
         full_pv[patch][pat_border] = pat1d_pv
