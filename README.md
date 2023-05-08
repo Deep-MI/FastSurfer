@@ -307,7 +307,7 @@ The primary output files are pial, white, and inflated surface files, the thickn
 | mri         | wmparc.DKTatlas.mapped.mgz    | surface      | white matter parcellation|
 | mri         | wmparc.mgz                    | surface      | symlink to wmparc.DKTatlas.mapped.mgz|
 | surf        | lh.area, rh.area              | surface      | surface area overlay file|
-| surf        | lh.curv, rh.curv              | surface      | curvature|
+| surf        | lh.curv, rh.curv              | surface      | curvature overlay file|
 | surf        | lh.inflated, rh.inflated      | surface      | inflated cortical surface|
 | surf        | lh.pial, rh.pial              | surface      | pial surface|
 | surf        | lh.thickness, rh.thickness    | surface      | cortical thickness overlay file|
