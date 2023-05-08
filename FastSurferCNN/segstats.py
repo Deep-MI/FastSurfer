@@ -1,4 +1,4 @@
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ Dependencies:
 
 Original Author: David Kügler
 Date: Dec-30-2022
+Modified: May-08-2023
 """
 
 _NumberType = TypeVar('_NumberType', bound=Number)
@@ -112,6 +113,8 @@ def make_arguments() -> argparse.ArgumentParser:
                                f"{multiprocessing.cpu_count()})")
     advanced.add_argument('--patch_size', type=patch_size, dest='patch_size', default=32,
                           help="Patch size to use in calculating the partial volumes (default: 32).")
+    advanced.add_argument('--drop_empty', action='store_true', dest='drop_empty',
+                          help="Drop ids from the table that do not exist in the segmentation (default: off).")
     advanced.add_argument('--legacy_freesurfer', action='store_true', dest='legacy_freesurfer',
                           help="Reproduce FreeSurfer mri_segstats numbers (default: off).")
     advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
@@ -169,8 +172,10 @@ def main(args):
 
         except IOError as e:
             return e.args[0]
+    explicit_ids = False
     if hasattr(args, 'ids') and args.ids is not None and len(args.ids) > 0:
         labels = np.asarray(args.ids)
+        explicit_ids = True
     elif lut is not None:
         labels = lut['ID']  # the column ID contains all ids
     else:
@@ -178,6 +183,10 @@ def main(args):
 
     if hasattr(args, 'excludeid') and args.excludeid is not None and len(args.excludeid) > 0:
         exclude_id = list(args.excludeid)
+        if explicit_ids:
+            excluded_expl_ids = np.asarray(list(filter(lambda x: x in exclude_id, labels)))
+            if excluded_expl_ids.size > 0:
+                return "Some IDs explicitly passed via --ids are also in the list of ids to exclude (--excludeid)"
         labels = np.asarray(list(filter(lambda x: x not in exclude_id, labels)))
     else:
         exclude_id = []
@@ -192,7 +201,7 @@ def main(args):
     if args.merged_labels is not None and len(args.merged_labels) > 0:
         kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
 
-    table = pv_calc(seg_data, norm_data, labels, patch_size=args.patch_size, **kwargs)
+    table: List[PVStats] = pv_calc(seg_data, norm_data, labels, patch_size=args.patch_size, **kwargs)
 
     if lut is not None:
         for i in range(len(table)):
@@ -210,7 +219,9 @@ def main(args):
     else:
         exclude = {i: "" for i in exclude_id}
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
-    dataframe = dataframe[dataframe["NVoxels"] != 0].sort_values("SegId")
+    if bool(getattr(args, "drop_empty", False)):
+        dataframe = dataframe[dataframe["NVoxels"] != 0]
+    dataframe = dataframe.sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
     lines = []
     if getattr(args, 'in_dir', None):
@@ -250,8 +261,8 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 
     def file_annotation(_fp, name: str, file: Optional[str]) -> None:
         if file is not None:
-            _fp.write(f"# {name} {segfile}\n")
-            stat = os.stat(segfile)
+            _fp.write(f"# {name} {file}\n")
+            stat = os.stat(file)
             if stat.st_mtime:
                 mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
                 _fp.write(f"# {name}Timestamp {mtime:%Y/%m/%d %H:%M:%S}\n")
