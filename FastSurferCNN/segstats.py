@@ -113,8 +113,8 @@ def make_arguments() -> argparse.ArgumentParser:
                                f"{multiprocessing.cpu_count()})")
     advanced.add_argument('--patch_size', type=patch_size, dest='patch_size', default=32,
                           help="Patch size to use in calculating the partial volumes (default: 32).")
-    advanced.add_argument('--drop_empty', action='store_true', dest='drop_empty',
-                          help="Drop ids from the table that do not exist in the segmentation (default: off).")
+    advanced.add_argument('--empty', action='store_true', dest='empty',
+                          help="Keep ids for the table that do not exist in the segmentation (default: drop).")
     advanced.add_argument('--legacy_freesurfer', action='store_true', dest='legacy_freesurfer',
                           help="Reproduce FreeSurfer mri_segstats numbers (default: off).")
     advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
@@ -219,7 +219,7 @@ def main(args):
     else:
         exclude = {i: "" for i in exclude_id}
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
-    if bool(getattr(args, "drop_empty", False)):
+    if not bool(getattr(args, "empty", False)):
         dataframe = dataframe[dataframe["NVoxels"] != 0]
     dataframe = dataframe.sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
@@ -290,7 +290,6 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 
         file_annotation(fp, "SegVolFile", segfile)
         file_annotation(fp, "ColorTable", lut)
-        file_annotation(fp, "InVolFile", normfile)
         file_annotation(fp, "PVVolFile", normfile)
         if exclude is not None and len(exclude) > 0:
             if any(len(e) > 0 for e in exclude.values()):
@@ -825,13 +824,13 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     pat1d_pv[pat1d_pv > 1.] = 1.
     pat1d_pv[pat1d_pv < 0.] = 0.
 
+    pat1d_inv_pv = 1. - pat1d_pv
+
     if legacy_freesurfer:
         # re-create the "supposed" freesurfer inconsistency that does not count vertex neighbors, if the voxel label
         # is not of question
         mask_by_6border = np.take_along_axis(pat1d_is_this_6border, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0)[0]
-        pat1d_inv_pv = (1. - pat1d_pv) * mask_by_6border
-    else:
-        pat1d_inv_pv = 1. - pat1d_pv
+        pat1d_inv_pv = pat1d_inv_pv * mask_by_6border
 
     if full_pv is not None:
         full_pv[patch][pat_border] = pat1d_pv
