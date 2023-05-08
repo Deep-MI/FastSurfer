@@ -265,12 +265,12 @@ docker run --gpus all -v $datadir:/data \
 
 ### Segmentation module
 
-The segmentation module outputs the following files. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz `and the `aseg+DKT.stats` files, which contain the FastSurfer segmentation of cortical and subcortical structures based on the DKT atls as well as summary statistics for these structures.
+The segmentation module outputs the files shown in the table below. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz` file, which contains the FastSurfer segmentation of cortical and subcortical structures based on the DKT atlas, and the `aseg+DKT.stats` file, which contains summary statistics for these structures.
 
 | directory   | filename                      | module    | description |
 |:------------|-------------------------------|-----------|-------------|
 | mri         | aparc.DKTatlas+aseg.deep.mgz  | asegdkt   | cortical and subcortical segmentation|
-| mri         | aseg.auto_noCCseg.mgz         | asegdkt   | simplified subcortical segmentation without corpus callosum|
+| mri         | aseg.auto_noCCseg.mgz         | asegdkt   | simplified subcortical segmentation without corpus callosum labels|
 | mri         | mask.mgz                      | asegdkt   | brainmask|
 | mri         | orig.mgz                      | asegdkt   | conformed image|
 | mri         | orig_nu.mgz                   | asegdkt   | biasfield-corrected image|
@@ -291,44 +291,36 @@ The cerebellum module outputs the files in the table shown below. Unless switche
 
 ### Surface module
 
-The surface module is run unless switched off by the `--seg_only` argument. It outputs a large number of files, which generally correspond to the FreeSurfer nomenclature and definition. A selection of important output files is shown in the table below, for the other files, we refer to the [FreeSurfer documentation](https://surfer.nmr.mgh.harvard.edu/fswiki). After running this module, some of the initial segmentations and corresponding volume estimates are fine-tuned based (e.g., surface-based partial volume correction, addition of corpus callosum labels). Specifically, this concerns the `aseg.mgz `, `aparc.DKTatlas+aseg.mapped.mgz`, `aparc.DKTatlas+aseg.deep.withCC.mgz`, were originally created by the segmentation module or have earlier versions resulting from that module. Symbolic links are created to map FastSurfer files to their FreeSurfer equivalents, which may need to be present for further processing (e.g., with FreeSurfer downstream modules). 
+The surface module is run unless switched off by the `--seg_only` argument. It outputs a large number of files, which generally correspond to the FreeSurfer nomenclature and definition. A selection of important output files is shown in the table below, for the other files, we refer to the [FreeSurfer documentation](https://surfer.nmr.mgh.harvard.edu/fswiki). In general, the "mri" directory contains images, including segmentations, the "surf" folder contains surface files (geometries and vertex-wise overlay data), the "label" folder contains cortical parcellation labels, and the "stats" folder contains tabular summary statistics. Many files are available for the left ("lh") and right ("rh") hemisphere of the brain. Symbolic links are created to map FastSurfer files to their FreeSurfer equivalents, which may need to be present for further processing (e.g., with FreeSurfer downstream modules). 
 
-The primary output files are pial, white, and inflated surface files, the thickness overlay files, and the cortical parcellation (annotation) files. The preferred way of assessing this output is the [FreeView](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide) software. Numeric estimates of volume and thickness are reported in the stats files, in particular the `aseg.stats`, and the left and right `aparc.DKTatlas.mapped.stats` files.
+After running this module, some of the initial segmentations and corresponding volume estimates are fine-tuned (e.g., surface-based partial volume correction, addition of corpus callosum labels). Specifically, this concerns the `aseg.mgz `, `aparc.DKTatlas+aseg.mapped.mgz`, `aparc.DKTatlas+aseg.deep.withCC.mgz`, which were originally created by the segmentation module or have earlier versions resulting from that module.
+
+The primary output files are pial, white, and inflated surface files, the thickness overlay files, and the cortical parcellation (annotation) files. The preferred way of assessing this output is the [FreeView](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide) software. Summary statistics for volume and thickness estimates per anatomical structure are reported in the stats files, in particular the `aseg.stats`, and the left and right `aparc.DKTatlas.mapped.stats` files.
 
 | directory   | filename                      | module    | description |
 |:------------|-------------------------------|-----------|-------------|
-| label       | lh.aparc.DKTatlas.annot       | surf      | symlink to lh.aparc.DKTatlas.mapped.annot|
-| label       | lh.aparc.DKTatlas.mapped.annot| surf      | annotation file for cortical parcellations, mapped from ASEGDKT segmentation to the surface|
-| label       | rh.aparc.DKTatlas.annot       | surf      | symlink to rh.aparc.DKTatlas.mapped.annot|
-| label       | rh.aparc.DKTatlas.mapped.annot| surf      | annotation file for cortical parcellations, mapped from ASEGDKT segmentation to the surface|
-| mri         | aparc.DKTatlas+aseg.deep.withCC.mgz| surf | cortical and subcortical segmentation incl. corpus callosum after running the RECON-SURF module|
-| mri         | aparc.DKTatlas+aseg.mapped.mgz| surf      | cortical and subcortical segmentation after running the RECON-SURF module|
-| mri         | aparc.DKTatlas+aseg.mgz       | surf      | symlink to aparc.DKTatlas+aseg.mapped.mgz|
-| mri         | aparc+aseg.mgz                | surf      | symlink to aparc.DKTatlas+aseg.mapped.mgz|
-| mri         | aseg.mgz                      | surf      | subcortical segmentation after running the RECON-SURF module|
-| mri         | wmparc.DKTatlas.mapped.mgz    | surf      | white matter parcellation|
-| mri         | wmparc.mgz                    | surf      | symlink to wmparc.DKTatlas.mapped.mgz|
-| scripts     | recon-all.log                 | surf      | logfile|
-| stats       | aseg.stats                    | surf      | table of cortical and subcortical segmentation statistics after running the RECON-SURF module|
-| stats       | lh.aparc.DKTatlas.mapped.stats| surf      | table of cortical parcellation statistics, mapped from ASEGDKT segmentation to the surface|
-| stats       | lh.curv.stats                 | surf      | table of curvature statistics|
-| stats       | rh.curv.stats                 | surf      | table of curvature statistics|
-| stats       | rh.aparc.DKTatlas.mapped.stats| surf      | table of cortical parcellation statistics, mapped from ASEGDKT segmentation to the surface|
-| stats       | wmparc.DKTatlas.mapped.stats  | surf      | table of white matter segmentation statistics|
-| surf        | lh.area                       | surf      | surface area overlay file (left hemisphere)|
-| surf        | lh.curv                       | surf      | curvature (left hemisphere)|
-| surf        | lh.inflated                   | surf      | inflated cortical surface (left hemisphere)|
-| surf        | lh.pial                       | surf      | pial surface (left hemisphere)|
-| surf        | lh.thickness                  | surf      | cortical thickness overlay file (left hemisphere)|
-| surf        | lh.volume                     | surf      | gray matter volume overlay file (left hemisphere)|
-| surf        | lh.white                      | surf      | white matter surface (left hemisphere)|
-| surf        | rh.area                       | surf      | surface area overlay file (right hemisphere)|
-| surf        | rh.curv                       | surf      | curvature (right hemisphere)|
-| surf        | rh.inflated                   | surf      | inflated cortical surface (right hemisphere)|
-| surf        | rh.pial                       | surf      | pial surface (right hemisphere)|
-| surf        | rh.thickness                  | surf      | cortical thickness overlay file (right hemisphere)|
-| surf        | rh.volume                     | surf      | gray matter volume overlay file (right hemisphere)|
-| surf        | rh.white                      | surf      | white matter surface (right hemisphere)|
+| mri         | aparc.DKTatlas+aseg.deep.withCC.mgz| surface | cortical and subcortical segmentation incl. corpus callosum after running the surface module|
+| mri         | aparc.DKTatlas+aseg.mapped.mgz| surface      | cortical and subcortical segmentation after running the surface module|
+| mri         | aparc.DKTatlas+aseg.mgz       | surface      | symlink to aparc.DKTatlas+aseg.mapped.mgz|
+| mri         | aparc+aseg.mgz                | surface      | symlink to aparc.DKTatlas+aseg.mapped.mgz|
+| mri         | aseg.mgz                      | surface      | subcortical segmentation after running the surface module|
+| mri         | wmparc.DKTatlas.mapped.mgz    | surface      | white matter parcellation|
+| mri         | wmparc.mgz                    | surface      | symlink to wmparc.DKTatlas.mapped.mgz|
+| surf        | lh.area, rh.area              | surface      | surface area overlay file|
+| surf        | lh.curv, rh.curv              | surface      | curvature|
+| surf        | lh.inflated, rh.inflated      | surface      | inflated cortical surface|
+| surf        | lh.pial, rh.pial              | surface      | pial surface|
+| surf        | lh.thickness, rh.thickness    | surface      | cortical thickness overlay file|
+| surf        | lh.volume, rh.volume          | surface      | gray matter volume overlay file|
+| surf        | lh.white, rh.white            | surface      | white matter surface|
+| label       | lh.aparc.DKTatlas.annot, rh.aparc.DKTatlas.annot| surface      | symlink to lh.aparc.DKTatlas.mapped.annot|
+| label       | lh.aparc.DKTatlas.mapped.annot, rh.aparc.DKTatlas.mapped.annot| surface      | annotation file for cortical parcellations, mapped from ASEGDKT segmentation to the surface|
+| stats       | aseg.stats                    | surface      | table of cortical and subcortical segmentation statistics after running the surface module|
+| stats       | lh.aparc.DKTatlas.mapped.stats, rh.aparc.DKTatlas.mapped.stats| surface      | table of cortical parcellation statistics, mapped from ASEGDKT segmentation to the surface|
+| stats       | lh.curv.stats, rh.curv.stats  | surface      | table of curvature statistics|
+| stats       | wmparc.DKTatlas.mapped.stats  | surface      | table of white matter segmentation statistics|
+| scripts     | recon-all.log                 | surface      | logfile|
+
 
 ## System Requirements
 
