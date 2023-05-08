@@ -31,7 +31,7 @@ from FastSurferCNN.utils.parser_defaults import add_arguments
 from FastSurferCNN.utils.arg_types import (int_gt_zero as patch_size, int_ge_zero as id_type,
                                            float_gt_zero_and_le_one as robust_threshold)
 
-USAGE = "seg_stats  -norm <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments]"
+USAGE = "python seg_stats.py  -norm <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments]"
 DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
 
 HELPTEXT = """/keeplinebreaks/
@@ -130,6 +130,8 @@ def loadfile_full(file: str, name: str) \
 
 def main(args):
     import os
+    import time
+    start = time.perf_counter_ns()
     from FastSurferCNN.utils.common import assert_no_root
     getattr(args, "allow_root", False) or assert_no_root()
 
@@ -215,10 +217,15 @@ def main(args):
         lines.append(f'SUBJECTS_DIR {getattr(args, "in_dir")}')
     if getattr(args, 'sid', None):
         lines.append(f'subjectname {getattr(args, "sid")}')
+    lines.append("compatibility with freesurfer's mri_segstats: " +
+                 ("legacy" if kwargs["legacy_freesurfer"] else "fixed"))
 
     write_statsfile(args.segstatsfile, dataframe,
                     exclude=exclude, vox_vol=kwargs["vox_vol"], segfile=args.segfile,
                     normfile=args.normfile, lut=getattr(args, "lut", None), extra_header=lines)
+    print(f"Partial volume stats for {dataframe.shape[0]} labels written to {args.segstatsfile}.")
+    duration = (time.perf_counter_ns() - start) / 1e9
+    print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
     return 0
 
 
@@ -468,21 +475,24 @@ def uniform_filter(arr: _ArrayType, filter_size: int,
 @overload
 def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType], patch_size: int = 32,
             vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: False = False) -> List[PVStats]:
+            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: False = False,
+            legacy_freesurfer: bool = False) -> List[PVStats]:
     ...
 
 
 @overload
 def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType],
             patch_size: int = 32, vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: True = True) \
+            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: True = True,
+            legacy_freesurfer: bool = False) \
         -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
     ...
 
 
 def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType],
             patch_size: int = 32, vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: bool = False) \
+            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: bool = False,
+            legacy_freesurfer: bool = False) \
         -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
     """Function to compute volume effects.
 
@@ -500,6 +510,9 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         threads: Number of parallel threads to use in calculation (default: -1, one per hardware thread; 0 deactivates
             parallelism).
         return_maps: returns a dictionary containing the computed maps.
+        legacy_freesurfer: whether to use a freesurfer legacy compatibility mode to exactly replicate freesurfer's
+            mri_segstats results instead of the inconsistency between face-neighborhood and vertex neighborhood
+            (default: off = False).
 
     Returns:
         Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, StructName, normMean, normStdDev,
@@ -583,14 +596,15 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         # iterate through patches of the image
         patch_iters = [range(slice_.start, slice_.stop, patch_size) for slice_ in global_crop]  # for 3D
 
-        map_kwargs["chunksize"] = np.ceil(len(voxel_counts) / cpu_count() / 4)  # 4 chunks per core
+        map_kwargs["chunksize"] = int(np.ceil(len(voxel_counts) / cpu_count() / 4))  # 4 chunks per core
         _patches = pool.map(partial(patch_filter, mask=border, global_crop=global_crop, patch_size=patch_size),
                             product(*patch_iters), **map_kwargs)
         patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
 
         for vols in pool.map(partial(pv_calc_patch, global_crop=global_crop, loc_border=loc_border, border=border,
                                      seg=seg, norm=norm, full_nbr_label=full_nbr_label, full_seg_mean=full_seg_mean,
-                                     full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps),
+                                     full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps,
+                                     legacy_freesurfer=legacy_freesurfer),
                              patches, **map_kwargs):
             for lab in volumes.keys():
                 volumes[lab] += vols.get(lab, 0.) * vox_vol
