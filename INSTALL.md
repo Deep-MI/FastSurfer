@@ -236,10 +236,10 @@ In order to run FastSurfer on your Windows system using docker make sure that yo
 
 installed and running.
 
-After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on dockerhub what version tag is most recent for cpu):
+After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on [dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) what version tag is most recent for cpu):
 
 ```bash
-docker pull deepmi/fastsurfer:cpu-v2.0.0
+docker pull deepmi/fastsurfer:cpu-v2.0.4
 ```
 
 Now you can run Fastsurfer the same way as described in our [README](README.md#example-1--fastsurfer-docker) for the CPU build, for example:
