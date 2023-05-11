@@ -115,9 +115,19 @@ def make_arguments() -> argparse.ArgumentParser:
                           help="Patch size to use in calculating the partial volumes (default: 32).")
     advanced.add_argument('--empty', action='store_true', dest='empty',
                           help="Keep ids for the table that do not exist in the segmentation (default: drop).")
+    advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
     advanced.add_argument('--legacy_freesurfer', action='store_true', dest='legacy_freesurfer',
                           help="Reproduce FreeSurfer mri_segstats numbers (default: off).")
-    advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
+    advanced.add_argument('--mixing_coeff', type=str, dest='mix_coeff', default='',
+                          help="Save the mixing coefficients (default: off).")
+    advanced.add_argument('--alternate_labels', type=str, dest='nbr', default='',
+                          help="Save the alternate labels (default: off).")
+    advanced.add_argument('--alternate_mixing_coeff', type=str, dest='nbr_mix_coeff', default='',
+                          help="Save the alternate labels' mixing coefficients (default: off).")
+    advanced.add_argument('--seg_means', type=str, dest='seg_means', default='',
+                          help="Save the segmentation labels' means (default: off).")
+    advanced.add_argument('--alternate_means', type=str, dest='nbr_means', default='',
+                          help="Save the alternate labels' means (default: off).")
     return parser
 
 
@@ -195,13 +205,35 @@ def main(args):
         "vox_vol": np.prod(seg.header.get_zooms()).item(),
         "robust_percentage": getattr(args, 'robust', None),
         "threads": threads,
-        "legacy_freesurfer": bool(getattr(args, 'legacy_freesurfer', False))
+        "legacy_freesurfer": bool(getattr(args, 'legacy_freesurfer', False)),
+        "patch_size": args.patch_size
     }
 
     if args.merged_labels is not None and len(args.merged_labels) > 0:
         kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
 
-    table: List[PVStats] = pv_calc(seg_data, norm_data, labels, patch_size=args.patch_size, **kwargs)
+    names = ['nbr', 'nbr_mean', 'seg_mean', 'mix_coeff', 'nbr_mix_coeff']
+    var_names = ['nbr', 'nbrmean', 'segmean', 'pv', 'ipv']
+    dtypes = [np.int16] + [np.float32] * 4
+    if any(getattr(args, n, '') != '' for n in names):
+        table, maps = pv_calc(seg_data, norm_data, labels, return_maps=True, **kwargs)
+
+        for n, v, dtype in zip(names, var_names, dtypes):
+            file = getattr(args, n, '')
+            if file == '':
+                continue
+            try:
+                print(f'Saving {n} to {file}')
+                from FastSurferCNN.data_loader.data_utils import save_image
+                _header = seg.header.copy()
+                _header.set_data_dtype(dtype)
+                save_image(_header, seg.affine, maps[v], file, dtype)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+
+    else:
+        table: List[PVStats] = pv_calc(seg_data, norm_data, labels, **kwargs)
 
     if lut is not None:
         for i in range(len(table)):
@@ -323,7 +355,7 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
         for i, col in enumerate(dataframe.columns):
             for v, name in zip((col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA")),
                                ("ColHeader", "FieldName", "Units    ")):
-                fp.write(f"# {i+1: 2d} {name} {v}\n")
+                fp.write(f"# TableCol {i+1: 2d} {name} {v}\n")
         fp.write(f"# NRows {len(dataframe)}\n"
                  f"# NTableCols {len(dataframe.columns)}\n")
         fp.write("# ColHeaders  " + " ".join(dataframe.columns) + "\n")
