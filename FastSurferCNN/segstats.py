@@ -212,7 +212,7 @@ def main(args):
     if args.merged_labels is not None and len(args.merged_labels) > 0:
         kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
 
-    names = ['nbr', 'nbr_mean', 'seg_mean', 'mix_coeff', 'nbr_mix_coeff']
+    names = ['nbr', 'nbr_means', 'seg_means', 'mix_coeff', 'nbr_mix_coeff']
     var_names = ['nbr', 'nbrmean', 'segmean', 'pv', 'ipv']
     dtypes = [np.int16] + [np.float32] * 4
     if any(getattr(args, n, '') != '' for n in names):
@@ -771,7 +771,7 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
             _patch_size = 0
         _patch.append(slice(p, p + _patch_size))
 
-    out_patch = [slice(_p.start + p.start, p.start + _p.stop) for _p, p in zip(_patch, patch)]
+    out_patch = patch # [slice(_p.start + p.start, p.start + _p.stop) for _p, p in zip(_patch, patch)]
     return _patch[0].start != _patch[0].stop, out_patch
 
 
@@ -816,7 +816,7 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     pat1d_norm, pat1d_seg = norm[patch][pat_border], seg[patch][pat_border]
     pat1d_label_counts = pat_label_counts[:, pat_border]
     # both sums and counts are normalized by n-hood-size**3, so the output is not anymore
-    pat1d_label_means = (pat_label_sums[:, pat_border] / np.maximum(pat1d_label_counts, eps)).round(log_eps)  # float
+    pat1d_label_means = (pat_label_sums[:, pat_border] / np.maximum(pat1d_label_counts, eps * 0.0003)).round(log_eps + 4)  # float
 
     # get the mean label intensity of the "local label"
     mean_label = np.take_along_axis(pat1d_label_means, unsqueeze(label_lookup_fwd[pat1d_seg], 0), axis=0)[0]
