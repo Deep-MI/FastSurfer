@@ -1,5 +1,7 @@
 ARG DEVICE=cuda
 ARG FREESURFER=pruned
+ARG IMAGE_FREESURFER=ubuntu:22.04
+ARG IMAGE_CONDA=ubuntu:22.04
 
 ## Start with ubuntu base to build the conda base stage
 FROM ubuntu:22.04 AS build_conda_base
@@ -78,6 +80,10 @@ FROM build_conda_common AS build_conda_amd
 
 ENV DEVICE=amd
 
+# create a reference to an external conda build image
+FROM $IMAGE_CONDA AS build_conda_external
+# this image should already have defined the DEVICE flag!
+
 
 # create a stage for pruned Freesurfer
 FROM build_conda_base AS build_fs_pruned
@@ -92,19 +98,21 @@ RUN /fastsurfer/install_fs_pruned.sh /opt --upx && \
     ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
 
 
-# create a stage for no Freesurfer
-FROM ubuntu:22.04 AS build_fs_none
+# create a reference for no Freesurfer or a reference for an external freesurfer build image
+FROM $IMAGE_FREESURFER AS build_fs_external
 
-# create an empty freesurfer directory
-RUN mkdir /opt/freesurfer && echo "FreeSurfer is not installed in this Docker image" >> /opt/freesurfer/NOT_INSTALLED.md
+FROM build_fs_external AS build_fs_none
+# create an empty freesurfer directory, if it did not exist
+RUN if [ ! -d /opt/freesurfer ]; then ; mkdir /opt/freesurfer && echo "FreeSurfer is not installed in this Docker image" >> /opt/freesurfer/NOT_INSTALLED.md; fi
 
 # ========================================
 # Here we define base devices for different settings for DEVICE
 # ========================================
 
-FROM ubuntu:22.04 AS base_cuda
-FROM ubuntu:22.04 AS base_cpu
-FROM ubuntu:22.04 AS base_none
+FROM $IMAGE_CONDA AS base_cuda
+FROM $IMAGE_CONDA AS base_cpu
+FROM $IMAGE_CONDA AS base_none
+FROM $IMAGE_CONDA AS base_external
 
 ## Start the amd image with rocm/pytorch latest
 FROM rocm/pytorch AS base_amd
