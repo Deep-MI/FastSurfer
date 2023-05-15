@@ -1,3 +1,18 @@
+
+# DOCUMENTATION FOR BUILD ARGS (use '--build-arg DEVICE=<VALUE>'):
+# Selection of the base image, with driver support
+# - DEVICE:
+# - Options:
+#   - cuda: support for nvidia cuda acceleration, uses IMAGE_CONDA to in
+#   - amd: support for amd rocm acceleration, always uses
+#   - none/external/cpu:
+
+# DOCUMENTATION FOR TARGETS (use '--target <VALUE>'):
+# To select which imaged will be tagged with '-t'
+# - runtime:
+#
+
+
 ARG DEVICE=cuda
 ARG FREESURFER=pruned
 ARG IMAGE_FREESURFER=ubuntu:22.04
@@ -111,7 +126,6 @@ RUN if [ ! -d /opt/freesurfer ]; then ; mkdir /opt/freesurfer && echo "FreeSurfe
 
 FROM $IMAGE_CONDA AS base_cuda
 FROM $IMAGE_CONDA AS base_cpu
-FROM $IMAGE_CONDA AS base_none
 FROM $IMAGE_CONDA AS base_external
 
 ## Start the amd image with rocm/pytorch latest
@@ -172,14 +186,14 @@ COPY . /fastsurfer/
 # Download all remote network checkpoints already and compile all FastSurfer scripts into bytecode
 ENV PYTHONPATH=/fastsurfer:$PYTHONPATH
 RUN cd /fastsurfer ; \
-  if [ "$DEVICE" != "none" ]; then ; python3 FastSurferCNN/download_checkpoints.py --all ; fi ; \
-  python3 -m compileall *
+  if [ "$DEVICE" != "none" ]; then python3 FastSurferCNN/download_checkpoints.py --all ; fi
+RUN cd /fastsurfer ; python3 -m compileall *
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
 WORKDIR "/fastsurfer"
 ENV FASTSURFER_HOME=/fastsurfer
-ENTRYPOINT ["./Docker/entrypoint.sh","./run_fastsurfer.sh"]
+# ENTRYPOINT ["./Docker/entrypoint.sh","./run_fastsurfer.sh"]
 CMD ["--help"]
 
 # special settings for the surfaces only image
