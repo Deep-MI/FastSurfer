@@ -85,15 +85,17 @@ class H5pyDataset:
 
     def transform(self, imgs, zoom):
 
-        for i in range(len(imgs)):
-            if self.plane == "sagittal":
+
+          if self.plane == "sagittal":
+            for i in range(len(imgs)):
                 imgs[i] = transform_sagittal(imgs[i])
-                zooms = zoom[::-1][:2]
-            elif self.plane == "axial":
-                imgs[i] = transform_axial(imgs[i])
-                zooms = zoom[1:]
-            else:
-                zooms = zoom[:2]
+              zooms = zoom[::-1][:2]
+          elif self.plane == "axial":
+            for i in range(len(imgs)):
+              imgs[i] = transform_axial(imgs[i])
+            zooms = zoom[1:]
+          else:
+              zooms = zoom[:2]
         return imgs, zooms
 
     def _pad_image(self, img, max_out):
