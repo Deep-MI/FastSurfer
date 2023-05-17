@@ -3,6 +3,7 @@ import datetime
 import dateutil.parser
 import argparse
 import yaml
+import locale
 
 
 def get_recon_all_stage_duration(line, previous_datetime_str):
