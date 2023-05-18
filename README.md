@@ -307,7 +307,9 @@ docker run --gpus all -v $datadir:/data \
                       --main_segfile /ouput/subject1/aparc.DKTatlas+aseg.deep.mgz \
                       --conformed_name $ouputdir/subject1/conformed.mgz \
                       --parallel --threads 4 --seg_only
-                      
+```
+
+```bash                      
 # Docker - segmentation and statistics (fs-license required)
 docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
