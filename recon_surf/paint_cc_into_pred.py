@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,16 +45,29 @@ def argument_parse():
     Command line option parser for reduce_to_aseg.py
     """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
-    parser.add_argument('--input_cc', '-in_cc', dest='input_cc',
-                        help="path to input segmentation with Corpus Callosum (IDs 251-255 in FreeSurfer space)")
-    parser.add_argument('--input_pred', '-in_pred', dest='input_pred',
-                        help="path to input segmentation Corpus Callosum should be added to.")
-    parser.add_argument('--output', '-out', dest='output', help="path to output (input segmentation + added CC)")
+    parser.add_argument(
+        "--input_cc",
+        "-in_cc",
+        dest="input_cc",
+        help="path to input segmentation with Corpus Callosum (IDs 251-255 in FreeSurfer space)",
+    )
+    parser.add_argument(
+        "--input_pred",
+        "-in_pred",
+        dest="input_pred",
+        help="path to input segmentation Corpus Callosum should be added to.",
+    )
+    parser.add_argument(
+        "--output",
+        "-out",
+        dest="output",
+        help="path to output (input segmentation + added CC)",
+    )
 
     args = parser.parse_args()
 
     if args.input_cc is None or args.input_pred is None or args.output is None:
-        sys.exit('ERROR: Please specify input and output segmentations')
+        sys.exit("ERROR: Please specify input and output segmentations")
 
     return args
 
@@ -83,7 +95,7 @@ if __name__ == "__main__":
     prediction = nib.load(options.input_pred)
     pred_with_cc = paint_in_cc(np.asanyarray(prediction.dataobj), aseg_image)
 
-    print ("Writing segmentation with corpus callosum to: {}".format(options.output))
+    print("Writing segmentation with corpus callosum to: {}".format(options.output))
     pred_with_cc_fin = nib.MGHImage(pred_with_cc, prediction.affine, prediction.header)
     pred_with_cc_fin.to_filename(options.output)
 

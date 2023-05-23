@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +59,9 @@ class DiceLoss(_Loss):
             denominator[mask] = 0
 
         denominator = denominator.sum(0).sum(1).sum(1) + eps
-        loss_per_channel = weights * (1 - (numerator / denominator))  # Channel-wise weights
+        loss_per_channel = weights * (
+            1 - (numerator / denominator)
+        )  # Channel-wise weights
 
         return loss_per_channel.sum() / output.size(1)
 
@@ -70,10 +71,12 @@ class CrossEntropy2D(nn.Module):
     2D Cross-entropy loss implemented as negative log likelihood
     """
 
-    def __init__(self, weight=None, reduction='none'):
+    def __init__(self, weight=None, reduction="none"):
         super(CrossEntropy2D, self).__init__()
         self.nll_loss = nn.CrossEntropyLoss(weight=weight, reduction=reduction)
-        print(f"Initialized {self.__class__.__name__} with weight: {weight} and reduction: {reduction}")
+        print(
+            f"Initialized {self.__class__.__name__} with weight: {weight} and reduction: {reduction}"
+        )
 
     def forward(self, inputs, targets):
         return self.nll_loss(inputs, targets)
@@ -105,19 +108,24 @@ class CombinedLoss(nn.Module):
 
         input_soft = F.softmax(inputx, dim=1)  # Along Class Dimension
         dice_val = torch.mean(self.dice_loss(input_soft, target))
-        ce_val = torch.mean(torch.mul(self.cross_entropy_loss.forward(inputx, target), weight))
-        total_loss = torch.add(torch.mul(dice_val, self.weight_dice), torch.mul(ce_val, self.weight_ce))
+        ce_val = torch.mean(
+            torch.mul(self.cross_entropy_loss.forward(inputx, target), weight)
+        )
+        total_loss = torch.add(
+            torch.mul(dice_val, self.weight_dice), torch.mul(ce_val, self.weight_ce)
+        )
 
         return total_loss, dice_val, ce_val
 
 
 def get_loss_func(cfg):
-    if cfg.MODEL.LOSS_FUNC == 'combined':
+    if cfg.MODEL.LOSS_FUNC == "combined":
         return CombinedLoss()
-    elif cfg.MODEL.LOSS_FUNC == 'ce':
+    elif cfg.MODEL.LOSS_FUNC == "ce":
         return CrossEntropy2D()
     elif cfg.MODEL.LOSS_FUNC == "dice":
         return DiceLoss()
     else:
-        raise NotImplementedError(f"{cfg.MODEL.LOSS_FUNC}"
-                                  f" loss function is not supported")
+        raise NotImplementedError(
+            f"{cfg.MODEL.LOSS_FUNC}" f" loss function is not supported"
+        )

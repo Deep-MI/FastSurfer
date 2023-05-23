@@ -75,7 +75,7 @@ _C.TRAIN.ENABLE = True
 _C.TRAIN.DEV_MODE = False
 
 
-# DO an eval loop for debugging 
+# DO an eval loop for debugging
 _C.TRAIN.EVAL = False
 
 # input batch size for training
@@ -181,10 +181,10 @@ _C.TEST.SAGITTAL_CHECKPOINT_PATH = ""
 _C.TEST.PREDICTION_OUT_FILENAME = "CerebNet_Pred.nii.gz"
 
 # path to folder of subjects
-_C.TEST.DATA_PATH = ''
+_C.TEST.DATA_PATH = ""
 
 # full path to csv file with list of subjects
-_C.TEST.SUBJECT_CSV_PATH = ''
+_C.TEST.SUBJECT_CSV_PATH = ""
 
 # split number in cross-validation
 _C.TEST.SPLIT_NUM = 1

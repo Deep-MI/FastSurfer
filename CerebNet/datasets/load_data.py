@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,15 +28,17 @@ class SubjectLoader:
         self.cfg = cfg
         self.patch_size = cfg.PATCH_SIZE
         # dictionary of subject ids to a list of warp dirs
-        self.aux_subjects_path = {} if aux_subjects_files is None else aux_subjects_files
-        self.label_mapping = partial(utils.map_subseg2label,
-                                     label_type='cereb_subseg')
+        self.aux_subjects_path = (
+            {} if aux_subjects_files is None else aux_subjects_files
+        )
+        self.label_mapping = partial(utils.map_subseg2label, label_type="cereb_subseg")
 
-    def _process_segm_volumes(self,
-                              seg_map,
-                              label_map_func,
-                              plane_transform=None,
-                              ):
+    def _process_segm_volumes(
+        self,
+        seg_map,
+        label_map_func,
+        plane_transform=None,
+    ):
         """
 
         :param seg_map:
@@ -57,21 +58,21 @@ class SubjectLoader:
 
         img_meta_data = {}
         orig, _ = utils.load_reorient_rescale_image(orig_path)
-        print('Orig image {}'.format(orig_path))
+        print("Orig image {}".format(orig_path))
 
-        print('Loading from {}'.format(subseg_path))
+        print("Loading from {}".format(subseg_path))
         subseg_file = utils.load_reorient(subseg_path)
         cereb_subseg = np.asarray(subseg_file.get_fdata(), dtype=np.int16)
-        img_meta_data['affine'] = subseg_file.affine
-        img_meta_data['header'] = subseg_file.header
+        img_meta_data["affine"] = subseg_file.affine
+        img_meta_data["header"] = subseg_file.header
 
         if store_talairach:
             tala_path = join(subject_path, "transforms/talairach.xfm.lta")
             if isfile(tala_path):
-                talairach_coordinates = utils.load_talairach_coordinates(tala_path,
-                                                                         subseg_file.shape,
-                                                                         subseg_file.affine)
-                img_meta_data['talairach_coordinates'] = talairach_coordinates
+                talairach_coordinates = utils.load_talairach_coordinates(
+                    tala_path, subseg_file.shape, subseg_file.affine
+                )
+                img_meta_data["talairach_coordinates"] = talairach_coordinates
 
         return orig, cereb_subseg, img_meta_data
 
@@ -85,21 +86,23 @@ class SubjectLoader:
         subject_path = join(self.cfg.DATA_DIR, current_subject)
         orig, cereb_subseg, meta_data = self._load_volumes(subject_path)
         roi = utils.bounding_volume(cereb_subseg, self.patch_size)
-        orig, unpad_border = utils.map_size(orig[roi], self.patch_size, return_border=True)
+        orig, unpad_border = utils.map_size(
+            orig[roi], self.patch_size, return_border=True
+        )
         subseg_cereb = utils.map_size(cereb_subseg[roi], self.patch_size)
-        meta_data['unpad_border'] = unpad_border
-        meta_data['bounding_vol'] = roi
+        meta_data["unpad_border"] = unpad_border
+        meta_data["bounding_vol"] = roi
         # subseg_cereb = self._process_segm_volumes(cereb_subseg, self.label_mapping)
-        processed_data['label'] = subseg_cereb
+        processed_data["label"] = subseg_cereb
         orig = orig[None, ...]
-        for plane in ['axial', 'coronal', 'sagittal']:
+        for plane in ["axial", "coronal", "sagittal"]:
             plane_transform = get_plane_transform(plane, self.cfg.PRIMARY_SLICE_DIR)
             orig_in_plane = plane_transform(orig)
             orig_in_plane = np.transpose(orig_in_plane, (0, 3, 1, 2))
             thick_slices = utils.get_thick_slices(orig_in_plane, self.cfg.THICKNESS)
             processed_data["image"][plane] = np.squeeze(thick_slices)
 
-        processed_data['meta'] = meta_data
+        processed_data["meta"] = meta_data
 
         return processed_data
 
@@ -129,7 +132,7 @@ class SubjectLoader:
                     pad_width.append((low, high))
 
                 pad_width.append((0, 0))
-                talairach = np.pad(talairach, pad_width, mode='edge')
+                talairach = np.pad(talairach, pad_width, mode="edge")
 
         return img, label, talairach
 
@@ -142,23 +145,23 @@ class SubjectLoader:
         Returns:
             dictionary with list of warped images and labels
         """
-        aux_data = {"auxiliary_img": [],
-                    "auxiliary_lbl": []}
+        aux_data = {"auxiliary_img": [], "auxiliary_lbl": []}
         for t1_path, lbl_path in aux_subjects_path:
-            aux_data['auxiliary_img'].append(np.array(utils.load_reorient(t1_path).get_fdata()))
-            lbl_data = np.array(utils.load_reorient(lbl_path).get_fdata(), dtype=np.int16)
+            aux_data["auxiliary_img"].append(
+                np.array(utils.load_reorient(t1_path).get_fdata())
+            )
+            lbl_data = np.array(
+                utils.load_reorient(lbl_path).get_fdata(), dtype=np.int16
+            )
             lbl_data = self.label_mapping(lbl_data)
-            aux_data['auxiliary_lbl'].append(lbl_data)
+            aux_data["auxiliary_lbl"].append(lbl_data)
 
-        if len(aux_data['auxiliary_img']) > 0:
-            aux_data['auxiliary_img'] = np.stack(aux_data['auxiliary_img'], axis=0)
-            aux_data['auxiliary_lbl'] = np.stack(aux_data['auxiliary_lbl'], axis=0)
+        if len(aux_data["auxiliary_img"]) > 0:
+            aux_data["auxiliary_img"] = np.stack(aux_data["auxiliary_img"], axis=0)
+            aux_data["auxiliary_lbl"] = np.stack(aux_data["auxiliary_lbl"], axis=0)
         return aux_data
 
-    def load_subject(self,
-                     current_subject,
-                     store_talairach=False,
-                     load_aux_data=False):
+    def load_subject(self, current_subject, store_talairach=False, load_aux_data=False):
         """
         Loads and process the subject and return data in a dictionary
         :param current_subject: subject ID
@@ -168,18 +171,23 @@ class SubjectLoader:
         """
         in_data = {}
         subject_path = join(self.cfg.DATA_DIR, current_subject)
-        orig, cereb_subseg, meta_data = self._load_volumes(subject_path, store_talairach)
+        orig, cereb_subseg, meta_data = self._load_volumes(
+            subject_path, store_talairach
+        )
         aux_data = {}
         if load_aux_data:
-            aux_data = self._load_auxiliary_data(self.aux_subjects_path[current_subject])
+            aux_data = self._load_auxiliary_data(
+                self.aux_subjects_path[current_subject]
+            )
 
-        orig, cereb_subseg, talairach = self._get_roi_extracted_data(orig, cereb_subseg,
-                                                                     meta_data.get('talairach_coordinates'))
+        orig, cereb_subseg, talairach = self._get_roi_extracted_data(
+            orig, cereb_subseg, meta_data.get("talairach_coordinates")
+        )
         in_data["img"] = orig[None, ...]
 
         if talairach is not None:
             in_data["talairach"] = talairach[None, ...]
         in_data.update(aux_data)
         subseg_cereb = self._process_segm_volumes(cereb_subseg, self.label_mapping)
-        in_data['label'] = subseg_cereb[None, ...]
+        in_data["label"] = subseg_cereb[None, ...]
         return in_data

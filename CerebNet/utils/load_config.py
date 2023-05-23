@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +23,7 @@ from CerebNet.utils.checkpoint import CEREBNET_AXI, CEREBNET_SAG, CEREBNET_COR
 from CerebNet.config import get_cfg_cerebnet
 
 
-def get_config(args) -> 'yacs.CfgNode':
+def get_config(args) -> "yacs.CfgNode":
     """
     Given the arguments, load and initialize the config_files.
 
@@ -57,10 +56,20 @@ def get_config(args) -> 'yacs.CfgNode':
         cfg.LOG_DIR = join(cfg.LOG_DIR, cfg_file_name)
 
     # populate default paths for the checkpoints
-    default_paths = [("ax_ckpt", CEREBNET_AXI), ("sag_ckpt", CEREBNET_SAG), ("cor_ckpt", CEREBNET_COR)]
-    path_ax, path_sag, path_cor = [getattr(args, name, default_path) for name, default_path in default_paths]
+    default_paths = [
+        ("ax_ckpt", CEREBNET_AXI),
+        ("sag_ckpt", CEREBNET_SAG),
+        ("cor_ckpt", CEREBNET_COR),
+    ]
+    path_ax, path_sag, path_cor = [
+        getattr(args, name, default_path) for name, default_path in default_paths
+    ]
 
-    for plane, path in [("axial", path_ax), ("sagittal", path_sag), ("coronal", path_cor)]:
+    for plane, path in [
+        ("axial", path_ax),
+        ("sagittal", path_sag),
+        ("coronal", path_cor),
+    ]:
         setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", path)
 
     # overwrite the batch size if it is passed as a parameter
@@ -72,7 +81,7 @@ def get_config(args) -> 'yacs.CfgNode':
 
 
 def setup_options():
-    parser = argparse.ArgumentParser(description='Segmentation')
+    parser = argparse.ArgumentParser(description="Segmentation")
     parser.add_argument(
         "--cfg",
         dest="cfg_file",

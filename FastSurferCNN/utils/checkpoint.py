@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +22,7 @@ import torch
 
 from FastSurferCNN.utils import logging
 
-Scheduler = 'torch.optim.lr_scheduler'
+Scheduler = "torch.optim.lr_scheduler"
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
@@ -48,11 +47,15 @@ def create_checkpoint_dir(expr_dir, expr_num):
 
 def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
     """Find the standardizes checkpoint name for the checkpoint in the directory ckpt_dir for the given epoch."""
-    checkpoint_dir = os.path.join(ckpt_dir, 'Epoch_{:05d}_training_state.pkl'.format(epoch))
+    checkpoint_dir = os.path.join(
+        ckpt_dir, "Epoch_{:05d}_training_state.pkl".format(epoch)
+    )
     return checkpoint_dir
 
 
-def get_checkpoint_path(log_dir: str, resume_experiment: Union[str, int, None] = None) -> Optional[MutableSequence[str]]:
+def get_checkpoint_path(
+    log_dir: str, resume_experiment: Union[str, int, None] = None
+) -> Optional[MutableSequence[str]]:
     """Find the paths to checkpoints from the experiment directory.
 
     Args:
@@ -65,16 +68,22 @@ def get_checkpoint_path(log_dir: str, resume_experiment: Union[str, int, None] =
     if resume_experiment == "Default" or resume_experiment is None:
         return None
     checkpoint_path = os.path.join(log_dir, "checkpoints", str(resume_experiment))
-    prior_model_paths = sorted(glob.glob(os.path.join(checkpoint_path, 'Epoch_*')), key=os.path.getmtime)
+    prior_model_paths = sorted(
+        glob.glob(os.path.join(checkpoint_path, "Epoch_*")), key=os.path.getmtime
+    )
     if len(prior_model_paths) == 0:
         return None
     return prior_model_paths
 
 
-def load_from_checkpoint(checkpoint_path: str, model: torch.nn.Module,
-                         optimizer: Optional[torch.optim.Optimizer] = None, scheduler: Optional[Scheduler] = None,
-                         fine_tune: bool = False,
-                         drop_classifier: bool = False):
+def load_from_checkpoint(
+    checkpoint_path: str,
+    model: torch.nn.Module,
+    optimizer: Optional[torch.optim.Optimizer] = None,
+    scheduler: Optional[Scheduler] = None,
+    fine_tune: bool = False,
+    drop_classifier: bool = False,
+):
     """
      Loading the model from the given experiment number
     :param checkpoint_path:
@@ -86,28 +95,38 @@ def load_from_checkpoint(checkpoint_path: str, model: torch.nn.Module,
     :return:
         epoch number
     """
-    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    checkpoint = torch.load(checkpoint_path, map_location="cpu")
 
     if drop_classifier:
-        classifier_conv = ['classifier.conv.weight', 'classifier.conv.bias']
+        classifier_conv = ["classifier.conv.weight", "classifier.conv.bias"]
         for key in classifier_conv:
-            if key in checkpoint['model_state']:
-                del checkpoint['model_state'][key]
+            if key in checkpoint["model_state"]:
+                del checkpoint["model_state"][key]
 
     # if this is a multi-gpu model, get the underlying model
     mod = model.module if hasattr(model, "module") else model
-    mod.load_state_dict(checkpoint['model_state'], strict=not drop_classifier)
+    mod.load_state_dict(checkpoint["model_state"], strict=not drop_classifier)
 
     if not fine_tune:
         if optimizer is not None:
-            optimizer.load_state_dict(checkpoint['optimizer_state'])
+            optimizer.load_state_dict(checkpoint["optimizer_state"])
         if scheduler is not None and "scheduler_state" in checkpoint.keys():
             scheduler.load_state_dict(checkpoint["scheduler_state"])
 
-    return checkpoint['epoch']+1, checkpoint.get('best_metric', None)
+    return checkpoint["epoch"] + 1, checkpoint.get("best_metric", None)
 
 
-def save_checkpoint(checkpoint_dir, epoch, best_metric, num_gpus, cfg, model,  optimizer, scheduler=None, best=False):
+def save_checkpoint(
+    checkpoint_dir,
+    epoch,
+    best_metric,
+    num_gpus,
+    cfg,
+    model,
+    optimizer,
+    scheduler=None,
+    best=False,
+):
     """
         Saving the state of training for resume or fine-tune
     :param checkpoint_dir:
@@ -127,11 +146,11 @@ def save_checkpoint(checkpoint_dir, epoch, best_metric, num_gpus, cfg, model,  o
         "optimizer_state": optimizer.state_dict(),
         "epoch": epoch,
         "best_metric": best_metric,
-        "config": cfg.dump()
+        "config": cfg.dump(),
     }
 
     if scheduler is not None:
-        checkpoint['scheduler_state'] = scheduler.state_dict()
+        checkpoint["scheduler_state"] = scheduler.state_dict()
 
     torch.save(checkpoint, checkpoint_dir + "/" + save_name)
 
@@ -161,11 +180,11 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
         # Raise error if file does not exist:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        LOGGER.info('Response code: {}'.format(e.response.status_code))
+        LOGGER.info("Response code: {}".format(e.response.status_code))
         response = requests.get(download_url + "/" + checkpoint_name, verify=False)
         response.raise_for_status()
 
-    with open(checkpoint_path, 'wb') as f:
+    with open(checkpoint_path, "wb") as f:
         f.write(response.content)
 
 
@@ -181,7 +200,7 @@ def check_and_download_ckpts(checkpoint_path, url):
         ckptdir, ckptname = os.path.split(checkpoint_path)
         if not os.path.exists(ckptdir) and ckptdir:
             os.makedirs(ckptdir)
-        download_checkpoint(url, ckptname, checkpoint_path)     
+        download_checkpoint(url, ckptname, checkpoint_path)
 
 
 def get_checkpoints(axi, cor, sag, url=URL):

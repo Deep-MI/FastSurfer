@@ -13,14 +13,14 @@
 # limitations under the License.
 
 __all__ = [
-    'config',
-    'data_loader',
-    'models',
-    'utils',
-    'inference',
-    'quick_qc',
-    'reduce_to_aseg',
-    'run_prediction',
-    'segstats',
-    'train'
+    "config",
+    "data_loader",
+    "models",
+    "utils",
+    "inference",
+    "quick_qc",
+    "reduce_to_aseg",
+    "run_prediction",
+    "segstats",
+    "train",
 ]

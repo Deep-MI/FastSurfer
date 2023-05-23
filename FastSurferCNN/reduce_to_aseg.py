@@ -58,32 +58,36 @@ Date: Jul-24-2018
 
 """
 
-h_input = 'path to input segmentation'
-h_output = 'path to output segmentation'
-h_outmask = 'path to output mask'
-h_fixwm = 'whether to try to flip labels of disconnected WM island to other hemi'
+h_input = "path to input segmentation"
+h_output = "path to output segmentation"
+h_outmask = "path to output mask"
+h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi"
 
 
 def options_parse():
     """
     Command line option parser for reduce_to_aseg.py
     """
-    parser = optparse.OptionParser(version='$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $',
-                                   usage=HELPTEXT)
-    parser.add_option('--input', '-i',  dest='input_seg',   help=h_input)
-    parser.add_option('--output', '-o', dest='output_seg',  help=h_output)
-    parser.add_option('--outmask',      dest='output_mask', help=h_outmask)
-    parser.add_option('--fixwm',        dest='fix_wm',      help=h_fixwm, default=False, action="store_true")
+    parser = optparse.OptionParser(
+        version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
+        usage=HELPTEXT,
+    )
+    parser.add_option("--input", "-i", dest="input_seg", help=h_input)
+    parser.add_option("--output", "-o", dest="output_seg", help=h_output)
+    parser.add_option("--outmask", dest="output_mask", help=h_outmask)
+    parser.add_option(
+        "--fixwm", dest="fix_wm", help=h_fixwm, default=False, action="store_true"
+    )
     (options, args) = parser.parse_args()
 
     if options.input_seg is None or options.output_seg is None:
-        sys.exit('ERROR: Please specify input and output segmentations')
+        sys.exit("ERROR: Please specify input and output segmentations")
 
     return options
 
 
 def reduce_to_aseg(data_inseg):
-    print ("Reducing to aseg ...")
+    print("Reducing to aseg ...")
     # replace 2000... with 42
     data_inseg[data_inseg >= 2000] = 42
     # replace 1000... with 3
@@ -93,7 +97,7 @@ def reduce_to_aseg(data_inseg):
 
 def create_mask(aseg_data, dnum, enum):
 
-    print ("Creating dilated mask ...")
+    print("Creating dilated mask ...")
 
     # treat lateral orbital frontal and parsorbitalis special to avoid capturing too much of eye nerve
     lat_orb_front_mask = np.logical_or(aseg_data == 2012, aseg_data == 1012)
@@ -102,24 +106,24 @@ def create_mask(aseg_data, dnum, enum):
     print("Frontal region special treatment: ", format(np.sum(frontal_mask)))
 
     # reduce to binary
-    datab = (aseg_data > 0)
+    datab = aseg_data > 0
     datab[frontal_mask] = 0
     # dilate and erode
     datab = scipy.ndimage.binary_dilation(datab, np.ones((3, 3, 3)), iterations=dnum)
     datab = scipy.ndimage.binary_erosion(datab, np.ones((3, 3, 3)), iterations=enum)
-    #for x in range(dnum):
+    # for x in range(dnum):
     #    datab = binary_dilation(datab, np.ones((3, 3, 3)))
-    #for x in range(enum):
+    # for x in range(enum):
     #    datab = binary_erosion(datab, np.ones((3, 3, 3)))
 
     # extract largest component
     labels = label(datab)
-    assert (labels.max() != 0)  # assume at least 1 real connected component
+    assert labels.max() != 0  # assume at least 1 real connected component
     print("  Found {} connected component(s)!".format(labels.max()))
 
     if labels.max() > 1:
         print("  Selecting largest component!")
-        datab = (labels == np.argmax(np.bincount(labels.flat)[1:]) + 1)
+        datab = labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
     # add frontal regions back to mask
     datab[frontal_mask] = 1
@@ -131,33 +135,33 @@ def create_mask(aseg_data, dnum, enum):
 
 
 def flip_wm_islands(aseg_data):
-# Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
-# These are usually islands, not connected to the main hemi WM component
-# Here we decide to flip assignment based on proximity to other WM and GM labels
+    # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
+    # These are usually islands, not connected to the main hemi WM component
+    # Here we decide to flip assignment based on proximity to other WM and GM labels
 
-    #label ids
+    # label ids
     lh_wm = 2
     lh_gm = 3
     rh_wm = 41
     rh_gm = 42
 
     # for lh get largest component and islands
-    mask = (aseg_data == lh_wm)
+    mask = aseg_data == lh_wm
     labels = label(mask, background=0)
-    assert( labels.max() != 0 ) # assume at least 1 connected component
+    assert labels.max() != 0  # assume at least 1 connected component
     bc = np.bincount(labels.flat)[1:]
-    largestID = np.argmax(bc)+1
-    largestCC = (labels == largestID)
-    lh_islands = ( ~ largestCC) & (labels > 0)
+    largestID = np.argmax(bc) + 1
+    largestCC = labels == largestID
+    lh_islands = (~largestCC) & (labels > 0)
 
     # same for rh
-    mask = (aseg_data == rh_wm)
+    mask = aseg_data == rh_wm
     labels = label(mask, background=0)
-    assert( labels.max() != 0 ) # assume at least 1 CC
+    assert labels.max() != 0  # assume at least 1 CC
     bc = np.bincount(labels.flat)[1:]
-    largestID = np.argmax(bc)+1
+    largestID = np.argmax(bc) + 1
     largestCC = labels == largestID
-    rh_islands = (labels != largestID ) & (labels > 0)
+    rh_islands = (labels != largestID) & (labels > 0)
 
     # get signed probability for lh and rh (by smoothing joined GM+WM labels)
     lhmask = (aseg_data == lh_wm) | (aseg_data == lh_gm)
@@ -170,7 +174,7 @@ def flip_wm_islands(aseg_data):
     flip_data = aseg_data.copy()
     flip_data[rhswap] = lh_wm
     flip_data[lhswap] = rh_wm
-    print("FlipWM: rh {} and lh {} flipped.".format(rhswap.sum(),lhswap.sum()))
+    print("FlipWM: rh {} and lh {} flipped.".format(rhswap.sum(), lhswap.sum()))
 
     return flip_data
 
@@ -191,7 +195,7 @@ if __name__ == "__main__":
     # get mask
     if options.output_mask:
         bm = create_mask(copy.deepcopy(inseg_data), 5, 4)
-        print ("Outputting mask: {}".format(options.output_mask))
+        print("Outputting mask: {}".format(options.output_mask))
         mask = nib.MGHImage(bm, inseg_affine, inseg_header)
         mask.to_filename(options.output_mask)
 
@@ -205,7 +209,7 @@ if __name__ == "__main__":
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
 
-    print ("Outputting aseg: {}".format(options.output_seg))
+    print("Outputting aseg: {}".format(options.output_seg))
     aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
     aseg_fin.to_filename(options.output_seg)
 

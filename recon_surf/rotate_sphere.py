@@ -53,62 +53,77 @@ Date: Jun-8-2022
 """
 
 
-# In the future, maybe add a way to specify what labels to align as a list or 
-# txt file to pass to the routine. 
+# In the future, maybe add a way to specify what labels to align as a list or
+# txt file to pass to the routine.
 # Also add output as LTA instead of registration angles.
 
-h_srcsphere = 'path to src ?h.sphere'
-h_srcaparc  = 'path to src corresponding cortical parcellation'
-h_trgsphere = 'path to trg ?h.sphere'
-h_trgaparc  = 'path to trg corresponding cortical parcellation'
-h_out       = 'path to output txt files for angles'
+h_srcsphere = "path to src ?h.sphere"
+h_srcaparc = "path to src corresponding cortical parcellation"
+h_trgsphere = "path to trg ?h.sphere"
+h_trgaparc = "path to trg corresponding cortical parcellation"
+h_out = "path to output txt files for angles"
+
 
 def options_parse():
     """
     Command line option parser
     """
-    parser = optparse.OptionParser(version='$Id: rotate_sphere.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $', usage=HELPTEXT)
-    parser.add_option('--srcsphere', dest='srcsphere', help=h_srcsphere)
-    parser.add_option('--srcaparc',  dest='srcaparc',  help=h_srcaparc)
-    parser.add_option('--trgsphere', dest='trgsphere', help=h_trgsphere)
-    parser.add_option('--trgaparc',  dest='trgaparc',  help=h_trgaparc)
-    parser.add_option('--out',       dest='out',       help=h_out)
+    parser = optparse.OptionParser(
+        version="$Id: rotate_sphere.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $",
+        usage=HELPTEXT,
+    )
+    parser.add_option("--srcsphere", dest="srcsphere", help=h_srcsphere)
+    parser.add_option("--srcaparc", dest="srcaparc", help=h_srcaparc)
+    parser.add_option("--trgsphere", dest="trgsphere", help=h_trgsphere)
+    parser.add_option("--trgaparc", dest="trgaparc", help=h_trgaparc)
+    parser.add_option("--out", dest="out", help=h_out)
     (options, args) = parser.parse_args()
 
-    if options.srcsphere is None or options.srcaparc is None or options.trgsphere is None or options.trgaparc is None or options.out is None:
-        sys.exit('\nERROR: Please specify src and target sphere and parcellation files as well as output txt file\n   Use --help to see all options.\n')
+    if (
+        options.srcsphere is None
+        or options.srcaparc is None
+        or options.trgsphere is None
+        or options.trgaparc is None
+        or options.out is None
+    ):
+        sys.exit(
+            "\nERROR: Please specify src and target sphere and parcellation files as well as output txt file\n   Use --help to see all options.\n"
+        )
 
     return options
 
 
 def align_aparc_centroids(v_mov, labels_mov, v_dst, labels_dst, label_ids=[]):
-# Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
+    # Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
     # inferiorparietal,inferiortemporal,lateraloccipital,postcentral, posteriorsingulate
     #  precentral, precuneus, superiorfrontal, supramarginal
-    #lids=np.array([8,9,11,22,23,24,25,28,31])
-    #lids=np.array([8,9,22,24,31])
+    # lids=np.array([8,9,11,22,23,24,25,28,31])
+    # lids=np.array([8,9,22,24,31])
     # lids=np.array([8,22,24])
     if not label_ids:
         # use all joint labels except -1 and 0:
-        lids=np.intersect1d(labels_mov,labels_dst)
-        lids=lids[(lids>0)]
+        lids = np.intersect1d(labels_mov, labels_dst)
+        lids = lids[(lids > 0)]
     else:
-        lids=label_ids
+        lids = label_ids
     # compute mean for each label id
-    counter=0
-    centroids_mov=np.empty([lids.size,3])
-    centroids_dst=np.empty([lids.size,3])
+    counter = 0
+    centroids_mov = np.empty([lids.size, 3])
+    centroids_dst = np.empty([lids.size, 3])
     for id in lids:
-        centroids_mov[counter] = np.mean(v_mov[(labels_mov==id),:],axis=0)
-        centroids_dst[counter] = np.mean(v_dst[(labels_dst==id),:],axis=0)
-        counter=counter+1
+        centroids_mov[counter] = np.mean(v_mov[(labels_mov == id), :], axis=0)
+        centroids_dst[counter] = np.mean(v_dst[(labels_dst == id), :], axis=0)
+        counter = counter + 1
     # map back to sphere of radius 100
-    centroids_mov = (100/np.sqrt(np.sum(centroids_mov*centroids_mov,axis=1)))[:, np.newaxis] * centroids_mov
-    centroids_dst = (100/np.sqrt(np.sum(centroids_dst*centroids_dst,axis=1)))[:, np.newaxis] * centroids_dst
+    centroids_mov = (100 / np.sqrt(np.sum(centroids_mov * centroids_mov, axis=1)))[
+        :, np.newaxis
+    ] * centroids_mov
+    centroids_dst = (100 / np.sqrt(np.sum(centroids_dst * centroids_dst, axis=1)))[
+        :, np.newaxis
+    ] * centroids_dst
     # find rotation
-    R = align.find_rotation(centroids_mov, centroids_dst)    
+    R = align.find_rotation(centroids_mov, centroids_dst)
     return R
-
 
 
 if __name__ == "__main__":
@@ -124,7 +139,7 @@ if __name__ == "__main__":
     print("- trg sphere {}".format(options.trgsphere))
     print("- trg aparc: {}".format(options.trgaparc))
     print("- out txt {}".format(options.out))
-    
+
     # read image (only nii supported) and convert to float32
     print("\nreading {}".format(options.srcsphere))
     srcsphere = fs.read_geometry(options.srcsphere, read_metadata=True)
@@ -135,20 +150,15 @@ if __name__ == "__main__":
     print("reading annotation: {} ...".format(options.trgaparc))
     trgaparc = fs.read_annot(options.trgaparc)
 
-    R = align_aparc_centroids(srcsphere[0],srcaparc[0],trgsphere[0],trgaparc[0])
-    alpha,beta,gamma = align.rmat2angles(R)
-    print("\nalpha {:.1f}   beta {:.1f}   gamma {:.1f}\n".format(alpha,beta,gamma))
+    R = align_aparc_centroids(srcsphere[0], srcaparc[0], trgsphere[0], trgaparc[0])
+    alpha, beta, gamma = align.rmat2angles(R)
+    print("\nalpha {:.1f}   beta {:.1f}   gamma {:.1f}\n".format(alpha, beta, gamma))
 
     # write angles
     print("writing: {}".format(options.out))
     f = open(options.out, "w")
-    f.write("{:.1f} {:.1f} {:.1f}\n".format(alpha,beta,gamma))
+    f.write("{:.1f} {:.1f} {:.1f}\n".format(alpha, beta, gamma))
     f.close()
     print("...done\n")
-    
+
     sys.exit(0)
-
-
-
-
-

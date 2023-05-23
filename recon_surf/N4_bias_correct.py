@@ -68,44 +68,55 @@ Original Author: Martin Reuter
 Date: Mar-18-2022
 """
 
-h_invol = 'path to input.nii.gz'
-h_outvol = 'path to corrected.nii.gz'
-h_mask = 'optional: path to mask.nii.gz'
-h_shrink = '<int> shrink factor, default: 4'
-h_levels = '<int> number of fitting levels, default: 4'
-h_numiter = '<int> max number of iterations per level, default: 50'
-h_thres = '<float> convergence threshold, default: 0.0'
-h_skipwm = 'skip normalize WM to 110 (for UCHAR scale)'
-h_tal = '<string> file name of talairach.xfm if using this for finding origin'
-h_threads = '<int> number of threads, default: 1'
+h_invol = "path to input.nii.gz"
+h_outvol = "path to corrected.nii.gz"
+h_mask = "optional: path to mask.nii.gz"
+h_shrink = "<int> shrink factor, default: 4"
+h_levels = "<int> number of fitting levels, default: 4"
+h_numiter = "<int> max number of iterations per level, default: 50"
+h_thres = "<float> convergence threshold, default: 0.0"
+h_skipwm = "skip normalize WM to 110 (for UCHAR scale)"
+h_tal = "<string> file name of talairach.xfm if using this for finding origin"
+h_threads = "<int> number of threads, default: 1"
 
 
 def options_parse():
     """
     Command line option parser
     """
-    parser = optparse.OptionParser(version='$Id: N4_bias_correct.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $',
-                                   usage=HELPTEXT)
-    parser.add_option('--in', dest='invol', help=h_invol)
-    parser.add_option('--out', dest='outvol', help=h_outvol)
-    parser.add_option('--mask', dest='mask', help=h_mask, default=None)
-    parser.add_option('--shrink', dest='shrink', help=h_shrink, default=4, type="int")
-    parser.add_option('--levels', dest='levels', help=h_levels, default=4, type="int")
-    parser.add_option('--numiter', dest='numiter', help=h_numiter, default=50, type="int")
-    parser.add_option('--thres', dest='thres', help=h_thres, default=0.0, type="float")
-    parser.add_option('--skipwm', dest='skipwm', help=h_skipwm, default=False, action="store_true")
-    parser.add_option('--tal', dest='tal', help=h_tal, default=None)
-    parser.add_option('--threads', dest='threads', help=h_threads, default=1, type="int")
+    parser = optparse.OptionParser(
+        version="$Id: N4_bias_correct.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $",
+        usage=HELPTEXT,
+    )
+    parser.add_option("--in", dest="invol", help=h_invol)
+    parser.add_option("--out", dest="outvol", help=h_outvol)
+    parser.add_option("--mask", dest="mask", help=h_mask, default=None)
+    parser.add_option("--shrink", dest="shrink", help=h_shrink, default=4, type="int")
+    parser.add_option("--levels", dest="levels", help=h_levels, default=4, type="int")
+    parser.add_option(
+        "--numiter", dest="numiter", help=h_numiter, default=50, type="int"
+    )
+    parser.add_option("--thres", dest="thres", help=h_thres, default=0.0, type="float")
+    parser.add_option(
+        "--skipwm", dest="skipwm", help=h_skipwm, default=False, action="store_true"
+    )
+    parser.add_option("--tal", dest="tal", help=h_tal, default=None)
+    parser.add_option(
+        "--threads", dest="threads", help=h_threads, default=1, type="int"
+    )
     (options, args) = parser.parse_args()
 
     if options.invol is None or options.outvol is None:
         sys.exit(
-            '\nERROR: Please specify --in input.nii --out output.nii as nifti\n   or use --help to see all options.\n')
+            "\nERROR: Please specify --in input.nii --out output.nii as nifti\n   or use --help to see all options.\n"
+        )
 
     return options
 
 
-def N4correctITK(itkimage, itkmask=None, shrink=4, levels=4, numiter=50, thres=0.0, rescale=True):
+def N4correctITK(
+    itkimage, itkmask=None, shrink=4, levels=4, numiter=50, thres=0.0, rescale=True
+):
     """
     Perform the bias field correction.
 
@@ -158,7 +169,11 @@ def N4correctITK(itkimage, itkmask=None, shrink=4, levels=4, numiter=50, thres=0
         stats.Execute(itkorig)
         m0 = stats.GetMean()
         print("- rescale")
-        print("   mean input: {:.4f} , mean corrected {:.4f} , image rescale: {:.4f}".format(m0, m1, m0 / m1))
+        print(
+            "   mean input: {:.4f} , mean corrected {:.4f} , image rescale: {:.4f}".format(
+                m0, m1, m0 / m1
+            )
+        )
         itkcorrected = itkcorrected * (m0 / m1)
 
     # should already be Float 32
@@ -189,19 +204,21 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
         label_stats.Execute(itkmask)
         # centroid_world = label_stats.GetCenterGravity(1)
         centroid_world = label_stats.GetCentroid(1)
-        #print("centroid physical: {}".format(centroid_world))
-        #centroidf = itkmask.TransformPhysicalPointToContinuousIndex(centroid_world)
-        #print("centroid voxel: {}".format(centroidf))
+        # print("centroid physical: {}".format(centroid_world))
+        # centroidf = itkmask.TransformPhysicalPointToContinuousIndex(centroid_world)
+        # print("centroid voxel: {}".format(centroidf))
         centroid = itkmask.TransformPhysicalPointToIndex(centroid_world)
 
     print("- centroid: {}".format(centroid))
     print("- size: {}".format(itkimage.GetSize()))
-    print("- spacing: "+ ' '.join(format(f, '.2f') for f in itkimage.GetSpacing()))
+    print("- spacing: " + " ".join(format(f, ".2f") for f in itkimage.GetSpacing()))
 
     # distance image
     isize = itkimage.GetSize()
     ispace = itkimage.GetSpacing()
-    zz, yy, xx = np.meshgrid(range(isize[2]), range(isize[1]), range(isize[0]), indexing='ij')
+    zz, yy, xx = np.meshgrid(
+        range(isize[2]), range(isize[1]), range(isize[0]), indexing="ij"
+    )
     xx = ispace[0] * (xx - centroid[0])
     yy = ispace[1] * (yy - centroid[1])
     zz = ispace[2] * (zz - centroid[2])
@@ -213,15 +230,19 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
     if mask_passed:
         ball = ball * sitk.GetArrayFromImage(itkmask)
     # for debugging the ball location and size:
-    #balli = sitk.GetImageFromArray(1.0 * ball)
-    #balli.CopyInformation(itkimage)
-    #sitk.WriteImage(balli, "ball.nii.gz")
+    # balli = sitk.GetImageFromArray(1.0 * ball)
+    # balli.CopyInformation(itkimage)
+    # sitk.WriteImage(balli, "ball.nii.gz")
 
     # get 1 and 90 percentiles of intensities in ball
     mask = np.extract(ball, sitk.GetArrayFromImage(itkimage))
     percentiles = np.percentile(mask, [1, 90])
     percentile01, percentile90 = percentiles.tolist()
-    print("-  1st percentile: {:.2f}\n- 90th percentile: {:.2f}".format(percentile01, percentile90))
+    print(
+        "-  1st percentile: {:.2f}\n- 90th percentile: {:.2f}".format(
+            percentile01, percentile90
+        )
+    )
 
     # compute intensity transformation
     m = (targetWM - 2.55) / (percentile90 - percentile01)
@@ -244,7 +265,7 @@ def readTalairachXFM(fname):
         counter += 1
         firstword = line.split(sep="_", maxsplit=1)[0].lower()
         if firstword == "linear":
-            taltxt = np.char.replace(lines[counter:counter + 3], ';', ' ')
+            taltxt = np.char.replace(lines[counter : counter + 3], ";", " ")
             tal = np.genfromtxt(taltxt)
             tal = np.vstack([tal, [0, 0, 0, 1]])
             # tal = np.loadtxt(fname,skiprows=counter,delimiter=)
@@ -291,7 +312,9 @@ if __name__ == "__main__":
     # read image (only nii supported) and convert to float32
     print("\nreading {}".format(options.invol))
     # itkimage = sitk.ReadImage(options.invol, sitk.sitkFloat32)
-    itkimage, header = iio.readITKimage(options.invol, sitk.sitkFloat32, with_header=True)
+    itkimage, header = iio.readITKimage(
+        options.invol, sitk.sitkFloat32, with_header=True
+    )
 
     # if talaraich is passed
     talorig = None
@@ -307,15 +330,24 @@ if __name__ == "__main__":
 
     # call N4 correct
     print("\nexecuting N4 correction ...")
-    itkcorrected = N4correctITK(itkimage, itkmask, options.shrink, options.levels, options.numiter, options.thres,
-                                rescale=options.skipwm)
+    itkcorrected = N4correctITK(
+        itkimage,
+        itkmask,
+        options.shrink,
+        options.levels,
+        options.numiter,
+        options.thres,
+        rescale=options.skipwm,
+    )
 
     if not options.skipwm:
         print("\nnormalize WM to 110")
         itkcorrected = normalizeWM(itkcorrected, itkmask, centroid=talorig)
 
     print("\nconverting to UCHAR")
-    itkcorrected = sitk.Cast(sitk.Clamp(itkcorrected, lowerBound=0, upperBound=255), sitk.sitkUInt8)
+    itkcorrected = sitk.Cast(
+        sitk.Clamp(itkcorrected, lowerBound=0, upperBound=255), sitk.sitkUInt8
+    )
 
     # write image
     print("writing: {}".format(options.outvol))

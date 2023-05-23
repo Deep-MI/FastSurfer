@@ -20,7 +20,13 @@ import numpy as np
 from numpy import typing as npt
 import torch
 from skimage.measure import label, regionprops
-from scipy.ndimage import binary_erosion, binary_closing, filters, uniform_filter, generate_binary_structure
+from scipy.ndimage import (
+    binary_erosion,
+    binary_closing,
+    filters,
+    uniform_filter,
+    generate_binary_structure,
+)
 import scipy.ndimage.morphology as morphology
 import nibabel as nib
 from nibabel.filebasedimages import FileBasedHeader as _Header
@@ -33,7 +39,7 @@ from FastSurferCNN.utils.arg_types import VoxSizeOption
 ##
 # Global Vars
 ##
-SUPPORTED_OUTPUT_FILE_FORMATS = ['mgz', 'nii', 'nii.gz']
+SUPPORTED_OUTPUT_FILE_FORMATS = ["mgz", "nii", "nii.gz"]
 LOGGER = logging.getLogger(__name__)
 
 ##
@@ -42,8 +48,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 # Conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
-def load_and_conform_image(img_filename: str, interpol: int = 1, logger: logging.Logger = LOGGER,
-                           conform_min: bool = False) -> Tuple[_Header, np.ndarray, np.ndarray]:
+def load_and_conform_image(
+    img_filename: str,
+    interpol: int = 1,
+    logger: logging.Logger = LOGGER,
+    conform_min: bool = False,
+) -> Tuple[_Header, np.ndarray, np.ndarray]:
     """
     Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size
     (if it does not already have this format)
@@ -61,13 +71,17 @@ def load_and_conform_image(img_filename: str, interpol: int = 1, logger: logging
     """
     orig = nib.load(img_filename)
     # is_conform and conform accept numeric values and the string 'min' instead of the bool value
-    _conform_vox_size = 'min' if conform_min else 1.
+    _conform_vox_size = "min" if conform_min else 1.0
     if not is_conform(orig, conform_vox_size=_conform_vox_size):
 
-        logger.info('Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels')
+        logger.info(
+            "Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels"
+        )
 
         if len(orig.shape) > 3 and orig.shape[3] != 1:
-            raise RuntimeError(f'ERROR: Multiple input frames ({orig.shape[3]}) not supported!')
+            raise RuntimeError(
+                f"ERROR: Multiple input frames ({orig.shape[3]}) not supported!"
+            )
 
         # Check affine if image is nifti image
         if any(img_filename.endswith(ext) for ext in (".nii.gz", ".nii")):
@@ -85,7 +99,9 @@ def load_and_conform_image(img_filename: str, interpol: int = 1, logger: logging
     return header_info, affine_info, orig_data
 
 
-def load_image(file: str, name: str = "image", **kwargs) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+def load_image(
+    file: str, name: str = "image", **kwargs
+) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
     """Load file 'file' with nibabel, including all data.
 
     Args:
@@ -108,16 +124,19 @@ def load_image(file: str, name: str = "image", **kwargs) -> Tuple[nib.analyze.Sp
     try:
         img = nib.load(file, **kwargs)
     except (IOError, FileNotFoundError) as e:
-        raise IOError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
+        raise IOError(
+            f"Failed loading the {name} '{file}' with error: {e.args[0]}"
+        ) from e
     data = np.asarray(img.dataobj)
     return img, data
 
 
-def load_maybe_conform(file: str, alt_file: str, vox_size: VoxSizeOption = 'min') \
-        -> Tuple[str, nib.analyze.SpatialImage, np.ndarray]:
-    """Load an image by file, check whether it is conformed to vox_size and conform to vox_size if it is not.
-    """
+def load_maybe_conform(
+    file: str, alt_file: str, vox_size: VoxSizeOption = "min"
+) -> Tuple[str, nib.analyze.SpatialImage, np.ndarray]:
+    """Load an image by file, check whether it is conformed to vox_size and conform to vox_size if it is not."""
     from os.path import isfile
+
     _is_conform, img = False, None
     if isfile(file):
         # see if the file is 1mm
@@ -133,24 +152,34 @@ def load_maybe_conform(file: str, alt_file: str, vox_size: VoxSizeOption = 'min'
     else:
         # the image is not conformed to 1mm, do this now.
         from nibabel.filebasedimages import FileBasedHeader as _Header
-        fileext = list(filter(lambda ext: file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS))
+
+        fileext = list(
+            filter(lambda ext: file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS)
+        )
         if len(fileext) != 1:
-            raise RuntimeError(f"Invalid file extension of conf_name: {file}, must be one of "
-                               f"{SUPPORTED_OUTPUT_FILE_FORMATS}.")
-        file_no_fileext = file[:-len(fileext[0]) - 1]
-        vox_suffix = "." + ("min" if vox_size == "min" else str(vox_size) + "mm").replace(".", "")
+            raise RuntimeError(
+                f"Invalid file extension of conf_name: {file}, must be one of "
+                f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
+            )
+        file_no_fileext = file[: -len(fileext[0]) - 1]
+        vox_suffix = "." + (
+            "min" if vox_size == "min" else str(vox_size) + "mm"
+        ).replace(".", "")
         if not file_no_fileext.endswith(vox_suffix):
             file_no_fileext += vox_suffix
         # if the orig file is neither absolute nor in the subject path, use the conformed file
         src_file = alt_file if isfile(alt_file) else file
         if not isfile(alt_file):
-            LOGGER.warning(f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so "
-                           f"we might lose quality due to multiple chained interpolations.")
+            LOGGER.warning(
+                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so "
+                f"we might lose quality due to multiple chained interpolations."
+            )
 
         dst_file = file_no_fileext + "." + fileext[0]
         # conform to 1mm
-        header, affine, data = load_and_conform_image(src_file, conform_min=False,
-                                                      logger=logging.getLogger(__name__ + ".conform"))
+        header, affine, data = load_and_conform_image(
+            src_file, conform_min=False, logger=logging.getLogger(__name__ + ".conform")
+        )
 
         # after conforming, save the conformed file
         save_image(header, affine, data, dst_file)
@@ -159,8 +188,13 @@ def load_maybe_conform(file: str, alt_file: str, vox_size: VoxSizeOption = 'min'
 
 
 # Save image routine
-def save_image(header_info: _Header, affine_info: np.ndarray, img_array: np.ndarray, save_as: str,
-               dtype: Optional[npt.DTypeLike] = None):
+def save_image(
+    header_info: _Header,
+    affine_info: np.ndarray,
+    img_array: np.ndarray,
+    save_as: str,
+    dtype: Optional[npt.DTypeLike] = None,
+):
     """
     Save an image (nibabel MGHImage), according to the desired output file format.
     Supported formats are defined in supported_output_file_formats.
@@ -175,22 +209,26 @@ def save_image(header_info: _Header, affine_info: np.ndarray, img_array: np.ndar
     Returns: nothing/None, saves predictions to save_as
     """
 
-    assert any(save_as.endswith(file_ext) for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS), \
-        'Output filename does not contain a supported file format (' + ', '.join(
-            file_ext for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS) + ')!'
+    assert any(
+        save_as.endswith(file_ext) for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS
+    ), (
+        "Output filename does not contain a supported file format ("
+        + ", ".join(file_ext for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS)
+        + ")!"
+    )
 
     mgh_img = None
-    if save_as.endswith('mgz'):
+    if save_as.endswith("mgz"):
         mgh_img = nib.MGHImage(img_array, affine_info, header_info)
-    elif any(save_as.endswith(file_ext) for file_ext in ['nii', 'nii.gz']):
+    elif any(save_as.endswith(file_ext) for file_ext in ["nii", "nii.gz"]):
         mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
 
     if dtype is not None:
         mgh_img.set_data_dtype(dtype)
 
-    if any(save_as.endswith(file_ext) for file_ext in ['mgz', 'nii']):
+    if any(save_as.endswith(file_ext) for file_ext in ["mgz", "nii"]):
         nib.save(mgh_img, save_as)
-    elif save_as.endswith('nii.gz'):
+    elif save_as.endswith("nii.gz"):
         # For correct outputs, nii.gz files should be saved using the nifti1 sub-module's save():
         nib.nifti1.save(mgh_img, save_as)
 
@@ -244,11 +282,14 @@ def get_thick_slices(img_data: np.ndarray, slice_thickness: int = 3) -> np.ndarr
     Returns:
         image data with the thick slices of the n-th axis appended into the n+1-th axis.
     """
-    img_data_pad = np.pad(img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode='edge')
+    img_data_pad = np.pad(
+        img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode="edge"
+    )
     from numpy.lib.stride_tricks import sliding_window_view
+
     # sliding_window_view will automatically create thick slices through a sliding window, but as this in only a view,
     # less memory copies are required
-    return sliding_window_view(img_data_pad, 2*slice_thickness+1, axis=2)
+    return sliding_window_view(img_data_pad, 2 * slice_thickness + 1, axis=2)
 
 
 def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
@@ -261,7 +302,7 @@ def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
     :return:
     """
     # Get indices of all slices with more than threshold labels/pixels
-    select_slices = (np.sum(label_vol, axis=(0, 1)) > threshold)
+    select_slices = np.sum(label_vol, axis=(0, 1)) > threshold
 
     # Retain only slices with more than threshold labels/pixels
     img_vol = img_vol[:, :, select_slices, :]
@@ -272,8 +313,16 @@ def filter_blank_slices_thick(img_vol, label_vol, weight_vol, threshold=50):
 
 
 # weight map generator
-def create_weight_mask(mapped_aseg, max_weight=5, max_edge_weight=5, max_hires_weight=None, ctx_thresh=33,
-                       mean_filter=False, cortex_mask=True, gradient=True):
+def create_weight_mask(
+    mapped_aseg,
+    max_weight=5,
+    max_edge_weight=5,
+    max_hires_weight=None,
+    ctx_thresh=33,
+    mean_filter=False,
+    cortex_mask=True,
+    gradient=True,
+):
     """
     Function to create weighted mask - with median frequency balancing and edge-weighting
     :param np.ndarray mapped_aseg: segmentation to create weight mask from
@@ -300,19 +349,26 @@ def create_weight_mask(mapped_aseg, max_weight=5, max_edge_weight=5, max_hires_w
         (gx, gy, gz) = np.gradient(mapped_aseg)
         grad_weight = max_edge_weight * np.asarray(
             np.power(np.power(gx, 2) + np.power(gy, 2) + np.power(gz, 2), 0.5) > 0,
-            dtype='float')
+            dtype="float",
+        )
 
         weights_mask += grad_weight
 
     if max_hires_weight is not None:
         # High-res Weighting
-        print("Adding hires weight mask deep sulci and WM with weight ", max_hires_weight)
-        mask1 = deep_sulci_and_wm_strand_mask(mapped_aseg, structure=np.ones((3, 3, 3)), ctx_thresh=ctx_thresh)
+        print(
+            "Adding hires weight mask deep sulci and WM with weight ", max_hires_weight
+        )
+        mask1 = deep_sulci_and_wm_strand_mask(
+            mapped_aseg, structure=np.ones((3, 3, 3)), ctx_thresh=ctx_thresh
+        )
         weights_mask += mask1 * max_hires_weight
 
         if cortex_mask:
             print("Adding cortex mask with weight ", max_hires_weight)
-            mask2 = cortex_border_mask(mapped_aseg, structure=np.ones((3, 3, 3)), ctx_thresh=ctx_thresh)
+            mask2 = cortex_border_mask(
+                mapped_aseg, structure=np.ones((3, 3, 3)), ctx_thresh=ctx_thresh
+            )
             weights_mask += mask2 * (max_hires_weight) // 2
 
     if mean_filter:
@@ -361,7 +417,9 @@ def deep_sulci_and_wm_strand_mask(volume, structure, iteration=1, ctx_thresh=33)
 
     # Get difference between eroded and original image
     diff_image = np.logical_xor(empty_im, eroded)
-    print("Remaining voxels sulci/wm strand: ", np.unique(diff_image, return_counts=True))
+    print(
+        "Remaining voxels sulci/wm strand: ", np.unique(diff_image, return_counts=True)
+    )
     return diff_image
 
 
@@ -432,7 +490,7 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
 
     # Get indices of unknown labels, dilate them to get closest surrounding parcels
     unknown = gt == unknown_label
-    unknown = (morphology.binary_dilation(unknown, struct1) ^ unknown)
+    unknown = morphology.binary_dilation(unknown, struct1) ^ unknown
     list_parcels = np.unique(gt[unknown])
 
     # Mask all subcortical structures (fill unknown with closest cortical parcels only)
@@ -442,7 +500,9 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     # For each closest parcel, blur label with gaussian filter (spread), append resulting blurred images
     blur_vals = np.ndarray((h, w, d, 0), dtype=float)
     for idx in range(len(list_parcels)):
-        aseg_blur = filters.gaussian_filter(1000 * np.asarray(gt == list_parcels[idx], dtype=float), sigma=5)
+        aseg_blur = filters.gaussian_filter(
+            1000 * np.asarray(gt == list_parcels[idx], dtype=float), sigma=5
+        )
         blur_vals = np.append(blur_vals, np.expand_dims(aseg_blur, axis=3), axis=3)
 
     # Get for each position parcel with maximum value after blurring (= closest parcel)
@@ -511,8 +571,29 @@ def split_cortex_labels(aparc):
     centroid_rh = np.asarray(rh_wm[0].centroid)
     centroid_lh = np.asarray(lh_wm[0].centroid)
 
-    labels_list = np.array([1003, 1006, 1007, 1008, 1009, 1011,
-                            1015, 1018, 1019, 1020, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1034, 1035])
+    labels_list = np.array(
+        [
+            1003,
+            1006,
+            1007,
+            1008,
+            1009,
+            1011,
+            1015,
+            1018,
+            1019,
+            1020,
+            1025,
+            1026,
+            1027,
+            1028,
+            1029,
+            1030,
+            1031,
+            1034,
+            1035,
+        ]
+    )
 
     for label_current in labels_list:
 
@@ -522,17 +603,26 @@ def split_cortex_labels(aparc):
 
             if region.label != 0:  # To avoid background
 
-                if np.linalg.norm(np.asarray(region.centroid) - centroid_rh) < np.linalg.norm(
-                        np.asarray(region.centroid) - centroid_lh):
+                if np.linalg.norm(
+                    np.asarray(region.centroid) - centroid_rh
+                ) < np.linalg.norm(np.asarray(region.centroid) - centroid_lh):
                     mask = label_img == region.label
                     aparc[mask] = label_current + 1000
 
     # Quick Fixes for overlapping classes
-    aseg_lh = filters.gaussian_filter(1000 * np.asarray(aparc == 2, dtype=float), sigma=3)
-    aseg_rh = filters.gaussian_filter(1000 * np.asarray(aparc == 41, dtype=float), sigma=3)
+    aseg_lh = filters.gaussian_filter(
+        1000 * np.asarray(aparc == 2, dtype=float), sigma=3
+    )
+    aseg_rh = filters.gaussian_filter(
+        1000 * np.asarray(aparc == 41, dtype=float), sigma=3
+    )
 
-    lh_rh_split = np.argmax(np.concatenate((np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3),
-                            axis=3)
+    lh_rh_split = np.argmax(
+        np.concatenate(
+            (np.expand_dims(aseg_lh, axis=3), np.expand_dims(aseg_rh, axis=3)), axis=3
+        ),
+        axis=3,
+    )
 
     # Problematic classes: 1026, 1011, 1029, 1019
     for prob_class_lh in [1011, 1019, 1026, 1029]:
@@ -588,7 +678,9 @@ def get_labels_from_lut(lut, label_extract=("Left-", "ctx-rh")):
     return lut["ID"].values, lut["ID"][~mask].values
 
 
-def map_aparc_aseg2label(aseg, labels, labels_sag, sagittal_lut_dict, aseg_nocc=None, processing="aparc"):
+def map_aparc_aseg2label(
+    aseg, labels, labels_sag, sagittal_lut_dict, aseg_nocc=None, processing="aparc"
+):
     """
     Function to perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space
     :param np.ndarray aseg: ground truth aparc+aseg
@@ -620,15 +712,21 @@ def map_aparc_aseg2label(aseg, labels, labels_sag, sagittal_lut_dict, aseg_nocc=
         aseg[aseg == 30] = 2  # Left Vessel to Left WM
         aseg[aseg == 72] = 24  # 5th Ventricle to CSF
 
-        assert not np.any(251 <= aseg), "Error: CC classes (251-255) still exist in aseg {}".format(np.unique(aseg))
-        assert np.any(aseg == 3) and np.any(aseg == 42), "Error: no cortical marker detected {}".format(np.unique(aseg))
+        assert not np.any(
+            251 <= aseg
+        ), "Error: CC classes (251-255) still exist in aseg {}".format(np.unique(aseg))
+        assert np.any(aseg == 3) and np.any(
+            aseg == 42
+        ), "Error: no cortical marker detected {}".format(np.unique(aseg))
 
     assert set(labels).issuperset(
-        np.unique(aseg)), "Error: segmentation image contains classes not listed in the labels: \n{}\n{}".format(
-        np.unique(aseg), labels)
+        np.unique(aseg)
+    ), "Error: segmentation image contains classes not listed in the labels: \n{}\n{}".format(
+        np.unique(aseg), labels
+    )
 
     h, w, d = aseg.shape
-    lut_aseg = np.zeros(max(labels) + 1, dtype='int')
+    lut_aseg = np.zeros(max(labels) + 1, dtype="int")
     for idx, value in enumerate(labels):
         lut_aseg[value] = idx
 
@@ -647,7 +745,7 @@ def map_aparc_aseg2label(aseg, labels, labels_sag, sagittal_lut_dict, aseg_nocc=
         aseg[aseg == left] = right
 
     h, w, d = aseg.shape
-    lut_aseg = np.zeros(max(labels_sag) + 1, dtype='int')
+    lut_aseg = np.zeros(max(labels_sag) + 1, dtype="int")
     for idx, value in enumerate(labels_sag):
         lut_aseg[value] = idx
 
@@ -709,27 +807,239 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=51, lut=None):
     :return: Remapped prediction
     """
     if num_classes == 96:
-        idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 14, 15, 4, 16,
-                               17, 18, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-                               20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
-                               37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 20, 21, 22,
-                               23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-                               40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50], dtype=np.int16)
+        idx_list = np.asarray(
+            [
+                0,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                1,
+                2,
+                3,
+                14,
+                15,
+                4,
+                16,
+                17,
+                18,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50,
+            ],
+            dtype=np.int16,
+        )
 
     elif num_classes == 51:
-        idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 14, 15, 4, 16,
-                               17, 18, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-                               20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
-                               37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 20, 22, 27,
-                               29, 30, 31, 33, 34, 38, 39, 40, 41, 42, 45], dtype=np.int16)
+        idx_list = np.asarray(
+            [
+                0,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                1,
+                2,
+                3,
+                14,
+                15,
+                4,
+                16,
+                17,
+                18,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50,
+                20,
+                22,
+                27,
+                29,
+                30,
+                31,
+                33,
+                34,
+                38,
+                39,
+                40,
+                41,
+                42,
+                45,
+            ],
+            dtype=np.int16,
+        )
 
     elif num_classes == 21:
-        idx_list = np.asarray([0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 1, 2, 3, 15, 16, 4,
-                               17, 18, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-                               19, 20], dtype=np.int16)
+        idx_list = np.asarray(
+            [
+                0,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                1,
+                2,
+                3,
+                15,
+                16,
+                4,
+                17,
+                18,
+                19,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+            ],
+            dtype=np.int16,
+        )
 
     else:
-        assert lut is not None, 'lut is not defined!'
+        assert lut is not None, "lut is not defined!"
         idx_list = infer_mapping_from_lut(num_classes, lut)
     prediction_full = prediction_sag[:, idx_list, :, :]
     return prediction_full
