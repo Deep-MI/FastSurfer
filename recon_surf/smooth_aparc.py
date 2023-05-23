@@ -29,7 +29,7 @@ HELPTEXT = """
 Script to fill holes and smooth aparc labels. 
 
 USAGE:
-smooth_aparc  --insurf <surf> --inaparc <in_aparc> --incort <cortex.lable> --outaparc <out_aparc>
+smooth_aparc  --insurf <surf> --inaparc <in_aparc> --incort <cortex.label> --outaparc <out_aparc>
 
 
 Dependencies:
@@ -50,7 +50,7 @@ Date: Jul-24-2018
 h_inaparc  = 'path to input aparc'
 h_incort   = 'path to input cortex label'
 h_insurf   = 'path to input surface'
-h_outaparc = 'path to ouput aparc'
+h_outaparc = 'path to output aparc'
 
 
 def options_parse():
@@ -261,7 +261,7 @@ def smooth_aparc(insurfname, inaparcname, incortexname, outaparcname):
     labels = mode_filter(adjM, labels)
     # set labels outside cortex to -1
     labels[~mask] = -1
-    print ("Outputing fixed annot: {}".format(outaparcname))
+    print ("Outputting fixed annot: {}".format(outaparcname))
     fs.write_annot(outaparcname, labels, aparc[1], aparc[2])
 
 

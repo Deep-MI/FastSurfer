@@ -42,7 +42,7 @@ class CompetitiveDenseBlock(nn.Module):
     def __init__(self, params, outblock=False, discriminator_block=False):
         """
         Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifiying block architecture
+        :param dict params: dictionary with parameters specifying block architecture
         :param bool outblock: Flag indicating if last block (before classifier block) is set up.
                                Default: False
         :param bool discriminator_block: Flag indicating if the block is discriminator block or not
@@ -145,7 +145,7 @@ class CompetitiveDenseBlockInput(nn.Module):
     def __init__(self, params):
         """
         Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifiying block architecture
+        :param dict params: dictionary with parameters specifying block architecture
         """
         super(CompetitiveDenseBlockInput, self).__init__()
 

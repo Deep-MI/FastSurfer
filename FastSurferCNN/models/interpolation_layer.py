@@ -366,7 +366,7 @@ class Zoom3d(_ZoomNd):
 
     def _interpolate(self, tensor: Tensor, scale_factor: _T.Sequence[int]):
         """
-        Crops, interpolates and pads the tensor acccording to the scale_factor. scale_factor must be 3-length sequence.
+        Crops, interpolates and pads the tensor according to the scale_factor. scale_factor must be 3-length sequence.
         """
         scale_factor = scale_factor.tolist() if isinstance(scale_factor, np.ndarray) else scale_factor
         if isinstance(scale_factor, Tensor) and scale_factor.shape == (3,):

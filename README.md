@@ -28,7 +28,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - supports high-resolution images (up to 0.7mm, experimental beyond that)
 
 ### Requirements to input images
-All pipeline parts and modules require good quality MRI images, preferrably from a 3T MR scanner.
+All pipeline parts and modules require good quality MRI images, preferably from a 3T MR scanner.
 FastSurfer expects a similar image quality as FreeSurfer, so what works with FreeSurfer should also work with FastSurfer. 
 Notwithstanding module-specific limitations, resolution should be between 1mm and 0.7mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. See `--vox_size` flag for high-res behaviour.
 
@@ -252,7 +252,7 @@ subject3\n
 ...
 subject10\n
 
-And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
+And invoke the following command (make sure you have enough resources to run the given number of subjects in parallel!):
 
 ```bash
 export FREESURFER_HOME=/path/to/freesurfer
@@ -304,7 +304,7 @@ docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
-                      --main_segfile /ouput/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                      --main_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
                       --conformed_name $ouputdir/subject1/conformed.mgz \
                       --parallel --threads 4 --seg_only
                       

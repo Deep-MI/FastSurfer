@@ -97,7 +97,7 @@ class CombinedLoss(nn.Module):
 
     def forward(self, inputx, target, weight):
         # Typecast to long tensor --> labels are bytes initially (uint8),
-        # index operations requiere LongTensor in pytorch
+        # index operations require LongTensor in pytorch
         target = target.type(torch.LongTensor)
         # Due to typecasting above, target needs to be shifted to gpu again
         if inputx.is_cuda:

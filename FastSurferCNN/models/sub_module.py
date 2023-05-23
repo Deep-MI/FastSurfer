@@ -116,7 +116,7 @@ class CompetitiveDenseBlock(nn.Module):
     def __init__(self, params, outblock=False):
         """
         Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifiying block architecture
+        :param dict params: dictionary with parameters specifying block architecture
         :param bool outblock: Flag indicating if last block (before classifier block) is set up.
                                Default: False
         :return None:
@@ -227,7 +227,7 @@ class CompetitiveDenseBlockInput(nn.Module):
     def __init__(self, params):
         """
         Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifiying block architecture
+        :param dict params: dictionary with parameters specifying block architecture
         """
         super(CompetitiveDenseBlockInput, self).__init__()
 
@@ -414,7 +414,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
 
 class OutputDenseBlock(nn.Module):
     """
-    Dense Ooutput Block = (Upinterpolated + Skip Connection) --> Semi Competitive Dense Block
+    Dense Output Block = (Upinterpolated + Skip Connection) --> Semi Competitive Dense Block
     """
 
     def __init__(self, params):

@@ -68,7 +68,7 @@ Date: Jan-18-2016
 """
 
 h_input = 'path to input surface'
-h_output = 'path to ouput surface, spherically projected'
+h_output = 'path to output surface, spherically projected'
 
 
 def options_parse():
@@ -293,6 +293,6 @@ if __name__ == "__main__":
     print("Reading in surface: {} ...".format(surf_to_project))
     # switching cholmod off will be slower, but does not require scikit sparse cholmod
     spherically_project_surface(surf_to_project, projected_surf, use_cholmod=False)
-    print ("Outputing spherically projected surface: {}".format(projected_surf))
+    print ("Outputting spherically projected surface: {}".format(projected_surf))
 
     sys.exit(0)

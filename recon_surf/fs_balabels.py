@@ -170,7 +170,7 @@ if __name__ == "__main__":
             print("Writing BA_exvivo annotation to {}\n".format(annot))
             annotout = os.path.join(options.sd,options.sid,"label",hemi+"."+annot+".annot")
             write_annot(annot_ids, label_names[pos], colnames[pos], annotout, colappend[pos])
-            # now call annatomical stats from comand line (onyl for BA_exvivo)
+            # now call annatomical stats from command line (only for BA_exvivo)
             if pos < 2:
                 print("Computing "+hemi+"."+annot+".stats ...")
                 stats = os.path.join(options.sd,options.sid,"stats",hemi+"."+annot+".stats")

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Original Author: David Kügler
+Original Author: David Kuegler
 Date: Aug-19-2022
 """
 
@@ -542,7 +542,7 @@ class ColorLookupTable(Generic[KT]):
         Returns a mapping between the key and the value it is associated with.
 
         Raises:
-            RuntimeError, if no value is assoicated.
+            RuntimeError, if no value is associated.
         """
         raise RuntimeError("The base class keeps no ids (only indexes).")
 
@@ -621,7 +621,7 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
         Returns a mapping between the key and the value it is associated with.
 
         Raises:
-            RuntimeError, if no value is assoicated.
+            RuntimeError, if no value is associated.
         """
         labels = self._get_labels()
         if not isinstance(labels, dict):

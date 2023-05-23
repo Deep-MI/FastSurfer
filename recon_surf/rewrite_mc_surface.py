@@ -28,7 +28,7 @@ def options_parse():
     parser = optparse.OptionParser(version='$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $',
                                    usage='Function to load and resafe surface under a given name')
     parser.add_option('--input', '-i', dest='input_surf', help='path to input surface')
-    parser.add_option('--output', '-o', dest='output_surf', help='path to ouput surface')
+    parser.add_option('--output', '-o', dest='output_surf', help='path to output surface')
     parser.add_option('--filename_pretess', '-p', dest='in_pretess', default=None,
                       help='path and name of pretess file used (info missing when using marching cube).')
     (options, args) = parser.parse_args()
@@ -66,5 +66,5 @@ if __name__ == "__main__":
 
     print("Reading in surface: {} ...".format(surf_in))
     resafe_surface(surf_in, surf_out, vol_in)
-    print ("Outputing surface as: {}".format(surf_out))
+    print ("Outputting surface as: {}".format(surf_out))
     sys.exit(0)

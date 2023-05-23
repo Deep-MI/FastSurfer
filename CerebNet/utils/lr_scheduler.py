@@ -34,7 +34,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
     def __init__(self, optimizer, *args, T_0=10, Tmult=1, lr_restart=None, **kwargs):
         """
-        Create a ReduceLROnPlateauWithRestarts learning rate schduler.
+        Create a ReduceLROnPlateauWithRestarts learning rate scheduler.
 
         Restarts the learning rate scheduler after T_i epochs, where T_i = T_{i-1} * Tmult.
 

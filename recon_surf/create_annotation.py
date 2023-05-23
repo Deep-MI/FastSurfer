@@ -35,7 +35,7 @@ create_annotation.py --hemi <lh,rh> --colortab <table.txt> --labeldir <ldir>
 
 when mapping labels use these additional flags:
 
-                     --srcsphere <hemi.shpere.reg> --trgsphere <hemi.sphere.reg>
+                     --srcsphere <hemi.sphere.reg> --trgsphere <hemi.sphere.reg>
                      --trgdir <label-dir> --trgsid <sid>
 
 

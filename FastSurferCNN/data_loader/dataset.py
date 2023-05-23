@@ -206,7 +206,7 @@ class MultiScaleDataset(Dataset):
             label = torch.squeeze(tx_sample['label'].data).byte()
             weight = torch.squeeze(tx_sample['weight'].data).float()
 
-            # get updated scalefactor, incase of scaling, not ideal - fails if scales is not in dict
+            # get updated scalefactor, in case of scaling, not ideal - fails if scales is not in dict
             rep_tf = tx_sample.get_composed_history()
             if rep_tf:
                 zoom_aug += torch.as_tensor(rep_tf[0]._get_reproducing_arguments()["scales"])[:-1]
