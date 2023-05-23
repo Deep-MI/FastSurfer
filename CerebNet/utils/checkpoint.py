@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +17,14 @@
 import os
 
 from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.checkpoint import (FASTSURFER_ROOT, load_from_checkpoint, create_checkpoint_dir,
-                                            get_checkpoint, get_checkpoint_path, save_checkpoint)
+from FastSurferCNN.utils.checkpoint import (
+    FASTSURFER_ROOT,
+    load_from_checkpoint,
+    create_checkpoint_dir,
+    get_checkpoint,
+    get_checkpoint_path,
+    save_checkpoint,
+)
 
 logger = logging.get_logger(__name__)
 
@@ -38,6 +43,6 @@ def is_checkpoint_epoch(cfg, cur_epoch):
     :param cur_epoch:
     :return:
     """
-    final_epoch = (cur_epoch+1) == cfg.TRAIN.NUM_EPOCHS
-    is_checkpoint = (cur_epoch+1) % cfg.TRAIN.CHECKPOINT_PERIOD or final_epoch
+    final_epoch = (cur_epoch + 1) == cfg.TRAIN.NUM_EPOCHS
+    is_checkpoint = (cur_epoch + 1) % cfg.TRAIN.CHECKPOINT_PERIOD or final_epoch
     return is_checkpoint

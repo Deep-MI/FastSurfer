@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +17,11 @@
 import numpy as np
 import torch
 from scipy.ndimage import _ni_support
-from scipy.ndimage.morphology import distance_transform_edt, binary_erosion, generate_binary_structure
+from scipy.ndimage.morphology import (
+    distance_transform_edt,
+    binary_erosion,
+    generate_binary_structure,
+)
 
 from FastSurferCNN.utils import logging
 
@@ -41,20 +44,24 @@ class DiceScore:
             initialized and available, device is set to `cuda`.
     """
 
-    def __init__(self,
-                 num_classes,
-                 class_ids=None,
-                 device=None,
-                 one_hot=False,
-                 output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y)):
+    def __init__(
+        self,
+        num_classes,
+        class_ids=None,
+        device=None,
+        one_hot=False,
+        output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y),
+    ):
         self._device = device
         self.out_transform = output_transform
         self.class_ids = class_ids
         if self.class_ids is None:
             self.class_ids = np.arange(num_classes)
         self.n_classes = num_classes
-        assert len(self.class_ids)==self.n_classes, f"Number of class ids is not correct," \
-                                                    f" given {len(self.class_ids)} but {self.n_classes} is needed."
+        assert len(self.class_ids) == self.n_classes, (
+            f"Number of class ids is not correct,"
+            f" given {len(self.class_ids)} but {self.n_classes} is needed."
+        )
         self.one_hot = one_hot
         self.union = torch.zeros(self.n_classes, self.n_classes)
         self.intersection = torch.zeros(self.n_classes, self.n_classes)
@@ -65,7 +72,11 @@ class DiceScore:
 
     def _check_output_type(self, output):
         if not (isinstance(output, tuple)):
-            raise TypeError("Output should a tuple consist of of torch.Tensors, but given {}".format(type(output)))
+            raise TypeError(
+                "Output should a tuple consist of of torch.Tensors, but given {}".format(
+                    type(output)
+                )
+            )
 
     def _update_union_intersection(self, batch_output, labels_batch):
         # self.union.to(batch_output.device)
@@ -74,7 +85,9 @@ class DiceScore:
             gt = (labels_batch == c1).float()
             for j, c2 in enumerate(self.class_ids):
                 pred = (batch_output == c2).float()
-                self.intersection[i, j] =  self.intersection[i, j]+ torch.sum(torch.mul(gt, pred))
+                self.intersection[i, j] = self.intersection[i, j] + torch.sum(
+                    torch.mul(gt, pred)
+                )
                 self.union[i, j] = self.union[i, j] + torch.sum(gt) + torch.sum(pred)
 
     def update(self, output):
@@ -110,8 +123,8 @@ class DiceScore:
         dice_intersection = self.intersection.cpu().numpy()
         dice_union = self.union.cpu().numpy()
         if class_idxs is not None:
-            dice_union = dice_union[class_idxs[:,None], class_idxs]
-            dice_intersection = dice_intersection[class_idxs[:,None], class_idxs]
+            dice_union = dice_union[class_idxs[:, None], class_idxs]
+            dice_intersection = dice_intersection[class_idxs[:, None], class_idxs]
         if not (dice_union > 0).all():
             logger.info("Union of some classes are all zero")
         dice_cnf_matrix = 2 * np.divide(dice_intersection, dice_union)
@@ -123,6 +136,7 @@ def dice_score(pred, gt):
     Calculates the Dice Similarity between pred and gt.
     """
     from scipy.spatial.distance import dice
+
     return dice(pred.flat, gt.flat)
 
 
@@ -131,7 +145,7 @@ def volume_similarity(pred, gt):
     Calculate the Volume Similarity between pred and gt.
     """
     pred_vol, gt_vol = np.sum(pred), np.save(gt)
-    return 1. - np.abs(pred_vol - gt_vol) / (pred_vol + gt_vol)
+    return 1.0 - np.abs(pred_vol - gt_vol) / (pred_vol + gt_vol)
 
 
 # https://github.com/amanbasu/3d-prostate-segmentation/blob/master/metric_eval.py
@@ -180,7 +194,6 @@ def hd(result, reference, voxelspacing=None, connectivity=1):
     return hd, hd50, hd95
 
 
-
 def hd95(result, reference, voxelspacing=None, connectivity=1):
     """
     95th percentile of the Hausdorff Distance.
@@ -224,7 +237,6 @@ def hd95(result, reference, voxelspacing=None, connectivity=1):
     return hd95
 
 
-
 def __surface_distances(result, reference, voxelspacing=None, connectivity=1):
     """
     The distances between the surface voxel of binary objects in result and their
@@ -243,13 +255,19 @@ def __surface_distances(result, reference, voxelspacing=None, connectivity=1):
 
     # test for emptiness
     if 0 == np.count_nonzero(result):
-        raise RuntimeError('The first supplied array does not contain any binary object.')
+        raise RuntimeError(
+            "The first supplied array does not contain any binary object."
+        )
     if 0 == np.count_nonzero(reference):
-        raise RuntimeError('The second supplied array does not contain any binary object.')
+        raise RuntimeError(
+            "The second supplied array does not contain any binary object."
+        )
 
     # extract only 1-pixel border line of objects
     result_border = result ^ binary_erosion(result, structure=footprint, iterations=1)
-    reference_border = reference ^ binary_erosion(reference, structure=footprint, iterations=1)
+    reference_border = reference ^ binary_erosion(
+        reference, structure=footprint, iterations=1
+    )
 
     # compute average surface distance
     # Note: scipys distance transform is calculated only inside the borders of the

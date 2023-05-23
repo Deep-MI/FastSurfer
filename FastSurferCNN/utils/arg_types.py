@@ -28,7 +28,9 @@ def vox_size(a: str) -> VoxSizeOption:
     try:
         return float_gt_zero_and_le_one(a)
     except argparse.ArgumentError as e:
-        raise argparse.ArgumentTypeError(e.args[0] + " Additionally, vox_sizes may be 'min'.") from None
+        raise argparse.ArgumentTypeError(
+            e.args[0] + " Additionally, vox_sizes may be 'min'."
+        ) from None
 
 
 def float_gt_zero_and_le_one(a: str) -> Optional[float]:
@@ -36,7 +38,7 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
     if a is None or a.lower() in ["none", "infinity"]:
         return None
     a_float = float(a)
-    if 0. < a_float <= 1.0:
+    if 0.0 < a_float <= 1.0:
         return a_float
     else:
         raise argparse.ArgumentTypeError(f"'{a}' is not between 0 and 1.")
@@ -44,7 +46,7 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
 
 def target_dtype(a: str) -> str:
     """Helper function to check for valid dtypes."""
-    dtypes = nib.freesurfer.mghformat.data_type_codes.value_set('label')
+    dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
     dtypes.add("any")
     _a = a.lower()
     if _a in dtypes:
@@ -52,8 +54,10 @@ def target_dtype(a: str) -> str:
     msg = "The following dtypes are verified: " + ", ".join(dtypes)
     if np.dtype(_a).name == _a:
         # numpy recognizes the dtype, but nibabel probably does not.
-        print(f"WARNING: While numpy recognizes the dtype {a}, nibabel might not and this might lead to compatibility "
-              f"issues. {msg}")
+        print(
+            f"WARNING: While numpy recognizes the dtype {a}, nibabel might not and this might lead to compatibility "
+            f"issues. {msg}"
+        )
         return _a
     else:
         raise argparse.ArgumentTypeError(f"Invalid dtype {a}. {msg}")

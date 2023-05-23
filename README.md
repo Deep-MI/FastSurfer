@@ -28,7 +28,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - supports high-resolution images (up to 0.7mm, experimental beyond that)
 
 ### Requirements to input images
-All pipeline parts and modules require good quality MRI images, preferrably from a 3T MR scanner.
+All pipeline parts and modules require good quality MRI images, preferably from a 3T MR scanner.
 FastSurfer expects a similar image quality as FreeSurfer, so what works with FreeSurfer should also work with FastSurfer. 
 Notwithstanding module-specific limitations, resolution should be between 1mm and 0.7mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. See `--vox_size` flag for high-res behaviour.
 
@@ -252,7 +252,7 @@ subject3\n
 ...
 subject10\n
 
-And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
+And invoke the following command (make sure you have enough resources to run the given number of subjects in parallel!):
 
 ```bash
 export FREESURFER_HOME=/path/to/freesurfer
@@ -304,10 +304,12 @@ docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
-                      --main_segfile /ouput/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                      --main_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
                       --conformed_name $ouputdir/subject1/conformed.mgz \
                       --parallel --threads 4 --seg_only
-                      
+```
+
+```bash                      
 # Docker - segmentation and statistics (fs-license required)
 docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
@@ -325,7 +327,7 @@ docker run --gpus all -v $datadir:/data \
 
 ### Segmentation module
 
-The segmentation module outputs the files shown in the table below. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz` file, which contains the FastSurfer segmentation of cortical and subcortical structures based on the DKT atlas, and the `aseg+DKT.stats` file, which contains summary statistics for these structures.
+The segmentation module outputs the files shown in the table below. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz` file, which contains the FastSurfer segmentation of cortical and subcortical structures based on the DKT atlas, and the `aseg+DKT.stats` file, which contains summary statistics for these structures. Note, that the surface model (downstream) corrects these segmentations along the cortex with the created surfaces. So if the surface model is used, it is recommended to use the updated segmentations and stats (see below). 
 
 | directory   | filename                      | module    | description |
 |:------------|-------------------------------|-----------|-------------|
@@ -419,11 +421,11 @@ This software can be used to compute statistics from an MR image for research pu
 
 If you use this for research publications, please cite:
 
-Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+_Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012_
 
-Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building Resolution-Independence into Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+_Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building Resolution-Independence into Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. http://dx.doi.org/10.1016/j.neuroimage.2022.118933_
 
-Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reliable deep-learning pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. https://doi.org/10.1016/j.neuroimage.2022.119703
+_Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reliable deep-learning pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. https://doi.org/10.1016/j.neuroimage.2022.119703_
 
 Stay tuned for updates and follow us on Twitter: https://twitter.com/deepmilab
 

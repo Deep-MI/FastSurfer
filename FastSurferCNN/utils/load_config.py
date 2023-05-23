@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +19,7 @@ from FastSurferCNN.config.defaults import get_cfg_defaults
 
 def get_config(args):
     """
-    Given the arguemnts, load and initialize the configs.
+    Given the arguments, load and initialize the configs.
 
     """
     # Setup cfg.

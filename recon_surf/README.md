@@ -124,7 +124,7 @@ subject3\n
 ...
 subject10\n
 
-And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
+And invoke the following command (make sure you have enough resources to run the given number of subjects in parallel!):
 
 ```bash
 # Source FreeSurfer

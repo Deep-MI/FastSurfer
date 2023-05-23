@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -73,13 +72,15 @@ class Trainer:
 
         for curr_iter, batch in tqdm(enumerate(train_loader), total=len(train_loader)):
 
-            images, labels, weights, scale_factors = batch['image'].to(self.device), \
-                                                     batch['label'].to(self.device), \
-                                                     batch['weight'].float().to(self.device), \
-                                                     batch['scale_factor']
+            images, labels, weights, scale_factors = (
+                batch["image"].to(self.device),
+                batch["label"].to(self.device),
+                batch["weight"].float().to(self.device),
+                batch["scale_factor"],
+            )
 
-            if not self.subepoch or (curr_iter)%(16/self.cfg.TRAIN.BATCH_SIZE) == 0:
-                optimizer.zero_grad() # every second epoch to get batchsize of 16 if using 8
+            if not self.subepoch or (curr_iter) % (16 / self.cfg.TRAIN.BATCH_SIZE) == 0:
+                optimizer.zero_grad()  # every second epoch to get batchsize of 16 if using 8
 
             pred = self.model(images, scale_factors)
             loss_total, loss_dice, loss_ce = self.loss_func(pred, labels, weights)
@@ -87,30 +88,44 @@ class Trainer:
             train_meter.update_stats(pred, labels, loss_total)
             train_meter.log_iter(curr_iter, epoch)
             if scheduler is not None:
-                train_meter.write_summary(loss_total, scheduler.get_lr(), loss_ce, loss_dice)
+                train_meter.write_summary(
+                    loss_total, scheduler.get_lr(), loss_ce, loss_dice
+                )
             else:
-                train_meter.write_summary(loss_total, [self.cfg.OPTIMIZER.BASE_LR], loss_ce, loss_dice)
+                train_meter.write_summary(
+                    loss_total, [self.cfg.OPTIMIZER.BASE_LR], loss_ce, loss_dice
+                )
 
             loss_total.backward()
-            if not self.subepoch or (curr_iter+1)%(16/self.cfg.TRAIN.BATCH_SIZE) == 0:
-                optimizer.step() # every second epoch to get batchsize of 16 if using 8
+            if (
+                not self.subepoch
+                or (curr_iter + 1) % (16 / self.cfg.TRAIN.BATCH_SIZE) == 0
+            ):
+                optimizer.step()  # every second epoch to get batchsize of 16 if using 8
                 if scheduler is not None:
                     scheduler.step(epoch + curr_iter / len(train_loader))
 
             loss_batch += loss_total.item()
 
             # Plot sample predictions
-            if curr_iter == len(train_loader)-2:
-                plt_title = 'Training Results Epoch ' + str(epoch)
+            if curr_iter == len(train_loader) - 2:
+                plt_title = "Training Results Epoch " + str(epoch)
 
-                file_save_name = os.path.join(self.plot_dir,
-                                              'Epoch_' + str(epoch) + '_Training_Predictions.pdf')
+                file_save_name = os.path.join(
+                    self.plot_dir, "Epoch_" + str(epoch) + "_Training_Predictions.pdf"
+                )
 
                 _, batch_output = torch.max(pred, dim=1)
-                plot_predictions(images, labels, batch_output, plt_title, file_save_name)
+                plot_predictions(
+                    images, labels, batch_output, plt_title, file_save_name
+                )
 
         train_meter.log_epoch(epoch)
-        logger.info("Training epoch {} finished in {:.04f} seconds".format(epoch, time.time() - epoch_start))
+        logger.info(
+            "Training epoch {} finished in {:.04f} seconds".format(
+                epoch, time.time() - epoch_start
+            )
+        )
 
     @torch.no_grad()
     def eval(self, val_loader, val_meter, epoch):
@@ -126,15 +141,19 @@ class Trainer:
         miou = np.zeros(self.num_classes - 1)
         per_cls_counts_gt = defaultdict(lambda: np.zeros(self.num_classes - 1))
         per_cls_counts_pred = defaultdict(lambda: np.zeros(self.num_classes - 1))
-        accs = defaultdict(lambda: np.zeros(self.num_classes - 1))  # -1 to exclude background (still included in val loss)
+        accs = defaultdict(
+            lambda: np.zeros(self.num_classes - 1)
+        )  # -1 to exclude background (still included in val loss)
 
         val_start = time.time()
         for curr_iter, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
 
-            images, labels, weights, scale_factors = batch['image'].to(self.device), \
-                                                     batch['label'].to(self.device), \
-                                                     batch['weight'].float().to(self.device), \
-                                                     batch['scale_factor']
+            images, labels, weights, scale_factors = (
+                batch["image"].to(self.device),
+                batch["label"].to(self.device),
+                batch["weight"].float().to(self.device),
+                batch["scale_factor"],
+            )
 
             pred = self.model(images, scale_factors)
             loss_total, loss_dice, loss_ce = self.loss_func(pred, labels, weights)
@@ -153,45 +172,63 @@ class Trainer:
                 ints_[sf] += int_
                 unis_[sf] += uni_
 
-                tpos, pcc_gt, pcc_pred = precision_recall(batch_output, labels, self.num_classes)
+                tpos, pcc_gt, pcc_pred = precision_recall(
+                    batch_output, labels, self.num_classes
+                )
                 accs[sf] += tpos
                 per_cls_counts_gt[sf] += pcc_gt
                 per_cls_counts_pred[sf] += pcc_pred
 
             # Plot sample predictions
             if curr_iter == (len(val_loader) // 2):
-                plt_title = 'Validation Results Epoch ' + str(epoch)
+                plt_title = "Validation Results Epoch " + str(epoch)
 
-                file_save_name = os.path.join(self.plot_dir,
-                                              'Epoch_' + str(epoch) + '_Validations_Predictions.pdf')
+                file_save_name = os.path.join(
+                    self.plot_dir,
+                    "Epoch_" + str(epoch) + "_Validations_Predictions.pdf",
+                )
 
-                plot_predictions(images, labels, batch_output, plt_title, file_save_name)
+                plot_predictions(
+                    images, labels, batch_output, plt_title, file_save_name
+                )
 
             val_meter.update_stats(pred, labels, loss_total)
             val_meter.write_summary(loss_total)
             val_meter.log_iter(curr_iter, epoch)
 
         val_meter.log_epoch(epoch)
-        logger.info("Validation epoch {} finished in {:.04f} seconds".format(epoch, time.time() - val_start))
+        logger.info(
+            "Validation epoch {} finished in {:.04f} seconds".format(
+                epoch, time.time() - val_start
+            )
+        )
 
         # Get final measures and log them
         for key in accs.keys():
             ious = ints_[key] / unis_[key]
             miou += ious
-            val_loss_total[key] /= (curr_iter + 1)
-            val_loss_dice[key] /= (curr_iter + 1)
-            val_loss_ce[key] /= (curr_iter + 1)
+            val_loss_total[key] /= curr_iter + 1
+            val_loss_dice[key] /= curr_iter + 1
+            val_loss_ce[key] /= curr_iter + 1
 
             # Log metrics
-            logger.info("[Epoch {} stats]: SF: {}, MIoU: {:.4f}; "
-                                  "Mean Recall: {:.4f}; "
-                                  "Mean Precision: {:.4f}; "
-                                  "Avg loss total: {:.4f}; "
-                                  "Avg loss dice: {:.4f}; "
-                                  "Avg loss ce: {:.4f}".format(epoch, key, np.mean(ious),
-                                                               np.mean(accs[key] / per_cls_counts_gt[key]),
-                                                               np.mean(accs[key] / per_cls_counts_pred[key]),
-                                                               val_loss_total[key], val_loss_dice[key], val_loss_ce[key]))
+            logger.info(
+                "[Epoch {} stats]: SF: {}, MIoU: {:.4f}; "
+                "Mean Recall: {:.4f}; "
+                "Mean Precision: {:.4f}; "
+                "Avg loss total: {:.4f}; "
+                "Avg loss dice: {:.4f}; "
+                "Avg loss ce: {:.4f}".format(
+                    epoch,
+                    key,
+                    np.mean(ious),
+                    np.mean(accs[key] / per_cls_counts_gt[key]),
+                    np.mean(accs[key] / per_cls_counts_pred[key]),
+                    val_loss_total[key],
+                    val_loss_dice[key],
+                    val_loss_ce[key],
+                )
+            )
 
             logger.info(self.a.format(*self.class_names))
             logger.info(self.a.format(*ious))
@@ -200,8 +237,9 @@ class Trainer:
 
     def run(self):
         if self.cfg.NUM_GPUS > 1:
-            assert self.cfg.NUM_GPUS <= torch.cuda.device_count(), \
-                "Cannot use more GPU devices than available"
+            assert (
+                self.cfg.NUM_GPUS <= torch.cuda.device_count()
+            ), "Cannot use more GPU devices than available"
             print("Using ", self.cfg.NUM_GPUS, "GPUs!")
             self.model = torch.nn.DataParallel(self.model)
 
@@ -216,8 +254,9 @@ class Trainer:
         optimizer = get_optimizer(self.model, self.cfg)
         scheduler = get_lr_scheduler(optimizer, self.cfg)
 
-        checkpoint_paths = cp.get_checkpoint_path(self.cfg.LOG_DIR,
-                                                  self.cfg.TRAIN.RESUME_EXPR_NUM)
+        checkpoint_paths = cp.get_checkpoint_path(
+            self.cfg.LOG_DIR, self.cfg.TRAIN.RESUME_EXPR_NUM
+        )
         if self.cfg.TRAIN.RESUME and checkpoint_paths:
             try:
                 checkpoint_path = checkpoint_paths.pop()
@@ -226,39 +265,49 @@ class Trainer:
                     self.model,
                     optimizer,
                     scheduler,
-                    self.cfg.TRAIN.FINE_TUNE
+                    self.cfg.TRAIN.FINE_TUNE,
                 )
                 start_epoch = checkpoint_epoch
                 best_miou = best_metric
                 logger.info(f"Resume training from epoch {start_epoch}")
             except Exception as e:
-                print("No model to restore. Resuming training from Epoch 0. {}".format(e))
+                print(
+                    "No model to restore. Resuming training from Epoch 0. {}".format(e)
+                )
         else:
             logger.info("Training from scratch")
             start_epoch = 0
             best_miou = 0
 
-        logger.info("{} parameters in total".format(sum(x.numel() for x in self.model.parameters())))
+        logger.info(
+            "{} parameters in total".format(
+                sum(x.numel() for x in self.model.parameters())
+            )
+        )
 
         # Create tensorboard summary writer
 
         writer = SummaryWriter(self.cfg.SUMMARY_PATH, flush_secs=15)
 
-        train_meter = Meter(self.cfg,
-                            mode='train',
-                            global_step=start_epoch*len(train_loader),
-                            total_iter=len(train_loader),
-                            total_epoch=self.cfg.TRAIN.NUM_EPOCHS,
-                            device=self.device,
-                            writer=writer)
+        train_meter = Meter(
+            self.cfg,
+            mode="train",
+            global_step=start_epoch * len(train_loader),
+            total_iter=len(train_loader),
+            total_epoch=self.cfg.TRAIN.NUM_EPOCHS,
+            device=self.device,
+            writer=writer,
+        )
 
-        val_meter = Meter(self.cfg,
-                          mode='val',
-                          global_step=start_epoch,
-                          total_iter=len(val_loader),
-                          total_epoch=self.cfg.TRAIN.NUM_EPOCHS,
-                          device=self.device,
-                          writer=writer)
+        val_meter = Meter(
+            self.cfg,
+            mode="val",
+            global_step=start_epoch,
+            total_iter=len(val_loader),
+            total_epoch=self.cfg.TRAIN.NUM_EPOCHS,
+            device=self.device,
+            writer=writer,
+        )
 
         logger.info("Summary path {}".format(self.cfg.SUMMARY_PATH))
         # Perform the training loop.
@@ -275,28 +324,32 @@ class Trainer:
             else:
                 miou = self.eval(val_loader, val_meter, epoch=epoch)
 
-            if (epoch+1) % self.cfg.TRAIN.CHECKPOINT_PERIOD == 0:
+            if (epoch + 1) % self.cfg.TRAIN.CHECKPOINT_PERIOD == 0:
                 logger.info(f"Saving checkpoint at epoch {epoch+1}")
-                cp.save_checkpoint(self.checkpoint_dir,
-                                   epoch+1,
-                                   best_miou,
-                                   self.cfg.NUM_GPUS,
-                                   self.cfg,
-                                   self.model,
-                                   optimizer,
-                                   scheduler
-                                   )
+                cp.save_checkpoint(
+                    self.checkpoint_dir,
+                    epoch + 1,
+                    best_miou,
+                    self.cfg.NUM_GPUS,
+                    self.cfg,
+                    self.model,
+                    optimizer,
+                    scheduler,
+                )
 
             if miou > best_miou:
                 best_miou = miou
-                logger.info(f"New best checkpoint reached at epoch {epoch+1} with miou of {best_miou}\nSaving new best model.")
-                cp.save_checkpoint(self.checkpoint_dir,
-                                   epoch+1,
-                                   best_miou,
-                                   self.cfg.NUM_GPUS,
-                                   self.cfg,
-                                   self.model,
-                                   optimizer,
-                                   scheduler,
-                                   best=True
-                                   )
+                logger.info(
+                    f"New best checkpoint reached at epoch {epoch+1} with miou of {best_miou}\nSaving new best model."
+                )
+                cp.save_checkpoint(
+                    self.checkpoint_dir,
+                    epoch + 1,
+                    best_miou,
+                    self.cfg.NUM_GPUS,
+                    self.cfg,
+                    self.model,
+                    optimizer,
+                    scheduler,
+                    best=True,
+                )

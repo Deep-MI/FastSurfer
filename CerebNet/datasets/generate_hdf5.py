@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,11 +45,13 @@ class CerebNetDataset:
         # Write the hdf5 file
         with h5py.File(dataset_name, "w") as hf:
             for name, vol in datasets.items():
-                if name != 'subject':
-                    hf.create_dataset(f'{name}', data=vol, compression='gzip')
+                if name != "subject":
+                    hf.create_dataset(f"{name}", data=vol, compression="gzip")
                 else:
                     dt = h5py.special_dtype(vlen=str)
-                    hf.create_dataset(f"{name}", data=datasets[name], dtype=dt, compression="gzip")
+                    hf.create_dataset(
+                        f"{name}", data=datasets[name], dtype=dt, compression="gzip"
+                    )
 
     def _read_warp_dict(self):
         """
@@ -64,17 +65,21 @@ class CerebNetDataset:
         """
         subj2warps = defaultdict(list)
         all_imgs = []
-        with open(join(self.cfg.REG_DATA_DIR, self.cfg.REG_DATA_CSV), 'r') as f:
+        with open(join(self.cfg.REG_DATA_DIR, self.cfg.REG_DATA_CSV), "r") as f:
             for line in f.readlines():
                 line = line.strip()
                 ids = line.split(",")
                 for i in ids[1:]:
-                    img_path = join(self.cfg.REG_DATA_DIR,
-                                    f"{i}_to_{ids[0]}",
-                                    self.cfg.AUXILIARY_IMAGE)
-                    lbl_path = join(self.cfg.REG_DATA_DIR,
-                                    f"{i}_to_{ids[0]}",
-                                    self.cfg.AUXILIARY_LABEL)
+                    img_path = join(
+                        self.cfg.REG_DATA_DIR,
+                        f"{i}_to_{ids[0]}",
+                        self.cfg.AUXILIARY_IMAGE,
+                    )
+                    lbl_path = join(
+                        self.cfg.REG_DATA_DIR,
+                        f"{i}_to_{ids[0]}",
+                        self.cfg.AUXILIARY_LABEL,
+                    )
                     if isfile(img_path) and isfile(lbl_path):
                         all_imgs.append(img_path)
                         subj2warps[i].append((img_path, lbl_path))
@@ -82,7 +87,9 @@ class CerebNetDataset:
                         warnings.warn(f"Warp field at {img_path} not found.")
         return subj2warps
 
-    def create_hdf5_dataset(self, subjects_list, dataset_name, store_talairach=False, load_aux_data=False):
+    def create_hdf5_dataset(
+        self, subjects_list, dataset_name, store_talairach=False, load_aux_data=False
+    ):
         """
         Function to store all images in a given directory (or pattern) in a hdf5-file.
         :return:
@@ -90,26 +97,42 @@ class CerebNetDataset:
         start_d = time.time()
         datasets = {}
         # Prepare arrays to hold the data
-        datasets['img'] = np.ndarray(shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8)
-        datasets['label'] = np.ndarray(shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8)
-        datasets['subject'] = []
+        datasets["img"] = np.ndarray(
+            shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8
+        )
+        datasets["label"] = np.ndarray(
+            shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8
+        )
+        datasets["subject"] = []
 
         if store_talairach:
-            datasets['talairach'] = np.ndarray(shape=(0, self.size[0], self.size[1], self.size[2], 3), dtype=np.float16)
+            datasets["talairach"] = np.ndarray(
+                shape=(0, self.size[0], self.size[1], self.size[2], 3), dtype=np.float16
+            )
 
         if load_aux_data:
-            datasets['auxiliary_img'] = np.ndarray(shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8)
-            datasets['auxiliary_lbl'] = np.ndarray(shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8)
+            datasets["auxiliary_img"] = np.ndarray(
+                shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8
+            )
+            datasets["auxiliary_lbl"] = np.ndarray(
+                shape=(0, self.size[0], self.size[1], self.size[2]), dtype=np.uint8
+            )
 
         # Loop over all subjects and load orig, aseg and create the weights
         for idx, current_subject in enumerate(subjects_list):
             # try:
             start = time.time()
-            print("Volume Nr: {}/{} Processing MRI Data from {}".format(idx+1, len(subjects_list), current_subject))
+            print(
+                "Volume Nr: {}/{} Processing MRI Data from {}".format(
+                    idx + 1, len(subjects_list), current_subject
+                )
+            )
 
-            in_data = self.subj_loader.load_subject(current_subject,
-                                                    store_talairach=store_talairach,
-                                                    load_aux_data=load_aux_data)
+            in_data = self.subj_loader.load_subject(
+                current_subject,
+                store_talairach=store_talairach,
+                load_aux_data=load_aux_data,
+            )
 
             # Append finally processed images to arrays
             for name, vol in in_data.items():
@@ -117,11 +140,15 @@ class CerebNetDataset:
                     datasets[name] = np.append(datasets[name], vol, axis=0)
 
             sub_name = current_subject.split("/")[-1]
-            datasets['subject'].append(sub_name.encode("ascii", "ignore"))
+            datasets["subject"].append(sub_name.encode("ascii", "ignore"))
 
             end = time.time() - start
-            print("Number of Cerebellum classes", len(np.unique(in_data['label'])))
-            print("Volume: {} Finished Data Reading and Appending in {:.3f} seconds.".format(idx+1, end))
+            print("Number of Cerebellum classes", len(np.unique(in_data["label"])))
+            print(
+                "Volume: {} Finished Data Reading and Appending in {:.3f} seconds.".format(
+                    idx + 1, end
+                )
+            )
 
             # except Exception as e:
             #     print("Volume: {} Failed Reading Data. Error: {}".format(idx, e))

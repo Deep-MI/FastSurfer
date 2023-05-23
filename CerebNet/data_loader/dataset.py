@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
+
 # IMPORTS
 from typing import Sequence, Tuple, Literal, get_args as _get_args, TypeVar, Dict
 from numbers import Number
@@ -26,17 +27,21 @@ from torchvision.transforms import Compose
 
 from CerebNet.data_loader.data_utils import Plane
 from FastSurferCNN.utils import logging
-from FastSurferCNN.data_loader.data_utils import get_thick_slices, transform_axial, transform_sagittal
+from FastSurferCNN.data_loader.data_utils import (
+    get_thick_slices,
+    transform_axial,
+    transform_sagittal,
+)
 
 from CerebNet.data_loader import data_utils as utils
 from CerebNet.data_loader.augmentation import ToTensor
 from CerebNet.datasets.load_data import SubjectLoader
 from CerebNet.datasets.utils import crop_transform, bounding_volume_offset
 
-ROIKeys = Literal['source_shape', 'offsets', 'target_shape']
+ROIKeys = Literal["source_shape", "offsets", "target_shape"]
 LocalizerROI = Dict[ROIKeys, Tuple[int, ...]]
 
-NT = TypeVar('NT', bound=Number)
+NT = TypeVar("NT", bound=Number)
 PLANES = _get_args(Plane)
 
 logger = logging.get_logger(__name__)
@@ -47,6 +52,7 @@ class CerebDataset(Dataset):
     """
     Class for loading aseg file with augmentations (transforms)
     """
+
     def __init__(self, dataset_path, cfg, transforms, load_aux_data):
 
         # Load the h5 file and save it to the dataset
@@ -55,14 +61,15 @@ class CerebDataset(Dataset):
         self.slice_thickness = cfg.DATA.THICKNESS
         self.transforms = transforms
         self.load_talairach = cfg.DATA.LOAD_TALAIRACH
-        plane_transform = utils.get_plane_transform(cfg.DATA.PLANE,
-                                                    cfg.DATA.PRIMARY_SLICE_DIR)
+        plane_transform = utils.get_plane_transform(
+            cfg.DATA.PLANE, cfg.DATA.PRIMARY_SLICE_DIR
+        )
         self.dataset = {}
 
         # TODO may be need to load warped data to memory as needed
         with h5py.File(dataset_path, "r") as hf:
             for name in hf.keys():
-                if 'auxiliary' in name:
+                if "auxiliary" in name:
                     if not load_aux_data:
                         continue
                     stride = int(1.0 / cfg.DATA.FRACTION)
@@ -74,42 +81,58 @@ class CerebDataset(Dataset):
                     else:
                         data = np.array(hf.get(name)[:])
 
-                if name != 'subject':
+                if name != "subject":
                     data = plane_transform(data)
-                    data = self._stack_slices_in_plane(data,
-                                                       thick_slice=(name == 'img' or name == 'auxiliary_img'))  # [n_slices, h, w]
-                    if name == 'label' or name == 'auxiliary_lbl':
-                        if cfg.DATA.PLANE == 'sagittal':
+                    data = self._stack_slices_in_plane(
+                        data, thick_slice=(name == "img" or name == "auxiliary_img")
+                    )  # [n_slices, h, w]
+                    if name == "label" or name == "auxiliary_lbl":
+                        if cfg.DATA.PLANE == "sagittal":
                             data = utils.map_sag2label(data)
 
                 self.dataset[name] = data
 
         if load_aux_data:
-            logger.info(f"Using {100 * cfg.DATA.FRACTION}% ({self.dataset['auxiliary_img'].shape[0]} slices)"
-                        f" of auxiliary data.")
-            self.dataset['img'] = np.concatenate([self.dataset['img'], self.dataset['auxiliary_img']], axis=0)
-            self.dataset['label'] = np.concatenate([self.dataset['label'], self.dataset['auxiliary_lbl']], axis=0)
-            del self.dataset['auxiliary_img']
-            del self.dataset['auxiliary_lbl']
+            logger.info(
+                f"Using {100 * cfg.DATA.FRACTION}% ({self.dataset['auxiliary_img'].shape[0]} slices)"
+                f" of auxiliary data."
+            )
+            self.dataset["img"] = np.concatenate(
+                [self.dataset["img"], self.dataset["auxiliary_img"]], axis=0
+            )
+            self.dataset["label"] = np.concatenate(
+                [self.dataset["label"], self.dataset["auxiliary_lbl"]], axis=0
+            )
+            del self.dataset["auxiliary_img"]
+            del self.dataset["auxiliary_lbl"]
 
-        self.class_wise_weights = self._get_class_wise_weights(self.dataset['label'])
+        self.class_wise_weights = self._get_class_wise_weights(self.dataset["label"])
         utils.filter_blank_slices_thick(self.dataset)
 
         self.slice_thickness = cfg.DATA.THICKNESS
-        self.count = self.dataset['img'].shape[0]
+        self.count = self.dataset["img"].shape[0]
         # self.warped_count = self.dataset['warped_img'].shape[0] if 'warped_img' in self.dataset else 0
-        assert self.count >= self.slice_thickness, f"Not enough slices {self.count}" \
-                                                   f" for the given slice thickness {self.slice_thickness}"
+        assert self.count >= self.slice_thickness, (
+            f"Not enough slices {self.count}"
+            f" for the given slice thickness {self.slice_thickness}"
+        )
 
-        self.subjects = self.dataset['subject']
-        del self.dataset['subject']
+        self.subjects = self.dataset["subject"]
+        del self.dataset["subject"]
 
-        logger.info("Successfully loaded {} slices in {} plane from {}".format(self.count,
-                                                                                 cfg.DATA.PLANE,
-                                                                                 dataset_path,
-                                                               ))
+        logger.info(
+            "Successfully loaded {} slices in {} plane from {}".format(
+                self.count,
+                cfg.DATA.PLANE,
+                dataset_path,
+            )
+        )
 
-        logger.info("Total number of classes is: {}".format(len(np.unique(self.dataset['label']))))
+        logger.info(
+            "Total number of classes is: {}".format(
+                len(np.unique(self.dataset["label"]))
+            )
+        )
 
         # except Exception as e:
         #     logger.info("Loading failed: {}".format(e))
@@ -128,14 +151,14 @@ class CerebDataset(Dataset):
 
     def _stack_slices_in_plane(self, vol, thick_slice):
         """
-            vol: [N, H, W, D]  N  images with plane at last dimension
+        vol: [N, H, W, D]  N  images with plane at last dimension
         """
         if len(vol.shape) == 4:
             vol = np.moveaxis(vol, [0, 1, 2, 3], [0, 2, 3, 1])
             if thick_slice:
                 vol = get_thick_slices(vol, self.slice_thickness)
                 n_imgs, n_slices, thickness, h, w = vol.shape
-                return vol.reshape(n_imgs*n_slices, thickness, h, w)
+                return vol.reshape(n_imgs * n_slices, thickness, h, w)
             n_imgs, n_slices, h, w = vol.shape
             return vol.reshape(n_imgs * n_slices, h, w)
         if len(vol.shape) == 5:
@@ -146,23 +169,27 @@ class CerebDataset(Dataset):
 
     def __getitem__(self, index):
         sample = {}
-        sample['image'] = self.dataset['img'][index]
-        sample['label'] = self.dataset['label'][index]
-        if 'talairach' in self.dataset:
-            sample['talairach'] = self.dataset['talairach'][index]
+        sample["image"] = self.dataset["img"][index]
+        sample["label"] = self.dataset["label"][index]
+        if "talairach" in self.dataset:
+            sample["talairach"] = self.dataset["talairach"][index]
 
         if self.transforms is not None:
             sample = self.transforms(sample)
-        sample['weight'] = utils.create_weight_mask2d(sample['label'], self.class_wise_weights)
+        sample["weight"] = utils.create_weight_mask2d(
+            sample["label"], self.class_wise_weights
+        )
 
-        if 'talairach' in sample:
-            sample['image'] = np.concatenate((sample['image'], sample['talairach']), axis=0)
-            del sample['talairach']
-        elif self.load_talairach: ## for validation use zeros instead
-            pad_width = self.cfg.MODEL.NUM_CHANNELS - sample['image'].shape[0]
-            size = torch.Size([pad_width]) + sample['image'].shape[1:]
-            zero_pads = torch.zeros(size, dtype=sample['image'].dtype)
-            sample['image'] = torch.cat((zero_pads, sample['image']), dim=0)
+        if "talairach" in sample:
+            sample["image"] = np.concatenate(
+                (sample["image"], sample["talairach"]), axis=0
+            )
+            del sample["talairach"]
+        elif self.load_talairach:  ## for validation use zeros instead
+            pad_width = self.cfg.MODEL.NUM_CHANNELS - sample["image"].shape[0]
+            size = torch.Size([pad_width]) + sample["image"].shape[1:]
+            zero_pads = torch.zeros(size, dtype=sample["image"].dtype)
+            sample["image"] = torch.cat((zero_pads, sample["image"]), dim=0)
         return sample
 
     def __len__(self):
@@ -170,17 +197,14 @@ class CerebDataset(Dataset):
 
 
 class TestLoader(Dataset):
-    def __init__(self,
-                 subject_path,
-                 data_cfg,
-                 transforms=None):
+    def __init__(self, subject_path, data_cfg, transforms=None):
 
         data_dict = self._load_images(data_cfg, subject_path)
-        self.img_per_plane = data_dict['image']
-        self.labels = data_dict['label']
-        self.meta_data = data_dict['meta']
+        self.img_per_plane = data_dict["image"]
+        self.labels = data_dict["label"]
+        self.meta_data = data_dict["meta"]
         self.transform = transforms
-        self.count = self.img_per_plane['axial'].shape[0]
+        self.count = self.img_per_plane["axial"].shape[0]
 
     def _load_images(self, cfg, subj_path):
         subject_loader = SubjectLoader(cfg)
@@ -198,7 +222,7 @@ class TestLoader(Dataset):
 
     def __getitem__(self, index):
         out_dict = {}
-        for plane in ['axial', 'coronal', 'sagittal']:
+        for plane in ["axial", "coronal", "sagittal"]:
             img = self.img_per_plane[plane][index]
             if self.transform is not None:
                 img = self.transform(img)
@@ -217,12 +241,14 @@ class SubjectDataset(Dataset):
 
     roi = LocalizerROI
 
-    def __init__(self,
-                 img_org: nib.analyze.SpatialImage,
-                 brain_seg: nib.analyze.SpatialImage,
-                 patch_size: Tuple[int, ...],
-                 slice_thickness: int,
-                 primary_slice: str):
+    def __init__(
+        self,
+        img_org: nib.analyze.SpatialImage,
+        brain_seg: nib.analyze.SpatialImage,
+        patch_size: Tuple[int, ...],
+        slice_thickness: int,
+        primary_slice: str,
+    ):
         self.slice_thickness = slice_thickness
         self.transforms = Compose([ToTensor()])
         self.img_org = img_org
@@ -234,34 +260,56 @@ class SubjectDataset(Dataset):
         cereb_aseg_mask = utils.get_aseg_cereb_mask(np.asarray(brain_seg.dataobj))
 
         from numpy.linalg import inv
+
         affine = inv(brain_seg.affine) @ img_org.affine
 
-        #print(brain_seg.affine, img_org.affine)
+        # print(brain_seg.affine, img_org.affine)
         if not np.allclose(affine, np.eye(affine.shape[0])):
-            logger.info("The conformed image and the segmentation do not share the same affine. The cerebellum mask "
-                        "is being resampled to localize it in the conformed image.")
+            logger.info(
+                "The conformed image and the segmentation do not share the same affine. The cerebellum mask "
+                "is being resampled to localize it in the conformed image."
+            )
             from scipy.ndimage import affine_transform
-            cereb_aseg = affine_transform(cereb_aseg_mask.astype(np.float32), affine, output_shape=img_org.shape)
+
+            cereb_aseg = affine_transform(
+                cereb_aseg_mask.astype(np.float32), affine, output_shape=img_org.shape
+            )
             cereb_aseg_mask = cereb_aseg > 0.5
 
         bbox = self.locate_mask_bbox(cereb_aseg_mask)
 
         # create the roi from cereb_aseg (where labels after interpolation > 0.05 --> membership rounded to 1 decimal)
-        self.roi: LocalizerROI = {"source_shape": img_org.shape,
-                                  "offsets": bounding_volume_offset(bbox, patch_size, image_shape=cereb_aseg_mask.shape),
-                                  "target_shape": patch_size}
+        self.roi: LocalizerROI = {
+            "source_shape": img_org.shape,
+            "offsets": bounding_volume_offset(
+                bbox, patch_size, image_shape=cereb_aseg_mask.shape
+            ),
+            "target_shape": patch_size,
+        }
         # crop the region of interest
-        img = crop_transform(self.img_org_data, offsets=self.roi["offsets"], target_shape=self.roi["target_shape"])
+        img = crop_transform(
+            self.img_org_data,
+            offsets=self.roi["offsets"],
+            target_shape=self.roi["target_shape"],
+        )
 
         self.images_per_plane = {}
         self.count = 0
         self._plane: Plane = "axial"
-        data = {"axial": transform_axial(img), "coronal": img, "sagittal": transform_sagittal(img)}
+        data = {
+            "axial": transform_axial(img),
+            "coronal": img,
+            "sagittal": transform_sagittal(img),
+        }
         for plane, data in data.items():
             # data is transformed to 'plane'-direction in axis 2
-            thick_slices = get_thick_slices(data, self.slice_thickness)  # [H, W, n_slices, C]
+            thick_slices = get_thick_slices(
+                data, self.slice_thickness
+            )  # [H, W, n_slices, C]
             # it seems x and y are flipped with respect to expectations here
-            self.images_per_plane[plane] = np.transpose(thick_slices, (2, 0, 1, 3))   # [n_slices, H, W, C]
+            self.images_per_plane[plane] = np.transpose(
+                thick_slices, (2, 0, 1, 3)
+            )  # [n_slices, H, W, C]
 
     def locate_mask_bbox(self, mask: npt.NDArray[bool]):
         """Find the largest connected component of the mask.
@@ -271,6 +319,7 @@ class SubjectDataset(Dataset):
         """
         # filter disconnected components
         from skimage.measure import regionprops, label
+
         label_image = label(mask, connectivity=3)
         regions = regionprops(label_image)
         largest_region = np.argmax([r.area for r in regions])
@@ -285,7 +334,9 @@ class SubjectDataset(Dataset):
     def set_plane(self, plane: Plane):
         """Set the active plane."""
         if plane not in self.images_per_plane.keys():
-            raise ValueError(f"Invalid plane name, must be in {tuple(self.images_per_plane.keys())}")
+            raise ValueError(
+                f"Invalid plane name, must be in {tuple(self.images_per_plane.keys())}"
+            )
         self._plane = plane
 
     @property
@@ -297,8 +348,10 @@ class SubjectDataset(Dataset):
         """Get the plane and data belonging to indices given."""
 
         if not (0 <= index < self.images_per_plane[self.plane].shape[0]):
-            raise IndexError(f"Index out of bounds, for active plane {self.plane}. "
-                             f"Index should be within [0, {self.images_per_plane[self.plane].shape[0]}).")
+            raise IndexError(
+                f"Index out of bounds, for active plane {self.plane}. "
+                f"Index should be within [0, {self.images_per_plane[self.plane].shape[0]})."
+            )
         img = self.images_per_plane[self.plane][index]
         if self.transforms is not None:
             img = self.transforms(img)

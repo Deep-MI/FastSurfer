@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,12 +36,12 @@ def get_dataloader(cfg, mode):
         the Dataloader
     """
 
-    if mode == 'train':
+    if mode == "train":
         data_path = cfg.DATA.PATH_HDF5_TRAIN
         shuffle = True
         transform = get_transform(cfg)
         load_aux_data = cfg.DATA.LOAD_AUXILIARY_DATA
-    elif mode == 'val':
+    elif mode == "val":
         data_path = cfg.DATA.PATH_HDF5_VAL
         cfg.DATA.FRACTION = 1.0
         shuffle = False

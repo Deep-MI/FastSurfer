@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,13 +18,13 @@ import torch.optim.lr_scheduler as scheduler
 
 def get_lr_scheduler(optimzer, cfg):
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
-    if scheduler_type == 'step_lr':
+    if scheduler_type == "step_lr":
         return scheduler.StepLR(
             optimizer=optimzer,
             step_size=cfg.OPTIMIZER.STEP_SIZE,
             gamma=cfg.OPTIMIZER.GAMMA,
         )
-    elif scheduler_type == 'cosineWarmRestarts':
+    elif scheduler_type == "cosineWarmRestarts":
         return scheduler.CosineAnnealingWarmRestarts(
             optimizer=optimzer,
             T_0=cfg.OPTIMIZER.T_ZERO,
