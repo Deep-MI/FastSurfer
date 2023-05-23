@@ -20,7 +20,19 @@ import multiprocessing
 from functools import partial, reduce
 from itertools import product
 from numbers import Number
-from typing import Sequence, Tuple, Union, Optional, Dict, overload, cast, TypeVar, List, Iterable, Callable
+from typing import (
+    Sequence,
+    Tuple,
+    Union,
+    Optional,
+    Dict,
+    overload,
+    cast,
+    TypeVar,
+    List,
+    Iterable,
+    Callable,
+)
 
 import nibabel as nib
 import numpy as np
@@ -28,8 +40,11 @@ import pandas as pd
 from numpy import typing as npt
 
 from FastSurferCNN.utils.parser_defaults import add_arguments
-from FastSurferCNN.utils.arg_types import (int_gt_zero as patch_size, int_ge_zero as id_type,
-                                           float_gt_zero_and_le_one as robust_threshold)
+from FastSurferCNN.utils.arg_types import (
+    int_gt_zero as patch_size,
+    int_ge_zero as id_type,
+    float_gt_zero_and_le_one as robust_threshold,
+)
 
 USAGE = "python seg_stats.py  -norm <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments]"
 DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
@@ -53,80 +68,169 @@ Date: Dec-30-2022
 Modified: May-08-2023
 """
 
-_NumberType = TypeVar('_NumberType', bound=Number)
+_NumberType = TypeVar("_NumberType", bound=Number)
 _IntType = TypeVar("_IntType", bound=np.integer)
-_DType = TypeVar('_DType', bound=np.dtype)
+_DType = TypeVar("_DType", bound=np.dtype)
 _ArrayType = TypeVar("_ArrayType", bound=np.ndarray)
 PVStats = Dict[str, Union[int, float]]
 VirtualLabel = Dict[int, Sequence[int]]
 
-UNITS = {"Volume_mm3": "mm^3", "normMean": "MR", "normStdDev": "MR", "normMin": "MR", "normMax": "MR",
-         "normRange": "MR"}
-FIELDS = {"Index": "Index", "SegId": "Segmentation Id", "NVoxels": "Number of Voxels", "Volume_mm3": "Volume",
-          "StructName": "Structure Name", "normMean": "Intensity normMean", "normStdDev": "Intensity normStdDev",
-          "normMin": "Intensity normMin", "normMax": "Intensity normMax", "normRange": "Intensity normRange"}
-FORMATS = {"Index": "d", "SegId": "d", "NVoxels": "d", "Volume_mm3": ".1f", "StructName": "s", "normMean": ".4f",
-           "normStdDev": ".4f", "normMin": ".4f", "normMax": ".4f", "normRange": ".4f"}
+UNITS = {
+    "Volume_mm3": "mm^3",
+    "normMean": "MR",
+    "normStdDev": "MR",
+    "normMin": "MR",
+    "normMax": "MR",
+    "normRange": "MR",
+}
+FIELDS = {
+    "Index": "Index",
+    "SegId": "Segmentation Id",
+    "NVoxels": "Number of Voxels",
+    "Volume_mm3": "Volume",
+    "StructName": "Structure Name",
+    "normMean": "Intensity normMean",
+    "normStdDev": "Intensity normStdDev",
+    "normMin": "Intensity normMin",
+    "normMax": "Intensity normMax",
+    "normRange": "Intensity normRange",
+}
+FORMATS = {
+    "Index": "d",
+    "SegId": "d",
+    "NVoxels": "d",
+    "Volume_mm3": ".1f",
+    "StructName": "s",
+    "normMean": ".4f",
+    "normStdDev": ".4f",
+    "normMin": ".4f",
+    "normMax": ".4f",
+    "normRange": ".4f",
+}
 
 
 class HelpFormatter(argparse.HelpFormatter):
     """Help formatter that keeps line breaks for texts that start with '/keeplinebreaks/'."""
 
     def _fill_text(self, text, width, indent):
-        klb_str = '/keeplinebreaks/'
+        klb_str = "/keeplinebreaks/"
         if text.startswith(klb_str):
             # the following line is from argparse.RawDescriptionHelpFormatter
-            return ''.join(indent + line for line in text[len(klb_str):].splitlines(keepends=True))
+            return "".join(
+                indent + line for line in text[len(klb_str) :].splitlines(keepends=True)
+            )
         else:
             return super()._fill_text(text, width, indent)
 
 
 def make_arguments() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(usage=USAGE, epilog=HELPTEXT, description=DESCRIPTION,
-                                     formatter_class=HelpFormatter)
-    parser.add_argument('-norm', '--normfile', type=str, required=True, dest='normfile',
-                        help="Biasfield-corrected image in the same image space as segmentation (required).")
-    parser.add_argument('-i', '--segfile', type=str, dest='segfile', required=True,
-                        help="Segmentation file to read and use for evaluation (required).")
-    parser.add_argument('-o', '--segstatsfile', type=str, required=True, dest='segstatsfile',
-                        help="Path to output segstats file.")
+    parser = argparse.ArgumentParser(
+        usage=USAGE,
+        epilog=HELPTEXT,
+        description=DESCRIPTION,
+        formatter_class=HelpFormatter,
+    )
+    parser.add_argument(
+        "-norm",
+        "--normfile",
+        type=str,
+        required=True,
+        dest="normfile",
+        help="Biasfield-corrected image in the same image space as segmentation (required).",
+    )
+    parser.add_argument(
+        "-i",
+        "--segfile",
+        type=str,
+        dest="segfile",
+        required=True,
+        help="Segmentation file to read and use for evaluation (required).",
+    )
+    parser.add_argument(
+        "-o",
+        "--segstatsfile",
+        type=str,
+        required=True,
+        dest="segstatsfile",
+        help="Path to output segstats file.",
+    )
 
-    parser.add_argument('--excludeid', type=id_type, nargs="*", default=[0],
-                        help="List of segmentation ids (integers) to exclude in analysis, "
-                             "e.g. `--excludeid 0 1 10` (default: 0).")
-    parser.add_argument('--ids', type=id_type, nargs="*",
-                        help="List of exclusive segmentation ids (integers) to use "
-                             "(default: all ids in --lut or all ids in image).")
-    parser.add_argument('--merged_label', type=id_type, nargs="+", dest='merged_labels', default=[], action='append',
-                        help="Add a 'virtual' label (first value) that is the combination of all following values, "
-                             "e.g. `--merged_label 100 3 4 8` will compute the statistics for label 100 by aggregating "
-                             "labels 3, 4 and 8.")
-    parser.add_argument('--robust', type=robust_threshold, dest='robust', default=None,
-                        help="Whether to calculate robust segmentation metrics. This parameter "
-                             "expects the fraction of values to keep, e.g. `--robust 0.95` will "
-                             "ignore the 2.5%% smallest and the 2.5%% largest values in the "
-                             "segmentation when calculating the statistics (default: no robust "
-                             "statistics == `--robust 1.0`).")
+    parser.add_argument(
+        "--excludeid",
+        type=id_type,
+        nargs="*",
+        default=[0],
+        help="List of segmentation ids (integers) to exclude in analysis, "
+        "e.g. `--excludeid 0 1 10` (default: 0).",
+    )
+    parser.add_argument(
+        "--ids",
+        type=id_type,
+        nargs="*",
+        help="List of exclusive segmentation ids (integers) to use "
+        "(default: all ids in --lut or all ids in image).",
+    )
+    parser.add_argument(
+        "--merged_label",
+        type=id_type,
+        nargs="+",
+        dest="merged_labels",
+        default=[],
+        action="append",
+        help="Add a 'virtual' label (first value) that is the combination of all following values, "
+        "e.g. `--merged_label 100 3 4 8` will compute the statistics for label 100 by aggregating "
+        "labels 3, 4 and 8.",
+    )
+    parser.add_argument(
+        "--robust",
+        type=robust_threshold,
+        dest="robust",
+        default=None,
+        help="Whether to calculate robust segmentation metrics. This parameter "
+        "expects the fraction of values to keep, e.g. `--robust 0.95` will "
+        "ignore the 2.5%% smallest and the 2.5%% largest values in the "
+        "segmentation when calculating the statistics (default: no robust "
+        "statistics == `--robust 1.0`).",
+    )
     advanced = parser.add_argument_group(title="Advanced options")
-    advanced.add_argument('--threads', dest='threads', default=multiprocessing.cpu_count(), type=int,
-                          help=f"Number of threads to use (defaults to number of hardware threads: "
-                               f"{multiprocessing.cpu_count()})")
-    advanced.add_argument('--patch_size', type=patch_size, dest='patch_size', default=32,
-                          help="Patch size to use in calculating the partial volumes (default: 32).")
-    advanced.add_argument('--empty', action='store_true', dest='empty',
-                          help="Keep ids for the table that do not exist in the segmentation (default: drop).")
-    advanced.add_argument('--legacy_freesurfer', action='store_true', dest='legacy_freesurfer',
-                          help="Reproduce FreeSurfer mri_segstats numbers (default: off).")
-    advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
+    advanced.add_argument(
+        "--threads",
+        dest="threads",
+        default=multiprocessing.cpu_count(),
+        type=int,
+        help=f"Number of threads to use (defaults to number of hardware threads: "
+        f"{multiprocessing.cpu_count()})",
+    )
+    advanced.add_argument(
+        "--patch_size",
+        type=patch_size,
+        dest="patch_size",
+        default=32,
+        help="Patch size to use in calculating the partial volumes (default: 32).",
+    )
+    advanced.add_argument(
+        "--empty",
+        action="store_true",
+        dest="empty",
+        help="Keep ids for the table that do not exist in the segmentation (default: drop).",
+    )
+    advanced.add_argument(
+        "--legacy_freesurfer",
+        action="store_true",
+        dest="legacy_freesurfer",
+        help="Reproduce FreeSurfer mri_segstats numbers (default: off).",
+    )
+    advanced = add_arguments(advanced, ["device", "lut", "sid", "in_dir", "allow_root"])
     return parser
 
 
-def loadfile_full(file: str, name: str) \
-        -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+def loadfile_full(file: str, name: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
     try:
         img = nib.load(file)
     except (IOError, FileNotFoundError) as e:
-        raise IOError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
+        raise IOError(
+            f"Failed loading the {name} '{file}' with error: {e.args[0]}"
+        ) from e
     data = np.asarray(img.dataobj)
     return img, data
 
@@ -134,15 +238,17 @@ def loadfile_full(file: str, name: str) \
 def main(args):
     import os
     import time
+
     start = time.perf_counter_ns()
     from FastSurferCNN.utils.common import assert_no_root
+
     getattr(args, "allow_root", False) or assert_no_root()
 
-    if not hasattr(args, 'segfile') or not os.path.exists(args.segfile):
+    if not hasattr(args, "segfile") or not os.path.exists(args.segfile):
         return "No segfile was passed or it does not exist."
-    if not hasattr(args, 'normfile') or not os.path.exists(args.normfile):
+    if not hasattr(args, "normfile") or not os.path.exists(args.normfile):
         return "No normfile was passed or it does not exist."
-    if not hasattr(args, 'segstatsfile'):
+    if not hasattr(args, "segstatsfile"):
         return "No segstats file was passed"
 
     threads = args.threads
@@ -150,12 +256,13 @@ def main(args):
         threads = multiprocessing.cpu_count()
 
     from concurrent.futures import ThreadPoolExecutor
+
     with ThreadPoolExecutor(threads) as tpe:
         # load these files in different threads to avoid waiting on IO (not parallel due to GIL though)
-        seg_future = tpe.submit(loadfile_full, args.segfile, 'segfile')
-        norm_future = tpe.submit(loadfile_full, args.normfile, 'normfile')
+        seg_future = tpe.submit(loadfile_full, args.segfile, "segfile")
+        norm_future = tpe.submit(loadfile_full, args.normfile, "normfile")
 
-        if hasattr(args, 'lut') and args.lut is not None:
+        if hasattr(args, "lut") and args.lut is not None:
             try:
                 lut = read_classes_from_lut(args.lut)
             except FileNotFoundError as e:
@@ -163,28 +270,48 @@ def main(args):
         else:
             lut = None
         try:
-            seg, seg_data = seg_future.result()  # type: nib.analyze.SpatialImage, Union[np.ndarray, torch.IntTensor]
-            norm, norm_data = norm_future.result()  # type: nib.analyze.SpatialImage, Union[np.ndarray, torch.Tensor]
+            (
+                seg,
+                seg_data,
+            ) = (
+                seg_future.result()
+            )  # type: nib.analyze.SpatialImage, Union[np.ndarray, torch.IntTensor]
+            (
+                norm,
+                norm_data,
+            ) = (
+                norm_future.result()
+            )  # type: nib.analyze.SpatialImage, Union[np.ndarray, torch.Tensor]
 
-            if seg_data.shape != norm_data.shape or not np.allclose(seg.affine, norm.affine):
-                return "The shapes or affines of the segmentation and the norm image are not similar, both must be " \
-                       "the same!"
+            if seg_data.shape != norm_data.shape or not np.allclose(
+                seg.affine, norm.affine
+            ):
+                return (
+                    "The shapes or affines of the segmentation and the norm image are not similar, both must be "
+                    "the same!"
+                )
 
         except IOError as e:
             return e.args[0]
     explicit_ids = False
-    if hasattr(args, 'ids') and args.ids is not None and len(args.ids) > 0:
+    if hasattr(args, "ids") and args.ids is not None and len(args.ids) > 0:
         labels = np.asarray(args.ids)
         explicit_ids = True
     elif lut is not None:
-        labels = lut['ID']  # the column ID contains all ids
+        labels = lut["ID"]  # the column ID contains all ids
     else:
         labels = np.unique(seg_data)
 
-    if hasattr(args, 'excludeid') and args.excludeid is not None and len(args.excludeid) > 0:
+    if (
+        hasattr(args, "excludeid")
+        and args.excludeid is not None
+        and len(args.excludeid) > 0
+    ):
         exclude_id = list(args.excludeid)
         if explicit_ids:
-            excluded_expl_ids = np.asarray(list(filter(lambda x: x in exclude_id, labels)))
+            excluded_expl_ids = np.asarray(
+                list(filter(lambda x: x in exclude_id, labels))
+            )
             if excluded_expl_ids.size > 0:
                 return "Some IDs explicitly passed via --ids are also in the list of ids to exclude (--excludeid)"
         labels = np.asarray(list(filter(lambda x: x not in exclude_id, labels)))
@@ -193,29 +320,37 @@ def main(args):
 
     kwargs = {
         "vox_vol": np.prod(seg.header.get_zooms()).item(),
-        "robust_percentage": getattr(args, 'robust', None),
+        "robust_percentage": getattr(args, "robust", None),
         "threads": threads,
-        "legacy_freesurfer": bool(getattr(args, 'legacy_freesurfer', False))
+        "legacy_freesurfer": bool(getattr(args, "legacy_freesurfer", False)),
     }
 
     if args.merged_labels is not None and len(args.merged_labels) > 0:
         kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
 
-    table: List[PVStats] = pv_calc(seg_data, norm_data, labels, patch_size=args.patch_size, **kwargs)
+    table: List[PVStats] = pv_calc(
+        seg_data, norm_data, labels, patch_size=args.patch_size, **kwargs
+    )
 
     if lut is not None:
         for i in range(len(table)):
             lut_idx = lut["ID"] == table[i]["SegId"]
             if lut_idx.any():
                 table[i]["StructName"] = lut[lut_idx]["LabelName"].item()
-            elif "merged_labels" in kwargs and table[i]["SegId"] in kwargs["merged_labels"].keys():
+            elif (
+                "merged_labels" in kwargs
+                and table[i]["SegId"] in kwargs["merged_labels"].keys()
+            ):
                 # noinspection PyTypeChecker
                 table[i]["StructName"] = "Merged-Label-" + str(table[i]["SegId"])
             else:
                 # make the label unknown
                 table[i]["StructName"] = "Unknown-Label"
         lut_idx = {i: lut["ID"] == i for i in exclude_id}
-        exclude = {i: lut[lut_idx[i]]["LabelName"].item() if lut_idx[i].any() else "" for i in exclude_id}
+        exclude = {
+            i: lut[lut_idx[i]]["LabelName"].item() if lut_idx[i].any() else ""
+            for i in exclude_id
+        }
     else:
         exclude = {i: "" for i in exclude_id}
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
@@ -224,24 +359,43 @@ def main(args):
     dataframe = dataframe.sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
     lines = []
-    if getattr(args, 'in_dir', None):
+    if getattr(args, "in_dir", None):
         lines.append(f'SUBJECTS_DIR {getattr(args, "in_dir")}')
-    if getattr(args, 'sid', None):
+    if getattr(args, "sid", None):
         lines.append(f'subjectname {getattr(args, "sid")}')
-    lines.append("compatibility with freesurfer's mri_segstats: " +
-                 ("legacy" if kwargs["legacy_freesurfer"] else "fixed"))
+    lines.append(
+        "compatibility with freesurfer's mri_segstats: "
+        + ("legacy" if kwargs["legacy_freesurfer"] else "fixed")
+    )
 
-    write_statsfile(args.segstatsfile, dataframe,
-                    exclude=exclude, vox_vol=kwargs["vox_vol"], segfile=args.segfile,
-                    normfile=args.normfile, lut=getattr(args, "lut", None), extra_header=lines)
-    print(f"Partial volume stats for {dataframe.shape[0]} labels written to {args.segstatsfile}.")
+    write_statsfile(
+        args.segstatsfile,
+        dataframe,
+        exclude=exclude,
+        vox_vol=kwargs["vox_vol"],
+        segfile=args.segfile,
+        normfile=args.normfile,
+        lut=getattr(args, "lut", None),
+        extra_header=lines,
+    )
+    print(
+        f"Partial volume stats for {dataframe.shape[0]} labels written to {args.segstatsfile}."
+    )
     duration = (time.perf_counter_ns() - start) / 1e9
     print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
     return 0
 
 
-def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, exclude: Optional[Dict[int, str]] = None,
-                    segfile: str = None, normfile: str = None, lut: str = None, extra_header: Sequence[str] = ()):
+def write_statsfile(
+    segstatsfile: str,
+    dataframe: pd.DataFrame,
+    vox_vol: float,
+    exclude: Optional[Dict[int, str]] = None,
+    segfile: str = None,
+    normfile: str = None,
+    lut: str = None,
+    extra_header: Sequence[str] = (),
+):
     """Write a segstatsfile very similar and compatible with mri_segstats output.
 
     Args:
@@ -269,18 +423,23 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 
     os.makedirs(os.path.dirname(segstatsfile), exist_ok=True)
     with open(segstatsfile, "w") as fp:
-        fp.write("# Title Segmentation Statistics\n#\n"
-                 "# generating_program segstats.py\n"
-                 "# cmdline " + " ".join(sys.argv) + "\n")
-        if os.name == 'posix':
-            fp.write(f"# sysname  {os.uname().sysname}\n"
-                     f"# hostname {os.uname().nodename}\n"
-                     f"# machine  {os.uname().machine}\n")
+        fp.write(
+            "# Title Segmentation Statistics\n#\n"
+            "# generating_program segstats.py\n"
+            "# cmdline " + " ".join(sys.argv) + "\n"
+        )
+        if os.name == "posix":
+            fp.write(
+                f"# sysname  {os.uname().sysname}\n"
+                f"# hostname {os.uname().nodename}\n"
+                f"# machine  {os.uname().machine}\n"
+            )
         else:
             from socket import gethostname
-            fp.write(f"# platform {sys.platform}\n"
-                     f"# hostname {gethostname()}\n")
+
+            fp.write(f"# platform {sys.platform}\n" f"# hostname {gethostname()}\n")
         from getpass import getuser
+
         try:
             fp.write(f"# user       {getuser()}\n")
         except KeyError:
@@ -293,7 +452,9 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
         file_annotation(fp, "PVVolFile", normfile)
         if exclude is not None and len(exclude) > 0:
             if any(len(e) > 0 for e in exclude.values()):
-                fp.write(f"# Excluding {', '.join(filter(lambda x: len(x) > 0, exclude.values()))}\n")
+                fp.write(
+                    f"# Excluding {', '.join(filter(lambda x: len(x) > 0, exclude.values()))}\n"
+                )
             fp.write("".join([f"# ExcludeSegId {id}\n" for id in exclude.keys()]))
         warn_msg_sent = False
         for i, line in enumerate(extra_header):
@@ -306,8 +467,11 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
             if "\n" in line:
                 line = line.replace("\n", " ")
                 from warnings import warn
-                warn_msg_sent or warn(f"extra_header[{i}] includes embedded newline characters. "
-                                      "Replacing all newline characters with <space>.")
+
+                warn_msg_sent or warn(
+                    f"extra_header[{i}] includes embedded newline characters. "
+                    "Replacing all newline characters with <space>."
+                )
                 warn_msg_sent = True
             fp.write(f"# {line}\n")
         fp.write(f"#\n")
@@ -321,23 +485,30 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
             dataframe = index_df.join(dataframe)
 
         for i, col in enumerate(dataframe.columns):
-            for v, name in zip((col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA")),
-                               ("ColHeader", "FieldName", "Units    ")):
+            for v, name in zip(
+                (col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA")),
+                ("ColHeader", "FieldName", "Units    "),
+            ):
                 fp.write(f"# {i+1: 2d} {name} {v}\n")
-        fp.write(f"# NRows {len(dataframe)}\n"
-                 f"# NTableCols {len(dataframe.columns)}\n")
+        fp.write(
+            f"# NRows {len(dataframe)}\n" f"# NTableCols {len(dataframe.columns)}\n"
+        )
         fp.write("# ColHeaders  " + " ".join(dataframe.columns) + "\n")
         max_index = int(np.ceil(np.log10(np.max(dataframe.index))))
 
         def fmt_field(code: str, data) -> str:
             is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
             filler = "<" if is_s else " >"
-            prec = int(data.dropna().map(len).max() if is_s else np.ceil(np.log10(data.max())))
+            prec = int(
+                data.dropna().map(len).max() if is_s else np.ceil(np.log10(data.max()))
+            )
             if is_f:
                 prec += int(code[-2]) + 1
             return filler + str(prec) + code
 
-        fmts = ("{:" + fmt_field(FORMATS[k], dataframe[k]) + "}" for k in dataframe.columns)
+        fmts = (
+            "{:" + fmt_field(FORMATS[k], dataframe[k]) + "}" for k in dataframe.columns
+        )
         fmt = " ".join(fmts) + "\n"
         for index, row in dataframe.iterrows():
             data = [row[k] for k in dataframe.columns]
@@ -368,14 +539,26 @@ def read_classes_from_lut(lut_file):
         "Red": "int",
         "Green": "int",
         "Blue": "int",
-        "Alpha": "int"
+        "Alpha": "int",
     }
-    return pd.read_csv(lut_file, delim_whitespace=True, index_col=False, skip_blank_lines=True,
-                       comment="#", header=None, names=names.keys(), dtype=names)
+    return pd.read_csv(
+        lut_file,
+        delim_whitespace=True,
+        index_col=False,
+        skip_blank_lines=True,
+        comment="#",
+        header=None,
+        names=names.keys(),
+        dtype=names,
+    )
 
 
-def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
-                out: Optional[_ArrayType] = None, cmp_dtype: npt.DTypeLike = "int8") -> _ArrayType:
+def seg_borders(
+    _array: _ArrayType,
+    label: Union[np.integer, bool],
+    out: Optional[_ArrayType] = None,
+    cmp_dtype: npt.DTypeLike = "int8",
+) -> _ArrayType:
     """Handle to fast 6-connected border computation."""
     # binarize
     bin_array = _array if np.issubdtype(_array.dtype, bool) else _array == label
@@ -383,7 +566,8 @@ def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
     from scipy.ndimage import laplace
 
     def _laplace(data):
-        return laplace(data.astype(cmp_dtype)) != np.asarray(0., dtype=cmp_dtype)
+        return laplace(data.astype(cmp_dtype)) != np.asarray(0.0, dtype=cmp_dtype)
+
     # laplace
     if out is not None:
         out[:] = _laplace(bin_array)
@@ -392,8 +576,13 @@ def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
         return _laplace(bin_array)
 
 
-def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_label: Optional[np.integer] = None,
-            six_connected: bool = True, out: Optional[_ArrayType] = None) -> _ArrayType:
+def borders(
+    _array: _ArrayType,
+    labels: Union[Iterable[np.integer], bool],
+    max_label: Optional[np.integer] = None,
+    six_connected: bool = True,
+    out: Optional[_ArrayType] = None,
+) -> _ArrayType:
     """Handle to fast border computation."""
 
     dim = _array.ndim
@@ -406,7 +595,9 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
         cmp = np.logical_xor
     else:
         if np.issubdtype(_array, bool):
-            raise ValueError("If labels is a list/iterable, the array should not be boolean.")
+            raise ValueError(
+                "If labels is a list/iterable, the array should not be boolean."
+            )
 
         def cmp(a, b):
             return a == b
@@ -426,30 +617,45 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
 
     mid = (slice(1, -1),) * dim
     if six_connected:
+
         def ii(axis: int, off: int, is_mid: bool) -> Tuple[slice, ...]:
             other_slices = mid[:1] if is_mid else (slice(None),)
-            return other_slices * axis + (slice(off, -1 if off == 0 else None),) + other_slices * (
-                    dim - axis - 1)
+            return (
+                other_slices * axis
+                + (slice(off, -1 if off == 0 else None),)
+                + other_slices * (dim - axis - 1)
+            )
 
-        nbr_same = [cmp(__array[ii(i, 0, True)], __array[ii(i, 1, True)]) for i in range(dim)]
-        nbr_same = [logical_or(_ns[ii(i, 0, False)], _ns[ii(i, 1, False)]) for i, _ns in enumerate(nbr_same)]
+        nbr_same = [
+            cmp(__array[ii(i, 0, True)], __array[ii(i, 1, True)]) for i in range(dim)
+        ]
+        nbr_same = [
+            logical_or(_ns[ii(i, 0, False)], _ns[ii(i, 1, False)])
+            for i, _ns in enumerate(nbr_same)
+        ]
     else:
+
         def ii(off: Iterable[int]) -> Tuple[slice, ...]:
             return tuple(slice(o, None if o == 2 else o - 3) for o in off)
 
-        nbr_same = [cmp(__array[mid], __array[ii(i - 1)]) for i in np.ndindex((3,) * dim) if np.all(i != 1)]
+        nbr_same = [
+            cmp(__array[mid], __array[ii(i - 1)])
+            for i in np.ndindex((3,) * dim)
+            if np.all(i != 1)
+        ]
     return np.logical_or.reduce(nbr_same, out=out)
 
 
 def unsqueeze(matrix, axis: Union[int, Sequence[int]] = -1):
     """Allows insertions of axis into the data/tensor, see numpy.expand_dims. This expands the torch.unsqueeze
-    syntax to allow unsqueezing multiple axis at the same time. """
+    syntax to allow unsqueezing multiple axis at the same time."""
     if isinstance(matrix, np.ndarray):
         return np.expand_dims(matrix, axis=axis)
 
 
-def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, Sequence[float]]) -> Tuple[
-    Tuple[slice, ...], Tuple[slice, ...]]:
+def grow_patch(
+    patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, Sequence[float]]
+) -> Tuple[Tuple[slice, ...], Tuple[slice, ...]]:
     """Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow' the patch `patch` by `whalf` (also considering the image shape)."""
     # patch start/stop
     _patch = np.asarray([(s.start, s.stop) for s in patch])
@@ -461,12 +667,18 @@ def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, S
     # make grown patch and grown patch to patch
     grown_patch = tuple(slice(s.item(), e.item()) for s, e in zip(_start, _stop))
     ungrow_patch = tuple(
-        slice(s.item(), None if e.item() == 0 else e.item()) for s, e in zip(start - _start, stop - _stop))
+        slice(s.item(), None if e.item() == 0 else e.item())
+        for s, e in zip(start - _start, stop - _stop)
+    )
     return grown_patch, ungrow_patch
 
 
-def uniform_filter(arr: _ArrayType, filter_size: int,
-                   patch: Optional[Tuple[slice, ...]] = None, out: Optional[_ArrayType] = None) -> _ArrayType:
+def uniform_filter(
+    arr: _ArrayType,
+    filter_size: int,
+    patch: Optional[Tuple[slice, ...]] = None,
+    out: Optional[_ArrayType] = None,
+) -> _ArrayType:
     """Apply a uniform filter (with kernel size `filter_size`) to `input`. The uniform filter is normalized
     (weights add to one)."""
     _patch = (slice(None),) if patch is None else patch
@@ -474,7 +686,9 @@ def uniform_filter(arr: _ArrayType, filter_size: int,
     from scipy.ndimage import uniform_filter
 
     def _uniform_filter(_arr, out=None):
-        return uniform_filter(_arr, size=filter_size, mode='constant', cval=0, output=out)[_patch]
+        return uniform_filter(
+            _arr, size=filter_size, mode="constant", cval=0, output=out
+        )[_patch]
 
     if out is not None:
         _uniform_filter(arr, out)
@@ -483,27 +697,52 @@ def uniform_filter(arr: _ArrayType, filter_size: int,
 
 
 @overload
-def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType], patch_size: int = 32,
-            vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: False = False,
-            legacy_freesurfer: bool = False) -> List[PVStats]:
+def pv_calc(
+    seg: npt.NDArray[_IntType],
+    norm: np.ndarray,
+    labels: Sequence[_IntType],
+    patch_size: int = 32,
+    vox_vol: float = 1.0,
+    eps: float = 1e-6,
+    robust_percentage: Optional[float] = None,
+    merged_labels: Optional[VirtualLabel] = None,
+    threads: int = -1,
+    return_maps: False = False,
+    legacy_freesurfer: bool = False,
+) -> List[PVStats]:
     ...
 
 
 @overload
-def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType],
-            patch_size: int = 32, vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: True = True,
-            legacy_freesurfer: bool = False) \
-        -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
+def pv_calc(
+    seg: npt.NDArray[_IntType],
+    norm: np.ndarray,
+    labels: Sequence[_IntType],
+    patch_size: int = 32,
+    vox_vol: float = 1.0,
+    eps: float = 1e-6,
+    robust_percentage: Optional[float] = None,
+    merged_labels: Optional[VirtualLabel] = None,
+    threads: int = -1,
+    return_maps: True = True,
+    legacy_freesurfer: bool = False,
+) -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
     ...
 
 
-def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntType],
-            patch_size: int = 32, vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
-            merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: bool = False,
-            legacy_freesurfer: bool = False) \
-        -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
+def pv_calc(
+    seg: npt.NDArray[_IntType],
+    norm: np.ndarray,
+    labels: Sequence[_IntType],
+    patch_size: int = 32,
+    vox_vol: float = 1.0,
+    eps: float = 1e-6,
+    robust_percentage: Optional[float] = None,
+    merged_labels: Optional[VirtualLabel] = None,
+    threads: int = -1,
+    return_maps: bool = False,
+    legacy_freesurfer: bool = False,
+) -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
     """Function to compute volume effects.
 
     Args:
@@ -543,15 +782,21 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         raise TypeError("The labels list is not a sequence of ints.")
 
     if seg.shape != norm.shape:
-        raise RuntimeError(f"The shape of the segmentation and the norm must be identical, but shapes are {seg.shape} "
-                           f"and {norm.shape}!")
+        raise RuntimeError(
+            f"The shape of the segmentation and the norm must be identical, but shapes are {seg.shape} "
+            f"and {norm.shape}!"
+        )
 
-    mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [{} for _ in range(7)]
+    mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [
+        {} for _ in range(7)
+    ]
     loc_border = {}
 
     if merged_labels is not None:
         all_labels = set(labels)
-        all_labels = all_labels | reduce(lambda i, j: i | j, (set(s) for s in merged_labels.values()))
+        all_labels = all_labels | reduce(
+            lambda i, j: i | j, (set(s) for s in merged_labels.values())
+        )
     else:
         all_labels = labels
 
@@ -566,10 +811,14 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         if not any_in_global:
             raise RuntimeError("Segmentation map only consists of background")
 
-    global_stats_filled = partial(global_stats,
-                                  norm=norm[global_crop], seg=seg[global_crop],
-                                  robust_percentage=robust_percentage)
+    global_stats_filled = partial(
+        global_stats,
+        norm=norm[global_crop],
+        seg=seg[global_crop],
+        robust_percentage=robust_percentage,
+    )
     from multiprocessing import cpu_count
+
     map_kwargs = {"chunksize": np.ceil(len(labels) / cpu_count())}
     if threads < 0:
         threads = cpu_count()
@@ -577,6 +826,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         raise ValueError("Zero is not a valid number of threads.")
 
     from concurrent.futures import ThreadPoolExecutor
+
     with ThreadPoolExecutor(threads) as pool:
 
         global_stats_future = pool.map(global_stats_filled, all_labels, **map_kwargs)
@@ -584,8 +834,12 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         if return_maps:
             _ndarray_alloc = np.full
             full_nbr_label = _ndarray_alloc(seg.shape, fill_value=0, dtype=seg.dtype)
-            full_nbr_mean = _ndarray_alloc(norm.shape, fill_value=0, dtype=np.dtype(float))
-            full_seg_mean = _ndarray_alloc(norm.shape, fill_value=0, dtype=np.dtype(float))
+            full_nbr_mean = _ndarray_alloc(
+                norm.shape, fill_value=0, dtype=np.dtype(float)
+            )
+            full_seg_mean = _ndarray_alloc(
+                norm.shape, fill_value=0, dtype=np.dtype(float)
+            )
             full_pv = _ndarray_alloc(norm.shape, fill_value=1, dtype=np.dtype(float))
             full_ipv = _ndarray_alloc(norm.shape, fill_value=0, dtype=np.dtype(float))
         else:
@@ -599,68 +853,172 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
 
         # un_global_crop border here
         _border = np.any(list(loc_border.values()), axis=0)
-        border = np.pad(_border, tuple((slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape)))
+        border = np.pad(
+            _border,
+            tuple(
+                (slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape)
+            ),
+        )
         if not np.array_equal(border.shape, seg.shape):
             raise RuntimeError("border and seg_array do not have same shape.")
 
         # iterate through patches of the image
-        patch_iters = [range(slice_.start, slice_.stop, patch_size) for slice_ in global_crop]  # for 3D
+        patch_iters = [
+            range(slice_.start, slice_.stop, patch_size) for slice_ in global_crop
+        ]  # for 3D
 
-        map_kwargs["chunksize"] = int(np.ceil(len(voxel_counts) / cpu_count() / 4))  # 4 chunks per core
-        _patches = pool.map(partial(patch_filter, mask=border, global_crop=global_crop, patch_size=patch_size),
-                            product(*patch_iters), **map_kwargs)
+        map_kwargs["chunksize"] = int(
+            np.ceil(len(voxel_counts) / cpu_count() / 4)
+        )  # 4 chunks per core
+        _patches = pool.map(
+            partial(
+                patch_filter,
+                mask=border,
+                global_crop=global_crop,
+                patch_size=patch_size,
+            ),
+            product(*patch_iters),
+            **map_kwargs,
+        )
         patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
 
-        for vols in pool.map(partial(pv_calc_patch, global_crop=global_crop, loc_border=loc_border, border=border,
-                                     seg=seg, norm=norm, full_nbr_label=full_nbr_label, full_seg_mean=full_seg_mean,
-                                     full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps,
-                                     legacy_freesurfer=legacy_freesurfer),
-                             patches, **map_kwargs):
+        for vols in pool.map(
+            partial(
+                pv_calc_patch,
+                global_crop=global_crop,
+                loc_border=loc_border,
+                border=border,
+                seg=seg,
+                norm=norm,
+                full_nbr_label=full_nbr_label,
+                full_seg_mean=full_seg_mean,
+                full_pv=full_pv,
+                full_ipv=full_ipv,
+                full_nbr_mean=full_nbr_mean,
+                eps=eps,
+                legacy_freesurfer=legacy_freesurfer,
+            ),
+            patches,
+            **map_kwargs,
+        ):
             for lab in volumes.keys():
-                volumes[lab] += vols.get(lab, 0.) * vox_vol
+                volumes[lab] += vols.get(lab, 0.0) * vox_vol
 
-    means = {lab: s / __voxel_counts[lab] for lab, s in sums.items() if __voxel_counts.get(lab, 0) > eps}
+    means = {
+        lab: s / __voxel_counts[lab]
+        for lab, s in sums.items()
+        if __voxel_counts.get(lab, 0) > eps
+    }
     # *std = sqrt((sum * (*mean) - 2 * (*mean) * sum + sum2) / (nvoxels - 1));
-    stds = {lab: np.sqrt((sums_2[lab] - means[lab] * sums[lab]) / (nvox - 1)) for lab, nvox in
-            __voxel_counts.items() if nvox > 1}
+    stds = {
+        lab: np.sqrt((sums_2[lab] - means[lab] * sums[lab]) / (nvox - 1))
+        for lab, nvox in __voxel_counts.items()
+        if nvox > 1
+    }
     # ColHeaders Index SegId NVoxels Volume_mm3 StructName normMean normStdDev normMin normMax normRange
-    table = [{"SegId": lab, "NVoxels": voxel_counts.get(lab, 0), "Volume_mm3": volumes.get(lab, 0.),
-              "StructName": "", "normMean": means.get(lab, 0.), "normStdDev": stds.get(lab, 0.),
-              "normMin": mins.get(lab, 0.), "normMax": maxes.get(lab, 0.),
-              "normRange": maxes.get(lab, 0.) - mins.get(lab, 0.)} for lab in labels]
+    table = [
+        {
+            "SegId": lab,
+            "NVoxels": voxel_counts.get(lab, 0),
+            "Volume_mm3": volumes.get(lab, 0.0),
+            "StructName": "",
+            "normMean": means.get(lab, 0.0),
+            "normStdDev": stds.get(lab, 0.0),
+            "normMin": mins.get(lab, 0.0),
+            "normMax": maxes.get(lab, 0.0),
+            "normRange": maxes.get(lab, 0.0) - mins.get(lab, 0.0),
+        }
+        for lab in labels
+    ]
     if merged_labels is not None:
-        def agg(f: Callable[..., np.ndarray], source: Dict[int, _NumberType], merge_labels: Iterable[int]) -> _NumberType:
-            return f([source.get(l, 0) for l in merge_labels if __voxel_counts.get(l) is not None]).item()
+
+        def agg(
+            f: Callable[..., np.ndarray],
+            source: Dict[int, _NumberType],
+            merge_labels: Iterable[int],
+        ) -> _NumberType:
+            return f(
+                [
+                    source.get(l, 0)
+                    for l in merge_labels
+                    if __voxel_counts.get(l) is not None
+                ]
+            ).item()
 
         for lab, merge in merged_labels.items():
             if all(__voxel_counts.get(l) is None for l in merge):
-                logging.getLogger(__name__).warning(f"None of the labels {merge} for merged label {lab} exist in the "
-                                                    f"segmentation.")
+                logging.getLogger(__name__).warning(
+                    f"None of the labels {merge} for merged label {lab} exist in the "
+                    f"segmentation."
+                )
                 continue
 
-            nvoxels, _min, _max = agg(np.sum, voxel_counts, merge), agg(np.min, mins, merge), agg(np.max, maxes, merge)
+            nvoxels, _min, _max = (
+                agg(np.sum, voxel_counts, merge),
+                agg(np.min, mins, merge),
+                agg(np.max, maxes, merge),
+            )
             _sums = [(l, sums.get(l, 0)) for l in merge]
-            _std_tmp = np.sum([s * s / __voxel_counts.get(l, 0) for l, s in _sums if __voxel_counts.get(l, 0) > 0])
-            _std = np.sqrt((agg(np.sum, sums_2, merge) - _std_tmp) / (nvoxels - 1)).item()
-            merge_row = {"SegId": lab,  "NVoxels": nvoxels, "Volume_mm3": agg(np.sum, volumes, merge),
-                         "StructName": "", "normMean": agg(np.sum, sums, merge) / nvoxels, "normStdDev": _std,
-                         "normMin": _min, "normMax": _max, "normRange": _max - _min}
+            _std_tmp = np.sum(
+                [
+                    s * s / __voxel_counts.get(l, 0)
+                    for l, s in _sums
+                    if __voxel_counts.get(l, 0) > 0
+                ]
+            )
+            _std = np.sqrt(
+                (agg(np.sum, sums_2, merge) - _std_tmp) / (nvoxels - 1)
+            ).item()
+            merge_row = {
+                "SegId": lab,
+                "NVoxels": nvoxels,
+                "Volume_mm3": agg(np.sum, volumes, merge),
+                "StructName": "",
+                "normMean": agg(np.sum, sums, merge) / nvoxels,
+                "normStdDev": _std,
+                "normMin": _min,
+                "normMax": _max,
+                "normRange": _max - _min,
+            }
             table.append(merge_row)
 
     if return_maps:
-        return table, {"nbr": full_nbr_label, "segmean": full_seg_mean, "nbrmean": full_nbr_mean, "pv": full_pv,
-                       "ipv": full_ipv}
+        return table, {
+            "nbr": full_nbr_label,
+            "segmean": full_seg_mean,
+            "nbrmean": full_nbr_mean,
+            "pv": full_pv,
+            "ipv": full_ipv,
+        }
     return table
 
 
-def global_stats(lab: _IntType, norm: npt.NDArray[_NumberType], seg: npt.NDArray[_IntType],
-                 out: Optional[npt.NDArray[bool]] = None, robust_percentage: Optional[float] = None) \
-        -> Union[Tuple[_IntType, int],
-                 Tuple[_IntType, int, int, _NumberType, _NumberType, float, float, float, npt.NDArray[bool]]]:
+def global_stats(
+    lab: _IntType,
+    norm: npt.NDArray[_NumberType],
+    seg: npt.NDArray[_IntType],
+    out: Optional[npt.NDArray[bool]] = None,
+    robust_percentage: Optional[float] = None,
+) -> Union[
+    Tuple[_IntType, int],
+    Tuple[
+        _IntType,
+        int,
+        int,
+        _NumberType,
+        _NumberType,
+        float,
+        float,
+        float,
+        npt.NDArray[bool],
+    ],
+]:
     """Computes Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum, sum of squares and
     6-connected border of label lab."""
     bin_array = cast(npt.NDArray[bool], seg == lab)
-    data = norm[bin_array].astype(int if np.issubdtype(norm.dtype, np.integer) else float)
+    data = norm[bin_array].astype(
+        int if np.issubdtype(norm.dtype, np.integer) else float
+    )
     nvoxels: int = data.shape[0]
     # if lab is not in the image at all
     if nvoxels == 0:
@@ -685,24 +1043,32 @@ def global_stats(lab: _IntType, norm: npt.NDArray[_NumberType], seg: npt.NDArray
     _sum: float = data.sum().item()
     sum_2: float = (data * data).sum().item()
     # this is independent of the robustness criterium
-    volume: float = np.sum(np.logical_and(bin_array, np.logical_not(out))).astype(float).item()
+    volume: float = (
+        np.sum(np.logical_and(bin_array, np.logical_not(out))).astype(float).item()
+    )
     return lab, nvoxels, __voxel_count, _min, _max, _sum, sum_2, volume, out
 
 
-def patch_filter(pos: Tuple[int, int, int], mask: npt.NDArray[bool],
-                 global_crop: Tuple[slice, ...], patch_size: int = 32) \
-        -> Tuple[bool, Sequence[slice]]:
+def patch_filter(
+    pos: Tuple[int, int, int],
+    mask: npt.NDArray[bool],
+    global_crop: Tuple[slice, ...],
+    patch_size: int = 32,
+) -> Tuple[bool, Sequence[slice]]:
     """Returns, whether there are mask-True voxels in the patch starting at pos with size patch_size and the resulting
     patch shrunk to mask-True regions."""
     # create slices for current patch context (constrained by the global_crop)
-    patch = [slice(p, min(p + patch_size, slice_.stop)) for p, slice_ in zip(pos, global_crop)]
+    patch = [
+        slice(p, min(p + patch_size, slice_.stop))
+        for p, slice_ in zip(pos, global_crop)
+    ]
     # crop patch context to the image content
     return crop_patch_to_mask(mask, sub_patch=patch)
 
 
-def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
-                       sub_patch: Optional[Sequence[slice]] = None) \
-        -> Tuple[bool, Sequence[slice]]:
+def crop_patch_to_mask(
+    mask: npt.NDArray[_NumberType], sub_patch: Optional[Sequence[slice]] = None
+) -> Tuple[bool, Sequence[slice]]:
     """Crop the patch to regions of the mask that are non-zero. Assumes mask is always positive. Returns whether there
     is any mask>0 in the patch and a patch shrunk to mask>0 regions. The optional subpatch constrains this operation to
     the sub-region defined by a sequence of slicing operations.
@@ -716,7 +1082,9 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
 
     _patch = []
     patch = tuple([slice(0, s) for s in mask.shape] if sub_patch is None else sub_patch)
-    patch_in_patch_coords = tuple([slice(0, slice_.stop - slice_.start) for slice_ in patch])
+    patch_in_patch_coords = tuple(
+        [slice(0, slice_.stop - slice_.start) for slice_ in patch]
+    )
     in_mask = True
     _mask = mask[patch].sum(axis=2)
     for i, pat in enumerate(patch_in_patch_coords):
@@ -725,7 +1093,9 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
             if i == 2:
                 _mask = mask[patch][tuple(_patch)].sum(axis=0)
             # can we shrink the patch context in i-th axis?
-            pat_has_mask_in_axis = _mask[tuple(_patch[1:] if i != 2 else [])].sum(axis=int(i == 0)) > 0
+            pat_has_mask_in_axis = (
+                _mask[tuple(_patch[1:] if i != 2 else [])].sum(axis=int(i == 0)) > 0
+            )
             # modify both the _patch_size and the coordinate p to shrink the patch
             _pat_mask = np.argwhere(pat_has_mask_in_axis)
             if _pat_mask.shape[0] == 0:
@@ -739,19 +1109,27 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
             _patch_size = 0
         _patch.append(slice(p, p + _patch_size))
 
-    out_patch = [slice(_p.start + p.start, p.start + _p.stop) for _p, p in zip(_patch, patch)]
+    out_patch = [
+        slice(_p.start + p.start, p.start + _p.stop) for _p, p in zip(_patch, patch)
+    ]
     return _patch[0].start != _patch[0].stop, out_patch
 
 
-def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
-                  loc_border: Dict[_IntType, npt.NDArray[bool]],
-                  seg: npt.NDArray[_IntType], norm: np.ndarray, border: npt.NDArray[bool],
-                  full_pv: Optional[npt.NDArray[float]] = None, full_ipv: Optional[npt.NDArray[float]] = None,
-                  full_nbr_label: Optional[npt.NDArray[_IntType]] = None,
-                  full_seg_mean: Optional[npt.NDArray[float]] = None,
-                  full_nbr_mean: Optional[npt.NDArray[float]] = None, eps: float = 1e-6,
-                  legacy_freesurfer: bool = False) \
-        -> Dict[_IntType, float]:
+def pv_calc_patch(
+    patch: Tuple[slice, ...],
+    global_crop: Tuple[slice, ...],
+    loc_border: Dict[_IntType, npt.NDArray[bool]],
+    seg: npt.NDArray[_IntType],
+    norm: np.ndarray,
+    border: npt.NDArray[bool],
+    full_pv: Optional[npt.NDArray[float]] = None,
+    full_ipv: Optional[npt.NDArray[float]] = None,
+    full_nbr_label: Optional[npt.NDArray[_IntType]] = None,
+    full_seg_mean: Optional[npt.NDArray[float]] = None,
+    full_nbr_mean: Optional[npt.NDArray[float]] = None,
+    eps: float = 1e-6,
+    legacy_freesurfer: bool = False,
+) -> Dict[_IntType, float]:
     """Calculates PV for patch. If full* keyword arguments are passed, also fills, per voxel results for the respective
     voxels in the patch."""
 
@@ -761,9 +1139,15 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     patch_grow1, ungrow1_patch = grow_patch(patch, 1, seg.shape)
     patch_grow7, ungrow7_patch = grow_patch(patch, 7, seg.shape)
     patch_shrink6 = tuple(
-        slice(ug7.start - ug1.start, None if ug7.stop == ug1.stop else ug7.stop - ug1.stop) for ug1, ug7 in
-        zip(ungrow1_patch, ungrow7_patch))
-    patch_in_gc = tuple(slice(p.start - gc.start, p.stop - gc.start) for p, gc in zip(patch, global_crop))
+        slice(
+            ug7.start - ug1.start, None if ug7.stop == ug1.stop else ug7.stop - ug1.stop
+        )
+        for ug1, ug7 in zip(ungrow1_patch, ungrow7_patch)
+    )
+    patch_in_gc = tuple(
+        slice(p.start - gc.start, p.stop - gc.start)
+        for p, gc in zip(patch, global_crop)
+    )
 
     label_lookup = np.unique(seg[patch_grow1])
     maxlabels = label_lookup[-1] + 1
@@ -771,10 +1155,20 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
         raise RuntimeError("Maximum number of labels above 100000!")
     # create a view for the current patch border
     pat_border = border[patch]
-    pat_is_border, pat_is_nbr, pat_label_counts, pat_label_sums \
-        = patch_neighbors(label_lookup, norm, seg, pat_border, loc_border,
-                          patch_grow7, patch_in_gc, patch_shrink6, ungrow1_patch, ungrow7_patch,
-                          ndarray_alloc=np.full, eps=eps)
+    pat_is_border, pat_is_nbr, pat_label_counts, pat_label_sums = patch_neighbors(
+        label_lookup,
+        norm,
+        seg,
+        pat_border,
+        loc_border,
+        patch_grow7,
+        patch_in_gc,
+        patch_shrink6,
+        ungrow1_patch,
+        ungrow7_patch,
+        ndarray_alloc=np.full,
+        eps=eps,
+    )
 
     # both counts and sums are "normalized" by the local neighborhood size (15**3)
     label_lookup_fwd = np.zeros((maxlabels,), dtype="int")
@@ -784,52 +1178,77 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     pat1d_norm, pat1d_seg = norm[patch][pat_border], seg[patch][pat_border]
     pat1d_label_counts = pat_label_counts[:, pat_border]
     # both sums and counts are normalized by n-hood-size**3, so the output is not anymore
-    pat1d_label_means = (pat_label_sums[:, pat_border] / np.maximum(pat1d_label_counts, eps)).round(log_eps)  # float
+    pat1d_label_means = (
+        pat_label_sums[:, pat_border] / np.maximum(pat1d_label_counts, eps)
+    ).round(
+        log_eps
+    )  # float
 
     # get the mean label intensity of the "local label"
-    mean_label = np.take_along_axis(pat1d_label_means, unsqueeze(label_lookup_fwd[pat1d_seg], 0), axis=0)[0]
+    mean_label = np.take_along_axis(
+        pat1d_label_means, unsqueeze(label_lookup_fwd[pat1d_seg], 0), axis=0
+    )[0]
     # get the index of the "alternative label"
     pat1d_is_this_6border = pat_is_border[:, pat_border]
     # calculate which classes to consider:
     is_valid = np.all(
         # 1. considered (mean of) alternative label must be on the other side of norm as the (mean of) the segmentation
         # label of the current voxel
-        [np.logical_xor(pat1d_label_means > unsqueeze(pat1d_norm, 0), unsqueeze(mean_label > pat1d_norm, 0)),
-         # 2. considered (mean of) alternative label must be different to norm of voxel
-         pat1d_label_means != unsqueeze(pat1d_norm, 0),
-         # 3. (mean of) segmentation label must be different to norm of voxel
-         np.broadcast_to(unsqueeze(mean_label != pat1d_norm, 0), pat1d_label_means.shape),
-         # 4. label must be a neighbor
-         pat_is_nbr[:, pat_border],
-         # 3. label must not be the segmentation
-         pat1d_seg[np.newaxis] != label_lookup[:, np.newaxis]], axis=0)
+        [
+            np.logical_xor(
+                pat1d_label_means > unsqueeze(pat1d_norm, 0),
+                unsqueeze(mean_label > pat1d_norm, 0),
+            ),
+            # 2. considered (mean of) alternative label must be different to norm of voxel
+            pat1d_label_means != unsqueeze(pat1d_norm, 0),
+            # 3. (mean of) segmentation label must be different to norm of voxel
+            np.broadcast_to(
+                unsqueeze(mean_label != pat1d_norm, 0), pat1d_label_means.shape
+            ),
+            # 4. label must be a neighbor
+            pat_is_nbr[:, pat_border],
+            # 3. label must not be the segmentation
+            pat1d_seg[np.newaxis] != label_lookup[:, np.newaxis],
+        ],
+        axis=0,
+    )
 
     none_valid = ~is_valid.any(axis=0, keepdims=False)
     # select the label, that is valid or not valid but also exists and is not the current label
-    max_counts_index = np.round(pat1d_label_counts * is_valid, log_eps).argmax(axis=0, keepdims=False)
+    max_counts_index = np.round(pat1d_label_counts * is_valid, log_eps).argmax(
+        axis=0, keepdims=False
+    )
 
     nbr_label = label_lookup[max_counts_index]  # label with max_counts
     nbr_label[none_valid] = 0
 
     # get the mean label intensity of the "alternative label"
-    mean_nbr = np.take_along_axis(pat1d_label_means, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0)[0]
+    mean_nbr = np.take_along_axis(
+        pat1d_label_means, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0
+    )[0]
 
     # interpolate between the "local" and "alternative label"
     mean_to_mean_nbr = mean_label - mean_nbr
     delta_gt_eps = np.abs(mean_to_mean_nbr) > eps
-    pat1d_pv = (pat1d_norm - mean_nbr) / np.where(delta_gt_eps, mean_to_mean_nbr, eps)  # make sure no division by zero
+    pat1d_pv = (pat1d_norm - mean_nbr) / np.where(
+        delta_gt_eps, mean_to_mean_nbr, eps
+    )  # make sure no division by zero
 
-    pat1d_pv[~delta_gt_eps] = 1.  # set pv fraction to 1 if division by zero
-    pat1d_pv[none_valid] = 1.  # set pv fraction to 1 for voxels that have no 'valid' nbr
-    pat1d_pv[pat1d_pv > 1.] = 1.
-    pat1d_pv[pat1d_pv < 0.] = 0.
+    pat1d_pv[~delta_gt_eps] = 1.0  # set pv fraction to 1 if division by zero
+    pat1d_pv[
+        none_valid
+    ] = 1.0  # set pv fraction to 1 for voxels that have no 'valid' nbr
+    pat1d_pv[pat1d_pv > 1.0] = 1.0
+    pat1d_pv[pat1d_pv < 0.0] = 0.0
 
-    pat1d_inv_pv = 1. - pat1d_pv
+    pat1d_inv_pv = 1.0 - pat1d_pv
 
     if legacy_freesurfer:
         # re-create the "supposed" freesurfer inconsistency that does not count vertex neighbors, if the voxel label
         # is not of question
-        mask_by_6border = np.take_along_axis(pat1d_is_this_6border, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0)[0]
+        mask_by_6border = np.take_along_axis(
+            pat1d_is_this_6border, unsqueeze(label_lookup_fwd[nbr_label], 0), axis=0
+        )[0]
         pat1d_inv_pv = pat1d_inv_pv * mask_by_6border
 
     if full_pv is not None:
@@ -843,31 +1262,58 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     if full_seg_mean is not None:
         full_seg_mean[patch][pat_border] = mean_label
 
-    return {lab: (pat1d_pv.sum(where=pat1d_seg == lab) + pat1d_inv_pv.sum(where=nbr_label == lab)).item() for lab in
-            label_lookup}
+    return {
+        lab: (
+            pat1d_pv.sum(where=pat1d_seg == lab)
+            + pat1d_inv_pv.sum(where=nbr_label == lab)
+        ).item()
+        for lab in label_lookup
+    }
 
 
-def patch_neighbors(labels, norm, seg, pat_border, loc_border, patch_grow7, patch_in_gc, patch_shrink6,
-                        ungrow1_patch, ungrow7_patch, ndarray_alloc, eps):
+def patch_neighbors(
+    labels,
+    norm,
+    seg,
+    pat_border,
+    loc_border,
+    patch_grow7,
+    patch_in_gc,
+    patch_shrink6,
+    ungrow1_patch,
+    ungrow7_patch,
+    ndarray_alloc,
+    eps,
+):
     """Helper function to calculate the neighbor statistics of labels, etc."""
     loc_shape = (len(labels),) + pat_border.shape
 
-    pat_label_counts, pat_label_sums = ndarray_alloc((2,) + loc_shape, fill_value=0., dtype=float)
-    pat_is_nbr, pat_is_border = ndarray_alloc((2,) + loc_shape, fill_value=False, dtype=bool)
+    pat_label_counts, pat_label_sums = ndarray_alloc(
+        (2,) + loc_shape, fill_value=0.0, dtype=float
+    )
+    pat_is_nbr, pat_is_border = ndarray_alloc(
+        (2,) + loc_shape, fill_value=False, dtype=bool
+    )
     for i, lab in enumerate(labels):
         pat7_bin_array = cast(npt.NDArray[bool], seg[patch_grow7] == lab)
         # implicitly also a border detection: is lab a neighbor of the "current voxel"
-        tmp_nbr_label_counts = uniform_filter(pat7_bin_array[patch_shrink6], 3)  # as float (*filter_size**3)
+        tmp_nbr_label_counts = uniform_filter(
+            pat7_bin_array[patch_shrink6], 3
+        )  # as float (*filter_size**3)
         if tmp_nbr_label_counts.sum() > eps:
             # lab is at least once a nbr in the patch (grown by one)
             if lab in loc_border:
                 pat_is_border[i] = loc_border[lab][patch_in_gc]
             else:
-                pat7_is_border = seg_borders(pat7_bin_array[patch_shrink6], True, cmp_dtype="int8")
+                pat7_is_border = seg_borders(
+                    pat7_bin_array[patch_shrink6], True, cmp_dtype="int8"
+                )
                 pat_is_border[i] = pat7_is_border[ungrow1_patch].astype(bool)
 
             pat_is_nbr[i] = tmp_nbr_label_counts[ungrow1_patch] > eps
-            pat_label_counts[i] = uniform_filter(pat7_bin_array, 15)[ungrow7_patch]  # as float (*filter_size**3)
+            pat_label_counts[i] = uniform_filter(pat7_bin_array, 15)[
+                ungrow7_patch
+            ]  # as float (*filter_size**3)
             pat7_filtered_norm = norm[patch_grow7] * pat7_bin_array
             pat_label_sums[i] = uniform_filter(pat7_filtered_norm, 15)[ungrow7_patch]
         # else: lab is not present in the patch

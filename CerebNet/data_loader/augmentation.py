@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,7 +53,7 @@ class ToTensor(object):
 
     def __call__(self, sample):
         if isinstance(sample, dict):
-            sample['image'] = self._apply_img(sample['image'])
+            sample["image"] = self._apply_img(sample["image"])
         else:
             return self._apply_img(sample)
         # sample['weight'] = sample['weight'].astype(np.float32)
@@ -63,7 +62,6 @@ class ToTensor(object):
 
 
 class ToTensorTest(ToTensor):
-
     def _apply_img(self, img):
         # move the "target plane" front first (see also FastSurferCNN.data_loader.augmentation.ToTest)
         return super()._apply_img(img.transpose((2, 0, 1)))
@@ -75,6 +73,7 @@ class RandomAffine(object):
     images, label and weight
     the transformation includes translation, rotation and scaling
     """
+
     def __init__(self, cfg):
         self.degree = cfg.AUGMENTATION.DEGREE
         self.img_size = [cfg.MODEL.HEIGHT, cfg.MODEL.WIDTH]
@@ -84,48 +83,50 @@ class RandomAffine(object):
         self.seed = None
 
     def _get_random_affine(self):
-        '''
-                Random inverse affine matrix composed of rotation matrix (of each axis)and translation.
+        """
+        Random inverse affine matrix composed of rotation matrix (of each axis)and translation.
 
-                Parameters
-                ----------
-                degrees : sequence or float or int,
-                     Range of degrees to select from.
-                     If degrees is a number instead of sequence like (min, max), the range of degrees
-                     will be (-degrees, +degrees).
-                translate : tuple, float
-                     if translate=(a,b), the value for translation is uniformly sampled
-                     in the range
-                      -column_size * a < dx < column_size * a
-                      -row_size * b < dy < row_size * b
-                     If translate is a number then a=b=c.
-                     The value should be between 0 and 1.
-                img_size : tuple
-                    img_size = (column_size, row_size)
-                scale: tuple, range of min and max scaling factor
-                seed : int
-                    random seed
+        Parameters
+        ----------
+        degrees : sequence or float or int,
+             Range of degrees to select from.
+             If degrees is a number instead of sequence like (min, max), the range of degrees
+             will be (-degrees, +degrees).
+        translate : tuple, float
+             if translate=(a,b), the value for translation is uniformly sampled
+             in the range
+              -column_size * a < dx < column_size * a
+              -row_size * b < dy < row_size * b
+             If translate is a number then a=b=c.
+             The value should be between 0 and 1.
+        img_size : tuple
+            img_size = (column_size, row_size)
+        scale: tuple, range of min and max scaling factor
+        seed : int
+            random seed
 
-                Returns
-                -------
-                transform_mat : 3x3 matrix
-                    Random affine transformation
-            '''
+        Returns
+        -------
+        transform_mat : 3x3 matrix
+            Random affine transformation
+        """
 
         if isinstance(self.degree, numbers.Number):
             if self.degree < 0:
                 raise ValueError("If degrees is a single number, it must be positive.")
             degrees = (-self.degree, self.degree)
         else:
-            assert isinstance(self.degree, (tuple, list)) and len(self.degree) == 2, \
-                "degrees should be a list or tuple and it must be of length 2."
+            assert (
+                isinstance(self.degree, (tuple, list)) and len(self.degree) == 2
+            ), "degrees should be a list or tuple and it must be of length 2."
         if isinstance(self.translate, numbers.Number):
             if not (0.0 <= self.translate <= 1.0):
                 raise ValueError("translation values should be between 0 and 1")
             translate = (self.translate, self.translate)
         else:
-            assert isinstance(self.translate, (tuple, list)) and len(self.translate) == 2, \
-                "translate should be a list or tuple and it must be of length 2."
+            assert (
+                isinstance(self.translate, (tuple, list)) and len(self.translate) == 2
+            ), "translate should be a list or tuple and it must be of length 2."
             for t in self.translate:
                 if not (0.0 <= t <= 1.0):
                     raise ValueError("translation values should be between 0 and 1")
@@ -136,18 +137,23 @@ class RandomAffine(object):
         center = np.array([self.img_size[0] * 0.5 + 0.5, self.img_size[1] * 0.5 + 0.5])
         max_dx = translate[0] * self.img_size[0]
         max_dy = translate[1] * self.img_size[1]
-        translations = np.array([random.uniform(-max_dx, max_dx),
-                                 random.uniform(-max_dy, max_dy)])
+        translations = np.array(
+            [random.uniform(-max_dx, max_dx), random.uniform(-max_dy, max_dy)]
+        )
         angle = random.uniform(degrees[0], degrees[1])
         #     print(f"Rotation of {angle:.4f} degree along axis x")
         angle_rad = np.radians(angle)
         # inverse of rotation matrix
-        rot_matrix = np.array([[np.cos(angle_rad), np.sin(angle_rad)],
-                               [-np.sin(angle_rad), np.cos(angle_rad)]])
+        rot_matrix = np.array(
+            [
+                [np.cos(angle_rad), np.sin(angle_rad)],
+                [-np.sin(angle_rad), np.cos(angle_rad)],
+            ]
+        )
         scale_factor = random.uniform(self.scale[0], self.scale[1])
         rot_matrix = rot_matrix / scale_factor
         # inverse of translation and of center translation
-        inv_trans_center = (rot_matrix @ (-center - translations))
+        inv_trans_center = rot_matrix @ (-center - translations)
         transform_mat = np.insert(rot_matrix, 2, inv_trans_center, axis=1)
         # center translation
         transform_mat[:, -1] += center
@@ -156,13 +162,17 @@ class RandomAffine(object):
     def __call__(self, sample):
         if random.random() < self.prob:
             random_affine_mat = self._get_random_affine()
-            slices_num, h, w = sample['image'].shape
-            sample['image'] = sample['image'].astype(np.float32)
+            slices_num, h, w = sample["image"].shape
+            sample["image"] = sample["image"].astype(np.float32)
             # fixme need to be vectorized
             for s_id in range(slices_num):
-                sample['image'][s_id, :, :] = affine_transform(sample['image'][s_id, :, :], random_affine_mat, order=3)
+                sample["image"][s_id, :, :] = affine_transform(
+                    sample["image"][s_id, :, :], random_affine_mat, order=3
+                )
 
-            sample['label'] = affine_transform(sample['label'], random_affine_mat, order=0)
+            sample["label"] = affine_transform(
+                sample["label"], random_affine_mat, order=0
+            )
 
         return sample
 
@@ -171,10 +181,11 @@ class RandomFlip(object):
     """
     Random horizontal flipping
     """
+
     def __init__(self, cfg):
         self.prob = cfg.AUGMENTATION.PROB
         self.axis = cfg.AUGMENTATION.FLIP_AXIS
-        self.swap_labels = cfg.DATA.PLANE != 'sagittal'
+        self.swap_labels = cfg.DATA.PLANE != "sagittal"
 
     def _flip_labels(self, label_map):
         flipped = np.flip(label_map, axis=self.axis).copy()
@@ -184,9 +195,9 @@ class RandomFlip(object):
 
     def __call__(self, sample):
         if random.random() < self.prob:
-            img_flip_axis = self.axis+(1 if len(sample['image'].shape) == 3 else 0)
-            sample['image'] = np.flip(sample['image'], axis=img_flip_axis).copy()
-            sample['label'] = self._flip_labels(sample['label'])
+            img_flip_axis = self.axis + (1 if len(sample["image"].shape) == 3 else 0)
+            sample["image"] = np.flip(sample["image"], axis=img_flip_axis).copy()
+            sample["label"] = self._flip_labels(sample["label"])
         return sample
 
 
@@ -210,9 +221,9 @@ class RandomBiasField:
     """
 
     def __init__(
-            self,
-            cfg,
-            seed: Optional[int] = None,
+        self,
+        cfg,
+        seed: Optional[int] = None,
     ):
         coefficients = cfg.AUGMENTATION.BIAS_FIELD_COEFFICIENTS
         if isinstance(coefficients, float):
@@ -225,9 +236,9 @@ class RandomBiasField:
             random.seed(seed)
 
     def generate_bias_field(
-            self,
-            data: np.ndarray,
-            coefficients: np.ndarray,
+        self,
+        data: np.ndarray,
+        coefficients: np.ndarray,
     ) -> np.ndarray:
         # Create the bias field map using a linear combination of polynomial
         # functions and the coefficients previously sampled
@@ -249,10 +260,10 @@ class RandomBiasField:
                 for z_order in range(self.order + 1 - (x_order + y_order)):
                     random_coefficient = coefficients[i]
                     new_map = (
-                            random_coefficient
-                            * x_mesh ** x_order
-                            * y_mesh ** y_order
-                            * z_mesh ** z_order
+                        random_coefficient
+                        * x_mesh**x_order
+                        * y_mesh**y_order
+                        * z_mesh**z_order
                     )
                     bias_field += np.transpose(new_map, (1, 0, 2))
                     i += 1
@@ -281,17 +292,17 @@ class RandomBiasField:
 
     def __call__(self, sample):
         if random.random() < self.prob:
-            sample['image'] = np.squeeze(self.apply_transform(sample['image']))
+            sample["image"] = np.squeeze(self.apply_transform(sample["image"]))
         return sample
 
 
 class RandomLabelsToImage(object):
     """
-        Generate image from segmentation
-        using the dataset intensity priors.
-        based on  Billot et al.:
-        A Learning Strategy for Contrast-agnostic MRI Segmentation
-         and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contrast.
+    Generate image from segmentation
+    using the dataset intensity priors.
+    based on  Billot et al.:
+    A Learning Strategy for Contrast-agnostic MRI Segmentation
+     and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contrast.
     """
 
     def __init__(self, mean, std, cfg, blur_factor=0.3):
@@ -304,24 +315,26 @@ class RandomLabelsToImage(object):
         image = npr.normal(size=img_shape)
         (h, w, d) = image.shape
         lbl = np.expand_dims(labels, axis=2).repeat(d)
-        means_map = np.array(np.reshape(self.means[lbl.ravel()], (h, w, d)), dtype=np.float32)
-        std_devs_map = np.array(np.reshape(self.stds[lbl.ravel()], (h, w, d)), dtype=np.float32)
+        means_map = np.array(
+            np.reshape(self.means[lbl.ravel()], (h, w, d)), dtype=np.float32
+        )
+        std_devs_map = np.array(
+            np.reshape(self.stds[lbl.ravel()], (h, w, d)), dtype=np.float32
+        )
         image = np.multiply(std_devs_map, image)
         image = np.add(image, means_map)
         return image
 
     def __call__(self, sample):
         if random.random() < self.prob:
-            gmm_img = self._calculate_gmm(sample['label'], sample['image'].shape)
-            sample['image'] = gaussian_filter(gmm_img, sigma=self.blur_factor)
+            gmm_img = self._calculate_gmm(sample["label"], sample["image"].shape)
+            sample["image"] = gaussian_filter(gmm_img, sigma=self.blur_factor)
         return sample
 
 
-def sample_intensity_stats_from_image(image,
-                                      segmentation,
-                                      labels_list,
-                                      classes_list=None,
-                                      keep_strictly_positive=True):
+def sample_intensity_stats_from_image(
+    image, segmentation, labels_list, classes_list=None, keep_strictly_positive=True
+):
     """This function takes an image and corresponding segmentation as inputs. It estimates the mean and std intensity
     for all specified label values. Labels can share the same statistics by being regrouped into K classes.
     :param image: image from which to evaluate mean intensity and std deviation.
@@ -341,20 +354,24 @@ def sample_intensity_stats_from_image(image,
     """
     # reformat labels and classes
     if classes_list is not None:
-        classes_list = np.array(classes_list, dtype='int')
+        classes_list = np.array(classes_list, dtype="int")
     else:
         classes_list = np.arange(labels_list.shape[0])
-    assert len(classes_list) == len(labels_list), 'labels and classes lists should have the same length'
+    assert len(classes_list) == len(
+        labels_list
+    ), "labels and classes lists should have the same length"
     # get unique classes
     unique_classes, unique_indices = np.unique(classes_list, return_index=True)
     n_classes = len(unique_classes)
     if not np.array_equal(unique_classes, np.arange(n_classes)):
-        raise ValueError('classes_list should only contain values between 0 and K-1, '
-                         'where K is the total number of classes. Here K = %d' % n_classes)
+        raise ValueError(
+            "classes_list should only contain values between 0 and K-1, "
+            "where K is the total number of classes. Here K = %d" % n_classes
+        )
     if len(image.shape) == 4:
         h, w, d, n_slices = image.shape
         mid_slice = n_slices // 2
-        image = image[:,:,:, mid_slice]
+        image = image[:, :, :, mid_slice]
 
     # compute mean/std of specified classes
     means = np.zeros(n_classes)
@@ -372,20 +389,20 @@ def sample_intensity_stats_from_image(image,
         # compute stats for class and put them to the location of corresponding label values
         if len(intensities) != 0:
             means[idx] = np.nanmedian(intensities)
-            stds[idx] = median_abs_deviation(intensities, nan_policy='omit')
+            stds[idx] = median_abs_deviation(intensities, nan_policy="omit")
     return np.stack([means, stds])
 
 
 def get_transform(cfg):
     transform_list = []
     for tx in cfg.AUGMENTATION.TYPES:
-        if tx == 'random_affine':
+        if tx == "random_affine":
             rand_aff = RandomAffine(cfg)
             transform_list.append(rand_aff)
-        if tx == 'flip':
+        if tx == "flip":
             flip = RandomFlip(cfg)
             transform_list.append(flip)
-        if tx == 'bias_field':
+        if tx == "bias_field":
             rbf = RandomBiasField(cfg)
             transform_list.append(rbf)
 

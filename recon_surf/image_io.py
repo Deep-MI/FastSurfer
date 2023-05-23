@@ -33,28 +33,32 @@ def mgh_from_sitk(sitk_img, orig_mgh_header=None):
     spacing = sitk_img.GetSpacing()
     h1.set_zooms(np.asarray(spacing))
     # Get direction cosines from sitk image, reshape to 3x3 Matrix
-    direction = np.asarray(sitk_img.GetDirection()).reshape(3, 3, order="F") * [-1, -1, 1]
+    direction = np.asarray(sitk_img.GetDirection()).reshape(3, 3, order="F") * [
+        -1,
+        -1,
+        1,
+    ]
     h1["Mdc"] = direction
     # compute affine
     origin = np.asarray(sitk_img.GetOrigin()).reshape(3, 1) * [[-1], [-1], [1]]
-    affine = np.vstack([np.hstack([h1['Mdc'].T * h1["delta"], origin]), [0, 0, 0, 1]])
+    affine = np.vstack([np.hstack([h1["Mdc"].T * h1["delta"], origin]), [0, 0, 0, 1]])
     # get dims and calculate and set new image center in world coords
     dims = np.array(sitk_img.GetSize())
-    if dims.size == 3: 
+    if dims.size == 3:
         dims = np.hstack((dims, [1]))
-    h1['dims'] = dims
-    h1['Pxyz_c'] = affine.dot(np.hstack((dims[:3] / 2.0, [1])))[:3]
+    h1["dims"] = dims
+    h1["Pxyz_c"] = affine.dot(np.hstack((dims[:3] / 2.0, [1])))[:3]
     # swap axes as data is stored differently between sITK and Nibabel
-    data = np.swapaxes(sitk.GetArrayFromImage(sitk_img),0,2)
+    data = np.swapaxes(sitk.GetArrayFromImage(sitk_img), 0, 2)
     # assemble MGHImage from header, image data and affine
     mgh_img = nib.MGHImage(data, affine, h1)
     return mgh_img
-    
-    
+
+
 def sitk_from_mgh(img):
     # reorder data as structure differs between nibabel and sITK:
-    data = np.swapaxes(np.asanyarray(img.dataobj),0,2)
-    # sitk can only create image with system native endianness 
+    data = np.swapaxes(np.asanyarray(img.dataobj), 0, 2)
+    # sitk can only create image with system native endianness
     if not data.dtype.isnative:
         data = data.byteswap().newbyteorder()
     # create image from array
@@ -63,14 +67,14 @@ def sitk_from_mgh(img):
     direction = img.header["Mdc"] * [-1, -1, 1]
     img_sitk.SetDirection(direction.ravel(order="F"))
     # set voxel sizes
-    img_sitk.SetSpacing(np.array(img.header.get_zooms()).tolist())    
+    img_sitk.SetSpacing(np.array(img.header.get_zooms()).tolist())
     # Get origin from affine, needs to change sign of dim 0 and 1
     origin = img.affine[:3, 3:] * [[-1], [-1], [1]]
     img_sitk.SetOrigin(origin.ravel())
     return img_sitk
-    
 
-def readITKimage(filename, vox_type = None, with_header=False):
+
+def readITKimage(filename, vox_type=None, with_header=False):
     # If image is nifti image
     header = None
     if filename[-7:] == ".nii.gz" or filename[-4:] == ".nii":
@@ -86,9 +90,13 @@ def readITKimage(filename, vox_type = None, with_header=False):
         header = image.header
         itkimage = sitk_from_mgh(image)
         if vox_type:
-            itkimage = sitk.Cast(itkimage,vox_type)
+            itkimage = sitk.Cast(itkimage, vox_type)
     else:
-        sys.exit("read ERROR: {} image type not supported (only: .mgz, .nii, .nii.gz).\n".format(filename))
+        sys.exit(
+            "read ERROR: {} image type not supported (only: .mgz, .nii, .nii.gz).\n".format(
+                filename
+            )
+        )
     if with_header:
         return itkimage, header
     else:
@@ -106,8 +114,11 @@ def writeITKimage(img, filename, header=None):
         mgh_image = mgh_from_sitk(img, header)
         nib.save(mgh_image, filename)
     else:
-        sys.exit("write ERROR: {} image type not supported (only: .mgz, .nii, .nii.gz).\n".format(filename))
-
+        sys.exit(
+            "write ERROR: {} image type not supported (only: .mgz, .nii, .nii.gz).\n".format(
+                filename
+            )
+        )
 
 
 if __name__ == "__main__":
@@ -117,4 +128,3 @@ if __name__ == "__main__":
     img, hdr = readITKimage(sys.argv[1], with_header=True)
     writeITKimage(img, sys.argv[2], hdr)
     sys.exit(0)
-

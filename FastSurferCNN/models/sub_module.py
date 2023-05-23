@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,34 +23,53 @@ class InputDenseBlock(nn.Module):
     def __init__(self, params):
         super(InputDenseBlock, self).__init__()
         # Padding to get output tensor of same dimensions
-        padding_h = int((params['kernel_h'] - 1) / 2)
-        padding_w = int((params['kernel_w'] - 1) / 2)
+        padding_h = int((params["kernel_h"] - 1) / 2)
+        padding_w = int((params["kernel_w"] - 1) / 2)
 
         # Sub-layer output sizes for BN; and
         conv0_in_size = params["num_channels"]
         conv1_in_size = params["num_filters_interpol"]
         conv2_in_size = params["num_filters_interpol"]
-        out_size = params["num_filters_interpol_last"] if "num_filters_interpol_last" in params else params["num_filters_interpol"]
+        out_size = (
+            params["num_filters_interpol_last"]
+            if "num_filters_interpol_last" in params
+            else params["num_filters_interpol"]
+        )
 
         # learnable layers
-        self.conv0 = nn.Conv2d(in_channels=conv0_in_size, out_channels=params["num_filters_interpol"],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv0 = nn.Conv2d(
+            in_channels=conv0_in_size,
+            out_channels=params["num_filters_interpol"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv1 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params["num_filters_interpol"],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv1 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters_interpol"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv2 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params["num_filters_interpol"],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv2 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters_interpol"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         # D \times D convolution for the last block --> with maxout this is redundant unless we want to reduce
         # the number of filter maps here compared to conv1
-        self.conv3 = nn.Conv2d(in_channels=conv2_in_size, out_channels=out_size,
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
-
+        self.conv3 = nn.Conv2d(
+            in_channels=conv2_in_size,
+            out_channels=out_size,
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         self.bn0 = nn.BatchNorm2d(params["num_channels"])
         self.gn1 = nn.BatchNorm2d(conv1_in_size)
@@ -124,33 +142,53 @@ class CompetitiveDenseBlock(nn.Module):
         super(CompetitiveDenseBlock, self).__init__()
 
         # Padding to get output tensor of same dimensions
-        padding_h = int((params['kernel_h'] - 1) / 2)
-        padding_w = int((params['kernel_w'] - 1) / 2)
+        padding_h = int((params["kernel_h"] - 1) / 2)
+        padding_w = int((params["kernel_w"] - 1) / 2)
 
         # Sub-layer output sizes for BN; and
-        conv0_in_size = int(params['num_channels'])  # num_channels
-        conv1_in_size = int(params['num_filters'])
-        conv2_in_size = int(params['num_filters'])
-        out_size = params["num_filters_last"] if "num_filters_last" in params else params["num_filters"]
+        conv0_in_size = int(params["num_channels"])  # num_channels
+        conv1_in_size = int(params["num_filters"])
+        conv2_in_size = int(params["num_filters"])
+        out_size = (
+            params["num_filters_last"]
+            if "num_filters_last" in params
+            else params["num_filters"]
+        )
 
         # Define the learnable layers
         # Standard conv layers
-        self.conv0 = nn.Conv2d(in_channels=conv0_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv0 = nn.Conv2d(
+            in_channels=conv0_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv1 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv1 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv2 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv2 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         # D \times D convolution for the last block
-        self.conv3 = nn.Conv2d(in_channels=conv2_in_size, out_channels=out_size,
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv3 = nn.Conv2d(
+            in_channels=conv2_in_size,
+            out_channels=out_size,
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         self.bn1 = nn.BatchNorm2d(num_features=conv1_in_size)
         self.bn2 = nn.BatchNorm2d(num_features=conv2_in_size)
@@ -232,31 +270,47 @@ class CompetitiveDenseBlockInput(nn.Module):
         super(CompetitiveDenseBlockInput, self).__init__()
 
         # Padding to get output tensor of same dimensions
-        padding_h = int((params['kernel_h'] - 1) / 2)
-        padding_w = int((params['kernel_w'] - 1) / 2)
+        padding_h = int((params["kernel_h"] - 1) / 2)
+        padding_w = int((params["kernel_w"] - 1) / 2)
 
         # Sub-layer output sizes for BN; and
-        conv0_in_size = int(params['num_channels'])
-        conv1_in_size = int(params['num_filters'])
-        conv2_in_size = int(params['num_filters'])
+        conv0_in_size = int(params["num_channels"])
+        conv1_in_size = int(params["num_filters"])
+        conv2_in_size = int(params["num_filters"])
 
         # Define the learnable layers
-        self.conv0 = nn.Conv2d(in_channels=conv0_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv0 = nn.Conv2d(
+            in_channels=conv0_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv1 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv1 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv2 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv2 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         # 1 \times 1 convolution for the last block
-        self.conv3 = nn.Conv2d(in_channels=conv2_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv3 = nn.Conv2d(
+            in_channels=conv2_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         self.bn0 = nn.BatchNorm2d(num_features=conv0_in_size)
         self.bn1 = nn.BatchNorm2d(num_features=conv1_in_size)
@@ -310,7 +364,7 @@ class GaussianNoise(nn.Module):
         super().__init__()
         self.sigma = sigma
         self.noise = torch.tensor(0).to(device)
-        self.register_buffer('noise', torch.tensor(0))
+        self.register_buffer("noise", torch.tensor(0))
 
     def forward(self, x):
         if self.training and self.sigma != 0:
@@ -318,6 +372,7 @@ class GaussianNoise(nn.Module):
             sampled_noise = self.noise.expand(*x.size()).float().normal_() * scale
             x = x + sampled_noise
         return x
+
 
 ##
 # Encoder/Decoder definitions
@@ -333,8 +388,11 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         :param dict params: parameters like number of channels, stride etc.
         """
         super(CompetitiveEncoderBlock, self).__init__(params)
-        self.maxpool = nn.MaxPool2d(kernel_size=params['pool'], stride=params['stride_pool'],
-                                    return_indices=True)  # For Unpooling later on with the indices
+        self.maxpool = nn.MaxPool2d(
+            kernel_size=params["pool"],
+            stride=params["stride_pool"],
+            return_indices=True,
+        )  # For Unpooling later on with the indices
 
     def forward(self, x):
         """
@@ -345,8 +403,12 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         :param tensor x: feature map from previous block
         :return: original feature map, maxpooled feature map, maxpool indices
         """
-        out_block = super(CompetitiveEncoderBlock, self).forward(x)  # To be concatenated as Skip Connection
-        out_encoder, indices = self.maxpool(out_block)  # Max Pool as Input to Next Layer
+        out_block = super(CompetitiveEncoderBlock, self).forward(
+            x
+        )  # To be concatenated as Skip Connection
+        out_encoder, indices = self.maxpool(
+            out_block
+        )  # Max Pool as Input to Next Layer
         return out_encoder, out_block, indices
 
 
@@ -360,9 +422,14 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
         Encoder Block initialization
         :param dict params: parameters like number of channels, stride etc.
         """
-        super(CompetitiveEncoderBlockInput, self).__init__(params)  # The init of CompetitiveDenseBlock takes in params
-        self.maxpool = nn.MaxPool2d(kernel_size=params['pool'], stride=params['stride_pool'],
-                                    return_indices=True)  # For Unpooling later on with the indices
+        super(CompetitiveEncoderBlockInput, self).__init__(
+            params
+        )  # The init of CompetitiveDenseBlock takes in params
+        self.maxpool = nn.MaxPool2d(
+            kernel_size=params["pool"],
+            stride=params["stride_pool"],
+            return_indices=True,
+        )  # For Unpooling later on with the indices
 
     def forward(self, x):
         """
@@ -373,8 +440,12 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
         :param tensor x: feature map from previous block
         :return: original feature map, maxpooled feature map, maxpool indices
         """
-        out_block = super(CompetitiveEncoderBlockInput, self).forward(x)  # To be concatenated as Skip Connection
-        out_encoder, indices = self.maxpool(out_block)  # Max Pool as Input to Next Layer
+        out_block = super(CompetitiveEncoderBlockInput, self).forward(
+            x
+        )  # To be concatenated as Skip Connection
+        out_encoder, indices = self.maxpool(
+            out_block
+        )  # Max Pool as Input to Next Layer
         return out_encoder, out_block, indices
 
 
@@ -391,7 +462,9 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
                               is created. Default: False
         """
         super(CompetitiveDecoderBlock, self).__init__(params, outblock=outblock)
-        self.unpool = nn.MaxUnpool2d(kernel_size=params['pool'], stride=params['stride_pool'])
+        self.unpool = nn.MaxUnpool2d(
+            kernel_size=params["pool"], stride=params["stride_pool"]
+        )
 
     def forward(self, x, out_block, indices):
         """
@@ -427,31 +500,47 @@ class OutputDenseBlock(nn.Module):
         super(OutputDenseBlock, self).__init__()
 
         # Padding to get output tensor of same dimensions
-        padding_h = int((params['kernel_h'] - 1) / 2)
-        padding_w = int((params['kernel_w'] - 1) / 2)
+        padding_h = int((params["kernel_h"] - 1) / 2)
+        padding_w = int((params["kernel_w"] - 1) / 2)
 
         # Sub-layer output sizes for BN; and
-        conv0_in_size = int(params['num_channels'])  # num_channels
-        conv1_in_size = int(params['num_filters'])
-        conv2_in_size = int(params['num_filters'])
+        conv0_in_size = int(params["num_channels"])  # num_channels
+        conv1_in_size = int(params["num_filters"])
+        conv2_in_size = int(params["num_filters"])
 
         # Define the learnable layers
-        self.conv0 = nn.Conv2d(in_channels=conv0_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv0 = nn.Conv2d(
+            in_channels=conv0_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv1 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv1 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
-        self.conv2 = nn.Conv2d(in_channels=conv1_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv2 = nn.Conv2d(
+            in_channels=conv1_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         # D \times D convolution for the last block
-        self.conv3 = nn.Conv2d(in_channels=conv2_in_size, out_channels=params['num_filters'],
-                               kernel_size=(params['kernel_h'], params['kernel_w']),
-                               stride=params['stride_conv'], padding=(padding_h, padding_w))
+        self.conv3 = nn.Conv2d(
+            in_channels=conv2_in_size,
+            out_channels=params["num_filters"],
+            kernel_size=(params["kernel_h"], params["kernel_w"]),
+            stride=params["stride_conv"],
+            padding=(padding_h, padding_w),
+        )
 
         self.gn1 = nn.BatchNorm2d(conv1_in_size)
         self.gn2 = nn.BatchNorm2d(conv2_in_size)
@@ -509,14 +598,19 @@ class ClassifierBlock(nn.Module):
     """
     Classification Block
     """
+
     def __init__(self, params):
         """
         Classifier Block initialization
         :param dict params: parameters like number of channels, stride etc.
         """
         super(ClassifierBlock, self).__init__()
-        self.conv = nn.Conv2d(params['num_channels'], params['num_classes'], params['kernel_c'],
-                              params['stride_conv'])  # To generate logits
+        self.conv = nn.Conv2d(
+            params["num_channels"],
+            params["num_classes"],
+            params["kernel_c"],
+            params["stride_conv"],
+        )  # To generate logits
 
     def forward(self, x):
         """
