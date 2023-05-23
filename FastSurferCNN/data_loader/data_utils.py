@@ -234,7 +234,7 @@ def transform_sagittal(vol: np.ndarray, coronal2sagittal: bool = True) -> np.nda
 def get_thick_slices(img_data: np.ndarray, slice_thickness: int = 3) -> np.ndarray:
     """
     Function to extract thick slices from the image
-    (feed slice_thickness preceeding and suceeding slices to network,
+    (feed slice_thickness preceding and succeeding slices to network,
     label only middle one)
 
     Args:
@@ -430,12 +430,12 @@ def fill_unknown_labels_per_hemi(gt, unknown_label, cortex_stop):
     h, w, d = gt.shape
     struct1 = generate_binary_structure(3, 2)
 
-    # Get indices of unknown labels, dilate them to get closest sorrounding parcels
+    # Get indices of unknown labels, dilate them to get closest surrounding parcels
     unknown = gt == unknown_label
     unknown = (morphology.binary_dilation(unknown, struct1) ^ unknown)
     list_parcels = np.unique(gt[unknown])
 
-    # Mask all subcortical structues (fill unknown with closest cortical parcels only)
+    # Mask all subcortical structures (fill unknown with closest cortical parcels only)
     mask = (list_parcels > unknown_label) & (list_parcels < cortex_stop)
     list_parcels = list_parcels[mask]
 
@@ -704,7 +704,7 @@ def map_prediction_sagittal2full(prediction_sag, num_classes=51, lut=None):
     Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
     (full aparc.DKTatlas+aseg.mgz)
     :param prediction_sag: sagittal prediction (labels)
-    :param int num_classes: number of SAGGITAL classes (96 for full classes, 51 for hemi split, 21 for aseg)
+    :param int num_classes: number of SAGITTAL classes (96 for full classes, 51 for hemi split, 21 for aseg)
     :param str/None lut: look-up table listing class labels
     :return: Remapped prediction
     """

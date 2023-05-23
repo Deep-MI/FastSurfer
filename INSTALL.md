@@ -197,7 +197,7 @@ python3 -m pip install -r requirements.mac.txt
 ```
 
 If this step fails, you may need to edit ```requirements.mac.txt``` and adjust version number to what is available. 
-On newer M1 Macs, we also had issues with the h5py pacakge, which could be solved by using brew for help (not sure this is needed any longer):
+On newer M1 Macs, we also had issues with the h5py package, which could be solved by using brew for help (not sure this is needed any longer):
 
 ```
 brew install hdf5

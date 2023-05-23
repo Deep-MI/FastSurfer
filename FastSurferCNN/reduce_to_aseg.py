@@ -25,7 +25,7 @@ from skimage.measure import label
 from skimage.filters import gaussian
 
 HELPTEXT = """
-Script to reduce aparc+aseg to aseg by mapping cortex lables back to left/right GM.
+Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right GM.
 
 If --outmask is used, it also creates a brainmask by dilating (5) and eroding (4) 
 the segmentation, and then selecting the largest component. In that case also the 
@@ -59,9 +59,9 @@ Date: Jul-24-2018
 """
 
 h_input = 'path to input segmentation'
-h_output = 'path to ouput segmentation'
-h_outmask = 'path to ouput mask'
-h_fixwm = 'whether to try to flip lables of disconnected WM island to other hemi'
+h_output = 'path to output segmentation'
+h_outmask = 'path to output mask'
+h_fixwm = 'whether to try to flip labels of disconnected WM island to other hemi'
 
 
 def options_parse():
@@ -132,7 +132,7 @@ def create_mask(aseg_data, dnum, enum):
 
 def flip_wm_islands(aseg_data):
 # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
-# These are usually islands, not connected ot the main hemi WM component
+# These are usually islands, not connected to the main hemi WM component
 # Here we decide to flip assignment based on proximity to other WM and GM labels
 
     #label ids
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     # get mask
     if options.output_mask:
         bm = create_mask(copy.deepcopy(inseg_data), 5, 4)
-        print ("Outputing mask: {}".format(options.output_mask))
+        print ("Outputting mask: {}".format(options.output_mask))
         mask = nib.MGHImage(bm, inseg_affine, inseg_header)
         mask.to_filename(options.output_mask)
 
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
 
-    print ("Outputing aseg: {}".format(options.output_seg))
+    print ("Outputting aseg: {}".format(options.output_seg))
     aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
     aseg_fin.to_filename(options.output_seg)
 

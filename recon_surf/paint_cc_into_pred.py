@@ -49,7 +49,7 @@ def argument_parse():
     parser.add_argument('--input_cc', '-in_cc', dest='input_cc',
                         help="path to input segmentation with Corpus Callosum (IDs 251-255 in FreeSurfer space)")
     parser.add_argument('--input_pred', '-in_pred', dest='input_pred',
-                        help="path to input segmentation Corpus Callosum shoud be added to.")
+                        help="path to input segmentation Corpus Callosum should be added to.")
     parser.add_argument('--output', '-out', dest='output', help="path to output (input segmentation + added CC)")
 
     args = parser.parse_args()

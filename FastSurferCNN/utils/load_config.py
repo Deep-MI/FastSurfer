@@ -20,7 +20,7 @@ from FastSurferCNN.config.defaults import get_cfg_defaults
 
 def get_config(args):
     """
-    Given the arguemnts, load and initialize the configs.
+    Given the arguments, load and initialize the configs.
 
     """
     # Setup cfg.

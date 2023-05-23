@@ -400,7 +400,7 @@ for hemi in lh rh; do
   echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
   echo "echo \" \"" |& tee -a $CMDF
 
-  # Surface registration for cross-subject correspondance (registration to fsaverage)
+  # Surface registration for cross-subject correspondence (registration to fsaverage)
   cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning $fsthreads"
   RunIt "$cmd" $LF "$CMDF"
 
@@ -410,7 +410,7 @@ for hemi in lh rh; do
   # cortical segmentation from FastSurferCNN, this replaces recon-al -surfreg
   # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
   # (note the former fix, initializing with pre-central label, is not working in FS7.2
-  # as they broke the label initializiation in mris_register)
+  # as they broke the label initialization in mris_register)
   cmd="$python ${binpath}/rotate_sphere.py \
        --srcsphere $sdir/${hemi}.sphere \
        --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \

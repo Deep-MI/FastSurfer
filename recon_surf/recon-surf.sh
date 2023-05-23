@@ -551,7 +551,7 @@ cmd="ln -sf orig.mgz rawavg.mgz"
 RunIt "$cmd" $LF
 popd
 
-### START SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### START SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   # Mask or aseg.auto_noCCseg not found; create them
@@ -564,7 +564,7 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   cmd="$python ${binpath}/../FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
   RunIt "$cmd" $LF
 fi
-### END SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### END SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 
 echo " " |& tee -a $LF
@@ -573,7 +573,7 @@ echo " " |& tee -a $LF
 
 pushd $mdir
 
-### START SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### START SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 # only run the bias field correction, if the bias field corrected does not exist already
 if [ ! -f "$mdir/orig_nu.mgz" ]; then
@@ -591,7 +591,7 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
   RunIt "$cmd" $LF
 fi
-### END SUPERCEEDED BY SEGMENTATION PIPELINE, will be removed in the future
+### END SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 
 # talairach.xfm: compute talairach full head (25sec)
@@ -812,7 +812,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
   echo "echo \" \"" |& tee -a $CMDF
 
-  # Surface registration for cross-subject correspondance (registration to fsaverage)
+  # Surface registration for cross-subject correspondence (registration to fsaverage)
   cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
   RunIt "$cmd" $LF "$CMDF"
   
@@ -822,7 +822,7 @@ if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   # cortical segmentation from FastSurferCNN, this replaces recon-all -surfreg
   # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
   # (note the former fix, initializing with pre-central label, is not working in FS7.2
-  # as they broke the label initializiation in mris_register)
+  # as they broke the label initialization in mris_register)
   cmd="$python ${binpath}/rotate_sphere.py \
        --srcsphere $sdir/${hemi}.sphere \
        --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \

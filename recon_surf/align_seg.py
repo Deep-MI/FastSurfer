@@ -97,7 +97,7 @@ def get_seg_centroids(seg_mov, seg_dst, label_ids=[]):
         label=int(label)
         centroids_mov[counter] = label_stats_mov.GetCentroid(label)
         centroids_dst[counter] = label_stats_dst.GetCentroid(label)
-        #print("centroid pyhsical: {}".format(centroid_world))
+        #print("centroid physical: {}".format(centroid_world))
         #centroidf = itkmask.TransformPhysicalPointToContinuousIndex(centroid_world)
         #print("centroid voxel: {}".format(centroidf))
         #centroid  = itkmask.TransformPhysicalPointToIndex(centroid_world)
@@ -127,7 +127,7 @@ def align_seg_centroids(seg_mov, seg_dst, label_ids=[], affine=False):
 def align_flipped(seg):
     # left - right registration (make upright)
     # segmentation should be aparc+aseg (DKT or not)
-    # we are registering cortial lables
+    # we are registering cortial labels
 
     lhids = np.array([
         1002, 1003, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014,

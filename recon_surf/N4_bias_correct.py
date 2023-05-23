@@ -76,7 +76,7 @@ h_levels = '<int> number of fitting levels, default: 4'
 h_numiter = '<int> max number of iterations per level, default: 50'
 h_thres = '<float> convergence threshold, default: 0.0'
 h_skipwm = 'skip normalize WM to 110 (for UCHAR scale)'
-h_tal = '<sting> file name of talairach.xfm if using this for finding origin'
+h_tal = '<string> file name of talairach.xfm if using this for finding origin'
 h_threads = '<int> number of threads, default: 1'
 
 
@@ -189,7 +189,7 @@ def normalizeWM(itkimage, itkmask=None, radius=50, centroid=None, targetWM=110):
         label_stats.Execute(itkmask)
         # centroid_world = label_stats.GetCenterGravity(1)
         centroid_world = label_stats.GetCentroid(1)
-        #print("centroid pyhsical: {}".format(centroid_world))
+        #print("centroid physical: {}".format(centroid_world))
         #centroidf = itkmask.TransformPhysicalPointToContinuousIndex(centroid_world)
         #print("centroid voxel: {}".format(centroidf))
         centroid = itkmask.TransformPhysicalPointToIndex(centroid_world)

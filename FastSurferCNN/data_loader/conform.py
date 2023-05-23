@@ -42,7 +42,7 @@ Date: Jul-09-2019
 """
 
 h_input = 'path to input image'
-h_output = 'path to ouput image'
+h_output = 'path to output image'
 h_order = 'order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)'
 
 
@@ -169,7 +169,7 @@ def getscale(data: np.ndarray, dst_min: float, dst_max: float,
     bin_size = (src_max - src_min) / histosize
     hist, bin_edges = np.histogram(data, histosize)
 
-    # compute cummulative sum
+    # compute cumulative sum
     cs = np.concatenate(([0], np.cumsum(hist)))
 
     # get lower limit
@@ -364,7 +364,7 @@ def conform(img: nib.analyze.SpatialImage,
 
     if img.get_data_dtype() != np.dtype(np.uint8) or (img.get_data_dtype() != target_dtype and scale != 1.):
         scaled_data = scalecrop(mapped_data, 0, 255, src_min, scale)
-        # map zero in input to zero in ouput (usually background)
+        # map zero in input to zero in output (usually background)
         scaled_data[mapped_data == 0] = 0
         mapped_data = scaled_data
 

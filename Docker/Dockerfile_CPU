@@ -34,7 +34,7 @@ RUN conda env create -f /fastsurfer/fastsurfer_env_cpu.yml
 # Install conda-pack:
 RUN conda install -c conda-forge conda-pack
 
-# Use conda-pack to create a standalone enviornment in /venv:
+# Use conda-pack to create a standalone environment in /venv:
 RUN conda-pack -n fastsurfer_cpu -o /tmp/env.tar && \
   mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
   rm /tmp/env.tar
