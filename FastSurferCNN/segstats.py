@@ -60,12 +60,14 @@ _ArrayType = TypeVar("_ArrayType", bound=np.ndarray)
 PVStats = Dict[str, Union[int, float]]
 VirtualLabel = Dict[int, Sequence[int]]
 
+FILTER_SIZES = (3, 15)
+
 UNITS = {"Volume_mm3": "mm^3", "normMean": "MR", "normStdDev": "MR", "normMin": "MR", "normMax": "MR",
          "normRange": "MR"}
 FIELDS = {"Index": "Index", "SegId": "Segmentation Id", "NVoxels": "Number of Voxels", "Volume_mm3": "Volume",
           "StructName": "Structure Name", "normMean": "Intensity normMean", "normStdDev": "Intensity normStdDev",
           "normMin": "Intensity normMin", "normMax": "Intensity normMax", "normRange": "Intensity normRange"}
-FORMATS = {"Index": "d", "SegId": "d", "NVoxels": "d", "Volume_mm3": ".1f", "StructName": "s", "normMean": ".4f",
+FORMATS = {"Index": "d", "SegId": "d", "NVoxels": "d", "Volume_mm3": ".3f", "StructName": "s", "normMean": ".4f",
            "normStdDev": ".4f", "normMin": ".4f", "normMax": ".4f", "normRange": ".4f"}
 
 
@@ -117,7 +119,21 @@ def make_arguments() -> argparse.ArgumentParser:
                           help="Keep ids for the table that do not exist in the segmentation (default: drop).")
     advanced = add_arguments(advanced, ['device', 'lut', 'sid', 'in_dir', 'allow_root'])
     advanced.add_argument('--legacy_freesurfer', action='store_true', dest='legacy_freesurfer',
-                          help="Reproduce FreeSurfer mri_segstats numbers (default: off).")
+                          help="Reproduce FreeSurfer mri_segstats numbers (default: off). \n"
+                               "Please note, that exact agreement of numbers cannot be guaranteed, because the "
+                               "condition number of FreeSurfers algorithm (mri_segstats) combined with the fact that "
+                               "mri_segstats uses 'float' to measure the partial volume corrected volume. This yields "
+                               "differences of more than 60mm3 or 0.1%% in large structures. This uniquely impacts "
+                               "highres images with more voxels (on the boundry) and smaller voxel sizes (volume per "
+                               "voxel).")
+    # Additional info:
+    # Changing the data type in mri_segstats to double can reduce this difference to nearly zero.
+    # mri_segstats has two operations affecting a bad condition number:
+    # 1. pv = (val - mean_nbr) / (mean_label - mean_nbr)
+    # 2. volume += vox_vol * pv
+    #    This is further affected by the small vox_vol (volume per voxel) of highres images (0.7iso -> 0.343)
+    # Their effects stack and can result in differences of more than 60mm3 or 0.1% in a comparison between double and
+    # single-precision evaluations.
     advanced.add_argument('--mixing_coeff', type=str, dest='mix_coeff', default='',
                           help="Save the mixing coefficients (default: off).")
     advanced.add_argument('--alternate_labels', type=str, dest='nbr', default='',
@@ -128,6 +144,9 @@ def make_arguments() -> argparse.ArgumentParser:
                           help="Save the segmentation labels' means (default: off).")
     advanced.add_argument('--alternate_means', type=str, dest='nbr_means', default='',
                           help="Save the alternate labels' means (default: off).")
+    advanced.add_argument('--volume_precision', type=id_type, dest='volume_precision', default=None,
+                          help="Number of digits after dot in summary stats file (default: 3). Note, "
+                               "--legacy_freesurfer sets this to 1.")
     return parser
 
 
@@ -208,6 +227,11 @@ def main(args):
         "legacy_freesurfer": bool(getattr(args, 'legacy_freesurfer', False)),
         "patch_size": args.patch_size
     }
+
+    if getattr(args, 'volume_precision', None) is not None:
+        FORMATS['Volume_mm3'] = f'.{getattr(args, "volume_precision"):d}f'
+    elif kwargs["legacy_freesurfer"]:
+        FORMATS['Volume_mm3'] = f'.1f'
 
     if args.merged_labels is not None and len(args.merged_labels) > 0:
         kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
@@ -497,7 +521,7 @@ def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, S
     return grown_patch, ungrow_patch
 
 
-def uniform_filter(arr: _ArrayType, filter_size: int,
+def uniform_filter(arr: _ArrayType, filter_size: int, fillval: float,
                    patch: Optional[Tuple[slice, ...]] = None, out: Optional[_ArrayType] = None) -> _ArrayType:
     """Apply a uniform filter (with kernel size `filter_size`) to `input`. The uniform filter is normalized
     (weights add to one)."""
@@ -506,7 +530,7 @@ def uniform_filter(arr: _ArrayType, filter_size: int,
     from scipy.ndimage import uniform_filter
 
     def _uniform_filter(_arr, out=None):
-        return uniform_filter(_arr, size=filter_size, mode='constant', cval=0, output=out)[_patch]
+        return uniform_filter(_arr, size=filter_size, mode='constant', cval=fillval, output=out)[_patch]
 
     if out is not None:
         _uniform_filter(arr, out)
@@ -690,7 +714,7 @@ def global_stats(lab: _IntType, norm: npt.NDArray[_NumberType], seg: npt.NDArray
         -> Union[Tuple[_IntType, int],
                  Tuple[_IntType, int, int, _NumberType, _NumberType, float, float, float, npt.NDArray[bool]]]:
     """Computes Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum, sum of squares and
-    6-connected border of label lab."""
+    6-connected border of label lab (out references the border)."""
     bin_array = cast(npt.NDArray[bool], seg == lab)
     data = norm[bin_array].astype(int if np.issubdtype(norm.dtype, np.integer) else float)
     nvoxels: int = data.shape[0]
@@ -771,7 +795,7 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
             _patch_size = 0
         _patch.append(slice(p, p + _patch_size))
 
-    out_patch = patch # [slice(_p.start + p.start, p.start + _p.stop) for _p, p in zip(_patch, patch)]
+    out_patch = [slice(_p.start + p.start, p.start + _p.stop) for _p, p in zip(_patch, patch)]
     return _patch[0].start != _patch[0].stop, out_patch
 
 
@@ -790,8 +814,8 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     log_eps = -int(np.log10(eps))
 
     patch = tuple(patch)
-    patch_grow1, ungrow1_patch = grow_patch(patch, 1, seg.shape)
-    patch_grow7, ungrow7_patch = grow_patch(patch, 7, seg.shape)
+    patch_grow1, ungrow1_patch = grow_patch(patch, (FILTER_SIZES[0]-1)//2, seg.shape)
+    patch_grow7, ungrow7_patch = grow_patch(patch, (FILTER_SIZES[1]-1)//2, seg.shape)
     patch_shrink6 = tuple(
         slice(ug7.start - ug1.start, None if ug7.stop == ug1.stop else ug7.stop - ug1.stop) for ug1, ug7 in
         zip(ungrow1_patch, ungrow7_patch))
@@ -806,7 +830,7 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
     pat_is_border, pat_is_nbr, pat_label_counts, pat_label_sums \
         = patch_neighbors(label_lookup, norm, seg, pat_border, loc_border,
                           patch_grow7, patch_in_gc, patch_shrink6, ungrow1_patch, ungrow7_patch,
-                          ndarray_alloc=np.full, eps=eps)
+                          ndarray_alloc=np.full, eps=eps, legacy_freesurfer=legacy_freesurfer)
 
     # both counts and sums are "normalized" by the local neighborhood size (15**3)
     label_lookup_fwd = np.zeros((maxlabels,), dtype="int")
@@ -830,7 +854,7 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
          # 2. considered (mean of) alternative label must be different to norm of voxel
          pat1d_label_means != unsqueeze(pat1d_norm, 0),
          # 3. (mean of) segmentation label must be different to norm of voxel
-         np.broadcast_to(unsqueeze(mean_label != pat1d_norm, 0), pat1d_label_means.shape),
+         np.broadcast_to(unsqueeze(np.abs(mean_label - pat1d_norm) > eps, 0), pat1d_label_means.shape),
          # 4. label must be a neighbor
          pat_is_nbr[:, pat_border],
          # 3. label must not be the segmentation
@@ -880,16 +904,19 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
 
 
 def patch_neighbors(labels, norm, seg, pat_border, loc_border, patch_grow7, patch_in_gc, patch_shrink6,
-                        ungrow1_patch, ungrow7_patch, ndarray_alloc, eps):
+                        ungrow1_patch, ungrow7_patch, ndarray_alloc, eps, legacy_freesurfer = False):
     """Helper function to calculate the neighbor statistics of labels, etc."""
     loc_shape = (len(labels),) + pat_border.shape
 
     pat_label_counts, pat_label_sums = ndarray_alloc((2,) + loc_shape, fill_value=0., dtype=float)
     pat_is_nbr, pat_is_border = ndarray_alloc((2,) + loc_shape, fill_value=False, dtype=bool)
     for i, lab in enumerate(labels):
+        # in legacy freesurfer mode, we want to fill the binary labels with True if we are looking at the background
+        fill_binary_label = float(legacy_freesurfer and lab == 0)
+
         pat7_bin_array = cast(npt.NDArray[bool], seg[patch_grow7] == lab)
         # implicitly also a border detection: is lab a neighbor of the "current voxel"
-        tmp_nbr_label_counts = uniform_filter(pat7_bin_array[patch_shrink6], 3)  # as float (*filter_size**3)
+        tmp_nbr_label_counts = uniform_filter(pat7_bin_array[patch_shrink6], FILTER_SIZES[0], fill_binary_label)  # as float (*filter_size**3)
         if tmp_nbr_label_counts.sum() > eps:
             # lab is at least once a nbr in the patch (grown by one)
             if lab in loc_border:
@@ -899,9 +926,9 @@ def patch_neighbors(labels, norm, seg, pat_border, loc_border, patch_grow7, patc
                 pat_is_border[i] = pat7_is_border[ungrow1_patch].astype(bool)
 
             pat_is_nbr[i] = tmp_nbr_label_counts[ungrow1_patch] > eps
-            pat_label_counts[i] = uniform_filter(pat7_bin_array, 15)[ungrow7_patch]  # as float (*filter_size**3)
+            pat_label_counts[i] = uniform_filter(pat7_bin_array, FILTER_SIZES[1], fill_binary_label)[ungrow7_patch]  # as float (*filter_size**3)
             pat7_filtered_norm = norm[patch_grow7] * pat7_bin_array
-            pat_label_sums[i] = uniform_filter(pat7_filtered_norm, 15)[ungrow7_patch]
+            pat_label_sums[i] = uniform_filter(pat7_filtered_norm, FILTER_SIZES[1], 0)[ungrow7_patch]
         # else: lab is not present in the patch
     return pat_is_border, pat_is_nbr, pat_label_counts, pat_label_sums
 
