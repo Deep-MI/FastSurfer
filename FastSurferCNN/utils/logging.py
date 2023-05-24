@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +14,15 @@
 
 # IMPORTS
 from logging import *
-from logging import getLogger as get_logger, StreamHandler, FileHandler, INFO, DEBUG, getLogger, basicConfig
+from logging import (
+    getLogger as get_logger,
+    StreamHandler,
+    FileHandler,
+    INFO,
+    DEBUG,
+    getLogger,
+    basicConfig,
+)
 from os import path, makedirs
 from sys import stdout as _stdout
 
@@ -34,6 +41,6 @@ def setup_logging(log_file_path: str):
         if not path.exists(log_dir_path):
             makedirs(log_dir_path)
 
-        handlers.append(FileHandler(filename=log_file_path, mode='a'))
+        handlers.append(FileHandler(filename=log_file_path, mode="a"))
 
     basicConfig(level=INFO, format=_FORMAT, handlers=handlers)

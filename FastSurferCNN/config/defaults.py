@@ -195,7 +195,7 @@ _C.OPTIMIZER.PATIENCE = 5
 _C.OPTIMIZER.THRESH = 0.0001
 
 # Number of epochs to wait before resuming normal operation (default=0)
-_C.OPTIMIZER.COOLDOWN=0
+_C.OPTIMIZER.COOLDOWN = 0
 
 # Momentum
 _C.OPTIMIZER.MOMENTUM = 0.9
@@ -231,6 +231,7 @@ _C.RNG_SEED = 1
 
 _C.SUMMARY_PATH = "FastSurferVINN/summary/FastSurferVINN_coronal"
 _C.CONFIG_LOG_PATH = "FastSurferVINN/config/FastSurferVINN_coronal"
+
 
 def get_cfg_defaults():
     """Get a yacs CfgNode object with default values for my_project."""

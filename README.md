@@ -4,7 +4,7 @@
 # Overview
 
 This README contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline. FastSurfer provides a fully compatible [FreeSurfer](https://freesurfer.net/) alternative for volumetric analysis (within minutes) and surface-based thickness analysis (within only around 1h run time). 
-FastSurfer is transitioning to high-resolution support throughout the pipeline.
+FastSurfer is transitioning to sub-millimeter resolution support throughout the pipeline.
 
 The FastSurfer pipeline consists of two main parts for segmentation and surface reconstruction.  
 
@@ -12,7 +12,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - the surface sub-pipeline (`recon-surf`) reconstructs cortical surfaces, maps cortical labels and performs a traditional point-wise and ROI thickness analysis. 
 
 ### Segmentation Modules 
-- approximately 5 minutes, `--seg_only` only runs this part
+- approximately 5 minutes (GPU), `--seg_only` only runs this part
 - Modules (all by default):
   1. `asegdkt:` FastSurferVINN for whole brain segmentation (deactivate with `--no_asegdkt`)
      - the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.
@@ -24,11 +24,11 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
      - calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
-- approximately 60 minutes, `--surf_only` only runs the surface part
+- approximately 60 minutes, `--surf_only` runs only the surface part
 - supports high-resolution images (up to 0.7mm, experimental beyond that)
 
 ### Requirements to input images
-All pipeline parts and modules require good quality MRI images, typically from a 3T machine.
+All pipeline parts and modules require good quality MRI images, preferably from a 3T MR scanner.
 FastSurfer expects a similar image quality as FreeSurfer, so what works with FreeSurfer should also work with FastSurfer. 
 Notwithstanding module-specific limitations, resolution should be between 1mm and 0.7mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. See `--vox_size` flag for high-res behaviour.
 
@@ -38,8 +38,8 @@ Notwithstanding module-specific limitations, resolution should be between 1mm an
 ## Installation 
 There are two ways to run FastSurfer (links are to installation instructions):
 
-1. in a container ([Singularity](INSTALL.md#singularity) or [Docker](INSTALL.md#docker)) (OS: [Linux](INSTALL.md#linux), [Windows](INSTALL.md#windows), [MacOS on Intel](INSTALL.md#docker--currently-only-supported-for-intel-cpus-)),
-2. as a [native install](INSTALL.md#native--ubuntu-2004-) (all OS). 
+1. In a container ([Singularity](INSTALL.md#singularity) or [Docker](INSTALL.md#docker)) (OS: [Linux](INSTALL.md#linux), [Windows](INSTALL.md#windows), [MacOS on Intel](INSTALL.md#docker--currently-only-supported-for-intel-cpus-)),
+2. As a [native install](INSTALL.md#native--ubuntu-2004-) (all OS for segmentation part). 
 
 We recommended you use Singularity or Docker, especially if either is already installed on your system, because the [images we provide](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer, expect a  [FreeSurfer license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License). We have detailed, per-OS Installation instructions in the [INSTALL.md file](INSTALL.md).
 
@@ -96,7 +96,7 @@ The `*fastsurfer-flags*` will usually include the subject directory (`--sd`; Not
 ```
 Additionally, you can use `--seg_only` or `--surf_only` to only run a part of the pipeline or `--no_biasfield`, `--no_cereb` and `--no_asegdkt` to switch off some segmentation modules (see above).
 
-In the following, we give an overview of the most important options, but you a full list of options with 
+In the following, we give an overview of the most important options, but you can view a full list of options with 
 
 ```bash
 ./run_fastsurfer.sh --help
@@ -106,16 +106,16 @@ In the following, we give an overview of the most important options, but you a f
 #### Required arguments
 * `--sd`: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * `--sid`: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
-* `--t1`: T1 full head input (not bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 1-0.7 mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply.
+* `--t1`: T1 full head input (not bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 1-0.7 mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. Note, outputs will be in the conformed space (as in FreeSurfer). 
 
 #### Required for docker when running surface module
-* `--fs_license`: Path to FreeSurfer license key file. Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far. Strictly necessary if you use Docker, optional for local install (your local FreeSurfer license will automatically be used). The license file is usually located in $FREESURFER_HOME/license.txt or $FREESURFER_HOME/.license .
+* `--fs_license`: Path to FreeSurfer license key file (only needed for the surface module). Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far. Strictly necessary if you use Docker, optional for local install (your local FreeSurfer license will automatically be used). The license file is usually located in $FREESURFER_HOME/license.txt or $FREESURFER_HOME/.license . 
 
 #### Segmentation pipeline arguments (optional)
 * `--seg_only`: only run FastSurferCNN (generate segmentation, do not run the surface pipeline)
 * `--seg_log`: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting with "cpu" view agg is run on the cpu. Equivalently, if you pass a different device, view agg will be run on that device (no memory check will be done).
-* `--device`: Select device for NN segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU
+* `--device`: Select device for NN segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_, _mps_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU. "mps" is for native MAC installs to use the Apple silicon (M-chip) GPU. 
 * `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * `--no_cereb`: Switch of the cerebellum sub-segmentation
 * `--cereb_segfile`: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
@@ -132,7 +132,7 @@ In the following, we give an overview of the most important options, but you a f
 
 #### Other
 * `--threads`: Target number of threads for all modules (segmentation, surface pipeline), select `1` to force FastSurfer to only really use one core.
-* `--vox_size`:  Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that voxel size and processed. 
+* `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed. 
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isometric.
   If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isometric voxels of that voxel size.
@@ -179,11 +179,11 @@ Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory if it does not exist. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-If you do not have a GPU, you can also run our CPU-Docker with very similar commands. See [Docker/README.md](Docker/README.md) for more details.
+If you do not have a GPU, you can also run our CPU-Docker by dropping the `--gpus all` flag and specifying `--device cpu` at the end as a FastSurfer flag. See [Docker/README.md](Docker/README.md) for more details.
 
 
 ### Example 2: FastSurfer Singularity
-After building the Singularity image (see instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - same as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
+After building the Singularity image (see below or instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - same as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
 
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following commands from a directory where you want to store singularity images. This will create a singularity image from our Dockerhub image and execute it:
 
@@ -218,7 +218,7 @@ Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command.
+You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command. Also append `--device cpu` as a FastSurfer flag.
 
 
 ### Example 3: Native FastSurfer on subjectX (with parallel processing of hemis)
@@ -240,7 +240,7 @@ fastsurferdir=/home/user/my_fastsurfer_analysis
                     --parallel --threads 4
 ```
 
-The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subjectX/mri (default location)). Processing of the hemispheres will be run in parallel (--parallel flag). Omit this flag to run the processing sequentially.
+The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subjectX/mri (default location)). Processing of the hemispheres will be run in parallel (--parallel flag) to significantly speed-up surface creation. Omit this flag to run the processing sequentially, e.g. if you want to save resources on a compute cluster.
 
 
 ### Example 4: Native FastSurfer on multiple subjects
@@ -252,7 +252,7 @@ subject3\n
 ...
 subject10\n
 
-And invoke the following command (make sure you have enough ressources to run the given number of subjects in parallel!):
+And invoke the following command (make sure you have enough resources to run the given number of subjects in parallel!):
 
 ```bash
 export FREESURFER_HOME=/path/to/freesurfer
@@ -273,7 +273,7 @@ done < ./data/subjects_list.txt
 
 ### Example 5: Quick Segmentation
 
-For many applications you won't need the surfaces. You can run only the segmentation (in 1 minute on a GPU) via
+For many applications you won't need the surfaces. You can run only the aparkDKT segmentation (in 1 minute on a GPU) via
 
 ```bash
 ./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
@@ -304,10 +304,12 @@ docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
-                      --main_segfile /ouput/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                      --main_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
                       --conformed_name $ouputdir/subject1/conformed.mgz \
                       --parallel --threads 4 --seg_only
-                      
+```
+
+```bash                      
 # Docker - segmentation and statistics (fs-license required)
 docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
@@ -325,7 +327,7 @@ docker run --gpus all -v $datadir:/data \
 
 ### Segmentation module
 
-The segmentation module outputs the files shown in the table below. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz` file, which contains the FastSurfer segmentation of cortical and subcortical structures based on the DKT atlas, and the `aseg+DKT.stats` file, which contains summary statistics for these structures.
+The segmentation module outputs the files shown in the table below. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz` file, which contains the FastSurfer segmentation of cortical and subcortical structures based on the DKT atlas, and the `aseg+DKT.stats` file, which contains summary statistics for these structures. Note, that the surface model (downstream) corrects these segmentations along the cortex with the created surfaces. So if the surface model is used, it is recommended to use the updated segmentations and stats (see below). 
 
 | directory   | filename                      | module    | description |
 |:------------|-------------------------------|-----------|-------------|
@@ -355,7 +357,7 @@ The surface module is run unless switched off by the `--seg_only` argument. It o
 
 After running this module, some of the initial segmentations and corresponding volume estimates are fine-tuned (e.g., surface-based partial volume correction, addition of corpus callosum labels). Specifically, this concerns the `aseg.mgz `, `aparc.DKTatlas+aseg.mapped.mgz`, `aparc.DKTatlas+aseg.deep.withCC.mgz`, which were originally created by the segmentation module or have earlier versions resulting from that module.
 
-The primary output files are pial, white, and inflated surface files, the thickness overlay files, and the cortical parcellation (annotation) files. The preferred way of assessing this output is the [FreeView](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide) software. Summary statistics for volume and thickness estimates per anatomical structure are reported in the stats files, in particular the `aseg.stats`, and the left and right `aparc.DKTatlas.mapped.stats` files.
+The primary output files are pial, white, and inflated surface files, the thickness overlay files, and the cortical parcellation (annotation) files. The preferred way of assessing this output is the [FreeView](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide) software. Summary statistics for volume and thickness estimates per anatomical structure are reported in the stats files, in particular the `aseg.stats`, and the left and right `aparc.DKTatlas.mapped.stats` files. 
 
 | directory   | filename                      | module    | description |
 |:------------|-------------------------------|-----------|-------------|
@@ -419,11 +421,11 @@ This software can be used to compute statistics from an MR image for research pu
 
 If you use this for research publications, please cite:
 
-Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+_Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012_
 
-Henschel L*, Kügler D*, Reuter M. (*co-first). FastSurferVINN: Building Resolution-Independence into Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+_Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building Resolution-Independence into Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. http://dx.doi.org/10.1016/j.neuroimage.2022.118933_
 
-Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reliable deep-learning pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. https://doi.org/10.1016/j.neuroimage.2022.119703
+_Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reliable deep-learning pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. https://doi.org/10.1016/j.neuroimage.2022.119703_
 
 Stay tuned for updates and follow us on Twitter: https://twitter.com/deepmilab
 

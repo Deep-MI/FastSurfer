@@ -1,4 +1,3 @@
-
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +33,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
     def __init__(self, optimizer, *args, T_0=10, Tmult=1, lr_restart=None, **kwargs):
         """
-        Create a ReduceLROnPlateauWithRestarts learning rate schduler.
+        Create a ReduceLROnPlateauWithRestarts learning rate scheduler.
 
         Restarts the learning rate scheduler after T_i epochs, where T_i = T_{i-1} * Tmult.
 
@@ -51,13 +50,15 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         # from torch.optim.lr_scheduler._LRSchduler
         # if last_epoch == -1:
         for group in optimizer.param_groups:
-            group.setdefault('initial_lr', group['lr'])
+            group.setdefault("initial_lr", group["lr"])
         # else:
         # for i, group in enumerate(optimizer.param_groups):
         # if 'initial_lr' not in group:
         # raise KeyError("param 'initial_lr' is not specified "
         # "in param_groups[{}] when resuming an optimizer".format(i))
-        self.base_lrs = list(map(lambda group: group['initial_lr'], optimizer.param_groups))
+        self.base_lrs = list(
+            map(lambda group: group["initial_lr"], optimizer.param_groups)
+        )
 
         super(ReduceLROnPlateauWithRestarts, self).__init__(optimizer, *args, **kwargs)
         self.T_0 = T_0
@@ -75,7 +76,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         super(ReduceLROnPlateauWithRestarts, self).step(metrics, epoch)
         if self.Tcur >= self.T_i:
             self._reset_lr()
-        self._last_lr = [group['lr'] for group in self.optimizer.param_groups]
+        self._last_lr = [group["lr"] for group in self.optimizer.param_groups]
 
     def _reset_lr(self):
         self.Tcur = 0
@@ -86,17 +87,23 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         self._reset()
 
         for i, param_group in enumerate(self.optimizer.param_groups):
-            old_lr = float(param_group['lr'])
-            lr_r = self.lr_restart[i] if isinstance(self.lr_restart, _T.Sequence) else self.lr_restart
+            old_lr = float(param_group["lr"])
+            lr_r = (
+                self.lr_restart[i]
+                if isinstance(self.lr_restart, _T.Sequence)
+                else self.lr_restart
+            )
             if isinstance(lr_r, numbers.Number):
-                new_lr = param_group['initial_lr'] * lr_r ** i
+                new_lr = param_group["initial_lr"] * lr_r**i
             else:
-                new_lr = lr_r(param_group['initial_lr'], self.i)
+                new_lr = lr_r(param_group["initial_lr"], self.i)
             new_lr = self.min_lrs[i] if new_lr < self.min_lrs[i] else new_lr
-            param_group['lr'] = new_lr
+            param_group["lr"] = new_lr
             if self.verbose:
-                logger.info('Epoch {:5d}: restarting learning rate with '
-                      '{:.4e} for group {}.'.format(self.last_epoch, new_lr, i))
+                logger.info(
+                    "Epoch {:5d}: restarting learning rate with "
+                    "{:.4e} for group {}.".format(self.last_epoch, new_lr, i)
+                )
 
 
 # https://detectron2.readthedocs.io/_modules/detectron2/solver/lr_scheduler.html
@@ -168,7 +175,7 @@ def _get_warmup_factor_at_iter(
 
 
 class CosineLR:
-    def __init__(self, base_lr,  eta_min, max_epoch):
+    def __init__(self, base_lr, eta_min, max_epoch):
         self.base_lr = base_lr
         self.max_epoch = max_epoch
         self.eta_min = eta_min
@@ -176,9 +183,13 @@ class CosineLR:
     def lr_func_cosine(self, cur_epoch):
         """
 
-            cur_epoch (float): the number of epoch of the current training stage.
+        cur_epoch (float): the number of epoch of the current training stage.
         """
-        return self.eta_min + ((self.base_lr-self.eta_min) * (math.cos(math.pi * cur_epoch / self.max_epoch) + 1.0) * 0.5)
+        return self.eta_min + (
+            (self.base_lr - self.eta_min)
+            * (math.cos(math.pi * cur_epoch / self.max_epoch) + 1.0)
+            * 0.5
+        )
 
     def set_lr(self, optimizer, epoch):
         """
@@ -202,70 +213,71 @@ class CosineLR:
 
 class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
     def __init__(self, optimizer, T_0, T_mult=1, eta_min=0, last_epoch=-1):
-        super(CosineAnnealingWarmRestartsDecay, self).__init__(optimizer,
-                                                               T_0,
-                                                               T_mult=T_mult,
-                                                               eta_min=eta_min,
-                                                               last_epoch=last_epoch)
+        super(CosineAnnealingWarmRestartsDecay, self).__init__(
+            optimizer, T_0, T_mult=T_mult, eta_min=eta_min, last_epoch=last_epoch
+        )
         pass
 
     def decay_base_lr(self, curr_iter, n_epochs, n_iter):
         if self.T_cur + 1 == self.T_i:
             annealed_lrs = []
             for base_lr in self.base_lrs:
-                annealed_lr = base_lr * \
-                              (1 + math.cos(math.pi * curr_iter / (n_epochs * n_iter))) / 2
+                annealed_lr = (
+                    base_lr
+                    * (1 + math.cos(math.pi * curr_iter / (n_epochs * n_iter)))
+                    / 2
+                )
                 annealed_lrs.append(annealed_lr)
             self.base_lrs = annealed_lrs
 
 
 def get_lr_scheduler(optimizer, cfg):
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
-    if scheduler_type == 'step_lr':
+    if scheduler_type == "step_lr":
         return scheduler.StepLR(
             optimizer=optimizer,
             step_size=cfg.OPTIMIZER.STEP_SIZE,
             gamma=cfg.OPTIMIZER.GAMMA,
         )
-    elif scheduler_type == 'cosineWarmRestarts':
+    elif scheduler_type == "cosineWarmRestarts":
         return scheduler.CosineAnnealingWarmRestarts(
             optimizer=optimizer,
             T_0=cfg.OPTIMIZER.T_ZERO,
             T_mult=cfg.OPTIMIZER.T_MULT,
             eta_min=cfg.OPTIMIZER.ETA_MIN,
         )
-    elif scheduler_type == 'reduceOnPlateau':
+    elif scheduler_type == "reduceOnPlateau":
         return scheduler.ReduceLROnPlateau(
             optimizer=optimizer,
-            mode='max',
+            mode="max",
             patience=cfg.OPTIMIZER.PATIENCE,
             verbose=True,
             factor=cfg.OPTIMIZER.GAMMA,
             threshold=0.001,
-            threshold_mode='rel',
+            threshold_mode="rel",
             min_lr=cfg.OPTIMIZER.ETA_MIN,
         )
-    elif scheduler_type == 'reduceOnPlateauRestart':
+    elif scheduler_type == "reduceOnPlateauRestart":
         return ReduceLROnPlateauWithRestarts(
             optimizer=optimizer,
-            mode='max',
+            mode="max",
             patience=cfg.OPTIMIZER.PATIENCE,
             verbose=True,
             factor=cfg.OPTIMIZER.GAMMA,
             threshold=0.005,
-            threshold_mode='rel',
+            threshold_mode="rel",
             cooldown=2,
             min_lr=cfg.OPTIMIZER.ETA_MIN,
             eps=1e-08,
             T_0=10,
             Tmult=2,
-            lr_restart=0.2
+            lr_restart=0.2,
         )
-    elif scheduler_type == 'multiStep':
+    elif scheduler_type == "multiStep":
         return scheduler.MultiStepLR(
             optimizer=optimizer,
             milestones=cfg.OPTIMIZER.MILESTONES,
-            gamma=cfg.OPTIMIZER.GAMMA
+            gamma=cfg.OPTIMIZER.GAMMA,
         )
     else:
         raise ValueError(f"{scheduler_type} lr scheduler is not supported ")

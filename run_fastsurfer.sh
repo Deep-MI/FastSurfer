@@ -26,7 +26,7 @@ if [ -z "$FASTSURFER_HOME" ]
 then
   FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
   echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
-  echo "Change via enviroment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
+  echo "Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
   export FASTSURFER_HOME
 fi
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"

@@ -152,7 +152,7 @@ Start it and set Memory to 15 GB under Preferences -> Resources (or the largest 
 Second, pull one of our Docker containers. Open a terminal window and run:
 
 ```
-docker pull deepmi/fastsurfer
+docker pull deepmi/fastsurfer:latest
 ```
 
 Continue with the example in our [README](README.md#example-1--fastsurfer-docker). 
@@ -197,7 +197,7 @@ python3 -m pip install -r requirements.mac.txt
 ```
 
 If this step fails, you may need to edit ```requirements.mac.txt``` and adjust version number to what is available. 
-On newer M1 Macs, we also had issues with the h5py pacakge, which could be solved by using brew for help (not sure this is needed any longer):
+On newer M1 Macs, we also had issues with the h5py package, which could be solved by using brew for help (not sure this is needed any longer):
 
 ```
 brew install hdf5
@@ -236,10 +236,10 @@ In order to run FastSurfer on your Windows system using docker make sure that yo
 
 installed and running.
 
-After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image:
+After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on [dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) what version tag is most recent for cpu):
 
 ```bash
-docker pull deepmi/fastsurfer:cpu-v2.0.0
+docker pull deepmi/fastsurfer:cpu-v2.0.4
 ```
 
 Now you can run Fastsurfer the same way as described in our [README](README.md#example-1--fastsurfer-docker) for the CPU build, for example:

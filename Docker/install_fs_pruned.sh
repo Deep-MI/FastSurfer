@@ -6,7 +6,7 @@
 #
 # In order to update to a new FreeSurfer version you need to update the fslink and then build a 
 # docker with this setup. Run it and whenever it crashes/exits, find the missing file (binary,
-# atlas, datafile, or dependency) and add it here or if a dependeny is missing install it in the 
+# atlas, datafile, or dependency) and add it here or if a dependency is missing install it in the 
 # docker and rebuild and re-run. Repeat until recon-surf finishes sucessfullly. Then repeat with
 # all supported recon-surf flags (--hires, --fsaparc etc.).
 
@@ -363,7 +363,7 @@ if [ "$1" == "-all-info" ]; then
   exit 0
 fi
 echo
-echo "ERROR: The binary $0 is not included, your call is forwared to not-here.sh"
+echo "ERROR: The binary $0 is not included, your call is forwarded to not-here.sh"
 echo
 exit 1
 ' > $ltrg
