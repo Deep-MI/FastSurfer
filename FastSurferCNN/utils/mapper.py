@@ -527,7 +527,7 @@ class ColorLookupTable(Generic[KT]):
 
         Args:
             classes: Iterable of the classes.
-            color_palette: colors associated with each class, either indexed by an dictionary (class -> Color) or by the
+            color_palette: colors associated with each class, either indexed by a dictionary (class -> Color) or by the
                 order of classes in classes (default: None).
             colormap: Alternative to color_palette, uses a colormap to generate a color_palette automatically. Colormap
                 can be string, matplotlib.Colormap or a function (num_classes -> NDArray of shape (num_classes, 3 or 4))
