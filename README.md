@@ -116,7 +116,7 @@ In the following, we give an overview of the most important options, but you can
 * `--seg_log`: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting with "cpu" view agg is run on the cpu. Equivalently, if you pass a different device, view agg will be run on that device (no memory check will be done).
 * `--device`: Select device for NN segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_, _mps_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU. "mps" is for native MAC installs to use the Apple silicon (M-chip) GPU. 
-* `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+* `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * `--no_cereb`: Switch of the cerebellum sub-segmentation
 * `--cereb_segfile`: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
 * `--no_biasfield`: Deactivate the calculation of partial volume-corrected statistics.
@@ -277,8 +277,8 @@ For many applications you won't need the surfaces. You can run only the aparkDKT
 
 ```bash
 ./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
-                    --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                    --conformed_name $ouputdir/subject1/conformed.mgz \
+                    --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --conformed_name $outputdir/subject1/conformed.mgz \
                     --parallel --threads 4 --seg_only --no_cereb --no_biasfield
 ```
 
@@ -291,8 +291,8 @@ Alternatively - but this requires a FreeSurfer install - you can get mask and al
 
 ```bash
 ./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
-                    --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                    --conformed_name $ouputdir/subject1/conformed.mgz \
+                    --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                    --conformed_name $outputdir/subject1/conformed.mgz \
                     --parallel --threads 4 --seg_only --vol_segstats
 ```
 
@@ -304,8 +304,8 @@ docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
-                      --main_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                      --conformed_name $ouputdir/subject1/conformed.mgz \
+                      --asegdkt_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                      --conformed_name $outputdir/subject1/conformed.mgz \
                       --parallel --threads 4 --seg_only
 ```
 
@@ -317,8 +317,8 @@ docker run --gpus all -v $datadir:/data \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subject1/t1-weighted.nii.gz \
-                      --main_segfile $ouputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                      --conformed_name $ouputdir/subject1/conformed.mgz \
+                      --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
+                      --conformed_name $outputdir/subject1/conformed.mgz \
                       --parallel --threads 4 --seg_only --vol_segstats
 ```
 
