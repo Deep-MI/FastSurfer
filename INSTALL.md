@@ -74,10 +74,10 @@ rm ~/miniconda.sh
 ```
 
 #### 3. FastSurfer
-Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly).
+Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly):
 
 ```
-git clone https://github.com/Deep-MI/FastSurfer.git
+git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 ```
 
@@ -185,7 +185,7 @@ python3 -m pip install --upgrade pip
 #### 3. FastSurfer and Requirements
 Clone FastSurfer:
 ```
-git clone https://github.com/Deep-MI/FastSurfer.git
+git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
