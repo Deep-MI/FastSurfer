@@ -282,15 +282,15 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --seg | --merged_segfile)
-    if [ "$key" == "--seg" ]; then
-      echo "WARNING: --seg <filename> is deprecated and will be removed, use --merged_segfile <filename>."
-    fi
+    --merged_segfile)
     merged_segfile="$2"
     shift # past argument
     shift # past value
     ;;
-    --asegdkt_segfile | --aparc_aseg_segfile)
+    --seg | --asegdkt_segfile | --aparc_aseg_segfile)
+    if [ "$key" == "--seg" ]; then
+      echo "WARNING: --seg <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
+    fi
     if [ "$key" == "--aparc_aseg_segfile" ]; then
       echo "WARNING: --aparc_aseg_segfile <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>"
     fi
@@ -565,14 +565,14 @@ then
   exit 1;
 fi
 
-if [ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]
-  then
-    # This is because we currently only do a symlink
-    echo "ERROR: Specified segmentation outputs do not have same file type."
-    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --merged_segfile ${merged_segfile}."
-    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
-    exit 1;
-fi
+#if [ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]
+#  then
+#    # This is because we currently only do a symlink
+#    echo "ERROR: Specified segmentation outputs do not have same file type."
+#    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --merged_segfile ${merged_segfile}."
+#    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
+#    exit 1;
+#fi
 
 if [ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]
   then
