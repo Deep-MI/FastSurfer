@@ -23,7 +23,10 @@ from lapy.read_geometry import read_geometry
 
 def options_parse():
     """
-    Command line option parser for spherically_project.py
+    Command line option parser
+
+    Returns:
+        options: object holding options
     """
     parser = optparse.OptionParser(
         version="$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $",
@@ -48,14 +51,17 @@ def options_parse():
     return options
 
 
-def resafe_surface(insurf, outsurf, pretess):
+def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
     """
     takes path to insurf and rewrites it to outsurf thereby fixing vertex locs flag error
     (scannerRAS instead of surfaceRAS after marching cube)
-    :param str insurf: path and name of input surface
-    :param str outsurf: path and name of output surface
-    :param str pretess: path and name of file the input surface was created on (e.g. filled-pretess127.mgz)
+
+    Args:
+        insurf: Path and name of input surface
+        outsurf: Path and name of output surface
+        pretess: Path and name of file the input surface was created on (e.g. filled-pretess127.mgz)
     """
+
     surf = read_geometry(insurf, read_metadata=True)
 
     if not surf[2]["filename"]:
