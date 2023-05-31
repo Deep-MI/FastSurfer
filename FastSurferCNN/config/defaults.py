@@ -195,7 +195,7 @@ _C.OPTIMIZER.PATIENCE = 5
 _C.OPTIMIZER.THRESH = 0.0001
 
 # Number of epochs to wait before resuming normal operation (default=0)
-_C.OPTIMIZER.COOLDOWN=0
+_C.OPTIMIZER.COOLDOWN = 0
 
 # Momentum
 _C.OPTIMIZER.MOMENTUM = 0.9
@@ -228,6 +228,9 @@ _C.EXPR_NUM = "Default"
 # Note that non-determinism may still be present due to non-deterministic
 # operator implementations in GPU operator libraries.
 _C.RNG_SEED = 1
+
+_C.SUMMARY_PATH = "FastSurferVINN/summary/FastSurferVINN_coronal"
+_C.CONFIG_LOG_PATH = "FastSurferVINN/config/FastSurferVINN_coronal"
 
 
 def get_cfg_defaults():

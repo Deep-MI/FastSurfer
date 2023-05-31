@@ -17,27 +17,39 @@
 VERSION='$Id$'
 
 # Set default values for arguments
+if [ -z "${BASH_SOURCE[0]}" ]; then
+    THIS_SCRIPT="$0"
+else
+    THIS_SCRIPT="${BASH_SOURCE[0]}"
+fi
 if [ -z "$FASTSURFER_HOME" ]
 then
-  echo "Setting ENV variable FASTSURFER_HOME to current working directory ${PWD}. "
-  echo "Change via enviroment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
-  export FASTSURFER_HOME=${PWD}
+  FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
+  echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
+  echo "Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
+  export FASTSURFER_HOME
 fi
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
+cerebnetdir="$FASTSURFER_HOME/CerebNet"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 # Regular flags defaults
 subject=""
 t1=""
-main_segfile=""
-aparc_aseg_segfile=""
+merged_segfile=""
+cereb_segfile=""
+asegdkt_segfile=""
+asegdkt_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
+asegdkt_statsfile=""
+cereb_statsfile=""
+cereb_flags=""
 conformed_name=""
 seg_log=""
 viewagg="auto"
 device="auto"
 batch_size="1"
 run_seg_pipeline="1"
-vol_segstats=""
+run_biasfield="1"
 run_surf_pipeline="1"
 fstess=""
 fsqsphere=""
@@ -45,6 +57,8 @@ fsaparc=""
 fssurfreg=""
 vox_size="min"
 doParallel=""
+run_asegdkt_module="1"
+run_cereb_module="1"
 threads="1"
 python="python3.8"
 allow_root=""
@@ -55,6 +69,19 @@ vfst1=""
 
 function usage()
 {
+#  --merged_segfile <filename>
+#                          Name of the segmentation file, which includes all labels
+#                            (currently similar to aparc+aseg). When using
+#                            FastSurfer, this segmentation is already conformed,
+#                            since inference is always based on a conformed image.
+#                            Currently, this is the same as the aparc+aseg and just
+#                            a symlink to the asegdkt_segfile.
+#                            Requires an ABSOLUTE Path! Default location:
+#                            \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
+# --asegdkt_segfile <name> If not provided,
+#                            this intermediate DL-based segmentation will not be
+#                            stored, but only the merged segmentation will be stored
+#                            (see --merged_segfile <filename>).
 cat << EOF
 
 Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
@@ -73,12 +100,9 @@ FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected). Requires an ABSOLUTE Path!
-  --aparc_aseg_segfile <filename>
+  --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
-                          aparc+DKTatlas-aseg segmentations. If not provided,
-                          this intermediate DL-based segmentation will not be
-                          stored, but only the merged segmentation will be stored
-                          (see --main_segfile <filename>).
+                          aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
                           \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
@@ -102,34 +126,59 @@ FLAGS:
   PIPELINES:
   By default, both the segmentation and the surface pipelines are run.
 
-  SEGMENTATION PIPELINE:
+SEGMENTATION PIPELINE:
   --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN, CerebNet)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
-                           \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
-  --main_segfile <filename>
-                          Name of the segmentation file, which includes all labels
-                            (currently similar to aparc+aseg). When using
-                            FastSurfer, this segmentation is already conformed,
-                            since inference is always based on a conformed image.
-                            Currently, this is the same as the aparc+aseg and just
-                            a symlink to the aparc_aseg_segfile.
+                            \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
+  --no_biasfield          Create a bias field corrected image and enable the
+                            calculation of partial volume-corrected stats-files.
+  --norm_name             Name of the biasfield corrected image
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
+
+  MODULES:
+  By default, all modules are run.
+
+  ASEGDKT MODULE:
+  --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
+  --asegdkt_segfile <filename>
+                          Name of the segmentation file, which includes the
+                            aseg+aparc/DKTatlas segmentations.
                             Requires an ABSOLUTE Path! Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --no_biasfield          Deactivate the calculation of partial volume-corrected
+                            statistics.
+
+  CEREBELLUM MODULE:
+  --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
+  --asegdkt_segfile <seg_input>
+                          Name of the segmentation file (similar to aparc+aseg)
+                            for cerebellum localization (typically the output of the
+                            APARC module (see above). Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+	--cereb_segfile <seg_output>
+                          Name of DL-based segmentation file of the cerebellum.
+                            This segmentation is always at 1mm isotropic
+                            resolution, since inference is always based on a
+                            1mm conformed image, if the conformed image is *NOT*
+                            already an 1mm image, an additional conformed image
+                            at 1mm will be stored at the --conformed_name, but
+                            with an additional file suffix of ".1mm".
+                            Requires an ABSOLUTE Path! Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
+  --no_biasfield          Deactivate the calculation of partial volume-corrected
+                            statistics.
 
 SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
-  --vol_segstats          Additionally return volume-based aparc.DKTatlas+aseg
-                            statistics for DL-based segmentation (does not
-                            require surfaces). Can be used in combination with
-                            --seg_only in which case recon-surf only runs till
-                            CC is added.
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
@@ -184,6 +233,11 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
  http://dx.doi.org/10.1016/j.neuroimage.2022.118933
 
+Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
+ reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
+ NeuroImage 264 (2022), 119703.
+ https://doi.org/10.1016/j.neuroimage.2022.119703
+
 EOF
 }
 
@@ -199,7 +253,8 @@ inputargs=("$@")
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
-key="$1"
+# make key lowercase
+key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 case $key in
     --fs_license)
@@ -227,16 +282,49 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --seg | --main_segfile)
-    if [ "$1" == "--seg" ]; then
-      echo "WARNING: --seg <filename> is deprecated, use --main_segfile <filename>."
-    fi
-    main_segfile="$2"
+    --merged_segfile)
+    merged_segfile="$2"
     shift # past argument
     shift # past value
     ;;
-    --aparc_aseg_segfile)
-    aparc_aseg_segfile="$2"
+    --seg | --asegdkt_segfile | --aparc_aseg_segfile)
+    if [ "$key" == "--seg" ]; then
+      echo "WARNING: --seg <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
+    fi
+    if [ "$key" == "--aparc_aseg_segfile" ]; then
+      echo "WARNING: --aparc_aseg_segfile <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>"
+    fi
+    asegdkt_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --asegdkt_statsfile)
+    asegdkt_statsfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --cereb_segfile)
+    cereb_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --cereb_statsfile)
+    cereb_statsfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --mask_name)
+    mask_name="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --norm_name)
+    norm_name="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --aseg_segfile)
+    aseg_segfile="$2"
     shift # past argument
     shift # past value
     ;;
@@ -251,9 +339,9 @@ case $key in
     shift # past value
     ;;
     --viewagg_device | --run_viewagg_on)
-    if [ "$1" == "--run_viewagg_on" ]
+    if [ "$key" == "--run_viewagg_on" ]
     then
-      echo "WARNING: --run_viewagg_on (cpu|gpu|check) is deprecated, use --viewagg_device <device|auto>."
+      echo "WARNING: --run_viewagg_on (cpu|gpu|check) is deprecated and will be removed, use --viewagg_device <device|auto>."
     fi
     case "$2" in
       check)
@@ -271,9 +359,25 @@ case $key in
     shift # past value
     ;;
     --no_cuda)
-    echo "WARNING: --no_cuda is deprecated, use --device cpu."
+    echo "WARNING: --no_cuda is deprecated and will be removed, use --device cpu."
     device="cpu"
     shift # past argument
+    ;;
+    --no_biasfield)
+    run_biasfield="0"
+    shift # past argument
+    ;;
+    --no_asegdkt | --no_aparc)
+    if [ "$key" == "--no_aparc" ]
+    then
+      echo "WARNING: --no_aparc is deprecated and will be removed, use --no_asegdkt."
+    fi
+    run_asegdkt_module="0"
+    shift  # past argument
+    ;;
+    --no_cereb)
+    run_cereb_module="0"
+    shift  # past argument
     ;;
     --device)
     device=$2
@@ -291,10 +395,6 @@ case $key in
     ;;
     --surf_only)
     run_seg_pipeline="0"
-    shift # past argument
-    ;;
-    --vol_segstats)
-    vol_segstats="--vol_segstats"
     shift # past argument
     ;;
     --fstess)
@@ -336,7 +436,7 @@ case $key in
     vcheck="--ignore_fs_version"
     shift # past argument
     ;;
-    --no_fs_T1 )
+    --no_fs_t1 )
     vfst1="--no_fs_T1"
     shift # past argument
     ;;
@@ -349,7 +449,7 @@ case $key in
     exit
     ;;
     *)    # unknown option
-    echo ERROR: Flag $key unrecognized.
+    echo ERROR: Flag $1 unrecognized.
     exit 1
     ;;
 esac
@@ -382,19 +482,50 @@ if [ -z "$subject" ]
     exit 1;
 fi
 
-if [ -z "$main_segfile" ]
+if [ -z "$merged_segfile" ]
   then
-    main_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz"
+    merged_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz"
 fi
 
-if [ -z "$aparc_aseg_segfile" ]
+if [ -z "$asegdkt_segfile" ]
   then
-    aparc_aseg_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+    asegdkt_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
+fi
+
+if [ -z "$aseg_segfile" ]
+  then
+    aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"
+fi
+
+if [ -z "$asegdkt_statsfile" ]
+  then
+    asegdkt_statsfile="${sd}/${subject}/stats/aseg+DKT.stats"
+fi
+
+
+if [ -z "$cereb_segfile" ]
+  then
+    cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
+fi
+
+if [ -z "$cereb_statsfile" ]
+  then
+    cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats"
+fi
+
+if [ -z "$mask_name" ]
+  then
+    mask_name="${sd}/${subject}/mri/mask.mgz"
 fi
 
 if [ -z "$conformed_name" ]
   then
     conformed_name="${sd}/${subject}/mri/orig.mgz"
+fi
+
+if [ -z "$norm_name" ]
+  then
+    norm_name="${sd}/${subject}/mri/orig_nu.mgz"
 fi
 
 if [ -z "$seg_log" ]
@@ -421,7 +552,8 @@ then
   # a number
   if (( $(echo "$vox_size < 0" | bc -l) || $(echo "$vox_size > 1" | bc -l) ))
   then
-    exit "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
+    echo "ERROR: negative voxel sizes and voxel sizes beyond 1 are not supported."
+    exit 1;
   elif (( $(echo "$vox_size < 0.7" | bc -l) ))
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
@@ -429,33 +561,34 @@ then
 elif [ "$vox_size" != "min" ]
 then
   # not a number or "min"
-  exit "Invalid option for --vox_size, only a number or 'min' are valid."
+  echo "Invalid option for --vox_size, only a number or 'min' are valid."
+  exit 1;
 fi
 
-if [ "${aparc_aseg_segfile: -3}" != "${main_segfile: -3}" ]
-  then
-    # This is because we currently only do a symlink
-    echo "ERROR: Specified segmentation outputs do not have same file type."
-    echo "You passed --aparc_aseg_segfile ${aparc_aseg_segfile} and --main_segfile ${main_segfile}."
-    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
-    exit 1;
-fi
+#if [ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]
+#  then
+#    # This is because we currently only do a symlink
+#    echo "ERROR: Specified segmentation outputs do not have same file type."
+#    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --merged_segfile ${merged_segfile}."
+#    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
+#    exit 1;
+#fi
 
-if [ "${aparc_aseg_segfile: -3}" != "${conformed_name: -3}" ]
+if [ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]
   then
     echo "ERROR: Specified segmentation output and conformed image output do not have same file type."
-    echo "You passed --aparc_aseg_segfile ${aparc_aseg_segfile} and --conformed_name ${conformed_name}."
+    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --conformed_name ${conformed_name}."
     echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
     exit 1;
 fi
 
-if [ "$run_surf_pipeline" == "1" ] && [ "$run_seg_pipeline" == "0" ]
+if [ "$run_surf_pipeline" == "1" ] && { [ "$run_asegdkt_module" == "0" ] || [ "$run_seg_pipeline" == "0" ]; }
   then
-    if [ ! -f "$aparc_aseg_segfile" ]
+    if [ ! -f "$asegdkt_segfile" ]
     then
         echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
-        echo "You passed --surf_only, but the whole-brain segmentation ($aparc_aseg_segfile) could not be found."
-        echo "If the segmentation is not saved in the default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz), specify the absolute path and name via --aparc_aseg_segfile"
+        echo "You passed --surf_only or --no_asegdkt, but the whole-brain segmentation ($asegdkt_segfile) could not be found."
+        echo "If the segmentation is not saved in the default location ($asegdkt_segfile_default), specify the absolute path and name via --asegdkt_segfile"
         exit 1;
     fi
     if [ ! -f "$conformed_name" ]
@@ -468,6 +601,17 @@ if [ "$run_surf_pipeline" == "1" ] && [ "$run_seg_pipeline" == "0" ]
     fi
 fi
 
+if [ "$run_seg_pipeline" == "1" ] && { [ "$run_asegdkt_module" == "0" ] && [ "$run_cereb_module" == "1" ]; }
+  then
+    if [ ! -f "$asegdkt_segfile" ]
+    then
+        echo "ERROR: To run the cerebellum segmentation but no asegdkt, the aseg segmentation must already exist."
+        echo "You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
+        echo "If the segmentation is not saved in the default location ($asegdkt_segfile_default), specify the absolute path and name via --asegdkt_segfile"
+        exit 1;
+    fi
+fi
+
 
 if [ "$run_surf_pipeline" == "0" ] && [ "$run_seg_pipeline" == "0" ]
   then
@@ -476,13 +620,15 @@ if [ "$run_surf_pipeline" == "0" ] && [ "$run_seg_pipeline" == "0" ]
     exit 1;
 fi
 
-if [ "$run_surf_pipeline" == "0" ] && [ ! -z "$vol_segstats" ]
+
+if [ "$run_cereb_module" == "1" ]
   then
-    run_surf_pipeline="1"
-    echo "You requested segstats without running the surface pipeline. In this case, recon-surf will"
-    echo "run until the corpus callsoum is added to the segmentation and the norm.mgz is generated "
-    echo "(needed for partial volume correction). "
-    echo "The stats will be stored as (\$SUBJECTS_DIR/\$SID/stats/aparc.DKTatlas+aseg.deep.volume.stats). "
+    if [ "$run_biasfield" == "1" ]
+      then
+        cereb_flags="$cereb_flags --norm_name $norm_name --cereb_statsfile $cereb_statsfile"
+    else
+        echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." |& tee -a $seg_log
+    fi
 fi
 
 ########################################## START ########################################################
@@ -492,34 +638,81 @@ if [ "$run_seg_pipeline" == "1" ]
     # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
     # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
     mkdir -p "$(dirname "$seg_log")"
-    echo "Log file for segmentation FastSurferCNN/run_prediction.py" > $seg_log
-    date  |& tee -a $seg_log
-    echo "" |& tee -a $seg_log
+    echo "Log file for segmentation FastSurferCNN/run_prediction.py" > "$seg_log"
+    date  |& tee -a "$seg_log"
+    echo "" |& tee -a "$seg_log"
 
-    cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --aparc_aseg_segfile $aparc_aseg_segfile --conformed_name $conformed_name --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
-    echo $cmd |& tee -a $seg_log
-    $cmd
-    if [ ${PIPESTATUS[0]} -ne 0 ]
-    then
-      echo "ERROR: Segmentation failed QC checks."
-      exit 1
-    fi
-
-    if [ ! -f "$main_segfile" ]
+    if [ "$run_asegdkt_module" == "1" ]
       then
-        ln -s -r "$aparc_aseg_segfile" "$main_segfile"
+        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --asegdkt_segfile $asegdkt_segfile --conformed_name $conformed_name --brainmask_name $mask_name --aseg_name $aseg_segfile --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
+        echo "$cmd" |& tee -a "$seg_log"
+        $cmd
+        exit_code="${PIPESTATUS[0]}"
+        if [ "${exit_code}" == 2 ]
+          then
+            echo "ERROR: FastSurfer asegdkt segmentation failed QC checks."
+            exit 1
+        elif [ "${exit_code}" -ne 0 ]
+          then
+            echo "ERROR: FastSurfer asegdkt segmentation failed."
+            exit 1
+        fi
     fi
+
+    # compute the bias-field corrected image
+    if [ "$run_biasfield" == "1" ]
+      then
+        # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
+        echo "Running N4 bias-field correction"
+        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --threads $threads"
+        echo "$cmd" |& tee -a "$seg_log"
+        $cmd
+        if [ "${PIPESTATUS[0]}" -ne 0 ]
+          then
+            echo "ERROR: Biasfield correction failed"
+            exit 1
+        fi
+
+        if [ "$run_asegdkt_module" ]
+          then
+            cmd="$python ${fastsurfercnndir}/segstats.py --segfile $asegdkt_segfile --segstatsfile $asegdkt_statsfile --normfile $norm_name $allow_root --empty --excludeid 0 --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035 --lut $fastsurfercnndir/config/FreeSurferColorLUT.txt --threads $threads "
+            echo "$cmd" |& tee -a "$seg_log"
+            $cmd |& tee -a "$seg_log"
+            if [ "${PIPESTATUS[0]}" -ne 0 ]
+              then
+                echo "ERROR: asegdkt statsfile generation failed"
+                exit 1
+            fi
+        fi
+    fi
+
+    if [ "$run_cereb_module" == "1" ]
+      then
+        cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --asegdkt_segfile $asegdkt_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --seg_log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device --async_io --threads $threads$cereb_flags $allow_root"
+        echo "$cmd" |& tee -a "$seg_log"
+        $cmd
+        if [ "${PIPESTATUS[0]}" -ne 0 ]
+          then
+            echo "ERROR: Cerebellum Segmentation failed"
+            exit 1
+        fi
+    fi
+
+#    if [ ! -f "$merged_segfile" ]
+#      then
+#        ln -s -r "$asegdkt_segfile" "$merged_segfile"
+#    fi
 fi
 
 if [ "$run_surf_pipeline" == "1" ]
   then
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
-    pushd $reconsurfdir
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --aparc_aseg_segfile $aparc_aseg_segfile $vol_segstats $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
-    echo $cmd
+    pushd "$reconsurfdir"
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
+    echo "$cmd" |& tee -a "$seg_log"
     $cmd
-    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+    if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
     popd
 fi
 

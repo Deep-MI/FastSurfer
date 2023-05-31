@@ -67,22 +67,24 @@ Date: Jan-18-2016
 
 """
 
-h_input = 'path to input surface'
-h_output = 'path to ouput surface, spherically projected'
+h_input = "path to input surface"
+h_output = "path to output surface, spherically projected"
 
 
 def options_parse():
     """
     Command line option parser for spherically_project.py
     """
-    parser = optparse.OptionParser(version='$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $',
-                                   usage=HELPTEXT)
-    parser.add_option('--input', '-i', dest='input_surf', help=h_input)
-    parser.add_option('--output', '-o', dest='output_surf', help=h_output)
+    parser = optparse.OptionParser(
+        version="$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $",
+        usage=HELPTEXT,
+    )
+    parser.add_option("--input", "-i", dest="input_surf", help=h_input)
+    parser.add_option("--output", "-o", dest="output_surf", help=h_output)
     (options, args) = parser.parse_args()
 
     if options.input_surf is None or options.output_surf is None:
-        sys.exit('ERROR: Please specify input and output surfaces')
+        sys.exit("ERROR: Please specify input and output surfaces")
 
     return options
 
@@ -103,7 +105,7 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
     Outputs:  tria      : TriaMesh
     """
     if not tria.is_closed():
-        raise ValueError('Error: Can only project closed meshes!')
+        raise ValueError("Error: Can only project closed meshes!")
 
     # sub-function to compute flipped area of trias where normal
     # points towards origin, meaningful for the sphere, centered at zero
@@ -124,17 +126,18 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
 
     if debug:
         data = dict()
-        data['Eigenvalues'] = evals
-        data['Eigenvectors'] = evecs
-        data['Creator'] = 'spherically_project.py'
-        data['Refine'] = 0
-        data['Degree'] = 1
-        data['Dimension'] = 2
-        data['Elements'] = tria.t.shape[0]
-        data['DoF'] = evecs.shape[0]
-        data['NumEW'] = 4
+        data["Eigenvalues"] = evals
+        data["Eigenvectors"] = evecs
+        data["Creator"] = "spherically_project.py"
+        data["Refine"] = 0
+        data["Degree"] = 1
+        data["Dimension"] = 2
+        data["Elements"] = tria.t.shape[0]
+        data["DoF"] = evecs.shape[0]
+        data["NumEW"] = 4
         from lapy.FuncIO import export_ev
-        export_ev(data, 'debug.ev')
+
+        export_ev(data, "debug.ev")
 
     # flip efuncs to align to coordinates consistently
     ev1 = evecs[:, 1]
@@ -159,7 +162,7 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
         print("ERROR: direction 1 should be (anterior -posterior) but is not!")
         print("  debug info: {} {} {} ".format(l11, l21, l31))
         # sys.exit(1)
-        raise ValueError('Direction 1 should be anterior - posterior')
+        raise ValueError("Direction 1 should be anterior - posterior")
 
     # only flip direction if necessary
     print("ev1 min: {}  max {} ".format(cmin1, cmax1))
@@ -217,17 +220,17 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
     # at the poles, but who knows...
     ev1min = np.amin(ev1)
     ev1max = np.amax(ev1)
-    ev1[ev1 < 0] /= - ev1min
+    ev1[ev1 < 0] /= -ev1min
     ev1[ev1 > 0] /= ev1max
 
     ev2min = np.amin(ev2)
     ev2max = np.amax(ev2)
-    ev2[ev2 < 0] /= - ev2min
+    ev2[ev2 < 0] /= -ev2min
     ev2[ev2 > 0] /= ev2max
 
     ev3min = np.amin(ev3)
     ev3max = np.amax(ev3)
-    ev3[ev3 < 0] /= - ev3min
+    ev3[ev3 < 0] /= -ev3min
     ev3[ev3 > 0] /= ev3max
 
     # set evec as new coordinates (spectral embedding)
@@ -239,7 +242,9 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
     # do a few mean curvature flow euler steps to make more convex
     # three should be sufficient
     if flow_iter > 0:
-        tflow = tria_mean_curvature_flow(TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod)
+        tflow = tria_mean_curvature_flow(
+            TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod
+        )
         vn = tflow.v
 
     # project to sphere and scaled to have the same scale/origin as FS:
@@ -253,34 +258,36 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
     flippedarea = get_flipped_area(trianew) / (4.0 * math.pi * 10000)
     if flippedarea > 0.95:
         print("ERROR: global normal flip, exiting ..")
-        raise ValueError('global normal flip')
+        raise ValueError("global normal flip")
 
     print("flipped area fraction: {} ".format(flippedarea))
 
     if svol < 0.99:
         print("ERROR: sphere area fraction should be above .99, exiting ..")
-        raise ValueError('sphere area fraction should be above .99')
+        raise ValueError("sphere area fraction should be above .99")
 
     if flippedarea > 0.0008:
         print("ERROR: flipped area fraction should be below .0008, exiting ..")
-        raise ValueError('flipped area fraction should be below .0008')
+        raise ValueError("flipped area fraction should be below .0008")
 
     # here we finally check also the spat vol (orthogonality of direction vectors)
     # we could stop earlier, but most failure cases will be covered by the svol and
     # flipped area which can be better interpreted than spatvol
     if spatvol < 0.6:
         print("ERROR: spat vol (orthogonality) should be above .6, exiting ..")
-        raise ValueError('spat vol (orthogonality) should be above .6')
+        raise ValueError("spat vol (orthogonality) should be above .6")
 
     return trianew
 
 
 def spherically_project_surface(insurf, outsurf, use_cholmod=True):
-    """ (string) -> None
+    """(string) -> None
     takes path to insurf, spherically projects it, outputs it to outsurf
     """
     surf = read_geometry(insurf, read_metadata=True)
-    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod)
+    projected = tria_spherical_project(
+        TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod
+    )
     fs.write_geometry(outsurf, projected.v, projected.t, volume_info=surf[2])
 
 
@@ -293,6 +300,6 @@ if __name__ == "__main__":
     print("Reading in surface: {} ...".format(surf_to_project))
     # switching cholmod off will be slower, but does not require scikit sparse cholmod
     spherically_project_surface(surf_to_project, projected_surf, use_cholmod=False)
-    print ("Outputing spherically projected surface: {}".format(projected_surf))
+    print("Outputting spherically projected surface: {}".format(projected_surf))
 
     sys.exit(0)

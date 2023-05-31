@@ -26,7 +26,7 @@ dependencies:
   - tensorboard=2.9.1
   - setuptools=59.5.0
   - tqdm=4.64
+  - lapy=0.4.1
   - pip:
-    - git+https://github.com/Deep-MI/LaPy.git#egg=lapy
     - simpleitk==2.1.1
     - torchio==0.18.83

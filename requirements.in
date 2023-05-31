@@ -14,9 +14,7 @@ yacs==0.1.8
 tensorboard==2.9.1
 tqdm==4.64
 torchio==0.18.83
-
-# Lapy installation from git
-git+https://github.com/Deep-MI/LaPy.git#egg=lapy
+lapy==0.4.1
 
 # Pytorch installation
 --extra-index-url https://download.pytorch.org/whl/cu113

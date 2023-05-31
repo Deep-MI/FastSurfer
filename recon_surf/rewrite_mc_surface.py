@@ -25,16 +25,25 @@ def options_parse():
     """
     Command line option parser for spherically_project.py
     """
-    parser = optparse.OptionParser(version='$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $',
-                                   usage='Function to load and resafe surface under a given name')
-    parser.add_option('--input', '-i', dest='input_surf', help='path to input surface')
-    parser.add_option('--output', '-o', dest='output_surf', help='path to ouput surface')
-    parser.add_option('--filename_pretess', '-p', dest='in_pretess', default=None,
-                      help='path and name of pretess file used (info missing when using marching cube).')
+    parser = optparse.OptionParser(
+        version="$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $",
+        usage="Function to load and resafe surface under a given name",
+    )
+    parser.add_option("--input", "-i", dest="input_surf", help="path to input surface")
+    parser.add_option(
+        "--output", "-o", dest="output_surf", help="path to output surface"
+    )
+    parser.add_option(
+        "--filename_pretess",
+        "-p",
+        dest="in_pretess",
+        default=None,
+        help="path and name of pretess file used (info missing when using marching cube).",
+    )
     (options, args) = parser.parse_args()
 
     if options.input_surf is None or options.output_surf is None:
-        sys.exit('ERROR: Please specify input and output surfaces')
+        sys.exit("ERROR: Please specify input and output surfaces")
 
     return options
 
@@ -49,10 +58,10 @@ def resafe_surface(insurf, outsurf, pretess):
     """
     surf = read_geometry(insurf, read_metadata=True)
 
-    if not surf[2]['filename']:
+    if not surf[2]["filename"]:
         # Set information with file used for surface construction (volume info and name)
-        surf[2]['filename'] = pretess
-        surf[2]['volume'] = nibload(pretess).header.get_data_shape()
+        surf[2]["filename"] = pretess
+        surf[2]["volume"] = nibload(pretess).header.get_data_shape()
 
     fs.write_geometry(outsurf, surf[0], surf[1], volume_info=surf[2])
 
@@ -66,5 +75,5 @@ if __name__ == "__main__":
 
     print("Reading in surface: {} ...".format(surf_in))
     resafe_surface(surf_in, surf_out, vol_in)
-    print ("Outputing surface as: {}".format(surf_out))
+    print("Outputting surface as: {}".format(surf_out))
     sys.exit(0)

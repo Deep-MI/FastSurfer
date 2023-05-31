@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,11 +32,13 @@ class MultiScaleOrigDataThickSlices(Dataset):
     """
     Class to load MRI-Image and process it to correct format for network inference
     """
-    def __init__(self, img_filename, orig_data, orig_zoom, cfg, transforms=None):
-        assert orig_data.max() > 0.8, f"Multi Dataset - orig fail, max removed {orig_data.max()}"
-        self.img_filename = img_filename
+
+    def __init__(self, orig_data, orig_zoom, cfg, transforms=None):
+        assert (
+            orig_data.max() > 0.8
+        ), f"Multi Dataset - orig fail, max removed {orig_data.max()}"
         self.plane = cfg.DATA.PLANE
-        self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
+        self.slice_thickness = cfg.MODEL.NUM_CHANNELS // 2
         self.base_res = cfg.MODEL.BASE_RES
 
         if self.plane == "sagittal":
@@ -61,8 +62,6 @@ class MultiScaleOrigDataThickSlices(Dataset):
         self.count = self.images.shape[0]
         self.transforms = transforms
 
-        logger.info(f"Successfully loaded Image from {img_filename}")
-
     def _get_scale_factor(self):
         """
         Get scaling factor to match original resolution of input image to
@@ -85,7 +84,7 @@ class MultiScaleOrigDataThickSlices(Dataset):
         if self.transforms is not None:
             img = self.transforms(img)
 
-        return {'image': img, 'scale_factor': scale_factor}
+        return {"image": img, "scale_factor": scale_factor}
 
     def __len__(self):
         return self.count
@@ -96,6 +95,7 @@ class MultiScaleDataset(Dataset):
     """
     Class for loading aseg file with augmentations (transforms)
     """
+
     def __init__(self, dataset_path, cfg, gn_noise=False, transforms=None):
 
         self.max_size = cfg.DATA.PADDED_SIZE
@@ -115,28 +115,53 @@ class MultiScaleDataset(Dataset):
             for size in cfg.DATA.SIZES:
                 try:
                     logger.info(f"Processing images of size {size}.")
-                    img_dset = list(hf[f'{size}']['orig_dataset'])
-                    logger.info("Processed origs of size {} in {:.3f} seconds".format(size, time.time()-start))
+                    img_dset = list(hf[f"{size}"]["orig_dataset"])
+                    logger.info(
+                        "Processed origs of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
                     self.images.extend(img_dset)
-                    self.labels.extend(list(hf[f'{size}']['aseg_dataset']))
-                    logger.info("Processed asegs of size {} in {:.3f} seconds".format(size, time.time()-start))
-                    self.weights.extend(list(hf[f'{size}']['weight_dataset']))
-                    self.zooms.extend(list(hf[f'{size}']['zoom_dataset']))
-                    logger.info("Processed zooms of size {} in {:.3f} seconds".format(size, time.time() - start))
-                    logger.info("Processed weights of size {} in {:.3f} seconds".format(size, time.time()-start))
-                    self.subjects.extend(list(hf[f'{size}']['subject']))
-                    logger.info("Processed subjects of size {} in {:.3f} seconds".format(size, time.time()-start))
+                    self.labels.extend(list(hf[f"{size}"]["aseg_dataset"]))
+                    logger.info(
+                        "Processed asegs of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
+                    self.weights.extend(list(hf[f"{size}"]["weight_dataset"]))
+                    self.zooms.extend(list(hf[f"{size}"]["zoom_dataset"]))
+                    logger.info(
+                        "Processed zooms of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
+                    logger.info(
+                        "Processed weights of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
+                    self.subjects.extend(list(hf[f"{size}"]["subject"]))
+                    logger.info(
+                        "Processed subjects of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
                     logger.info(f"Number of slices for size {size} is {len(img_dset)}")
 
                 except KeyError as e:
-                    print(f"KeyError: Unable to open object (object {size} does not exist)")
+                    print(
+                        f"KeyError: Unable to open object (object {size} does not exist)"
+                    )
                     continue
 
             self.count = len(self.images)
             self.transforms = transforms
 
-            logger.info("Successfully loaded {} data from {} with plane {} in {:.3f} seconds".format(self.count, dataset_path, cfg.DATA.PLANE, time.time()-start))
-
+            logger.info(
+                "Successfully loaded {} data from {} with plane {} in {:.3f} seconds".format(
+                    self.count, dataset_path, cfg.DATA.PLANE, time.time() - start
+                )
+            )
 
     def get_subject_names(self):
         return self.subjects
@@ -153,12 +178,14 @@ class MultiScaleDataset(Dataset):
         :return np.ndarray(float32): scale factor along x and y dimension
         """
         if torch.all(scale_aug > 0):
-            img_zoom *= (1 / scale_aug)
+            img_zoom *= 1 / scale_aug
 
         scale = self.base_res / img_zoom
 
         if self.gn_noise:
-            scale += torch.randn(1) * 0.1 + 0 # needs to be changed to torch.tensor stuff
+            scale += (
+                torch.randn(1) * 0.1 + 0
+            )  # needs to be changed to torch.tensor stuff
             scale = torch.clamp(scale, min=0.1)
 
         return scale
@@ -174,9 +201,9 @@ class MultiScaleDataset(Dataset):
 
         if self.max_size < h:
             sub = h - self.max_size
-            padded_img = image[0: h - sub, 0: w - sub]
+            padded_img = image[0 : h - sub, 0 : w - sub]
         else:
-            padded_img[0: h, 0: w] = image
+            padded_img[0:h, 0:w] = image
 
         return padded_img
 
@@ -190,37 +217,50 @@ class MultiScaleDataset(Dataset):
 
     def __getitem__(self, index):
 
-        padded_img, padded_label, padded_weight = self.unify_imgs(self.images[index], self.labels[index], self.weights[index])
+        padded_img, padded_label, padded_weight = self.unify_imgs(
+            self.images[index], self.labels[index], self.weights[index]
+        )
         img = np.expand_dims(padded_img.transpose((2, 0, 1)), axis=3)
         label = padded_label[np.newaxis, :, :, np.newaxis]
         weight = padded_weight[np.newaxis, :, :, np.newaxis]
 
-        subject = tio.Subject({'img': tio.ScalarImage(tensor=img),
-                               'label': tio.LabelMap(tensor=label),
-                               'weight': tio.LabelMap(tensor=weight)}
-                              )
+        subject = tio.Subject(
+            {
+                "img": tio.ScalarImage(tensor=img),
+                "label": tio.LabelMap(tensor=label),
+                "weight": tio.LabelMap(tensor=weight),
+            }
+        )
 
-        zoom_aug = torch.as_tensor([0., 0.])
+        zoom_aug = torch.as_tensor([0.0, 0.0])
 
         if self.transforms is not None:
-            tx_sample = self.transforms(subject) # this returns data as torch.tensors
+            tx_sample = self.transforms(subject)  # this returns data as torch.tensors
 
-            img = torch.squeeze(tx_sample['img'].data).float()
-            label = torch.squeeze(tx_sample['label'].data).byte()
-            weight = torch.squeeze(tx_sample['weight'].data).float()
+            img = torch.squeeze(tx_sample["img"].data).float()
+            label = torch.squeeze(tx_sample["label"].data).byte()
+            weight = torch.squeeze(tx_sample["weight"].data).float()
 
-            # get updated scalefactor, incase of scaling, not ideal - fails if scales is not in dict
+            # get updated scalefactor, in case of scaling, not ideal - fails if scales is not in dict
             rep_tf = tx_sample.get_composed_history()
             if rep_tf:
-                zoom_aug += torch.as_tensor(rep_tf[0]._get_reproducing_arguments()["scales"])[:-1]
+                zoom_aug += torch.as_tensor(
+                    rep_tf[0]._get_reproducing_arguments()["scales"]
+                )[:-1]
 
             # Normalize image and clamp between 0 and 1
             img = torch.clamp(img / img.max(), min=0.0, max=1.0)
 
-        scale_factor = self._get_scale_factor(torch.from_numpy(self.zooms[index]), scale_aug=zoom_aug)
+        scale_factor = self._get_scale_factor(
+            torch.from_numpy(self.zooms[index]), scale_aug=zoom_aug
+        )
 
-        return {'image': img, 'label': label, 'weight': weight,
-                "scale_factor": scale_factor}
+        return {
+            "image": img,
+            "label": label,
+            "weight": weight,
+            "scale_factor": scale_factor,
+        }
 
     def __len__(self):
         return self.count
@@ -231,6 +271,7 @@ class MultiScaleDatasetVal(Dataset):
     """
     Class for loading aseg file with augmentations (transforms)
     """
+
     def __init__(self, dataset_path, cfg, transforms=None):
 
         self.max_size = cfg.DATA.PADDED_SIZE
@@ -249,29 +290,52 @@ class MultiScaleDatasetVal(Dataset):
             for size in cfg.DATA.SIZES:
                 try:
                     logger.info(f"Processing images of size {size}.")
-                    img_dset = list(hf[f'{size}']['orig_dataset'])
-                    logger.info("Processed origs of size {} in {:.3f} seconds".format(size, time.time() - start))
+                    img_dset = list(hf[f"{size}"]["orig_dataset"])
+                    logger.info(
+                        "Processed origs of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
                     self.images.extend(img_dset)
-                    self.labels.extend(list(hf[f'{size}']['aseg_dataset']))
-                    logger.info("Processed asegs of size {} in {:.3f} seconds".format(size, time.time() - start))
-                    self.weights.extend(list(hf[f'{size}']['weight_dataset']))
-                    logger.info("Processed weights of size {} in {:.3f} seconds".format(size, time.time() - start))
-                    self.zooms.extend(list(hf[f'{size}']['zoom_dataset']))
-                    logger.info("Processed zooms of size {} in {:.3f} seconds".format(size, time.time() - start))
-                    self.subjects.extend(list(hf[f'{size}']['subject']))
-                    logger.info("Processed subjects of size {} in {:.3f} seconds".format(size, time.time() - start))
+                    self.labels.extend(list(hf[f"{size}"]["aseg_dataset"]))
+                    logger.info(
+                        "Processed asegs of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
+                    self.weights.extend(list(hf[f"{size}"]["weight_dataset"]))
+                    logger.info(
+                        "Processed weights of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
+                    self.zooms.extend(list(hf[f"{size}"]["zoom_dataset"]))
+                    logger.info(
+                        "Processed zooms of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
+                    self.subjects.extend(list(hf[f"{size}"]["subject"]))
+                    logger.info(
+                        "Processed subjects of size {} in {:.3f} seconds".format(
+                            size, time.time() - start
+                        )
+                    )
                     logger.info(f"Number of slices for size {size} is {len(img_dset)}")
 
                 except KeyError as e:
-                    print(f"KeyError: Unable to open object (object {size} does not exist)")
+                    print(
+                        f"KeyError: Unable to open object (object {size} does not exist)"
+                    )
                     continue
 
         self.count = len(self.images)
         self.transforms = transforms
-        logger.info("Successfully loaded {} data from {} with plane {} in {:.3f} seconds".format(self.count,
-                                                                                                 dataset_path,
-                                                                                                 cfg.DATA.PLANE,
-                                                                                                 time.time()-start))
+        logger.info(
+            "Successfully loaded {} data from {} with plane {} in {:.3f} seconds".format(
+                self.count, dataset_path, cfg.DATA.PLANE, time.time() - start
+            )
+        )
 
     def get_subject_names(self):
         return self.subjects
@@ -298,15 +362,26 @@ class MultiScaleDatasetVal(Dataset):
         scale_factor = self._get_scale_factor(self.zooms[index])
 
         if self.transforms is not None:
-            tx_sample = self.transforms({'img': img, 'label': label, 'weight': weight, 'scale_factor': scale_factor})
+            tx_sample = self.transforms(
+                {
+                    "img": img,
+                    "label": label,
+                    "weight": weight,
+                    "scale_factor": scale_factor,
+                }
+            )
 
-            img = tx_sample['img']
-            label = tx_sample['label']
-            weight = tx_sample['weight']
-            scale_factor = tx_sample['scale_factor']
+            img = tx_sample["img"]
+            label = tx_sample["label"]
+            weight = tx_sample["weight"]
+            scale_factor = tx_sample["scale_factor"]
 
-        return {'image': img, 'label': label, 'weight': weight,
-                'scale_factor': scale_factor}
+        return {
+            "image": img,
+            "label": label,
+            "weight": weight,
+            "scale_factor": scale_factor,
+        }
 
     def __len__(self):
         return self.count

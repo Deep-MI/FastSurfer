@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,15 +25,17 @@ logger = logging.getLogger(__name__)
 
 
 class Meter:
-    def __init__(self,
-                 cfg,
-                 mode,
-                 global_step,
-                 total_iter=None,
-                 total_epoch=None,
-                 class_names=None,
-                 device=None,
-                 writer=None):
+    def __init__(
+        self,
+        cfg,
+        mode,
+        global_step,
+        total_iter=None,
+        total_epoch=None,
+        class_names=None,
+        device=None,
+        writer=None,
+    ):
         self._cfg = cfg
         self.mode = mode.capitalize()
         self.confusion_mat = False
@@ -64,23 +65,34 @@ class Meter:
         self.batch_losses.append(batch_loss.item())
 
     def write_summary(self, loss_total, lr=None, loss_ce=None, loss_dice=None):
-        self.writer.add_scalar(f"{self.mode}/total_loss", loss_total.item(), self.global_iter)
-        if self.mode == 'Train':
+        self.writer.add_scalar(
+            f"{self.mode}/total_loss", loss_total.item(), self.global_iter
+        )
+        if self.mode == "Train":
             self.writer.add_scalar("Train/lr", lr[0], self.global_iter)
             if loss_ce:
-                self.writer.add_scalar("Train/ce_loss", loss_ce.item(), self.global_iter)
+                self.writer.add_scalar(
+                    "Train/ce_loss", loss_ce.item(), self.global_iter
+                )
             if loss_dice:
-                self.writer.add_scalar("Train/dice_loss", loss_dice.item(), self.global_iter)
+                self.writer.add_scalar(
+                    "Train/dice_loss", loss_dice.item(), self.global_iter
+                )
 
         self.global_iter += 1
 
     def log_iter(self, cur_iter, cur_epoch):
-        if (cur_iter+1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
-            logger.info("{} Epoch [{}/{}] Iter [{}/{}] with loss {:.4f}".format(self.mode,
-                cur_epoch + 1, self.total_epochs,
-                cur_iter + 1, self.total_iter_num,
-                np.array(self.batch_losses).mean()
-            ))
+        if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
+            logger.info(
+                "{} Epoch [{}/{}] Iter [{}/{}] with loss {:.4f}".format(
+                    self.mode,
+                    cur_epoch + 1,
+                    self.total_epochs,
+                    cur_iter + 1,
+                    self.total_iter_num,
+                    np.array(self.batch_losses).mean(),
+                )
+            )
 
     def log_epoch(self, cur_epoch):
         dice_score = self.dice_score.compute_dsc()
@@ -89,4 +101,4 @@ class Meter:
             confusion_mat = self.dice_score.comput_dice_cnf()
             fig = plot_confusion_matrix(confusion_mat, self.class_names)
             self.writer.add_figure(f"{self.mode}/confusion_mat", fig, cur_epoch)
-            plt.close('all')
+            plt.close("all")

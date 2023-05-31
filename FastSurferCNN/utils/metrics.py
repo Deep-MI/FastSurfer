@@ -1,4 +1,3 @@
-
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +30,9 @@ def iou_score(pred_cls, true_cls, nclass=79):
     union_ = []
 
     for i in range(1, nclass):
-        intersect = ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
+        intersect = (
+            ((pred_cls == i).float() + (true_cls == i).float()).eq(2).sum().item()
+        )
         union = ((pred_cls == i).float() + (true_cls == i).float()).ge(1).sum().item()
         intersect_.append(intersect)
         union_.append(union)
@@ -78,9 +79,12 @@ class DiceScore:
             initialized and available, device is set to `cuda`.
     """
 
-    def __init__(self, num_classes,
-                 device=None,
-                 output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y)):
+    def __init__(
+        self,
+        num_classes,
+        device=None,
+        output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y),
+    ):
         self._device = device
         self.out_transform = output_transform
         self.n_classes = num_classes
@@ -89,11 +93,17 @@ class DiceScore:
 
     def reset(self):
         self.union = torch.zeros(self.n_classes, self.n_classes, device=self._device)
-        self.intersection = torch.zeros(self.n_classes, self.n_classes, device=self._device)
+        self.intersection = torch.zeros(
+            self.n_classes, self.n_classes, device=self._device
+        )
 
     def _check_output_type(self, output):
         if not (isinstance(output, tuple)):
-            raise TypeError("Output should a tuple consist of of torch.Tensors, but given {}".format(type(output)))
+            raise TypeError(
+                "Output should a tuple consist of of torch.Tensors, but given {}".format(
+                    type(output)
+                )
+            )
 
     def _update_union_intersection_matrix(self, batch_output, labels_batch):
         for i in range(self.n_classes):
@@ -101,14 +111,14 @@ class DiceScore:
             for j in range(self.n_classes):
                 pred = (batch_output == j).float()
                 self.intersection[i, j] += torch.sum(torch.mul(gt, pred))
-                self.union[i, j] += (torch.sum(gt) + torch.sum(pred))
+                self.union[i, j] += torch.sum(gt) + torch.sum(pred)
 
     def _update_union_intersection(self, batch_output, labels_batch):
         for i in range(self.n_classes):
             gt = (labels_batch == i).float()
             pred = (batch_output == i).float()
             self.intersection[i, i] += torch.sum(torch.mul(gt, pred))
-            self.union[i, i] += (torch.sum(gt) + torch.sum(pred))
+            self.union[i, i] += torch.sum(gt) + torch.sum(pred)
 
     def update(self, output, cnf_mat):
         self._check_output_type(output)

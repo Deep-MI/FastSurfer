@@ -24,7 +24,6 @@ import nibabel.freesurfer.io as fs
 from sklearn.neighbors import KDTree
 
 
-
 HELPTEXT = """
 
 Script to map surface labels across surfaces based on given sphere registrations
@@ -49,30 +48,41 @@ Date: Aug-24-2022
 """
 
 
-h_srclabel   = 'path to src surface label file'
-h_srcsphere  = 'path to src sphere.reg'
-h_trgsphere  = 'path to trg sphere.reg'
-h_trgsurf    = 'path to trg surf (usually white) to write coordinates into label file'
-h_trgsid     = 'target subject id, also written into label file'
-h_outlabel   = 'output label file'
+h_srclabel = "path to src surface label file"
+h_srcsphere = "path to src sphere.reg"
+h_trgsphere = "path to trg sphere.reg"
+h_trgsurf = "path to trg surf (usually white) to write coordinates into label file"
+h_trgsid = "target subject id, also written into label file"
+h_outlabel = "output label file"
+
 
 def options_parse():
     """
     Command line option parser
     """
-    parser = optparse.OptionParser(version='$Id:map_surf_label.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $', usage=HELPTEXT)
-    parser.add_option('--srclabel',  dest='srclabel',  help=h_srclabel)
-    parser.add_option('--srcsphere', dest='srcsphere', help=h_srcsphere)
-    parser.add_option('--trgsphere', dest='trgsphere', help=h_trgsphere)
-    parser.add_option('--trgsurf',   dest='trgsurf',   help=h_trgsurf)
-    parser.add_option('--trgsid',    dest='trgsid',    help=h_trgsid)
-    parser.add_option('--outlabel',  dest='outlabel',  help=h_outlabel)
+    parser = optparse.OptionParser(
+        version="$Id:map_surf_label.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
+        usage=HELPTEXT,
+    )
+    parser.add_option("--srclabel", dest="srclabel", help=h_srclabel)
+    parser.add_option("--srcsphere", dest="srcsphere", help=h_srcsphere)
+    parser.add_option("--trgsphere", dest="trgsphere", help=h_trgsphere)
+    parser.add_option("--trgsurf", dest="trgsurf", help=h_trgsurf)
+    parser.add_option("--trgsid", dest="trgsid", help=h_trgsid)
+    parser.add_option("--outlabel", dest="outlabel", help=h_outlabel)
     (options, args) = parser.parse_args()
-    if options.srclabel is None or options.srcsphere is None or options.trgsphere is None \
-       or options.trgsurf is None or options.trgsid is None or options.outlabel is None:
-        sys.exit('\nERROR: Please specify all parameters!\n   Use --help to see all options.\n')
+    if (
+        options.srclabel is None
+        or options.srcsphere is None
+        or options.trgsphere is None
+        or options.trgsurf is None
+        or options.trgsid is None
+        or options.outlabel is None
+    ):
+        sys.exit(
+            "\nERROR: Please specify all parameters!\n   Use --help to see all options.\n"
+        )
     return options
-
 
 
 def writeSurfLabel(filename, sid, label, values, surf):
@@ -82,12 +92,24 @@ def writeSurfLabel(filename, sid, label, values, surf):
     # and values (which can be zero)
     if values is None:
         values = np.zeros(label.shape)
-    if values.size != label.size :
-        raise ValueError("writeLabel Error: label and values should have same sizes {}!={}".format(label.size,values.size))
-    coords = surf[label,:]
-    header="#!ascii label  , from subject {} vox2ras=TkReg \n{}".format(sid,label.size)
+    if values.size != label.size:
+        raise ValueError(
+            "writeLabel Error: label and values should have same sizes {}!={}".format(
+                label.size, values.size
+            )
+        )
+    coords = surf[label, :]
+    header = "#!ascii label  , from subject {} vox2ras=TkReg \n{}".format(
+        sid, label.size
+    )
     data = np.column_stack([label, coords, values])
-    np.savetxt(filename, data, fmt=['%d','%.3f','%.3f','%.3f','%.6f'], header=header, comments='')
+    np.savetxt(
+        filename,
+        data,
+        fmt=["%d", "%.3f", "%.3f", "%.3f", "%.6f"],
+        header=header,
+        comments="",
+    )
 
 
 def getSurfCorrespondence(src_sphere, trg_sphere, tree=None):
@@ -103,13 +125,14 @@ def getSurfCorrespondence(src_sphere, trg_sphere, tree=None):
     if isinstance(trg_sphere, str):
         trg_sphere = fs.read_geometry(trg_sphere, read_metadata=False)[0]
     # if someone passed the full output of fs.read_geometry
-    if isinstance(src_sphere,tuple):
+    if isinstance(src_sphere, tuple):
         src_sphere = src_sphere[0]
-    if isinstance(trg_sphere,tuple):
+    if isinstance(trg_sphere, tuple):
         trg_sphere = trg_sphere[0]
     # create tree if necessary and compute mapping
     if tree is None:
         from sklearn.neighbors import KDTree
+
         tree = KDTree(trg_sphere)
     distances, mapping = tree.query(src_sphere, 1)
     return mapping, distances, tree
@@ -117,21 +140,25 @@ def getSurfCorrespondence(src_sphere, trg_sphere, tree=None):
 
 def mapSurfLabel(src_label_name, out_label_name, trg_surf, trg_sid, rev_mapping):
     # maps a label from src surface according to the correspondence
-    # in rev_mapping (! a mapping from target to source, listing the 
+    # in rev_mapping (! a mapping from target to source, listing the
     # corresponding src vertex for each vertex on the trg surface)
-    # trg_surf is passed so that the label file will list the 
+    # trg_surf is passed so that the label file will list the
     # correct coordinates (usually the white surface), can be vetrices or filename
-    # trg_sid is the subject id (str) of the target subject (as 
+    # trg_sid is the subject id (str) of the target subject (as
     # stored in the output label file header)
     print("Mapping label: {} ...".format(src_label_name))
     src_label, src_values = fs.read_label(src_label_name, read_scalars=True)
-    smax = max(np.max(src_label),np.max(rev_mapping)) + 1
+    smax = max(np.max(src_label), np.max(rev_mapping)) + 1
     tmax = rev_mapping.size
     if isinstance(trg_surf, str):
         print("Reading in surface: {} ...".format(trg_surf))
         trg_surf = fs.read_geometry(trg_surf, read_metadata=False)[0]
     if trg_surf.shape[0] != tmax:
-        raise ValueError("mapSurfLabel Error: label and trg vertices should have same sizes {}!={}".format(tmax,trg_surf.shape[0]))
+        raise ValueError(
+            "mapSurfLabel Error: label and trg vertices should have same sizes {}!={}".format(
+                tmax, trg_surf.shape[0]
+            )
+        )
     inside = np.zeros(smax, dtype=bool)
     inside[src_label] = True
     values = np.zeros(smax)
@@ -139,10 +166,10 @@ def mapSurfLabel(src_label_name, out_label_name, trg_surf, trg_sid, rev_mapping)
     inside_trg = inside[rev_mapping]
     trg_label = np.nonzero(inside[rev_mapping])[0]
     trg_values = values[rev_mapping[trg_label]]
-    #print(trg_values)
-    #print(trg_label.size)
+    # print(trg_values)
+    # print(trg_label.size)
     if out_label_name is not None:
-        writeSurfLabel(out_label_name,trg_sid,trg_label,trg_values,trg_surf)
+        writeSurfLabel(out_label_name, trg_sid, trg_label, trg_values, trg_surf)
     return trg_label, trg_values
 
 
@@ -159,32 +186,33 @@ if __name__ == "__main__":
     print("- trg sphere {}".format(options.trgsphere))
     print("- trg surf {}".format(options.trgsurf))
     print("- trg sid {}".format(options.trgsid))
-    print("- out label {}".format(options.outlabel))    
+    print("- out label {}".format(options.outlabel))
 
     # for example:
-    #src_label_name = "fsaverage/label/lh.BA1_exvivo.label"
-    #out_label_name = "lh.BA1_exvivo_my.label"
-    #src_sphere_name = "fsaverage/surf/lh.sphere.reg" # identical to fsaverage sphere
-    #trg_sphere_name = "OAS1_0111_MR1/surf/lh.sphere72_my4.reg"
-    #trg_white_name = "OAS1_0111_MR1/surf/lh.white"
-    #trg_sid = "OAS1_0111_MR1"
-    
+    # src_label_name = "fsaverage/label/lh.BA1_exvivo.label"
+    # out_label_name = "lh.BA1_exvivo_my.label"
+    # src_sphere_name = "fsaverage/surf/lh.sphere.reg" # identical to fsaverage sphere
+    # trg_sphere_name = "OAS1_0111_MR1/surf/lh.sphere72_my4.reg"
+    # trg_white_name = "OAS1_0111_MR1/surf/lh.white"
+    # trg_sid = "OAS1_0111_MR1"
+
     # ./map_surf_label.py --srclabel fsaverage/label/lh.BA1_exvivo.label --srcsphere fsaverage/surf/lh.sphere.reg --trgsphere OAS1_0111_MR1/surf/lh.sphere72_my4.reg --trgsurf OAS1_0111_MR1/surf/lh.white --trgsid OAS1_0111_MR1 --outlabel lh.BA1_exvivo_my.label
-    
+
     print("Reading in src sphere: {} ...".format(options.srcsphere))
     src_sphere = fs.read_geometry(options.srcsphere, read_metadata=False)[0]
     print("Reading in trg sphere: {} ...".format(options.trgsphere))
     trg_sphere = fs.read_geometry(options.trgsphere, read_metadata=False)[0]
     # get reverse mapping (trg->src) for sampling
     print("Computing reverse mapping ...")
-    rev_mapping,_,_ = getSurfCorrespondence(trg_sphere, src_sphere)
-    
+    rev_mapping, _, _ = getSurfCorrespondence(trg_sphere, src_sphere)
+
     # map label from src to target
     print("Mapping src label to trg ...")
-    mapSurfLabel(options.srclabel, options.outlabel, options.trgsurf, options.trgsid, rev_mapping)
+    mapSurfLabel(
+        options.srclabel, options.outlabel, options.trgsurf, options.trgsid, rev_mapping
+    )
     print("Output label {} written".format(options.outlabel))
 
     print("...done\n")
-    
-    sys.exit(0)
 
+    sys.exit(0)
