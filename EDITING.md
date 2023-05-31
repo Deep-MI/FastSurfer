@@ -26,7 +26,7 @@ Other edits (e.g. placement of WM control points) are not meaningful, as the seg
 
 Therefore, currently three types of edits are possible:
 
-## Method 1: 
+## 1. T1 Pre-Processing: 
 Instead of using the original scan as input, you can perform a bias field correction as a pre-processing step. This can also be achieved by running the *asegdkt module* twice (using different subject ids). The second time you input the bias field corrected image ```orig_nu.mgz```
 that was provided from the first run. This can help brighten up some regions and improve segmentation quality for some difficult cases.
 
@@ -60,7 +60,7 @@ that was provided from the first run. This can help brighten up some regions and
    Note: ```orig_nu.mgz``` file is not a segmented file, for segmentation load ```aparc.DKTatlas+aseg.deep.edited.mgz``` in freeview.
 
 
-## Method 2: 
+## 2. Segmentation Edits
 
 You can manually edit ```aparc.DKTatlas+aseg.deep.mgz```. This is similar to aseg edits in FreeSurfer. You can fill-in undersegmented regions (with the correct segmentation ID). To re-create the aseg and mask run the following command before continuing with other modules:
 
@@ -96,7 +96,7 @@ You can manually edit ```aparc.DKTatlas+aseg.deep.mgz```. This is similar to ase
    
    Do not forget to give fullpath to the input and output folder unless specified in variables.
 
-## Method 3: 
+## 3. Brainmask Edits: 
 When surfaces go out too far, e.g. they grab dura, you can tighten the mask directly, just edit ```mask.mgz```and start the *surface module*. 
 
 - Step_1: Assuming that you have run the full fastsurfer pipeline once as described in method_1 and succesfully produced segmentations and surfaces
@@ -119,7 +119,7 @@ When surfaces go out too far, e.g. they grab dura, you can tighten the mask dire
                      --surf_only
    ```
 
-   Note: Add ```--py python3``` flag if python3 version is installed on your system otherwise it would raise an error ```nibabela``` module is missing. This is importatnt becuase it utilizes this module to load and save files in specified location at backend.```t1-weighted-nii.gz``` would be the original input mri image.
+   Note: You can add ```--py python3``` to select the python command on your system.```t1-weighted-nii.gz``` would be the original input mri image.
 
    We hope that this will help with (some of) your editing needs. If more edits become availble we will update this file. 
    Thanks for using FastSurfer. 
