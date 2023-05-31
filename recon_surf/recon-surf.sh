@@ -32,7 +32,7 @@ threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
-check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
+check_version=1       # Check for supported FreeSurfer version (terminate if not detected)
 get_t1=1              # Generate T1.mgz from nu.mgz and brainmask from it (default)
 hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 
