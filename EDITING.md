@@ -119,7 +119,7 @@ When surfaces go out too far, e.g. they grab dura, you can tighten the mask dire
                      --surf_only
    ```
 
-   Note: You can add ```--py python3``` to select the python command on your system.```t1-weighted-nii.gz``` would be the original input mri image.
+   Note: ```t1-weighted-nii.gz``` would be the original input mri image.
 
    We hope that this will help with (some of) your editing needs. If more edits become availble we will update this file. 
    Thanks for using FastSurfer. 
