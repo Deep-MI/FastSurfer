@@ -300,7 +300,7 @@ case $key in
     check_version=0
     shift # past argument
     ;;
-    --no_fs_T1 )
+    --no_fs_t1 )
     get_t1=0
     shift # past argument
     ;;
