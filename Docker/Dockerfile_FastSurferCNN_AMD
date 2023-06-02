@@ -20,13 +20,14 @@ RUN pip3 install \
      
 
 # Copy FastSurferCNN 
-COPY ./FastSurferCNN /FastSurferCNN/
+COPY ./FastSurferCNN /fastsurfer/FastSurferCNN/
+COPY ./CerebNet /fastsurfer/CerebNet
 
 # Download all remote network checkpoints already
-RUN cd /FastSurferCNN/ ; python3 download_checkpoints.py --all --vinn
+RUN python3 /fastsurfer/FastSurferCNN/download_checkpoints.py --all
 
 # Set FastSurferCNN workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
-WORKDIR "/FastSurferCNN"
-ENTRYPOINT ["python3.7", "run_prediction.py"]
+WORKDIR "/fastsurfer"
+ENTRYPOINT ["python3.7", "./FastSurferCNN/run_prediction.py"]
 CMD ["--help"]

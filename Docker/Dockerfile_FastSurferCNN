@@ -63,13 +63,13 @@ SHELL ["/bin/bash", "--login", "-c"]
 # Copy venv and FastSurferCNN 
 COPY --from=build /venv /venv
 COPY ./FastSurferCNN /fastsurfer/FastSurferCNN/
-COPY ./checkpoints /fastsurfer/FastSurferCNN/checkpoints/
+COPY ./CerebNet /fastsurfer/CerebNet
 COPY ./Docker/entrypoint.sh /fastsurfer/Docker/entrypoint.sh
 
 # Download all remote network checkpoints already
 ENV PYTHONPATH=/fastsurfer:$PYTHONPATH \
     MPLCONFIGDIR=/tmp
-RUN python3 /fastsurfer/FastSurferCNN/download_checkpoints.py --all; chmod +r -R /fastsurfer/FastSurferCNN/checkpoints
+RUN python3 /fastsurfer/FastSurferCNN/download_checkpoints.py --all
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
