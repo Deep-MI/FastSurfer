@@ -19,6 +19,7 @@
 # IMPORTS
 import optparse
 import numpy as np
+from numpy import typing as npt
 import sys
 import nibabel.freesurfer.io as fs
 import align_points as align
@@ -67,7 +68,11 @@ h_out = "path to output txt files for angles"
 def options_parse():
     """
     Command line option parser
+
+    Returns:
+        options: object holding options
     """
+
     parser = optparse.OptionParser(
         version="$Id: rotate_sphere.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -93,13 +98,33 @@ def options_parse():
     return options
 
 
-def align_aparc_centroids(v_mov, labels_mov, v_dst, labels_dst, label_ids=[]):
-    # Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
-    # inferiorparietal,inferiortemporal,lateraloccipital,postcentral, posteriorsingulate
+def align_aparc_centroids(
+        v_mov: npt.ArrayLike,
+        labels_mov: npt.ArrayLike,
+        v_dst: npt.ArrayLike,
+        labels_dst: npt.ArrayLike,
+        label_ids: npt.ArrayLike = []
+) -> np.ndarray:
+    """
+    Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
+
+    Args:
+        v_mov: Vertices of aparc pareclation to move.
+        labels_mov: Labels of aparc parcelation to move.
+        v_dst: Vertices of aparc pareclation for rotation destination.
+        labels_dst: Labels of aparc parcelation for rotation destination.
+        label_ids: Ids of the centroid to be aligned. Defaults to []
+
+    Returns:
+        R: Rotation Matrix
+    """
+
+    #nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
     #  precentral, precuneus, superiorfrontal, supramarginal
     # lids=np.array([8,9,11,22,23,24,25,28,31])
     # lids=np.array([8,9,22,24,31])
     # lids=np.array([8,22,24])
+
     if not label_ids:
         # use all joint labels except -1 and 0:
         lids = np.intersect1d(labels_mov, labels_dst)

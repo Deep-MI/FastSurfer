@@ -15,11 +15,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy.typing as npt
 
 # Collection of functions related to FreeSurfer's LTA (linear transform array) files:
 
 
-def writeLTA(filename, T, src_fname, src_header, dst_fname, dst_header):
+def writeLTA(
+        filename: str,
+        T: npt.ArrayLike,
+        src_fname: str,
+        src_header: dict,
+        dst_fname: str,
+        dst_header: dict
+) -> None:
+    """ Writes linear transform array info to a .lta file
+
+    Args:
+        filename: File to write on
+        T: Linear transform array to be saved
+        src_fname: Source filename
+        src_header: Source header
+        dst_fname: Destination filename
+        dst_header: Destination header
+
+    Raises:
+        ValueError: Header format missing field (Source or Destination)
+    """
+
     from datetime import datetime
     import getpass
 

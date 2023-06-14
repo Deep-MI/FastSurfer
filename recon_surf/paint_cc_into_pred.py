@@ -15,6 +15,7 @@
 
 # IMPORTS
 import numpy as np
+from numpy import typing as npt
 import nibabel as nib
 import sys
 import argparse
@@ -42,8 +43,12 @@ Date: Jul-10-2020
 
 def argument_parse():
     """
-    Command line option parser for reduce_to_aseg.py
+    Command line option parser
+
+    Returns:
+        options: object holding options
     """
+
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
         "--input_cc",
@@ -72,15 +77,19 @@ def argument_parse():
     return args
 
 
-def paint_in_cc(pred, aseg_cc):
+def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
     """
     Function to paint corpus callosum segmentation into prediction. Note, that this function
     modifies the original array and does not create a copy.
 
-    :param np.ndarray pred: deep-learning prediction
-    :param np.ndarray aseg_cc: aseg segmentation with CC
-    :return np.ndarray: prediction with added CC
+    Args:
+        pred: Deep-learning prediction
+        aseg_cc: Aseg segmentation with CC
+
+    Returns:
+        pred: Prediction with added CC
     """
+
     cc_mask = (aseg_cc >= 251) & (aseg_cc <= 255)
     pred[cc_mask] = aseg_cc[cc_mask]
     return pred

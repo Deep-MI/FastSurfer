@@ -17,6 +17,7 @@
 from subprocess import Popen, PIPE
 import shlex
 import argparse
+from typing import Any
 
 
 def setup_options():
@@ -36,10 +37,18 @@ def setup_options():
     return args
 
 
-def call(command, **kwargs):
-    """Run command with arguments. Wait for command to complete. Sends
-    output to logging module. The arguments are the same as for the Popen
-    constructor."""
+def call(command: str, **kwargs: Any) -> int:
+    """
+    Run command with arguments. Wait for command to complete. Sends
+    output to logging module.
+
+    Args:
+        command: Command to call
+        **kwargs: Arguments. The same as for the Popen constructor
+
+    Returns:
+        Returncode of called command
+    """
 
     kwargs["stdout"] = PIPE
     kwargs["stderr"] = PIPE
@@ -55,7 +64,18 @@ def call(command, **kwargs):
     return p.returncode
 
 
-def spherical_wrapper(command1, command2, **kwargs):
+def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
+    """ Runs the first command. If it fails the fallback command is run as well.
+
+    Args:
+        command1: Command to call
+        command2: Fallback command to call
+        **kwargs: Arguments. The same as for the Popen constructor
+
+    Returns:
+        code_1: Return code of command1. If command1 failed return code of command2
+    """
+
     # First try to run standard spherical project
     print("Running command: {}".format(command1))
     code_1 = call(command1, **kwargs)
