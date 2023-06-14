@@ -273,7 +273,7 @@ class SubjectDirectory:
             hasattr(self, "_copy_orig_name")
             or "The copy_orig_name attribute has not been set!"
         )
-        return self._copy_orig_name
+        return self.filename_in_subject_folder(self._copy_orig_name)
 
     @copy_orig_name.setter
     def copy_orig_name(self, _copy_orig_name: str):
@@ -565,7 +565,7 @@ class SubjectList:
                 "for relative file paths of input files.".format(**self._flags)
             )
 
-        self._remove_suffix = getattr(args, "remove_suffix") or ""
+        self._remove_suffix = getattr(args, "remove_suffix", "")
         if self._num_subjects > 1:
             if getattr(args, "sid", "") not in ["", None]:
                 raise RuntimeError(
