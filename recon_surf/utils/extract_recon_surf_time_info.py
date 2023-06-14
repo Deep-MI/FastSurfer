@@ -3,6 +3,7 @@ import datetime
 import dateutil.parser
 import argparse
 import yaml
+import locale
 
 
 def get_recon_all_stage_duration(line, previous_datetime_str):
@@ -18,8 +19,13 @@ def get_recon_all_stage_duration(line, previous_datetime_str):
     """
 
     current_datetime_str = " ".join(line.split()[-6:])
-    current_date_time = dateutil.parser.parse(current_datetime_str)
-    previous_date_time = dateutil.parser.parse(previous_datetime_str)
+    try:
+        current_date_time = dateutil.parser.parse(current_datetime_str)
+        previous_date_time = dateutil.parser.parse(previous_datetime_str)
+    except: # strptime considers the computers time locale settings
+        locale.setlocale(locale.LC_TIME,"")
+        current_date_time = datetime.datetime.strptime(current_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
+        previous_date_time = datetime.datetime.strptime(previous_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
     stage_duration = (current_date_time - previous_date_time).total_seconds()
 
     return stage_duration
