@@ -15,7 +15,9 @@
 # limitations under the License.
 
 VERSION='$Id$'
-VERSION_TAG="2.1"
+VERSION_TAG=$(python -c "import tomli
+  with open('fastsurfer.toml', 'rb') as f:
+  print(tomli.load(f)['fastsurfer']['version'])")
 
 # Set default values for arguments
 if [ -z "${BASH_SOURCE[0]}" ]; then
