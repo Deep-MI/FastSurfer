@@ -1,0 +1,65 @@
+[build-system]
+requires = ['setuptools >= 61.0.0']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'fastsurfer'
+version = "2.1.1"
+description = 'a fast and accurate deep-learning based neuroimaging pipeline'
+readme = 'README.md'
+license = {file = 'LICENSE'}
+requires-python = '>=3.8'
+authors = [
+    {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
+    {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
+    {name = 'David Kügler', email = 'david.kuegler@dzne.de'},
+]
+maintainers = [
+    {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
+    {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
+    {name = 'David Kügler', email = 'david.kuegler@dzne.de'},
+]
+keywords = [
+    'python',
+    'Deep learning',
+    'Segmentation',
+    'Brain segmentation',
+    'Brain analysis',
+    'volumetry',
+]
+classifiers = [
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: Unix',
+    'Operating System :: MacOS',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Natural Language :: English',
+    'License :: OSI Approved :: MIT License',
+    'Intended Audience :: Science/Research',
+]
+dependencies = [
+    'h5py>=3.7',
+    'lapy>=0.4.1',
+    'matplotlib>=',
+    'nibabel>=3.2.2',
+    'numpy>=1.21',
+    'pandas>=1.4.3',
+    'pytorch>=1.12.0',
+    'pyyaml>=6.0',
+    'scipy>=1.8.0',
+    'yacs>=0.1.8',
+    'simpleitk>=2.1.1',
+    'scipy>=1.8.0',
+    'tensorboard>=2.9.1',
+    'torchio>=0.18.83',
+    'tqdm>=4.64',
+]
+
+[project.urls]
+homepage = 'https://fastsurfer.org'
+documentation = 'https://fastsurfer.org'
+source = 'https://github.com/Deep-MI/FastSurfer'
+tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
