@@ -11,12 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import torch.optim
 # IMPORTS
 import torch.optim.lr_scheduler as scheduler
+from typing import Union
+
+import yacs.config
 
 
-def get_lr_scheduler(optimzer, cfg):
+def get_lr_scheduler(
+        optimzer: torch.optim.Optimizer,
+        cfg: yacs.config.CfgNode
+) -> Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]:
+    """
+
+    Args:
+        optimzer: Optimizer for the scheduler
+        cfg: configuration node
+
+    Returns:
+        the requested scheduler or None
+
+    Raises:
+        ValueError: lr scheduler is not supported
+    """
+
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":
         return scheduler.StepLR(

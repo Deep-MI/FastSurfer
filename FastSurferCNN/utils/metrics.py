@@ -15,17 +15,24 @@
 # IMPORTS
 import torch
 import numpy as np
+from typing import Tuple, Optional, Any
 
 from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 
 
-def iou_score(pred_cls, true_cls, nclass=79):
+def iou_score(pred_cls: torch.Tensor, true_cls: torch.Tensor, nclass: int =79) -> Tuple[np.ndarray, np.ndarray]:
     """
     compute the intersection-over-union score
     both inputs should be categorical (as opposed to one-hot)
+
+    Args:
+        pred_cls: network prediction (categorical)
+        true_cls: ground truth (categorical)
+        nclass: number of classes
     """
+
     intersect_ = []
     union_ = []
 
@@ -40,14 +47,20 @@ def iou_score(pred_cls, true_cls, nclass=79):
     return np.array(intersect_), np.array(union_)
 
 
-def precision_recall(pred_cls, true_cls, nclass=79):
+def precision_recall(
+        pred_cls: torch.Tensor,
+        true_cls: torch.Tensor,
+        nclass: int = 79
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Function to calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class
-    :param pytorch.Tensor pred_cls: network prediction (categorical)
-    :param pytorch.Tensor true_cls: ground truth (categorical)
-    :param int nclass: number of classes
-    :return:
+
+    Args:
+        pred_cls: network prediction (categorical)
+        true_cls: ground truth (categorical)
+        nclass: number of classes
     """
+
     tpos_fneg = []
     tpos_fpos = []
     tpos = []
@@ -81,8 +94,8 @@ class DiceScore:
 
     def __init__(
         self,
-        num_classes,
-        device=None,
+        num_classes: int,
+        device: Optional[str] =None,
         output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y),
     ):
         self._device = device
@@ -105,7 +118,14 @@ class DiceScore:
                 )
             )
 
-    def _update_union_intersection_matrix(self, batch_output, labels_batch):
+    def _update_union_intersection_matrix(self, batch_output: torch.Tensor, labels_batch: torch.Tensor):
+        """ Update the union intersection matrix
+
+        Args:
+            batch_output: output tensor
+            labels_batch: label batch
+        """
+
         for i in range(self.n_classes):
             gt = (labels_batch == i).float()
             for j in range(self.n_classes):
@@ -113,14 +133,28 @@ class DiceScore:
                 self.intersection[i, j] += torch.sum(torch.mul(gt, pred))
                 self.union[i, j] += torch.sum(gt) + torch.sum(pred)
 
-    def _update_union_intersection(self, batch_output, labels_batch):
+    def _update_union_intersection(self, batch_output: torch.Tensor, labels_batch: torch.Tensor):
+        """ Update the union intersection
+
+        Args:
+            batch_output: batch output (prediction, labels)
+            labels_batch:
+        """
+
         for i in range(self.n_classes):
             gt = (labels_batch == i).float()
             pred = (batch_output == i).float()
             self.intersection[i, i] += torch.sum(torch.mul(gt, pred))
             self.union[i, i] += torch.sum(gt) + torch.sum(pred)
 
-    def update(self, output, cnf_mat):
+    def update(self, output: tuple[Any, Any], cnf_mat: bool):
+        """ update the intersection
+
+        Args:
+            output:  Network output tensor
+            cnf_mat: Confusion matrix
+        """
+
         self._check_output_type(output)
 
         if self._device is not None:
@@ -134,7 +168,13 @@ class DiceScore:
         else:
             self._update_union_intersection(y_pred, y)
 
-    def compute_dsc(self):
+    def compute_dsc(self) -> float:
+        """ computes the dice score
+
+        Returns:
+            dice score
+        """
+
         dsc_per_class = self._dice_calculation()
         dsc = dsc_per_class.mean()
         return dsc

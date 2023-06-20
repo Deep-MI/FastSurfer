@@ -16,26 +16,36 @@
 import os
 from itertools import product
 
+import FastSurferCNN.data_loader.loader
+import matplotlib.figure
 import torch
 import numpy as np
+import numpy.typing as npt
 import matplotlib.pyplot as plt
+import yacs.config
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from torchvision import utils
 from skimage import color
 
 
 def plot_predictions(
-    images_batch, labels_batch, batch_output, plt_title, file_save_name
-):
+        images_batch: torch.Tensor,
+        labels_batch: torch.Tensor,
+        batch_output: torch.Tensor,
+        plt_title: str,
+        file_save_name: str
+) -> None:
     """
     Function to plot predictions from validation set.
-    :param images_batch:
-    :param labels_batch:
-    :param batch_output:
-    :param plt_title:
-    :param file_save_name:
-    :return:
+
+    Args:
+        images_batch: batch of images
+        labels_batch: batch of labels
+        batch_output: batch of output
+        plt_title: plot title
+        file_save_name: name the plot should be saved tp
     """
+
     f = plt.figure(figsize=(20, 10))
     n, c, h, w = images_batch.shape
     mid_slice = c // 2
@@ -65,8 +75,24 @@ def plot_predictions(
 
 
 def plot_confusion_matrix(
-    cm, classes, title="Confusion matrix", cmap=plt.cm.Blues, file_save_name="temp.pdf"
-):
+        cm: npt.NDArray,
+        classes: list[str],
+        title: str = "Confusion matrix",
+        cmap: plt.cm.ColormapRegistry = plt.cm.Blues,
+        file_save_name: str = "temp.pdf"
+) -> matplotlib.figure.Figure:
+    """
+
+    Args:
+        cm: confusion matrix
+        classes: list of class names
+        title:
+        cmap: colour map
+        file_save_name ():
+
+    Returns:
+
+    """
     n_classes = len(classes)
 
     fig, ax = plt.subplots()
@@ -107,7 +133,16 @@ def plot_confusion_matrix(
     return fig
 
 
-def find_latest_experiment(path):
+def find_latest_experiment(path: str) -> int:
+    """ Find an load latest experiment
+
+    Args:
+        path: path to the latest experiment
+
+    Returns:
+
+    """
+
     list_of_experiments = os.listdir(path)
     list_of_int_experiments = []
     for exp in list_of_experiments:
@@ -123,10 +158,11 @@ def find_latest_experiment(path):
     return max(list_of_int_experiments)
 
 
-def check_path(path):
+def check_path(path: str):
     os.makedirs(path, exist_ok=True)
     return path
 
 
-def update_num_steps(dataloader, cfg):
+def update_num_steps(dataloader: FastSurferCNN.data_loader.loader.DataLoader,
+                     cfg: yacs.config.CfgNode):
     cfg.TRAIN.NUM_STEPS = len(dataloader)

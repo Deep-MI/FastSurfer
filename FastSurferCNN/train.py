@@ -17,9 +17,12 @@ import pprint
 import time
 import os
 from collections import defaultdict
+from typing import Union
 
 import torch
+import yacs.config
 from torch.utils.tensorboard import SummaryWriter
+import torch.optim.lr_scheduler as scheduler
 import numpy as np
 from tqdm import tqdm
 
@@ -38,7 +41,23 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    def __init__(self, cfg):
+    """ Trainer for the networks
+
+    Methods:
+        __init__: constructor
+        train: trains the network
+        eval: validates calculations
+        run: performs training loop
+     """
+
+    def __init__(self, cfg: yacs.config.CfgNode):
+        """
+        constructor
+
+        Args:
+            cfg: Node of configs to be used
+         """
+
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -64,7 +83,25 @@ class Trainer:
 
         self.subepoch = False if self.cfg.TRAIN.BATCH_SIZE == 16 else True
 
-    def train(self, train_loader, optimizer, scheduler, train_meter, epoch):
+    def train(
+            self,
+            train_loader: loader.DataLoader,
+            optimizer: torch.optim.optimizer.Optimizer,
+            scheduler: Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts],
+            train_meter: Meter,
+            epoch
+    ) -> None:
+        """
+        trains the network to the given training data
+
+        Args:
+            train_loader: data loader for the training
+            optimizer: optimizer for the training
+            scheduler: lr scheduler for the training
+            train_meter:
+            epoch (int):
+         """
+
         self.model.train()
         logger.info("Training started ")
         epoch_start = time.time()
@@ -128,7 +165,24 @@ class Trainer:
         )
 
     @torch.no_grad()
-    def eval(self, val_loader, val_meter, epoch):
+    def eval(
+            self,
+            val_loader: loader.DataLoader,
+            val_meter: Meter,
+            epoch: int
+    ) -> np.ndarray:
+        """
+        Evaluates model and calculates stats
+
+        Args:
+            val_loader: Value loader
+            val_meter: Meter for the values
+            epoch: epoch to evaluate
+
+        Returns:
+            int, float, ndarray: median miou [value]
+         """
+
         logger.info(f"Evaluating model at epoch {epoch}")
         self.model.eval()
 
@@ -236,6 +290,10 @@ class Trainer:
         return np.mean(np.mean(miou))
 
     def run(self):
+        """ [help]
+        transfers the model to devices, creates a tensor board summary writer and then performs the training loop
+         """
+
         if self.cfg.NUM_GPUS > 1:
             assert (
                 self.cfg.NUM_GPUS <= torch.cuda.device_count()

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import builtins
 # IMPORTS
 import os
 from concurrent.futures import Executor, Future
@@ -55,14 +55,16 @@ def find_device(
     flag_name: str = "device",
     min_memory: int = 0,
 ) -> torch.device:
-    """Create a device object from the device string passed, including detection of devices if device is not defined
-    or "auto".
+    """
+    Create a device object from the device string passed, including detection
+    of devices if device is not definedor "auto".
 
     Args:
-        device: the device to search for and test following pytorch device naming conventions, e.g. 'cuda:0', 'cpu',
-            etc. (default: 'auto').
-        flag_name: name of the corresponding flag for error messages (default: 'device').
-        min_memory: The minimum memory in bytes required for cuda-devices to be valid (default: 0, works always).
+        device: the device to search for and test following pytorch device naming
+            conventions, e.g. 'cuda:0', 'cpu', etc. (default: 'auto').
+        flag_name: name of the corresponding flag for error messages (default: 'device')
+        min_memory: The minimum memory in bytes required for cuda-devices to
+            be valid (default: 0, works always).
 
     Returns:
         The torch.device object.
@@ -104,7 +106,11 @@ def find_device(
 
 
 def assert_no_root() -> bool:
-    """Checks whether the user is the root user and raises an error message is so"""
+    """Checks whether the user is the root user and raises an error message is so
+
+    Returns:
+         Whether the user is root or not
+    """
 
     if os.name == "posix" and os.getuid() == 0:
         import sys
@@ -124,7 +130,16 @@ def assert_no_root() -> bool:
     return True
 
 
-def handle_cuda_memory_exception(exception: RuntimeError) -> bool:
+def handle_cuda_memory_exception(exception: builtins.BaseException) -> bool:
+    """ Handles CUDA out of memory exception and prints a help text
+
+    Args:
+        exception: Received exception
+
+    Returns:
+        Whether th exception was a RuntimeError caused by Cuda out memory
+    """
+
     if not isinstance(exception, RuntimeError):
         return False
     message = exception.args[0]
@@ -150,8 +165,18 @@ def pipeline(
     *,
     pipeline_size: int = 1,
 ) -> Iterator[Tuple[_Ti, _T]]:
-    """Function to pipeline a function to be executed in the pool. Analogous to iterate, but run func in a different
-    thread for the next element while the current element is returned."""
+    """
+    Function to pipeline a function to be executed in the pool.
+    Analogous to iterate, but run func in a different
+    thread for the next element while the current element is returned.
+
+    Args: [help]
+        pool:
+        func: function to use
+        iterable ():
+        pipeline_size: size of the pipeline
+    """
+
     # do pipeline loading the next element
     from collections import deque
 
@@ -172,13 +197,33 @@ def pipeline(
 def iterate(
     pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]
 ) -> Iterator[Tuple[_Ti, _T]]:
-    """Iterate over iterable, yield pairs of elements and func(element)."""
+    """Iterate over iterable, yield
+
+    Args:
+        pool: [help]
+        func: function to use
+        iterable: iterable
+
+    Yields:
+        pairs of elements and func(element)
+    """
+
     for element in iterable:
         yield element, func(element)
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string."""
+    """
+    Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
+
+    Args:
+        string: string that should be edited
+        suffix: suffix to remove
+
+    Returns:
+        input string with removed suffix
+    """
+
     import sys
 
     if sys.version_info.minor >= 9:
@@ -207,18 +252,29 @@ class SubjectDirectory:
         Create a subject, supports generic attributes. Some well integrated attributes arguments include:
 
         Args:
-            id (str): the subject id
-            orig_name (str): relative or absolute filename of the orig filename
-            conf_name (str): relative or absolute filename of the conformed filename
-            segfile (str): relative or absolute filename of the segmentation filename
-            main_segfile (str): relative or absolute filename of the main segmentation filename
-            asegdkt_segfile (str): relative or absolute filename of the aparc+aseg segmentation filename
-            subject_dir (str): path to the subjects directory (containing subject folders)
+            id: the subject id
+            orig_name: relative or absolute filename of the orig filename
+            conf_name: relative or absolute filename of the conformed filename
+            segfile: relative or absolute filename of the segmentation filename
+            main_segfile: relative or absolute filename of the main segmentation filename
+            asegdkt_segfile: relative or absolute filename of the aparc+aseg segmentation filename
+            subject_dir: path to the subjects directory (containing subject folders)
         """
+
         for k, v in kwargs.items():
             setattr(self, "_" + k, v)
 
     def filename_in_subject_folder(self, filepath: str) -> str:
+        """
+        Returns the full path to the file
+
+        Args:
+            filepath: abs path to the file or name of the file
+
+        Returns:
+            Path tot the file
+        """
+
         return (
             filepath
             if os.path.isabs(filepath)
@@ -397,6 +453,7 @@ class SubjectList:
             RuntimeError: For invalid configurations, e.g. no 'in_dir', 'csv_file', or absolute 'orig_name'.
             RuntimeError: When using {sid[flag]} with multiple subjects.
         """
+
         # populate _flags with DEFAULT_FLAGS
         self._flags = flags.copy() if flags is not None else {}
         for flag, default in self.DEFAULT_FLAGS.items():

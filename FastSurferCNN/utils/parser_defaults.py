@@ -283,7 +283,11 @@ def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
     Args:
         parser: The parser to add flags to.
         flags: the flags to add from 'device', 'viewagg_device'.
+
+    Returns:
+        The parser object
     """
+
     for flag in flags:
         if flag.startswith("--"):
             flag = flag[2:]

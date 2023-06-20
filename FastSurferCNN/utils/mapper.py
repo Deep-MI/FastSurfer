@@ -79,7 +79,15 @@ LabelImageType = TypeVar("LabelImageType", torch.Tensor, npt.NDArray[int])
 
 
 def is_int(a_object) -> bool:
-    """Checks whether the array_or_tensor is an integer."""
+    """Checks whether the array_or_tensor is an integer.
+
+    Args:
+        a_object: An object
+
+    Returns:
+         Whether the object or it contents are integer or not
+    """
+
     from collections.abc import Collection
 
     if isinstance(a_object, np.ndarray):
@@ -95,7 +103,16 @@ def is_int(a_object) -> bool:
 
 
 def to_same_type(data, type_hint: AT) -> AT:
-    """Converts data to the same type as type_hint."""
+    """Converts data to the same type as type_hint.
+
+    Args:
+        data: the data to convert
+        type_hint: hint for the data type
+
+    Returns:
+        converted data
+    """
+
     if torch.is_tensor(type_hint) and not torch.is_tensor(data):
         return torch.as_tensor(data, dtype=type_hint.dtype, device=type_hint.device)
     elif isinstance(type_hint, np.ndarray) and not isinstance(data, np.ndarray):
@@ -278,7 +295,13 @@ class Mapper(Generic[KT, VT]):
         return to_same_type(mapped, type_hint=image)
 
     def _map_py(self, image: AT, out: Optional[AT] = None) -> AT:
-        """Map internally by python, for example for strings."""
+        """Map internally by python, for example for strings.
+
+        Args:
+            image: image data
+            out: output data. Optional
+        """
+
         out_type = image if out is None else out
         if out is None:
 

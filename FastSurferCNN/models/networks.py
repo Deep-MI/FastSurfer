@@ -14,8 +14,10 @@
 
 
 # IMPORTS
-import torch.nn as nn
+from torch import nn, Tensor
 import numpy as np
+from typing import Optional, Union
+import yacs
 
 import FastSurferCNN.models.sub_module as sm
 import FastSurferCNN.models.interpolation_layer as il
@@ -31,9 +33,24 @@ class FastSurferCNNBase(nn.Module):
     * Concatenationes are replaced with Maxout (competitive dense blocks)
     * Global skip connections are fused by Maxout (global competition)
     * Loss Function (weighted Cross-Entropy and dice loss)
+
+    Attributes:
+        encode1, encode2, encode3, encode4: Competitive Encoder Blocks
+        decode1, decode2, decode3, decode4: Competitive Decoder Blocks
+        bottleneck: Bottleneck Block
+
+    Methods:
+        forward: Computational graph
     """
 
-    def __init__(self, params, padded_size=256):
+    def __init__(self, params: dict, padded_size: int = 256):
+        """ Initialization of FastSurferCNNBase
+
+        Args:
+            params:  dictionary of configurations
+            padded_size: size of image when padded
+        """
+
         super(FastSurferCNNBase, self).__init__()
 
         # Parameters for the Descending Arm
@@ -62,12 +79,24 @@ class FastSurferCNNBase(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, scale_factor=None, scale_factor_out=None):
+    def forward(
+            self,
+            x: Tensor,
+            scale_factor: Optional[Tensor] = None,
+            scale_factor_out: Optional[Tensor] =None
+    ) -> Tensor:
         """
         Computational graph
-        :param tensor x: input image
-        :return tensor: prediction logits
+
+        Args: [help]
+            x: input image [N, C, H, W]
+            scale_factor: [N, 1] Defaults to None
+            scale_factor_out: Defaults to None
+
+        Returns:
+            prediction logits
         """
+
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
         encoder_output2, skip_encoder_2, indices_2 = self.encode2.forward(
             encoder_output1
@@ -96,7 +125,25 @@ class FastSurferCNNBase(nn.Module):
 
 
 class FastSurferCNN(FastSurferCNNBase):
-    def __init__(self, params, padded_size):
+    """
+    Main Fastsurfer CNN Network
+
+    Attributes:
+        classifier: Initialized Classification Block
+
+    Methods:
+        forward: Computational graph
+    """
+
+    def __init__(self, params: dict, padded_size: int):
+        """
+        Initialization of FastSurferCNN
+
+        Args:
+            params:  dictionary of configurations
+            padded_size: size of image when padded
+        """
+
         super(FastSurferCNN, self).__init__(params)
         params["num_channels"] = params["num_filters"]
         self.classifier = sm.ClassifierBlock(params)
@@ -111,13 +158,24 @@ class FastSurferCNN(FastSurferCNNBase):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, scale_factor=None, scale_factor_out=None):
+    def forward(
+            self,
+            x: Tensor,
+            scale_factor: Optional[Tensor] = None,
+            scale_factor_out: Optional[Tensor] = None
+    ) -> Tensor:
+        """
+        Computational graph
+
+        Args:
+            x: input image [N, C, H, W]
+            scale_factor: [N, 1] Defaults to None
+            scale_factor_out: Defaults to None
+
+        Returns:
+            Prediction logits
         """
 
-        :param x: [N, C, H, W]
-        :param scale_factor: [N, 1]
-        :return:
-        """
         net_out = super().forward(x, scale_factor)
         output = self.classifier.forward(net_out)
 
@@ -134,9 +192,33 @@ class FastSurferVINN(FastSurferCNNBase):
     * Concatenationes are replaced with Maxout (competitive dense blocks)
     * Global skip connections are fused by Maxout (global competition)
     * Loss Function (weighted Cross-Entropy and dice loss)
+
+    Attributes:
+        height  the height of segmentation model (after interpolation layer)
+        width: the width of segmentation model
+        out_tensor_shape: Out tensor dimensions for interpolation layer
+        interpolation_mode: Interpolation mode for up/downsampling in flex networks
+        crop_position: Crop positions for up/downsampling in flex networks
+        inp_block: Initialized input dense block
+        outp_block: Initialized output dense block
+        interpol1: Initialized 2d input interpolation block
+        interpol2: Initialized 2d output interpolation block
+        classifier: Initialized Classification Block
+
+
+    Methods:
+        forward: computational graph
     """
 
-    def __init__(self, params, padded_size=256):
+    def __init__(self, params: dict, padded_size: int = 256):
+        """
+        Initialization of FastSurferVINN
+
+        Args:
+            params:  dictionary of configurations
+            padded_size: size of image when padded
+        """
+
         num_c = params["num_channels"]
         params["num_channels"] = params["num_filters_interpol"]
         super(FastSurferVINN, self).__init__(params)
@@ -203,12 +285,24 @@ class FastSurferVINN(FastSurferCNNBase):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, scale_factor, scale_factor_out=None):
+    def forward(
+            self,
+            x: Tensor,
+            scale_factor: Tensor,
+            scale_factor_out: Optional[Tensor]  = None
+    ) -> Tensor:
         """
         Computational graph
-        :param tensor x: input image
-        :return tensor: prediction logits
+
+        Params:
+            x: input image [N, C, H, W]
+            scale_factor: [N, 1]
+            scale_factor_out: Defaults to None
+
+        Returns:
+            logits: prediction logits
         """
+
         # Input block + Flex to 1 mm
         skip_encoder_0 = self.inp_block(x)
         encoder_output0, rescale_factor = self.interpol1(skip_encoder_0, scale_factor)
@@ -248,9 +342,19 @@ _MODELS = {
 }
 
 
-def build_model(cfg):
+def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN]:
+    """
+    Builds requested model
+
+    Args:
+        cfg: Node of configs to be used
+
+    Returns:
+        model: Object of the initialized model
+    """
+
     assert (
-        cfg.MODEL.MODEL_NAME in _MODELS.keys()
+            cfg.MODEL.MODEL_NAME in _MODELS.keys()
     ), f"Model {cfg.MODEL.MODEL_NAME} not supported"
     params = {k.lower(): v for k, v in dict(cfg.MODEL).items()}
     model = _MODELS[cfg.MODEL.MODEL_NAME](params, padded_size=cfg.DATA.PADDED_SIZE)

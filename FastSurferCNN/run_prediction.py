@@ -13,7 +13,10 @@
 # limitations under the License.
 
 # IMPORTS
+from typing import Tuple, Union, Literal, Dict, Any, Optional
+import glob
 import sys
+import argparse
 import os
 import copy
 import argparse
@@ -23,6 +26,7 @@ from concurrent.futures import Executor
 import numpy as np
 import torch
 import nibabel as nib
+import yacs.config
 
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.utils import logging, parser_defaults
@@ -51,7 +55,19 @@ LOGGER = logging.getLogger(__name__)
 ##
 # Processing
 ##
-def set_up_cfgs(cfg, args):
+def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
+    """Setup of configuration
+
+    Sets up configurations with given arguments inside the yaml file
+
+    Args:
+        cfg: path to yaml file of configurations
+        args: {out_dir, batch_size} arguments
+
+    Returns:
+        Node of configurations
+    """
+
     cfg = load_config(cfg)
     cfg.OUT_LOG_DIR = args.out_dir if args.out_dir is not None else cfg.LOG_DIR
     cfg.OUT_LOG_NAME = "fastsurfer"
@@ -62,10 +78,17 @@ def set_up_cfgs(cfg, args):
     return cfg
 
 
-def args2cfg(args: argparse.Namespace):
+def args2cfg(args: argparse.Namespace) -> tuple[yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode]:
     """
-    Extract the configuration objects from the arguments.
+    converges args to a configuration Node
+
+    Args:
+        args: arguments
+
+    Returns:
+        configurations for all planes
     """
+
     cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
     cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
     cfg_ax = set_up_cfgs(args.cfg_ax, args) if args.cfg_ax is not None else None
@@ -76,7 +99,17 @@ def args2cfg(args: argparse.Namespace):
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string."""
+    """
+    Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
+
+    Args:
+        string: string to be cut
+        suffix: suffix to be removed
+
+    Returns:
+        Str: Suffix removed string
+    """
+
     import sys
 
     if sys.version_info.minor >= 9:
@@ -96,6 +129,33 @@ def removesuffix(string: str, suffix: str) -> str:
 
 
 class RunModelOnData:
+    """[help]
+    runs the model prediction on given data
+
+    Functions:
+        __init__(): constructor
+        set_and_create_outdir(): sets and creates output directory
+        conform_and_save_orig(): saves original image
+        set_subject(): setter
+        get_subject_name(): getter
+        set_model(): setter
+        run_model(): calculates prediction
+        get_img(): getter
+        save_img(): saves image as file
+        set_up_model_params(): setter
+        get_num_classes(): getter
+
+    Attributes:
+        pred_name(str):
+        conf_name(str):
+        orig_name(str):
+        vox_size(Union[float, Literal["min"]]):
+        current_plane(str):
+        models(Dict[str, Inference]):
+        view_ops(Dict[str, Dict[str, Any]]):
+        conform_to_1mm_threshold(Optional[float]): threshold until which the image will be conformed to 1mm res
+    """
+
     pred_name: str
     conf_name: str
     orig_name: str
@@ -105,7 +165,25 @@ class RunModelOnData:
     view_ops: Dict[str, Dict[str, Any]]
     conform_to_1mm_threshold: Optional[float]
 
-    def __init__(self, args):
+    def __init__(self, args: argparse.Namespace):
+        """
+        constructor
+
+        Args:
+            args: [help]
+                pred_name (str):
+                conf_name (str):
+                orig_name (str):
+                remove_suffix ():
+                sf (float): Defaults to 1.0
+                out_dir (str): directory of output
+                viewagg_device (str): device to run viewagg on. Can be auto, cuda or cpu
+
+        Raises:
+            ValueError: Could not find the ColorLUT
+            ValueError: Invalid value for vox_size, must be between 0 and 1 or 'min'
+        """
+
         self.pred_name = args.pred_name
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
@@ -187,8 +265,21 @@ class RunModelOnData:
             self._pool.shutdown(True)
 
     def conform_and_save_orig(
-        self, subject: SubjectDirectory
+        self,
+        subject: SubjectDirectory
     ) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+        """ Conforms and saves original image [help]
+
+        Args:
+            subject: subject directory object
+
+        Returns:
+            Conformed image
+
+        Raises:
+            Cannot resolve the name to the conformed image, please specify an absolute path.
+        """
+
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
         LOGGER.info(f"Successfully loaded image from {subject.orig_name}.")
 
@@ -227,8 +318,23 @@ class RunModelOnData:
         self.current_plane = plane
 
     def get_prediction(
-        self, image_name: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]
+            self,
+            image_name: str,
+            orig_data: np.ndarray,
+            zoom: Union[np.ndarray, tuple]
     ) -> np.ndarray:
+        """
+            get prediction
+
+        Args:
+            orig_f: original image filename
+            orig_data: original image data
+            zoom: original zoom
+
+        Returns:
+            predicted classes
+         """
+
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": self.viewagg_device,
@@ -259,9 +365,19 @@ class RunModelOnData:
         save_as: str,
         data: Union[np.ndarray, torch.Tensor],
         orig: nib.analyze.SpatialImage,
-        dtype: Union[None, type] = None,
+        dtype: Optional[type] = None,
     ):
-        """Saves the image."""
+        """
+            Saves image as file
+
+        Args:
+            save_as: filename to give image
+            data: image data
+            orig: original Image
+            seg: segmentation. Defaults to False
+            dtype
+        """
+
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info(

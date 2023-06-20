@@ -133,12 +133,12 @@ def options_parse():
 
 
 def map_image(
-    img: nib.analyze.SpatialImage,
-    out_affine: np.ndarray,
-    out_shape: np.ndarray,
-    ras2ras: Optional[np.ndarray] = None,
-    order: int = 1,
-    dtype: Optional[Type] = None,
+        img: nib.analyze.SpatialImage,
+        out_affine: np.ndarray,
+        out_shape: np.ndarray,
+        ras2ras: Optional[np.ndarray] = None,
+        order: int = 1,
+        dtype: Optional[Type] = None
 ) -> np.ndarray:
     """
     Function to map image to new voxel space (RAS orientation)
@@ -154,6 +154,7 @@ def map_image(
     Returns:
         mapped image data array
     """
+
     from scipy.ndimage import affine_transform
     from numpy.linalg import inv
 
@@ -183,11 +184,11 @@ def map_image(
 
 
 def getscale(
-    data: np.ndarray,
-    dst_min: float,
-    dst_max: float,
-    f_low: float = 0.0,
-    f_high: float = 0.999,
+        data: np.ndarray,
+        dst_min: float,
+        dst_max: float,
+        f_low: float = 0.0,
+        f_high: float = 0.999
 ) -> Tuple[float, float]:
     """
     Function to get offset and scale of image intensities to robustly rescale to range dst_min..dst_max.
@@ -201,7 +202,8 @@ def getscale(
         f_high: robust cropping at higher end (0.999 crop one thousandth of high intensity voxels, default)
 
     Returns:
-        a tuple of the (adjusted) offset and the scale factor
+        float src_min: (adjusted) offset
+        float: scale factor
     """
     # get min and max from source
     src_min = np.min(data)
@@ -271,7 +273,11 @@ def getscale(
 
 
 def scalecrop(
-    data: np.ndarray, dst_min: float, dst_max: float, src_min: float, scale: float
+        data: np.ndarray,
+        dst_min: float,
+        dst_max: float,
+        src_min: float,
+        scale: float
 ) -> np.ndarray:
     """
     Function to crop the intensity ranges to specific min and max values
@@ -286,6 +292,7 @@ def scalecrop(
     Returns:
         scaled image data
     """
+
     data_new = dst_min + scale * (data - src_min)
 
     # clip
@@ -298,11 +305,11 @@ def scalecrop(
 
 
 def rescale(
-    data: np.ndarray,
-    dst_min: float,
-    dst_max: float,
-    f_low: float = 0.0,
-    f_high: float = 0.999,
+        data: np.ndarray,
+        dst_min: float,
+        dst_max: float,
+        f_low: float = 0.0,
+        f_high: float = 0.999
 ) -> np.ndarray:
     """
     Function to rescale image intensity values (0-255).
@@ -317,6 +324,7 @@ def rescale(
     Returns:
         scaled image data
     """
+
     src_min, scale = getscale(data, dst_min, dst_max, f_low, f_high)
     data_new = scalecrop(data, dst_min, dst_max, src_min, scale)
     return data_new
@@ -331,11 +339,12 @@ def find_min_size(img: nib.analyze.SpatialImage, max_size: float = 1) -> float:
         max_size: maximal voxel size in mm (default: 1.0)
 
     Returns:
-        The rounded minimal voxel size
+        Rounded minimal voxel size
 
     Note:
         This function only needs the header (not the data).
     """
+
     # find minimal voxel side length
     sizes = np.array(img.header.get_zooms()[:3])
     min_vox_size = np.round(np.min(sizes) * 10000) / 10000
@@ -344,7 +353,9 @@ def find_min_size(img: nib.analyze.SpatialImage, max_size: float = 1) -> float:
 
 
 def find_img_size_by_fov(
-    img: nib.analyze.SpatialImage, vox_size: float, min_dim: int = 256
+        img: nib.analyze.SpatialImage,
+        vox_size: float,
+        min_dim: int = 256
 ) -> int:
     """
     Function to find the cube dimension (>= 256) to cover the field of view of img. If vox_size is one, the img_size
@@ -361,6 +372,7 @@ def find_img_size_by_fov(
     Note:
         This function only needs the header (not the data).
     """
+
     if vox_size == 1.0:
         return min_dim
     # else (other voxel sizes may use different sizes)
@@ -375,11 +387,11 @@ def find_img_size_by_fov(
 
 
 def conform(
-    img: nib.analyze.SpatialImage,
-    order: int = 1,
-    conform_vox_size: VoxSizeOption = 1.0,
-    dtype: Optional[Type] = None,
-    conform_to_1mm_threshold: Optional[float] = None,
+        img: nib.analyze.SpatialImage,
+        order: int = 1,
+        conform_vox_size: VoxSizeOption = 1.0,
+        dtype: Optional[Type] = None,
+        conform_to_1mm_threshold: Optional[float] = None
 ) -> nib.MGHImage:
     f"""
     Python version of mri_convert -c, which by default turns image intensity values
@@ -405,6 +417,7 @@ def conform(
     Returns:
          conformed image
     """
+
     from nibabel.freesurfer.mghformat import MGHHeader
 
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
@@ -479,13 +492,13 @@ def conform(
 
 
 def is_conform(
-    img: nib.analyze.SpatialImage,
-    conform_vox_size: VoxSizeOption = 1.0,
-    eps: float = 1e-06,
-    check_dtype: bool = True,
-    dtype: Optional[Type] = None,
-    verbose: bool = True,
-    conform_to_1mm_threshold: Optional[float] = None,
+        img: nib.analyze.SpatialImage,
+        conform_vox_size: VoxSizeOption = 1.0,
+        eps: float = 1e-06,
+        check_dtype: bool = True,
+        dtype: Optional[Type] = None,
+        verbose: bool = True,
+        conform_to_1mm_threshold: Optional[float] = None
 ) -> bool:
     f"""
     Function to check if an image is already conformed or not (Dimensions: 256x256x256,
@@ -569,11 +582,21 @@ def is_conform(
 
 
 def get_conformed_vox_img_size(
-    img: nib.analyze.SpatialImage,
-    conform_vox_size: VoxSizeOption,
-    conform_to_1mm_threshold: Optional[float] = None,
+        img: nib.analyze.SpatialImage,
+        conform_vox_size: VoxSizeOption,
+        conform_to_1mm_threshold: Optional[float] = None
 ) -> Tuple[float, int]:
-    """Extract the voxel size and the image size. This function only needs the header (not the data)."""
+    """Extract the voxel size and the image size.
+
+    Args:
+        img: Loaded source image
+        conform_vox_size: [help]
+        conform_to_1mm_threshold: [help]
+
+    Notes:
+        This function only needs the header (not the data)
+    """
+
     # this is similar to mri_convert --conform_min
     if isinstance(conform_vox_size, str) and conform_vox_size.lower() in [
         "min",
@@ -595,8 +618,8 @@ def get_conformed_vox_img_size(
 
 
 def check_affine_in_nifti(
-    img: Union[nib.Nifti1Image, nib.Nifti2Image],
-    logger: Optional[logging.Logger] = None,
+        img: Union[nib.Nifti1Image, nib.Nifti2Image],
+        logger: Optional[logging.Logger] = None
 ) -> bool:
     """
     Function to check the affine in nifti Image. Sets affine with qform, if it exists
@@ -614,6 +637,7 @@ def check_affine_in_nifti(
             voxel sizes in header
         False, if: voxel sizes in affine and header differ
     """
+
     check = True
     message = ""
 

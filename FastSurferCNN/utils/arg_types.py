@@ -22,7 +22,15 @@ VoxSizeOption = Union[float, Literal["min"]]
 
 
 def vox_size(a: str) -> VoxSizeOption:
-    """Helper function to convert the vox_size argument to 'min' or a valid voxel size."""
+    """Helper function to convert the vox_size argument to 'min' or a valid voxel size.
+
+    Args:
+        a: vox size type. Can be auto, bin or a number between 1 an 0
+
+    Raises:
+        argparse.ArgumentTypeError: An error from creating or using an argument. Additionally, vox_sizes may be 'min'.
+    """
+
     if a.lower() in ["auto", "min"]:
         return "min"
     try:
@@ -34,7 +42,12 @@ def vox_size(a: str) -> VoxSizeOption:
 
 
 def float_gt_zero_and_le_one(a: str) -> Optional[float]:
-    """Helper function to check whether a parameters is a float between 0 and one."""
+    """Helper function to check whether a parameters is a float between 0 and one.
+
+    Args:
+        a: String of a number or none, infinity
+    """
+
     if a is None or a.lower() in ["none", "infinity"]:
         return None
     a_float = float(a)
@@ -45,7 +58,15 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
 
 
 def target_dtype(a: str) -> str:
-    """Helper function to check for valid dtypes."""
+    """Helper function to check for valid dtypes.
+
+    Args:
+        a: datatype
+
+    Raises:
+         argparse.ArgumentTypeError: Invalid dtype
+    """
+
     dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
     dtypes.add("any")
     _a = a.lower()
@@ -63,24 +84,54 @@ def target_dtype(a: str) -> str:
         raise argparse.ArgumentTypeError(f"Invalid dtype {a}. {msg}")
 
 
-def int_gt_zero(value):
-    """Conversion to positive integers."""
+def int_gt_zero(value: Union[str, int]) -> int:
+    """Conversion to positive integers.
+
+    Args:
+        value: integer to convert
+
+    Returns:
+        converted integer
+
+    Raises:
+        argparse:ArgumentTypeError: Invalid value, must not be negative.
+    """
+
     val = int(value)
     if val <= 0:
         raise argparse.ArgumentTypeError("Invalid value, must not be negative.")
     return val
 
 
-def int_ge_zero(value):
-    """Conversion to integers greater 0."""
+def int_ge_zero(value) -> int:
+    """Conversion to integers greater 0.
+
+    Args:
+        value: integer to convert
+
+    Returns:
+        given value if bigger or equal to zero
+
+    Raises:
+        argparse:ArgumentTypeError: Invalid value, must be greater than 0.
+    """
+
     val = int(value)
     if val < 0:
         raise argparse.ArgumentTypeError("Invalid value, must be greater than 0.")
     return val
 
 
-def unquote_str(value):
-    """Unquotes a (single quoted) string."""
+def unquote_str(value) -> str:
+    """Unquotes a (single quoted) string.
+
+    Args:
+        value: String to be unquoted
+
+    Returns:
+        A string of the value without quoting with '''
+    """
+
     val = str(value)
     if val.startswith("'") and val.endswith("'"):
         return val[1:-1]
