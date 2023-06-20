@@ -1,22 +1,21 @@
 #!/bin/bash
 
 image_name="fastsurfer"
-image_tag="latest"
+image_tag="dev"
 
-cd ..
-pip install tomli
-version=$(python -c "import tomli
-with open('fastsurfer.toml', 'rb') as f:
-  print(tomli.load(f)['fastsurfer']['version'])")
-git_hash=$(git rev-parse --short HEAD)
-echo "${version}-${git_hash} ($(git branch --show-current))" > VERSION
-echo "git status:" >> VERSION
-git status -s -b | grep -v __pycache__ >> VERSION
+pushd || exit
+
+FASTSURFER_HOME="$(cd "$(dirname "$(dirname "$THIS_SCRIPT")")" &> /dev/null && pwd)"
+export FASTSURFER_HOME
+version_tag="$(bash "$FASTSURFER_HOME/run_fastsurfer.sh" --version | cut -d" " -f 1)"
+bash "$FASTSURFER_HOME/run_fastsurfer.sh" --version long > "$FASTSURFER_HOME/VERSION.txt"
 echo "Version info added to the docker image:"
-cat VERSION
-docker build --rm=true -t $image_name:$version-$git_hash -f ./Docker/Dockerfile .
+cat "$FASTSURFER_HOME/VERSION.txt"
+docker build --rm=true -t "$image_name:$version_tag" -f ./Docker/Dockerfile .
 if [ "$(docker image list "$image_name:$image_tag" | wc -l)" != "1" ]; then
   docker image rm $image_name:$image_tag
-fi 
-docker tag $image_name:$image_tag $image_name:$version-$git_hash
-rm VERSION
+fi
+docker tag "$image_name:$image_tag" "$image_name:$version_tag"
+rm "$FASTSURFER_HOME/VERSION.txt"
+
+popd || exit
