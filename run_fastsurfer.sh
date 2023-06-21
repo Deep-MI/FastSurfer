@@ -260,7 +260,7 @@ function version()
   fi
   if [ "$#" == "1" ] && [ "$1" == "long" ]; then
     pushd "$FASTSURFER_HOME/checkpoints" > /dev/null || return
-      VERSION_INFO=$(printf "%s\ncheckpoints:\n%s" "$VERSION_INFO" "$(md5sum -- *)")
+    VERSION_INFO=$(printf "%s\ncheckpoints:\n%s" "$VERSION_INFO" "$(md5sum -- *)")
     popd > /dev/null || return
     if [ -n "$(which git)" ] && [ -d "$FASTSURFER_HOME/.git" ]; then
       pushd  "$FASTSURFER_HOME" > /dev/null || return

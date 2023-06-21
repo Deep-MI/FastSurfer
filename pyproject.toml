@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'fastsurfer'
-version = "2.1.1"
+version = "2.2.0dev"
 description = 'a fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = {file = 'LICENSE'}
