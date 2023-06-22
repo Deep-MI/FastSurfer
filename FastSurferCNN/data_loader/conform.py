@@ -456,7 +456,7 @@ def conform(
         mapped_data = scaled_data
 
     mapped_data = sctype(
-        np.rint(mapped_data) if target_dtype == np.dtype(np.uint8) else mapped_data
+        np.clip(np.rint(mapped_data),0,255) if target_dtype == np.dtype(np.uint8) else mapped_data
     )
     new_img = nib.MGHImage(mapped_data, affine, h1)
 
