@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Tuple, Union, Literal, Dict, Any, Optional
+from typing import Tuple, Union, Literal, Dict, Any, Optional, List
 import glob
 import sys
 import argparse
@@ -195,7 +195,7 @@ class RunModelOnData:
     def set_model(self, plane: str):
         self.current_plane = plane
 
-    def get_prediction(self, orig_f: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]) -> np.ndarray:
+    def get_prediction(self, orig_f: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple], save_prob: bool) -> Union[np.ndarray, List]:
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": self.viewagg_device,
@@ -214,11 +214,14 @@ class RunModelOnData:
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
-        del pred_prob
+        if not save_prob:
+            del pred_prob
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
         # return numpy array TODO: split_cortex_labels requires a numpy ndarray input
         pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
+        if save_prob:
+            return [pred_classes, pred_prob]
         return pred_classes
 
     @staticmethod
@@ -282,7 +285,7 @@ if __name__ == "__main__":
 
     # 2. Options for output
     parser = parser_defaults.add_arguments(parser, ["aparc_aseg_segfile", "conformed_name", "brainmask_name",
-                                                    "aseg_name", "sd", "seg_log", "qc_log"])
+                                                    "aseg_name", "sd", "seg_log", "qc_log", "save_prob"])
 
     # 3. Checkpoint to load
     parser = parser_defaults.add_plane_flags(parser, "checkpoint",
@@ -299,6 +302,22 @@ if __name__ == "__main__":
                                                     "batch_size", "allow_root"])
 
     args = parser.parse_args()
+
+    if args.save_prob:
+        labels=np.array([   0,    2 ,   4 ,   5 ,   7 ,   8,   10 ,  11 ,  12 ,  13,   14 ,  15,   16 ,  17,
+                    18 ,  24 ,  26 ,  28 ,  31  , 41  , 43 ,  44 ,  46,   47 ,  49 ,  50 ,  51 ,  52,
+                    53 ,  54 ,  58,   60  , 63  , 77 ,1002 ,1003, 1005, 1006 ,1007 ,1008 ,1009 ,1010,
+                    1011 ,1012, 1013 ,1014 ,1015 ,1016 ,1017 ,1018, 1019 ,1020, 1021 ,1022, 1023, 1024,
+                    1025, 1026 ,1027 ,1028 ,1029 ,1030 ,1031, 1034 ,1035 ,2002 ,2005 ,2010 ,2012 ,2013,
+                    2014 ,2016 ,2017 ,2021 ,2022, 2023, 2024 ,2025 ,2028])
+        
+        def convert2LabelSpace(regions: np.ndarray) -> np.ndarray:
+                lbl_spc = []
+                for region in regions:
+                    indx = np.where(labels == region)[0]
+                    assert len(indx) == 1
+                    lbl_spc.append(indx[0])
+                return np.array(lbl_spc)
 
     # Warning if run as root user
     if not args.allow_root and os.name == 'posix' and os.getuid() == 0:
@@ -373,8 +392,42 @@ if __name__ == "__main__":
 
         # Run model
         try:
-            pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms())
+            if args.save_prob:
+                pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms(), True)
+                pred_data = pred_data[0]    # pred_classes
+                pred_prob = pred_data[1]    # pred_prob
+            else:
+                pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms(), False)
             eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
+
+            req_label_wm = convert2LabelSpace(np.array([2, 41, 77])) # np.array([ 1, 19, 33]) wm labels
+            req_label_gm = convert2LabelSpace(np.array([17, 18, 53, 54])) # np.array([ 14, 29, 13, 28]) gm labels
+
+            
+            req_label_others = convert2LabelSpace(np.array([ 4, 5, 7, 8, 10, 11, 12,
+                                                             13, 14, 15, 16, 26, 28, 31,
+                                                            43, 44, 46, 47, 49, 50, 51, 52, 58, 60, 63])) #Cerebellum and ventricle labels
+
+            #gm 3 label
+            selected_indices_gm3 = torch.from_numpy(np.where((labels >= 1000) & (labels < 2000))[0])
+            selected_gm3 = pred_prob[:, :, :, selected_indices_gm3]
+            gm3 = torch.amax(selected_gm3, 3)
+            eval.save_img(os.path.join(out_dir,f"3.gm.deep.mgz"), gm3, orig_img, dtype=np.float32)
+
+            #gm 42 label
+            selected_indices_gm42 = torch.from_numpy(np.where(labels >= 2000)[0])
+            selected_gm42 = pred_prob[:, :, :, selected_indices_gm42]
+            gm42 = torch.amax(selected_gm42, 3)
+            eval.save_img(os.path.join(out_dir,f"42.gm.deep.mgz"), gm42, orig_img, dtype=np.float32)
+
+
+            for i,index in enumerate(req_label_wm):
+                eval.save_img(os.path.join(out_dir,f"{labels[index]}.wm.deep.mgz"), pred_prob[:,:,:,index], orig_img, dtype=np.float32)
+            for i,index in enumerate(req_label_gm):
+                eval.save_img(os.path.join(out_dir,f"{labels[index]}.gm.deep.mgz"), pred_prob[:,:,:,index], orig_img, dtype=np.float32)
+            # other regions
+            for i,index in enumerate(req_label_others):
+                eval.save_img(os.path.join(out_dir,f"{labels[index]}.or.deep.mgz"), pred_prob[:,:,:,index], orig_img, dtype=np.float32)
 
             # Create aseg and brainmask
             # Change datatype to np.uint8, else mri_cc will fail!
