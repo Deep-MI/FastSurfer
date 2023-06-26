@@ -398,34 +398,34 @@ if __name__ == "__main__":
                 pred_prob = pred_data[1]    # pred_prob
             else:
                 pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms(), False)
+
             eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
 
             req_label_wm = convert2LabelSpace(np.array([2, 41, 77])) # np.array([ 1, 19, 33]) wm labels
             req_label_gm = convert2LabelSpace(np.array([17, 18, 53, 54])) # np.array([ 14, 29, 13, 28]) gm labels
-
-            
             req_label_others = convert2LabelSpace(np.array([ 4, 5, 7, 8, 10, 11, 12,
                                                              13, 14, 15, 16, 26, 28, 31,
                                                             43, 44, 46, 47, 49, 50, 51, 52, 58, 60, 63])) #Cerebellum and ventricle labels
 
-            #gm 3 label
+            # gm 3 label
             selected_indices_gm3 = torch.from_numpy(np.where((labels >= 1000) & (labels < 2000))[0])
             selected_gm3 = pred_prob[:, :, :, selected_indices_gm3]
             gm3 = torch.amax(selected_gm3, 3)
             eval.save_img(os.path.join(out_dir,f"3.gm.deep.mgz"), gm3, orig_img, dtype=np.float32)
 
-            #gm 42 label
+            # gm 42 label
             selected_indices_gm42 = torch.from_numpy(np.where(labels >= 2000)[0])
             selected_gm42 = pred_prob[:, :, :, selected_indices_gm42]
             gm42 = torch.amax(selected_gm42, 3)
             eval.save_img(os.path.join(out_dir,f"42.gm.deep.mgz"), gm42, orig_img, dtype=np.float32)
 
-
+            # saving wm regions
             for i,index in enumerate(req_label_wm):
                 eval.save_img(os.path.join(out_dir,f"{labels[index]}.wm.deep.mgz"), pred_prob[:,:,:,index], orig_img, dtype=np.float32)
+            # saving gm regions
             for i,index in enumerate(req_label_gm):
                 eval.save_img(os.path.join(out_dir,f"{labels[index]}.gm.deep.mgz"), pred_prob[:,:,:,index], orig_img, dtype=np.float32)
-            # other regions
+            # saving other regions
             for i,index in enumerate(req_label_others):
                 eval.save_img(os.path.join(out_dir,f"{labels[index]}.or.deep.mgz"), pred_prob[:,:,:,index], orig_img, dtype=np.float32)
 
