@@ -19,7 +19,7 @@
 # IMPORTS
 import optparse
 import os.path
-from typing import Union, Optional
+from typing import Union, Optional, Tuple, List
 import numpy as np
 from numpy import typing as npt
 import sys
@@ -154,7 +154,7 @@ def map_multiple_labels(
         trg_sid: str,
         out_dir: Optional[str] = None,
         stop_missing: bool = True
-) -> tuple[npt.ArrayLike, npt.ArrayLike]:
+) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
     """
     function to map a list of labels (just names without hemisphere or path, which are
     passed via hemi, src_dir, out_dir) from one surface (e.g. fsavaerage sphere.reg)
@@ -220,7 +220,7 @@ def read_multiple_labels(
         hemi: str,
         input_dir: str,
         label_names: npt.ArrayLike
-) -> tuple[ list[npt.NDArray],  list[npt.NDArray]]:
+) -> Tuple[List[npt.NDArray],  List[npt.NDArray]]:
     """
     read multiple label files from input_dir
 
@@ -253,7 +253,7 @@ def read_multiple_labels(
 def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
                 col_ids: npt.ArrayLike, trg_white: Union[str, npt.NDArray],
                 cortex_label_name: Optional[str] = None
-                ) -> tuple[npt.NDArray, npt.NDArray]:
+                ) -> Tuple[npt.NDArray, npt.NDArray]:
     """
     function to create an annotation from multiple labels. Here we also consider the
     label values and overwrite existing labels if values of current are larger (or equal,
@@ -307,7 +307,7 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
     return annot_ids, annot_vals
 
 
-def read_colortable(colortab_name: str) -> tuple[npt.ArrayLike, list[str], npt.ArrayLike]:
+def read_colortable(colortab_name: str) -> Tuple[npt.ArrayLike, List[str], npt.ArrayLike]:
     """
     reads the colortable of given name
 

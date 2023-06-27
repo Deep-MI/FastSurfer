@@ -20,6 +20,7 @@
 import optparse
 import os.path
 import os
+from typing import Tuple, List
 import numpy as np
 import sys
 import nibabel.freesurfer.io as fs
@@ -104,10 +105,10 @@ def options_parse():
 
 
 def read_colortables(
-        colnames: list[str],
-        colappend: list[str],
+        colnames: List[str],
+        colappend: List[str],
         drop_unknown: bool = True
-) -> tuple[list, list, list]:
+) -> Tuple[List, List, List]:
     """
     reads multiple colortables and appends extensions,
     drops unknown by default
