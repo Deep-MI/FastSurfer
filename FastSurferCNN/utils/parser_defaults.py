@@ -89,6 +89,10 @@ ALL_FLAGS = {
         '--qc_log', type=str, dest='qc_log', default="",
         help="Absolute path to file in which a list of subjects that failed QC check  (when processing multiple "
              "subjects) will be saved. If not set, the file will not be saved."),
+    "save_prob": __arg(
+        '--save_prob', type=bool, dest='save_prob', default=False,
+        help="Will save the probablities logits from the DL model for each subjects will be saved. If not set,"
+             "the logit files will not be saved."),
     "vox_size": __arg(
         '--vox_size', type=__vox_size, default="min", dest='vox_size',
         help="Choose the primary voxelsize to process, must be either a number between 0 and 1 (below 0.7 is "

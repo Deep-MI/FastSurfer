@@ -393,9 +393,9 @@ if __name__ == "__main__":
         # Run model
         try:
             if args.save_prob:
-                pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms(), True)
-                pred_data = pred_data[0]    # pred_classes
-                pred_prob = pred_data[1]    # pred_prob
+                ret_value = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms(), True)
+                pred_data = ret_value[0]    # pred_classes
+                pred_prob = ret_value[1]    # pred_prob
             else:
                 pred_data = eval.get_prediction(orig_fn, data_array, orig_img.header.get_zooms(), False)
 
