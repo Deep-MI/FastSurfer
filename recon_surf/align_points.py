@@ -24,9 +24,10 @@
 # IMPORTS
 import numpy as np
 from numpy import typing as npt
+from typing import Tuple
 
 
-def rmat2angles(R: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
+def rmat2angles(R: npt.NDArray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Extracts rotation angles (alpha,beta,gamma) in FreeSurfer format (mris_register)
     from a rotation matrix

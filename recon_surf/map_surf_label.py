@@ -18,7 +18,7 @@
 
 # IMPORTS
 import optparse
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 import numpy as np
 import numpy.typing as npt
 import sys
@@ -141,7 +141,7 @@ def getSurfCorrespondence(
         src_sphere: Union[str, tuple, np.ndarray],
         trg_sphere: Union[str, tuple, np.ndarray],
         tree: Optional[KDTree] = None
-) -> tuple[np.ndarray, np.ndarray, KDTree]:
+) -> Tuple[np.ndarray, np.ndarray, KDTree]:
     """
     For each vertex in src_sphere finds the closest vertex in trg_sphere
     spheres are Nx3 arrays of coordinates on the sphere (usually R=100 FS format)
@@ -186,7 +186,7 @@ def mapSurfLabel(
         trg_surf: Union[str, np.ndarray],
         trg_sid: str,
         rev_mapping: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     maps a label from src surface according to the correspondence
     trg_surf is passed so that the label file will list the
