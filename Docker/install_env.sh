@@ -6,12 +6,14 @@
 set -e
 
 # Install our dependencies,
-conda env create -f $2
+conda env create -f "$2"
 
 # Install conda-pack,
 conda install -c conda-forge conda-pack
 # Use conda-pack to create a standalone environment in /venv
-conda-pack -n $1 -o /tmp/env.tar
+conda-pack -n "$1" -o /tmp/env.tar
+conda remove conda-pack
+conda env remove "$1"
 mkdir /venv
 cd /venv
 tar xf /tmp/env.tar

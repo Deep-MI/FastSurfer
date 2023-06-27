@@ -34,7 +34,7 @@ from FastSurferCNN.utils.arg_types import (int_gt_zero as patch_size, int_ge_zer
 USAGE = "python seg_stats.py  -norm <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments]"
 DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
 
-HELPTEXT = """/keeplinebreaks/
+HELPTEXT = """
 Dependencies:
 
     Python 3.8
@@ -72,21 +72,24 @@ FORMATS = {"Index": "d", "SegId": "d", "NVoxels": "d", "Volume_mm3": ".3f", "Str
 
 
 class HelpFormatter(argparse.HelpFormatter):
-    """Help formatter that keeps line breaks for texts that start with '/keeplinebreaks/'."""
+    """Help formatter that forces line breaks in texts where the text is <br>."""
+
+    def _linebreak_sub(self):
+        return getattr(self, "linebreak_sub", "<br>")
 
     def _fill_text(self, text, width, indent):
-        """[MISSING]."""
-        klb_str = '/keeplinebreaks/'
-        if text.startswith(klb_str):
-            # the following line is from argparse.RawDescriptionHelpFormatter
-            return ''.join(indent + line for line in text[len(klb_str):].splitlines(keepends=True))
-        else:
-            return super()._fill_text(text, width, indent)
+        texts = text.split(self._linebreak_sub())
+        return "\n".join([super(HelpFormatter, self)._fill_text(tex, width, indent) for tex in texts])
+
+    def _split_lines(self, text: str, width: int):
+        texts = text.split(self._linebreak_sub())
+        from itertools import chain
+        return list(chain.from_iterable(super(HelpFormatter, self)._split_lines(tex, width) for tex in texts))
 
 
 def make_arguments() -> argparse.ArgumentParser:
     """[MISSING]."""
-    parser = argparse.ArgumentParser(usage=USAGE, epilog=HELPTEXT, description=DESCRIPTION,
+    parser = argparse.ArgumentParser(usage=USAGE, epilog=HELPTEXT.replace("\n", "<br>"), description=DESCRIPTION,
                                      formatter_class=HelpFormatter)
     parser.add_argument('-norm', '--normfile', type=str, required=True, dest='normfile',
                         help="Biasfield-corrected image in the same image space as segmentation (required).")
@@ -437,7 +440,7 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 # Label mapping functions (to aparc (eval) and to label (train))
 def read_classes_from_lut(lut_file):
     """Modify from datautils to allow support for FreeSurfer-distributed ColorLUTs.
-    
+
     Read in **FreeSurfer-like** LUT table
 
     Parameters
@@ -451,7 +454,7 @@ def read_classes_from_lut(lut_file):
     Returns
     -------
     DataFrame with ids present, name of ids, color for plotting
-    
+
     """
     if lut_file.endswith(".tsv"):
         return pd.read_csv(lut_file, sep="\t")
@@ -719,6 +722,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         segmean: The local mean intensity of the primary label at the specific voxel
         pv: The partial volume of the primary label at the location
         ipv: The partial volume of the alternative (nbr) label at the location
+            ipv: The partial volume of the alternative (nbr) label at the location
 
     """
     if not isinstance(seg, np.ndarray) and np.issubdtype(seg.dtype, np.integer):
