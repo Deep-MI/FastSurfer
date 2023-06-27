@@ -22,7 +22,7 @@ import sys
 import SimpleITK as sitk
 import nibabel as nib
 from nibabel.freesurfer.mghformat import MGHHeader
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, Tuple
 
 
 def mgh_from_sitk(
@@ -103,7 +103,7 @@ def readITKimage(
         filename: str,
         vox_type: Optional[Any] = None,
         with_header: bool = False
-) -> Union[sitk.Image, tuple[sitk.Image, Any]]:
+) -> Union[sitk.Image, Tuple[sitk.Image, Any]]:
     """
     reads the itk image
 
