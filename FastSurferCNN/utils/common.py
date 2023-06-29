@@ -73,7 +73,7 @@ def find_device(
     -------
     device: torch.device
         The torch.device object
-    
+
     """
     logger = logging.get_logger(__name__ + ".auto_device")
     # if specific device is requested, check and stop if not available:
@@ -118,7 +118,7 @@ def assert_no_root() -> bool:
     -------
     bool
         Whether the user is root or not
-    
+
     """
 
     if os.name == "posix" and os.getuid() == 0:
@@ -152,7 +152,7 @@ def handle_cuda_memory_exception(exception: builtins.BaseException) -> bool:
     bool
         Whether th exception was a RuntimeError caused by Cuda out memory
 
-    
+
     """
 
     if not isinstance(exception, RuntimeError):
@@ -187,15 +187,15 @@ def pipeline(
     Parameters [MISSING]
     ----------
     pool : Executor
-        
+
     func : Callable[[_Ti], _T] :
         function to use
-        
+
     iterable : Iterable[_Ti]
-        
+
     * :
         [MISSING]
-        
+
     pipeline_size : int
         size of the pipeline
         (Default value = 1)
@@ -203,7 +203,7 @@ def pipeline(
     Returns
     -------
         [MISSING]
-    
+
     """
 
     # do pipeline loading the next element
@@ -226,7 +226,7 @@ def pipeline(
 def iterate(
     pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]
 ) -> Iterator[Tuple[_Ti, _T]]:
-    """Iterate over iterable, yield
+    """Iterate over iterable, yield pairs of elements and func(element).
 
     Parameters
     ----------
@@ -237,10 +237,12 @@ def iterate(
     iterable : Iterable[_Ti]
         iterable
 
-    Returns
-    -------
-    [MISSING]
-    
+    Yields
+    ------
+     element : _Ti
+        elements
+    _T
+        [MISSING]
     """
 
     for element in iterable:
@@ -261,7 +263,7 @@ def removesuffix(string: str, suffix: str) -> str:
     -------
     str
         input string with removed suffix
-    
+
     """
 
     import sys
@@ -317,7 +319,7 @@ class SubjectDirectory:
         -------
         str
             Path to the file
-        
+
         """
 
         return (
@@ -338,7 +340,7 @@ class SubjectDirectory:
         -------
         str
             [MISSING]
-        
+
         """
         return self.filename_in_subject_folder(self.get_attribute(attr_name))
 
@@ -354,7 +356,7 @@ class SubjectDirectory:
         -------
         bool
             Whether the file exists or not
-        
+
         """
         return os.path.exists(self.filename_in_subject_folder(filepath))
 
@@ -370,7 +372,7 @@ class SubjectDirectory:
         -------
         bool
             Whether the file exists or not
-        
+
         """
         return self.fileexists_in_subject_folder(self.get_attribute(attr_name))
 
@@ -382,7 +384,7 @@ class SubjectDirectory:
         -------
         str
             The set subject directory
-        
+
         """
         assert hasattr(self, "_subject_dir") or "The folder attribute has not been set!"
         return self._subject_dir
@@ -396,7 +398,7 @@ class SubjectDirectory:
         _folder : str
             The subject directory
 
-        
+
         """
         self._subject_dir = _folder
 
@@ -408,7 +410,7 @@ class SubjectDirectory:
         -------
         str
             The id
-        
+
         """
         assert hasattr(self, "_id") or "The id attribute has not been set!"
         return self._id
@@ -421,7 +423,7 @@ class SubjectDirectory:
         ----------
         _id : str
             The id
-        
+
         """
         self._id = _id
 
@@ -434,7 +436,7 @@ class SubjectDirectory:
         -------
         str
             The orig name
-        
+
         """
         assert (
             hasattr(self, "_orig_name") or "The orig_name attribute has not been set!"
@@ -450,7 +452,7 @@ class SubjectDirectory:
         _orig_name : str
             The orig name
 
-        
+
         """
         self._orig_name = _orig_name
 
@@ -463,7 +465,7 @@ class SubjectDirectory:
         -------
         str
             The copy of orig name
-        
+
         """
         assert (
             hasattr(self, "_copy_orig_name")
@@ -484,7 +486,7 @@ class SubjectDirectory:
         -------
         str
             original name
-        
+
         """
         self._copy_orig_name = _copy_orig_name
 
@@ -497,7 +499,7 @@ class SubjectDirectory:
         -------
         str
             [MISSING]
-        
+
         """
         assert (
             hasattr(self, "_conf_name") or "The conf_name attribute has not been set!"
@@ -517,7 +519,7 @@ class SubjectDirectory:
         -------
         str
             [MISSING]
-        
+
         """
         self._conf_name = _conf_name
 
@@ -532,7 +534,7 @@ class SubjectDirectory:
         Returns
         -------
 
-        
+
         """
         assert hasattr(self, "_segfile") or "The _segfile attribute has not been set!"
         return self.filename_in_subject_folder(self._segfile)
@@ -544,12 +546,12 @@ class SubjectDirectory:
         Parameters
         ----------
         _segfile : str
-            
+
 
         Returns
         -------
 
-        
+
         """
         self._segfile = _segfile
 
@@ -564,7 +566,7 @@ class SubjectDirectory:
         Returns
         -------
 
-        
+
         """
         assert (
             hasattr(self, "_segfile")
@@ -579,12 +581,12 @@ class SubjectDirectory:
         Parameters
         ----------
         _asegdkt_segfile : str
-            
+
 
         Returns
         -------
 
-        
+
         """
         self._asegdkt_segfile = _asegdkt_segfile
 
@@ -599,7 +601,7 @@ class SubjectDirectory:
         Returns
         -------
 
-        
+
         """
         assert (
             hasattr(self, "_main_segfile")
@@ -614,12 +616,12 @@ class SubjectDirectory:
         Parameters
         ----------
         _main_segfile : str
-            
+
 
         Returns
         -------
 
-        
+
         """
         self._main_segfile = _main_segfile
 
@@ -629,12 +631,12 @@ class SubjectDirectory:
         Parameters
         ----------
         filename : str
-            
+
 
         Returns
         -------
 
-        
+
         """
         return os.path.isabs(filename) or self._subject_dir is not None
 
@@ -644,12 +646,12 @@ class SubjectDirectory:
         Parameters
         ----------
         attr_name : str
-            
+
 
         Returns
         -------
 
-        
+
         """
         return self.can_resolve_filename(self.get_attribute(attr_name))
 
@@ -659,13 +661,13 @@ class SubjectDirectory:
         Parameters
         ----------
         attr_name : str
-            
+
 
         Returns
         -------
         bool
             Whether the attribute exists or not
-        
+
         """
         return getattr(self, "_" + attr_name, None) is not None
 
@@ -675,12 +677,12 @@ class SubjectDirectory:
         Parameters
         ----------
         attr_name : str
-            
+
 
         Returns
         -------
 
-        
+
         """
         if not self.has_attribute(attr_name):
             raise AttributeError(f"The subject has no attribute named {attr_name}.")
@@ -711,7 +713,9 @@ class SubjectList:
             in_dir (str) or csv_file (str), if orig_name is not an absolute path.
         flags : Optional[Dict[str, Dict]]
             dictionary of flags used to generate args (used to populate messages). Default:
+                `SubjectList.DEFAULT_FLAGS`, which get initialized from `FastSurferCNN.utils.-parser_defaults.ALL_FLAGS`
             `SubjectList.DEFAULT_FLAGS`, which get initialized from `FastSurferCNN.utils.-parser_defaults.ALL_FLAGS`
+        There are three modes of operation:
             There are three modes of operation:
             If args has a non-empty csv_file attribute (cf. {csv_file[flag]} flag), read subjects from a subject list file
             The subject listfile is a textfile with one subject per line, where each line can be an absolute or relative
@@ -1018,7 +1022,7 @@ class SubjectList:
         -------
         str
             [MISSING]
-        
+
         """
 
         suffix = self._subjects[0]
@@ -1071,7 +1075,7 @@ class NoParallelExecutor(Executor):
         -------
         Iterator[_T]
             [MISSING]
-        
+
         """
         return map(fn, *iterables)
 
@@ -1091,7 +1095,7 @@ class NoParallelExecutor(Executor):
         -------
         "Future[_T]"
             [MISSING]
-        
+
         """
 
         f = Future()

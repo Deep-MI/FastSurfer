@@ -647,7 +647,7 @@ def get_conformed_vox_img_size(
         conform_vox_size: VoxSizeOption,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> Tuple[float, int]:
-    f"""Extract the voxel size and the image size.
+    f"""Extract the voxel size and the image size. This function only needs the header (not the data).
 
     Parameters
     ----------
@@ -657,8 +657,6 @@ def get_conformed_vox_img_size(
         [MISSING]
     conform_to_1mm_threshold : Optional[float]
         [MISSING]
-        Notes:
-        This function only needs the header (not the data) (Default value = None)
 
     Returns
     -------

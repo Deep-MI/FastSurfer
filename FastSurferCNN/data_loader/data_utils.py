@@ -54,8 +54,8 @@ def load_and_conform_image(
         logger: logging.Logger = LOGGER,
         conform_min: bool = False
 ) -> Tuple[_Header, np.ndarray, np.ndarray]:
-    """Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size
-    (if it does not already have this format)
+    """Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size.
+    Only, if it does not already have this format.
 
     Parameters
     ----------
@@ -84,7 +84,8 @@ def load_and_conform_image(
     RuntimeError
         Inconsistency in nifti-header
 
-    
+
+
     """
 
     orig = nib.load(img_filename)
@@ -131,7 +132,7 @@ def load_image(
     name : str
         name of the file (optional), only effects error messages. (Default value = "image")
     **kwargs :
-        
+
 
     Returns
     -------
@@ -143,14 +144,15 @@ def load_image(
     IOError
         Failed loading the file
         nibabel releases the GIL, so the following is a parallel example.
+        {
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor() as pool:
+        future1 = pool.submit(load_image, filename1)
+        future2 = pool.submit(load_image, filename2)
+        image, data = future1.result()
+        image2, data2 = future2.result()
+        }
 
-    
-    >>> from concurrent.futures import ThreadPoolExecutor
-    >>> with ThreadPoolExecutor() as pool:
-    >>>     future1 = pool.submit(load_image, filename1)
-    >>>     future2 = pool.submit(load_image, filename2)
-    >>>     image, data = future1.result()
-    >>>     image2, data2 = future2.result()
     """
     try:
         img = nib.load(file, **kwargs)
@@ -182,7 +184,7 @@ def load_maybe_conform(
     -------
     Tuple[str, nib.analyze.SpatialImage, np.ndarray]
         [MISSING]
-    
+
     """
     from os.path import isfile
 
@@ -245,7 +247,7 @@ def save_image(
         dtype: Optional[npt.DTypeLike] = None
 ) -> None:
     """Save an image (nibabel MGHImage), according to the desired output file format.
-    Supported formats are defined in supported_output_file_formats.
+    Supported formats are defined in supported_output_file_formats. Saves predictions to save_as
 
     Parameters
     ----------
@@ -259,7 +261,7 @@ def save_image(
         name under which to save prediction; this determines output file format
     dtype : Optional[npt.DTypeLike]
         image array type; if provided, the image object is explicitly set to match this type
-        Returns: nothing/None, saves predictions to save_as (Default value = None)
+         (Default value = None)
 
     """
 
@@ -329,8 +331,9 @@ def transform_sagittal(
     Returns
     -------
     np.ndarray:
-        ransformed image
-    
+        transformed image
+
+
     """
 
     if coronal2sagittal:
@@ -387,13 +390,16 @@ def filter_blank_slices_thick(
     weight_vol : npt.NDArray
         weight corresponding to labels
     threshold : int
-        threshold for number of pixels needed to keep slice (below = dropped). Defaults to 50
+        threshold for number of pixels needed to keep slice (below = dropped). (Default value = 50)
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
-        tuple of filtered img_vol, label_vol and weight_vol
-    
+    filtered img_vol : np.ndarray
+        [MISSING]
+    label_vol : np.ndarray
+        [MISSING]
+    weight_vol : np.ndarray
+        [MISSING]
     """
 
     # Get indices of all slices with more than threshold labels/pixels
@@ -422,28 +428,28 @@ def create_weight_mask(
 
     Parameters
     ----------
-    mapped_aseg : npt.NDArray
-        segmentation to create weight mask from
+    mapped_aseg : np.ndarray
+        segmentation to create weight mask from.
     max_weight : int
-        maximal weight on median weights (cap at this value). Defaults to 5
+        maximal weight on median weights (cap at this value). (Default value = 5)
     max_edge_weight : int
-        maximal weight on gradient weight (cap at this value). Defaults to 5
-    max_hires_weight : Optional[int]
-        maximal weight on hires weight (cap at this value). Defaults to None. Optional
+        maximal weight on gradient weight (cap at this value). (Default value = 5)
+    max_hires_weight : int
+        maximal weight on hires weight (cap at this value). (Default value = None)
     ctx_thresh : int
-        label value of cortex (above = cortical parcels). Defaults to 33
+        label value of cortex (above = cortical parcels). (Default value = 33)
     mean_filter : bool
-        flag, set to add mean_filter mask. Defaults to False
+        flag, set to add mean_filter mask (default = False).
     cortex_mask : bool
-        flag, set to create cortex weight mask. Defaults to True
+        flag, set to create cortex weight mask (default=True).
     gradient : bool
-        flag, set to create gradient mask. Defaults to True
+        flag, set to create gradient mask (default = True).
 
     Returns
     -------
     np.ndarray
         Weights
-    
+
     """
 
     unique, counts = np.unique(mapped_aseg, return_counts=True)
@@ -508,9 +514,9 @@ def cortex_border_mask(
     Returns
     -------
     np.ndarray
-        inner grey matter mask
+        inner grey matter layer
 
-    
+
     """
 
     # create aseg brainmask, erode it and subtract from itself
@@ -548,7 +554,7 @@ def deep_sulci_and_wm_strand_mask(
     -------
     np.ndarray
         sulcus + wm mask
-    
+
     """
 
     # Binarize label image (cortex = 1, everything else = 0)
@@ -584,7 +590,7 @@ def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
     pd.Dataframe
         DataFrame with ids present, name of ids, color for plotting
 
-    
+
     """
     # Read in file
     separator = {"tsv": "\t", "csv": ",", "txt": " "}
@@ -608,7 +614,7 @@ def map_label2aparc_aseg(
     -------
     torch.Tensor
         labels in LUT space
-    
+
     """
 
     if isinstance(labels, np.ndarray):
@@ -634,7 +640,7 @@ def clean_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
     -------
     np.ndarray
         cleaned aparc
-    
+
     """
 
     aparc[aparc == 80] = 77  # Hypointensities Class
@@ -670,7 +676,7 @@ def fill_unknown_labels_per_hemi(
     -------
         np.ndarray
             ground truth segmentation with all classes
-    
+
     """
 
     # Define shape of image and dilation element
@@ -717,7 +723,7 @@ def fuse_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
     -------
     np.ndarray
         anatomical segmentation with reduced number of cortical parcels
-    
+
     """
 
     aparc_temp = aparc.copy()
@@ -766,7 +772,7 @@ def split_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
     -------
     np.ndarray
         re-lateralized aparc
-    
+
     """
 
     # Post processing - Splitting classes
@@ -865,7 +871,7 @@ def unify_lateralized_labels(
     -------
     Mapping
         dictionary mapping between left and right hemispheres
-    
+
     """
 
     if isinstance(lut, str):
@@ -903,7 +909,7 @@ def get_labels_from_lut(
         full label list,
     np.ndarray
         sagittal label list
-    
+
     """
 
     if isinstance(lut, str):
@@ -945,7 +951,7 @@ def map_aparc_aseg2label(
         mapped aseg for coronal and axial,
     np.ndarray
         mapped aseg for sagital
-    
+
     """
 
     # If corpus callosum is not removed yet, do it now
@@ -1023,7 +1029,7 @@ def sagittal_coronal_remap_lookup(x: int) -> int:
     -------
     np.ndarray
         mapped label
-    
+
     """
 
     return {
@@ -1062,7 +1068,7 @@ def infer_mapping_from_lut(
     -------
     np.ndarray
         list of indexes for
-    
+
     """
 
     labels, labels_sag = unify_lateralized_labels(lut)
@@ -1086,7 +1092,7 @@ def map_prediction_sagittal2full(
         lut: Optional[str] = None
 ) -> np.ndarray:
     """Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
-    (full aparc.DKTatlas+aseg.mgz)
+    Creates full aparc.DKTatlas+aseg.mgz.
 
     Parameters
     ----------
@@ -1101,7 +1107,7 @@ def map_prediction_sagittal2full(
     -------
     np.ndarray
         Remapped prediction
-    
+
     """
 
     if num_classes == 96:
@@ -1369,7 +1375,7 @@ def bbox_3d(
         zmin
     np.ndarray
         zmax
-    
+
     """
 
     r = np.any(img, axis=(1, 2))
@@ -1394,9 +1400,9 @@ def get_largest_cc(segmentation: npt.NDArray) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        largest connected component of segmentation
+        largest connected component of segmentation (binary mask)
 
-    
+
     """
 
     labels = label(segmentation, connectivity=3, background=0)

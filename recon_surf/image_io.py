@@ -43,7 +43,6 @@ def mgh_from_sitk(
     mgh_img
         mgh image
 
-
     """
 
     if orig_mgh_header:
@@ -88,7 +87,6 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
     -------
     img_sitk
         sitk image
-
 
     """
 

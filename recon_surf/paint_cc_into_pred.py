@@ -96,7 +96,6 @@ def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
     pred
         Prediction with added CC
 
-    
     """
 
     cc_mask = (aseg_cc >= 251) & (aseg_cc <= 255)

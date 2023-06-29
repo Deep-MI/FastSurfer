@@ -85,6 +85,17 @@ def options_parse():
 
 
 def reduce_to_aseg(data_inseg):
+    """
+
+    Parameters
+    ----------
+    data_inseg :
+        
+
+    Returns
+    -------
+
+    """
     print("Reducing to aseg ...")
     # replace 2000... with 42
     data_inseg[data_inseg >= 2000] = 42
@@ -94,6 +105,21 @@ def reduce_to_aseg(data_inseg):
 
 
 def create_mask(aseg_data, dnum, enum):
+    """
+
+    Parameters
+    ----------
+    aseg_data :
+        
+    dnum :
+        
+    enum :
+        
+
+    Returns
+    -------
+
+    """
 
     print("Creating dilated mask ...")
 
@@ -133,6 +159,17 @@ def create_mask(aseg_data, dnum, enum):
 
 
 def flip_wm_islands(aseg_data):
+    """
+
+    Parameters
+    ----------
+    aseg_data :
+        
+
+    Returns
+    -------
+
+    """
     # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
     # These are usually islands, not connected to the main hemi WM component
     # Here we decide to flip assignment based on proximity to other WM and GM labels

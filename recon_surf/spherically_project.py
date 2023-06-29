@@ -79,7 +79,6 @@ def options_parse():
     options
         object holding options
 
-    
     """
 
     parser = optparse.OptionParser(

@@ -732,8 +732,6 @@ class ColorLookupTable(Generic[KT]):
         -------
         ValueError
             If key is not in _classes
-        ValueError
-            If key is not in _classes
 
         """
 
@@ -985,9 +983,13 @@ class TSVLookupTable(ColorLookupTable[str]):
         Returns
         -------
         index : int
+            [MISSING]
         key : str
+            [MISSING]
         color : Tuple[int, int, int, int]
+            [MISSING]
         int
+            [MISSING]
         
         """
 

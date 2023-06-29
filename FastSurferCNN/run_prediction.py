@@ -85,7 +85,7 @@ def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
 
 
 def args2cfg(args: argparse.Namespace) -> tuple[yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode]:
-    """converges args to a configuration Node
+    """Extract the configuration objects from the arguments.
 
     Parameters
     ----------

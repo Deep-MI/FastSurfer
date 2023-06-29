@@ -23,7 +23,6 @@ def get_recon_all_stage_duration(line: str, previous_datetime_str: str) -> float
     stage_duration
         stage duration in seconds
 
-    
     """
 
     current_datetime_str = " ".join(line.split()[-6:])

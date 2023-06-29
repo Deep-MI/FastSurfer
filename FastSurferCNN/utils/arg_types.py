@@ -160,7 +160,6 @@ def int_ge_zero(value) -> int:
     argparse
         ArgumentTypeError: Invalid value, must be greater than 0.
 
-    
     """
 
     val = int(value)

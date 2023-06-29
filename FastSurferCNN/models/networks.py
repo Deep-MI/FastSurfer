@@ -50,13 +50,13 @@ class FastSurferCNNBase(nn.Module):
 
     def __init__(self, params: dict, padded_size: int = 256):
         """Initialization of FastSurferCNNBase
-        
+
         Args:
 
         Parameters
         ----------
         params : dict
-            
+
         padded_size : int
             size of image when padded (Default value = 256)
 
@@ -111,7 +111,7 @@ class FastSurferCNNBase(nn.Module):
         -------
         decoder_output1 : Tensor
             prediction logits
-        
+
         """
 
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
@@ -158,8 +158,6 @@ class FastSurferCNN(FastSurferCNNBase):
 
     def __init__(self, params: dict, padded_size: int):
         """Initialization of FastSurferCNN
-        
-        Args:
 
         Parameters
         ----------
@@ -205,7 +203,8 @@ class FastSurferCNN(FastSurferCNNBase):
         -------
         output : Tensor
             Prediction logits
-        
+
+
         """
 
         net_out = super().forward(x, scale_factor)
@@ -224,7 +223,8 @@ class FastSurferVINN(FastSurferCNNBase):
     * Global skip connections are fused by Maxout (global competition)
     * Loss Function (weighted Cross-Entropy and dice loss)
 
-    Attributes:
+    Attributes
+    ----------
     height
         the height of segmentation model (after interpolation layer)
     width
@@ -407,7 +407,7 @@ def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN
     model
         Object of the initialized model
 
-    
+
     """
 
     assert (

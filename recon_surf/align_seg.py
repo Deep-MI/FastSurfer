@@ -74,7 +74,6 @@ def options_parse():
     options
         object holding options
 
-    
     """
     parser = optparse.OptionParser(
         version="$Id:align_seg.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -116,11 +115,10 @@ def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optio
     Returns
     -------
     centroids_mov
-        List of centorids of source segmentation
+        List of centroids of source segmentation
     centroids_dst
-        List of centorids of target segmentation
+        List of centroids of target segmentation
 
-    
     """
 
     if not label_ids:
@@ -183,7 +181,6 @@ def align_seg_centroids(
     T
         aligned centroids
 
-    
     """
 
     # get centroids of each label in image
@@ -211,7 +208,6 @@ def align_flipped(seg: sitk.Image) -> npt.NDArray:
     Tsqrt
         Linear transformation matrix for registration
 
-    
     """
 
     lhids = np.array(

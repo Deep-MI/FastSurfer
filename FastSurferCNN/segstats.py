@@ -627,7 +627,6 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         pv: The partial volume of the primary label at the location
         ipv: The partial volume of the alternative (nbr) label at the location
 
-    
     """
 
     if not isinstance(seg, np.ndarray) and np.issubdtype(seg.dtype, np.integer):

@@ -99,7 +99,8 @@ def precision_recall(
 class DiceScore:
     """Accumulating the component of the dice coefficient i.e. the union and intersection
 
-    Attributes:
+    Attributes
+    ----------
     op : callable
         a callable to update accumulator. Method's signature is `(accumulator, output)`.
         For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.

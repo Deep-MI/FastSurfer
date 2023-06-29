@@ -351,7 +351,7 @@ class Inference:
             batch_size: int = None
     ) -> torch.Tensor:
         """[MISSING]
-        Run the loaded model on the data (T1) from orig_data and filename img_filename with scale factors orig_zoom.
+        Run the loaded model on the data (T1) from orig_data and img_filename (for messages only)  with scale factors orig_zoom.
 
         Parameters
         ----------

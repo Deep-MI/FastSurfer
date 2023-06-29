@@ -73,7 +73,6 @@ def options_parse():
     options
         object holding options
 
-    
     """
 
     parser = optparse.OptionParser(
@@ -128,7 +127,6 @@ def align_aparc_centroids(
     R
         Rotation Matrix
 
-    
     """
 
     #nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate

@@ -38,23 +38,17 @@ class DiceLoss(_Loss):
             ignore_index: Optional[int] = None
     ) -> float:
         """Calulates the DiceLoss
-        
-        Parameter:
-            output: N x C x H x W Variable
-            target: N x C x W LongTensor with starting class at 0
-            weights: C FloatTensor with class wise weights. Defaults to None
-            ignore_index: ignore label with index x in the loss calculation. Defaults to None
 
         Parameters
         ----------
         output : Tensor
-            
+            N x C x H x W Variable
         target : Tensor
-            
+            N x C x W LongTensor with starting class at 0
         weights : Optional[int]
-            (Default value = None)
+            C FloatTensor with class wise weights(Default value = None)
         ignore_index : Optional[int]
-            (Default value = None)
+            ignore label with index x in the loss calculation (Default value = None)
 
         Returns
         -------
@@ -98,11 +92,15 @@ class DiceLoss(_Loss):
 class CrossEntropy2D(nn.Module):
     """2D Cross-entropy loss implemented as negative log likelihood
 
-    Attributes:
-        nll_loss: calculated cross-entropy loss
+    Attributes
+    ----------
+    nll_loss
+        calculated cross-entropy loss
 
-    Methods:
-        forward: returns calculated cross entropy
+    Methods
+    -------
+    forward
+        returns calculated cross entropy
     """
 
     def __init__(self, weight: Optional[Tensor] =None, reduction: str = "none"):
@@ -130,12 +128,16 @@ class CrossEntropy2D(nn.Module):
 class CombinedLoss(nn.Module):
     """For CrossEntropy the input has to be a long tensor
 
-    Attributes:
-
-        cross_entropy_loss: Results of cross entropy loss
-        dice_loss: Results of dice loss
-        weight_dice: Weight for dice loss
-        weight_ce: Weight for float
+    Attributes
+    ----------
+    cross_entropy_loss
+        Results of cross entropy loss
+    dice_loss
+        Results of dice loss
+    weight_dice
+        Weight for dice loss
+    weight_ce
+        Weight for float
     """
 
     def __init__(self, weight_dice: Real = 1, weight_ce: Real = 1):
@@ -182,7 +184,6 @@ class CombinedLoss(nn.Module):
         Tensor
             Cross entropy value
 
-        
         """
 
         # Typecast to long tensor --> labels are bytes initially (uint8),
