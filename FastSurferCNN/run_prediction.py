@@ -52,6 +52,19 @@ LOGGER = logging.getLogger(__name__)
 # Processing
 ##
 def set_up_cfgs(cfg, args):
+    """
+
+    Parameters
+    ----------
+    cfg :
+        
+    args :
+        
+
+    Returns
+    -------
+
+    """
     cfg = load_config(cfg)
     cfg.OUT_LOG_DIR = args.out_dir if args.out_dir is not None else cfg.LOG_DIR
     cfg.OUT_LOG_NAME = "fastsurfer"
@@ -63,8 +76,16 @@ def set_up_cfgs(cfg, args):
 
 
 def args2cfg(args: argparse.Namespace):
-    """
-    Extract the configuration objects from the arguments.
+    """Extract the configuration objects from the arguments.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        
+
+    Returns
+    -------
+
     """
     cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
     cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
@@ -76,7 +97,19 @@ def args2cfg(args: argparse.Namespace):
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string."""
+    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
+
+    Parameters
+    ----------
+    string : str
+        
+    suffix : str
+        
+
+    Returns
+    -------
+
+    """
     import sys
 
     if sys.version_info.minor >= 9:
@@ -96,6 +129,7 @@ def removesuffix(string: str, suffix: str) -> str:
 
 
 class RunModelOnData:
+    """ """
     pred_name: str
     conf_name: str
     orig_name: str
@@ -171,6 +205,15 @@ class RunModelOnData:
 
     @property
     def pool(self) -> Executor:
+        """
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
         if not hasattr(self, "_pool"):
             if not self._async_io:
                 self._pool = NoParallelExecutor()
@@ -189,6 +232,17 @@ class RunModelOnData:
     def conform_and_save_orig(
         self, subject: SubjectDirectory
     ) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+        """
+
+        Parameters
+        ----------
+        subject : SubjectDirectory
+            
+
+        Returns
+        -------
+
+        """
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
         LOGGER.info(f"Successfully loaded image from {subject.orig_name}.")
 
@@ -224,11 +278,37 @@ class RunModelOnData:
         return orig, orig_data
 
     def set_model(self, plane: str):
+        """
+
+        Parameters
+        ----------
+        plane : str
+            
+
+        Returns
+        -------
+
+        """
         self.current_plane = plane
 
     def get_prediction(
         self, image_name: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]
     ) -> np.ndarray:
+        """
+
+        Parameters
+        ----------
+        image_name : str
+            
+        orig_data : np.ndarray
+            
+        zoom : Union[np.ndarray, tuple]
+            
+
+        Returns
+        -------
+
+        """
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": self.viewagg_device,
@@ -261,7 +341,23 @@ class RunModelOnData:
         orig: nib.analyze.SpatialImage,
         dtype: Union[None, type] = None,
     ):
-        """Saves the image."""
+        """Saves the image.
+
+        Parameters
+        ----------
+        save_as : str
+            
+        data : Union[np.ndarray, torch.Tensor]
+            
+        orig : nib.analyze.SpatialImage
+            
+        dtype : Union[None, type]
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info(
@@ -288,19 +384,70 @@ class RunModelOnData:
         orig: nib.analyze.SpatialImage,
         dtype: Union[None, type] = None,
     ):
-        """Saves the image asynchronously and returns a concurrent.futures.Future to track, when this finished."""
+        """Saves the image asynchronously and returns a concurrent.futures.Future to track, when this finished.
+
+        Parameters
+        ----------
+        save_as : str
+            
+        data : Union[np.ndarray, torch.Tensor]
+            
+        orig : nib.analyze.SpatialImage
+            
+        dtype : Union[None, type]
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         return self.pool.submit(self.save_img, save_as, data, orig, dtype)
 
     def set_up_model_params(self, plane, cfg, ckpt):
+        """
+
+        Parameters
+        ----------
+        plane :
+            
+        cfg :
+            
+        ckpt :
+            
+
+        Returns
+        -------
+
+        """
         self.view_ops[plane]["cfg"] = cfg
         self.view_ops[plane]["ckpt"] = ckpt
 
     def get_num_classes(self) -> int:
+        """
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
         return self.num_classes
 
     def pipeline_conform_and_save_orig(
         self, subjects: SubjectList
     ) -> Iterator[Tuple[SubjectDirectory, Tuple[nib.analyze.SpatialImage, np.ndarray]]]:
+        """
+
+        Parameters
+        ----------
+        subjects : SubjectList
+            
+
+        Returns
+        -------
+
+        """
         if not self._async_io:
             # do not pipeline, direct iteration and function call
             for subject in subjects:

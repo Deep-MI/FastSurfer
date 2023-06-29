@@ -31,6 +31,7 @@ T_ScaleAll = _T.TypeVar("T_ScaleAll", _T.Sequence[float], Tensor, np.ndarray, fl
 
 
 class _ZoomNd(nn.Module):
+    """ """
     def __init__(
         self,
         target_shape: _T.Optional[_T.Sequence[int]],
@@ -54,12 +55,30 @@ class _ZoomNd(nn.Module):
 
     @property
     def target_shape(self) -> _T.Tuple[int, ...]:
-        """Returns the target shape."""
+        """Returns the target shape.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
         return self._target_shape
 
     @target_shape.setter
     def target_shape(self, target_shape: _T.Optional[_T.Sequence[int]]) -> None:
-        """Validates and sets the target_shape."""
+        """Validates and sets the target_shape.
+
+        Parameters
+        ----------
+        target_shape : _T.Optional[_T.Sequence[int]]
+            
+
+        Returns
+        -------
+
+        """
         tup_target_shape = (
             tuple(target_shape) if isinstance(target_shape, _T.Iterable) else tuple()
         )
@@ -82,26 +101,32 @@ class _ZoomNd(nn.Module):
     def forward(
         self, input_tensor: Tensor, scale_factors: T_ScaleAll, rescale: bool = False
     ) -> _T.Tuple[Tensor, _T.List[T_Scale]]:
-        """
-        Zoom the `input_tensor` with `scale_factors`. This is not an exact zoom, but rather an "approximate zoom".
+        """Zoom the `input_tensor` with `scale_factors`. This is not an exact zoom, but rather an "approximate zoom".
         This is due to the fact that the backbone function only interpolates between integer-sized images and therefore
         the target shape must be rounded to the nearest integer
 
-        Args:
-            input_tensor: The tensor of shape (N, C, D_1, ...D_{dim}), where N is the batch size, C is the number of channels
-                and D_1, ..., D_{dim} are the dimensions of the image.
-            scale_factors: The factor, by which to zoom the image. Can be a torch.Tensor or an array_like (numpy.ndarray
-                or a (cascaded) sequence of floats or ints) or a float. If it is a float, all axis and all images of the
-                batch are treated the same (zoomed by the float). Else, it will be interpreted as a multi-dimensional
-                image: The first dimension corresponds to and must be equal to the batch size of the image. The second
-                dimension is optional and may contain different values for the _scale_limits factor per axis. In consequence,
-                this dimension can have 1 or {dim} values.
-        Returns:
-            The zoomed tensor and the zoom factors that were actually used in the calculation for correct rescaling.
+        Parameters
+        ----------
+        input_tensor : Tensor
+            The tensor of shape (N, C, D_1, ...D_{dim}), where N is the batch size, C is the number of channels
+            and D_1, ..., D_{dim} are the dimensions of the image.
+        scale_factors : T_ScaleAll
+            The factor, by which to zoom the image. Can be a torch.Tensor or an array_like (numpy.ndarray
+            or a (cascaded) sequence of floats or ints) or a float. If it is a float, all axis and all images of the
+            batch are treated the same (zoomed by the float). Else, it will be interpreted as a multi-dimensional
+            image: The first dimension corresponds to and must be equal to the batch size of the image. The second
+            dimension is optional and may contain different values for the _scale_limits factor per axis. In consequence,
+        rescale : bool
+             (Default value = False)
 
-        Notes:
+        Returns
+        -------
+        
+            The zoomed tensor and the zoom factors that were actually used in the calculation for correct rescaling.
+            Notes:
             If this Module is used to zoom images of different voxelsizes to the same voxelsize, then `scale_factor`
             should be equal to `target_voxelsize / source_voxelsize`.
+
         """
         if self._N == -1:
             raise RuntimeError(
@@ -156,8 +181,18 @@ class _ZoomNd(nn.Module):
     def _fix_scale_factors(
         self, scale_factors: T_ScaleAll, batch_size: int
     ) -> _T.Iterable[_T.Tuple[T_Scale, int]]:
-        """
-        Checking and fixing the conformity of scale_factors.
+        """Checking and fixing the conformity of scale_factors.
+
+        Parameters
+        ----------
+        scale_factors : T_ScaleAll
+            
+        batch_size : int
+            
+
+        Returns
+        -------
+
         """
         # add same check for tensor
         if isinstance(scale_factors, (Tensor, np.ndarray)):
@@ -219,6 +254,17 @@ class _ZoomNd(nn.Module):
             )
 
     def _interpolate(self, *args) -> _T.Tuple[Tensor, T_Scale]:
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def _calculate_crop_pad(
@@ -229,7 +275,23 @@ class _ZoomNd(nn.Module):
         alignment: str,
     ) -> _T.Tuple[slice, T_Scale, _T.Union[bool, _T.Tuple[int, int]], int]:
         """
-        Return start- and end- coordinate given sizes, the updated scale factor
+
+        Parameters
+        ----------
+        in_shape : _T.Sequence[int]
+            
+        scale_factor : T_Scale
+            
+        dim : int
+            
+        alignment : str
+            
+
+        Returns
+        -------
+        _T.Tuple[slice,T_Scale,_T.Union[bool,_T.Tuple[int,int]],int]
+            
+
         """
         this_in_shape = in_shape[dim + 2]
         source_size = self._target_shape[dim] * scale_factor[dim]
@@ -294,9 +356,7 @@ class _ZoomNd(nn.Module):
 
 
 class Zoom2d(_ZoomNd):
-    """
-    Performs a crop and interpolation on a Four-dimensional Tensor respecting batch and channel.
-    """
+    """Performs a crop and interpolation on a Four-dimensional Tensor respecting batch and channel."""
 
     def __init__(
         self,
@@ -334,15 +394,20 @@ class Zoom2d(_ZoomNd):
         tensor: Tensor,
         scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[float]],
     ) -> _T.Tuple[Tensor, T_Scale]:
-        """
-        Crops, interpolates and pads the tensor according to the scale_factor. scale_factor must be 2-length
+        """Crops, interpolates and pads the tensor according to the scale_factor. scale_factor must be 2-length
         sequence.
 
-        Args:
-            tensor: input, to-be-interpolated tensor
-            scale_factor: zoom factor
+        Parameters
+        ----------
+        tensor : Tensor
+            input, to-be-interpolated tensor
+        scale_factor : _T.Union[Tensor, np.ndarray, _T.Sequence[float]]
+            zoom factor
+            Returns: the interpolated tensor
 
-        Returns: the interpolated tensor
+        Returns
+        -------
+
         """
         scale_factor = (
             scale_factor.tolist()
@@ -382,6 +447,17 @@ class Zoom2d(_ZoomNd):
             def _ensure_tuple(
                 x: _T.Union[bool, _T.Tuple[int, int]]
             ) -> _T.Tuple[int, int]:
+                """
+
+                Parameters
+                ----------
+                x : _T.Union[bool, _T.Tuple[int, int]]
+                    
+
+                Returns
+                -------
+
+                """
                 return x if isinstance(x, tuple) else (0, 0)
 
             padding = list(_ensure_tuple(pad_lr) + _ensure_tuple(pad_tb))
@@ -400,9 +476,7 @@ class Zoom2d(_ZoomNd):
 
 
 class Zoom3d(_ZoomNd):
-    """
-    Performs a crop and interpolation on a Five-dimensional Tensor respecting batch and channel.
-    """
+    """Performs a crop and interpolation on a Five-dimensional Tensor respecting batch and channel."""
 
     def __init__(
         self,
@@ -442,8 +516,18 @@ class Zoom3d(_ZoomNd):
         self._crop_position = crop_position
 
     def _interpolate(self, tensor: Tensor, scale_factor: _T.Sequence[int]):
-        """
-        Crops, interpolates and pads the tensor according to the scale_factor. scale_factor must be 3-length sequence.
+        """Crops, interpolates and pads the tensor according to the scale_factor. scale_factor must be 3-length sequence.
+
+        Parameters
+        ----------
+        tensor : Tensor
+            
+        scale_factor : _T.Sequence[int]
+            
+
+        Returns
+        -------
+
         """
         scale_factor = (
             scale_factor.tolist()

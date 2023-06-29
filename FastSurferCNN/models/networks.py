@@ -22,8 +22,7 @@ import FastSurferCNN.models.interpolation_layer as il
 
 
 class FastSurferCNNBase(nn.Module):
-    """
-    Network Definition of Fully Competitive Network network
+    """Network Definition of Fully Competitive Network network
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
     * Dense Connections in blocks
@@ -31,6 +30,13 @@ class FastSurferCNNBase(nn.Module):
     * Concatenationes are replaced with Maxout (competitive dense blocks)
     * Global skip connections are fused by Maxout (global competition)
     * Loss Function (weighted Cross-Entropy and dice loss)
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, params, padded_size=256):
@@ -63,10 +69,20 @@ class FastSurferCNNBase(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x, scale_factor=None, scale_factor_out=None):
-        """
-        Computational graph
-        :param tensor x: input image
-        :return tensor: prediction logits
+        """Computational graph
+
+        Parameters
+        ----------
+        x : tensor
+            input image
+        scale_factor :
+             (Default value = None)
+        scale_factor_out :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
         encoder_output2, skip_encoder_2, indices_2 = self.encode2.forward(
@@ -96,6 +112,7 @@ class FastSurferCNNBase(nn.Module):
 
 
 class FastSurferCNN(FastSurferCNNBase):
+    """ """
     def __init__(self, params, padded_size):
         super(FastSurferCNN, self).__init__(params)
         params["num_channels"] = params["num_filters"]
@@ -114,9 +131,18 @@ class FastSurferCNN(FastSurferCNNBase):
     def forward(self, x, scale_factor=None, scale_factor_out=None):
         """
 
-        :param x: [N, C, H, W]
-        :param scale_factor: [N, 1]
-        :return:
+        Parameters
+        ----------
+        x :
+            [N, C, H, W]
+        scale_factor :
+            [N, 1] (Default value = None)
+        scale_factor_out :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         net_out = super().forward(x, scale_factor)
         output = self.classifier.forward(net_out)
@@ -125,8 +151,7 @@ class FastSurferCNN(FastSurferCNNBase):
 
 
 class FastSurferVINN(FastSurferCNNBase):
-    """
-    Network Definition of Fully Competitive Network
+    """Network Definition of Fully Competitive Network
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
     * Dense Connections in blocks
@@ -134,6 +159,13 @@ class FastSurferVINN(FastSurferCNNBase):
     * Concatenationes are replaced with Maxout (competitive dense blocks)
     * Global skip connections are fused by Maxout (global competition)
     * Loss Function (weighted Cross-Entropy and dice loss)
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, params, padded_size=256):
@@ -204,10 +236,20 @@ class FastSurferVINN(FastSurferCNNBase):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x, scale_factor, scale_factor_out=None):
-        """
-        Computational graph
-        :param tensor x: input image
-        :return tensor: prediction logits
+        """Computational graph
+
+        Parameters
+        ----------
+        x : tensor
+            input image
+        scale_factor :
+            
+        scale_factor_out :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         # Input block + Flex to 1 mm
         skip_encoder_0 = self.inp_block(x)
@@ -249,6 +291,17 @@ _MODELS = {
 
 
 def build_model(cfg):
+    """
+
+    Parameters
+    ----------
+    cfg :
+        
+
+    Returns
+    -------
+
+    """
     assert (
         cfg.MODEL.MODEL_NAME in _MODELS.keys()
     ), f"Model {cfg.MODEL.MODEL_NAME} not supported"

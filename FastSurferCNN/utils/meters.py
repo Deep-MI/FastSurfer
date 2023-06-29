@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class Meter:
+    """ """
     def __init__(
         self,
         cfg,
@@ -51,20 +52,55 @@ class Meter:
         self.total_epochs = total_epoch
 
     def reset(self):
+        """ """
         self.batch_losses = []
         self.dice_score.reset()
 
     def enable_confusion_mat(self):
+        """ """
         self.confusion_mat = True
 
     def disable_confusion_mat(self):
+        """ """
         self.confusion_mat = False
 
     def update_stats(self, pred, labels, batch_loss):
+        """
+
+        Parameters
+        ----------
+        pred :
+            
+        labels :
+            
+        batch_loss :
+            
+
+        Returns
+        -------
+
+        """
         self.dice_score.update((pred, labels), self.confusion_mat)
         self.batch_losses.append(batch_loss.item())
 
     def write_summary(self, loss_total, lr=None, loss_ce=None, loss_dice=None):
+        """
+
+        Parameters
+        ----------
+        loss_total :
+            
+        lr :
+             (Default value = None)
+        loss_ce :
+             (Default value = None)
+        loss_dice :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         self.writer.add_scalar(
             f"{self.mode}/total_loss", loss_total.item(), self.global_iter
         )
@@ -82,6 +118,19 @@ class Meter:
         self.global_iter += 1
 
     def log_iter(self, cur_iter, cur_epoch):
+        """
+
+        Parameters
+        ----------
+        cur_iter :
+            
+        cur_epoch :
+            
+
+        Returns
+        -------
+
+        """
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
             logger.info(
                 "{} Epoch [{}/{}] Iter [{}/{}] with loss {:.4f}".format(
@@ -95,6 +144,17 @@ class Meter:
             )
 
     def log_epoch(self, cur_epoch):
+        """
+
+        Parameters
+        ----------
+        cur_epoch :
+            
+
+        Returns
+        -------
+
+        """
         dice_score = self.dice_score.compute_dsc()
         self.writer.add_scalar(f"{self.mode}/mean_dice_score", dice_score, cur_epoch)
         if self.confusion_mat:

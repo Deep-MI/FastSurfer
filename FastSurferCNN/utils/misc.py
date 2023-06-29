@@ -27,14 +27,24 @@ from skimage import color
 def plot_predictions(
     images_batch, labels_batch, batch_output, plt_title, file_save_name
 ):
-    """
-    Function to plot predictions from validation set.
-    :param images_batch:
-    :param labels_batch:
-    :param batch_output:
-    :param plt_title:
-    :param file_save_name:
-    :return:
+    """Function to plot predictions from validation set.
+
+    Parameters
+    ----------
+    images_batch :
+        
+    labels_batch :
+        
+    batch_output :
+        
+    plt_title :
+        
+    file_save_name :
+        
+
+    Returns
+    -------
+
     """
     f = plt.figure(figsize=(20, 10))
     n, c, h, w = images_batch.shape
@@ -67,6 +77,25 @@ def plot_predictions(
 def plot_confusion_matrix(
     cm, classes, title="Confusion matrix", cmap=plt.cm.Blues, file_save_name="temp.pdf"
 ):
+    """
+
+    Parameters
+    ----------
+    cm :
+        
+    classes :
+        
+    title :
+         (Default value = "Confusion matrix")
+    cmap :
+         (Default value = plt.cm.Blues)
+    file_save_name :
+         (Default value = "temp.pdf")
+
+    Returns
+    -------
+
+    """
     n_classes = len(classes)
 
     fig, ax = plt.subplots()
@@ -108,6 +137,17 @@ def plot_confusion_matrix(
 
 
 def find_latest_experiment(path):
+    """
+
+    Parameters
+    ----------
+    path :
+        
+
+    Returns
+    -------
+
+    """
     list_of_experiments = os.listdir(path)
     list_of_int_experiments = []
     for exp in list_of_experiments:
@@ -124,9 +164,33 @@ def find_latest_experiment(path):
 
 
 def check_path(path):
+    """
+
+    Parameters
+    ----------
+    path :
+        
+
+    Returns
+    -------
+
+    """
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def update_num_steps(dataloader, cfg):
+    """
+
+    Parameters
+    ----------
+    dataloader :
+        
+    cfg :
+        
+
+    Returns
+    -------
+
+    """
     cfg.TRAIN.NUM_STEPS = len(dataloader)

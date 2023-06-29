@@ -66,11 +66,16 @@ h_out = "path to output txt files for angles"
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser
 
-    Returns:
-        options: object holding options
+    Parameters
+    ----------
+
+    Returns
+    -------
+    options
+        object holding options
+
     """
 
     parser = optparse.OptionParser(
@@ -105,18 +110,26 @@ def align_aparc_centroids(
         labels_dst: npt.ArrayLike,
         label_ids: npt.ArrayLike = []
 ) -> np.ndarray:
-    """
-    Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
+    """Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
 
-    Args:
-        v_mov: Vertices of aparc pareclation to move.
-        labels_mov: Labels of aparc parcelation to move.
-        v_dst: Vertices of aparc pareclation for rotation destination.
-        labels_dst: Labels of aparc parcelation for rotation destination.
-        label_ids: Ids of the centroid to be aligned. Defaults to []
+    Parameters
+    ----------
+    v_mov : npt.ArrayLike
+        Vertices of aparc pareclation to move.
+    labels_mov : npt.ArrayLike
+        Labels of aparc parcelation to move.
+    v_dst : npt.ArrayLike
+        Vertices of aparc pareclation for rotation destination.
+    labels_dst : npt.ArrayLike
+        Labels of aparc parcelation for rotation destination.
+    label_ids : npt.ArrayLike
+        Ids of the centroid to be aligned. Defaults to []
 
-    Returns:
-        R: Rotation Matrix
+    Returns
+    -------
+    R
+        Rotation Matrix
+
     """
 
     #nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate

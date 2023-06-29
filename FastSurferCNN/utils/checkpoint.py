@@ -34,11 +34,21 @@ VINN_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/aparc_vinn_sagittal_v2.0.0
 
 
 def create_checkpoint_dir(expr_dir, expr_num):
-    """
-        Create the checkpoint dir if not exists
-    :param expr_dir:
-    :param expr_num:
-    :return: checkpoint path
+    """Create the checkpoint dir if not exists
+
+    Parameters
+    ----------
+    expr_dir :
+        
+    expr_num :
+        
+
+    Returns
+    -------
+    type
+        checkpoint path
+
+    
     """
     checkpoint_dir = os.path.join(expr_dir, "checkpoints", str(expr_num))
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -46,7 +56,20 @@ def create_checkpoint_dir(expr_dir, expr_num):
 
 
 def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
-    """Find the standardizes checkpoint name for the checkpoint in the directory ckpt_dir for the given epoch."""
+    """Find the standardizes checkpoint name for the checkpoint in the directory ckpt_dir for the given epoch.
+
+    Parameters
+    ----------
+    ckpt_dir : str
+        
+    epoch : int
+        
+
+    Returns
+    -------
+
+    
+    """
     checkpoint_dir = os.path.join(
         ckpt_dir, "Epoch_{:05d}_training_state.pkl".format(epoch)
     )
@@ -58,12 +81,17 @@ def get_checkpoint_path(
 ) -> Optional[MutableSequence[str]]:
     """Find the paths to checkpoints from the experiment directory.
 
-    Args:
-        log_dir: experiment directory
-        resume_experiment: sub-experiment to search in for a model
+    Parameters
+    ----------
+    log_dir : str
+        experiment directory
+    resume_experiment : Union[str, int, None]
+        sub-experiment to search in for a model (Default value = None)
 
-    Returns:
-        None, if no models are found, or a list of filenames for checkpoints.
+    Returns
+    -------
+
+    
     """
     if resume_experiment == "Default" or resume_experiment is None:
         return None
@@ -84,16 +112,29 @@ def load_from_checkpoint(
     fine_tune: bool = False,
     drop_classifier: bool = False,
 ):
-    """
-     Loading the model from the given experiment number
-    :param checkpoint_path:
-    :param model:
-    :param optimizer:
-    :param scheduler:
-    :param fine_tune:
-    :param drop_classifier:
-    :return:
+    """Loading the model from the given experiment number
+
+    Parameters
+    ----------
+    checkpoint_path : str
+        
+    model : torch.nn.Module
+        
+    optimizer : Optional[torch.optim.Optimizer]
+        (Default value = None)
+    scheduler : Optional[Scheduler]
+        (Default value = None)
+    fine_tune : bool
+        (Default value = False)
+    drop_classifier : bool
+        (Default value = False)
+
+    Returns
+    -------
+    type
         epoch number
+
+    
     """
     checkpoint = torch.load(checkpoint_path, map_location="cpu")
 
@@ -127,17 +168,33 @@ def save_checkpoint(
     scheduler=None,
     best=False,
 ):
-    """
-        Saving the state of training for resume or fine-tune
-    :param checkpoint_dir:
-    :param epoch:
-    :param best_metric:
-    :param num_gpus:
-    :param cfg:
-    :param model:
-    :param optimizer:
-    :param scheduler:
-    :return:
+    """Saving the state of training for resume or fine-tune
+
+    Parameters
+    ----------
+    checkpoint_dir :
+        
+    epoch :
+        
+    best_metric :
+        
+    num_gpus :
+        
+    cfg :
+        
+    model :
+        
+    optimizer :
+        
+    scheduler :
+        (Default value = None)
+    best :
+        (Default value = False)
+
+    Returns
+    -------
+
+    
     """
     save_name = f"Epoch_{epoch:05d}_training_state.pkl"
     saving_model = model.module if num_gpus > 1 else model
@@ -160,6 +217,18 @@ def save_checkpoint(
 
 
 def remove_ckpt(ckpt):
+    """
+
+    Parameters
+    ----------
+    ckpt :
+        
+
+    Returns
+    -------
+
+    
+    """
     try:
         os.remove(ckpt)
     except FileNotFoundError:
@@ -167,13 +236,22 @@ def remove_ckpt(ckpt):
 
 
 def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
-    """
-        Download a checkpoint file. Raises an HTTPError if the file is not found
+    """Download a checkpoint file. Raises an HTTPError if the file is not found
         or the server is not reachable.
-    :param download_url: str: URL of checkpoint hosting site
-    :param checkpoint_name: str: name of checkpoint
-    :param checkpoint_path: str: path of the file in which the checkpoint will be saved
-    :return:
+
+    Parameters
+    ----------
+    download_url :
+        str: URL of checkpoint hosting site
+    checkpoint_name :
+        str: name of checkpoint
+    checkpoint_path :
+        str: path of the file in which the checkpoint will be saved
+
+    Returns
+    -------
+
+    
     """
     try:
         response = requests.get(download_url + "/" + checkpoint_name, verify=True)
@@ -189,11 +267,19 @@ def download_checkpoint(download_url, checkpoint_name, checkpoint_path):
 
 
 def check_and_download_ckpts(checkpoint_path, url):
-    """
-        Check and download a checkpoint file, if it does not exist.
-    :param checkpoint_path: str: path of the file in which the checkpoint will be saved
-    :param download_url: str: URL of checkpoint hosting site
-    :return:
+    """Check and download a checkpoint file, if it does not exist.
+
+    Parameters
+    ----------
+    checkpoint_path :
+        str: path of the file in which the checkpoint will be saved
+    url :
+        
+
+    Returns
+    -------
+
+    
     """
     # Download checkpoint file from url if it does not exist
     if not os.path.exists(checkpoint_path):
@@ -204,10 +290,23 @@ def check_and_download_ckpts(checkpoint_path, url):
 
 
 def get_checkpoints(axi, cor, sag, url=URL):
-    """
-        Check and download checkpoint files if not exist
-    :param download_url: str: URL of checkpoint hosting site
-    :return:
+    """Check and download checkpoint files if not exist
+
+    Parameters
+    ----------
+    axi :
+        
+    cor :
+        
+    sag :
+        
+    url :
+        (Default value = URL)
+
+    Returns
+    -------
+
+    
     """
     check_and_download_ckpts(axi, url)
     check_and_download_ckpts(cor, url)

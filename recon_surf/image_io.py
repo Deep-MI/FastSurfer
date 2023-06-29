@@ -29,15 +29,20 @@ def mgh_from_sitk(
         sitk_img: sitk.Image,
         orig_mgh_header: Optional[nib.freesurfer.mghformat.MGHHeader] = None
 ) -> nib.MGHImage:
-    """
-    converts sitk image to mgh image
+    """converts sitk image to mgh image
 
-    Args:
-        sitk_img: sitk image
-        orig_mgh_header: original mgh image header
+    Parameters
+    ----------
+    sitk_img : sitk.Image
+        sitk image
+    orig_mgh_header : Optional[nib.freesurfer.mghformat.MGHHeader]
+        original mgh image header (Default value = None)
 
-    Returns:
-        mgh_img: mgh image
+    Returns
+    -------
+    mgh_img
+        mgh image
+
     """
 
     if orig_mgh_header:
@@ -71,14 +76,18 @@ def mgh_from_sitk(
     
     
 def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
-    """
-    converts mgh image to sitk image
+    """converts mgh image to sitk image
 
-    Args:
-        img: mgh image
+    Parameters
+    ----------
+    img : nib.MGHImage
+        mgh image
 
-    Returns:
-        img_sitk: sitk image
+    Returns
+    -------
+    img_sitk
+        sitk image
+
     """
 
     # reorder data as structure differs between nibabel and sITK:
@@ -104,17 +113,24 @@ def readITKimage(
         vox_type: Optional[Any] = None,
         with_header: bool = False
 ) -> Union[sitk.Image, Tuple[sitk.Image, Any]]:
-    """
-    reads the itk image
+    """reads the itk image
 
-    Args:
-        filename: Filename of the image
-        vox_type: Voxel type. Defaults to None
-        with_header: If True, then header is also returned. Defaults to False
+    Parameters
+    ----------
+    filename : str
+        Filename of the image
+    vox_type : Optional[Any]
+        Voxel type. Defaults to None
+    with_header : bool
+        If True, then header is also returned. Defaults to False
 
-    Returns:
-        itkimage: itk image
-        header: Image header (if with_header = True)
+    Returns
+    -------
+    itkimage
+        itk image
+    header
+        Image header (if with_header = True)
+
     """
 
     # If image is nifti image
@@ -152,10 +168,18 @@ def writeITKimage(
 ) -> None:
     """
 
-    Args:
-        img: itk image to save
-        filename: Path and filename to save to
-        header: mgh image header
+    Parameters
+    ----------
+    img : sitk.Image
+        itk image to save
+    filename : str
+        Path and filename to save to
+    header : Optional[nib.freesurfer.mghformat.MGHHeader]
+        mgh image header (Default value = None)
+
+    Returns
+    -------
+
     """
 
     # If image is nifti image

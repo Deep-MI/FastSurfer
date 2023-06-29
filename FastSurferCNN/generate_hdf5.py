@@ -39,6 +39,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class H5pyDataset:
+    """ """
     def __init__(self, params, processing="aparc"):
 
         self.dataset_name = params["dataset_name"]
@@ -72,6 +73,17 @@ class H5pyDataset:
         self.data_set_size = len(self.subject_dirs)
 
     def _load_volumes(self, subject_path):
+        """
+
+        Parameters
+        ----------
+        subject_path :
+            
+
+        Returns
+        -------
+
+        """
         # Load the orig and extract voxel spacing informatino (x, y, and z dim)
         LOGGER.info(
             "Processing intensity image {} and ground truth segmentation {}".format(
@@ -96,6 +108,19 @@ class H5pyDataset:
         return orig, aseg, aseg_nocc, zoom
 
     def transform(self, imgs, zoom):
+        """
+
+        Parameters
+        ----------
+        imgs :
+            
+        zoom :
+            
+
+        Returns
+        -------
+
+        """
 
         for i in range(len(imgs)):
             if self.plane == "sagittal":
@@ -109,6 +134,19 @@ class H5pyDataset:
         return imgs, zooms
 
     def _pad_image(self, img, max_out):
+        """
+
+        Parameters
+        ----------
+        img :
+            
+        max_out :
+            
+
+        Returns
+        -------
+
+        """
         # Get correct size = max along shape
         h, w, d = img.shape
         LOGGER.info("Padding image from {0} to {1}x{1}x{1}".format(img.shape, max_out))
@@ -117,6 +155,17 @@ class H5pyDataset:
         return padded_img
 
     def create_hdf5_dataset(self, blt):
+        """
+
+        Parameters
+        ----------
+        blt :
+            
+
+        Returns
+        -------
+
+        """
         data_per_size = defaultdict(lambda: defaultdict(list))
         start_d = time.time()
 

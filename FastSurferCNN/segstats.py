@@ -75,6 +75,21 @@ class HelpFormatter(argparse.HelpFormatter):
     """Help formatter that keeps line breaks for texts that start with '/keeplinebreaks/'."""
 
     def _fill_text(self, text, width, indent):
+        """
+
+        Parameters
+        ----------
+        text :
+            
+        width :
+            
+        indent :
+            
+
+        Returns
+        -------
+
+        """
         klb_str = '/keeplinebreaks/'
         if text.startswith(klb_str):
             # the following line is from argparse.RawDescriptionHelpFormatter
@@ -84,6 +99,15 @@ class HelpFormatter(argparse.HelpFormatter):
 
 
 def make_arguments() -> argparse.ArgumentParser:
+    """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     parser = argparse.ArgumentParser(usage=USAGE, epilog=HELPTEXT, description=DESCRIPTION,
                                      formatter_class=HelpFormatter)
     parser.add_argument('-norm', '--normfile', type=str, required=True, dest='normfile',
@@ -152,6 +176,19 @@ def make_arguments() -> argparse.ArgumentParser:
 
 def loadfile_full(file: str, name: str) \
         -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+    """
+
+    Parameters
+    ----------
+    file : str
+        
+    name : str
+        
+
+    Returns
+    -------
+
+    """
     try:
         img = nib.load(file)
     except (IOError, FileNotFoundError) as e:
@@ -161,6 +198,17 @@ def loadfile_full(file: str, name: str) \
 
 
 def main(args):
+    """
+
+    Parameters
+    ----------
+    args :
+        
+
+    Returns
+    -------
+
+    """
     import os
     import time
     start = time.perf_counter_ns()
@@ -300,22 +348,50 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
                     segfile: str = None, normfile: str = None, lut: str = None, extra_header: Sequence[str] = ()):
     """Write a segstatsfile very similar and compatible with mri_segstats output.
 
-    Args:
-        segstatsfile: path to the output file
-        dataframe: data to write into the file
-        vox_vol: voxel volume for the header
-        exclude: dictionary of ids and class names that were excluded from the pv analysis (default: None)
-        segfile: path to the segmentation file (default: empty)
-        normfile: path to the bias-field corrected image (default: empty)
-        lut: path to the lookup table to find class names for label ids (default: empty)
-        extra_header: sequence of additional lines to add to the header. The initial # and newline characters will be
-            added. Should not include newline characters (expect at the end of strings). (default: empty sequence)
+    Parameters
+    ----------
+    segstatsfile : str
+        path to the output file
+    dataframe : pd.DataFrame
+        data to write into the file
+    vox_vol : float
+        voxel volume for the header
+    exclude : Optional[Dict[int, str]]
+        dictionary of ids and class names that were excluded from the pv analysis (default: None)
+    segfile : str
+        path to the segmentation file (default: empty)
+    normfile : str
+        path to the bias-field corrected image (default: empty)
+    lut : str
+        path to the lookup table to find class names for label ids (default: empty)
+    extra_header : Sequence[str]
+        sequence of additional lines to add to the header. The initial # and newline characters will be
+        added. Should not include newline characters (expect at the end of strings). (default: empty sequence)
+
+    Returns
+    -------
+
     """
     import sys
     import os
     import datetime
 
     def file_annotation(_fp, name: str, file: Optional[str]) -> None:
+        """
+
+        Parameters
+        ----------
+        _fp :
+            
+        name : str
+            
+        file : Optional[str]
+            
+
+        Returns
+        -------
+
+        """
         if file is not None:
             _fp.write(f"# {name} {file}\n")
             stat = os.stat(file)
@@ -386,6 +462,19 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
         max_index = int(np.ceil(np.log10(np.max(dataframe.index))))
 
         def fmt_field(code: str, data) -> str:
+            """
+
+            Parameters
+            ----------
+            code : str
+                
+            data :
+                
+
+            Returns
+            -------
+
+            """
             is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
             filler = "<" if is_s else " >"
             prec = int(data.dropna().map(len).max() if is_s else np.ceil(np.log10(data.max())))
@@ -403,16 +492,22 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 # Label mapping functions (to aparc (eval) and to label (train))
 def read_classes_from_lut(lut_file):
     """This function is modified from datautils to allow support for FreeSurfer-distributed ColorLUTs
-
+    
     Function to read in **FreeSurfer-like** LUT table
-    Args:
-         lut_file: path and name of FreeSurfer-style LUT file with classes of interest
-             Example entry:
-             ID LabelName  R   G   B   A
-             0   Unknown   0   0   0   0
-             1   Left-Cerebral-Exterior 70  130 180 0
-    Returns:
+
+    Parameters
+    ----------
+    lut_file :
+        path and name of FreeSurfer-style LUT file with classes of interest
+        Example entry:
+        ID LabelName  R   G   B   A
+        0   Unknown   0   0   0   0
+
+    Returns
+    -------
+    
         DataFrame with ids present, name of ids, color for plotting
+
     """
     if lut_file.endswith(".tsv"):
         return pd.read_csv(lut_file, sep="\t")
@@ -432,13 +527,40 @@ def read_classes_from_lut(lut_file):
 
 def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
                 out: Optional[_ArrayType] = None, cmp_dtype: npt.DTypeLike = "int8") -> _ArrayType:
-    """Handle to fast 6-connected border computation."""
+    """Handle to fast 6-connected border computation.
+
+    Parameters
+    ----------
+    _array : _ArrayType
+        
+    label : Union[np.integer, bool]
+        
+    out : Optional[_ArrayType]
+         (Default value = None)
+    cmp_dtype : npt.DTypeLike
+         (Default value = "int8")
+
+    Returns
+    -------
+
+    """
     # binarize
     bin_array = _array if np.issubdtype(_array.dtype, bool) else _array == label
     # scipy laplace is about 20% faster than skimage laplace on cpu
     from scipy.ndimage import laplace
 
     def _laplace(data):
+        """
+
+        Parameters
+        ----------
+        data :
+            
+
+        Returns
+        -------
+
+        """
         return laplace(data.astype(cmp_dtype)) != np.asarray(0., dtype=cmp_dtype)
     # laplace
     if out is not None:
@@ -450,7 +572,27 @@ def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
 
 def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_label: Optional[np.integer] = None,
             six_connected: bool = True, out: Optional[_ArrayType] = None) -> _ArrayType:
-    """Handle to fast border computation."""
+    """Handle to fast border computation.
+
+    Parameters
+    ----------
+    _array : _ArrayType
+        
+    labels : Union[Iterable[np.integer]
+        
+    bool] :
+        
+    max_label : Optional[np.integer]
+         (Default value = None)
+    six_connected : bool
+         (Default value = True)
+    out : Optional[_ArrayType]
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
 
     dim = _array.ndim
     array_alloc = partial(np.full, dtype=_array.dtype)
@@ -465,6 +607,19 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
             raise ValueError("If labels is a list/iterable, the array should not be boolean.")
 
         def cmp(a, b):
+            """
+
+            Parameters
+            ----------
+            a :
+                
+            b :
+                
+
+            Returns
+            -------
+
+            """
             return a == b
 
         if max_label is None:
@@ -483,6 +638,21 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
     mid = (slice(1, -1),) * dim
     if six_connected:
         def ii(axis: int, off: int, is_mid: bool) -> Tuple[slice, ...]:
+            """
+
+            Parameters
+            ----------
+            axis : int
+                
+            off : int
+                
+            is_mid : bool
+                
+
+            Returns
+            -------
+
+            """
             other_slices = mid[:1] if is_mid else (slice(None),)
             return other_slices * axis + (slice(off, -1 if off == 0 else None),) + other_slices * (
                     dim - axis - 1)
@@ -491,6 +661,17 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
         nbr_same = [logical_or(_ns[ii(i, 0, False)], _ns[ii(i, 1, False)]) for i, _ns in enumerate(nbr_same)]
     else:
         def ii(off: Iterable[int]) -> Tuple[slice, ...]:
+            """
+
+            Parameters
+            ----------
+            off : Iterable[int]
+                
+
+            Returns
+            -------
+
+            """
             return tuple(slice(o, None if o == 2 else o - 3) for o in off)
 
         nbr_same = [cmp(__array[mid], __array[ii(i - 1)]) for i in np.ndindex((3,) * dim) if np.all(i != 1)]
@@ -499,14 +680,40 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
 
 def unsqueeze(matrix, axis: Union[int, Sequence[int]] = -1):
     """Allows insertions of axis into the data/tensor, see numpy.expand_dims. This expands the torch.unsqueeze
-    syntax to allow unsqueezing multiple axis at the same time. """
+    syntax to allow unsqueezing multiple axis at the same time.
+
+    Parameters
+    ----------
+    matrix :
+        
+    axis : Union[int, Sequence[int]]
+         (Default value = -1)
+
+    Returns
+    -------
+
+    """
     if isinstance(matrix, np.ndarray):
         return np.expand_dims(matrix, axis=axis)
 
 
 def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, Sequence[float]]) -> Tuple[
     Tuple[slice, ...], Tuple[slice, ...]]:
-    """Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow' the patch `patch` by `whalf` (also considering the image shape)."""
+    """Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow' the patch `patch` by `whalf` (also considering the image shape).
+
+    Parameters
+    ----------
+    patch : Sequence[slice]
+        
+    whalf : int
+        
+    img_size : Union[np.ndarray, Sequence[float]]
+        
+
+    Returns
+    -------
+
+    """
     # patch start/stop
     _patch = np.asarray([(s.start, s.stop) for s in patch])
     start, stop = _patch.T
@@ -524,12 +731,43 @@ def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, S
 def uniform_filter(arr: _ArrayType, filter_size: int, fillval: float,
                    patch: Optional[Tuple[slice, ...]] = None, out: Optional[_ArrayType] = None) -> _ArrayType:
     """Apply a uniform filter (with kernel size `filter_size`) to `input`. The uniform filter is normalized
-    (weights add to one)."""
+    (weights add to one).
+
+    Parameters
+    ----------
+    arr : _ArrayType
+        
+    filter_size : int
+        
+    fillval : float
+        
+    patch : Optional[Tuple[slice, ...]]
+         (Default value = None)
+    out : Optional[_ArrayType]
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     _patch = (slice(None),) if patch is None else patch
     arr = arr.astype(float)
     from scipy.ndimage import uniform_filter
 
     def _uniform_filter(_arr, out=None):
+        """
+
+        Parameters
+        ----------
+        _arr :
+            
+        out :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         return uniform_filter(_arr, size=filter_size, mode='constant', cval=fillval, output=out)[_patch]
 
     if out is not None:
@@ -543,6 +781,37 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
             merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: False = False,
             legacy_freesurfer: bool = False) -> List[PVStats]:
+    """
+
+    Parameters
+    ----------
+    seg : npt.NDArray[_IntType]
+        
+    norm : np.ndarray
+        
+    labels : Sequence[_IntType]
+        
+    patch_size : int
+         (Default value = 32)
+    vox_vol : float
+         (Default value = 1.0)
+    eps : float
+         (Default value = 1e-6)
+    robust_percentage : Optional[float]
+         (Default value = None)
+    merged_labels : Optional[VirtualLabel]
+         (Default value = None)
+    threads : int
+         (Default value = -1)
+    return_maps : False
+         (Default value = False)
+    legacy_freesurfer : bool
+         (Default value = False)
+
+    Returns
+    -------
+
+    """
     ...
 
 
@@ -552,6 +821,37 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: True = True,
             legacy_freesurfer: bool = False) \
         -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
+    """
+
+    Parameters
+    ----------
+    seg : npt.NDArray[_IntType]
+        
+    norm : np.ndarray
+        
+    labels : Sequence[_IntType]
+        
+    patch_size : int
+         (Default value = 32)
+    vox_vol : float
+         (Default value = 1.0)
+    eps : float
+         (Default value = 1e-6)
+    robust_percentage : Optional[float]
+         (Default value = None)
+    merged_labels : Optional[VirtualLabel]
+         (Default value = None)
+    threads : int
+         (Default value = -1)
+    return_maps : True
+         (Default value = True)
+    legacy_freesurfer : bool
+         (Default value = False)
+
+    Returns
+    -------
+
+    """
     ...
 
 
@@ -562,33 +862,43 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
     """Function to compute volume effects.
 
-    Args:
-        seg: Segmentation array with segmentation labels
-        norm: bias-field corrected image
-        labels: Which labels are of interest
-        patch_size: Size of patches (default: 32)
-        vox_vol: volume per voxel (default: 1.0)
-        eps: threshold for computation of equality (default: 1e-6)
-        robust_percentage: fraction for robust calculation of statistics (e.g. 0.95 drops both the 2.5%
-            lowest and highest values per region) (default: None/1. == off)
-        merged_labels: defines labels to compute statistics for that are "just" merged. Definition by a dictionary of
-            merged label ID (key) and to be merged IDs (sequence of values). (default: None)
-        threads: Number of parallel threads to use in calculation (default: -1, one per hardware thread; 0 deactivates
-            parallelism).
-        return_maps: returns a dictionary containing the computed maps.
-        legacy_freesurfer: whether to use a freesurfer legacy compatibility mode to exactly replicate freesurfer's
-            mri_segstats results instead of the inconsistency between face-neighborhood and vertex neighborhood
-            (default: off = False).
+    Parameters
+    ----------
+    seg : npt.NDArray[_IntType]
+        Segmentation array with segmentation labels
+    norm : np.ndarray
+        bias
+    labels : Sequence[_IntType]
+        Which labels are of interest
+    patch_size : int
+        Size of patches (Default value = 32)
+    vox_vol : float
+        volume per voxel (Default value = 1.0)
+    eps : float
+        threshold for computation of equality (Default value = 1e-6)
+    robust_percentage : Optional[float]
+        fraction for robust calculation of statistics (Default value = None)
+    merged_labels : Optional[VirtualLabel]
+        defines labels to compute statistics for that are (Default value = None)
+    threads : int
+        Number of parallel threads to use in calculation (Default value = -1)
+    return_maps : bool
+        returns a dictionary containing the computed maps (Default value = False)
+    legacy_freesurfer : bool
+        whether to use a freesurfer legacy compatibility mode to exactly replicate freesurfer (Default value = False)
 
-    Returns:
+    Returns
+    -------
+    \Union[List[PVStats],Tuple[List[PVStats],Dict[str,np.ndarray]]]
         Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, StructName, normMean, normStdDev,
-            normMin, normMax, and normRange. (Note: StructName is unfilled)
+        normMin, normMax, and normRange. (Note: StructName is unfilled)
         if return_maps: a dictionary with the 5 meta-information pv-maps:
-            nbr: An image of alternative labels that were considered instead of the voxel's label
-            nbrmean: The local mean intensity of the label nbr at the specific voxel
-            segmean: The local mean intensity of the primary label at the specific voxel
-            pv: The partial volume of the primary label at the location
-            ipv: The partial volume of the alternative (nbr) label at the location
+        nbr: An image of alternative labels that were considered instead of the voxel's label
+        nbrmean: The local mean intensity of the label nbr at the specific voxel
+        segmean: The local mean intensity of the primary label at the specific voxel
+        pv: The partial volume of the primary label at the location
+        ipv: The partial volume of the alternative (nbr) label at the location
+
     """
 
     if not isinstance(seg, np.ndarray) and np.issubdtype(seg.dtype, np.integer):
@@ -686,6 +996,21 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
               "normRange": maxes.get(lab, 0.) - mins.get(lab, 0.)} for lab in labels]
     if merged_labels is not None:
         def agg(f: Callable[..., np.ndarray], source: Dict[int, _NumberType], merge_labels: Iterable[int]) -> _NumberType:
+            """
+
+            Parameters
+            ----------
+            f : Callable[..., np.ndarray]
+                
+            source : Dict[int, _NumberType]
+                
+            merge_labels : Iterable[int]
+                
+
+            Returns
+            -------
+
+            """
             return f([source.get(l, 0) for l in merge_labels if __voxel_counts.get(l) is not None]).item()
 
         for lab, merge in merged_labels.items():
@@ -714,7 +1039,25 @@ def global_stats(lab: _IntType, norm: npt.NDArray[_NumberType], seg: npt.NDArray
         -> Union[Tuple[_IntType, int],
                  Tuple[_IntType, int, int, _NumberType, _NumberType, float, float, float, npt.NDArray[bool]]]:
     """Computes Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum, sum of squares and
-    6-connected border of label lab (out references the border)."""
+    6-connected border of label lab (out references the border).
+
+    Parameters
+    ----------
+    lab : _IntType
+        
+    norm : npt.NDArray[_NumberType]
+        
+    seg : npt.NDArray[_IntType]
+        
+    out : Optional[npt.NDArray[bool]]
+         (Default value = None)
+    robust_percentage : Optional[float]
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     bin_array = cast(npt.NDArray[bool], seg == lab)
     data = norm[bin_array].astype(int if np.issubdtype(norm.dtype, np.integer) else float)
     nvoxels: int = data.shape[0]
@@ -749,7 +1092,23 @@ def patch_filter(pos: Tuple[int, int, int], mask: npt.NDArray[bool],
                  global_crop: Tuple[slice, ...], patch_size: int = 32) \
         -> Tuple[bool, Sequence[slice]]:
     """Returns, whether there are mask-True voxels in the patch starting at pos with size patch_size and the resulting
-    patch shrunk to mask-True regions."""
+    patch shrunk to mask-True regions.
+
+    Parameters
+    ----------
+    pos : Tuple[int, int, int]
+        
+    mask : npt.NDArray[bool]
+        
+    global_crop : Tuple[slice, ...]
+        
+    patch_size : int
+         (Default value = 32)
+
+    Returns
+    -------
+
+    """
     # create slices for current patch context (constrained by the global_crop)
     patch = [slice(p, min(p + patch_size, slice_.stop)) for p, slice_ in zip(pos, global_crop)]
     # crop patch context to the image content
@@ -763,12 +1122,19 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
     is any mask>0 in the patch and a patch shrunk to mask>0 regions. The optional subpatch constrains this operation to
     the sub-region defined by a sequence of slicing operations.
 
-    Args:
-        mask: to crop to
-        sub_patch: subregion of mask to only consider (default: full mask)
+    Parameters
+    ----------
+    mask : npt.NDArray[_NumberType]
+        to crop to
+    sub_patch : Optional[Sequence[slice]]
+        subregion of mask to only consider (default: full mask)
+        Note:
+        This function requires device synchronization.
 
-    Note:
-        This function requires device synchronization."""
+    Returns
+    -------
+
+    """
 
     _patch = []
     patch = tuple([slice(0, s) for s in mask.shape] if sub_patch is None else sub_patch)
@@ -809,7 +1175,41 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
                   legacy_freesurfer: bool = False) \
         -> Dict[_IntType, float]:
     """Calculates PV for patch. If full* keyword arguments are passed, also fills, per voxel results for the respective
-    voxels in the patch."""
+    voxels in the patch.
+
+    Parameters
+    ----------
+    patch : Tuple[slice, ...]
+        
+    global_crop : Tuple[slice, ...]
+        
+    loc_border : Dict[_IntType, npt.NDArray[bool]]
+        
+    seg : npt.NDArray[_IntType]
+        
+    norm : np.ndarray
+        
+    border : npt.NDArray[bool]
+        
+    full_pv : Optional[npt.NDArray[float]]
+         (Default value = None)
+    full_ipv : Optional[npt.NDArray[float]]
+         (Default value = None)
+    full_nbr_label : Optional[npt.NDArray[_IntType]]
+         (Default value = None)
+    full_seg_mean : Optional[npt.NDArray[float]]
+         (Default value = None)
+    full_nbr_mean : Optional[npt.NDArray[float]]
+         (Default value = None)
+    eps : float
+         (Default value = 1e-6)
+    legacy_freesurfer : bool
+         (Default value = False)
+
+    Returns
+    -------
+
+    """
 
     log_eps = -int(np.log10(eps))
 
@@ -905,7 +1305,41 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
 
 def patch_neighbors(labels, norm, seg, pat_border, loc_border, patch_grow7, patch_in_gc, patch_shrink6,
                         ungrow1_patch, ungrow7_patch, ndarray_alloc, eps, legacy_freesurfer = False):
-    """Helper function to calculate the neighbor statistics of labels, etc."""
+    """Helper function to calculate the neighbor statistics of labels, etc.
+
+    Parameters
+    ----------
+    labels :
+        
+    norm :
+        
+    seg :
+        
+    pat_border :
+        
+    loc_border :
+        
+    patch_grow7 :
+        
+    patch_in_gc :
+        
+    patch_shrink6 :
+        
+    ungrow1_patch :
+        
+    ungrow7_patch :
+        
+    ndarray_alloc :
+        
+    eps :
+        
+    legacy_freesurfer :
+         (Default value = False)
+
+    Returns
+    -------
+
+    """
     loc_shape = (len(labels),) + pat_border.shape
 
     pat_label_counts, pat_label_sums = ndarray_alloc((2,) + loc_shape, fill_value=0., dtype=float)

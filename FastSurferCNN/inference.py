@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class Inference:
+    """ """
 
     permute_order: Dict[str, Tuple[int, int, int, int]]
     device: Optional[torch.device]
@@ -82,6 +83,19 @@ class Inference:
             self.load_checkpoint(ckpt)
 
     def setup_model(self, cfg=None, device: torch.device = None):
+        """
+
+        Parameters
+        ----------
+        cfg :
+             (Default value = None)
+        device : torch.device
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if cfg is not None:
             self.cfg = cfg
         if device is None:
@@ -95,9 +109,31 @@ class Inference:
         self.device = None
 
     def set_cfg(self, cfg):
+        """
+
+        Parameters
+        ----------
+        cfg :
+            
+
+        Returns
+        -------
+
+        """
         self.cfg = cfg
 
     def to(self, device: Optional[torch.device] = None):
+        """
+
+        Parameters
+        ----------
+        device : Optional[torch.device]
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if self.model_parallel:
             raise RuntimeError(
                 "Moving the model to other devices is not supported for multi-device models."
@@ -107,6 +143,17 @@ class Inference:
         self.model.to(device=_device)
 
     def load_checkpoint(self, ckpt):
+        """
+
+        Parameters
+        ----------
+        ckpt :
+            
+
+        Returns
+        -------
+
+        """
         logger.info("Loading checkpoint {}".format(ckpt))
 
         self.model = self._model_not_init
@@ -134,30 +181,38 @@ class Inference:
             self.model = torch.nn.DataParallel(self.model)
 
     def get_modelname(self):
+        """ """
         return self.model_name
 
     def get_cfg(self):
+        """ """
         return self.cfg
 
     def get_num_classes(self):
+        """ """
         return self.cfg.MODEL.NUM_CLASSES
 
     def get_plane(self):
+        """ """
         return self.cfg.DATA.PLANE
 
     def get_model_height(self):
+        """ """
         return self.cfg.MODEL.HEIGHT
 
     def get_model_width(self):
+        """ """
         return self.cfg.MODEL.WIDTH
 
     def get_max_size(self):
+        """ """
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH
         else:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
 
     def get_device(self):
+        """ """
         return self.device
 
     @torch.no_grad()
@@ -169,7 +224,25 @@ class Inference:
         out_scale=None,
         out: Optional[torch.Tensor] = None,
     ):
-        """Perform prediction and inplace-aggregate views into pred_prob. Return pred_prob."""
+        """Perform prediction and inplace-aggregate views into pred_prob. Return pred_prob.
+
+        Parameters
+        ----------
+        init_pred : torch.Tensor
+            
+        val_loader : DataLoader
+            
+        * :
+            
+        out_scale :
+             (Default value = None)
+        out : Optional[torch.Tensor]
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         self.model.eval()
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
         if not isinstance(val_loader.sampler, torch.utils.data.SequentialSampler):
@@ -250,7 +323,29 @@ class Inference:
         out_res=None,
         batch_size: int = None,
     ):
-        """Run the loaded model on the data (T1) from orig_data and image_name (for messages only) with scale factors orig_zoom."""
+        """Run the loaded model on the data (T1) from orig_data and image_name (for messages only) with scale factors orig_zoom.
+
+        Parameters
+        ----------
+        init_pred : torch.Tensor
+            
+        image_name :
+            
+        orig_data :
+            
+        orig_zoom :
+            
+        out : Optional[torch.Tensor]
+             (Default value = None)
+        out_res :
+             (Default value = None)
+        batch_size : int
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(
             orig_data,

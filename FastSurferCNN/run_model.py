@@ -24,6 +24,7 @@ from FastSurferCNN.train import Trainer
 
 
 def setup_options():
+    """ """
     # Training settings
     parser = argparse.ArgumentParser(description="Segmentation")
 
@@ -51,6 +52,7 @@ def setup_options():
 
 
 def main():
+    """ """
     args = setup_options()
     cfg = get_config(args)
 

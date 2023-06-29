@@ -17,6 +17,19 @@ import torch
 
 
 def get_optimizer(model, cfg):
+    """
+
+    Parameters
+    ----------
+    model :
+        
+    cfg :
+        
+
+    Returns
+    -------
+
+    """
     if cfg.OPTIMIZER.OPTIMIZING_METHOD == "sgd":
         return torch.optim.SGD(
             model.parameters(),

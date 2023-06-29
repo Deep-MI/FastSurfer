@@ -22,7 +22,18 @@ VoxSizeOption = Union[float, Literal["min"]]
 
 
 def vox_size(a: str) -> VoxSizeOption:
-    """Helper function to convert the vox_size argument to 'min' or a valid voxel size."""
+    """Helper function to convert the vox_size argument to 'min' or a valid voxel size.
+
+    Parameters
+    ----------
+    a : str
+        
+
+    Returns
+    -------
+
+    
+    """
     if a.lower() in ["auto", "min"]:
         return "min"
     try:
@@ -34,7 +45,18 @@ def vox_size(a: str) -> VoxSizeOption:
 
 
 def float_gt_zero_and_le_one(a: str) -> Optional[float]:
-    """Helper function to check whether a parameters is a float between 0 and one."""
+    """Helper function to check whether a parameters is a float between 0 and one.
+
+    Parameters
+    ----------
+    a : str
+        
+
+    Returns
+    -------
+
+    
+    """
     if a is None or a.lower() in ["none", "infinity"]:
         return None
     a_float = float(a)
@@ -45,7 +67,18 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
 
 
 def target_dtype(a: str) -> str:
-    """Helper function to check for valid dtypes."""
+    """Helper function to check for valid dtypes.
+
+    Parameters
+    ----------
+    a : str
+        
+
+    Returns
+    -------
+
+    
+    """
     dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
     dtypes.add("any")
     _a = a.lower()
@@ -64,7 +97,18 @@ def target_dtype(a: str) -> str:
 
 
 def int_gt_zero(value):
-    """Conversion to positive integers."""
+    """Conversion to positive integers.
+
+    Parameters
+    ----------
+    value :
+        
+
+    Returns
+    -------
+
+    
+    """
     val = int(value)
     if val <= 0:
         raise argparse.ArgumentTypeError("Invalid value, must not be negative.")
@@ -72,7 +116,18 @@ def int_gt_zero(value):
 
 
 def int_ge_zero(value):
-    """Conversion to integers greater 0."""
+    """Conversion to integers greater 0.
+
+    Parameters
+    ----------
+    value :
+        
+
+    Returns
+    -------
+
+    
+    """
     val = int(value)
     if val < 0:
         raise argparse.ArgumentTypeError("Invalid value, must be greater than 0.")
@@ -80,7 +135,18 @@ def int_ge_zero(value):
 
 
 def unquote_str(value):
-    """Unquotes a (single quoted) string."""
+    """Unquotes a (single quoted) string.
+
+    Parameters
+    ----------
+    value :
+        
+
+    Returns
+    -------
+
+    
+    """
     val = str(value)
     if val.startswith("'") and val.endswith("'"):
         return val[1:-1]

@@ -21,17 +21,25 @@ from torch.nn import functional as F
 
 
 class DiceLoss(_Loss):
-    """
-    Dice Loss
-    """
+    """Dice Loss"""
 
     def forward(self, output, target, weights=None, ignore_index=None):
         """
-        :param output: N x C x H x W Variable
-        :param target: N x C x W LongTensor with starting class at 0
-        :param weights: C FloatTensor with class wise weights
-        :param int ignore_index: ignore label with index x in the loss calculation
-        :return:
+
+        Parameters
+        ----------
+        output :
+            N x C x H x W Variable
+        target :
+            N x C x W LongTensor with starting class at 0
+        weights :
+            C FloatTensor with class wise weights (Default value = None)
+        ignore_index : int
+            ignore label with index x in the loss calculation (Default value = None)
+
+        Returns
+        -------
+
         """
         eps = 0.001
 
@@ -67,9 +75,7 @@ class DiceLoss(_Loss):
 
 
 class CrossEntropy2D(nn.Module):
-    """
-    2D Cross-entropy loss implemented as negative log likelihood
-    """
+    """2D Cross-entropy loss implemented as negative log likelihood"""
 
     def __init__(self, weight=None, reduction="none"):
         super(CrossEntropy2D, self).__init__()
@@ -79,17 +85,24 @@ class CrossEntropy2D(nn.Module):
         )
 
     def forward(self, inputs, targets):
+        """
+
+        Parameters
+        ----------
+        inputs :
+            
+        targets :
+            
+
+        Returns
+        -------
+
+        """
         return self.nll_loss(inputs, targets)
 
 
 class CombinedLoss(nn.Module):
-    """
-    For CrossEntropy the input has to be a long tensor
-    Args:
-        -- inputx N x C x H x W
-        -- target - N x H x W - int type
-        -- weight - N x H x W - float
-    """
+    """For CrossEntropy the input has to be a long tensor"""
 
     def __init__(self, weight_dice=1, weight_ce=1):
         super(CombinedLoss, self).__init__()
@@ -99,6 +112,21 @@ class CombinedLoss(nn.Module):
         self.weight_ce = weight_ce
 
     def forward(self, inputx, target, weight):
+        """
+
+        Parameters
+        ----------
+        inputx :
+            
+        target :
+            
+        weight :
+            
+
+        Returns
+        -------
+
+        """
         # Typecast to long tensor --> labels are bytes initially (uint8),
         # index operations require LongTensor in pytorch
         target = target.type(torch.LongTensor)
@@ -119,6 +147,17 @@ class CombinedLoss(nn.Module):
 
 
 def get_loss_func(cfg):
+    """
+
+    Parameters
+    ----------
+    cfg :
+        
+
+    Returns
+    -------
+
+    """
     if cfg.MODEL.LOSS_FUNC == "combined":
         return CombinedLoss()
     elif cfg.MODEL.LOSS_FUNC == "ce":

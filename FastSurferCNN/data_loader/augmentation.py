@@ -24,9 +24,7 @@ import torch
 # Transformations for evaluation
 ##
 class ToTensorTest(object):
-    """
-    Convert np.ndarrays in sample to Tensors.
-    """
+    """Convert np.ndarrays in sample to Tensors."""
 
     def __call__(self, img):
         img = img.astype(np.float32)
@@ -43,6 +41,7 @@ class ToTensorTest(object):
 
 
 class ZeroPad2DTest(object):
+    """ """
     def __init__(self, output_size, pos="top_left"):
         """
          Pad the input with zeros to get output size
@@ -55,6 +54,18 @@ class ZeroPad2DTest(object):
         self.pos = pos
 
     def _pad(self, image):
+        """
+
+        Parameters
+        ----------
+        image :
+            
+
+        Returns
+        -------
+
+        
+        """
         if len(image.shape) == 2:
             h, w = image.shape
             padded_img = np.zeros(self.output_size, dtype=image.dtype)
@@ -78,9 +89,7 @@ class ZeroPad2DTest(object):
 # Transformations for training
 ##
 class ToTensor(object):
-    """
-    Convert ndarrays in sample to Tensors.
-    """
+    """Convert ndarrays in sample to Tensors."""
 
     def __call__(self, sample):
         img, label, weight, sf = (
@@ -109,6 +118,7 @@ class ToTensor(object):
 
 
 class ZeroPad2D(object):
+    """ """
     def __init__(self, output_size, pos="top_left"):
         """
          Pad the input with zeros to get output size
@@ -121,6 +131,18 @@ class ZeroPad2D(object):
         self.pos = pos
 
     def _pad(self, image):
+        """
+
+        Parameters
+        ----------
+        image :
+            
+
+        Returns
+        -------
+
+        
+        """
         if len(image.shape) == 2:
             h, w = image.shape
             padded_img = np.zeros(self.output_size, dtype=image.dtype)
@@ -149,6 +171,7 @@ class ZeroPad2D(object):
 
 
 class AddGaussianNoise(object):
+    """ """
     def __init__(self, mean=0, std=0.1):
         self.std = std
         self.mean = mean
@@ -166,9 +189,7 @@ class AddGaussianNoise(object):
 
 
 class AugmentationPadImage(object):
-    """
-    Pad Image with either zero padding or reflection padding of img, label and weight
-    """
+    """Pad Image with either zero padding or reflection padding of img, label and weight"""
 
     def __init__(self, pad_size=((16, 16), (16, 16)), pad_type="edge"):
 
@@ -201,9 +222,7 @@ class AugmentationPadImage(object):
 
 
 class AugmentationRandomCrop(object):
-    """
-    Randomly Crop Image to given size
-    """
+    """Randomly Crop Image to given size"""
 
     def __init__(self, output_size, crop_type="Random"):
 

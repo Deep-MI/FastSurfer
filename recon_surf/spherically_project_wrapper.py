@@ -21,6 +21,7 @@ from typing import Any
 
 
 def setup_options():
+    """ """
     # Validation settings
     parser = argparse.ArgumentParser(description="Wrapper for spherical projection")
 
@@ -38,16 +39,21 @@ def setup_options():
 
 
 def call(command: str, **kwargs: Any) -> int:
-    """
-    Run command with arguments. Wait for command to complete. Sends
+    """Run command with arguments. Wait for command to complete. Sends
     output to logging module.
 
-    Args:
-        command: Command to call
-        **kwargs: Arguments. The same as for the Popen constructor
+    Parameters
+    ----------
+    command : str
+        Command to call
+    **kwargs : Any
+        
 
-    Returns:
-        Returncode of called command
+    Returns
+    -------
+    int
+        
+
     """
 
     kwargs["stdout"] = PIPE
@@ -65,15 +71,22 @@ def call(command: str, **kwargs: Any) -> int:
 
 
 def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
-    """ Runs the first command. If it fails the fallback command is run as well.
+    """Runs the first command. If it fails the fallback command is run as well.
 
-    Args:
-        command1: Command to call
-        command2: Fallback command to call
-        **kwargs: Arguments. The same as for the Popen constructor
+    Parameters
+    ----------
+    command1 : str
+        Command to call
+    command2 : str
+        Fallback command to call
+    **kwargs : Any
+        Arguments. The same as for the Popen constructor
 
-    Returns:
-        code_1: Return code of command1. If command1 failed return code of command2
+    Returns
+    -------
+    code_1
+        Return code of command1. If command1 failed return code of command2
+
     """
 
     # First try to run standard spherical project

@@ -47,7 +47,21 @@ VoxSize = Union[Literal["min"], float]
 
 
 class CanAddArguments(Protocol):
+    """ """
     def add_argument(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         ...
 
 
@@ -65,6 +79,21 @@ def __arg(*default_flags, **default_kwargs):
     """
 
     def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
+        """
+
+        Parameters
+        ----------
+        parser : Union[CanAddArguments, Type[Dict]]
+            
+        *flags :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
             if callable(arg) and kw in default_kwargs.keys():
@@ -277,12 +306,18 @@ T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)
 
 
 def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
-    """
-    Add default flags to the parser from the flags list in order.
+    """Add default flags to the parser from the flags list in order.
 
-    Args:
-        parser: The parser to add flags to.
-        flags: the flags to add from 'device', 'viewagg_device'.
+    Parameters
+    ----------
+    parser : T_AddArgs
+        The parser to add flags to.
+    flags : Iterable[str]
+        the flags to add from 'device', 'viewagg_device'.
+
+    Returns
+    -------
+
     """
     for flag in flags:
         if flag.startswith("--"):
@@ -302,19 +337,25 @@ def add_plane_flags(
     type: Literal["checkpoint", "config"],
     files: Mapping[str, str],
 ) -> argparse.ArgumentParser:
-    """
-    Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
+    """Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
     and the values is the file name (relative for path relative to FASTSURFER_HOME.
 
-    Args:
-        parser: The parser to add flags to.
-        type: The type of files (for help text and prefix from "checkpoint" and "config".
-            "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
-        files: A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
-            directory.
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+        The parser to add flags to.
+    type : Literal["checkpoint", "config"]
+        The type of files (for help text and prefix from "checkpoint" and "config".
+        "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
+    files : Mapping[str, str]
+        A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
+        directory.
 
-    Returns:
+    Returns
+    -------
+    
         The parser object.
+
     """
 
     if type not in PLANE_SHORT:

@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer:
+    """ """
     def __init__(self, cfg):
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -65,6 +66,25 @@ class Trainer:
         self.subepoch = False if self.cfg.TRAIN.BATCH_SIZE == 16 else True
 
     def train(self, train_loader, optimizer, scheduler, train_meter, epoch):
+        """
+
+        Parameters
+        ----------
+        train_loader :
+            
+        optimizer :
+            
+        scheduler :
+            
+        train_meter :
+            
+        epoch :
+            
+
+        Returns
+        -------
+
+        """
         self.model.train()
         logger.info("Training started ")
         epoch_start = time.time()
@@ -129,6 +149,21 @@ class Trainer:
 
     @torch.no_grad()
     def eval(self, val_loader, val_meter, epoch):
+        """
+
+        Parameters
+        ----------
+        val_loader :
+            
+        val_meter :
+            
+        epoch :
+            
+
+        Returns
+        -------
+
+        """
         logger.info(f"Evaluating model at epoch {epoch}")
         self.model.eval()
 
@@ -236,6 +271,7 @@ class Trainer:
         return np.mean(np.mean(miou))
 
     def run(self):
+        """ """
         if self.cfg.NUM_GPUS > 1:
             assert (
                 self.cfg.NUM_GPUS <= torch.cuda.device_count()

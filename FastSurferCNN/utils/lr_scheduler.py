@@ -17,6 +17,20 @@ import torch.optim.lr_scheduler as scheduler
 
 
 def get_lr_scheduler(optimzer, cfg):
+    """
+
+    Parameters
+    ----------
+    optimzer :
+        
+    cfg :
+        
+
+    Returns
+    -------
+
+    
+    """
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":
         return scheduler.StepLR(

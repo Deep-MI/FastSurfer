@@ -29,9 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Operator to load imaged for inference
 class MultiScaleOrigDataThickSlices(Dataset):
-    """
-    Class to load MRI-Image and process it to correct format for network inference
-    """
+    """Class to load MRI-Image and process it to correct format for network inference"""
 
     def __init__(self, orig_data, orig_zoom, cfg, transforms=None):
         assert (
@@ -63,15 +61,19 @@ class MultiScaleOrigDataThickSlices(Dataset):
         self.transforms = transforms
 
     def _get_scale_factor(self):
-        """
-        Get scaling factor to match original resolution of input image to
+        """Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
         taken from voxel size in image header.
-
+        
         ToDO: This needs to be updated based on the plane we are looking at in case we
         are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         scale = self.base_res / np.asarray(self.zoom)
 
@@ -92,9 +94,7 @@ class MultiScaleOrigDataThickSlices(Dataset):
 
 # Operator to load hdf5-file for training
 class MultiScaleDataset(Dataset):
-    """
-    Class for loading aseg file with augmentations (transforms)
-    """
+    """Class for loading aseg file with augmentations (transforms)"""
 
     def __init__(self, dataset_path, cfg, gn_noise=False, transforms=None):
 
@@ -164,18 +164,27 @@ class MultiScaleDataset(Dataset):
             )
 
     def get_subject_names(self):
+        """ """
         return self.subjects
 
     def _get_scale_factor(self, img_zoom, scale_aug):
-        """
-        Get scaling factor to match original resolution of input image to
+        """Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
         taken from voxel size in image header.
-
+        
         ToDO: This needs to be updated based on the plane we are looking at in case we
         are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+
+        Parameters
+        ----------
+        img_zoom :
+            
+        scale_aug :
+            
+
+        Returns
+        -------
+
         """
         if torch.all(scale_aug > 0):
             img_zoom *= 1 / scale_aug
@@ -191,6 +200,17 @@ class MultiScaleDataset(Dataset):
         return scale
 
     def _pad(self, image):
+        """
+
+        Parameters
+        ----------
+        image :
+            
+
+        Returns
+        -------
+
+        """
 
         if len(image.shape) == 2:
             h, w = image.shape
@@ -208,6 +228,21 @@ class MultiScaleDataset(Dataset):
         return padded_img
 
     def unify_imgs(self, img, label, weight):
+        """
+
+        Parameters
+        ----------
+        img :
+            
+        label :
+            
+        weight :
+            
+
+        Returns
+        -------
+
+        """
 
         img = self._pad(img)
         label = self._pad(label)
@@ -268,9 +303,7 @@ class MultiScaleDataset(Dataset):
 
 # Operator to load hdf5-file for validation
 class MultiScaleDatasetVal(Dataset):
-    """
-    Class for loading aseg file with augmentations (transforms)
-    """
+    """Class for loading aseg file with augmentations (transforms)"""
 
     def __init__(self, dataset_path, cfg, transforms=None):
 
@@ -338,18 +371,25 @@ class MultiScaleDatasetVal(Dataset):
         )
 
     def get_subject_names(self):
+        """ """
         return self.subjects
 
     def _get_scale_factor(self, img_zoom):
-        """
-        Get scaling factor to match original resolution of input image to
+        """Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
         taken from voxel size in image header.
-
+        
         ToDO: This needs to be updated based on the plane we are looking at in case we
         are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+
+        Parameters
+        ----------
+        img_zoom :
+            
+
+        Returns
+        -------
+
         """
         scale = self.base_res / img_zoom
         return scale

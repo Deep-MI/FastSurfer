@@ -55,11 +55,16 @@ h_outaparc = "path to output aparc"
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser
 
-    Returns:
-        options: object holding options
+    Parameters
+    ----------
+
+    Returns
+    -------
+    options
+        object holding options
+
     """
 
     parser = optparse.OptionParser(
@@ -79,14 +84,20 @@ def options_parse():
 
 
 def get_adjM(trias: npt.NDArray, n: int):
-    """ [help]
+    """[help]
 
-    Args:
-        trias:
-        n:Shape of tje matrix
+    Parameters
+    ----------
+    trias : npt.NDArray
+        
+    n : int
+        Shape of tje matrix
 
-    Returns:
-        adjM (np.ndarray): Adjoint matrix
+    Returns
+    -------
+    adjM : np.ndarray
+        Adjoint matrix
+
     """
 
     I = trias
@@ -103,13 +114,18 @@ def get_adjM(trias: npt.NDArray, n: int):
 
 
 def bincount2D_vectorized(a: npt.NDArray) -> np.ndarray:
-    """ Count number of occurrences of each value in array of non-negative ints [help]
+    """Count number of occurrences of each value in array of non-negative ints [help]
 
-    Args:
-        a: Array
+    Parameters
+    ----------
+    a : npt.NDArray
+        Array
 
-    Returns:
+    Returns
+    -------
+    
         Array of counted values
+
     """
 
     N = a.max() + 1
@@ -123,16 +139,24 @@ def mode_filter(
         fillonlylabel: str = "",
         novote: npt.ArrayLike = []
 ) -> npt.NDArray[str]:
-    """ [help]
+    """[help]
 
-    Args:
-        adjM: Adjoint matrix
-        labels: List of labels
-        fillonlylabel: Label to fill exclusively. Defaults to ""
-        novote: Entries that should not vote. Defaults to []
+    Parameters
+    ----------
+    adjM : sparse.csr_matrix
+        Adjoint matrix
+    labels : npt.NDArray[str]
+        List of labels
+    fillonlylabel : str
+        Label to fill exclusively. Defaults to ""
+    novote : npt.ArrayLike
+        Entries that should not vote. Defaults to []
 
-    Returns:
-        labels_new: New filtered labels
+    Returns
+    -------
+    labels_new
+        New filtered labels
+
     """
 
     # make sure labels lengths equals adjM dimension
@@ -236,13 +260,22 @@ def smooth_aparc(
         incortexname: str,
         outaparcname: str
 ) -> None:
-    """ smoothes aparc
+    """smoothes aparc
 
-    Args:
-        insurfname: Suface filepath and name of source
-        inaparcname: Annotation filepath and name of source
-        incortexname: Label filepath and name of source
-        outaparcname: Suface filepath and name of destination
+    Parameters
+    ----------
+    insurfname : str
+        Suface filepath and name of source
+    inaparcname : str
+        Annotation filepath and name of source
+    incortexname : str
+        Label filepath and name of source
+    outaparcname : str
+        Suface filepath and name of destination
+
+    Returns
+    -------
+
     """
 
     # read input files

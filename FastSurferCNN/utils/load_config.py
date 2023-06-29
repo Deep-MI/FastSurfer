@@ -18,9 +18,17 @@ from FastSurferCNN.config.defaults import get_cfg_defaults
 
 
 def get_config(args):
-    """
-    Given the arguments, load and initialize the configs.
+    """Given the arguments, load and initialize the configs.
 
+    Parameters
+    ----------
+    args :
+        
+
+    Returns
+    -------
+
+    
     """
     # Setup cfg.
     cfg = get_cfg_defaults()
@@ -43,6 +51,18 @@ def get_config(args):
 
 
 def load_config(cfg_file):
+    """
+
+    Parameters
+    ----------
+    cfg_file :
+        
+
+    Returns
+    -------
+
+    
+    """
     # setup base
     cfg = get_cfg_defaults()
     cfg.EXPR_NUM = "Default"
