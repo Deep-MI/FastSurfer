@@ -249,7 +249,7 @@ function version()
 {
   VERSION_TAG=$(grep '[project]' -A 100 "$FASTSURFER_HOME/pyproject.toml" | \
     grep -E 'version *= *("?)[[:alnum:]]*\1' -C 0 | head -n 1 | grep -E '[0-9][^" ]*' -o)
-  VERSION_FILE="$FASTSURFER_HOME/VERSION.txt"
+  VERSION_FILE="$FASTSURFER_HOME/BUILD.txt"
   # if we do not have git, try VERSION file else git sha and branch
   if [ -n "$(which git)" ] && [ -d "$FASTSURFER_HOME/.git" ]; then
     pushd  "$FASTSURFER_HOME" > /dev/null || return
@@ -672,8 +672,9 @@ fi
 
 ########################################## START ########################################################
 
+mkdir -p "$(dirname "$seg_log")"
 version
-echo "Version: $VERSION_INFO" > "$seg_log"
+echo "Version: $VERSION_INFO" |& tee "$seg_log"
 
 if [ "$run_seg_pipeline" == "1" ]
   then
