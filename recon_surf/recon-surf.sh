@@ -712,7 +712,7 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
-    cmd="mris_info $outmesh | grep -q 'vertex locs : surfaceRAS'"
+    cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
     echo "echo \"$cmd\" " |& tee -a $CMDF
     echo "$timecmd $cmd " |& tee -a $CMDF
     echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> $CMDF
