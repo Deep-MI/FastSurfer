@@ -18,7 +18,7 @@ import sys
 import optparse
 import nibabel.freesurfer.io as fs
 from nibabel import load as nibload
-from lapy.read_geometry import read_geometry
+from lapy._read_geometry import read_geometry
 
 
 def options_parse():
