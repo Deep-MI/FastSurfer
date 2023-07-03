@@ -1,33 +1,31 @@
 name: fastsurfer_cpu
 
 channels:
-  - pytorch
   - defaults
   - conda-forge
   
 dependencies:
-  - cpuonly=1.0
-  - cudatoolkit=11.3
   - h5py=3.7.0
-  - matplotlib=3.5.1
-  - pytorch=1.12.0 
-  - torchvision=0.13.0
-  - nibabel=3.2.2
-  - numpy=1.23.2
-  - pandas=1.4.3
-  - pillow=9.2.0
-  - python=3.8
+  - lapy=0.6.0
+  - matplotlib=3.7.1
+  - nibabel=5.1.0
+  - numpy=1.25.0
+  - pandas=1.5.3
+  - pillow=9.5.0
+  - pip=23.1.2
+  - python=3.10
   - python-dateutil=2.8.2
   - pyyaml=6.0
-  - scikit-image=0.19.2
-  - scikit-learn=1.1.2
-  - scipy=1.8.0
-  - pip=21.2.4
+  - scikit-image=0.19.3
+  - scikit-learn=1.2.2
+  - scipy=1.10.1
+  - setuptools=67.8.0
+  - tensorboard=2.12.1
+  - tqdm=4.65.0
   - yacs=0.1.8
-  - tensorboard=2.9.1
-  - setuptools=59.5.0
-  - tqdm=4.64
-  - lapy=0.4.1
   - pip:
-    - simpleitk==2.1.1
+    - --extra-index-url https://download.pytorch.org/whl/cpu
+    - torch==2.0.1+cpu
+    - torchvision==0.15.2+cpu
+    - simpleitk==2.2.1
     - torchio==0.18.83
