@@ -5,7 +5,7 @@ channels:
   - conda-forge
   
 dependencies:
-  - lapy=0.6.0
+  - lapy=1.0.1
   - nibabel=5.1.0
   - numpy=1.25.0
   - pandas=1.5.3

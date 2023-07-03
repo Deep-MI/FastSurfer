@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   - h5py=3.7.0
-  - lapy=0.6.0
+  - lapy=1.0.1
   - matplotlib=3.7.1
   - nibabel=5.1.0
   - numpy=1.25.0
