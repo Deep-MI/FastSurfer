@@ -61,7 +61,7 @@ doParallel=""
 run_asegdkt_module="1"
 run_cereb_module="1"
 threads="1"
-python="python3.8"
+python="python3.10"
 allow_root=""
 
 # Dev flags defaults
