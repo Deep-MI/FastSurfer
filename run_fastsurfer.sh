@@ -29,6 +29,7 @@ then
   echo "Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
   export FASTSURFER_HOME
 fi
+
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
@@ -99,7 +100,8 @@ FLAGS:
                             installed already
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <T1_input>        T1 full head input (not bias corrected). Requires an ABSOLUTE Path!
+  --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
+                            ABSOLUTE Path!
   --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
@@ -121,6 +123,7 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
+  --version               Print version information and exit
   -h --help               Print Help
 
   PIPELINES:
@@ -187,9 +190,9 @@ SURFACE PIPELINE:
                             CPU, "cuda" for Nvidia GPU, or pass specific device,
                             e.g. cuda:1), default check GPU and then CPU
   --viewagg_device <str>  Define where the view aggregation should be run on.
-                            Can be "auto" or a device (see --device). By default, the
-                            program checks if you have enough memory to run the
-                            view aggregation on the gpu. The total memory is
+                            Can be "auto" or a device (see --device). By default,
+                            the program checks if you have enough memory to run
+                            the view aggregation on the gpu. The total memory is
                             considered for this decision. If this fails, or you
                             actively overwrote the check with setting with "cpu"
                             view agg is run on the cpu. Equivalently, if you
@@ -216,7 +219,8 @@ SURFACE PIPELINE:
                             directly from norm.mgz instead. Saves 1:30 min.
   --no_surfreg             Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence), Not recommended, but
-                            speeds up processing if you e.g. just need the segmentation stats!
+                            speeds up processing if you e.g. just need the
+                            segmentation stats!
   --allow_root            Allow execution as root user.
 
 
@@ -240,6 +244,36 @@ Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
 
 EOF
 }
+
+function version()
+{
+  VERSION_TAG=$(grep '[project]' -A 100 "$FASTSURFER_HOME/pyproject.toml" | \
+    grep -E 'version *= *("?)[[:alnum:]]*\1' -C 0 | head -n 1 | grep -E '[0-9][^" ]*' -o)
+  VERSION_FILE="$FASTSURFER_HOME/BUILD.txt"
+  # if we do not have git, try VERSION file else git sha and branch
+  if [ -n "$(which git)" ] && [ -d "$FASTSURFER_HOME/.git" ]; then
+    pushd  "$FASTSURFER_HOME" > /dev/null || return
+    VERSION_INFO="$VERSION_TAG-$(git rev-parse --short HEAD) ($(git branch --show-current))"
+    popd > /dev/null || return
+  else
+    VERSION_INFO="$([ -f "$VERSION_FILE" ] && head "$VERSION_FILE" -n 1 || echo "$VERSION_TAG")"
+  fi
+  if [ "$#" == "1" ] && [ "$1" == "long" ]; then
+    pushd "$FASTSURFER_HOME/checkpoints" > /dev/null || return
+    VERSION_INFO=$(printf "%s\ncheckpoints:\n%s" "$VERSION_INFO" "$(md5sum -- *)")
+    popd > /dev/null || return
+    if [ -n "$(which git)" ] && [ -d "$FASTSURFER_HOME/.git" ]; then
+      pushd  "$FASTSURFER_HOME" > /dev/null || return
+      VERSION_INFO=$(printf "%s\ngit status:\n%s" "$VERSION_INFO" "$(git status -s -b | grep -v __pycache__)")
+      popd > /dev/null || return
+    elif [ -f "$VERSION_FILE" ]; then
+      VERSION_INFO=$(printf "%s\n%s" "$VERSION_INFO" "$(grep 'git status:' -A 1000 "$VERSION_FILE")")
+    else
+      VERSION_INFO=$(printf "%s\nNo additional version info." "$VERSION_INFO")
+    fi
+  fi
+}
+
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -448,6 +482,11 @@ case $key in
     usage
     exit
     ;;
+    --version)
+    version "$2"
+    echo "$VERSION_INFO"
+    exit
+    ;;
     *)    # unknown option
     echo ERROR: Flag $1 unrecognized.
     exit 1
@@ -633,12 +672,16 @@ fi
 
 ########################################## START ########################################################
 
+mkdir -p "$(dirname "$seg_log")"
+version
+echo "Version: $VERSION_INFO" |& tee "$seg_log"
+
 if [ "$run_seg_pipeline" == "1" ]
   then
     # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
     # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
     mkdir -p "$(dirname "$seg_log")"
-    echo "Log file for segmentation FastSurferCNN/run_prediction.py" > "$seg_log"
+    echo "Log file for segmentation FastSurferCNN/run_prediction.py" >> "$seg_log"
     date  |& tee -a "$seg_log"
     echo "" |& tee -a "$seg_log"
 
@@ -663,13 +706,13 @@ if [ "$run_seg_pipeline" == "1" ]
     if [ "$run_biasfield" == "1" ]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
-        echo "Running N4 bias-field correction"
+        echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
         cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --threads $threads"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         if [ "${PIPESTATUS[0]}" -ne 0 ]
           then
-            echo "ERROR: Biasfield correction failed"
+            echo "ERROR: Biasfield correction failed" | tee -a "$seg_log"
             exit 1
         fi
 
@@ -680,7 +723,7 @@ if [ "$run_seg_pipeline" == "1" ]
             $cmd |& tee -a "$seg_log"
             if [ "${PIPESTATUS[0]}" -ne 0 ]
               then
-                echo "ERROR: asegdkt statsfile generation failed"
+                echo "ERROR: asegdkt statsfile generation failed" | tee -a "$seg_log"
                 exit 1
             fi
         fi
@@ -693,7 +736,7 @@ if [ "$run_seg_pipeline" == "1" ]
         $cmd
         if [ "${PIPESTATUS[0]}" -ne 0 ]
           then
-            echo "ERROR: Cerebellum Segmentation failed"
+            echo "ERROR: Cerebellum Segmentation failed" | tee -a "$seg_log"
             exit 1
         fi
     fi
