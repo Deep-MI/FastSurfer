@@ -28,11 +28,13 @@ from sys import stdout as _stdout
 
 
 def setup_logging(log_file_path: str):
-    """
-    Sets up the logging
+    """Sets up the logging
 
-    Args:
-        log_file_path: Path to the logfile
+    Parameters
+    ----------
+    log_file_path : str
+        Path to the logfile
+
     """
 
     # Set up logging format.

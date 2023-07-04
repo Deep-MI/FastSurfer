@@ -55,19 +55,25 @@ def find_device(
     flag_name: str = "device",
     min_memory: int = 0,
 ) -> torch.device:
-    """
-    Create a device object from the device string passed, including detection
+    """Create a device object from the device string passed, including detection
     of devices if device is not definedor "auto".
 
-    Args:
-        device: the device to search for and test following pytorch device naming
-            conventions, e.g. 'cuda:0', 'cpu', etc. (default: 'auto').
-        flag_name: name of the corresponding flag for error messages (default: 'device')
-        min_memory: The minimum memory in bytes required for cuda-devices to
-            be valid (default: 0, works always).
+    Parameters
+    ----------
+    device : Union[torch.device, str]
+        the device to search for and test following pytorch device naming
+        conventions, e.g. 'cuda:0', 'cpu', etc. (default: 'auto').
+    flag_name : str
+        name of the corresponding flag for error messages (default: 'device')
+    min_memory : int
+        The minimum memory in bytes required for cuda-devices to
+        be valid (default: 0, works always).
 
-    Returns:
-        The torch.device object.
+    Returns
+    -------
+    device: torch.device
+        The torch.device object
+    
     """
     logger = logging.get_logger(__name__ + ".auto_device")
     # if specific device is requested, check and stop if not available:
@@ -108,8 +114,11 @@ def find_device(
 def assert_no_root() -> bool:
     """Checks whether the user is the root user and raises an error message is so
 
-    Returns:
-         Whether the user is root or not
+    Returns
+    -------
+    bool
+        Whether the user is root or not
+    
     """
 
     if os.name == "posix" and os.getuid() == 0:
@@ -131,13 +140,19 @@ def assert_no_root() -> bool:
 
 
 def handle_cuda_memory_exception(exception: builtins.BaseException) -> bool:
-    """ Handles CUDA out of memory exception and prints a help text
+    """Handles CUDA out of memory exception and prints a help text
 
-    Args:
-        exception: Received exception
+    Parameters
+    ----------
+    exception : builtins.BaseException
+        Received exception
 
-    Returns:
+    Returns
+    -------
+    bool
         Whether th exception was a RuntimeError caused by Cuda out memory
+
+    
     """
 
     if not isinstance(exception, RuntimeError):
@@ -165,16 +180,30 @@ def pipeline(
     *,
     pipeline_size: int = 1,
 ) -> Iterator[Tuple[_Ti, _T]]:
-    """
-    Function to pipeline a function to be executed in the pool.
+    """Function to pipeline a function to be executed in the pool.
     Analogous to iterate, but run func in a different
     thread for the next element while the current element is returned.
 
-    Args: [help]
-        pool:
-        func: function to use
-        iterable ():
-        pipeline_size: size of the pipeline
+    Parameters [MISSING]
+    ----------
+    pool : Executor
+        
+    func : Callable[[_Ti], _T] :
+        function to use
+        
+    iterable : Iterable[_Ti]
+        
+    * :
+        [MISSING]
+        
+    pipeline_size : int
+        size of the pipeline
+        (Default value = 1)
+
+    Returns
+    -------
+        [MISSING]
+    
     """
 
     # do pipeline loading the next element
@@ -199,13 +228,19 @@ def iterate(
 ) -> Iterator[Tuple[_Ti, _T]]:
     """Iterate over iterable, yield
 
-    Args:
-        pool: [help]
-        func: function to use
-        iterable: iterable
+    Parameters
+    ----------
+    pool : Executor
+        [MISSING]
+    func : Callable[[_Ti], _T]
+        function to use
+    iterable : Iterable[_Ti]
+        iterable
 
-    Yields:
-        pairs of elements and func(element)
+    Returns
+    -------
+    [MISSING]
+    
     """
 
     for element in iterable:
@@ -213,15 +248,20 @@ def iterate(
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """
-    Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
+    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
 
-    Args:
-        string: string that should be edited
-        suffix: suffix to remove
+    Parameters
+    ----------
+    string : str
+        string that should be edited
+    suffix : str
+        suffix to remove
 
-    Returns:
+    Returns
+    -------
+    str
         input string with removed suffix
+    
     """
 
     import sys
@@ -248,10 +288,11 @@ class SubjectDirectory:
     _id: str
 
     def __init__(self, **kwargs):
-        """
-        Create a subject, supports generic attributes. Some well integrated attributes arguments include:
+        """Create a subject, supports generic attributes. Some well integrated attributes arguments include:
 
-        Args:
+        Parameters
+        ----------
+        **kwargs :
             id: the subject id
             orig_name: relative or absolute filename of the orig filename
             conf_name: relative or absolute filename of the conformed filename
@@ -265,14 +306,18 @@ class SubjectDirectory:
             setattr(self, "_" + k, v)
 
     def filename_in_subject_folder(self, filepath: str) -> str:
-        """
-        Returns the full path to the file
+        """Returns the full path to the file
 
-        Args:
-            filepath: abs path to the file or name of the file
+        Parameters
+        ----------
+        filepath : str
+            abs path to the file or name of the file
 
-        Returns:
-            Path tot the file
+        Returns
+        -------
+        str
+            Path to the file
+        
         """
 
         return (
@@ -282,36 +327,115 @@ class SubjectDirectory:
         )
 
     def filename_by_attribute(self, attr_name: str) -> str:
+        """ [MISSING]
+
+        Parameters
+        ----------
+        attr_name : str
+            [MISSING]
+
+        Returns
+        -------
+        str
+            [MISSING]
+        
+        """
         return self.filename_in_subject_folder(self.get_attribute(attr_name))
 
     def fileexists_in_subject_folder(self, filepath: str) -> bool:
+        """Check if file exists in the subject folder.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to the file
+
+        Returns
+        -------
+        bool
+            Whether the file exists or not
+        
+        """
         return os.path.exists(self.filename_in_subject_folder(filepath))
 
     def fileexists_by_attribute(self, attr_name: str) -> bool:
+        """[MISSING]
+
+        Parameters
+        ----------
+        attr_name : str
+            [MISSING]
+
+        Returns
+        -------
+        bool
+            Whether the file exists or not
+        
+        """
         return self.fileexists_in_subject_folder(self.get_attribute(attr_name))
 
     @property
     def subject_dir(self) -> str:
+        """Gets the subject directory name
+
+        Returns
+        -------
+        str
+            The set subject directory
+        
+        """
         assert hasattr(self, "_subject_dir") or "The folder attribute has not been set!"
         return self._subject_dir
 
     @subject_dir.setter
     def subject_dir(self, _folder: str):
+        """Sets the subject directory name
+
+        Parameters
+        ----------
+        _folder : str
+            The subject directory
+
+        
+        """
         self._subject_dir = _folder
 
     @property
     def id(self) -> str:
+        """Gets the id
+
+        Returns
+        -------
+        str
+            The id
+        
+        """
         assert hasattr(self, "_id") or "The id attribute has not been set!"
         return self._id
 
     @id.setter
     def id(self, _id: str):
+        """Sets the id
+
+        Parameters
+        ----------
+        _id : str
+            The id
+        
+        """
         self._id = _id
 
     @property
     def orig_name(self) -> str:
         """This will typically try to return absolute path, if the native_t1_file is a relative path, it will be
-        interpreted as relative to folder."""
+        interpreted as relative to folder.
+
+        Returns
+        -------
+        str
+            The orig name
+        
+        """
         assert (
             hasattr(self, "_orig_name") or "The orig_name attribute has not been set!"
         )
@@ -319,12 +443,28 @@ class SubjectDirectory:
 
     @orig_name.setter
     def orig_name(self, _orig_name: str):
+        """Sets the orig name
+
+        Parameters
+        ----------
+        _orig_name : str
+            The orig name
+
+        
+        """
         self._orig_name = _orig_name
 
     @property
     def copy_orig_name(self) -> str:
         """This will typically try to return absolute path, if the copy_orig_t1_file is a relative path, it will be
-        interpreted as relative to folder."""
+        interpreted as relative to folder.
+
+        Returns
+        -------
+        str
+            The copy of orig name
+        
+        """
         assert (
             hasattr(self, "_copy_orig_name")
             or "The copy_orig_name attribute has not been set!"
@@ -333,12 +473,32 @@ class SubjectDirectory:
 
     @copy_orig_name.setter
     def copy_orig_name(self, _copy_orig_name: str):
+        """Sets the copy of orig name
+
+        Parameters
+        ----------
+        _copy_orig_name : str
+            [MISSING]
+
+        Returns
+        -------
+        str
+            original name
+        
+        """
         self._copy_orig_name = _copy_orig_name
 
     @property
     def conf_name(self) -> str:
         """This will typically try to return absolute path, if the conformed_t1_file is a relative path, it will be
-        interpreted as relative to folder."""
+        interpreted as relative to folder.
+
+        Returns
+        -------
+        str
+            [MISSING]
+        
+        """
         assert (
             hasattr(self, "_conf_name") or "The conf_name attribute has not been set!"
         )
@@ -346,23 +506,66 @@ class SubjectDirectory:
 
     @conf_name.setter
     def conf_name(self, _conf_name: str):
+        """[MISSING]
+
+        Parameters
+        ----------
+        _conf_name : str
+            [MISSING]
+
+        Returns
+        -------
+        str
+            [MISSING]
+        
+        """
         self._conf_name = _conf_name
 
     @property
     def segfile(self) -> str:
         """This will typically try to return absolute path, if the segfile is a relative path, it will be
-        interpreted as relative to folder."""
+        interpreted as relative to folder.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        
+        """
         assert hasattr(self, "_segfile") or "The _segfile attribute has not been set!"
         return self.filename_in_subject_folder(self._segfile)
 
     @segfile.setter
     def segfile(self, _segfile: str):
+        """
+
+        Parameters
+        ----------
+        _segfile : str
+            
+
+        Returns
+        -------
+
+        
+        """
         self._segfile = _segfile
 
     @property
     def asegdkt_segfile(self) -> str:
         """This will typically try to return absolute path, if the asegdkt_segfile is a relative path, it will be
-        interpreted as relative to folder."""
+        interpreted as relative to folder.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        
+        """
         assert (
             hasattr(self, "_segfile")
             or "The asegdkt_segfile attribute has not been set!"
@@ -371,12 +574,33 @@ class SubjectDirectory:
 
     @asegdkt_segfile.setter
     def asegdkt_segfile(self, _asegdkt_segfile: str):
+        """
+
+        Parameters
+        ----------
+        _asegdkt_segfile : str
+            
+
+        Returns
+        -------
+
+        
+        """
         self._asegdkt_segfile = _asegdkt_segfile
 
     @property
     def main_segfile(self) -> str:
         """This will typically try to return absolute path, if the main_segfile is a relative path, it will be
-        interpreted as relative to folder."""
+        interpreted as relative to folder.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        
+        """
         assert (
             hasattr(self, "_main_segfile")
             or "The main_segfile attribute has not been set!"
@@ -385,25 +609,86 @@ class SubjectDirectory:
 
     @main_segfile.setter
     def main_segfile(self, _main_segfile: str):
+        """
+
+        Parameters
+        ----------
+        _main_segfile : str
+            
+
+        Returns
+        -------
+
+        
+        """
         self._main_segfile = _main_segfile
 
     def can_resolve_filename(self, filename: str) -> bool:
-        """Whether we can resolve the file name."""
+        """Whether we can resolve the file name.
+
+        Parameters
+        ----------
+        filename : str
+            
+
+        Returns
+        -------
+
+        
+        """
         return os.path.isabs(filename) or self._subject_dir is not None
 
     def can_resolve_attribute(self, attr_name: str) -> bool:
+        """
+
+        Parameters
+        ----------
+        attr_name : str
+            
+
+        Returns
+        -------
+
+        
+        """
         return self.can_resolve_filename(self.get_attribute(attr_name))
 
     def has_attribute(self, attr_name: str) -> bool:
+        """Checks of the attribute is set
+
+        Parameters
+        ----------
+        attr_name : str
+            
+
+        Returns
+        -------
+        bool
+            Whether the attribute exists or not
+        
+        """
         return getattr(self, "_" + attr_name, None) is not None
 
     def get_attribute(self, attr_name: str):
+        """
+
+        Parameters
+        ----------
+        attr_name : str
+            
+
+        Returns
+        -------
+
+        
+        """
         if not self.has_attribute(attr_name):
             raise AttributeError(f"The subject has no attribute named {attr_name}.")
         return getattr(self, "_" + attr_name)
 
 
 class SubjectList:
+    """ """
     _subjects: List[str]
     _orig_name_: str
     _conf_name_: str

@@ -36,9 +36,8 @@ logger = logging.getLogger(__name__)
 
 
 class Inference:
-    """
-    Model evaluation class to run inference using FastSurferCNN
-
+    """Model evaluation class to run inference using FastSurferCNN
+    
     Functions:
         __init__(cfg, device, ckpt): Constructor
         setup_model(cfg, device): Set up the initial model
@@ -72,12 +71,19 @@ class Inference:
             ckpt: str = "",
             lut: Union[None, str, np.ndarray, DataFrame] = None
     ):
-        """ Constructor
+        """Constructor
 
-        Args:
-            cfg: configuration Node
-            device: device specification for distributed computation usage.
-            ckpt: string or os.PathLike object containing the name to the checkpoint file
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            configuration Node
+        device : torch.device
+            device specification for distributed computation usage.
+        ckpt : str
+            string or os.PathLike object containing the name to the checkpoint file (Default value = "")
+        lut : Union[None, str, np.ndarray, DataFrame]
+             (Default value = None)
+
         """
 
         # Set random seed from configs.
@@ -118,12 +124,15 @@ class Inference:
             self.load_checkpoint(ckpt)
 
     def setup_model(self, cfg=None, device: torch.device = None):
-        """
-        function to set up the model
+        """function to set up the model
 
-        Args:
-            cfg (yacs.config.CfgNode): configuration Node
-            device (torch.device): device specification for distributed computation usage.
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            configuration Node (Default value = None)
+        device : torch.device
+            device specification for distributed computation usage. (Default value = None)
+
         """
 
         if cfg is not None:
@@ -139,14 +148,24 @@ class Inference:
         self.device = None
 
     def set_cfg(self, cfg: yacs.config.CfgNode):
+        """[MISSING]
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            
+
+        """
         self.cfg = cfg
 
     def to(self, device: Optional[torch.device] = None):
-        """
-        Moves and/or casts the parameters and buffers.
+        """Moves and/or casts the parameters and buffers.
 
-        Args:
-            device: the desired device of the parameters and buffers in this module
+        Parameters
+        ----------
+        device : Optional[torch.device]
+            the desired device of the parameters and buffers in this module (Default value = None)
+
         """
 
         if self.model_parallel:
@@ -158,11 +177,13 @@ class Inference:
         self.model.to(device=_device)
 
     def load_checkpoint(self, ckpt: Union[str, os.PathLike]):
-        """
-        function to load the checkpoint and set device and model
+        """function to load the checkpoint and set device and model
 
-        Args:
-            ckpt: string or os.PathLike object containing the name to the checkpoint file
+        Parameters
+        ----------
+        ckpt : Union[str, os.PathLike]
+            string or os.PathLike object containing the name to the checkpoint file
+
         """
 
         logger.info("Loading checkpoint {}".format(ckpt))
@@ -227,17 +248,26 @@ class Inference:
             out_scale: Optional = None,
             out: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
-        """
-        Perform prediction and inplace-aggregate views into pred_prob.
+        """Perform prediction and inplace-aggregate views into pred_prob.
 
-        Args:
-            init_pred: initial prediction
-            val_loader : value loader
-            out_scale: [help]
-            out: previous prediction tensor
+        Parameters
+        ----------
+        init_pred : torch.Tensor
+            initial prediction
+        val_loader : DataLoader
+            value loader
+        * :
+            
+        out_scale : Optional
+            [MISSING] (Default value = None)
+        out : Optional[torch.Tensor]
+            previous prediction tensor (Default value = None)
 
-        Returns:
+        Returns
+        -------
+        torch.Tensor
             prediction probability tensor
+        
         """
 
         self.model.eval()
@@ -320,20 +350,31 @@ class Inference:
             out_res: Optional[int] = None,
             batch_size: int = None
     ) -> torch.Tensor:
-        """ [help]
+        """[MISSING]
         Run the loaded model on the data (T1) from orig_data and filename img_filename with scale factors orig_zoom.
 
-        Args:
-            init_pred: initial prediction
-            img_filename: original image filename
-            orig_data: original image data
-            orig_zoom: original zoom
-            out: updated output tensor (Default = None)
-            out_res: output resolution
-            batch_size: batch size (Default = None)
+        Parameters
+        ----------
+        init_pred : torch.Tensor
+            initial prediction
+        img_filename : str
+            original image filename
+        orig_data : npt.NDArray
+            original image data
+        orig_zoom : npt.NDArray
+            original zoom
+        out : Optional[torch.Tensor]
+            updated output tensor (Default = None)
+        out_res : Optional[int]
+            output resolution (Default value = None)
+        batch_size : int
+            batch size (Default = None)
 
-        Returns:
+        Returns
+        -------
+        toch.Tensor
             prediction probability tensor
+        
         """
 
         # Set up DataLoader

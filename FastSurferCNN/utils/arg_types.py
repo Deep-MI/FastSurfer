@@ -24,11 +24,22 @@ VoxSizeOption = Union[float, Literal["min"]]
 def vox_size(a: str) -> VoxSizeOption:
     """Helper function to convert the vox_size argument to 'min' or a valid voxel size.
 
-    Args:
-        a: vox size type. Can be auto, bin or a number between 1 an 0
+    Parameters
+    ----------
+    a : str
+        vox size type. Can be auto, bin or a number between 1 an 0
 
-    Raises:
-        argparse.ArgumentTypeError: An error from creating or using an argument. Additionally, vox_sizes may be 'min'.
+    Returns
+    -------
+    [MISSING]
+        
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        An error from creating or using an argument. Additionally, vox_sizes may be 'min'.
+
+    
     """
 
     if a.lower() in ["auto", "min"]:
@@ -44,8 +55,17 @@ def vox_size(a: str) -> VoxSizeOption:
 def float_gt_zero_and_le_one(a: str) -> Optional[float]:
     """Helper function to check whether a parameters is a float between 0 and one.
 
-    Args:
-        a: String of a number or none, infinity
+    Parameters
+    ----------
+    a : str
+        String of a number or none, infinity
+
+    Returns
+    -------
+    [MISSING]
+        
+
+    
     """
 
     if a is None or a.lower() in ["none", "infinity"]:
@@ -60,11 +80,22 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
 def target_dtype(a: str) -> str:
     """Helper function to check for valid dtypes.
 
-    Args:
-        a: datatype
+    Parameters
+    ----------
+    a : str
+        datatype
 
-    Raises:
-         argparse.ArgumentTypeError: Invalid dtype
+    Returns
+    -------
+    [MISSING]
+        
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        Invalid dtype
+
+    
     """
 
     dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
@@ -87,14 +118,22 @@ def target_dtype(a: str) -> str:
 def int_gt_zero(value: Union[str, int]) -> int:
     """Conversion to positive integers.
 
-    Args:
-        value: integer to convert
+    Parameters
+    ----------
+    value : Union[str, int]
+        integer to convert
 
-    Returns:
+    Returns
+    -------
+    val : int
         converted integer
 
-    Raises:
-        argparse:ArgumentTypeError: Invalid value, must not be negative.
+    Raises
+    ------
+    argparse
+        ArgumentTypeError: Invalid value, must not be negative.
+
+    
     """
 
     val = int(value)
@@ -106,14 +145,22 @@ def int_gt_zero(value: Union[str, int]) -> int:
 def int_ge_zero(value) -> int:
     """Conversion to integers greater 0.
 
-    Args:
-        value: integer to convert
+    Parameters
+    ----------
+    value :
+        integer to convert
 
-    Returns:
+    Returns
+    -------
+    val : int
         given value if bigger or equal to zero
 
-    Raises:
-        argparse:ArgumentTypeError: Invalid value, must be greater than 0.
+    Raises
+    ------
+    argparse
+        ArgumentTypeError: Invalid value, must be greater than 0.
+
+    
     """
 
     val = int(value)
@@ -125,11 +172,17 @@ def int_ge_zero(value) -> int:
 def unquote_str(value) -> str:
     """Unquotes a (single quoted) string.
 
-    Args:
-        value: String to be unquoted
+    Parameters
+    ----------
+    value :
+        String to be unquoted
 
-    Returns:
+    Returns
+    -------
+    val : str
         A string of the value without quoting with '''
+
+    
     """
 
     val = str(value)

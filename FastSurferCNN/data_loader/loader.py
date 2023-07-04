@@ -25,15 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 def get_dataloader(cfg: yacs.config.CfgNode, mode: str):
-    """
-    Creating the dataset and pytorch data loader
+    """Creating the dataset and pytorch data loader
 
-    Args:
-        cfg: configuration node
-        mode: loading data for train, val and test mode
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        configuration node
+    mode : str
+        loading data for train, val and test mode
 
-    Returns:
-        torch.utils.data.DataLoader: dataloader with given configs and mode
+    Returns
+    -------
+    torch.utils.data.DataLoader
+        dataloader with given configs and mode
+
+    
     """
     assert mode in ["train", "val"], f"dataloader mode is incorrect {mode}"
 
