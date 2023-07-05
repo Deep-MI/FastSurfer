@@ -74,5 +74,5 @@ RUN python3 /fastsurfer/FastSurferCNN/download_checkpoints.py --all
 #  the script entrypoint ensures that our conda env is active
 WORKDIR "/fastsurfer"
 ENV FASTSURFER_HOME=/fastsurfer
-ENTRYPOINT ["./Docker/entrypoint.sh", "python3.8", "./FastSurferCNN/run_prediction.py"]
+ENTRYPOINT ["./Docker/entrypoint.sh", "python3.10", "./FastSurferCNN/run_prediction.py"]
 CMD ["--help"]
