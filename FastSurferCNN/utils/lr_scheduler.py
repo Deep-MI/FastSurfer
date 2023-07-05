@@ -25,15 +25,22 @@ def get_lr_scheduler(
 ) -> Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]:
     """
 
-    Args:
-        optimzer: Optimizer for the scheduler
-        cfg: configuration node
+    Parameters
+    ----------
+    optimzer : torch.optim.Optimizer
+        Optimizer for the scheduler
+    cfg : yacs.config.CfgNode
+        configuration node
 
-    Returns:
-        the requested scheduler or None
+    Returns
+    -------
 
-    Raises:
-        ValueError: lr scheduler is not supported
+    Raises
+    ------
+    ValueError
+        lr scheduler is not supported
+
+    
     """
 
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER

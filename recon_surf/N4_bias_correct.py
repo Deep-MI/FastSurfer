@@ -82,11 +82,13 @@ h_threads = "<int> number of threads, default: 1"
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser
 
-    Returns:
-        options: object holding options
+    Returns
+    -------
+    options
+        object holding options
+
     """
 
     parser = optparse.OptionParser(
@@ -128,20 +130,31 @@ def N4correctITK(
         thres: float = 0.0,
         rescale: bool = True
 ) -> sitk.Image:
-    """
-    Perform the bias field correction.
+    """Perform the bias field correction.
 
-    Args:
-        itkimage: n-dimensional image
-        itkmask: Image mask. Defaults to None. Optional
-        shrink: Shrink factors. Defaults to 4
-        levels: Number of levels for maximum number of iterations. Defaults to 4
-        numiter: Maximum number if iterations. Defaults 50
-        thres: Convergence threshold. Defaults to 0.0
-        rescale: Whether image should be rescaled. Defaults to True
+    Parameters
+    ----------
+    itkimage : sitk.Image
+        n-dimensional image
+    itkmask : Optional[sitk.Image]
+        Image mask. Defaults to None. Optional
+    shrink : int
+        Shrink factors. Defaults to 4
+    levels : int
+        Number of levels for maximum number of iterations. Defaults to 4
+    numiter : int
+        Maximum number if iterations. Defaults 50
+    thres : float
+        Convergence threshold. Defaults to 0.0
+    rescale : bool
+        Whether image should be rescaled. Defaults to True
 
-    Returns:
-        itkcorrected: Bias field corrected image
+    Returns
+    -------
+    itkcorrected
+        Bias field corrected image
+
+    
     """
 
     # if no mask is passed, create a simple mask from the image
@@ -202,17 +215,27 @@ def normalizeWM(
         centroid: Optional[Any] = None,
         targetWM: int = 110
 ) -> sitk.Image:
-    """ Normalize WM image [help]
+    """Normalize WM image [MISSING]
 
-    Args:
-        itkimage: n-dimensional itk image
-        itkmask: Image mask. Defaults to None. Optional
-        radius: Defaults to 50 [help]
-        centroid: Image centroid. Defaults to None
-        targetWM: Defaults to 110 [help]
+    Parameters
+    ----------
+    itkimage : sitk.Image
+        n-dimensional itk image
+    itkmask : Optional[sitk.Image]
+        Image mask. Defaults to None. Optional
+    radius : int
+        Defaults to 50 [MISSING]
+    centroid : Optional[Any]
+        Image centroid. Defaults to None
+    targetWM : int
+        Defaults to 110 [MISSING]
 
-    Returns:
-        normed: Normalized WM image
+    Returns
+    -------
+    normed
+        Normalized WM image
+
+    
     """
 
     # print("\nnormalizeWM:")
@@ -287,13 +310,19 @@ def normalizeWM(
 
 
 def readTalairachXFM(fname: str) -> np.ndarray:
-    """ Read TalairachXFM image
+    """Read TalairachXFM image
 
-    Args:
-        fname: Filename to TalairachXFM
+    Parameters
+    ----------
+    fname : str
+        Filename to TalairachXFM
 
-    Returns:
-        tal: TalairachXFM image
+    Returns
+    -------
+    tal
+        TalairachXFM image
+
+    
     """
 
     with open(fname) as f:
@@ -315,14 +344,21 @@ def readTalairachXFM(fname: str) -> np.ndarray:
 
 
 def getTalOriginVox(tal: npt.ArrayLike, image: sitk.Image):
-    """ Get the original Talairach Voxel
+    """Get the original Talairach Voxel
 
-    Args:
-        tal: [help]
-        image: Original image
+    Parameters
+    ----------
+    tal : npt.ArrayLike
+        [MISSING]
+    image : sitk.Image
+        Original image
 
-    Returns:
-        vox_origin: Original Talairach Voxel
+    Returns
+    -------
+    vox_origin
+        Original Talairach Voxel
+
+    
     """
 
     talinv = np.linalg.inv(tal)

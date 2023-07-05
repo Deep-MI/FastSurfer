@@ -41,22 +41,30 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    """ Trainer for the networks
+    """Trainer for the networks
+    
+    Methods
+    -------
+    __init__
+        constructor
+    train
+        trains the network
+    eval
+        validates calculations
+    run
+        performs training loop
 
-    Methods:
-        __init__: constructor
-        train: trains the network
-        eval: validates calculations
-        run: performs training loop
-     """
+    """
 
     def __init__(self, cfg: yacs.config.CfgNode):
-        """
-        constructor
+        """constructor
 
-        Args:
-            cfg: Node of configs to be used
-         """
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            Node of configs to be used
+
+        """
 
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -91,16 +99,22 @@ class Trainer:
             train_meter: Meter,
             epoch
     ) -> None:
-        """
-        trains the network to the given training data
+        """trains the network to the given training data
 
-        Args:
-            train_loader: data loader for the training
-            optimizer: optimizer for the training
-            scheduler: lr scheduler for the training
-            train_meter:
-            epoch (int):
-         """
+        Parameters
+        ----------
+        train_loader : loader.DataLoader
+            data loader for the training
+        optimizer : torch.optim.optimizer.Optimizer
+            optimizer for the training
+        scheduler : Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]
+            lr scheduler for the training
+        train_meter : Meter
+            [MISSING]
+        epoch : int
+            [MISSING]
+        
+        """
 
         self.model.train()
         logger.info("Training started ")
@@ -171,17 +185,24 @@ class Trainer:
             val_meter: Meter,
             epoch: int
     ) -> np.ndarray:
+        """Evaluates model and calculates stats
+
+        Parameters
+        ----------
+        val_loader : loader.DataLoader
+            Value loader
+        val_meter : Meter
+            Meter for the values
+        epoch : int
+            epoch to evaluate
+
+        Returns
+        -------
+        int, float, ndarray
+            median miou [value]
+
+        
         """
-        Evaluates model and calculates stats
-
-        Args:
-            val_loader: Value loader
-            val_meter: Meter for the values
-            epoch: epoch to evaluate
-
-        Returns:
-            int, float, ndarray: median miou [value]
-         """
 
         logger.info(f"Evaluating model at epoch {epoch}")
         self.model.eval()
@@ -290,9 +311,7 @@ class Trainer:
         return np.mean(np.mean(miou))
 
     def run(self):
-        """ [help]
-        transfers the model to devices, creates a tensor board summary writer and then performs the training loop
-         """
+        """transfers the model to devices, creates a tensor board summary writer and then performs the training loop"""
 
         if self.cfg.NUM_GPUS > 1:
             assert (

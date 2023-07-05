@@ -700,43 +700,46 @@ class SubjectList:
     def __init__(self, args, flags: Optional[Dict[str, Dict]] = None, **assign):
         """Create an iterate-able list of subjects from the arguments passed.
 
-        Args:
-            args: The Namespace object (object with attributes to define parameters) with the following 'required'
-                definitions.
-                orig_name (str): the path to the input t1 file.
-                conf_name (str): the path to the conformed t1 file.
-                segfile (str): the path to the main output file.
-                in_dir (str) or csv_file (str), if orig_name is not an absolute path.
-            flags: dictionary of flags used to generate args (used to populate messages). Default:
-                `SubjectList.DEFAULT_FLAGS`, which get initialized from `FastSurferCNN.utils.-parser_defaults.ALL_FLAGS`
-
-        There are three modes of operation:
-
-        If args has a non-empty csv_file attribute (cf. {csv_file[flag]} flag), read subjects from a subject list file
+        Parameters
+        ----------
+        args :
+            The Namespace object (object with attributes to define parameters) with the following 'required'
+            definitions.
+            orig_name (str): the path to the input t1 file.
+            conf_name (str): the path to the conformed t1 file.
+            segfile (str): the path to the main output file.
+            in_dir (str) or csv_file (str), if orig_name is not an absolute path.
+        flags : Optional[Dict[str, Dict]]
+            dictionary of flags used to generate args (used to populate messages). Default:
+            `SubjectList.DEFAULT_FLAGS`, which get initialized from `FastSurferCNN.utils.-parser_defaults.ALL_FLAGS`
+            There are three modes of operation:
+            If args has a non-empty csv_file attribute (cf. {csv_file[flag]} flag), read subjects from a subject list file
             The subject listfile is a textfile with one subject per line, where each line can be an absolute or relative
             path. If they are relative paths, they are interpreted as relative to args.in_dir, so args.in_dir needs to
             be defined. Paths can either point to subject directories (file is path + the t1 image name in
             args.orig_name) or directly to the t1 image.
-
-        Else, if args has a non-empty in_dir attribute (c.f. {in_dir[flag]} flag), list the folder contents of in_dir
+            Else, if args has a non-empty in_dir attribute (c.f. {in_dir[flag]} flag), list the folder contents of in_dir
             The search pattern can be specified by the search_tag attribute of args (cf. {tag[flag]} flag), which is
             {tag[default]} (all files and folders) by default.
             For containing objects that are folders, these folders are interpreted as subject directories and the t1
             image is loaded according to the (necessarily relative) {t1[flag]} (args.orig_name), which defaults to
             {t1[default]}. The folder name is treated as the subject id, if no {sid[flag]} is passed (args.sid).
             For the containing objects that are files, these files are interpreted are loaded as to-be analyzed data.
-
-        Finally, if an absolute path is specified with the orig_name attribute of args (cf. {t1[flag]}), only this
+            Finally, if an absolute path is specified with the orig_name attribute of args (cf. {t1[flag]}), only this
             specific file is processed.
-
-        If args is passed without a sid attribute (cf. {sid[flag]}), subject ids are extracted from the subject details
+            If args is passed without a sid attribute (cf. {sid[flag]}), subject ids are extracted from the subject details
             (excluding potentially added relative paths). Suffixes can be removed from this by use of the remove_suffix
             attribute of args (cf. {remove_suffix[flag]}) including file extensions or subfolders (e.g. `{tag[flag]}
             */anat {remove_suffix[flag]} /anat` or `{tag[flag]} *_t1.nii.gz {remove_suffix[flag]} _t1.nii.gz`).
+        **assign :
 
-        Raises:
-            RuntimeError: For invalid configurations, e.g. no 'in_dir', 'csv_file', or absolute 'orig_name'.
-            RuntimeError: When using {sid[flag]} with multiple subjects.
+        Raises
+        ------
+        RuntimeError
+            For invalid configurations, e.g. no 'in_dir', 'csv_file', or absolute 'orig_name'.
+        RuntimeError
+            When using {sid[flag]} with multiple subjects.
+
         """
 
         # populate _flags with DEFAULT_FLAGS
@@ -959,7 +962,20 @@ class SubjectList:
 
     def __getitem__(self, item: Union[int, str]) -> SubjectDirectory:
         """Returns a SubjectDirectory object for the i-th subject (if item is an int) or for the subject with
-        name/folder (if item is a str)."""
+        name/folder (if item is a str).
+
+        Parameters
+        ----------
+        item : Union[int, str]
+            [MISSING]
+
+        Returns
+        -------
+        SubjectDirectory
+            [MISSING]
+
+        """
+
         if isinstance(item, int):
             if item < 0 or item >= self._num_subjects:
                 raise IndexError(
@@ -996,7 +1012,15 @@ class SubjectList:
         )
 
     def get_common_suffix(self) -> str:
-        """Finds, if all entries in the subject list share a common suffix"""
+        """Finds, if all entries in the subject list share a common suffix
+
+        Returns
+        -------
+        str
+            [MISSING]
+        
+        """
+
         suffix = self._subjects[0]
         for subj in self._subjects[1:]:
             if subj.endswith(suffix):
@@ -1030,9 +1054,46 @@ class NoParallelExecutor(Executor):
         timeout: Optional[float] = None,
         chunksize: int = -1,
     ) -> Iterator[_T]:
+        """
+
+        Parameters
+        ----------
+        fn : Callable[..., _T]
+            [MISSING]
+        *iterables : Iterable[Any]
+            [MISSING]
+        timeout : Optional[float]
+            [MISSING] (Default value = None)
+        chunksize : int
+            [MISSING] (Default value = -1)
+
+        Returns
+        -------
+        Iterator[_T]
+            [MISSING]
+        
+        """
         return map(fn, *iterables)
 
     def submit(self, __fn: Callable[..., _T], *args, **kwargs) -> "Future[_T]":
+        """
+
+        Parameters
+        ----------
+        __fn : Callable[..., _T]
+            [MISSING]
+        *args :
+            [MISSING]
+        **kwargs :
+            [MISSING]
+
+        Returns
+        -------
+        "Future[_T]"
+            [MISSING]
+        
+        """
+
         f = Future()
         try:
             f.set_result(__fn(*args, **kwargs))

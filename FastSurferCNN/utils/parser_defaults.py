@@ -52,15 +52,14 @@ class CanAddArguments(Protocol):
 
 
 def __arg(*default_flags, **default_kwargs):
-    """
-    Function to create stub function, which sets default settings for argparse arguments.
+    """Function to create stub function, which sets default settings for argparse arguments.
     The positional and keyword arguments function as if they were directly passed to parser.add_arguments().
-
+    
     The result will be a stub function, which has as first argument a parser (or other object with an
     add_argument method) to which the argument is added. The stub function also accepts positional and
     keyword arguments, which overwrite the default arguments. Additionally, these specific values can be callables,
     which will be called upon the default values (to alter the default value).
-
+    
     This function is private for this module.
     """
 
@@ -277,14 +276,18 @@ T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)
 
 
 def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
-    """
-    Add default flags to the parser from the flags list in order.
+    """Add default flags to the parser from the flags list in order.
 
-    Args:
-        parser: The parser to add flags to.
-        flags: the flags to add from 'device', 'viewagg_device'.
+    Parameters
+    ----------
+    parser : T_AddArgs
+        The parser to add flags to.
+    flags : Iterable[str]
+        the flags to add from 'device', 'viewagg_device'.
 
-    Returns:
+    Returns
+    -------
+    T_AddArgs
         The parser object
     """
 
@@ -306,19 +309,25 @@ def add_plane_flags(
     type: Literal["checkpoint", "config"],
     files: Mapping[str, str],
 ) -> argparse.ArgumentParser:
-    """
-    Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
+    """Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
     and the values is the file name (relative for path relative to FASTSURFER_HOME.
 
-    Args:
-        parser: The parser to add flags to.
-        type: The type of files (for help text and prefix from "checkpoint" and "config".
-            "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
-        files: A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
-            directory.
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+        The parser to add flags to.
+    type : Literal["checkpoint", "config"]
+        The type of files (for help text and prefix from "checkpoint" and "config".
+        "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
+    files : Mapping[str, str]
+        A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
+        directory.
 
-    Returns:
+    Returns
+    -------
+    argparse.ArgumentParser
         The parser object.
+    
     """
 
     if type not in PLANE_SHORT:

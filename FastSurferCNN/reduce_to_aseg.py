@@ -65,9 +65,7 @@ h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi
 
 
 def options_parse():
-    """
-    Command line option parser for reduce_to_aseg.py
-    """
+    """Command line option parser for reduce_to_aseg.py"""
     parser = optparse.OptionParser(
         version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
         usage=HELPTEXT,

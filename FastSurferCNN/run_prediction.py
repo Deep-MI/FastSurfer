@@ -57,15 +57,21 @@ LOGGER = logging.getLogger(__name__)
 ##
 def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
     """Setup of configuration
-
+    
     Sets up configurations with given arguments inside the yaml file
 
-    Args:
-        cfg: path to yaml file of configurations
-        args: {out_dir, batch_size} arguments
+    Parameters
+    ----------
+    cfg : str
+        path to yaml file of configurations
+    args : argparse.Namespace
+        {out_dir, batch_size} arguments
 
-    Returns:
+    Returns
+    -------
+    yacs.config.CfgNode
         Node of configurations
+
     """
 
     cfg = load_config(cfg)
@@ -79,14 +85,18 @@ def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
 
 
 def args2cfg(args: argparse.Namespace) -> tuple[yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode]:
-    """
-    converges args to a configuration Node
+    """converges args to a configuration Node
 
-    Args:
-        args: arguments
+    Parameters
+    ----------
+    args : argparse.Namespace
+        arguments
 
-    Returns:
+    Returns
+    -------
+     yacs.config.CfgNode
         configurations for all planes
+
     """
 
     cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
@@ -99,15 +109,20 @@ def args2cfg(args: argparse.Namespace) -> tuple[yacs.config.CfgNode, yacs.config
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """
-    Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
+    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string.
 
-    Args:
-        string: string to be cut
-        suffix: suffix to be removed
+    Parameters
+    ----------
+    string : str
+        string to be cut
+    suffix : str
+        suffix to be removed
 
-    Returns:
-        Str: Suffix removed string
+    Returns
+    -------
+    Str
+        Suffix removed string
+
     """
 
     import sys
@@ -129,31 +144,45 @@ def removesuffix(string: str, suffix: str) -> str:
 
 
 class RunModelOnData:
-    """[help]
+    """[MISSING]
     runs the model prediction on given data
+    
+    Methods
+    -------
+    __init__()
+        constructor
+    set_and_create_outdir()
+        sets and creates output directory
+    conform_and_save_orig()
+        saves original image
+    set_subject()
+        setter
+    get_subject_name()
+        getter
+    set_model()
+        setter
+    run_model()
+        calculates prediction
+    get_img()
+        getter
+    save_img()
+        saves image as file
+    set_up_model_params()
+        setter
+    get_num_classes()
+        getter
 
-    Functions:
-        __init__(): constructor
-        set_and_create_outdir(): sets and creates output directory
-        conform_and_save_orig(): saves original image
-        set_subject(): setter
-        get_subject_name(): getter
-        set_model(): setter
-        run_model(): calculates prediction
-        get_img(): getter
-        save_img(): saves image as file
-        set_up_model_params(): setter
-        get_num_classes(): getter
-
-    Attributes:
-        pred_name(str):
-        conf_name(str):
-        orig_name(str):
-        vox_size(Union[float, Literal["min"]]):
-        current_plane(str):
-        models(Dict[str, Inference]):
-        view_ops(Dict[str, Dict[str, Any]]):
-        conform_to_1mm_threshold(Optional[float]): threshold until which the image will be conformed to 1mm res
+    Attributes
+    ----------
+    pred_name : str
+    conf_name : str
+    orig_name : str
+    vox_size : Union[float, Literal["min"]]
+    current_plane : str
+    models : Dict[str, Inference]
+    view_ops : Dict[str, Dict[str, Any]]
+    conform_to_1mm_threshold : Optional[float]
+        threshold until which the image will be conformed to 1mm res
     """
 
     pred_name: str
@@ -169,19 +198,19 @@ class RunModelOnData:
         """
         constructor
 
-        Args:
-            args: [help]
-                pred_name (str):
-                conf_name (str):
-                orig_name (str):
-                remove_suffix ():
-                sf (float): Defaults to 1.0
-                out_dir (str): directory of output
-                viewagg_device (str): device to run viewagg on. Can be auto, cuda or cpu
-
-        Raises:
-            ValueError: Could not find the ColorLUT
-            ValueError: Invalid value for vox_size, must be between 0 and 1 or 'min'
+        Parameters
+        ----------
+        args : args: argparse.Namespace) [MISSING]
+            pred_name : str
+            conf_name (str
+            orig_name (str
+            remove_suffix
+            sf : float
+                Defaults to 1.0
+            out_dir : str
+                directory of output
+            viewagg_device : str
+                device to run viewagg on. Can be auto, cuda or cpu
         """
 
         self.pred_name = args.pred_name
@@ -268,16 +297,18 @@ class RunModelOnData:
         self,
         subject: SubjectDirectory
     ) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-        """ Conforms and saves original image [help]
+        """Conforms and saves original image [MISSING]
 
-        Args:
-            subject: subject directory object
+        Parameters
+        ----------
+        subject : SubjectDirectory
+            subject directory object
 
-        Returns:
+        Returns
+        -------
+        Tuple[nib.analyze.SpatialImage, np.ndarray]
             Conformed image
 
-        Raises:
-            Cannot resolve the name to the conformed image, please specify an absolute path.
         """
 
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
@@ -323,17 +354,23 @@ class RunModelOnData:
             orig_data: np.ndarray,
             zoom: Union[np.ndarray, tuple]
     ) -> np.ndarray:
-        """
-            get prediction
+        """get prediction
 
-        Args:
-            orig_f: original image filename
-            orig_data: original image data
-            zoom: original zoom
+        Parameters
+        ----------
+        image_name : str
+            original image filename
+        orig_data : np.ndarray
+            original image data
+        zoom : Union[np.ndarray, tuple]
+            original zoom
 
-        Returns:
+        Returns
+        -------
+        np.ndarray
             predicted classes
-         """
+
+        """
 
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
@@ -367,15 +404,19 @@ class RunModelOnData:
         orig: nib.analyze.SpatialImage,
         dtype: Optional[type] = None,
     ):
-        """
-            Saves image as file
+        """Saves image as file
 
-        Args:
-            save_as: filename to give image
-            data: image data
-            orig: original Image
-            seg: segmentation. Defaults to False
-            dtype
+        Parameters
+        ----------
+        save_as : str
+            filename to give image
+        data : Union[np.ndarray, torch.Tensor]
+            image data
+        orig : nib.analyze.SpatialImage
+            original Image
+        dtype : Optional[type]
+             (Default value = None)
+
         """
 
         # Create output directory if it does not already exist.

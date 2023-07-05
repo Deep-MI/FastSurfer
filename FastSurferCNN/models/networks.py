@@ -24,8 +24,7 @@ import FastSurferCNN.models.interpolation_layer as il
 
 
 class FastSurferCNNBase(nn.Module):
-    """
-    Network Definition of Fully Competitive Network network
+    """Network Definition of Fully Competitive Network network
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
     * Dense Connections in blocks
@@ -34,21 +33,33 @@ class FastSurferCNNBase(nn.Module):
     * Global skip connections are fused by Maxout (global competition)
     * Loss Function (weighted Cross-Entropy and dice loss)
 
-    Attributes:
-        encode1, encode2, encode3, encode4: Competitive Encoder Blocks
-        decode1, decode2, decode3, decode4: Competitive Decoder Blocks
-        bottleneck: Bottleneck Block
+    Attributes
+    ----------
+    encode1, encode2, encode3, encode4
+        Competitive Encoder Blocks
+    decode1, decode2, decode3, decode4
+        Competitive Decoder Blocks
+    bottleneck
+        Bottleneck Block
 
-    Methods:
-        forward: Computational graph
+    Methods
+    -------
+    forward
+        Computational graph
     """
 
     def __init__(self, params: dict, padded_size: int = 256):
-        """ Initialization of FastSurferCNNBase
-
+        """Initialization of FastSurferCNNBase
+        
         Args:
-            params:  dictionary of configurations
-            padded_size: size of image when padded
+
+        Parameters
+        ----------
+        params : dict
+            
+        padded_size : int
+            size of image when padded (Default value = 256)
+
         """
 
         super(FastSurferCNNBase, self).__init__()
@@ -85,16 +96,22 @@ class FastSurferCNNBase(nn.Module):
             scale_factor: Optional[Tensor] = None,
             scale_factor_out: Optional[Tensor] =None
     ) -> Tensor:
-        """
-        Computational graph
+        """Computational graph
 
-        Args: [help]
-            x: input image [N, C, H, W]
-            scale_factor: [N, 1] Defaults to None
-            scale_factor_out: Defaults to None
+        Parameters [MISSING]
+        ----------
+        x : Tensor
+            input image [N, C, H, W]
+        scale_factor : Optional[Tensor]
+            [N, 1] Defaults to None (Default value = None)
+        scale_factor_out : Optional[Tensor]
+            (Default value = None)
 
-        Returns:
+        Returns
+        -------
+        decoder_output1 : Tensor
             prediction logits
+        
         """
 
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
@@ -128,20 +145,29 @@ class FastSurferCNN(FastSurferCNNBase):
     """
     Main Fastsurfer CNN Network
 
-    Attributes:
-        classifier: Initialized Classification Block
+    Attributes
+    ----------
+    classifier
+        Initialized Classification Block
 
-    Methods:
-        forward: Computational graph
+    Methods
+    -------
+    forward
+        Computational graph
     """
 
     def __init__(self, params: dict, padded_size: int):
-        """
-        Initialization of FastSurferCNN
-
+        """Initialization of FastSurferCNN
+        
         Args:
-            params:  dictionary of configurations
-            padded_size: size of image when padded
+
+        Parameters
+        ----------
+        params : dict
+            dictionary of configurations
+        padded_size : int
+            size of image when padded
+
         """
 
         super(FastSurferCNN, self).__init__(params)
@@ -164,16 +190,22 @@ class FastSurferCNN(FastSurferCNNBase):
             scale_factor: Optional[Tensor] = None,
             scale_factor_out: Optional[Tensor] = None
     ) -> Tensor:
-        """
-        Computational graph
+        """Computational graph
 
-        Args:
-            x: input image [N, C, H, W]
-            scale_factor: [N, 1] Defaults to None
-            scale_factor_out: Defaults to None
+        Parameters
+        ----------
+        x : Tensor
+            input image [N, C, H, W]
+        scale_factor : Optional[Tensor]
+            [N, 1] Defaults to None
+        scale_factor_out : Optional[Tensor]
+            Defaults to None
 
-        Returns:
+        Returns
+        -------
+        output : Tensor
             Prediction logits
+        
         """
 
         net_out = super().forward(x, scale_factor)
@@ -183,8 +215,7 @@ class FastSurferCNN(FastSurferCNNBase):
 
 
 class FastSurferVINN(FastSurferCNNBase):
-    """
-    Network Definition of Fully Competitive Network
+    """Network Definition of Fully Competitive Network
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
     * Dense Connections in blocks
@@ -194,29 +225,44 @@ class FastSurferVINN(FastSurferCNNBase):
     * Loss Function (weighted Cross-Entropy and dice loss)
 
     Attributes:
-        height  the height of segmentation model (after interpolation layer)
-        width: the width of segmentation model
-        out_tensor_shape: Out tensor dimensions for interpolation layer
-        interpolation_mode: Interpolation mode for up/downsampling in flex networks
-        crop_position: Crop positions for up/downsampling in flex networks
-        inp_block: Initialized input dense block
-        outp_block: Initialized output dense block
-        interpol1: Initialized 2d input interpolation block
-        interpol2: Initialized 2d output interpolation block
-        classifier: Initialized Classification Block
+    height
+        the height of segmentation model (after interpolation layer)
+    width
+        the width of segmentation model
+    out_tensor_shape
+        Out tensor dimensions for interpolation layer
+    interpolation_mode
+        Interpolation mode for up/downsampling in flex networks
+    crop_position
+        Crop positions for up/downsampling in flex networks
+    inp_block
+        Initialized input dense block
+    outp_block
+        Initialized output dense block
+    interpol1
+        Initialized 2d input interpolation block
+    interpol2
+        Initialized 2d output interpolation block
+    classifier
+        Initialized Classification Block
 
 
-    Methods:
-        forward: computational graph
+    Methods
+    -------
+    forward
+        computational graph
     """
 
     def __init__(self, params: dict, padded_size: int = 256):
-        """
-        Initialization of FastSurferVINN
+        """Initialization of FastSurferVINN
 
-        Args:
-            params:  dictionary of configurations
-            padded_size: size of image when padded
+        Parameters
+        ----------
+        params : dict
+            dictionary of configurations
+        padded_size : int
+            size of image when padded (Default value = 256)
+
         """
 
         num_c = params["num_channels"]
@@ -291,16 +337,22 @@ class FastSurferVINN(FastSurferCNNBase):
             scale_factor: Tensor,
             scale_factor_out: Optional[Tensor]  = None
     ) -> Tensor:
-        """
-        Computational graph
+        """Computational graph
 
-        Params:
-            x: input image [N, C, H, W]
-            scale_factor: [N, 1]
-            scale_factor_out: Defaults to None
+        Parameters
+        ----------
+        x : Tensor
+            input image [N, C, H, W]
+        scale_factor : Tensor
+            [MISSING] [N, 1]
+        scale_factor_out : Tensor, Optional
+            [MISSING] Defaults to None
 
-        Returns:
-            logits: prediction logits
+        Returns
+        -------
+        logits : Tensor
+            prediction logits
+
         """
 
         # Input block + Flex to 1 mm
@@ -343,14 +395,19 @@ _MODELS = {
 
 
 def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN]:
-    """
-    Builds requested model
+    """Builds requested model
 
-    Args:
-        cfg: Node of configs to be used
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Node of configs to be used
 
-    Returns:
-        model: Object of the initialized model
+    Returns
+    -------
+    model
+        Object of the initialized model
+
+    
     """
 
     assert (

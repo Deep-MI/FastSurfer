@@ -35,15 +35,21 @@ def plot_predictions(
         plt_title: str,
         file_save_name: str
 ) -> None:
-    """
-    Function to plot predictions from validation set.
+    """Function to plot predictions from validation set.
 
-    Args:
-        images_batch: batch of images
-        labels_batch: batch of labels
-        batch_output: batch of output
-        plt_title: plot title
-        file_save_name: name the plot should be saved tp
+    Parameters
+    ----------
+    images_batch : torch.Tensor
+        batch of images
+    labels_batch : torch.Tensor
+        batch of labels
+    batch_output : torch.Tensor
+        batch of output
+    plt_title : str
+        plot title
+    file_save_name : str
+        name the plot should be saved tp
+
     """
 
     f = plt.figure(figsize=(20, 10))
@@ -83,16 +89,25 @@ def plot_confusion_matrix(
 ) -> matplotlib.figure.Figure:
     """
 
-    Args:
-        cm: confusion matrix
-        classes: list of class names
-        title:
-        cmap: colour map
-        file_save_name ():
+    Parameters
+    ----------
+    cm : npt.NDArray
+        confusion matrix
+    classes : list[str]
+        list of class names
+    title : str
+        (Default value = "Confusion matrix")
+    cmap : plt.cm.ColormapRegistry
+        colour map (Default value = plt.cm.Blues)
+    file_save_name : str
+        (Default value = "temp.pdf")
 
-    Returns:
-
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        [MISSING]
     """
+
     n_classes = len(classes)
 
     fig, ax = plt.subplots()
@@ -134,13 +149,18 @@ def plot_confusion_matrix(
 
 
 def find_latest_experiment(path: str) -> int:
-    """ Find an load latest experiment
+    """Find an load latest experiment
 
-    Args:
-        path: path to the latest experiment
+    Parameters
+    ----------
+    path : str
+        path to the latest experiment
 
-    Returns:
-
+    Returns
+    -------
+    int
+        latest experiments
+    
     """
 
     list_of_experiments = os.listdir(path)

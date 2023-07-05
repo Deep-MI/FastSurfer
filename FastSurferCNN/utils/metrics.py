@@ -23,14 +23,24 @@ logger = logging.getLogger(__name__)
 
 
 def iou_score(pred_cls: torch.Tensor, true_cls: torch.Tensor, nclass: int =79) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    compute the intersection-over-union score
+    """compute the intersection-over-union score
     both inputs should be categorical (as opposed to one-hot)
 
-    Args:
-        pred_cls: network prediction (categorical)
-        true_cls: ground truth (categorical)
-        nclass: number of classes
+    Parameters
+    ----------
+    pred_cls : torch.Tensor
+        network prediction (categorical)
+    true_cls : torch.Tensor
+        ground truth (categorical)
+    nclass : int
+        number of classes (Default value = 79)
+
+    Returns
+    -------
+    np.ndarray
+        [MISSING]
+    np.ndarray
+        [MISSING]
     """
 
     intersect_ = []
@@ -52,13 +62,23 @@ def precision_recall(
         true_cls: torch.Tensor,
         nclass: int = 79
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Function to calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class
+    """Function to calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class
 
-    Args:
-        pred_cls: network prediction (categorical)
-        true_cls: ground truth (categorical)
-        nclass: number of classes
+    Parameters
+    ----------
+    pred_cls : torch.Tensor
+        network prediction (categorical)
+    true_cls : torch.Tensor
+        ground truth (categorical)
+    nclass : int
+        number of classes (Default value = 79)
+
+    Returns
+    -------
+    np.ndarray
+        [MISSING]
+    np.ndarray
+        [MISSING]
     """
 
     tpos_fneg = []
@@ -77,19 +97,22 @@ def precision_recall(
 
 
 class DiceScore:
-    """
-        Accumulating the component of the dice coefficient i.e. the union and intersection
-    Args:
-        op (callable): a callable to update accumulator. Method's signature is `(accumulator, output)`.
-            For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
-        output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
-            form expected by the metric. This can be useful if, for example, you have a multi-output model and
-            you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+    """Accumulating the component of the dice coefficient i.e. the union and intersection
+
+    Attributes:
+    op : callable
+        a callable to update accumulator. Method's signature is `(accumulator, output)`.
+        For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
+    output_transform : callable, optional
+        a callable that is used to transform the
+        :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+        form expected by the metric. This can be useful if, for example, you have a multi-output model and
+        you want to compute the metric with respect to one of the outputs.
+    device : str of torch.device, optional
+        device specification in case of distributed computation usage.
+        In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
+        if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+        initialized and available, device is set to `cuda`.
     """
 
     def __init__(
@@ -119,11 +142,15 @@ class DiceScore:
             )
 
     def _update_union_intersection_matrix(self, batch_output: torch.Tensor, labels_batch: torch.Tensor):
-        """ Update the union intersection matrix
+        """Update the union intersection matrix
 
-        Args:
-            batch_output: output tensor
-            labels_batch: label batch
+        Parameters
+        ----------
+        batch_output : torch.Tensor
+            output tensor
+        labels_batch : torch.Tensor
+            label batch
+        
         """
 
         for i in range(self.n_classes):
@@ -134,11 +161,14 @@ class DiceScore:
                 self.union[i, j] += torch.sum(gt) + torch.sum(pred)
 
     def _update_union_intersection(self, batch_output: torch.Tensor, labels_batch: torch.Tensor):
-        """ Update the union intersection
+        """Update the union intersection
 
-        Args:
-            batch_output: batch output (prediction, labels)
-            labels_batch:
+        Parameters
+        ----------
+        batch_output : torch.Tensor
+            batch output (prediction, labels)
+        labels_batch : torch.Tensor
+
         """
 
         for i in range(self.n_classes):
@@ -148,11 +178,15 @@ class DiceScore:
             self.union[i, i] += torch.sum(gt) + torch.sum(pred)
 
     def update(self, output: tuple[Any, Any], cnf_mat: bool):
-        """ update the intersection
+        """update the intersection
 
-        Args:
-            output:  Network output tensor
-            cnf_mat: Confusion matrix
+        Parameters
+        ----------
+        output : tuple[Any, Any]
+            Network output tensor
+        cnf_mat : bool
+            Confusion matrix
+
         """
 
         self._check_output_type(output)
@@ -169,10 +203,13 @@ class DiceScore:
             self._update_union_intersection(y_pred, y)
 
     def compute_dsc(self) -> float:
-        """ computes the dice score
+        """computes the dice score
 
-        Returns:
+        Returns
+        -------
+        dsc : float
             dice score
+        
         """
 
         dsc_per_class = self._dice_calculation()

@@ -54,9 +54,7 @@ class Meter:
         self.total_epochs = total_epoch
 
     def reset(self):
-        """
-        reset bach losses and dice scores
-        """
+        """reset bach losses and dice scores"""
         self.batch_losses = []
         self.dice_score.reset()
 
@@ -71,13 +69,20 @@ class Meter:
         self.batch_losses.append(batch_loss.item())
 
     def write_summary(self, loss_total, lr=None, loss_ce=None, loss_dice=None):
-        """ write a summary of the losses and scores
+        """write a summary of the losses and scores
 
-        Args: [help]
-            loss_total: total loss
-            lr:
-            loss_ce:
-            loss_dice: dice loss
+
+        Parameters
+        ----------
+        loss_total :
+            [MISSING]
+        lr :
+            [MISSING] (Default value = None)
+        loss_ce :
+            [MISSING] (Default value = None)
+        loss_dice :
+            [MISSING] (Default value = None)
+
         """
 
         self.writer.add_scalar(
@@ -97,11 +102,15 @@ class Meter:
         self.global_iter += 1
 
     def log_iter(self, cur_iter: int, cur_epoch: int):
-        """ logs the current iteration
+        """logs the current iteration
 
-        Args:
-            cur_iter: current iteration
-            cur_epoch: current epoch
+        Parameters
+        ----------
+        cur_iter : int
+            current iteration
+        cur_epoch : int
+            current epoch
+
         """
 
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
@@ -117,10 +126,13 @@ class Meter:
             )
 
     def log_epoch(self, cur_epoch: int):
-        """ logs the current epoch
+        """logs the current epoch
 
-        Args:
-            cur_epoch: current epoch
+        Parameters
+        ----------
+        cur_epoch : int
+            current epoch
+        
         """
 
         dice_score = self.dice_score.compute_dsc()
