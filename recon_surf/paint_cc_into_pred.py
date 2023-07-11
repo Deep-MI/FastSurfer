@@ -42,16 +42,14 @@ Date: Jul-10-2020
 
 
 def argument_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
     options
         object holding options
 
-    
     """
-
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
         "--input_cc",
@@ -81,8 +79,9 @@ def argument_parse():
 
 
 def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
-    """Function to paint corpus callosum segmentation into prediction. Note, that this function
-    modifies the original array and does not create a copy.
+    """Paint corpus callosum segmentation into prediction.
+
+    Note, that this function modifies the original array and does not create a copy.
 
     Parameters
     ----------
@@ -97,7 +96,6 @@ def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
         Prediction with added CC
 
     """
-
     cc_mask = (aseg_cc >= 251) & (aseg_cc <= 255)
     pred[cc_mask] = aseg_cc[cc_mask]
     return pred

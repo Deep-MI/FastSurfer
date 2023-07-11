@@ -436,7 +436,7 @@ def conform(
         dtype: Optional[Type] = None,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> nib.MGHImage:
-    f"""Python version of mri_convert -c, which by default turns image intensity values
+    """Python version of mri_convert -c, which by default turns image intensity values
     into UCHAR, reslices images to standard position, fills up slices to standard
     256x256x256 format and enforces 1mm or minimum isotropic voxel sizes.
     
@@ -551,7 +551,7 @@ def is_conform(
         verbose: bool = True,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> bool:
-    f"""Function to check if an image is already conformed or not (Dimensions: 256x256x256,
+    """Function to check if an image is already conformed or not (Dimensions: 256x256x256,
     Voxel size: 1x1x1, LIA orientation, and data type UCHAR).
 
     Parameters
@@ -647,7 +647,7 @@ def get_conformed_vox_img_size(
         conform_vox_size: VoxSizeOption,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> Tuple[float, int]:
-    f"""Extract the voxel size and the image size. This function only needs the header (not the data).
+    """Extract the voxel size and the image size. This function only needs the header (not the data).
 
     Parameters
     ----------
@@ -688,7 +688,7 @@ def check_affine_in_nifti(
         img: Union[nib.Nifti1Image, nib.Nifti2Image],
         logger: Optional[logging.Logger] = None
 ) -> bool:
-    f"""Function to check the affine in nifti Image. Sets affine with qform, if it exists
+    """Function to check the affine in nifti Image. Sets affine with qform, if it exists
     and differs from sform. If qform does not exist, voxel sizes between header
     information and information in affine are compared. In case these do not match,
     the function returns False (otherwise True).

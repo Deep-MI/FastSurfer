@@ -82,7 +82,7 @@ h_threads = "<int> number of threads, default: 1"
 
 
 def options_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
@@ -90,7 +90,6 @@ def options_parse():
         object holding options
 
     """
-
     parser = optparse.OptionParser(
         version="$Id: N4_bias_correct.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -154,9 +153,7 @@ def N4correctITK(
     itkcorrected
         Bias field corrected image
 
-    
     """
-
     # if no mask is passed, create a simple mask from the image
     if not itkmask:
         itkmask = itkimage > 0
@@ -215,7 +212,7 @@ def normalizeWM(
         centroid: Optional[Any] = None,
         targetWM: int = 110
 ) -> sitk.Image:
-    """Normalize WM image [MISSING]
+    """Normalize WM image [MISSING].
 
     Parameters
     ----------
@@ -234,10 +231,8 @@ def normalizeWM(
     -------
     normed
         Normalized WM image
-
     
     """
-
     # print("\nnormalizeWM:")
 
     mask_passed = True
@@ -310,7 +305,7 @@ def normalizeWM(
 
 
 def readTalairachXFM(fname: str) -> np.ndarray:
-    """Read TalairachXFM image
+    """Read TalairachXFM image.
 
     Parameters
     ----------
@@ -322,9 +317,7 @@ def readTalairachXFM(fname: str) -> np.ndarray:
     tal
         TalairachXFM image
 
-    
     """
-
     with open(fname) as f:
         lines = f.readlines()
     f.close()
@@ -344,7 +337,7 @@ def readTalairachXFM(fname: str) -> np.ndarray:
 
 
 def getTalOriginVox(tal: npt.ArrayLike, image: sitk.Image):
-    """Get the original Talairach Voxel
+    """Get the original Talairach Voxel.
 
     Parameters
     ----------
@@ -358,9 +351,7 @@ def getTalOriginVox(tal: npt.ArrayLike, image: sitk.Image):
     vox_origin
         Original Talairach Voxel
 
-    
     """
-
     talinv = np.linalg.inv(tal)
     tal_origin = np.array(talinv[0:3, 3]).ravel()
     # print("Tal Physical Origin: {}".format(tal_origin))
@@ -370,7 +361,6 @@ def getTalOriginVox(tal: npt.ArrayLike, image: sitk.Image):
 
 
 if __name__ == "__main__":
-
     # Command Line options are error checking done here
     options = options_parse()
 

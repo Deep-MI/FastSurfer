@@ -74,19 +74,14 @@ h_fsaverage = (
 
 
 def options_parse():
-    """Command line option parser
-
-    Parameters
-    ----------
+    """Command line option parser.
 
     Returns
     -------
     options
         object holding options
 
-
     """
-
     parser = optparse.OptionParser(
         version="$Id:fs_balabels.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -115,8 +110,7 @@ def read_colortables(
         colappend: List[str],
         drop_unknown: bool = True
 ) -> Tuple[List, List, List]:
-    """reads multiple colortables and appends extensions,
-    drops unknown by default
+    """Read multiple colortables and appends extensions, drops unknown by default.
 
     Parameters
     ----------
@@ -137,9 +131,7 @@ def read_colortables(
     all_cols
         List of all colors
 
-
     """
-
     pos = 0
     all_names = []
     all_ids = []

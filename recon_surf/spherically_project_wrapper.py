@@ -21,7 +21,7 @@ from typing import Any
 
 
 def setup_options():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
@@ -46,8 +46,9 @@ def setup_options():
 
 
 def call(command: str, **kwargs: Any) -> int:
-    """Run command with arguments. Wait for command to complete. Sends
-    output to logging module.
+    """Run command with arguments.
+
+    Wait for command to complete. Sends output to logging module.
 
     Parameters
     ----------
@@ -61,9 +62,7 @@ def call(command: str, **kwargs: Any) -> int:
     int
        Returncode of called command
 
-    
     """
-
     kwargs["stdout"] = PIPE
     kwargs["stderr"] = PIPE
     command_split = shlex.split(command)
@@ -79,7 +78,7 @@ def call(command: str, **kwargs: Any) -> int:
 
 
 def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
-    """Runs the first command. If it fails the fallback command is run as well.
+    """Run the first command. If it fails the fallback command is run as well.
 
     Parameters
     ----------
@@ -94,10 +93,8 @@ def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
     -------
     code_1
         Return code of command1. If command1 failed return code of command2
-
     
     """
-
     # First try to run standard spherical project
     print("Running command: {}".format(command1))
     code_1 = call(command1, **kwargs)

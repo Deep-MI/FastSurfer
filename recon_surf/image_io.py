@@ -29,7 +29,7 @@ def mgh_from_sitk(
         sitk_img: sitk.Image,
         orig_mgh_header: Optional[nib.freesurfer.mghformat.MGHHeader] = None
 ) -> nib.MGHImage:
-    """converts sitk image to mgh image
+    """Convert sitk image to mgh image.
 
     Parameters
     ----------
@@ -44,7 +44,6 @@ def mgh_from_sitk(
         mgh image
 
     """
-
     if orig_mgh_header:
         h1 = MGHHeader.from_header(orig_mgh_header)
     else:
@@ -76,7 +75,7 @@ def mgh_from_sitk(
     
     
 def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
-    """converts mgh image to sitk image
+    """Convert mgh image to sitk image.
 
     Parameters
     ----------
@@ -89,7 +88,6 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
         sitk image
 
     """
-
     # reorder data as structure differs between nibabel and sITK:
     data = np.swapaxes(np.asanyarray(img.dataobj), 0, 2)
     # sitk can only create image with system native endianness
@@ -113,7 +111,7 @@ def readITKimage(
         vox_type: Optional[Any] = None,
         with_header: bool = False
 ) -> Union[sitk.Image, Tuple[sitk.Image, Any]]:
-    """reads the itk image
+    """Read the itk image.
 
     Parameters
     ----------
@@ -131,9 +129,7 @@ def readITKimage(
     header
         Image header (if with_header = True)
 
-
     """
-
     # If image is nifti image
     header = None
     if filename[-7:] == ".nii.gz" or filename[-4:] == ".nii":
@@ -167,7 +163,7 @@ def writeITKimage(
         filename: str,
         header: Optional[nib.freesurfer.mghformat.MGHHeader] = None
 ) -> None:
-    """[MISSING]
+    """[MISSING].
 
     Parameters
     ----------
@@ -179,7 +175,6 @@ def writeITKimage(
         mgh image header (Default value = None)
 
     """
-
     # If image is nifti image
     if filename[-7:] == ".nii.gz" or filename[-4:] == ".nii":
         print("write Nifti image via sITK...")

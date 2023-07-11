@@ -22,14 +22,14 @@ from lapy._read_geometry import read_geometry
 
 
 def options_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
     options
         object holding options
 
-    
+
     """
     parser = optparse.OptionParser(
         version="$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $",
@@ -55,7 +55,8 @@ def options_parse():
 
 
 def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
-    """takes path to insurf and rewrites it to outsurf thereby fixing vertex locs flag error
+    """Take path to insurf and rewrite it to outsurf thereby fixing vertex locs flag error.
+
     (scannerRAS instead of surfaceRAS after marching cube)
 
     Parameters
@@ -68,7 +69,6 @@ def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
         Path and name of file the input surface was created on (e.g. filled-pretess127.mgz)
     
     """
-
     surf = read_geometry(insurf, read_metadata=True)
 
     if not surf[2]["filename"]:
