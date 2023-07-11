@@ -55,8 +55,8 @@ class Inference:
         model_parallel (bool): option for parallel run
         model (torch.nn.Module): neural network model
         model_name (str): name of the model
-        alpha (dict[str, float]): [help]
-        post_prediction_mapping_hook (): [help]
+        alpha (Dict[str, float]): [MISSING]
+        post_prediction_mapping_hook (): [MISSING]
 
     """
 

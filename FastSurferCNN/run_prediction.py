@@ -84,7 +84,7 @@ def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
     return cfg
 
 
-def args2cfg(args: argparse.Namespace) -> tuple[yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode]:
+def args2cfg(args: argparse.Namespace) -> Tuple[yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode]:
     """Extract the configuration objects from the arguments.
 
     Parameters
@@ -352,7 +352,7 @@ class RunModelOnData:
             self,
             image_name: str,
             orig_data: np.ndarray,
-            zoom: Union[np.ndarray, tuple]
+            zoom: Union[np.ndarray, Tuple]
     ) -> np.ndarray:
         """get prediction
 
@@ -362,7 +362,7 @@ class RunModelOnData:
             original image filename
         orig_data : np.ndarray
             original image data
-        zoom : Union[np.ndarray, tuple]
+        zoom : Union[np.ndarray, Tuple]
             original zoom
 
         Returns

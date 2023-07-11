@@ -1352,7 +1352,7 @@ def map_prediction_sagittal2full(
 # Clean up and class separation
 def bbox_3d(
         img: npt.NDArray
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """[MISSING]
     Function to extract the three-dimensional bounding box coordinates.
 

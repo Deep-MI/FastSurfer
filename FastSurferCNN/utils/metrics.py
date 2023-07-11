@@ -178,12 +178,12 @@ class DiceScore:
             self.intersection[i, i] += torch.sum(torch.mul(gt, pred))
             self.union[i, i] += torch.sum(gt) + torch.sum(pred)
 
-    def update(self, output: tuple[Any, Any], cnf_mat: bool):
+    def update(self, output: Tuple[Any, Any], cnf_mat: bool):
         """update the intersection
 
         Parameters
         ----------
-        output : tuple[Any, Any]
+        output : Tuple[Any, Any]
             Network output tensor
         cnf_mat : bool
             Confusion matrix

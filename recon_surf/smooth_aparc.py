@@ -55,16 +55,14 @@ h_outaparc = "path to output aparc"
 
 
 def options_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
     options
         object holding options
 
-    
     """
-
     parser = optparse.OptionParser(
         version="$Id: smooth_aparc,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -82,7 +80,7 @@ def options_parse():
 
 
 def get_adjM(trias: npt.NDArray, n: int):
-    """[MISSING]
+    """[MISSING].
 
     Parameters
     ----------
@@ -97,7 +95,6 @@ def get_adjM(trias: npt.NDArray, n: int):
         Adjoint matrix
 
     """
-
     I = trias
     J = I[:, [1, 2, 0]]
     # flatten
@@ -112,7 +109,7 @@ def get_adjM(trias: npt.NDArray, n: int):
 
 
 def bincount2D_vectorized(a: npt.NDArray) -> np.ndarray:
-    """Count number of occurrences of each value in array of non-negative ints [MISSING]
+    """Count number of occurrences of each value in array of non-negative ints.
 
     Parameters
     ----------
@@ -125,7 +122,6 @@ def bincount2D_vectorized(a: npt.NDArray) -> np.ndarray:
         Array of counted values
     
     """
-
     N = a.max() + 1
     a_offs = a + np.arange(a.shape[0])[:, None] * N
     return np.bincount(a_offs.ravel(), minlength=a.shape[0] * N).reshape(-1, N)
@@ -137,7 +133,7 @@ def mode_filter(
         fillonlylabel: str = "",
         novote: npt.ArrayLike = []
 ) -> npt.NDArray[str]:
-    """[MISSING]
+    """[MISSING].
 
     Parameters
     ----------
@@ -154,10 +150,8 @@ def mode_filter(
     -------
     labels_new
         New filtered labels
-
     
     """
-
     # make sure labels lengths equals adjM dimension
     n = labels.shape[0]
     if n != adjM.shape[0] or n != adjM.shape[1]:
@@ -259,7 +253,7 @@ def smooth_aparc(
         incortexname: str,
         outaparcname: str
 ) -> None:
-    """smoothes aparc
+    """Smoothes aparc.
 
     Parameters
     ----------
@@ -273,7 +267,6 @@ def smooth_aparc(
         Suface filepath and name of destination
 
     """
-
     # read input files
     print("Reading in surface: {} ...".format(insurfname))
     surf = read_geometry(insurfname, read_metadata=True)

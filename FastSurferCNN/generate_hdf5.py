@@ -17,7 +17,7 @@ import time
 import glob
 from os.path import join, dirname
 from collections import defaultdict
-from typing import Tuple, Any
+from typing import Tuple, Any, Dict
 
 import numpy as np
 import nibabel as nib
@@ -66,21 +66,21 @@ class H5pyDataset:
         lut (pd.Dataframe): DataFrame with ids present, name of ids, color for plotting
         labels (np.ndarray): full label list
         labels_sag (np.ndarray): sagittal label list
-        lateralization (dict): dictionary mapping between left and right hemispheres
+        lateralization (Dict): dictionary mapping between left and right hemispheres
         subject_dirs (list[str]): list ob subject directory names
         search_pattern (str): Pattern to match files in directory
         data_set_size (int): number of subjects
         processing (str): Use aseg, aparc or no specific mapping processing (Default: "aparc")
     """
 
-    def __init__(self, params: dict, processing: str = "aparc"):
+    def __init__(self, params: Dict, processing: str = "aparc"):
         """Constructor
         
         Args:
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             dataset_name (str): path and name of hdf5-data_loader
             data_path (str): Directory with images to load
             thickness (int): Number of pre- and succeeding slices
@@ -135,7 +135,7 @@ class H5pyDataset:
         self.data_set_size = len(self.subject_dirs)
 
     def _load_volumes(self, subject_path: str
-                      ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple]:
+                      ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Tuple]:
         """load the given image and segmentation and gets the zoom values.
         Checks if an aseg-nocc file is set and loads it instead
 
@@ -181,7 +181,7 @@ class H5pyDataset:
         return orig, aseg, aseg_nocc, zoom
 
     def transform(self, plane: str, imgs: npt.NDArray, zoom: npt.NDArray
-                  ) -> tuple[npt.NDArray, npt.NDArray]:
+                  ) -> Tuple[npt.NDArray, npt.NDArray]:
         """Function to transform the image and zoom along the given axis
 
         Parameters

@@ -15,6 +15,7 @@
 # IMPORTS
 import os
 from itertools import product
+from typing import List
 
 import FastSurferCNN.data_loader.loader
 import matplotlib.figure
@@ -82,7 +83,7 @@ def plot_predictions(
 
 def plot_confusion_matrix(
         cm: npt.NDArray,
-        classes: list[str],
+        classes: List[str],
         title: str = "Confusion matrix",
         cmap: plt.cm.ColormapRegistry = plt.cm.Blues,
         file_save_name: str = "temp.pdf"
@@ -93,7 +94,7 @@ def plot_confusion_matrix(
     ----------
     cm : npt.NDArray
         confusion matrix
-    classes : list[str]
+    classes : List[str]
         list of class names
     title : str
         (Default value = "Confusion matrix")

@@ -88,7 +88,7 @@ def get_region_bg_intersection_mask(
     ----------
     seg_array : numpy.ndarray
         Segmentation array
-    region_labels : dict
+    region_labels : Dict
         dict whose values correspond to the desired region's labels (Default value = VENT_LABELS)
     bg_label : int
         (Default value = BG_LABEL)

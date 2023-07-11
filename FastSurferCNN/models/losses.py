@@ -19,7 +19,7 @@ import yacs.config
 from torch import nn, Tensor
 from torch.nn.modules.loss import _Loss
 from torch.nn import functional as F
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from numbers import Real
 
 
@@ -163,7 +163,7 @@ class CombinedLoss(nn.Module):
             inputx: Tensor,
             target: Tensor,
             weight: Tensor
-    ) -> tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """[MISSING]
 
         Parameters

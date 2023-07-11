@@ -15,7 +15,7 @@
 
 # IMPORTS
 from numbers import Number, Real
-from typing import Union, Tuple, Any
+from typing import Union, Tuple, Any, Dict
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -153,7 +153,7 @@ class ToTensor(object):
         Converts image
     """
 
-    def __call__(self, sample: npt.NDArray) -> dict[str, Any]:
+    def __call__(self, sample: npt.NDArray) -> Dict[str, Any]:
         """
         Convertes the image to float within range [0, 1] and make it torch compatible
 
@@ -163,7 +163,7 @@ class ToTensor(object):
             sample image
 
         Returns:
-        dict[str, Any]
+       Dict[str, Any]
             Converted image
         """
 
@@ -197,7 +197,7 @@ class ZeroPad2D(object):
 
     Attributes
     ----------
-    output_size : Union[Number, tuple[Number, Number]]
+    output_size : Union[Number, Tuple[Number, Number]]
         Size of the output image either as Number or tuple of two Number
     pos : str, Optional
         Position to put the input
@@ -212,14 +212,14 @@ class ZeroPad2D(object):
 
     def __init__(
             self,
-            output_size: Union[Number, tuple[Number, Number]],
+            output_size: Union[Number, Tuple[Number, Number]],
             pos: Union[None, str] = 'top_left'
     ):
         """Initializes position and output_size (as Tuple[float])
 
         Parameters
         ----------
-        output_size : Union[Number, tuple[Number, Number]]
+        output_size : Union[Number, Tuple[Number, Number]]
             Size of the output image either as Number or
             tuple of two Number
         pos : str, Optional
@@ -259,17 +259,17 @@ class ZeroPad2D(object):
 
         return padded_img
 
-    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
         """Pads the image, label and weights
 
         Parameters
         -------
-        sample : dict[str, Any]
+        sample :Dict[str, Any]
             Sample image
 
         Returns
         -------
-        dict[str, Any]
+       Dict[str, Any]
             Dictionary including the padded image, label, weight and scale factor
         """
 
@@ -312,17 +312,17 @@ class AddGaussianNoise(object):
         self.std = std
         self.mean = mean
 
-    def __call__(self, sample: dict[str, Real]) -> dict[str, Real]:
+    def __call__(self, sample: Dict[str, Real]) -> Dict[str, Real]:
         """Adds gaussian noise to scalefactor
 
         Parameters:
         -------
-        sample : dict[str, Real]
+        sample :Dict[str, Real]
             Sample data to add noise
 
         Returns:
         -------
-        dict[str, Real]
+       Dict[str, Real]
             Sample with noise
 
          """
@@ -356,8 +356,8 @@ class AugmentationPadImage(object):
 
     def __init__(
             self,
-            pad_size: tuple[tuple[int, int],
-            tuple[int, int]] = ((16, 16), (16, 16)),
+            pad_size: Tuple[Tuple[int, int],
+            Tuple[int, int]] = ((16, 16), (16, 16)),
             pad_type: str = "edge"
     ):
         """ Constructor
@@ -383,7 +383,7 @@ class AugmentationPadImage(object):
 
         self.pad_type = pad_type
 
-    def __call__(self, sample: dict[str, Number]):
+    def __call__(self, sample: Dict[str, Number]):
         """
         Pads zeroes of sample image, label and weight
 
@@ -408,7 +408,7 @@ class AugmentationPadImage(object):
 class AugmentationRandomCrop(object):
     """Randomly Crop Image to given size"""
 
-    def __init__(self, output_size: Union[int, tuple], crop_type: str = 'Random'):
+    def __init__(self, output_size: Union[int, Tuple], crop_type: str = 'Random'):
         """Consturctor
 
         Attributes
@@ -429,17 +429,17 @@ class AugmentationRandomCrop(object):
 
         self.crop_type = crop_type
 
-    def __call__(self, sample: dict[str, Number]) -> dict[str, Number]:
+    def __call__(self, sample: Dict[str, Number]) -> Dict[str, Number]:
         """Crops the augmentation
 
         Attributes
         ----------
-        sample : dict[str, Number]
+        sample : Dict[str, Number]
             Sample image with data
 
         Returns
         -------
-        dict[str, Number]
+        Dict[str, Number]
             Cropped sample image
         """
 

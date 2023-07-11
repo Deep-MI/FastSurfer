@@ -120,9 +120,9 @@ def read_colortables(
 
     Parameters
     ----------
-    colnames : list[str]
+    colnames : List[str]
         List of color-names
-    colappend : list[str]
+    colappend : List[str]
         List of appends for names
     drop_unknown : bool
         True if unknown colors should be dropped.

@@ -149,8 +149,8 @@ def writeSurfLabel(
 
 
 def getSurfCorrespondence(
-        src_sphere: Union[str, tuple, np.ndarray],
-        trg_sphere: Union[str, tuple, np.ndarray],
+        src_sphere: Union[str, Tuple, np.ndarray],
+        trg_sphere: Union[str, Tuple, np.ndarray],
         tree: Optional[KDTree] = None
 ) -> Tuple[np.ndarray, np.ndarray, KDTree]:
     """For each vertex in src_sphere finds the closest vertex in trg_sphere
@@ -160,10 +160,10 @@ def getSurfCorrespondence(
 
     Parameters
     ----------
-    src_sphere : Union[str, tuple, np.ndarray]
+    src_sphere : Union[str, Tuple, np.ndarray]
         Either filepath (as str) or surface vertices
         of source sphere
-    trg_sphere : Union[str, tuple, np.ndarray]
+    trg_sphere : Union[str, Tuple, np.ndarray]
         Either filepath (as str) or surface vertices
         of target sphere
     tree : Optional[KDTree]

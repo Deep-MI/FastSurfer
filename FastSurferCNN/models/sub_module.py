@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Tuple, Dict
 
 # IMPORTS
 import torch
@@ -39,12 +39,12 @@ class InputDenseBlock(nn.Module):
         Computational graph
     """
 
-    def __init__(self, params: dict):
+    def __init__(self, params: Dict):
         """Initialization of InputDenseBlock
 
         Parameters
         ----------
-        params : dict
+        params : Dict
 
         """
 
@@ -176,12 +176,12 @@ class CompetitiveDenseBlock(nn.Module):
         Computational graph
     """
 
-    def __init__(self, params: dict, outblock: bool = False):
+    def __init__(self, params: Dict, outblock: bool = False):
         """Constructor to initialize the Competitive Dense Block
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             dictionary with parameters specifying block architecture
         outblock : bool
             Flag indicating if last block (Default value = False)
@@ -322,12 +322,12 @@ class CompetitiveDenseBlockInput(nn.Module):
         Computational graph
     """
 
-    def __init__(self, params: dict):
+    def __init__(self, params: Dict):
         """Constructor to initialize the Competitive Dense Block
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             dictionary with parameters specifying block architecture
 
         """
@@ -496,12 +496,12 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         Computational graph
     """
 
-    def __init__(self, params: dict):
+    def __init__(self, params: Dict):
         """Encoder Block initialization
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             Parameters like number of channels, stride etc.
         """
 
@@ -512,7 +512,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
             return_indices=True,
         )  # For Unpooling later on with the indices
 
-    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Computational graph for Encoder Block:
           * CompetitiveDenseBlock
           * Max Pooling (+ retain indices)
@@ -544,14 +544,14 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
     """Encoder Block = CompetitiveDenseBlockInput + Max Pooling"""
 
-    def __init__(self, params: dict):
+    def __init__(self, params: Dict):
         """Encoder Block initialization
         
         Args:
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             parameters like number of channels, stride etc.
 
         """
@@ -564,7 +564,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
             return_indices=True,
         )  # For Unpooling later on with the indices
 
-    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Computational graph for Encoder Block:
           * CompetitiveDenseBlockInput
           * Max Pooling (+ retain indices)
@@ -591,12 +591,12 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
 class CompetitiveDecoderBlock(CompetitiveDenseBlock):
     """Decoder Block = (Unpooling + Skip Connection) --> Dense Block"""
 
-    def __init__(self, params: dict, outblock: bool = False):
+    def __init__(self, params: Dict, outblock: bool = False):
         """Decoder Block initialization
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             parameters like number of channels, stride etc.
         outblock : bool
             Flag, indicating if last block of network before classifier

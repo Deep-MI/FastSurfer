@@ -17,7 +17,7 @@
 
 # IMPORTS
 import optparse
-from typing import Optional
+from typing import Optional, Tuple
 import numpy as np
 from numpy import typing as npt
 import sys
@@ -100,7 +100,7 @@ def options_parse():
     return options
 
 
-def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optional[npt.NDArray[int]] = []) -> tuple[npt.NDArray, npt.NDArray]:
+def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optional[npt.NDArray[int]] = []) -> Tuple[npt.NDArray, npt.NDArray]:
     """extracts the centroids of the segmentation labels for mov and dst in RAS coords
 
     Parameters

@@ -14,7 +14,7 @@
 
 # IMPORTS
 import time
-from typing import Optional
+from typing import Optional, Tuple, Dict
 
 import h5py
 import numpy as np
@@ -103,7 +103,7 @@ class MultiScaleOrigDataThickSlices(Dataset):
 
         return scale
 
-    def __getitem__(self, index: int) -> dict:
+    def __getitem__(self, index: int) -> Dict:
         """Returns a single image and its scale factor
 
         Parameters
@@ -301,7 +301,7 @@ class MultiScaleDataset(Dataset):
             img: npt.NDArray,
             label: npt.NDArray,
             weight: npt.NDArray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Pads img, label and weight
 
         Parameters

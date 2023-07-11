@@ -16,7 +16,7 @@
 # IMPORTS
 from torch import nn, Tensor
 import numpy as np
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 import yacs
 
 import FastSurferCNN.models.sub_module as sm
@@ -48,14 +48,14 @@ class FastSurferCNNBase(nn.Module):
         Computational graph
     """
 
-    def __init__(self, params: dict, padded_size: int = 256):
+    def __init__(self, params: Dict, padded_size: int = 256):
         """Initialization of FastSurferCNNBase
 
         Args:
 
         Parameters
         ----------
-        params : dict
+        params : Dict
 
         padded_size : int
             size of image when padded (Default value = 256)
@@ -156,12 +156,12 @@ class FastSurferCNN(FastSurferCNNBase):
         Computational graph
     """
 
-    def __init__(self, params: dict, padded_size: int):
+    def __init__(self, params: Dict, padded_size: int):
         """Initialization of FastSurferCNN
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             dictionary of configurations
         padded_size : int
             size of image when padded
@@ -253,12 +253,12 @@ class FastSurferVINN(FastSurferCNNBase):
         computational graph
     """
 
-    def __init__(self, params: dict, padded_size: int = 256):
+    def __init__(self, params: Dict, padded_size: int = 256):
         """Initialization of FastSurferVINN
 
         Parameters
         ----------
-        params : dict
+        params : Dict
             dictionary of configurations
         padded_size : int
             size of image when padded (Default value = 256)
