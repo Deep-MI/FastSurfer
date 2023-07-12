@@ -74,11 +74,17 @@ h_fsaverage = (
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser
 
-    Returns:
-        options: object holding options
+    Parameters
+    ----------
+
+    Returns
+    -------
+    options
+        object holding options
+
+
     """
 
     parser = optparse.OptionParser(
@@ -109,20 +115,29 @@ def read_colortables(
         colappend: List[str],
         drop_unknown: bool = True
 ) -> Tuple[List, List, List]:
-    """
-    reads multiple colortables and appends extensions,
+    """reads multiple colortables and appends extensions,
     drops unknown by default
 
-    Args:
-        colnames: List of color-names
-        colappend: List of appends for names
-        drop_unknown: True if unknown colors should be dropped.
-            Defaults to True
+    Parameters
+    ----------
+    colnames : List[str]
+        List of color-names
+    colappend : List[str]
+        List of appends for names
+    drop_unknown : bool
+        True if unknown colors should be dropped.
+        Defaults to True
 
-    Returns:
-        all_ids: List of all ids
-        all_names: List of all names
-        all_cols: List of all colors
+    Returns
+    -------
+    all_ids
+        List of all ids
+    all_names
+        List of all names
+    all_cols
+        List of all colors
+
+
     """
 
     pos = 0

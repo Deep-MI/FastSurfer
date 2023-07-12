@@ -11,17 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import argparse
 from os.path import join, split, splitext
+
+import yacs.config
 
 from FastSurferCNN.config.defaults import get_cfg_defaults
 
 
-def get_config(args):
-    """
-    Given the arguments, load and initialize the configs.
+def get_config(args: argparse.Namespace) -> yacs.config.CfgNode:
+    """Given the arguments, load and initialize the configs.
 
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Object holding args
+
+    Returns
+    -------
+    yacs.config.CfgNode
+        Configuration node
+    
     """
+
     # Setup cfg.
     cfg = get_cfg_defaults()
     # Load config from cfg.
@@ -42,7 +54,21 @@ def get_config(args):
     return cfg
 
 
-def load_config(cfg_file):
+def load_config(cfg_file: str) -> yacs.config.CfgNode:
+    """Load a yaml config file
+
+    Parameters
+    ----------
+    cfg_file : str
+        Configuration filepath
+
+    Returns
+    -------
+    yacs.config.CfgNode
+        configuration node
+    
+    """
+
     # setup base
     cfg = get_cfg_defaults()
     cfg.EXPR_NUM = "Default"

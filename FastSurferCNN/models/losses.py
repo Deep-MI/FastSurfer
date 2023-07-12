@@ -15,23 +15,46 @@
 
 # IMPORTS
 import torch
-from torch import nn
+import yacs.config
+from torch import nn, Tensor
 from torch.nn.modules.loss import _Loss
 from torch.nn import functional as F
+from typing import Optional, Union, Tuple
+from numbers import Real
 
 
 class DiceLoss(_Loss):
-    """
-    Dice Loss
+    """Dice Loss
+    
+    Methods:
+        forward: Calulates the DiceLoss
     """
 
-    def forward(self, output, target, weights=None, ignore_index=None):
-        """
-        :param output: N x C x H x W Variable
-        :param target: N x C x W LongTensor with starting class at 0
-        :param weights: C FloatTensor with class wise weights
-        :param int ignore_index: ignore label with index x in the loss calculation
-        :return:
+    def forward(
+            self,
+            output: Tensor,
+            target: Tensor,
+            weights: Optional[int] = None,
+            ignore_index: Optional[int] = None
+    ) -> float:
+        """Calulates the DiceLoss
+
+        Parameters
+        ----------
+        output : Tensor
+            N x C x H x W Variable
+        target : Tensor
+            N x C x W LongTensor with starting class at 0
+        weights : Optional[int]
+            C FloatTensor with class wise weights(Default value = None)
+        ignore_index : Optional[int]
+            ignore label with index x in the loss calculation (Default value = None)
+
+        Returns
+        -------
+        float
+            Calculated Diceloss
+        
         """
         eps = 0.001
 
@@ -67,11 +90,31 @@ class DiceLoss(_Loss):
 
 
 class CrossEntropy2D(nn.Module):
-    """
-    2D Cross-entropy loss implemented as negative log likelihood
+    """2D Cross-entropy loss implemented as negative log likelihood
+
+    Attributes
+    ----------
+    nll_loss
+        calculated cross-entropy loss
+
+    Methods
+    -------
+    forward
+        returns calculated cross entropy
     """
 
-    def __init__(self, weight=None, reduction="none"):
+    def __init__(self, weight: Optional[Tensor] =None, reduction: str = "none"):
+        """Initialization of CrossEntropy2D
+
+        Parameters
+        ----------
+        weight : Optional[Tensor]
+            a manual rescaling weight given to each class. If given, has to be a Tensor of size `C`. Defaults to None
+        reduction : str
+            Specifies the reduction to apply to the output, as in nn.CrossEntropyLoss. Defaults to 'None'
+
+        """
+
         super(CrossEntropy2D, self).__init__()
         self.nll_loss = nn.CrossEntropyLoss(weight=weight, reduction=reduction)
         print(
@@ -83,22 +126,66 @@ class CrossEntropy2D(nn.Module):
 
 
 class CombinedLoss(nn.Module):
-    """
-    For CrossEntropy the input has to be a long tensor
-    Args:
-        -- inputx N x C x H x W
-        -- target - N x H x W - int type
-        -- weight - N x H x W - float
+    """For CrossEntropy the input has to be a long tensor
+
+    Attributes
+    ----------
+    cross_entropy_loss
+        Results of cross entropy loss
+    dice_loss
+        Results of dice loss
+    weight_dice
+        Weight for dice loss
+    weight_ce
+        Weight for float
     """
 
-    def __init__(self, weight_dice=1, weight_ce=1):
+    def __init__(self, weight_dice: Real = 1, weight_ce: Real = 1):
+        """Initialization of CobinedLoss
+
+        Parameters
+        ----------
+        weight_dice : Real
+            Weight for dice loss. Defaults to 1
+        weight_ce : Real
+            Weight for cross entropy loss. Defaults to 1
+
+        """
+
         super(CombinedLoss, self).__init__()
         self.cross_entropy_loss = CrossEntropy2D()
         self.dice_loss = DiceLoss()
         self.weight_dice = weight_dice
         self.weight_ce = weight_ce
 
-    def forward(self, inputx, target, weight):
+    def forward(
+            self,
+            inputx: Tensor,
+            target: Tensor,
+            weight: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """[MISSING]
+
+        Parameters
+        ----------
+        inputx : Tensor
+            A Tensor of shape N x C x H x W containing  the input x values
+        target : Tensor
+            A Tensor of shape N x H x W of integers containing the target
+        weight : Tensor
+            A Tensor of shape N x H x W of floats containg the weights
+
+        Returns
+        -------
+        Tensor
+            Total loss
+        Tensor
+            Dice loss
+        Tensor
+            Cross entropy value
+
+        """
+
         # Typecast to long tensor --> labels are bytes initially (uint8),
         # index operations require LongTensor in pytorch
         target = target.type(torch.LongTensor)
@@ -118,7 +205,34 @@ class CombinedLoss(nn.Module):
         return total_loss, dice_val, ce_val
 
 
-def get_loss_func(cfg):
+def get_loss_func(
+        cfg: yacs.config.CfgNode
+) -> Union[CombinedLoss, CrossEntropy2D, DiceLoss]:
+    """Gives a default object of the loss function
+
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        configuration node, containing searched loss function.
+        The model loss function can either be 'combined', 'ce' or 'dice'
+
+    Returns
+    -------
+    CombinedLoss
+        Total loss
+    CrossEntropy2D
+        Cross entropy value
+    DiceLoss
+        Dice loss
+
+    Raises
+    ------
+    NotImplementedError
+        Requested loss function is not implemented
+
+    
+    """
+
     if cfg.MODEL.LOSS_FUNC == "combined":
         return CombinedLoss()
     elif cfg.MODEL.LOSS_FUNC == "ce":

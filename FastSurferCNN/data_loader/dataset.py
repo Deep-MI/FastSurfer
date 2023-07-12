@@ -14,10 +14,14 @@
 
 # IMPORTS
 import time
+from typing import Optional, Tuple, Dict
 
 import h5py
 import numpy as np
+import numpy.typing as npt
 import torch
+import torchvision
+import yacs.config
 from torch.utils.data import Dataset
 import torchio as tio
 
@@ -29,13 +33,31 @@ logger = logging.getLogger(__name__)
 
 # Operator to load imaged for inference
 class MultiScaleOrigDataThickSlices(Dataset):
-    """
-    Class to load MRI-Image and process it to correct format for network inference
-    """
+    """Class to load MRI-Image and process it to correct format for network inference"""
 
-    def __init__(self, orig_data, orig_zoom, cfg, transforms=None):
+    def __init__(
+            self,
+            orig_data: npt.NDArray,
+            orig_zoom: npt.NDArray,
+            cfg: yacs.config.CfgNode,
+            transforms: Optional = None
+    ):
+        """Constructor
+
+        Parameters
+        ----------
+        orig_data : npt.NDArray
+            Orignal Data
+        orig_zoom : npt.NDArray
+            Original zoomfactors
+        cfg : yacs.config.CfgNode
+            Configuration Node
+        transforms : Optional
+            Transformer for the image. Defaults to None
+        """
+
         assert (
-            orig_data.max() > 0.8
+                orig_data.max() > 0.8
         ), f"Multi Dataset - orig fail, max removed {orig_data.max()}"
         self.plane = cfg.DATA.PLANE
         self.slice_thickness = cfg.MODEL.NUM_CHANNELS // 2
@@ -62,22 +84,39 @@ class MultiScaleOrigDataThickSlices(Dataset):
         self.count = self.images.shape[0]
         self.transforms = transforms
 
-    def _get_scale_factor(self):
-        """
-        Get scaling factor to match original resolution of input image to
+    def _get_scale_factor(self) -> npt.NDArray[float]:
+        """Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
         taken from voxel size in image header.
-
+        
         ToDO: This needs to be updated based on the plane we are looking at in case we
         are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+
+        Returns
+        -------
+        npt.NDArray[float]
+            scale factor along x and y dimension
+        
         """
+
         scale = self.base_res / np.asarray(self.zoom)
 
         return scale
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Dict:
+        """Returns a single image and its scale factor
+
+        Parameters
+        ----------
+        index : int
+            Index of image to get
+
+        Returns
+        -------
+        dict
+            Dictionary of image and scale factor
+
+        """
         img = self.images[index]
 
         scale_factor = self._get_scale_factor()
@@ -86,17 +125,35 @@ class MultiScaleOrigDataThickSlices(Dataset):
 
         return {"image": img, "scale_factor": scale_factor}
 
-    def __len__(self):
+    def __len__(self) -> int:
+        # Returns count
         return self.count
 
 
 # Operator to load hdf5-file for training
 class MultiScaleDataset(Dataset):
-    """
-    Class for loading aseg file with augmentations (transforms)
-    """
+    """Class for loading aseg file with augmentations (transforms)"""
 
-    def __init__(self, dataset_path, cfg, gn_noise=False, transforms=None):
+    def __init__(
+            self,
+            dataset_path: str,
+            cfg: yacs.config.CfgNode,
+            gn_noise: bool = False,
+            transforms: Optional = None
+    ):
+        """Constructor
+
+        Parameters
+        ----------
+        dataset_path : str
+            Path to the dataset
+        cfg : yacs.config.CfgNode
+            Configuration node
+        gn_noise : bool
+            Whether to add gaussian noise (Default value = False)
+        transforms : Optional
+            Transformer to apply to the image (Default value = None)
+        """
 
         self.max_size = cfg.DATA.PADDED_SIZE
         self.base_res = cfg.MODEL.BASE_RES
@@ -166,17 +223,32 @@ class MultiScaleDataset(Dataset):
     def get_subject_names(self):
         return self.subjects
 
-    def _get_scale_factor(self, img_zoom, scale_aug):
-        """
-        Get scaling factor to match original resolution of input image to
+    def _get_scale_factor(
+            self,
+            img_zoom: torch.Tensor,
+            scale_aug: torch.Tensor
+    ) -> npt.NDArray[float]:
+        """Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
         taken from voxel size in image header.
-
+        
         ToDO: This needs to be updated based on the plane we are looking at in case we
         are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+
+        Parameters
+        ----------
+        img_zoom : torch.Tensor
+            Image zoom factor
+        scale_aug : torch.Tensor
+            [MISSING]
+
+        Returns
+        -------
+        npt.NDArray[float]
+            scale factor along x and y dimension
+        
         """
+
         if torch.all(scale_aug > 0):
             img_zoom *= 1 / scale_aug
 
@@ -190,7 +262,24 @@ class MultiScaleDataset(Dataset):
 
         return scale
 
-    def _pad(self, image):
+    def _pad(
+            self,
+            image: npt.NDArray
+    ) ->  np.ndarray:
+        """Pads the image with zeros
+
+        Parameters
+        ----------
+        image : npt.NDArray
+            Image to pad
+
+        Returns
+        -------
+        padded_image
+            Padded image
+
+        
+        """
 
         if len(image.shape) == 2:
             h, w = image.shape
@@ -207,7 +296,33 @@ class MultiScaleDataset(Dataset):
 
         return padded_img
 
-    def unify_imgs(self, img, label, weight):
+    def unify_imgs(
+            self,
+            img: npt.NDArray,
+            label: npt.NDArray,
+            weight: npt.NDArray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Pads img, label and weight
+
+        Parameters
+        ----------
+        img : npt.NDArray
+            image to unify
+        label : npt.NDArray
+            labels of the image
+        weight : npt.NDArray
+            weights of the image
+
+        Returns
+        -------
+        np.ndarray
+            img
+        np.ndarray
+            label
+        np.ndarray
+            weight
+        
+        """
 
         img = self._pad(img)
         label = self._pad(label)
@@ -268,9 +383,7 @@ class MultiScaleDataset(Dataset):
 
 # Operator to load hdf5-file for validation
 class MultiScaleDatasetVal(Dataset):
-    """
-    Class for loading aseg file with augmentations (transforms)
-    """
+    """Class for loading aseg file with augmentations (transforms)"""
 
     def __init__(self, dataset_path, cfg, transforms=None):
 
@@ -341,15 +454,24 @@ class MultiScaleDatasetVal(Dataset):
         return self.subjects
 
     def _get_scale_factor(self, img_zoom):
-        """
-        Get scaling factor to match original resolution of input image to
+        """Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
         taken from voxel size in image header.
-
+        
         ToDO: This needs to be updated based on the plane we are looking at in case we
         are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+
+        Parameters
+        ----------
+        img_zoom :
+            zooming factor [MISSING]
+
+        Returns
+        -------
+        np.ndarray : float32
+            scale factor along x and y dimension
+
+        
         """
         scale = self.base_res / img_zoom
         return scale

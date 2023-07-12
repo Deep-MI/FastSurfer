@@ -90,11 +90,13 @@ h_trgsid = "optional, when storing mapped labels: target subject id, also writte
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser
 
-    Returns:
-        options: object holding options
+    Returns
+    -------
+    options
+        object holding options
+
     """
 
     parser = optparse.OptionParser(
@@ -155,30 +157,45 @@ def map_multiple_labels(
         out_dir: Optional[str] = None,
         stop_missing: bool = True
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-    """
-    function to map a list of labels (just names without hemisphere or path, which are
+    """function to map a list of labels (just names without hemisphere or path, which are
     passed via hemi, src_dir, out_dir) from one surface (e.g. fsavaerage sphere.reg)
     to another.
 
+    Parameters
+    ----------
+    hemi : str
+        "lh" or "rh" for reading labels
+    src_dir : str
+        director of the source file
+    src_labels : npt.ArrayLike
+        List of labels
+    src_sphere_name : str
+        filename of source sphere
+    trg_sphere_name : str
+        filename of target sphere
+    trg_white_name : str
+        filename of target white
+    trg_sid : str
+        target subject id
+    out_dir : Optional[str]
+        directory for output, defaults to None
+    stop_missing : bool
+        determines whether to stop on a missing src label file, or continue
+        with a warning. Defaults to True
 
-    Args:
-        hemi: "lh" or "rh" for reading labels
-        src_dir: director of the source file
-        src_labels: List of labels
-        src_sphere_name: filename of source sphere
-        trg_sphere_name: filename of target sphere
-        trg_white_name: filename of target white
-        trg_sid: target subject id
-        out_dir: directory for output, defaults to None
-        stop_missing: determines whether to stop on a missing src label file, or continue
-            with a warning. Defaults to True
+    Returns
+    -------
+    all_labels
+        mapped labels
+    all_values
+        values of mapped labels
 
-    Returns:
-        all_labels: mapped labels
-        all_values: values of mapped labels
+    Raises
+    ------
+    ValueError
+        Label file missing
 
-    Raises:
-        ValueError: Label file missing
+
     """
 
     # get reverse mapping (trg->src) for sampling
@@ -220,18 +237,26 @@ def read_multiple_labels(
         hemi: str,
         input_dir: str,
         label_names: npt.ArrayLike
-) -> Tuple[List[npt.NDArray],  List[npt.NDArray]]:
-    """
-    read multiple label files from input_dir
+) -> Tuple[ List[npt.NDArray],  List[npt.NDArray]]:
+    """read multiple label files from input_dir
 
-    Args:
-        hemi: "lh" or "rh" for reading labels
-        input_dir: director of the source
-        label_names: List of labels
+    Parameters
+    ----------
+    hemi : str
+        "lh" or "rh" for reading labels
+    input_dir : str
+        director of the source
+    label_names : npt.ArrayLike
+        List of labels
 
-    Returns:
-        all_labels: read labels
-        all_values: values of read labels
+    Returns
+    -------
+    all_labels
+        read labels
+    all_values
+        values of read labels
+
+
     """
 
     all_labels = []
@@ -254,21 +279,31 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
                 col_ids: npt.ArrayLike, trg_white: Union[str, npt.NDArray],
                 cortex_label_name: Optional[str] = None
                 ) -> Tuple[npt.NDArray, npt.NDArray]:
-    """
-    function to create an annotation from multiple labels. Here we also consider the
+    """function to create an annotation from multiple labels. Here we also consider the
     label values and overwrite existing labels if values of current are larger (or equal,
     so the order of the labels matters). No output is written.
 
-    Args:
-        all_labels: List of all Labels
-        all_values: List of all values
-        col_ids: List of col ids
-        trg_white: target file of white
-        cortex_label_name: Path to the cortex label file. Defaults to None
+    Parameters
+    ----------
+    all_labels : npt.ArrayLike
+        List of all Labels
+    all_values : npt.ArrayLike
+        List of all values
+    col_ids : npt.ArrayLike
+        List of col ids
+    trg_white : Union[str, npt.NDArray]
+        target file of white
+    cortex_label_name : Optional[str]
+        Path to the cortex label file. Defaults to None
 
-    Returns:
-        annot_ids: Ids of build Annotations
-        annot_vals: Values of build Annotations
+    Returns
+    -------
+    annot_ids
+        Ids of build Annotations
+    annot_vals
+        Values of build Annotations
+
+
     """
 
     # create annot from a bunch of labels (and values)
@@ -308,16 +343,23 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
 
 
 def read_colortable(colortab_name: str) -> Tuple[npt.ArrayLike, List[str], npt.ArrayLike]:
-    """
-    reads the colortable of given name
+    """reads the colortable of given name
 
-    Args:
-        colortab_name: Path and Name of the colortable file
+    Parameters
+    ----------
+    colortab_name : str
+        Path and Name of the colortable file
 
-    Returns:
-        ids: List of ids
-        names: List of names
-        colors: List of colors corresponding to ids and names
+    Returns
+    -------
+    ids
+        List of ids
+    names
+        List of names
+    colors
+        List of colors corresponding to ids and names
+
+
     """
 
     colortab = np.genfromtxt(colortab_name, dtype="i8", usecols=(0, 2, 3, 4, 5))
@@ -335,18 +377,24 @@ def write_annot(
         out_annot: str,
         append: Union[None, str] = ""
 ) -> None:
-    """
-    This function combines the colortable with the annotations ids to
+    """This function combines the colortable with the annotations ids to
     write an annotation file (which contains colortable information)
     Care needs to be taken that the colortable file has the same number
     and order of labels as specified in the label_names list
 
-    Args:
-        annot_ids: List of annotation ids
-        label_names: list of label names
-        colortab_name: Path and name of colortable file
-        out_annot: Path and name of output annotation file
-        append: String to append to colour name. Defaults to ""
+    Parameters
+    ----------
+    annot_ids : npt.ArrayLike
+        List of annotation ids
+    label_names : npt.ArrayLike
+        list of label names
+    colortab_name : str
+        Path and name of colortable file
+    out_annot : str
+        Path and name of output annotation file
+    append : Union[None, str]
+        String to append to colour name. Defaults to ""
+
     """
 
     # colortab_name="colortable_BA.txt"
@@ -371,21 +419,24 @@ def write_annot(
 
 
 def create_annotation(options, verbose: bool = True) -> None:
-    """
-    main function to map (if required), build  and write annotation
+    """main function to map (if required), build  and write annotation
 
-    Args:
-        options: object holding options
-            hemi: "lh" or "rh" for reading labels
-            colortab: colortab with label ids, names and colors
-            labeldir: dir where to find the label files (when reading)
-            white: path/filename of white surface for the annotation
-            outannot: path to output annotation file
-            cortex: optional path to hemi.cortex for optional masking of annotation to only cortex
-            append: optional, e.g. ".thresh" can be appended to label names (I/O) for exvivo FS labels
-            srcsphere: optional, when mapping: path to src sphere.reg
-            trgsphere: optional, when mapping: path to trg sphere.reg
-        verbose: True if options should be printed. Defaults to True
+    Parameters
+    ----------
+    options :
+        object holding options
+        hemi: "lh" or "rh" for reading labels
+        colortab: colortab with label ids, names and colors
+        labeldir: dir where to find the label files (when reading)
+        white: path/filename of white surface for the annotation
+        outannot: path to output annotation file
+        cortex: optional path to hemi.cortex for optional masking of annotation to only cortex
+        append: optional, e.g. ".thresh" can be appended to label names (I/O) for exvivo FS labels
+        srcsphere: optional, when mapping: path to src sphere.reg
+        trgsphere: optional, when mapping: path to trg sphere.reg
+    verbose : bool
+        True if options should be printed. Defaults to True
+
     """
 
     print()

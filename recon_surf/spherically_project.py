@@ -72,11 +72,13 @@ h_output = "path to output surface, spherically projected"
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser
 
-    Returns:
-        options: object holding options
+    Returns
+    -------
+    options
+        object holding options
+
     """
 
     parser = optparse.OptionParser(
@@ -99,8 +101,7 @@ def tria_spherical_project(
         debug: bool = False,
         use_cholmod: bool = True
 ) -> TriaMesh:
-    """
-    Computes the first three non-constant eigenfunctions
+    """Computes the first three non-constant eigenfunctions
         and then projects the spectral embedding onto a sphere. This works
         when the first functions have a single closed zero level set,
         splitting the mesh into two domains each. Depending on the original
@@ -108,14 +109,23 @@ def tria_spherical_project(
         according to the axes that they are aligned with for the special
         case of brain surfaces in FreeSurfer coordinates.
 
-    Args:
-        tria: Triangle Mesh
-        flow_iter: Mean curv flow iterations (3 should be enough). Defaults to 3
-        debug: Whether to print EV info to the file debug.ev. Defaults to False
-        use_cholmod: Try to use the Cholesky decomposition from the cholmod. Defaults to True
+    Parameters
+    ----------
+    tria : TriaMesh
+        Triangle Mesh
+    flow_iter : int
+        Mean curv flow iterations (3 should be enough). Defaults to 3
+    debug : bool
+        Whether to print EV info to the file debug.ev. Defaults to False
+    use_cholmod : bool
+        Try to use the Cholesky decomposition from the cholmod. Defaults to True
 
-    Returns:
-        trianew: Triangle Mesh spherically projected
+    Returns
+    -------
+    trianew
+        Triangle Mesh spherically projected
+
+    
     """
 
     if not tria.is_closed():
@@ -299,13 +309,17 @@ def spherically_project_surface(
         outsurf: str,
         use_cholmod: bool = True
 ) -> None:
-    """
-    takes path to insurf, spherically projects it, outputs it to outsurf
+    """takes path to insurf, spherically projects it, outputs it to outsurf
 
-    Args:
-        insurf: Path to input surface file
-        outsurf: Path to output surface file
-        use_cholmod: Try to use the Cholesky decomposition from the cholmod. Defaults to True
+    Parameters
+    ----------
+    insurf : str
+        Path to input surface file
+    outsurf : str
+        Path to output surface file
+    use_cholmod : bool
+        Try to use the Cholesky decomposition from the cholmod. Defaults to True
+
     """
 
     surf = read_geometry(insurf, read_metadata=True)

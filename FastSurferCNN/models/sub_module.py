@@ -11,16 +11,43 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Tuple, Dict
 
 # IMPORTS
 import torch
-import torch.nn as nn
+from torch import nn, Tensor
 
 
 # Building Blocks
 class InputDenseBlock(nn.Module):
-    def __init__(self, params):
+    """Input Dense Block
+
+    Attributes
+    ----------
+    conv[0-3]
+        Convolution layers
+    bn0
+        Batch Normalization
+    gn[1-4]
+        Batch Normalizations
+    prelu
+        Learnable ReLU Parameter
+
+    Methods
+    -------
+    forward
+        Computational graph
+    """
+
+    def __init__(self, params: Dict):
+        """Initialization of InputDenseBlock
+
+        Parameters
+        ----------
+        params : Dict
+
+        """
+
         super(InputDenseBlock, self).__init__()
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
@@ -79,7 +106,21 @@ class InputDenseBlock(nn.Module):
 
         self.prelu = nn.PReLU()  # Learnable ReLU Parameter
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """Computational graph
+
+        Parameters
+        ----------
+        x : Tensor
+            input image [N, C, H, W]
+
+        Returns
+        -------
+        out : Tensor
+            [MISSING]
+        
+        """
+
         # Input batch normalization
         x0_bn = self.bn0(x)
 
@@ -113,11 +154,10 @@ class InputDenseBlock(nn.Module):
 
 
 class CompetitiveDenseBlock(nn.Module):
-    """
-    Function to define a competitive dense block comprising of 3 convolutional layers, with BN/ReLU
+    """Function to define a competitive dense block comprising of 3 convolutional layers, with BN/ReLU
 
-    Inputs:
-    -- Params
+    Attributes
+    ----------
      params = {'num_channels': 1,
                'num_filters': 64,
                'kernel_h': 5,
@@ -129,16 +169,25 @@ class CompetitiveDenseBlock(nn.Module):
                'kernel_c':1
                'input':True
                }
+
+    Methods
+    -------
+    forward
+        Computational graph
     """
 
-    def __init__(self, params, outblock=False):
+    def __init__(self, params: Dict, outblock: bool = False):
+        """Constructor to initialize the Competitive Dense Block
+
+        Parameters
+        ----------
+        params : Dict
+            dictionary with parameters specifying block architecture
+        outblock : bool
+            Flag indicating if last block (Default value = False)
+
         """
-        Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifying block architecture
-        :param bool outblock: Flag indicating if last block (before classifier block) is set up.
-                               Default: False
-        :return None:
-        """
+
         super(CompetitiveDenseBlock, self).__init__()
 
         # Padding to get output tensor of same dimensions
@@ -198,15 +247,24 @@ class CompetitiveDenseBlock(nn.Module):
         self.prelu = nn.PReLU()  # Learnable ReLU Parameter
         self.outblock = outblock
 
-    def forward(self, x):
-        """
-        CompetitiveDenseBlock's computational Graph
+    def forward(self, x: Tensor) -> Tensor:
+        """CompetitiveDenseBlock's computational Graph
         {in (Conv - BN from prev. block) -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} x 2 -> {Conv -> BN} -> out
         end with batch-normed output to allow maxout across skip-connections
 
-        :param tensor x: input tensor (image or feature map)
-        :return tensor out: output tensor (processed feature map)
+        Parameters
+        ----------
+        x : Tensor
+            input tensor (image or feature map)
+
+        Returns
+        -------
+        out
+            output tensor (processed feature map)
+
+        
         """
+
         # Activation from pooled input
         x0 = self.prelu(x)
 
@@ -244,29 +302,36 @@ class CompetitiveDenseBlock(nn.Module):
 
 
 class CompetitiveDenseBlockInput(nn.Module):
+    """Class to define a competitive dense block comprising 3 convolutional layers, with BN/ReLU for input
+    
+    Attributes
+    ----------
+     params (dict): {'num_channels': 1,
+                    'num_filters': 64,
+                    'kernel_h': 5,
+                    'kernel_w': 5,
+                    'stride_conv': 1,
+                    'pool': 2,
+                    'stride_pool': 2,
+                    'num_classes': 44
+                    'kernel_c':1
+                    'input':True}
+     Methods
+     -------
+    forward
+        Computational graph
     """
-    Function to define a competitive dense block comprising of 3 convolutional layers, with BN/ReLU for input
 
-    Inputs:
-    -- Params
-     params = {'num_channels': 1,
-               'num_filters': 64,
-               'kernel_h': 5,
-               'kernel_w': 5,
-               'stride_conv': 1,
-               'pool': 2,
-               'stride_pool': 2,
-               'num_classes': 44
-               'kernel_c':1
-               'input':True
-              }
-    """
+    def __init__(self, params: Dict):
+        """Constructor to initialize the Competitive Dense Block
 
-    def __init__(self, params):
+        Parameters
+        ----------
+        params : Dict
+            dictionary with parameters specifying block architecture
+
         """
-        Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifying block architecture
-        """
+
         super(CompetitiveDenseBlockInput, self).__init__()
 
         # Padding to get output tensor of same dimensions
@@ -320,14 +385,23 @@ class CompetitiveDenseBlockInput(nn.Module):
 
         self.prelu = nn.PReLU()  # Learnable ReLU Parameter
 
-    def forward(self, x):
-        """
-        CompetitiveDenseBlockInput's computational Graph
+    def forward(self, x: Tensor) -> Tensor:
+        """CompetitiveDenseBlockInput's computational Graph
         in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out
 
-        :param tensor x: input tensor (image or feature map)
-        :return tensor out: output tensor (processed feature map)
+        Parameters
+        ----------
+        x : Tensor
+            input tensor (image or feature map)
+
+        Returns
+        -------
+        out
+            output tensor (processed feature map)
+
+        
         """
+
         # Input batch normalization
         x0_bn = self.bn0(x)
 
@@ -360,13 +434,44 @@ class CompetitiveDenseBlockInput(nn.Module):
 
 
 class GaussianNoise(nn.Module):
-    def __init__(self, sigma=0.1, device="cuda"):
+    """Class to define a Gaussian Noise Block
+    
+    Methods
+    -------
+    forward
+        Computational graph
+    """
+
+    def __init__(self, sigma: float = 0.1, device: str = "cuda"):
+        """Constructor
+
+        Parameters
+        ----------
+        sigma : float
+             (Default value = 0.1)
+        device : str
+             (Default value = "cuda")
+        """
+
         super().__init__()
         self.sigma = sigma
         self.noise = torch.tensor(0).to(device)
         self.register_buffer("noise", torch.tensor(0))
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """Computational Graph
+
+        Parameters
+        ----------
+        x : Tensor
+            Input Tensor
+
+        Returns
+        -------
+        x : Tensor
+            output tensor (processed feature map)
+        
+        """
         if self.training and self.sigma != 0:
             scale = self.sigma * x.detach()
             sampled_noise = self.noise.expand(*x.size()).float().normal_() * scale
@@ -378,15 +483,28 @@ class GaussianNoise(nn.Module):
 # Encoder/Decoder definitions
 ##
 class CompetitiveEncoderBlock(CompetitiveDenseBlock):
-    """
-    Encoder Block = CompetitiveDenseBlock + Max Pooling
+    """Encoder Block = CompetitiveDenseBlock + Max Pooling
+
+    Attributes
+    ----------
+    maxpool
+        Maxpool layer
+
+    Methods
+    -------
+    forward
+        Computational graph
     """
 
-    def __init__(self, params):
+    def __init__(self, params: Dict):
+        """Encoder Block initialization
+
+        Parameters
+        ----------
+        params : Dict
+            Parameters like number of channels, stride etc.
         """
-        Encoder Block initialization
-        :param dict params: parameters like number of channels, stride etc.
-        """
+
         super(CompetitiveEncoderBlock, self).__init__(params)
         self.maxpool = nn.MaxPool2d(
             kernel_size=params["pool"],
@@ -394,14 +512,25 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
             return_indices=True,
         )  # For Unpooling later on with the indices
 
-    def forward(self, x):
-        """
-        CComputational graph for Encoder Block:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Computational graph for Encoder Block:
           * CompetitiveDenseBlock
           * Max Pooling (+ retain indices)
 
-        :param tensor x: feature map from previous block
-        :return: original feature map, maxpooled feature map, maxpool indices
+        Parameters
+        ----------
+        x : Tensor
+            feature map from previous block
+
+        Returns
+        -------
+        out_encoder : Tensor
+            original feature map
+        out_block : Tensor
+            maxpooled feature map
+        indicies : Tensor
+            maxpool indices
+        
         """
         out_block = super(CompetitiveEncoderBlock, self).forward(
             x
@@ -413,14 +542,18 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
 
 class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
-    """
-    Encoder Block = CompetitiveDenseBlockInput + Max Pooling
-    """
+    """Encoder Block = CompetitiveDenseBlockInput + Max Pooling"""
 
-    def __init__(self, params):
-        """
-        Encoder Block initialization
-        :param dict params: parameters like number of channels, stride etc.
+    def __init__(self, params: Dict):
+        """Encoder Block initialization
+        
+        Args:
+
+        Parameters
+        ----------
+        params : Dict
+            parameters like number of channels, stride etc.
+
         """
         super(CompetitiveEncoderBlockInput, self).__init__(
             params
@@ -431,14 +564,20 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
             return_indices=True,
         )  # For Unpooling later on with the indices
 
-    def forward(self, x):
-        """
-        Computational graph for Encoder Block:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Computational graph for Encoder Block:
           * CompetitiveDenseBlockInput
           * Max Pooling (+ retain indices)
 
-        :param tensor x: feature map from previous block
-        :return: original feature map, maxpooled feature map, maxpool indices
+        Parameters
+        ----------
+        x : Tensor
+            feature map from previous block
+
+        Returns
+        -------
+        original feature map, maxpooled feature map, maxpool indices
+
         """
         out_block = super(CompetitiveEncoderBlockInput, self).forward(
             x
@@ -450,34 +589,48 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
 
 
 class CompetitiveDecoderBlock(CompetitiveDenseBlock):
-    """
-    Decoder Block = (Unpooling + Skip Connection) --> Dense Block
-    """
+    """Decoder Block = (Unpooling + Skip Connection) --> Dense Block"""
 
-    def __init__(self, params, outblock=False):
+    def __init__(self, params: Dict, outblock: bool = False):
+        """Decoder Block initialization
+
+        Parameters
+        ----------
+        params : Dict
+            parameters like number of channels, stride etc.
+        outblock : bool
+            Flag, indicating if last block of network before classifier
+            is created.(Default value = False)
         """
-        Decoder Block initialization
-        :param dict params: parameters like number of channels, stride etc.
-        :param bool outblock: Flag, indicating if last block of network before classifier
-                              is created. Default: False
-        """
+
         super(CompetitiveDecoderBlock, self).__init__(params, outblock=outblock)
         self.unpool = nn.MaxUnpool2d(
             kernel_size=params["pool"], stride=params["stride_pool"]
         )
 
-    def forward(self, x, out_block, indices):
-        """
-        Computational graph Decoder block:
+    def forward(self, x: Tensor, out_block: Tensor, indices: Tensor) -> Tensor:
+        """Computational graph Decoder block:
           * Unpooling of feature maps from lower block
           * Maxout combination of unpooled map + skip connection
           * Forwarding toward CompetitiveDenseBlock
 
-        :param tensor x: input feature map from lower block (gets unpooled and maxed with out_block)
-        :param tensor out_block: skip connection feature map from the corresponding Encoder
-        :param tensor indices: indices for unpooling from the corresponding Encoder (maxpool op)
-        :return: processed feature maps
+        Parameters
+        ----------
+        x : Tensor
+            input feature map from lower block (gets unpooled and maxed with out_block)
+        out_block : Tensor
+            skip connection feature map from the corresponding Encoder
+        indices : Tensor
+            indices for unpooling from the corresponding Encoder (maxpool op)
+
+        Returns
+        -------
+        out_block
+            processed feature maps
+
+        
         """
+
         unpool = self.unpool(x, indices)
         concat_max = torch.maximum(unpool, out_block)
         out_block = super(CompetitiveDecoderBlock, self).forward(concat_max)
@@ -486,17 +639,32 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
 
 
 class OutputDenseBlock(nn.Module):
-    """
-    Dense Output Block = (Upinterpolated + Skip Connection) --> Semi Competitive Dense Block
+    """Dense Output Block = (Upinterpolated + Skip Connection) --> Semi Competitive Dense Block
+
+    Attributes
+    ----------
+    conv0, conv1, conv2, conv3
+        Convolution layers
+    gn0, gn1, gn2, gn3, gn4
+        Normalization layers
+    prelu
+        PReLU activation layer
+
+    Methods
+    -------
+    forward
+        Computational graph
     """
 
-    def __init__(self, params):
+    def __init__(self, params: dict):
+        """Decoder Block initialization
+
+        Parameters
+        ----------
+        params : dict
+            parameters like number of channels, stride etc.
         """
-        Decoder Block initialization
-        :param dict params: parameters like number of channels, stride etc.
-        :param bool outblock: Flag, indicating if last block of network before classifier
-                              is created. Default: False
-        """
+
         super(OutputDenseBlock, self).__init__()
 
         # Padding to get output tensor of same dimensions
@@ -549,17 +717,26 @@ class OutputDenseBlock(nn.Module):
 
         self.prelu = nn.PReLU()  # Learnable ReLU Parameter
 
-    def forward(self, x, out_block):
-        """
-        Computational graph Output block
+    def forward(self, x: Tensor, out_block: Tensor) -> Tensor:
+        """Computational graph Output block
           * Maxout combination of unpooled map from previous block + skip connection
           * Forwarding toward CompetitiveDenseBlock
 
-        :param tensor x: up-interpolated input feature map from lower block (gets maxed with out_block)
-        :param tensor out_block: skip connection feature map from the corresponding Encoder
-        :param tensor indices: indices for unpooling from the corresponding Encoder (maxpool op)
-        :return: processed feature maps
+        Parameters
+        ----------
+        x : Tensor
+            up-interpolated input feature map from lower block (gets maxed with out_block)
+        out_block : Tensor
+            skip connection feature map from the corresponding Encoder
+
+        Returns
+        -------
+        out
+            processed feature maps
+
+        
         """
+
         # Concatenation along channel (different number of channels from decoder and skip connection)
         concat = torch.cat((x, out_block), dim=1)
 
@@ -595,15 +772,18 @@ class OutputDenseBlock(nn.Module):
 
 
 class ClassifierBlock(nn.Module):
-    """
-    Classification Block
-    """
+    """Classification Block"""
 
-    def __init__(self, params):
+    def __init__(self, params: dict):
+        """Classifier Block initialization
+
+        Parameters
+        ----------
+        params : dict
+            parameters like number of channels, stride etc.
+
         """
-        Classifier Block initialization
-        :param dict params: parameters like number of channels, stride etc.
-        """
+
         super(ClassifierBlock, self).__init__()
         self.conv = nn.Conv2d(
             params["num_channels"],
@@ -612,11 +792,20 @@ class ClassifierBlock(nn.Module):
             params["stride_conv"],
         )  # To generate logits
 
-    def forward(self, x):
-        """
-        Computational graph of classifier
-        :param tensor x: output of last CompetitiveDenseDecoder Block-
-        :return: logits
+    def forward(self, x: Tensor) -> Tensor:
+        """Computational graph of classifier
+
+        Parameters
+        ----------
+        x : Tensor
+            Output of last CompetitiveDenseDecoder Block-
+
+        Returns
+        -------
+        logits
+            prediction logits
+
+        
         """
         logits = self.conv(x)
 

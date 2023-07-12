@@ -41,9 +41,7 @@ BG_LABEL = 0
 
 
 def options_parse():
-    """
-    Command line option parser
-    """
+    """Command line option parser"""
     parser = optparse.OptionParser(
         version="$Id: quick_qc,v 1.0 2022/09/28 11:34:08 mreuter Exp $", usage=HELPTEXT
     )
@@ -79,27 +77,28 @@ def check_volume(asegdkt_segfile, voxvol, thres=0.70):
 def get_region_bg_intersection_mask(
     seg_array, region_labels=VENT_LABELS, bg_label=BG_LABEL
 ):
-    """
-    Returns a mask of the intersection between the voxels of a given region and background voxels.
-
+    """Returns a mask of the intersection between the voxels of a given region and background voxels.
+    
     This is obtained by dilating the region by 1 voxel and computing the intersection with the
     background mask.
-
+    
     The region can be defined by passing in the region_labels dict.
 
     Parameters
     ----------
-    seg_array: numpy.ndarray
+    seg_array : numpy.ndarray
         Segmentation array
-    region_labels: dict
-        dict whose values correspond to the desired region's labels
-    bg_labels: int
-        Background label integer
+    region_labels : Dict
+        dict whose values correspond to the desired region's labels (Default value = VENT_LABELS)
+    bg_label : int
+        (Default value = BG_LABEL)
 
     Returns
     -------
-    bg_intersect: numpy.ndarray
+    bg_intersect : numpy.ndarray
         Region and background intersection mask array
+
+    
     """
 
     region_array = seg_array.copy()
@@ -124,20 +123,21 @@ def get_region_bg_intersection_mask(
 
 
 def get_ventricle_bg_intersection_volume(seg_array, voxvol):
-    """
-    Returns a volume estimate for the intersection of ventricle voxels with background voxels.
+    """Returns a volume estimate for the intersection of ventricle voxels with background voxels.
 
     Parameters
     ----------
-    seg_array: numpy.ndarray
+    seg_array : numpy.ndarray
         Segmentation array
-    voxvol: float
+    voxvol : float
         Voxel volume
 
     Returns
     -------
-    intersection_volume: float
+    intersection_volume : float
         Estimated volume of voxels in ventricle and background intersection
+
+    
     """
     bg_intersect_mask = get_region_bg_intersection_mask(seg_array)
     intersection_volume = bg_intersect_mask.sum() * voxvol
