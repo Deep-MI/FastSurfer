@@ -19,10 +19,10 @@ import sys
 import nibabel.freesurfer.io as fs
 import numpy as np
 import math
-from lapy.DiffGeo import tria_mean_curvature_flow
-from lapy.TriaMesh import TriaMesh
+from lapy.diffGeo import tria_mean_curvature_flow
+from lapy.triaMesh import TriaMesh
 from lapy.read_geometry import read_geometry
-from lapy.Solver import Solver
+from lapy.solver import Solver
 
 HELPTEXT = """
 Script to compute ShapeDNA using linear FEM matrices. 
@@ -159,9 +159,9 @@ def tria_spherical_project(
         data["Elements"] = tria.t.shape[0]
         data["DoF"] = evecs.shape[0]
         data["NumEW"] = 4
-        from lapy.FuncIO import export_ev
+        from lapy.io import write_ev
 
-        export_ev(data, "debug.ev")
+        write_ev(data, "debug.ev")
 
     # flip efuncs to align to coordinates consistently
     ev1 = evecs[:, 1]

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 VERSION='$Id$'
-FS_VERSION_SUPPORT="7.3.2"
+FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
 t1=""                 # Path and name of T1 input
@@ -26,7 +26,7 @@ fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from asegdkt_segfile
 fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
-python="python3.8"    # python version
+python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
