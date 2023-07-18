@@ -28,7 +28,7 @@ def writeLTA(
         dst_fname: str,
         dst_header: Dict
 ) -> None:
-    """Writes linear transform array info to a .lta file
+    """Write linear transform array info to a .lta file.
 
     Parameters
     ----------
@@ -45,15 +45,12 @@ def writeLTA(
     dst_header : Dict
         Destination header
 
-
     Raises
     ------
     ValueError
         Header format missing field (Source or Destination)
-
     
     """
-
     from datetime import datetime
     import getpass
 

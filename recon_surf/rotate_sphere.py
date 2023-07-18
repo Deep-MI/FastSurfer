@@ -66,7 +66,7 @@ h_out = "path to output txt files for angles"
 
 
 def options_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
@@ -74,7 +74,6 @@ def options_parse():
         object holding options
 
     """
-
     parser = optparse.OptionParser(
         version="$Id: rotate_sphere.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -107,7 +106,7 @@ def align_aparc_centroids(
         labels_dst: npt.ArrayLike,
         label_ids: npt.ArrayLike = []
 ) -> np.ndarray:
-    """Aligns centroid of aparc parcels on the sphere (Attention mapping back to sphere!)
+    """Align centroid of aparc parcels on the sphere (Attention mapping back to sphere!).
 
     Parameters
     ----------
@@ -128,7 +127,6 @@ def align_aparc_centroids(
         Rotation Matrix
 
     """
-
     #nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
     #  precentral, precuneus, superiorfrontal, supramarginal
     # lids=np.array([8,9,11,22,23,24,25,28,31])
@@ -162,7 +160,6 @@ def align_aparc_centroids(
 
 
 if __name__ == "__main__":
-
     # Command Line options are error checking done here
     options = options_parse()
 

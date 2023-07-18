@@ -51,7 +51,14 @@ h_order = "order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cub
 
 
 def options_parse():
-    """Command line argument parser"""
+    """Command line option parser.
+
+    Returns
+    -------
+    options
+        object holding options
+
+    """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
         "--version",
@@ -138,7 +145,7 @@ def map_image(
         order: int = 1,
         dtype: Optional[Type] = None
 ) -> np.ndarray:
-    """Function to map image to new voxel space (RAS orientation)
+    """Map image to new voxel space (RAS orientation).
 
     Parameters
     ----------
@@ -161,7 +168,6 @@ def map_image(
         mapped image data array
     
     """
-
     from scipy.ndimage import affine_transform
     from numpy.linalg import inv
 
@@ -197,7 +203,8 @@ def getscale(
         f_low: float = 0.0,
         f_high: float = 0.999
 ) -> Tuple[float, float]:
-    """Function to get offset and scale of image intensities to robustly rescale to range dst_min..dst_max.
+    """Get offset and scale of image intensities to robustly rescale to range dst_min..dst_max.
+
     Equivalent to how mri_convert conforms images.
 
     Parameters
@@ -220,7 +227,6 @@ def getscale(
     float
         scale factor
 
-    
     """
     # get min and max from source
     src_min = np.min(data)
@@ -296,7 +302,7 @@ def scalecrop(
         src_min: float,
         scale: float
 ) -> np.ndarray:
-    """Function to crop the intensity ranges to specific min and max values
+    """Crop the intensity ranges to specific min and max values.
 
     Parameters
     ----------
@@ -317,7 +323,6 @@ def scalecrop(
         scaled image data
     
     """
-
     data_new = dst_min + scale * (data - src_min)
 
     # clip
@@ -336,7 +341,7 @@ def rescale(
         f_low: float = 0.0,
         f_high: float = 0.999
 ) -> np.ndarray:
-    """Function to rescale image intensity values (0-255).
+    """Rescale image intensity values (0-255).
 
     Parameters
     ----------
@@ -357,14 +362,13 @@ def rescale(
         scaled image data
     
     """
-
     src_min, scale = getscale(data, dst_min, dst_max, f_low, f_high)
     data_new = scalecrop(data, dst_min, dst_max, src_min, scale)
     return data_new
 
 
 def find_min_size(img: nib.analyze.SpatialImage, max_size: float = 1) -> float:
-    """Function to find minimal voxel size <= 1mm.
+    """Find minimal voxel size <= 1mm.
 
     Parameters
     ----------
@@ -377,12 +381,12 @@ def find_min_size(img: nib.analyze.SpatialImage, max_size: float = 1) -> float:
     -------
     float
         Rounded minimal voxel size
+
     Notes
-    -------
+    -----
     This function only needs the header (not the data).
 
     """
-
     # find minimal voxel side length
     sizes = np.array(img.header.get_zooms()[:3])
     min_vox_size = np.round(np.min(sizes) * 10000) / 10000
@@ -395,8 +399,9 @@ def find_img_size_by_fov(
         vox_size: float,
         min_dim: int = 256
 ) -> int:
-    """Function to find the cube dimension (>= 256) to cover the field of view of img. If vox_size is one, the img_size
-    MUST always be min_dim (the FreeSurfer standard).
+    """Find the cube dimension (>= 256) to cover the field of view of img.
+
+    If vox_size is one, the img_size MUST always be min_dim (the FreeSurfer standard).
 
     Parameters
     ----------
@@ -411,11 +416,12 @@ def find_img_size_by_fov(
     -------
     int
         The number of voxels needed to cover field of view.
-    Notes
-    -------
-    This function only needs the header (not the data).
-    """
 
+    Notes
+    -----
+    This function only needs the header (not the data).
+
+    """
     if vox_size == 1.0:
         return min_dim
     # else (other voxel sizes may use different sizes)
@@ -436,14 +442,11 @@ def conform(
         dtype: Optional[Type] = None,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> nib.MGHImage:
-    f"""Python version of mri_convert -c, which by default turns image intensity values
+    """Python version of mri_convert -c.
+
+    mri_convert -c by default turns image intensity values
     into UCHAR, reslices images to standard position, fills up slices to standard
     256x256x256 format and enforces 1mm or minimum isotropic voxel sizes.
-    
-    Notes:
-        Unlike mri_convert -c, we first interpolate (float image), and then rescale
-        to uchar. mri_convert is doing it the other way around. However, we compute
-        the scale factor from the input to increase similarity.
 
     Parameters
     ----------
@@ -466,9 +469,14 @@ def conform(
     -------
     nib.MGHImage
         conformed image
-    
-    """
 
+    Notes
+    -----
+    Unlike mri_convert -c, we first interpolate (float image), and then rescale
+    to uchar. mri_convert is doing it the other way around. However, we compute
+    the scale factor from the input to increase similarity.
+
+    """
     from nibabel.freesurfer.mghformat import MGHHeader
 
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
@@ -551,8 +559,9 @@ def is_conform(
         verbose: bool = True,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> bool:
-    f"""Function to check if an image is already conformed or not (Dimensions: 256x256x256,
-    Voxel size: 1x1x1, LIA orientation, and data type UCHAR).
+    """Check if an image is already conformed or not.
+
+    Dimensions: 256x256x256, Voxel size: 1x1x1, LIA orientation, and data type UCHAR.
 
     Parameters
     ----------
@@ -585,10 +594,10 @@ def is_conform(
         Whether the image is already conformed.
 
     Notes
-    -------
+    -----
     This function only needs the header (not the data).
-    """
 
+    """
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
         img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold
     )
@@ -647,7 +656,9 @@ def get_conformed_vox_img_size(
         conform_vox_size: VoxSizeOption,
         conform_to_1mm_threshold: Optional[float] = None
 ) -> Tuple[float, int]:
-    f"""Extract the voxel size and the image size. This function only needs the header (not the data).
+    """Extract the voxel size and the image size.
+
+    This function only needs the header (not the data).
 
     Parameters
     ----------
@@ -660,10 +671,9 @@ def get_conformed_vox_img_size(
 
     Returns
     -------
-        [MISSING]
+    [MISSING]
     
     """
-
     # this is similar to mri_convert --conform_min
     if isinstance(conform_vox_size, str) and conform_vox_size.lower() in [
         "min",
@@ -688,10 +698,12 @@ def check_affine_in_nifti(
         img: Union[nib.Nifti1Image, nib.Nifti2Image],
         logger: Optional[logging.Logger] = None
 ) -> bool:
-    f"""Function to check the affine in nifti Image. Sets affine with qform, if it exists
-    and differs from sform. If qform does not exist, voxel sizes between header
-    information and information in affine are compared. In case these do not match,
-    the function returns False (otherwise True).
+    """Check the affine in nifti Image.
+
+    Sets affine with qform, if it exists and differs from sform.
+    If qform does not exist, voxel sizes between header information and information
+    in affine are compared.
+    In case these do not match, the function returns False (otherwise True).
 
     Parameters
     ----------
@@ -709,9 +721,7 @@ def check_affine_in_nifti(
     False, if
         voxel sizes in affine and header differ
 
-    
     """
-
     check = True
     message = ""
 

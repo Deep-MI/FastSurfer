@@ -75,6 +75,7 @@ class HelpFormatter(argparse.HelpFormatter):
     """Help formatter that keeps line breaks for texts that start with '/keeplinebreaks/'."""
 
     def _fill_text(self, text, width, indent):
+        """[MISSING]."""
         klb_str = '/keeplinebreaks/'
         if text.startswith(klb_str):
             # the following line is from argparse.RawDescriptionHelpFormatter
@@ -84,6 +85,7 @@ class HelpFormatter(argparse.HelpFormatter):
 
 
 def make_arguments() -> argparse.ArgumentParser:
+    """[MISSING]."""
     parser = argparse.ArgumentParser(usage=USAGE, epilog=HELPTEXT, description=DESCRIPTION,
                                      formatter_class=HelpFormatter)
     parser.add_argument('-norm', '--normfile', type=str, required=True, dest='normfile',
@@ -152,6 +154,16 @@ def make_arguments() -> argparse.ArgumentParser:
 
 def loadfile_full(file: str, name: str) \
         -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+    """Load full image and data.
+
+    Parameters
+    ----------
+    file : str
+        filename
+    name :
+        Subject name
+
+    """
     try:
         img = nib.load(file)
     except (IOError, FileNotFoundError) as e:
@@ -161,6 +173,18 @@ def loadfile_full(file: str, name: str) \
 
 
 def main(args):
+    """[MISSING].
+
+    Parameters
+    ----------
+    args :
+        [MISSING]
+
+    Returns
+    -------
+    [MISSING]
+
+    """
     import os
     import time
     start = time.perf_counter_ns()
@@ -321,7 +345,6 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
         added. Should not include newline characters (expect at the end of strings). (default: empty sequence)
 
     """
-
     import sys
     import os
     import datetime
@@ -374,7 +397,7 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
                 line = line.replace("\n", " ")
                 from warnings import warn
                 warn_msg_sent or warn(f"extra_header[{i}] includes embedded newline characters. "
-                                      "Replacing all newline characters with <space>.")
+                    "Replacing all newline characters with <space>.")
                 warn_msg_sent = True
             fp.write(f"# {line}\n")
         fp.write(f"#\n")
@@ -389,7 +412,7 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 
         for i, col in enumerate(dataframe.columns):
             for v, name in zip((col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA")),
-                               ("ColHeader", "FieldName", "Units    ")):
+                ("ColHeader", "FieldName", "Units    ")):
                 fp.write(f"# TableCol {i+1: 2d} {name} {v}\n")
         fp.write(f"# NRows {len(dataframe)}\n"
                  f"# NTableCols {len(dataframe.columns)}\n")
@@ -413,9 +436,9 @@ def write_statsfile(segstatsfile: str, dataframe: pd.DataFrame, vox_vol: float, 
 
 # Label mapping functions (to aparc (eval) and to label (train))
 def read_classes_from_lut(lut_file):
-    """This function is modified from datautils to allow support for FreeSurfer-distributed ColorLUTs
+    """Modify from datautils to allow support for FreeSurfer-distributed ColorLUTs.
     
-    Function to read in **FreeSurfer-like** LUT table
+    Read in **FreeSurfer-like** LUT table
 
     Parameters
     ----------
@@ -455,17 +478,18 @@ def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
     from scipy.ndimage import laplace
 
     def _laplace(data):
-        """
+        """[MISSING].
 
         Parameters
         ----------
         data :
-            
+            [MISSING]
 
         Returns
         -------
+        bool
+            [MISSING]
 
-        
         """
         return laplace(data.astype(cmp_dtype)) != np.asarray(0., dtype=cmp_dtype)
     # laplace
@@ -478,8 +502,27 @@ def seg_borders(_array: _ArrayType, label: Union[np.integer, bool],
 
 def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_label: Optional[np.integer] = None,
             six_connected: bool = True, out: Optional[_ArrayType] = None) -> _ArrayType:
-    """Handle to fast border computation."""
+    """Handle to fast border computation.
 
+    Parameters
+    ----------
+    _array : _ArrayType
+        [MISSING]
+    labels : Union[Iterable[np.integer], bool]
+        [MISSING]
+    max_label : Optional[np.integer], Optional
+        [MISSING]
+    six_connected : bool
+        [MISSING]
+    out : Optional[_ArrayType]
+        [MISSING]
+
+    Returns
+    -------
+    _ArrayType
+        [MISSING]
+
+    """
     dim = _array.ndim
     array_alloc = partial(np.full, dtype=_array.dtype)
     _shape_plus2 = [s + 2 for s in _array.shape]
@@ -526,15 +569,42 @@ def borders(_array: _ArrayType, labels: Union[Iterable[np.integer], bool], max_l
 
 
 def unsqueeze(matrix, axis: Union[int, Sequence[int]] = -1):
-    """Allows insertions of axis into the data/tensor, see numpy.expand_dims. This expands the torch.unsqueeze
-    syntax to allow unsqueezing multiple axis at the same time. """
+    """Unsqueeze the matrix.
+
+    Allows insertions of axis into the data/tensor, see numpy.expand_dims. This expands the torch.unsqueeze
+    syntax to allow unsqueezing multiple axis at the same time.
+
+    Parameters
+    ----------
+    matrix :
+        Matrix to unsqueeze
+    axis : Union[int, Sequence[int]]
+        Axis for unsqueezing
+
+    """
     if isinstance(matrix, np.ndarray):
         return np.expand_dims(matrix, axis=axis)
 
 
 def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, Sequence[float]]) -> Tuple[
     Tuple[slice, ...], Tuple[slice, ...]]:
-    """Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow' the patch `patch` by `whalf` (also considering the image shape)."""
+    """Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow' the patch `patch` by `whalf` (also considering the image shape).
+
+    Parameters
+    ----------
+    patch : Sequence[slice]
+        [MISSING]
+    whalf : int
+        [MISSING]
+    img_size : Union[np.ndarray, Sequence[float]]
+        [MISSING]
+
+    Returns
+    -------
+    Tuple[Tuple[slice, ...], Tuple[slice, ...]]
+        [MISSING]
+
+    """
     # patch start/stop
     _patch = np.asarray([(s.start, s.stop) for s in patch])
     start, stop = _patch.T
@@ -551,8 +621,29 @@ def grow_patch(patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, S
 
 def uniform_filter(arr: _ArrayType, filter_size: int, fillval: float,
                    patch: Optional[Tuple[slice, ...]] = None, out: Optional[_ArrayType] = None) -> _ArrayType:
-    """Apply a uniform filter (with kernel size `filter_size`) to `input`. The uniform filter is normalized
-    (weights add to one)."""
+    """Apply a uniform filter (with kernel size `filter_size`) to `input`.
+
+    The uniform filter is normalized (weights add to one).
+
+    Parameters
+    ----------
+    arr : _ArrayType
+        [MISSING]
+    filter_size : int
+        [MISSING]
+    fillval : float
+        [MISSING]
+    patch : Optional[Tuple[slice, ...]]
+        [MISSING]
+    out : Optional[_ArrayType]
+        [MISSING]
+
+    Returns
+    -------
+    _ArrayType
+        [MISSING]
+
+    """
     _patch = (slice(None),) if patch is None else patch
     arr = arr.astype(float)
     from scipy.ndimage import uniform_filter
@@ -571,6 +662,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             vox_vol: float = 1.0, eps: float = 1e-6, robust_percentage: Optional[float] = None,
             merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: False = False,
             legacy_freesurfer: bool = False) -> List[PVStats]:
+    """[MISSING]."""
     ...
 
 
@@ -580,6 +672,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: True = True,
             legacy_freesurfer: bool = False) \
         -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
+    """[MISSING]."""
     ...
 
 
@@ -588,7 +681,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
             merged_labels: Optional[VirtualLabel] = None, threads: int = -1, return_maps: bool = False,
             legacy_freesurfer: bool = False) \
         -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
-    """Function to compute volume effects.
+    """Compute volume effects.
 
     Parameters
     ----------
@@ -628,7 +721,6 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         ipv: The partial volume of the alternative (nbr) label at the location
 
     """
-
     if not isinstance(seg, np.ndarray) and np.issubdtype(seg.dtype, np.integer):
         raise TypeError("The seg object is not a numpy.ndarray of int type.")
     if not isinstance(norm, np.ndarray) and np.issubdtype(seg.dtype, np.numeric):
@@ -638,7 +730,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
 
     if seg.shape != norm.shape:
         raise RuntimeError(f"The shape of the segmentation and the norm must be identical, but shapes are {seg.shape} "
-                           f"and {norm.shape}!")
+            f"and {norm.shape}!")
 
     mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [{} for _ in range(7)]
     loc_border = {}
@@ -706,10 +798,10 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
 
         for vols in pool.map(partial(pv_calc_patch, global_crop=global_crop, loc_border=loc_border, border=border,
-                                     seg=seg, norm=norm, full_nbr_label=full_nbr_label, full_seg_mean=full_seg_mean,
-                                     full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps,
-                                     legacy_freesurfer=legacy_freesurfer),
-                             patches, **map_kwargs):
+                    seg=seg, norm=norm, full_nbr_label=full_nbr_label, full_seg_mean=full_seg_mean,
+                    full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps,
+                    legacy_freesurfer=legacy_freesurfer),
+            patches, **map_kwargs):
             for lab in volumes.keys():
                 volumes[lab] += vols.get(lab, 0.) * vox_vol
 
@@ -751,8 +843,29 @@ def global_stats(lab: _IntType, norm: npt.NDArray[_NumberType], seg: npt.NDArray
                  out: Optional[npt.NDArray[bool]] = None, robust_percentage: Optional[float] = None) \
         -> Union[Tuple[_IntType, int],
                  Tuple[_IntType, int, int, _NumberType, _NumberType, float, float, float, npt.NDArray[bool]]]:
-    """Computes Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum, sum of squares and
-    6-connected border of label lab (out references the border)."""
+    """Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum, sum of squares and 6-connected border of label lab (out references the border).
+
+    Parameters
+    ----------
+    lab : _IntType
+        [MISSING]
+    norm : pt.NDArray[_NumberType]
+        [MISSING]
+    seg : npt.NDArray[_IntType]
+        [MISSING]
+    out : npt.NDArray[bool], Optional
+        [MISSING]
+    robust_percentage : float, Optional
+        [MISSING]
+
+    Returns
+    -------
+    _IntType and int
+        [MISSING]
+    or _IntType, int, int, _NumberType, _NumberType, float, float, float and npt.NDArray[bool]
+        [MISSING]
+
+    """
     bin_array = cast(npt.NDArray[bool], seg == lab)
     data = norm[bin_array].astype(int if np.issubdtype(norm.dtype, np.integer) else float)
     nvoxels: int = data.shape[0]
@@ -786,8 +899,27 @@ def global_stats(lab: _IntType, norm: npt.NDArray[_NumberType], seg: npt.NDArray
 def patch_filter(pos: Tuple[int, int, int], mask: npt.NDArray[bool],
                  global_crop: Tuple[slice, ...], patch_size: int = 32) \
         -> Tuple[bool, Sequence[slice]]:
-    """Returns, whether there are mask-True voxels in the patch starting at pos with size patch_size and the resulting
-    patch shrunk to mask-True regions."""
+    """Return, whether there are mask-True voxels in the patch starting at pos with size patch_size and the resulting patch shrunk to mask-True regions.
+
+    Parameters
+    ----------
+    pos : Tuple[int, int, int]
+        [MISSING]
+    mask : npt.NDArray[bool]
+        [MISSING]
+    global_crop : Tuple[slice, ...]
+        [MISSING]
+    patch_size : int
+        [MISSING]. Defaults to 32
+
+    Returns
+    -------
+    bool
+        [MISSING]
+    Sequence[slice]
+        [MISSING]
+
+    """
     # create slices for current patch context (constrained by the global_crop)
     patch = [slice(p, min(p + patch_size, slice_.stop)) for p, slice_ in zip(pos, global_crop)]
     # crop patch context to the image content
@@ -797,7 +929,9 @@ def patch_filter(pos: Tuple[int, int, int], mask: npt.NDArray[bool],
 def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
                        sub_patch: Optional[Sequence[slice]] = None) \
         -> Tuple[bool, Sequence[slice]]:
-    """Crop the patch to regions of the mask that are non-zero. Assumes mask is always positive. Returns whether there
+    """Crop the patch to regions of the mask that are non-zero.
+
+    Assumes mask is always positive. Returns whether there
     is any mask>0 in the patch and a patch shrunk to mask>0 regions. The optional subpatch constrains this operation to
     the sub-region defined by a sequence of slicing operations.
 
@@ -808,12 +942,18 @@ def crop_patch_to_mask(mask: npt.NDArray[_NumberType],
     sub_patch : Optional[Sequence[slice]]
         subregion of mask to only consider (default: full mask)
 
+    Returns
+    -------
+    bool
+        [MISSING]
+    Sequence[slice]
+        [MISSING]
+
     Note
     ----
     This function requires device synchronization.
 
     """
-
     _patch = []
     patch = tuple([slice(0, s) for s in mask.shape] if sub_patch is None else sub_patch)
     patch_in_patch_coords = tuple([slice(0, slice_.stop - slice_.start) for slice_ in patch])
@@ -852,9 +992,46 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
                   full_nbr_mean: Optional[npt.NDArray[float]] = None, eps: float = 1e-6,
                   legacy_freesurfer: bool = False) \
         -> Dict[_IntType, float]:
-    """Calculates PV for patch. If full* keyword arguments are passed, also fills, per voxel results for the respective
-    voxels in the patch."""
+    """Calculate PV for patch.
 
+    If full* keyword arguments are passed, also fills, per voxel results for the respective
+    voxels in the patch.
+
+    Parameters
+    ----------
+    patch : Tuple[slice, ...]
+        [MISSING]
+    global_crop : Tuple[slice, ...]
+        [MISSING]
+    loc_border : Dict[_IntType, npt.NDArray[bool]]
+        [MISSING]
+    seg : npt.NDArray[_IntType]
+        [MISSING]
+    norm : np.ndarray
+        [MISSING]
+    border : npt.NDArray[bool]
+        [MISSING]
+    full_pv : npt.NDArray[float], Optional
+        [MISSING]
+    full_ipv : npt.NDArray[float], Optional
+        [MISSING]
+    full_nbr_label : npt.NDArray[_IntType], Optional
+        [MISSING]
+    full_seg_mean : npt.NDArray[float], Optional
+        [MISSING]
+    full_nbr_mean : npt.NDArray[float], Optional
+        [MISSING]
+    eps : float
+        [MISSING]. Defaults to 1e-6
+    legacy_freesurfer : bool
+        [MISSING]
+
+    Returns
+    -------
+    Dict[_IntType, float]
+        [MISSING]
+
+    """
     log_eps = -int(np.log10(eps))
 
     patch = tuple(patch)
@@ -948,8 +1125,43 @@ def pv_calc_patch(patch: Tuple[slice, ...], global_crop: Tuple[slice, ...],
 
 
 def patch_neighbors(labels, norm, seg, pat_border, loc_border, patch_grow7, patch_in_gc, patch_shrink6,
-                        ungrow1_patch, ungrow7_patch, ndarray_alloc, eps, legacy_freesurfer = False):
-    """Helper function to calculate the neighbor statistics of labels, etc."""
+                    ungrow1_patch, ungrow7_patch, ndarray_alloc, eps, legacy_freesurfer = False):
+    """Calculate the neighbor statistics of labels, etc..
+
+    Parameters
+    ----------
+    labels :
+        [MISSING]
+    norm :
+        [MISSING]
+    seg :
+        [MISSING]
+    pat_border :
+        [MISSING]
+    loc_border :
+        [MISSING]
+    patch_grow7 :
+        [MISSING]
+    patch_in_gc :
+        [MISSING]
+    patch_shrink6 :
+        [MISSING]
+    ungrow1_patch :
+        [MISSING]
+    ungrow7_patch :
+        [MISSING]
+    ndarray_alloc :
+        [MISSING]
+    eps :
+        [MISSING]
+    legacy_freesurfer : bool
+        [MISSING]. Defaults to False
+
+    Returns
+    -------
+    [MISSING]
+
+    """
     loc_shape = (len(labels),) + pat_border.shape
 
     pat_label_counts, pat_label_sums = ndarray_alloc((2,) + loc_shape, fill_value=0., dtype=float)

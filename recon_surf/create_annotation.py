@@ -90,7 +90,7 @@ h_trgsid = "optional, when storing mapped labels: target subject id, also writte
 
 
 def options_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
@@ -98,7 +98,6 @@ def options_parse():
         object holding options
 
     """
-
     parser = optparse.OptionParser(
         version="$Id:create_annotation.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -157,9 +156,10 @@ def map_multiple_labels(
         out_dir: Optional[str] = None,
         stop_missing: bool = True
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-    """function to map a list of labels (just names without hemisphere or path, which are
-    passed via hemi, src_dir, out_dir) from one surface (e.g. fsavaerage sphere.reg)
-    to another.
+    """Map a list of labels from one surface (e.g. fsavaerage sphere.reg) to another.
+
+    Labels are just names without hemisphere or path,
+    which are passed via hemi, src_dir, out_dir)
 
     Parameters
     ----------
@@ -195,9 +195,7 @@ def map_multiple_labels(
     ValueError
         Label file missing
 
-
     """
-
     # get reverse mapping (trg->src) for sampling
     rev_mapping, _, _ = getSurfCorrespondence(trg_sphere_name, src_sphere_name)
     all_labels = []
@@ -238,7 +236,7 @@ def read_multiple_labels(
         input_dir: str,
         label_names: npt.ArrayLike
 ) -> Tuple[ List[npt.NDArray],  List[npt.NDArray]]:
-    """read multiple label files from input_dir
+    """Read multiple label files from input_dir.
 
     Parameters
     ----------
@@ -256,9 +254,7 @@ def read_multiple_labels(
     all_values
         values of read labels
 
-
     """
-
     all_labels = []
     all_values = []
     for l_name in label_names:
@@ -279,9 +275,11 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
                 col_ids: npt.ArrayLike, trg_white: Union[str, npt.NDArray],
                 cortex_label_name: Optional[str] = None
                 ) -> Tuple[npt.NDArray, npt.NDArray]:
-    """function to create an annotation from multiple labels. Here we also consider the
-    label values and overwrite existing labels if values of current are larger (or equal,
-    so the order of the labels matters). No output is written.
+    """Create an annotation from multiple labels.
+
+    Here we also consider the label values and overwrite existing labels
+    if values of current are larger (or equal, so the order of the labels matters).
+    No output is written.
 
     Parameters
     ----------
@@ -303,9 +301,7 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
     annot_vals
         Values of build Annotations
 
-
     """
-
     # create annot from a bunch of labels (and values)
     if isinstance(trg_white, str):
         trg_white = fs.read_geometry(trg_white, read_metadata=False)[0]
@@ -343,7 +339,7 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
 
 
 def read_colortable(colortab_name: str) -> Tuple[npt.ArrayLike, List[str], npt.ArrayLike]:
-    """reads the colortable of given name
+    """Read the colortable of given name.
 
     Parameters
     ----------
@@ -359,9 +355,7 @@ def read_colortable(colortab_name: str) -> Tuple[npt.ArrayLike, List[str], npt.A
     colors
         List of colors corresponding to ids and names
 
-
     """
-
     colortab = np.genfromtxt(colortab_name, dtype="i8", usecols=(0, 2, 3, 4, 5))
     ids = colortab[:, 0]
     colors = colortab[:, 1:]
@@ -377,8 +371,9 @@ def write_annot(
         out_annot: str,
         append: Union[None, str] = ""
 ) -> None:
-    """This function combines the colortable with the annotations ids to
-    write an annotation file (which contains colortable information)
+    """Combine the colortable with the annotations ids to write an annotation file.
+
+    The annotation file contains colortable information
     Care needs to be taken that the colortable file has the same number
     and order of labels as specified in the label_names list
 
@@ -396,7 +391,6 @@ def write_annot(
         String to append to colour name. Defaults to ""
 
     """
-
     # colortab_name="colortable_BA.txt"
     col_ids, col_names, col_colors = read_colortable(colortab_name)
     offset = 0
@@ -419,7 +413,9 @@ def write_annot(
 
 
 def create_annotation(options, verbose: bool = True) -> None:
-    """main function to map (if required), build  and write annotation
+    """Map (if required), build  and write annotation.
+
+    (Main function)
 
     Parameters
     ----------
@@ -438,7 +434,6 @@ def create_annotation(options, verbose: bool = True) -> None:
         True if options should be printed. Defaults to True
 
     """
-
     print()
     print("Map BA Labels Parameters:")
     print()
@@ -508,7 +503,6 @@ def create_annotation(options, verbose: bool = True) -> None:
 
 
 if __name__ == "__main__":
-
     # Command line options and error checking done here
     options = options_parse()
 

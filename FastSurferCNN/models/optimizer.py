@@ -20,7 +20,7 @@ import yacs
 from networks import FastSurferCNN, FastSurferVINN
 
 def get_optimizer(model: Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParallel], cfg: yacs.config.CfgNode) -> torch.optim.optimizer.Optimizer:
-    """get an instance of requested optimizer
+    """Get an instance of requested optimizer.
 
     Parameters
     ----------
@@ -39,9 +39,7 @@ def get_optimizer(model: Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParal
     NotImplementedError
         Optimizer is not supported
 
-    
     """
-
     if cfg.OPTIMIZER.OPTIMIZING_METHOD == "sgd":
         return torch.optim.SGD(
             model.parameters(),

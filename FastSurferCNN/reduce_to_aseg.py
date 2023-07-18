@@ -65,7 +65,14 @@ h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi
 
 
 def options_parse():
-    """Command line option parser for reduce_to_aseg.py"""
+    """Command line option parser.
+
+    Returns
+    -------
+    options
+        object holding options
+
+    """
     parser = optparse.OptionParser(
         version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
         usage=HELPTEXT,
@@ -85,15 +92,16 @@ def options_parse():
 
 
 def reduce_to_aseg(data_inseg):
-    """
+    """[MISSING].
 
     Parameters
     ----------
     data_inseg :
-        
+        [MISSING]
 
     Returns
     -------
+        [MISSING]
 
     """
     print("Reducing to aseg ...")
@@ -105,22 +113,22 @@ def reduce_to_aseg(data_inseg):
 
 
 def create_mask(aseg_data, dnum, enum):
-    """
+    """Create dilated mask.
 
     Parameters
     ----------
-    aseg_data :
-        
-    dnum :
-        
-    enum :
-        
+    aseg_data
+        [MISSING]
+    dnum
+        [MISSING]
+    enum
+        [MISSING]
 
     Returns
     -------
+        [MISSING]
 
     """
-
     print("Creating dilated mask ...")
 
     # treat lateral orbital frontal and parsorbitalis special to avoid capturing too much of eye nerve
@@ -159,15 +167,18 @@ def create_mask(aseg_data, dnum, enum):
 
 
 def flip_wm_islands(aseg_data):
-    """
+    """[MISSING].
 
     Parameters
     ----------
-    aseg_data :
+    aseg_data
+        [MISSING]
         
 
     Returns
     -------
+    flip_data
+        [MISSING]
 
     """
     # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi

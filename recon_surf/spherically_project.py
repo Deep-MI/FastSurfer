@@ -72,7 +72,7 @@ h_output = "path to output surface, spherically projected"
 
 
 def options_parse():
-    """Command line option parser
+    """Command line option parser.
 
     Returns
     -------
@@ -80,7 +80,6 @@ def options_parse():
         object holding options
 
     """
-
     parser = optparse.OptionParser(
         version="$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $",
         usage=HELPTEXT,
@@ -101,13 +100,15 @@ def tria_spherical_project(
         debug: bool = False,
         use_cholmod: bool = True
 ) -> TriaMesh:
-    """Computes the first three non-constant eigenfunctions
-        and then projects the spectral embedding onto a sphere. This works
-        when the first functions have a single closed zero level set,
-        splitting the mesh into two domains each. Depending on the original
-        shape triangles could get inverted. We also flip the functions
-        according to the axes that they are aligned with for the special
-        case of brain surfaces in FreeSurfer coordinates.
+    """Compute the first three sphere-projected non-constant eigenfunctions.
+
+    Compute the first three non-constant eigenfunctions
+    and then projects the spectral embedding onto a sphere. This works
+    when the first functions have a single closed zero level set,
+    splitting the mesh into two domains each. Depending on the original
+    shape triangles could get inverted. We also flip the functions
+    according to the axes that they are aligned with for the special
+    case of brain surfaces in FreeSurfer coordinates.
 
     Parameters
     ----------
@@ -125,9 +126,7 @@ def tria_spherical_project(
     trianew
         Triangle Mesh spherically projected
 
-    
     """
-
     if not tria.is_closed():
         raise ValueError("Error: Can only project closed meshes!")
 
@@ -309,7 +308,7 @@ def spherically_project_surface(
         outsurf: str,
         use_cholmod: bool = True
 ) -> None:
-    """takes path to insurf, spherically projects it, outputs it to outsurf
+    """Take path to insurf, spherically projects it, outputs it to outsurf.
 
     Parameters
     ----------
@@ -321,7 +320,6 @@ def spherically_project_surface(
         Try to use the Cholesky decomposition from the cholmod. Defaults to True
 
     """
-
     surf = read_geometry(insurf, read_metadata=True)
     projected = tria_spherical_project(
         TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod

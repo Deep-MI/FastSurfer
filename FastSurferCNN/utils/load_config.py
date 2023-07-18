@@ -33,7 +33,6 @@ def get_config(args: argparse.Namespace) -> yacs.config.CfgNode:
         Configuration node
     
     """
-
     # Setup cfg.
     cfg = get_cfg_defaults()
     # Load config from cfg.
@@ -55,7 +54,7 @@ def get_config(args: argparse.Namespace) -> yacs.config.CfgNode:
 
 
 def load_config(cfg_file: str) -> yacs.config.CfgNode:
-    """Load a yaml config file
+    """Load a yaml config file.
 
     Parameters
     ----------
@@ -68,7 +67,6 @@ def load_config(cfg_file: str) -> yacs.config.CfgNode:
         configuration node
     
     """
-
     # setup base
     cfg = get_cfg_defaults()
     cfg.EXPR_NUM = "Default"

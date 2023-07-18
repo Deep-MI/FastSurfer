@@ -64,10 +64,7 @@ h_flipped = "register to left-right flipped as target aparc+aseg (cortical neede
 
 
 def options_parse():
-    """Command line option parser
-
-    Parameters
-    ----------
+    """Command line option parser.
 
     Returns
     -------
@@ -101,7 +98,7 @@ def options_parse():
 
 
 def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optional[npt.NDArray[int]] = []) -> Tuple[npt.NDArray, npt.NDArray]:
-    """extracts the centroids of the segmentation labels for mov and dst in RAS coords
+    """Extract the centroids of the segmentation labels for mov and dst in RAS coords.
 
     Parameters
     ----------
@@ -120,7 +117,6 @@ def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optio
         List of centroids of target segmentation
 
     """
-
     if not label_ids:
         # use all joint labels except -1 and 0:
         nda1 = sitk.GetArrayFromImage(seg_mov)
@@ -161,8 +157,7 @@ def align_seg_centroids(
         label_ids: Optional[npt.NDArray[int]] = [],
         affine: bool = False
 ) -> npt.NDArray:
-    """Aligns the segmentations based on label centroids (rigid is default)
-    returns RAS2RAS transform
+    """Align the segmentations based on label centroids (rigid is default).
 
     Parameters
     ----------
@@ -179,10 +174,9 @@ def align_seg_centroids(
     Returns
     -------
     T
-        aligned centroids
+        aligned centroids RAS2RAS transform
 
     """
-
     # get centroids of each label in image
     centroids_mov, centroids_dst = get_seg_centroids(seg_mov, seg_dst, label_ids)
     # register
@@ -195,8 +189,9 @@ def align_seg_centroids(
 
 
 def align_flipped(seg: sitk.Image) -> npt.NDArray:
-    """left - right registration (make upright)
-    we are registering cortial lables
+    """Registrate Left - right (make upright).
+
+    Register cortial lables
 
     Parameters
     ----------
@@ -209,7 +204,6 @@ def align_flipped(seg: sitk.Image) -> npt.NDArray:
         Linear transformation matrix for registration
 
     """
-
     lhids = np.array(
         [
             1002,

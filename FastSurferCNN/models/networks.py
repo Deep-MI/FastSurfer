@@ -24,7 +24,8 @@ import FastSurferCNN.models.interpolation_layer as il
 
 
 class FastSurferCNNBase(nn.Module):
-    """Network Definition of Fully Competitive Network network
+    """Network Definition of Fully Competitive Network network.
+
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
     * Dense Connections in blocks
@@ -45,13 +46,11 @@ class FastSurferCNNBase(nn.Module):
     Methods
     -------
     forward
-        Computational graph
+        Feedforward through graph.
     """
 
     def __init__(self, params: Dict, padded_size: int = 256):
-        """Initialization of FastSurferCNNBase
-
-        Args:
+        """Construct FastSurferCNNBase object.
 
         Parameters
         ----------
@@ -61,7 +60,6 @@ class FastSurferCNNBase(nn.Module):
             size of image when padded (Default value = 256)
 
         """
-
         super(FastSurferCNNBase, self).__init__()
 
         # Parameters for the Descending Arm
@@ -96,7 +94,7 @@ class FastSurferCNNBase(nn.Module):
             scale_factor: Optional[Tensor] = None,
             scale_factor_out: Optional[Tensor] =None
     ) -> Tensor:
-        """Computational graph
+        """Feedforward through graph.
 
         Parameters [MISSING]
         ----------
@@ -113,7 +111,6 @@ class FastSurferCNNBase(nn.Module):
             prediction logits
 
         """
-
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
         encoder_output2, skip_encoder_2, indices_2 = self.encode2.forward(
             encoder_output1
@@ -142,8 +139,7 @@ class FastSurferCNNBase(nn.Module):
 
 
 class FastSurferCNN(FastSurferCNNBase):
-    """
-    Main Fastsurfer CNN Network
+    """Main Fastsurfer CNN Network.
 
     Attributes
     ----------
@@ -153,11 +149,12 @@ class FastSurferCNN(FastSurferCNNBase):
     Methods
     -------
     forward
-        Computational graph
+        Feedforward through graph
+
     """
 
     def __init__(self, params: Dict, padded_size: int):
-        """Initialization of FastSurferCNN
+        """Construct FastSurferCNN object.
 
         Parameters
         ----------
@@ -167,7 +164,6 @@ class FastSurferCNN(FastSurferCNNBase):
             size of image when padded
 
         """
-
         super(FastSurferCNN, self).__init__(params)
         params["num_channels"] = params["num_filters"]
         self.classifier = sm.ClassifierBlock(params)
@@ -188,7 +184,7 @@ class FastSurferCNN(FastSurferCNNBase):
             scale_factor: Optional[Tensor] = None,
             scale_factor_out: Optional[Tensor] = None
     ) -> Tensor:
-        """Computational graph
+        """Feedforward through graph.
 
         Parameters
         ----------
@@ -204,9 +200,7 @@ class FastSurferCNN(FastSurferCNNBase):
         output : Tensor
             Prediction logits
 
-
         """
-
         net_out = super().forward(x, scale_factor)
         output = self.classifier.forward(net_out)
 
@@ -214,7 +208,8 @@ class FastSurferCNN(FastSurferCNNBase):
 
 
 class FastSurferVINN(FastSurferCNNBase):
-    """Network Definition of Fully Competitive Network
+    """Network Definition of Fully Competitive Network.
+
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
     * Dense Connections in blocks
@@ -250,11 +245,11 @@ class FastSurferVINN(FastSurferCNNBase):
     Methods
     -------
     forward
-        computational graph
+        Feedforward through graph.
     """
 
     def __init__(self, params: Dict, padded_size: int = 256):
-        """Initialization of FastSurferVINN
+        """Construct FastSurferVINN object.
 
         Parameters
         ----------
@@ -264,7 +259,6 @@ class FastSurferVINN(FastSurferCNNBase):
             size of image when padded (Default value = 256)
 
         """
-
         num_c = params["num_channels"]
         params["num_channels"] = params["num_filters_interpol"]
         super(FastSurferVINN, self).__init__(params)
@@ -337,7 +331,7 @@ class FastSurferVINN(FastSurferCNNBase):
             scale_factor: Tensor,
             scale_factor_out: Optional[Tensor]  = None
     ) -> Tensor:
-        """Computational graph
+        """Feedforward through graph.
 
         Parameters
         ----------
@@ -354,7 +348,6 @@ class FastSurferVINN(FastSurferCNNBase):
             prediction logits
 
         """
-
         # Input block + Flex to 1 mm
         skip_encoder_0 = self.inp_block(x)
         encoder_output0, rescale_factor = self.interpol1(skip_encoder_0, scale_factor)
@@ -395,7 +388,7 @@ _MODELS = {
 
 
 def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN]:
-    """Builds requested model
+    """Build requested model.
 
     Parameters
     ----------
@@ -407,9 +400,7 @@ def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN
     model
         Object of the initialized model
 
-
     """
-
     assert (
             cfg.MODEL.MODEL_NAME in _MODELS.keys()
     ), f"Model {cfg.MODEL.MODEL_NAME} not supported"
