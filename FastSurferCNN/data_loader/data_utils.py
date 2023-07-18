@@ -54,7 +54,8 @@ def load_and_conform_image(
         logger: logging.Logger = LOGGER,
         conform_min: bool = False
 ) -> Tuple[_Header, np.ndarray, np.ndarray]:
-    """Function to load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size.
+    """Load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size.
+
     Only, if it does not already have this format.
 
     Parameters
@@ -84,10 +85,7 @@ def load_and_conform_image(
     RuntimeError
         Inconsistency in nifti-header
 
-
-
     """
-
     orig = nib.load(img_filename)
     # is_conform and conform accept numeric values and the string 'min' instead of the bool value
     _conform_vox_size = "min" if conform_min else 1.0
@@ -132,7 +130,6 @@ def load_image(
     name : str
         name of the file (optional), only effects error messages. (Default value = "image")
     **kwargs :
-
 
     Returns
     -------
@@ -247,6 +244,7 @@ def save_image(
         dtype: Optional[npt.DTypeLike] = None
 ) -> None:
     """Save an image (nibabel MGHImage), according to the desired output file format.
+
     Supported formats are defined in supported_output_file_formats. Saves predictions to save_as
 
     Parameters
@@ -264,7 +262,6 @@ def save_image(
          (Default value = None)
 
     """
-
     assert any(
         save_as.endswith(file_ext) for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS
     ), (
@@ -294,7 +291,7 @@ def transform_axial(
         vol: npt.NDArray,
         coronal2axial: bool = True
 ) -> np.ndarray:
-    """Function to transform volume into Axial axis and back
+    """Transform volume into Axial axis and back.
 
     Parameters
     ----------
@@ -307,8 +304,8 @@ def transform_axial(
     -------
     np.ndarray
         Transformed image
-    """
 
+    """
     if coronal2axial:
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
     else:
@@ -319,7 +316,7 @@ def transform_sagittal(
         vol: npt.NDArray,
         coronal2sagittal: bool = True
 ) -> np.ndarray:
-    """Function to transform volume into Sagittal axis and back
+    """Transform volume into Sagittal axis and back.
 
     Parameters
     ----------
@@ -333,9 +330,7 @@ def transform_sagittal(
     np.ndarray:
         transformed image
 
-
     """
-
     if coronal2sagittal:
         return np.moveaxis(vol, [0, 1, 2], [2, 1, 0])
     else:
@@ -347,9 +342,10 @@ def get_thick_slices(
         img_data: npt.NDArray,
         slice_thickness: int = 3
 ) -> np.ndarray:
-    """Function to extract thick slices from the image
-    (feed slice_thickness preceding and succeeding slices to network,
-    label only middle one)
+    """Extract thick slices from the image.
+
+    Feed slice_thickness preceding and succeeding slices to network,
+    label only middle one
 
     Parameters
     ----------
@@ -360,8 +356,9 @@ def get_thick_slices(
 
     Returns
     -------
-        np.ndarray
-            image data with the thick slices of the n-th axis appended into the n+1-th axis.
+    np.ndarray
+        image data with the thick slices of the n-th axis appended into the n+1-th axis.
+
     """
     img_data_pad = np.pad(
         img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode="edge"
@@ -379,7 +376,7 @@ def filter_blank_slices_thick(
         weight_vol: npt.NDArray,
         threshold: int = 50
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Function to filter blank slices from the volume using the label volume
+    """Filter blank slices from the volume using the label volume.
 
     Parameters
     ----------
@@ -400,8 +397,8 @@ def filter_blank_slices_thick(
         [MISSING]
     weight_vol : np.ndarray
         [MISSING]
-    """
 
+    """
     # Get indices of all slices with more than threshold labels/pixels
     select_slices = np.sum(label_vol, axis=(0, 1)) > threshold
 
@@ -424,7 +421,7 @@ def create_weight_mask(
         cortex_mask: bool = True,
         gradient: bool = True
 ) -> np.ndarray:
-    """Function to create weighted mask - with median frequency balancing and edge-weighting
+    """Create weighted mask - with median frequency balancing and edge-weighting.
 
     Parameters
     ----------
@@ -451,7 +448,6 @@ def create_weight_mask(
         Weights
 
     """
-
     unique, counts = np.unique(mapped_aseg, return_counts=True)
 
     # Median Frequency Balancing
@@ -499,8 +495,7 @@ def cortex_border_mask(
         structure: npt.NDArray,
         ctx_thresh: int = 33
 ) -> np.ndarray:
-    """Function to erode the cortex of a given mri image to create
-    the inner gray matter mask (outer most cortex voxels)
+    """Erode the cortex of a given mri image to create the inner gray matter mask (outer most cortex voxels).
 
     Parameters
     ----------
@@ -516,9 +511,7 @@ def cortex_border_mask(
     np.ndarray
         inner grey matter layer
 
-
     """
-
     # create aseg brainmask, erode it and subtract from itself
     bm = np.clip(label, a_max=1, a_min=0)
     eroded = binary_erosion(bm, structure=structure)
@@ -536,8 +529,7 @@ def deep_sulci_and_wm_strand_mask(
         iteration: int = 1,
         ctx_thresh: int = 33
 ) -> np.ndarray:
-    """Function to get a binary mask of deep sulci and small white matter strands
-     by using binary closing (erosion and dilation)
+    """Get a binary mask of deep sulci and small white matter strands by using binary closing (erosion and dilation).
 
     Parameters
     ----------
@@ -556,7 +548,6 @@ def deep_sulci_and_wm_strand_mask(
         sulcus + wm mask
 
     """
-
     # Binarize label image (cortex = 1, everything else = 0)
     empty_im = np.zeros(shape=volume.shape)
     empty_im[volume > ctx_thresh] = 1  # > 33 (>19) = >1002 in FS LUT (full (sag))
@@ -574,7 +565,7 @@ def deep_sulci_and_wm_strand_mask(
 
 # Label mapping functions (to aparc (eval) and to label (train))
 def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
-    """Function to read in FreeSurfer-like LUT table
+    """Read in FreeSurfer-like LUT table.
 
     Parameters
     ----------
@@ -590,7 +581,6 @@ def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
     pd.Dataframe
         DataFrame with ids present, name of ids, color for plotting
 
-
     """
     # Read in file
     separator = {"tsv": "\t", "csv": ",", "txt": " "}
@@ -601,7 +591,7 @@ def map_label2aparc_aseg(
         mapped_aseg: torch.Tensor,
         labels: Union[torch.Tensor, npt.NDArray]
 ) -> torch.Tensor:
-    """Function to perform look-up table mapping from sequential label space to LUT space
+    """Perform look-up table mapping from sequential label space to LUT space.
 
     Parameters
     ----------
@@ -616,7 +606,6 @@ def map_label2aparc_aseg(
         labels in LUT space
 
     """
-
     if isinstance(labels, np.ndarray):
         labels = torch.from_numpy(labels)
     labels = labels.to(mapped_aseg.device)
@@ -624,12 +613,13 @@ def map_label2aparc_aseg(
 
 
 def clean_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
-    """Function to clean up aparc segmentations:
-        Map undetermined and optic chiasma to BKG
-        Map Hypointensity classes to one
-        Vessel to WM
-        5th Ventricle to CSF
-        Remaining cortical labels to BKG
+    """Clean up aparc segmentations.
+
+    Map undetermined and optic chiasma to BKG
+    Map Hypointensity classes to one
+    Vessel to WM
+    5th Ventricle to CSF
+    Remaining cortical labels to BKG
 
     Parameters
     ----------
@@ -642,7 +632,6 @@ def clean_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
         cleaned aparc
 
     """
-
     aparc[aparc == 80] = 77  # Hypointensities Class
     aparc[aparc == 85] = 0  # Optic Chiasma to BKG
     aparc[aparc == 62] = 41  # Right Vessel to Right WM
@@ -661,7 +650,7 @@ def fill_unknown_labels_per_hemi(
         unknown_label: int,
         cortex_stop: int
 ) -> np.ndarray:
-    """Function to replace label 1000 (lh unknown) and 2000 (rh unknown) with closest class for each voxel.
+    """Replace label 1000 (lh unknown) and 2000 (rh unknown) with closest class for each voxel.
 
     Parameters
     ----------
@@ -674,11 +663,10 @@ def fill_unknown_labels_per_hemi(
 
     Returns
     -------
-        np.ndarray
-            ground truth segmentation with all classes
+    np.ndarray
+        ground truth segmentation with all classes
 
     """
-
     # Define shape of image and dilation element
     h, w, d = gt.shape
     struct1 = generate_binary_structure(3, 2)
@@ -712,7 +700,7 @@ def fill_unknown_labels_per_hemi(
 
 
 def fuse_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
-    """Fuse cortical parcels on left/right hemisphere (reduce aparc classes)
+    """Fuse cortical parcels on left/right hemisphere (reduce aparc classes).
 
     Parameters
     ----------
@@ -725,7 +713,6 @@ def fuse_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
         anatomical segmentation with reduced number of cortical parcels
 
     """
-
     aparc_temp = aparc.copy()
 
     # Map undetermined classes
@@ -761,7 +748,7 @@ def fuse_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
 
 
 def split_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
-    """Splot cortex labels to completely de-lateralize structures
+    """Splot cortex labels to completely de-lateralize structures.
 
     Parameters
     ----------
@@ -774,7 +761,6 @@ def split_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
         re-lateralized aparc
 
     """
-
     # Post processing - Splitting classes
     # Quick Fix for 2026 vs 1026; 2029 vs. 1029; 2025 vs. 1025
     rh_wm = get_largest_cc(aparc == 41)
@@ -854,7 +840,7 @@ def unify_lateralized_labels(
         lut: Union[str, pd.DataFrame],
         combi: Tuple[str, str] = ("Left-", "Right-")
 ) -> Mapping:
-    """Function to generate lookup dictionary of left-right labels
+    """Generate lookup dictionary of left-right labels.
 
     Parameters
     ----------
@@ -873,7 +859,6 @@ def unify_lateralized_labels(
         dictionary mapping between left and right hemispheres
 
     """
-
     if isinstance(lut, str):
         lut = read_classes_from_lut(lut)
     left = lut[["ID", "LabelName"]][lut["LabelName"].str.startswith(combi[0])]
@@ -888,7 +873,7 @@ def get_labels_from_lut(
         lut: Union[str, pd.DataFrame],
         label_extract: Tuple[str, str] = ("Left-", "ctx-rh")
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Function to extract labels from the lookup tables
+    """Extract labels from the lookup tables.
 
     Parameters
     ----------
@@ -911,7 +896,6 @@ def get_labels_from_lut(
         sagittal label list
 
     """
-
     if isinstance(lut, str):
         lut = read_classes_from_lut(lut)
     mask = lut["LabelName"].str.startswith(label_extract)
@@ -926,7 +910,7 @@ def map_aparc_aseg2label(
         aseg_nocc: Optional[npt.NDArray] = None,
         processing:  str = "aparc"
 ) ->  Tuple[np.ndarray, np.ndarray]:
-    """Function to perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space
+    """Perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space.
 
     Parameters
     ----------
@@ -953,7 +937,6 @@ def map_aparc_aseg2label(
         mapped aseg for sagital
 
     """
-
     # If corpus callosum is not removed yet, do it now
     if aseg_nocc is not None:
         cc_mask = (aseg >= 251) & (aseg <= 255)
@@ -1018,7 +1001,7 @@ def map_aparc_aseg2label(
 
 
 def sagittal_coronal_remap_lookup(x: int) -> int:
-    """Dictionary mapping to convert left labels to corresponding right labels for aseg
+    """Convert left labels to corresponding right labels for aseg with dictionary mapping.
 
     Parameters
     ----------
@@ -1031,7 +1014,6 @@ def sagittal_coronal_remap_lookup(x: int) -> int:
         mapped label
 
     """
-
     return {
         2: 41,
         3: 42,
@@ -1055,7 +1037,7 @@ def infer_mapping_from_lut(
         num_classes_full: int,
         lut: Union[str, pd.DataFrame]
 ) -> np.ndarray:
-    """[MISSING]
+    """[MISSING].
 
     Parameters
     ----------
@@ -1070,7 +1052,6 @@ def infer_mapping_from_lut(
         list of indexes for
 
     """
-
     labels, labels_sag = unify_lateralized_labels(lut)
     idx_list = np.ndarray(shape=(num_classes_full,), dtype=np.int16)
     for idx in range(len(labels)):
@@ -1091,8 +1072,9 @@ def map_prediction_sagittal2full(
         num_classes: int = 51,
         lut: Optional[str] = None
 ) -> np.ndarray:
-    """Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
-    Creates full aparc.DKTatlas+aseg.mgz.
+    """Remap the prediction on the sagittal network to full label space used by coronal and axial networks.
+
+    Create full aparc.DKTatlas+aseg.mgz.
 
     Parameters
     ----------
@@ -1109,7 +1091,6 @@ def map_prediction_sagittal2full(
         Remapped prediction
 
     """
-
     if num_classes == 96:
         idx_list = np.asarray(
             [
@@ -1353,8 +1334,7 @@ def map_prediction_sagittal2full(
 def bbox_3d(
         img: npt.NDArray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """[MISSING]
-    Function to extract the three-dimensional bounding box coordinates.
+    """Extract the three-dimensional bounding box coordinates.
 
     Parameters
     ----------
@@ -1377,7 +1357,6 @@ def bbox_3d(
         zmax
 
     """
-
     r = np.any(img, axis=(1, 2))
     c = np.any(img, axis=(0, 2))
     z = np.any(img, axis=(0, 1))
@@ -1390,7 +1369,7 @@ def bbox_3d(
 
 
 def get_largest_cc(segmentation: npt.NDArray) -> np.ndarray:
-    """Function to find largest connected component of segmentation.
+    """Find the largest connected component of segmentation.
 
     Parameters
     ----------
@@ -1402,9 +1381,7 @@ def get_largest_cc(segmentation: npt.NDArray) -> np.ndarray:
     np.ndarray
         largest connected component of segmentation (binary mask)
 
-
     """
-
     labels = label(segmentation, connectivity=3, background=0)
 
     bincount = np.bincount(labels.flat)

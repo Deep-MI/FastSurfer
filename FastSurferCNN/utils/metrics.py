@@ -23,8 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 def iou_score(pred_cls: torch.Tensor, true_cls: torch.Tensor, nclass: int =79) -> Tuple[np.ndarray, np.ndarray]:
-    """compute the intersection-over-union score
-    both inputs should be categorical (as opposed to one-hot)
+    """Compute the intersection-over-union score.
+
+    Both inputs should be categorical (as opposed to one-hot)
 
     Parameters
     ----------
@@ -41,8 +42,8 @@ def iou_score(pred_cls: torch.Tensor, true_cls: torch.Tensor, nclass: int =79) -
         [MISSING]
     np.ndarray
         [MISSING]
-    """
 
+    """
     intersect_ = []
     union_ = []
 
@@ -62,7 +63,7 @@ def precision_recall(
         true_cls: torch.Tensor,
         nclass: int = 79
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Function to calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class
+    """Calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class.
 
     Parameters
     ----------
@@ -79,8 +80,8 @@ def precision_recall(
         [MISSING]
     np.ndarray
         [MISSING]
-    """
 
+    """
     tpos_fneg = []
     tpos_fpos = []
     tpos = []
@@ -97,7 +98,7 @@ def precision_recall(
 
 
 class DiceScore:
-    """Accumulating the component of the dice coefficient i.e. the union and intersection
+    """Accumulate the component of the dice coefficient i.e. the union and intersection.
 
     Attributes
     ----------
@@ -122,6 +123,7 @@ class DiceScore:
         device: Optional[str] =None,
         output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y),
     ):
+        """Construct DiceScore object."""
         self._device = device
         self.out_transform = output_transform
         self.n_classes = num_classes
@@ -129,12 +131,14 @@ class DiceScore:
         self.intersection = torch.zeros(self.n_classes, self.n_classes, device=device)
 
     def reset(self):
+        """[MISSING]."""
         self.union = torch.zeros(self.n_classes, self.n_classes, device=self._device)
         self.intersection = torch.zeros(
             self.n_classes, self.n_classes, device=self._device
         )
 
     def _check_output_type(self, output):
+        """Check the output type."""
         if not (isinstance(output, tuple)):
             raise TypeError(
                 "Output should a tuple consist of of torch.Tensors, but given {}".format(
@@ -143,7 +147,7 @@ class DiceScore:
             )
 
     def _update_union_intersection_matrix(self, batch_output: torch.Tensor, labels_batch: torch.Tensor):
-        """Update the union intersection matrix
+        """Update the union intersection matrix.
 
         Parameters
         ----------
@@ -153,7 +157,6 @@ class DiceScore:
             label batch
         
         """
-
         for i in range(self.n_classes):
             gt = (labels_batch == i).float()
             for j in range(self.n_classes):
@@ -162,7 +165,7 @@ class DiceScore:
                 self.union[i, j] += torch.sum(gt) + torch.sum(pred)
 
     def _update_union_intersection(self, batch_output: torch.Tensor, labels_batch: torch.Tensor):
-        """Update the union intersection
+        """Update the union intersection.
 
         Parameters
         ----------
@@ -171,7 +174,6 @@ class DiceScore:
         labels_batch : torch.Tensor
 
         """
-
         for i in range(self.n_classes):
             gt = (labels_batch == i).float()
             pred = (batch_output == i).float()
@@ -179,7 +181,7 @@ class DiceScore:
             self.union[i, i] += torch.sum(gt) + torch.sum(pred)
 
     def update(self, output: Tuple[Any, Any], cnf_mat: bool):
-        """update the intersection
+        """Update the intersection.
 
         Parameters
         ----------
@@ -189,7 +191,6 @@ class DiceScore:
             Confusion matrix
 
         """
-
         self._check_output_type(output)
 
         if self._device is not None:
@@ -204,7 +205,7 @@ class DiceScore:
             self._update_union_intersection(y_pred, y)
 
     def compute_dsc(self) -> float:
-        """computes the dice score
+        """Compute the dice score.
 
         Returns
         -------
@@ -212,22 +213,24 @@ class DiceScore:
             dice score
         
         """
-
         dsc_per_class = self._dice_calculation()
         dsc = dsc_per_class.mean()
         return dsc
 
     def comput_dice_cnf(self):
+        """Compute the dice cnf."""
         dice_cm_mat = self._dice_confusion_matrix()
         return dice_cm_mat
 
     def _dice_calculation(self):
+        """[MISSING]."""
         intersection = self.intersection.diagonal()
         union = self.union.diagonal()
         dsc = 2 * torch.div(intersection, union)
         return dsc
 
     def _dice_confusion_matrix(self):
+        """[MISSING]."""
         dice_intersection = self.intersection.cpu().numpy()
         dice_union = self.union.cpu().numpy()
         if not (dice_union > 0).all():
@@ -237,4 +240,5 @@ class DiceScore:
 
 
 def dice_score(cm):
+    """[MISSING]."""
     pass

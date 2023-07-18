@@ -36,7 +36,7 @@ def plot_predictions(
         plt_title: str,
         file_save_name: str
 ) -> None:
-    """Function to plot predictions from validation set.
+    """Plot predictions from validation set.
 
     Parameters
     ----------
@@ -52,7 +52,6 @@ def plot_predictions(
         name the plot should be saved tp
 
     """
-
     f = plt.figure(figsize=(20, 10))
     n, c, h, w = images_batch.shape
     mid_slice = c // 2
@@ -88,7 +87,7 @@ def plot_confusion_matrix(
         cmap: plt.cm.ColormapRegistry = plt.cm.Blues,
         file_save_name: str = "temp.pdf"
 ) -> matplotlib.figure.Figure:
-    """
+    """Plot the confusion matrix.
 
     Parameters
     ----------
@@ -107,8 +106,8 @@ def plot_confusion_matrix(
     -------
     fig : matplotlib.figure.Figure
         [MISSING]
-    """
 
+    """
     n_classes = len(classes)
 
     fig, ax = plt.subplots()
@@ -150,7 +149,7 @@ def plot_confusion_matrix(
 
 
 def find_latest_experiment(path: str) -> int:
-    """Find an load latest experiment
+    """Find and load latest experiment.
 
     Parameters
     ----------
@@ -163,7 +162,6 @@ def find_latest_experiment(path: str) -> int:
         latest experiments
     
     """
-
     list_of_experiments = os.listdir(path)
     list_of_int_experiments = []
     for exp in list_of_experiments:
@@ -180,10 +178,21 @@ def find_latest_experiment(path: str) -> int:
 
 
 def check_path(path: str):
+    """Create path."""
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def update_num_steps(dataloader: FastSurferCNN.data_loader.loader.DataLoader,
                      cfg: yacs.config.CfgNode):
+    """Update the number of steps.
+
+    Parameters
+    ----------
+    dataloader : FastSurferCNN.data_loader.loader.DataLoader
+        [MISSING]
+    cfg : yacs.config.CfgNode
+        [MISSING]
+
+    """
     cfg.TRAIN.NUM_STEPS = len(dataloader)

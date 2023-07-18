@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Contains the ALL_FLAGS dictionary, which can be used as follows to add default flags:
+Contains the ALL_FLAGS dictionary, which can be used as follows to add default flags.
 
 >>> parser = argparse.ArgumentParser()
 >>> ALL_FLAGS["allow_root"](parser, dest="root")
@@ -47,12 +47,16 @@ VoxSize = Union[Literal["min"], float]
 
 
 class CanAddArguments(Protocol):
+    """[MISSING]."""
+
     def add_argument(self, *args, **kwargs):
+        """[MISSING]."""
         ...
 
 
 def __arg(*default_flags, **default_kwargs):
-    """Function to create stub function, which sets default settings for argparse arguments.
+    """Create stub function, which sets default settings for argparse arguments.
+
     The positional and keyword arguments function as if they were directly passed to parser.add_arguments().
     
     The result will be a stub function, which has as first argument a parser (or other object with an
@@ -62,7 +66,6 @@ def __arg(*default_flags, **default_kwargs):
     
     This function is private for this module.
     """
-
     def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
@@ -289,8 +292,8 @@ def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
     -------
     T_AddArgs
         The parser object
-    """
 
+    """
     for flag in flags:
         if flag.startswith("--"):
             flag = flag[2:]
@@ -309,7 +312,9 @@ def add_plane_flags(
     type: Literal["checkpoint", "config"],
     files: Mapping[str, str],
 ) -> argparse.ArgumentParser:
-    """Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
+    """Add plane arguments.
+
+    Arguments will be added for each entry in files, where the key is the "plane"
     and the values is the file name (relative for path relative to FASTSURFER_HOME.
 
     Parameters
@@ -329,7 +334,6 @@ def add_plane_flags(
         The parser object.
     
     """
-
     if type not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")
 

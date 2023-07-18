@@ -35,7 +35,7 @@ VINN_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/aparc_vinn_sagittal_v2.0.0
 
 
 def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
-    """Create the checkpoint dir if not exists
+    """Create the checkpoint dir if not exists.
 
     Parameters
     ----------
@@ -49,9 +49,7 @@ def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
     checkpoint_dir
         directory of the checkpoint
 
-    
     """
-
     checkpoint_dir = os.path.join(expr_dir, "checkpoints", str(expr_num))
     os.makedirs(checkpoint_dir, exist_ok=True)
     return checkpoint_dir
@@ -72,9 +70,7 @@ def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
     checkpoint_dir
         Standardizes checkpoint name
 
-    
     """
-
     checkpoint_dir = os.path.join(
         ckpt_dir, "Epoch_{:05d}_training_state.pkl".format(epoch)
     )
@@ -97,8 +93,8 @@ def get_checkpoint_path(
     -------
     prior_model_paths : Optional[MutableSequence[str]]
         None, if no models are found, or a list of filenames for checkpoints.
-    """
 
+    """
     if resume_experiment == "Default" or resume_experiment is None:
         return None
     checkpoint_path = os.path.join(log_dir, "checkpoints", str(resume_experiment))
@@ -118,7 +114,7 @@ def load_from_checkpoint(
     fine_tune: bool = False,
     drop_classifier: bool = False,
 ):
-    """Loading the model from the given experiment number
+    """Load the model from the given experiment number.
 
     Parameters
     ----------
@@ -173,7 +169,7 @@ def save_checkpoint(
     scheduler: Optional[Scheduler] = None,
     best: bool = False,
 ) -> None:
-    """Saving the state of training for resume or fine-tune
+    """Save the state of training for resume or fine-tune.
 
     Parameters
     ----------
@@ -197,7 +193,6 @@ def save_checkpoint(
         Whether this was the best checkpoint so far [MISSING] (Default value = False)
 
     """
-
     save_name = f"Epoch_{epoch:05d}_training_state.pkl"
     saving_model = model.module if num_gpus > 1 else model
     checkpoint = {
@@ -219,7 +214,7 @@ def save_checkpoint(
 
 
 def remove_ckpt(ckpt: str):
-    """removes the checkpoint
+    """Remove the checkpoint.
 
     Parameters
     ----------
@@ -227,7 +222,6 @@ def remove_ckpt(ckpt: str):
         Path and filename to the checkpoint
 
     """
-
     try:
         os.remove(ckpt)
     except FileNotFoundError:
@@ -239,8 +233,9 @@ def download_checkpoint(
         checkpoint_name: str,
         checkpoint_path: str
 ) -> None:
-    """Download a checkpoint file. Raises an HTTPError if the file is not found
-        or the server is not reachable.
+    """Download a checkpoint file.
+
+    Raises an HTTPError if the file is not found or the server is not reachable.
 
     Parameters
     ----------
@@ -251,9 +246,7 @@ def download_checkpoint(
     checkpoint_path : str
         path of the file in which the checkpoint will be saved
 
-
     """
-
     try:
         response = requests.get(download_url + "/" + checkpoint_name, verify=True)
         # Raise error if file does not exist:
@@ -278,7 +271,6 @@ def check_and_download_ckpts(checkpoint_path: str, url: str) -> None:
         URL of checkpoint hosting site
 
     """
-
     # Download checkpoint file from url if it does not exist
     if not os.path.exists(checkpoint_path):
         ckptdir, ckptname = os.path.split(checkpoint_path)
@@ -288,7 +280,7 @@ def check_and_download_ckpts(checkpoint_path: str, url: str) -> None:
 
 
 def get_checkpoints(axi: str, cor: str, sag: str, url: str = URL) -> None:
-    """Check and download checkpoint files if not exist
+    """Check and download checkpoint files if not exist.
 
     Parameters
     ----------
@@ -302,7 +294,6 @@ def get_checkpoints(axi: str, cor: str, sag: str, url: str = URL) -> None:
         URL of checkpoint hosting site (Default value = URL)
 
     """
-
     check_and_download_ckpts(axi, url)
     check_and_download_ckpts(cor, url)
     check_and_download_ckpts(sag, url)

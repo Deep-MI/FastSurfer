@@ -42,41 +42,68 @@ LOGGER = logging.getLogger(__name__)
 
 
 class H5pyDataset:
-    """Functions:
-        __init__(params, processing): Consturctor
-        _load_volumes(subject_path): load image and segmentation volume
-        transform(plane, imgs, zoom): transform image along axis
-        _pad_image(img, max_out): pads image with zeroes
-        create_hdf5_dataset(plane): creates a hdf5 file
+    """Class representing H5py Dataset.
+
+    Methods
+    -------
+    __init__
+        Consturctor
+    _load_volumes
+        load image and segmentation volume
+    transform
+        Transform image along axis
+    _pad_image
+        Pad image with zeroes
+    create_hdf5_dataset
+        Create a hdf5 file
     
-    Variables:
-        dataset_name (str): path and name of hdf5-data_loader
-        data_path (str): Directory with images to load
-        slice_thickness (int): Number of pre- and succeeding slices
-        orig_name (str): Default name of original images
-        aparc_name (str): Default name for ground truth segmentations.
-        aparc_nocc (str): Segmentation without corpus callosum (used to mask this segmentation in ground truth).
-                        If the used segmentation was already processed, do not set this argument
-        available_sizes (int): Sizes of images in the dataset.
-        max_weight (int): Overall max weight for any voxel in weight mask.
-        edge_weight (int): Weight for edges in weight mask.
-        hires_weight (int): Weight for hires elements (sulci, WM strands, cortex border) in weight mask.
-        gradient (bool): Turn on to only use median weight frequency (no gradient)
-        gm_mask (bool): Turn on to add cortex mask for hires-processing.
-        lut (pd.Dataframe): DataFrame with ids present, name of ids, color for plotting
-        labels (np.ndarray): full label list
-        labels_sag (np.ndarray): sagittal label list
-        lateralization (Dict): dictionary mapping between left and right hemispheres
-        subject_dirs (list[str]): list ob subject directory names
-        search_pattern (str): Pattern to match files in directory
-        data_set_size (int): number of subjects
-        processing (str): Use aseg, aparc or no specific mapping processing (Default: "aparc")
+    Attributes
+    ----------
+    dataset_name : str
+        Path and name of hdf5-data_loader
+    data_path : str
+        Directory with images to load
+    slice_thickness : int
+        Number of pre- and succeeding slices
+    orig_name : str
+        Default name of original images
+    aparc_name : str
+        Default name for ground truth segmentations.
+    aparc_nocc : str
+        Segmentation without corpus callosum (used to mask this segmentation in ground truth).
+        If the used segmentation was already processed, do not set this argument
+    available_sizes : int
+        Sizes of images in the dataset.
+    max_weight : int
+        Overall max weight for any voxel in weight mask.
+    edge_weight : int
+        Weight for edges in weight mask.
+    hires_weight : int
+        Weight for hires elements (sulci, WM strands, cortex border) in weight mask.
+    gradient : bool
+        Turn on to only use median weight frequency (no gradient)
+    gm_mask : bool
+        Turn on to add cortex mask for hires-processing.
+    lut : pd.Dataframe
+        DataFrame with ids present, name of ids, color for plotting
+    labels : np.ndarray
+        full label list
+    labels_sag : np.ndarray
+        sagittal label list
+    lateralization : Dict
+        dictionary mapping between left and right hemispheres
+    subject_dirs : List[str]
+        list ob subject directory names
+    search_pattern : str
+        Pattern to match files in directory
+    data_set_size : int
+        Number of subjects
+    processing : str
+        Use aseg, aparc or no specific mapping processing (Default: "aparc")
     """
 
     def __init__(self, params: Dict, processing: str = "aparc"):
-        """Constructor
-        
-        Args:
+        """Construct H5pyDataset object.
 
         Parameters
         ----------
@@ -103,7 +130,6 @@ class H5pyDataset:
             Use aseg (Default value = "aparc")
 
         """
-
         self.dataset_name = params["dataset_name"]
         self.data_path = params["data_path"]
         self.slice_thickness = params["thickness"]
@@ -136,7 +162,8 @@ class H5pyDataset:
 
     def _load_volumes(self, subject_path: str
                       ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Tuple]:
-        """load the given image and segmentation and gets the zoom values.
+        """Load the given image and segmentation and gets the zoom values.
+
         Checks if an aseg-nocc file is set and loads it instead
 
         Parameters
@@ -156,7 +183,6 @@ class H5pyDataset:
             zoom values
         
         """
-
         # Load the orig and extract voxel spacing information (x, y, and z dim)
         LOGGER.info(
             "Processing intensity image {} and ground truth segmentation {}".format(
@@ -182,7 +208,7 @@ class H5pyDataset:
 
     def transform(self, plane: str, imgs: npt.NDArray, zoom: npt.NDArray
                   ) -> Tuple[npt.NDArray, npt.NDArray]:
-        """Function to transform the image and zoom along the given axis
+        """Transform the image and zoom along the given axis.
 
         Parameters
         ----------
@@ -200,9 +226,7 @@ class H5pyDataset:
         npt.NDArray
             transformed zoom facors
 
-        
         """
-
         for i in range(len(imgs)):
             if self.plane == "sagittal":
                 imgs[i] = transform_sagittal(imgs[i])
@@ -215,7 +239,7 @@ class H5pyDataset:
         return imgs, zooms
 
     def _pad_image(self, img: npt.NDArray, max_out: int) -> np.ndarray:
-        """Pads the margins of the input image with zeros
+        """Pad the margins of the input image with zeros.
 
         Parameters
         ----------
@@ -230,7 +254,6 @@ class H5pyDataset:
             0-padded image to the given size
         
         """
-
         # Get correct size = max along shape
         h, w, d = img.shape
         LOGGER.info("Padding image from {0} to {1}x{1}x{1}".format(img.shape, max_out))
@@ -239,7 +262,7 @@ class H5pyDataset:
         return padded_img
 
     def create_hdf5_dataset(self, blt: int):
-        """Create a hdf5 dataset
+        """Create a hdf5 dataset.
 
         Parameters
         ----------
@@ -247,7 +270,6 @@ class H5pyDataset:
             Blank sliec threshold
 
         """
-
         data_per_size = defaultdict(lambda: defaultdict(list))
         start_d = time.time()
 

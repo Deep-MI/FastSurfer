@@ -41,12 +41,12 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    """Trainer for the networks
+    """Trainer for the networks.
     
     Methods
     -------
     __init__
-        constructor
+        Construct object.
     train
         trains the network
     eval
@@ -57,7 +57,7 @@ class Trainer:
     """
 
     def __init__(self, cfg: yacs.config.CfgNode):
-        """constructor
+        """Construct Trainer object.
 
         Parameters
         ----------
@@ -65,7 +65,6 @@ class Trainer:
             Node of configs to be used
 
         """
-
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -99,7 +98,7 @@ class Trainer:
             train_meter: Meter,
             epoch
     ) -> None:
-        """trains the network to the given training data
+        """Train the network to the given training data.
 
         Parameters
         ----------
@@ -115,7 +114,6 @@ class Trainer:
             [MISSING]
         
         """
-
         self.model.train()
         logger.info("Training started ")
         epoch_start = time.time()
@@ -149,8 +147,8 @@ class Trainer:
 
             loss_total.backward()
             if (
-                not self.subepoch
-                or (curr_iter + 1) % (16 / self.cfg.TRAIN.BATCH_SIZE) == 0
+                    not self.subepoch
+                    or (curr_iter + 1) % (16 / self.cfg.TRAIN.BATCH_SIZE) == 0
             ):
                 optimizer.step()  # every second epoch to get batchsize of 16 if using 8
                 if scheduler is not None:
@@ -185,7 +183,7 @@ class Trainer:
             val_meter: Meter,
             epoch: int
     ) -> np.ndarray:
-        """Evaluates model and calculates stats
+        """Evaluate model and calculates stats.
 
         Parameters
         ----------
@@ -201,9 +199,7 @@ class Trainer:
         int, float, ndarray
             median miou [value]
 
-        
         """
-
         logger.info(f"Evaluating model at epoch {epoch}")
         self.model.eval()
 
@@ -311,11 +307,10 @@ class Trainer:
         return np.mean(np.mean(miou))
 
     def run(self):
-        """transfers the model to devices, creates a tensor board summary writer and then performs the training loop"""
-
+        """Transfer the model to devices, create a tensor board summary writer and then perform the training loop."""
         if self.cfg.NUM_GPUS > 1:
             assert (
-                self.cfg.NUM_GPUS <= torch.cuda.device_count()
+                    self.cfg.NUM_GPUS <= torch.cuda.device_count()
             ), "Cannot use more GPU devices than available"
             print("Using ", self.cfg.NUM_GPUS, "GPUs!")
             self.model = torch.nn.DataParallel(self.model)

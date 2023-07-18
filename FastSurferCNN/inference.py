@@ -36,28 +36,43 @@ logger = logging.getLogger(__name__)
 
 
 class Inference:
-    """Model evaluation class to run inference using FastSurferCNN
+    """Model evaluation class to run inference using FastSurferCNN.
     
-    Functions:
-        __init__(cfg, device, ckpt): Constructor
-        setup_model(cfg, device): Set up the initial model
-        set_cfg(cfg): Set configuration node
-        to(device): Moves and/or casts the parameters and buffers.
-        load_checkpoint(ckpt): function to load the checkpoint
-        eval(init_pred, val_loader, *, out_scale, out): evaluate predictions
-        run(init_pred, img_filename, orig_data, orig_zoom, out, out_res, batch_size): run the loaded model
+    Methods
+    -------
+    setup_model
+        Set up the initial model
+    set_cfg
+        Set configuration node
+    to
+        Moves and/or casts the parameters and buffers.
+    load_checkpoint
+        Load the checkpoint
+    eval
+        Evaluate predictions
+    run
+        Run the loaded model
 
-    Attributes:
-        permute_order (Dict[str, Tuple[int, int, int, int]]): permutation order for axial, coronal, and sagittal
-        device (Optional[torch.device]): device specification for distributed computation usage.
-        default_device (torch.device): default device specification for distributed computation usage.
-        cfg (yacs.config.CfgNode): configuration Node
-        model_parallel (bool): option for parallel run
-        model (torch.nn.Module): neural network model
-        model_name (str): name of the model
-        alpha (Dict[str, float]): [MISSING]
-        post_prediction_mapping_hook (): [MISSING]
-
+    Attributes
+    ----------
+    permute_order : Dict[str, Tuple[int, int, int, int]]
+        Permutation order for axial, coronal, and sagittal
+    device : Optional[torch.device])
+        Device specification for distributed computation usage.
+    default_device : torch.device
+        Default device specification for distributed computation usage.
+    cfg : yacs.config.CfgNode
+        Configuration Node
+    model_parallel : bool
+        Option for parallel run
+    model : torch.nn.Module
+        Neural network model
+    model_name : str
+        Name of the model
+    alpha : Dict[str, float]
+        [MISSING]
+    post_prediction_mapping_hook
+        [MISSING]
     """
 
     permute_order: Dict[str, Tuple[int, int, int, int]]
@@ -71,7 +86,7 @@ class Inference:
             ckpt: str = "",
             lut: Union[None, str, np.ndarray, DataFrame] = None
     ):
-        """Constructor
+        """Construct Inference object.
 
         Parameters
         ----------
@@ -82,10 +97,9 @@ class Inference:
         ckpt : str
             string or os.PathLike object containing the name to the checkpoint file (Default value = "")
         lut : Union[None, str, np.ndarray, DataFrame]
-             (Default value = None)
+             [MISSING] (Default value = None)
 
         """
-
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -124,7 +138,7 @@ class Inference:
             self.load_checkpoint(ckpt)
 
     def setup_model(self, cfg=None, device: torch.device = None):
-        """function to set up the model
+        """Set up the model.
 
         Parameters
         ----------
@@ -134,7 +148,6 @@ class Inference:
             device specification for distributed computation usage. (Default value = None)
 
         """
-
         if cfg is not None:
             self.cfg = cfg
         if device is None:
@@ -148,18 +161,18 @@ class Inference:
         self.device = None
 
     def set_cfg(self, cfg: yacs.config.CfgNode):
-        """[MISSING]
+        """[MISSING].
 
         Parameters
         ----------
         cfg : yacs.config.CfgNode
-            
+            Configuration node
 
         """
         self.cfg = cfg
 
     def to(self, device: Optional[torch.device] = None):
-        """Moves and/or casts the parameters and buffers.
+        """Move and/or cast the parameters and buffers.
 
         Parameters
         ----------
@@ -167,7 +180,6 @@ class Inference:
             the desired device of the parameters and buffers in this module (Default value = None)
 
         """
-
         if self.model_parallel:
             raise RuntimeError(
                 "Moving the model to other devices is not supported for multi-device models."
@@ -177,7 +189,7 @@ class Inference:
         self.model.to(device=_device)
 
     def load_checkpoint(self, ckpt: Union[str, os.PathLike]):
-        """function to load the checkpoint and set device and model
+        """Load the checkpoint and set device and model.
 
         Parameters
         ----------
@@ -185,7 +197,6 @@ class Inference:
             string or os.PathLike object containing the name to the checkpoint file
 
         """
-
         logger.info("Loading checkpoint {}".format(ckpt))
 
         self.model = self._model_not_init
@@ -213,30 +224,38 @@ class Inference:
             self.model = torch.nn.DataParallel(self.model)
 
     def get_modelname(self):
+        """Return the model name."""
         return self.model_name
 
     def get_cfg(self):
+        """Return the configurations."""
         return self.cfg
 
     def get_num_classes(self):
+        """Return the number of classes."""
         return self.cfg.MODEL.NUM_CLASSES
 
     def get_plane(self):
+        """Return the plane."""
         return self.cfg.DATA.PLANE
 
     def get_model_height(self):
+        """Return the model height."""
         return self.cfg.MODEL.HEIGHT
 
     def get_model_width(self):
+        """Return the model width."""
         return self.cfg.MODEL.WIDTH
 
     def get_max_size(self):
+        """Return the max size."""
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH
         else:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
 
     def get_device(self):
+        """Return the device."""
         return self.device
 
     @torch.no_grad()
@@ -269,7 +288,6 @@ class Inference:
             prediction probability tensor
         
         """
-
         self.model.eval()
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
         if not isinstance(val_loader.sampler, torch.utils.data.SequentialSampler):
@@ -350,8 +368,7 @@ class Inference:
             out_res: Optional[int] = None,
             batch_size: int = None
     ) -> torch.Tensor:
-        """[MISSING]
-        Run the loaded model on the data (T1) from orig_data and img_filename (for messages only)  with scale factors orig_zoom.
+        """Run the loaded model on the data (T1) from orig_data and img_filename (for messages only)  with scale factors orig_zoom.
 
         Parameters
         ----------
@@ -376,7 +393,6 @@ class Inference:
             prediction probability tensor
         
         """
-
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(
             orig_data,

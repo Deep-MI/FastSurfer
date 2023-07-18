@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_dataloader(cfg: yacs.config.CfgNode, mode: str):
-    """Creating the dataset and pytorch data loader
+    """Create the dataset and pytorch data loader.
 
     Parameters
     ----------

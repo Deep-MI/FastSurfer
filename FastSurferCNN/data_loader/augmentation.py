@@ -25,8 +25,7 @@ import torch
 # Transformations for evaluation
 ##
 class ToTensorTest(object):
-    """
-    Convert np.ndarrays in sample to Tensors
+    """Convert np.ndarrays in sample to Tensors.
 
     Methods
     -------
@@ -35,8 +34,7 @@ class ToTensorTest(object):
     """
 
     def __call__(self, img: npt.NDArray) -> np.ndarray:
-        """
-        Convertes the image to float within range [0, 1] and make it torch compatible
+        """Convert the image to float within range [0, 1] and make it torch compatible.
 
         Parameters
         ----------
@@ -47,8 +45,8 @@ class ToTensorTest(object):
         -------
         img : np.ndarray
             Conformed image
-        """
 
+        """
         img = img.astype(np.float32)
 
         # Normalize and clamp between 0 and 1
@@ -63,8 +61,7 @@ class ToTensorTest(object):
 
 
 class ZeroPad2DTest(object):
-    """
-    Pad the input with zeros to get output size
+    """Pad the input with zeros to get output size.
 
     Attributes
     ----------
@@ -73,9 +70,12 @@ class ZeroPad2DTest(object):
     pos : str
         position to put the input
 
-    Methods:
-        pad: pads zeroes of image
-        call: calls _pad()
+    Methods
+    -------
+    pad
+        pad zeroes of image
+    call
+        call _pad()
     """
 
     def __init__(
@@ -83,23 +83,23 @@ class ZeroPad2DTest(object):
             output_size: Union[Number, Tuple[Number, Number]],
             pos: str = 'top_left'
     ):
-        """ Constructor
+        """Construct object.
 
         Parameters
         ----------
         output_size : Union[Number, Tuple[Number, Number]]
             size of the output image either as Number or tuple of two Number
-         pos : Union[Number, Tuple[Number, Number]]
+        pos : Union[Number, Tuple[Number, Number]]
             position to put the input. Defaults to 'top_left'
+
         """
-        
         if isinstance(output_size, Number):
             output_size = (int(output_size),) * 2
         self.output_size = output_size
         self.pos = pos
 
     def _pad(self, image: npt.NDArray) -> np.ndarray:
-        """Pads with zeros of the input image
+        """Pad with zeros of the input image.
 
         Parameters
         ----------
@@ -112,7 +112,6 @@ class ZeroPad2DTest(object):
             original image with padded zeros
         
         """
-
         if len(image.shape) == 2:
             h, w = image.shape
             padded_img = np.zeros(self.output_size, dtype=image.dtype)
@@ -126,16 +125,19 @@ class ZeroPad2DTest(object):
         return padded_img
 
     def __call__(self, img: npt.NDArray) -> np.ndarray:
-        """
-        Calls the _pad() function
+        """Call the _pad() function.
 
-        Args:
-            img: the image to pad
+        Parameters
+        ----------
+        img : npt.NDArray
+            the image to pad
 
-        Returns:
+        Returns
+        -------
+        img : np.ndarray
             original image with padded zeros
-        """
 
+        """
         img = self._pad(img)
 
         return img
@@ -150,23 +152,24 @@ class ToTensor(object):
     Methods
     -------
     __call__
-        Converts image
+        Convert image
+
     """
 
     def __call__(self, sample: npt.NDArray) -> Dict[str, Any]:
-        """
-        Convertes the image to float within range [0, 1] and make it torch compatible
+        """Convert the image to float within range [0, 1] and make it torch compatible.
 
-        Args
-        ----
+        Parameters
+        ----------
         sample : npt.NDArray
             sample image
 
-        Returns:
-       Dict[str, Any]
+        Returns
+        -------
+        Dict[str, Any]
             Converted image
-        """
 
+        """
         img, label, weight, sf = (
             sample["img"],
             sample["label"],
@@ -193,7 +196,7 @@ class ToTensor(object):
 
 
 class ZeroPad2D(object):
-    """Pad the input with zeros to get output size
+    """Pad the input with zeros to get output size.
 
     Attributes
     ----------
@@ -208,6 +211,7 @@ class ZeroPad2D(object):
         Pads zeroes of image
     __call__
         Cals _pad for sample
+
     """
 
     def __init__(
@@ -215,7 +219,7 @@ class ZeroPad2D(object):
             output_size: Union[Number, Tuple[Number, Number]],
             pos: Union[None, str] = 'top_left'
     ):
-        """Initializes position and output_size (as Tuple[float])
+        """Initialize position and output_size (as Tuple[float]).
 
         Parameters
         ----------
@@ -224,15 +228,15 @@ class ZeroPad2D(object):
             tuple of two Number
         pos : str, Optional
             Position to put the input. Default = 'top_left'
-        """
 
+        """
         if isinstance(output_size, Number):
             output_size = (int(output_size),) * 2
         self.output_size = output_size
         self.pos = pos
 
     def _pad(self, image: npt.NDArray) -> np.ndarray:
-        """Pads the input image with zeros
+        """Pad the input image with zeros.
 
         Parameters
         ----------
@@ -244,9 +248,7 @@ class ZeroPad2D(object):
         padded_img : np.ndarray
             Original image with padded zeros
 
-        
         """
-
         if len(image.shape) == 2:
             h, w = image.shape
             padded_img = np.zeros(self.output_size, dtype=image.dtype)
@@ -260,19 +262,19 @@ class ZeroPad2D(object):
         return padded_img
 
     def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        """Pads the image, label and weights
+        """Pad the image, label and weights.
 
         Parameters
-        -------
+        ----------
         sample :Dict[str, Any]
             Sample image
 
         Returns
         -------
-       Dict[str, Any]
+        Dict[str, Any]
             Dictionary including the padded image, label, weight and scale factor
-        """
 
+        """
         img, label, weight, sf = (
             sample["img"],
             sample["label"],
@@ -288,18 +290,23 @@ class ZeroPad2D(object):
 
 
 class AddGaussianNoise(object):
-    """Add gaussian noise to sample
+    """Add gaussian noise to sample.
 
-    Attributes:
-        std: Standard deviation
-        mean: Gaussian mean
+    Attributes
+    ----------
+    std
+        Standard deviation
+    mean
+        Gaussian mean
 
-    Methods:
-        __call__: Adds noise to scale factor
+    Methods
+    -------
+    __call__
+        Adds noise to scale factor
     """
 
     def __init__(self, mean: Real = 0, std: Real = 0.1):
-        """Constructor
+        """Construct object.
 
         Parameters
         ----------
@@ -307,26 +314,25 @@ class AddGaussianNoise(object):
             Standard deviation. Default = 0
         std : Real
             Gaussian mean. Default = 0.1
-        """
 
+        """
         self.std = std
         self.mean = mean
 
     def __call__(self, sample: Dict[str, Real]) -> Dict[str, Real]:
-        """Adds gaussian noise to scalefactor
+        """Add gaussian noise to scalefactor.
 
-        Parameters:
-        -------
+        Parameters
+        ----------
         sample :Dict[str, Real]
             Sample data to add noise
 
-        Returns:
+        Returns
         -------
-       Dict[str, Real]
+        Dict[str, Real]
             Sample with noise
 
-         """
-
+        """
         img, label, weight, sf = (
             sample["img"],
             sample["label"],
@@ -339,8 +345,7 @@ class AddGaussianNoise(object):
 
 
 class AugmentationPadImage(object):
-    """
-    Pad Image with either zero padding or reflection padding of img, label and weight
+    """Pad Image with either zero padding or reflection padding of img, label and weight.
 
     Attributes
     ----------
@@ -348,10 +353,12 @@ class AugmentationPadImage(object):
         [missing]
     pad_size_mask
         [missing]
+
     Methods
     -------
      __call
-        ads zeroes
+        add zeroes
+
     """
 
     def __init__(
@@ -360,16 +367,16 @@ class AugmentationPadImage(object):
             Tuple[int, int]] = ((16, 16), (16, 16)),
             pad_type: str = "edge"
     ):
-        """ Constructor
+        """Construct object.
 
         Attributes
-        -------
+        ----------
         pad_size
             [MISSING]
         pad_type
             [MISSING]
-        """
 
+        """
         assert isinstance(pad_size, (int, tuple))
 
         if isinstance(pad_size, int):
@@ -384,13 +391,14 @@ class AugmentationPadImage(object):
         self.pad_type = pad_type
 
     def __call__(self, sample: Dict[str, Number]):
-        """
-        Pads zeroes of sample image, label and weight
+        """Pad zeroes of sample image, label and weight.
 
-        Args:
+        Attributes
+        ----------
+        sample : Dict[str, Number]
             Sample image and data
-        """
 
+        """
         img, label, weight, sf = (
             sample["img"],
             sample["label"],
@@ -406,10 +414,10 @@ class AugmentationPadImage(object):
 
 
 class AugmentationRandomCrop(object):
-    """Randomly Crop Image to given size"""
+    """Randomly Crop Image to given size."""
 
     def __init__(self, output_size: Union[int, Tuple], crop_type: str = 'Random'):
-        """Consturctor
+        """Construct object.
 
         Attributes
         ----------
@@ -418,7 +426,6 @@ class AugmentationRandomCrop(object):
         crop_type
             [MISSING]
         """
-
         assert isinstance(output_size, (int, tuple))
 
         if isinstance(output_size, int):
@@ -430,7 +437,7 @@ class AugmentationRandomCrop(object):
         self.crop_type = crop_type
 
     def __call__(self, sample: Dict[str, Number]) -> Dict[str, Number]:
-        """Crops the augmentation
+        """Crops the augmentation.
 
         Attributes
         ----------
@@ -441,8 +448,8 @@ class AugmentationRandomCrop(object):
         -------
         Dict[str, Number]
             Cropped sample image
-        """
 
+        """
         img, label, weight, sf = (
             sample["img"],
             sample["label"],

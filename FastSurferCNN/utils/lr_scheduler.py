@@ -23,7 +23,7 @@ def get_lr_scheduler(
         optimzer: torch.optim.Optimizer,
         cfg: yacs.config.CfgNode
 ) -> Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]:
-    """
+    """Give a schedular for left-right scheduling.
 
     Parameters
     ----------
@@ -34,15 +34,14 @@ def get_lr_scheduler(
 
     Returns
     -------
+    [MISSING]
 
     Raises
     ------
     ValueError
         lr scheduler is not supported
 
-    
     """
-
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":
         return scheduler.StepLR(
