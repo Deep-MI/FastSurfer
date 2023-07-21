@@ -60,10 +60,10 @@ Also note, in order to run our Docker containers on a Mac, users need to increas
 ### General build settings
 The build script `build.py` supports additional args and targets and options, see `python Docker/build.py --help`.
 
-Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.txt file, which will be used by FastSurfer to document the version (including git hash of the docker container). 
-In general, if you specify `--print` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --print | bash` as well.
+Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). 
+In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well.
 
-By default, the build script will tag your image as "fastsurfer:{version_tag}", where {version_tag} is {version-identifer from pyproject.toml}-{current git-hash}, but a custom tag can be specified by `--tag {tag_name}`. 
+By default, the build script will tag your image as "fastsurfer:{version_tag}[-{device}]", where {version_tag} is {version-identifer from pyproject.toml}_{current git-hash} and {device} is the value to --device (and omitted for cuda), but a custom tag can be specified by `--tag {tag_name}`. 
 
 ### Example 1: Build GPU FastSurfer Image
 
@@ -78,7 +78,7 @@ For running the analysis, the command is basically the same as above for the pre
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
-                      --rm --user $(id -u):$(id -g) my_fastsurfer:gpu \
+                      --rm --user $(id -u):$(id -g) my_fastsurfer:2.2.1 \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
@@ -99,7 +99,7 @@ For running the analysis, the command is basically the same as above for the GPU
 docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
            -v /home/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) my_fastsurfer:cpu \
+           --rm --user $(id -u):$(id -g) my_fastsurfer:2.2.1-cpu \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/t1-weighed.nii.gz \
            --device cpu \
@@ -117,7 +117,7 @@ your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to w
 https://docs.amd.com/en/latest/deploy/linux/quick_start.html
 
 ```bash
-python build.py --device amd
+python build.py --device rocm
 ```
 
 and run segmentation only:
@@ -128,7 +128,7 @@ docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
 	   --shm-size 8G \
 	   -v /home/user/my_mri_data:/data \
 	   -v /home/user/my_fastsurfer_analysis:/output \
-	   my_fastsurfer:gpu-amd \
+	   my_fastsurfer:2.2.1-rocm \
 	   --t1 /data/subjectX/t1-weighted.nii.gz \
 	   --sid subjectX --sd /output 
 ```

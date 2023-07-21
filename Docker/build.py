@@ -19,52 +19,83 @@
 
 import argparse
 import os
-import time
-from collections import defaultdict
+import subprocess
+from itertools import chain
 from pathlib import Path
-from typing import Tuple, Literal, Sequence, Optional, Dict, overload, Generator, get_args, cast, Union
+from typing import Tuple, Literal, Sequence, Optional, Dict, get_args, cast, List, Callable, Union
+import logging
 
-Target = Literal['runtime', 'build_common', 'build_cpu', 'build_cuda', 'build_freesurfer']
+
+logger = logging.getLogger(__name__)
+
+Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer', 'build_base', 'runtime_cuda']
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-DeviceType = Literal["cpu", "cuda", "amd"]
+AllDeviceType = Literal["cpu", "cuda", "cu116", "cu117", "cu118", "rocm", "rocm5.1.1", "rocm5.4.2"]
+DeviceType = Literal["cpu", "cu116", "cu117", "cu118", "rocm5.1.1", "rocm5.4.2"]
+
+
+__import_cache = {}
 
 
 class DEFAULTS:
-    BUILD_BASE_IMAGE: Dict[DeviceType, str] = defaultdict(lambda: "ubuntu:20.04")
-    CONDA_BUILD_IMAGE: Dict[DeviceType, str] = defaultdict(
-        lambda: "build_common",
-        cpu="build_cpu",
-        cuda="build_cuda",
+    # Here we need to update the cuda and rocm versions, if pytorch comes with new versions.
+    # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
+    # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
+    MapDeviceType: Dict[AllDeviceType, DeviceType] = dict(
+        ((d, d) for d in get_args(DeviceType)),
+        rocm="rocm5.1.1",
+        cuda="cu117",
     )
-    FREESURFER_BUILD_IMAGE: Dict[DeviceType, str] = defaultdict(lambda: "build_freesurfer")
-    RUNTIME_BASE_IMAGE: Dict[DeviceType, str] = defaultdict(
-        lambda: "ubuntu:20.04",
-        amd="rocm/pytorch",
-    )
+    BUILD_BASE_IMAGE = "ubuntu:20.04"
+    RUNTIME_BASE_IMAGE = "ubuntu:20.04"
+    FREESURFER_BUILD_IMAGE = "build_freesurfer"
+    CONDA_BUILD_IMAGE = "build_conda"
+
+
+def _import_calls(fasturfer_home: Path, token: str = "Popen") -> Callable:
+    # import call and call_async without importing FastSurferCNN fully
+    if token not in __import_cache:
+        def __import(file: Path, name: str, *tokens: str, **rename_tokens: str):
+            from importlib.util import spec_from_file_location, module_from_spec
+            spec = spec_from_file_location(name, file)
+            module = module_from_spec(spec)
+            spec.loader.exec_module(module)
+            for tok, name in chain(zip(tokens, tokens), rename_tokens.items()):
+                __import_cache[tok] = getattr(module, name)
+
+        if token in ("Popen", "PyPopen"):
+            # import Popen and PyPopen from FastSurferCNN.utils.run_tools
+            __import(fasturfer_home / "FastSurferCNN/utils/run_tools.py", "run_tools", "Popen", "PyPopen")
+        elif token in ("version", "parse_build_file"):
+            # import main as version from FastSurferCNN.version
+            __import(fasturfer_home / "FastSurferCNN/version.py", "version", "parse_build_file", version="main")
+
+    if token in __import_cache:
+        return __import_cache[token]
+    else:
+        raise ImportError(f"Invalid token {token}")
 
 
 def docker_image(arg) -> str:
     """Returns a str with the image or raises an error if it is not a valid docker image."""
     from re import match
     # regex from https://stackoverflow.com/questions/39671641/regex-to-parse-docker-tag
-    docker_image_regex = r"^(?:(?=[^:\/]{1,253})(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(?:\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))*(" \
-                         r"?::[0-9]{1,5})?/)?((?![._-])(?:[a-z0-9._-]*)(?<![._-])(?:/(?![._-])[a-z0-9._-]*(?<![" \
-                         r"._-]))*)(?::(?![.-])[a-zA-Z0-9_.-]{1,128})?$"
-    if match(docker_image_regex, arg):
+    pattern = r"^(?:(?=[^:\/]{1,253})(?!-)[a-zA-Z0-9-]{1,63}(?<!-)" \
+              r"(?:\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))*(?::[0-9]{1,5})?/)?" \
+              r"((?![._-])(?:[a-z0-9._-]*)(?<![._-])(?:/(?![._-])[a-z0-9._-]*" \
+              r"(?<![._-]))*)(?::(?![.-])[a-zA-Z0-9_.-]{1,128})?$"
+    if match(pattern, arg):
         return arg
     else:
-        from argparse import ArgumentTypeError
-        raise ArgumentTypeError(f"The image '{arg}' does not look like a valid image name.")
+        raise argparse.ArgumentTypeError(f"The image '{arg}' does not look like a valid image name.")
 
 
 def target(arg) -> Target:
     """Returns a tuple of the target (see `Target`) and a str with the docker image, raises an error if not valid."""
-    if not isinstance(arg, str):
-        raise TypeError("target is not a string.")
-    if arg not in get_args(Target):
-        from argparse import ArgumentTypeError
-        raise ArgumentTypeError(f"target must be one of {', '.join(get_args(Target))}, but was {arg}.")
-    return cast(Target, arg)
+    if isinstance(arg, str) and arg in get_args(Target):
+        return cast(Target, arg)
+    else:
+        raise argparse.ArgumentTypeError(f"target must be one of {', '.join(get_args(Target))}, but was {arg}.")
 
 
 class CacheSpec:
@@ -73,21 +104,23 @@ class CacheSpec:
     _type: CacheType
     _params: dict
 
-    _azblob = ["account_url", "name", "prefix"]
-    _ignore_error = ["ignore-error"]
-    _io_params = ["compression", "compression-level", "force-compression", "image-manifest", "oci-mediatypes"]
-    _gha = ["scope"]
-    _local = ["tag"]
-    _prefix = ["blobs_prefix", "manifests_prefix"]
-    _registry = ["ref"]
-    _s3 = ["bucket", "region", "name", "prefix"]
-    CACHE_PARAMETERS: Dict[CacheType, Tuple[Sequence[str], Sequence[str]]] = {
+    CACHE_PARAMETERS: Dict[CacheType, Tuple[List[str], List[str]]] = {
         "inline": ([], []),
-        "registry": (_registry + _io_params + _ignore_error, _registry),
-        "local": (["dest"] + _local + _io_params + _ignore_error, ["src", "digest"] + _local),
-        "gha": (_gha + _ignore_error, _gha),
-        "s3": (_s3 + _ignore_error, _s3 + _prefix),
-        "azblob": (_azblob + _ignore_error, _azblob + _prefix),
+        "registry": (
+            ["ref", "compression", "compression-level", "force-compression",
+             "image-manifest", "oci-mediatypes", "ignore-error"],
+            ["ref"]),
+        "local": (
+            ["dest", "tag", "compression", "compression-level", "force-compression",
+             "image-manifest", "oci-mediatypes", "ignore-error"],
+            ["src", "digest", "tag"]),
+        "gha": (["scope", "ignore-error"], ["scope"]),
+        "s3": (
+            ["bucket", "region", "name", "prefix", "ignore-error"],
+            ["bucket", "region", "name", "prefix", "blobs_prefix", "manifests_prefix"]),
+        "azblob": (
+            ["account_url", "name", "prefix", "ignore-error"],
+            ["account_url", "name", "prefix", "blobs_prefix", "manifests_prefix"]),
     }
 
     def __init__(self, arg: str):
@@ -113,19 +146,20 @@ class CacheSpec:
         else:
             raise ValueError(f"{_type} is not a valid cache type of {', '.join(get_args(CacheType))}")
 
-    def _to_str(self, num: Literal[0, 1], **kwargs) -> str:
-        params = {k: v for k, v in self._params.items() if k in self.CACHE_PARAMETERS[self.type][num]}
+    def to_str(self, from_str_format: bool, **kwargs) -> str:
+        valid_parameters = self.CACHE_PARAMETERS[self.type][int(from_str_format)]
+        params = {k: v for k, v in self._params.items() if k in valid_parameters}
         params["type"] = self.type
         params.update(kwargs)
         return ",".join("=".join(i) for i in params.items())
 
-    def cache_from_str(self) -> str:
-        return self._to_str(1)
+    def format_cache_from(self) -> str:
+        return self.to_str(True)
 
-    def cache_to_str(self) -> str:
-        return self._to_str(0, mode=self._params.get("mode", "min"))
+    def format_cache_to(self) -> str:
+        return self.to_str(False, mode=self._params.get("mode", "min"))
 
-    __repr__ = cache_from_str
+    __repr__ = format_cache_from
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -137,16 +171,17 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
-        choices=["cuda", "cpu", "amd"],
+        choices=["cpu", "cuda", "cu117", "cu1118", "rocm", "rocm5.4.2"],
         required=True,
         help="""selection of internal build stages to build for a specific platform.<br>
-                - cuda: build an internal cuda conda image (== --conda_build_image build_conda) (default)<br>
-                - cpu: build an internal cpu conda image (== --conda_build_image build_cpu)<br>
-                - amd: shortcut for --runtime_base_image rocm/pytorch --conda_build_image build_common (experimental)""",
+                - cuda: defaults to cu118, cuda 11.8<br>
+                - cpu: only cpu support<br>
+                - rocm: defaults to rocm5.4.2 (experimental)""",
     )
     parser.add_argument(
         "--tag",
         type=docker_image,
+        dest="image_tag",
         metavar="image[:tag]",
         help="""tag build stage/target as <image>[:<tag>]""")
     parser.add_argument(
@@ -155,9 +190,9 @@ def make_parser() -> argparse.ArgumentParser:
         type=target,
         choices=get_args(Target),
         metavar="target",
-        help=f"""target to build (from list of targets below, defaults to {target}):<br>
-                 - conda_build_image: "finished" conda build image<br>
-                 - freesurfer_build_image: "finished" freesurfer build image<br>
+        help=f"""target to build (from list of targets below, defaults to runtime):<br>
+                 - build_conda: "finished" conda build image<br>
+                 - build_freesurfer: "finished" freesurfer build image<br>
                  - runtime: final fastsurfer runtime image""")
     parser.add_argument(
         "--rm",
@@ -170,10 +205,17 @@ def make_parser() -> argparse.ArgumentParser:
                 (using --cache-to syntax, parameters are automatically filtered for use in 
                 --cache-to and --cache-from), e.g.: --cache type=registry,ref=server/fastbuild,mode=max.""")
     parser.add_argument(
-        '--print',
+        "--dry_run",
+        "--print",
         action="store_true",
-        help="Instead of starting processes, write the commands to stdout, so they can be run with "
-             "%(prog) ... --print | bash.")
+        help="Instead of starting processes, write the commands to stdout, so they can be dry_run with "
+             "build.py ... --dry_run | bash.")
+    parser.add_argument(
+        "--tag_dev",
+        action="store_true",
+        help="Also tag the resulting image as 'fastsurfer:dev'."
+    )
+
     expert = parser.add_argument_group('Expert options')
 
     expert.add_argument(
@@ -200,116 +242,13 @@ def make_parser() -> argparse.ArgumentParser:
         type=docker_image,
         metavar="image[:tag]",
         help="explicitly specifies the base image to build the build images from (default: ubuntu:20.04).")
+
+    expert.add_argument(
+        "--debug",
+        action="store_true",
+        help="enables the DEBUG build flag."
+    )
     return parser
-
-
-@overload
-def command(
-        args: Sequence[str],
-        working_directory: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
-        poll_interval: float = 1.,
-        redirect_stdout: Literal["cache"] = "cache",
-        redirect_stderr: Union[Literal["stdout", "cache"], Path] = "cache",
-    ) -> Tuple[bytes, bytes, int]:
-    ...
-
-
-@overload
-def command(
-        args: Sequence[str],
-        working_directory: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
-        poll_interval: float = 1.,
-        redirect_stdout: Union[Literal["stdout", "cache"], Path] = "cache",
-        redirect_stderr: Literal["cache"] = "cache",
-    ) -> Tuple[bytes, bytes, int]:
-    ...
-
-
-@overload
-def command(
-        args: Sequence[str],
-        working_directory: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
-        poll_interval: float = 1.,
-        redirect_stdout: Union[Literal["stdout"], Path] = None,
-        redirect_stderr: Union[Literal["stdout"], Path] = None,
-    ) -> int:
-    ...
-
-
-def command(
-        args: Sequence[str],
-        working_directory: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
-        poll_interval: float = 1.,
-        redirect_stdout: Union[Literal["stdout", "cache"], Path] = "cache",
-        redirect_stderr: Union[Literal["stdout", "cache"], Path] = "cache",
-    ):
-    stdout = b''
-    stderr = b''
-    command_iter_gen = command_iter(args,
-                                    working_directory=working_directory,
-                                    env=env,
-                                    timeout=timeout,
-                                    poll_interval=poll_interval,
-                                    redirect_stdout="stream" if redirect_stdout == "cache" else redirect_stdout,
-                                    redirect_stderr="stream" if redirect_stderr == "cache" else redirect_stderr)
-    for out, err in command_iter_gen:
-        stdout += out
-        stderr += err
-    return stdout, stderr, command_iter_gen if "cache" in [redirect_stderr, redirect_stdout] else next(command_iter_gen)
-
-
-def command_iter(
-        args: Sequence[str],
-        working_directory: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
-        poll_interval: float = 1.,
-        redirect_stdout: Union[Literal["stdout", "stream"], Path] = "stream",
-        redirect_stderr: Union[Literal["stdout", "stream"], Path] = "stream",
-    ) -> Generator[None, Tuple[bytes, bytes], int]:
-
-    from subprocess import Popen, TimeoutExpired, STDOUT, PIPE, run
-    redirect_targets = {"stdout": STDOUT, "stream": PIPE}
-    kwargs = {}
-    if working_directory is not None:
-        kwargs["cwd"] = str(working_directory)
-    if env is not None:
-        kwargs["env"] = env
-
-    before_call = time.perf_counter()
-
-    with Popen(args,
-               stdout=redirect_targets.get(redirect_stdout, redirect_stdout),
-               stderr=redirect_targets.get(redirect_stderr, redirect_stderr),
-               **kwargs) as proc:
-        while proc.poll() is None:
-            try:
-                delta = time.perf_counter() - before_call
-                if timeout is None:
-                    _timeout = poll_interval
-                elif delta > timeout:
-                    proc.terminate()
-                    raise TimeoutExpired
-                else:
-                    _timeout = delta - timeout
-                result = proc.communicate(timeout=_timeout)
-                yield tuple(b'' if _ is None else _ for _ in result)
-            except TimeoutExpired:
-                if timeout is not None and time.perf_counter() - before_call > timeout:
-                    raise
-        _stdout = b'' if proc.stdout is None or proc.stdout.closed else proc.stdout.read()
-        _stderr = b'' if proc.stderr is None or proc.stderr.closed else proc.stderr.read()
-        if _stderr != b'' or _stdout != b'':
-            yield _stdout, _stderr
-        return proc.returncode
 
 
 def red(skk):
@@ -321,12 +260,10 @@ def docker_build_image(
         dockerfile: Path,
         working_directory: Optional[Path] = None,
         context: Path = ".",
-        run: bool = True,
+        dry_run: bool = False,
         **kwargs):
-    if run:
-        print("Building. This starts with sending the build context to the docker daemon, which may take a while...")
-    env = dict(os.environ)
-    env["DOCKER_BUILDKIT"] = "1"
+    logger.info("Building. This starts with sending the build context to the docker daemon, which may take a while...")
+    extra_env = {"DOCKER_BUILDKIT": "1"}
     from itertools import chain
 
     def to_pair(key, values):
@@ -334,79 +271,132 @@ def docker_build_image(
         key_dashed = key.replace("_", "-")
         return list(chain(*[[f"--{key_dashed}"] + ([] if val is None else [val]) for val in _values]))
 
+    # needs buildx
+    buildx = "cache_to" in kwargs
+    args = ["buildx", "build"] if buildx else ["build"]
+
+    if buildx:
+        Popen = _import_calls(working_directory)  # from fastsurfer dir
+        buildx_test = Popen(["docker", "buildx", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE).finish()
+        if "'buildx' is not a docker command" in buildx_test.err_str('utf-8').strip():
+            raise RuntimeError(
+                "Using --cache requires docker buildx, install with 'wget -qO ~/"
+                ".docker/cli-plugins/docker-buildx https://github.com/docker/buildx/"
+                "releases/download/<version>/buildx-<version>.<platform>'\n"
+                "e.g. 'wget -qO ~/.docker/cli-plugins/docker-buildx "
+                "https://github.com/docker/buildx/releases/download/v0.11.2/"
+                "buildx-v0.11.2.linux-amd64'\n"
+                "You may need to 'chmod +x ~/.docker/cli-plugins/docker-buildx'\n"
+                "See also https://github.com/docker/buildx#manual-download")
+
     params = [to_pair(*a) for a in kwargs.items()]
 
-    args = ["build", "-t", image_name, "-f", str(dockerfile)] + list(chain(*params)) + [str(context)]
-    if run:
+    args += ["-t", image_name, "-f", str(dockerfile)] + list(chain(*params)) + [str(context)]
+    if dry_run:
+        extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
+        print(" ".join(extra_environment + ["docker"] + args))
+    else:
         from shutil import which
         docker_cmd = which("docker")
         if docker_cmd is None:
             raise FileNotFoundError("Could not locate the docker executable")
-        for out, err in command_iter([docker_cmd] + args,
-                                     working_directory=working_directory, env=env, redirect_stdout="stream", redirect_stderr="stdout"):
-            if out:
-                print("stdout: " + out.decode("utf-8"))
-            if err:
-                print("stderr: " + red(err.decode("utf-8")))
-    else:
-        print(" ".join(["docker"] + args), end="")
+        Popen = _import_calls(working_directory)  # from fastsurfer dir
+        env = dict(os.environ)
+        env.update(extra_env)
+        with Popen([docker_cmd] + args,
+                   cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
+            for msg in proc:
+                if msg.out:
+                    logger.info("stdout: " + msg.out.decode("utf-8"))
+                if msg.err:
+                    logger.info("stderr: " + red(msg.err.decode("utf-8")))
 
 
-def main(args: object):
-    kwargs = {}
-    if getattr(args, "cache") is not None:
-        kwargs["cache_from"] = getattr(args, "cache").cache_from_str()
-        kwargs["cache_to"] = getattr(args, "cache").cache_from_str()
-    elif getattr(args, "rm", False):
+def main(
+        device: DeviceType,
+        cache: Optional[CacheSpec] = None,
+        rm: bool = False,
+        target: Target = "runtime",
+        debug: bool = False,
+        image_tag: Optional[str] = None,
+        dry_run: bool = False,
+        tag_dev: bool = True,
+        **keywords
+        ):
+
+    fastsurfer_home = Path(__file__).parent.parent
+    version = _import_calls(fastsurfer_home, "version")
+    parse_build_file = _import_calls(fastsurfer_home, "parse_build_file")
+
+    kwargs: Dict[str, Union[str, List[str]]] = {}
+    if cache is not None:
+        if not isinstance(cache, CacheSpec):
+            cache = CacheSpec(cache)
+        logger.info(f"cache: {cache}")
+        kwargs["cache_from"] = cache.format_cache_from()
+        kwargs["cache_to"] = cache.format_cache_from()
+    elif rm is True:
         kwargs["no-cache"] = None
 
-    target = getattr(args, "target", "runtime")
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
-    kwargs["target"] = target
-    device = getattr(args, "device")
-    if device not in get_args(DeviceType):
+    if device not in get_args(AllDeviceType):
         raise ValueError(f"Invalid device: {device}")
-    kwargs["build_arg"] = []
+    # special case to add extra environment variables to better support AWS
+    if device == "cuda" and target == "runtime":
+        target = "runtime_cuda"
+    kwargs["target"] = target
+    kwargs["build_arg"] = [f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}"]
+    if debug:
+        kwargs["build_arg"].append(f"DEBUG=true")
     for key in ["build_base_image", "runtime_base_image", "freesurfer_build_image", "conda_build_image"]:
         upper_key = key.upper()
-        value = getattr(args, key) or getattr(DEFAULTS, upper_key)[device]
+        value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
-    env = dict(os.environ)
-    fastsurfer_home = Path(__file__).parent.parent
-    env["FASTSURFER_HOME"] = str(fastsurfer_home)
-    build_info, _, _ = command(
-        ["bash", str(fastsurfer_home / "run_fastsurfer.sh"), "--version", "long"],
-        env=env)
-    build_info = build_info.decode("utf-8")
-    # stdout of run_fastsurfer.sh --version, now just get the version number not the git hash
-    version_tag = build_info.split(" ", 1)[0]
-    image_tag = getattr(args, "tag") or f"fastsurfer:{version_tag}"
-    run = not getattr(args, "print", False)
+    #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
 
-    build_filename = fastsurfer_home / "BUILD.txt"
-    with open(build_filename, "w") as build_file:
-        build_file.write(build_info)
-    if run:
-        print("Version info added to the docker image:")
-        print(build_info)
+    build_filename = fastsurfer_home / "BUILD.info"
+    with open(build_filename, "w") as build_file, open(fastsurfer_home / "pyproject.toml") as project_file:
+        ret_version = version("+git", project_file=project_file, file=build_file)
+        if ret_version != 0:
+            return f"Creating the version file failed with message: {ret_version}"
+
+    with open(build_filename, "r") as build_file:
+        build_info = parse_build_file(build_file)
+
+    version_tag = build_info["version_tag"]
+    image_suffix = ""
+    if device != "cuda":
+        image_suffix = f"-{device}"
+    # image_tag is None or ""
+    if not bool(image_tag):
+        image_tag = f"fastsurfer:{version_tag}{image_suffix}".replace("+", "_")
+
+    if tag_dev:
+        kwargs["tag"] = f"fastsurfer:dev{image_suffix}"
+
+    if not dry_run:
+        logger.info("Version info added to the docker image:")
+        logger.info(build_info["content"])
 
     dockerfile = fastsurfer_home / "Docker" / "Dockerfile"
-    docker_build_image(
-        image_tag,
-        dockerfile,
-        working_directory=fastsurfer_home,
-        context=fastsurfer_home,
-        run=run,
-        **kwargs
-    )
-    if run:
-        os.remove(build_filename)
-    else:
-        print(f" || rm \"{fastsurfer_home / 'BUILD.txt'}\"")
+    try:
+        docker_build_image(
+            image_tag,
+            dockerfile,
+            working_directory=fastsurfer_home,
+            context=fastsurfer_home,
+            dry_run=dry_run,
+            **kwargs
+        )
+    except RuntimeError as e:
+        return e.args[0]
     return 0
 
 
 if __name__ == "__main__":
     import sys
-    sys.exit(main(make_parser().parse_args()))
+    logging.basicConfig(stream=sys.stdout)
+    arguments = make_parser().parse_args()
+    logger.setLevel(logging.WARN if arguments.dry_run else logging.INFO)
+    sys.exit(main(**vars(arguments)))

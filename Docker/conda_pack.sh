@@ -1,19 +1,16 @@
 #!/bin/bash
 # usage:
-# install_env.sh <environment name> <environment definition file (conda yaml)>
+# conda_pack.sh <environment name>
+#
+# packs the environment into /venv
 
 # set script to stop after first fail
 set -e
 
-# Install our dependencies,
-conda env create -f "$2"
-
-# Install conda-pack,
+# Install conda-pack
 conda install -c conda-forge conda-pack
 # Use conda-pack to create a standalone environment in /venv
 conda-pack -n "$1" -o /tmp/env.tar
-conda remove conda-pack
-conda env remove "$1"
 mkdir /venv
 cd /venv
 tar xf /tmp/env.tar

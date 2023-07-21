@@ -40,13 +40,11 @@
 #   Build the freesurfer build image only.
 # - build_common:
 #   Build the basic image with the python enviroment (hardware/driver-agnostic)
-# - build_cuda:
-#   Build the python environment image with cuda support
-# - build_cpu:
-#   Build the python enironment image with cpu support
+# - build_conda:
+#   Build the python environment image with cuda/rocm/cpu support
 
 ARG FREESURFER_BUILD_IMAGE=build_freesurfer
-ARG CONDA_BUILD_IMAGE=build_cuda
+ARG CONDA_BUILD_IMAGE=build_conda
 ARG RUNTIME_BASE_IMAGE=ubuntu:22.04
 ARG BUILD_BASE_IMAGE=ubuntu:22.04
 
@@ -67,10 +65,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG CONDA_FILE=Miniconda3-Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
+ARG CONDA_FILE=Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
 
 # Install conda
-RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/${CONDA_FILE}  && \
+RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/${CONDA_FILE} && \
      chmod +x ~/miniconda.sh && \
      ~/miniconda.sh -b -p /opt/conda && \
      rm ~/miniconda.sh 
@@ -81,33 +79,43 @@ ENV PATH /opt/conda/bin:$PATH
 FROM build_base AS build_common
 
 # get install scripts into docker
-COPY ./env/fastsurfer.yml ./Docker/install_env.sh /fastsurfer/
+COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /fastsurfer/install/
 
-SHELL ["/bin/bash", "--login", "-c"]
+# SHELL ["/bin/bash", "--login", "-c"]
 # Install conda for gpu
-RUN /fastsurfer/install_env.sh fastsurfer /fastsurfer/fastsurfer.yml &&  \
-    rm /fastsurfer/install_env.sh
 
-FROM build_common AS build_cuda
-# install additional packages for cuda
-RUN conda install cudatoolkit=11.3  # this should already be satisfied through dependencies
+ARG DEBUG=false
+RUN python /fastsurfer/install/install_env.py -m base -i /fastsurfer/install/fastsurfer.yml -o /fastsurfer/install/base-env.yml && \
+    conda env create -f "/fastsurfer/install/base-env.yml" > /fastsurfer/env-create.log ; \
+    if [ "${DEBUG}" != "true" ]; then \
+      rm /fastsurfer/install/base-env.yml ; \
+    fi
 
+FROM build_common AS build_conda
 
-FROM build_common AS build_cpu
-# install additional packages for cpu
-RUN conda install --channel pytorch cpuonly=1.0
-
+ARG DEBUG=false
+ARG DEVICE=cu118
+# install additional packages for cuda/rocm/cpu
+RUN python /fastsurfer/install/install_env.py -m ${DEVICE} -i /fastsurfer/install/fastsurfer.yml -o /fastsurfer/install/${DEVICE}-env.yml && \
+    conda env update -n "fastsurfer" -f "/fastsurfer/install/${DEVICE}-env.yml" > /fastsurfer/env-update.log && \
+    /fastsurfer/install/conda_pack.sh "fastsurfer" && \
+    echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /fastsurfer/install/build_conda.args ; \
+    if [ "${DEBUG}" != "true" ]; then \
+      conda env remove -n "fastsurfer" && \
+      rm -R /fastsurfer/install ; \
+    fi
 
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
 
 # get install scripts into docker
-COPY ./Docker/install_fs_pruned.sh /fastsurfer/
+COPY ./Docker/install_fs_pruned.sh /fastsurfer/install/
 SHELL ["/bin/bash", "--login", "-c"]
 
 # install freesurfer and point to new python location
-RUN /fastsurfer/install_fs_pruned.sh /opt --upx && \
-    rm /opt/freesurfer/bin/fspython && rm /fastsurfer/install_fs_pruned.sh && \
+RUN /fastsurfer/install/install_fs_pruned.sh /opt --upx && \
+    rm /opt/freesurfer/bin/fspython &&  \
+    rm -R /fastsurfer/install && \
     ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
 
 
@@ -126,10 +134,10 @@ FROM $CONDA_BUILD_IMAGE AS selected_conda_build_image
 # =========================================
 FROM $RUNTIME_BASE_IMAGE AS runtime
 
-ENV LANG=C.UTF-8
-ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
+ENV LANG=C.UTF-8 \
+    HSA_OVERRIDE_GFX_VERSION=10.3.0
 
-# Install required packages for freesurfer to run
+# Install required packages for freesurfer to dry_run
 RUN apt-get update && apt-get install -y --no-install-recommends \
       bc \
       gawk \
@@ -140,7 +148,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Add FreeSurfer Environment variables
+# Add FreeSurfer and python Environment variables
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -150,7 +158,6 @@ ENV OS=Linux \
     PYTHONUNBUFFERED=0 \
     MPLCONFIGDIR=/tmp \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
-    PYTHONPATH=/fastsurfer:$PYTHONPATH \
     MPLCONFIGDIR=/tmp/matplotlib-config
 
 # create matplotlib config dir; make sure we use bash and activate conda env
@@ -166,17 +173,28 @@ SHELL ["/bin/bash", "--login", "-c"]
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_conda_build_image /venv /venv
 
-# Copy fastsurfer over from the build context
+# Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
+ENV PYTHONPATH=/fastsurfer:$PYTHONPATH \
+    FASTSURFER_HOME=/fastsurfer
 
-# Download all remote network checkpoints already and compile all FastSurfer scripts into bytecode
-ENV PYTHONPATH=/fastsurfer:$PYTHONPATH
-RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all ; python3 -m compileall *
+# Download all remote network checkpoints already, compile all FastSurfer scripts into bytecode and update
+# the build file with checkpoints md5sums and pip packages.
+RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
+    python3 -m compileall * && \
+    python3 FastSurferCNN/version.py --sections +git+checkpoints+pip --build_cache BUILD.info -o fullBUILD.info && \
+    mv fullBUILD.info BUILD.info
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
 WORKDIR "/fastsurfer"
-ENV FASTSURFER_HOME=/fastsurfer
-ENTRYPOINT ["$FASTSURFER_HOME/Docker/entrypoint.sh","$FASTSURFER_HOME/run_fastsurfer.sh"]
+ENTRYPOINT ["/fastsurfer/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
 CMD ["--help"]
 
+FROM runtime as runtime_cuda
+# to support AWS docker images, see Issue #352
+# https://sarus.readthedocs.io/en/stable/user/custom-cuda-images.html#controlling-the-nvidia-container-runtime
+
+ENV NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    NVIDIA_REQUIRE_CUDA="cuda>=8.0"

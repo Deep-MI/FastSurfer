@@ -14,7 +14,6 @@
 # IMPORTS
 from torchvision import transforms
 from torch.utils.data import DataLoader
-import torchio as tio
 import yacs.config
 
 from FastSurferCNN.data_loader import dataset as dset
@@ -39,7 +38,7 @@ def get_dataloader(cfg: yacs.config.CfgNode, mode: str):
     torch.utils.data.DataLoader
         dataloader with given configs and mode
 
-    
+
     """
     assert mode in ["train", "val"], f"dataloader mode is incorrect {mode}"
 
@@ -63,6 +62,7 @@ def get_dataloader(cfg: yacs.config.CfgNode, mode: str):
             dataset = dset.MultiScaleDatasetVal(data_path, cfg, transforms.Compose(tfs))
         else:
 
+            import torchio as tio
             # Elastic
             elastic = tio.RandomElasticDeformation(
                 num_control_points=7,
