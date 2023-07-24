@@ -40,7 +40,7 @@ docker pull deepmi/fastsurfer:latest
 Our [README](README.md#example-1--fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](docker/README.md). 
 
 
-### Native (Ubuntu 20.04)
+### Native (Ubuntu 20.04 or Ubuntu 22.04)
 
 In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need.
 
@@ -54,6 +54,13 @@ sudo apt-get update && apt-get install -y --no-install-recommends \
       git \
       ca-certificates \
       file
+```
+
+If you are using **Ubuntu 20.04**, you will need to upgrade to a newer version of libstdc++, as some 'newer' python packages need GLIBCXX 3.4.29, which is not distributed with Ubuntu 20.04 by default.
+
+```
+sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+sudo apt install -y g++-11
 ```
 
 You also need to have bash-4.0 or higher (check with `bash --version`). 
