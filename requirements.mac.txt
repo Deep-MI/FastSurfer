@@ -10,7 +10,7 @@ absl-py==1.2.0
     # via tensorboard
 cachetools==5.2.0
     # via google-auth
-certifi==2022.6.15
+certifi==2023.7.22
     # via requests
 charset-normalizer==2.1.0
     # via requests
