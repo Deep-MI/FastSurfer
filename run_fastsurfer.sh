@@ -61,7 +61,9 @@ doParallel=""
 run_asegdkt_module="1"
 run_cereb_module="1"
 threads="1"
-python="python3.10 -s"
+# python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
+# python-s is a miniscript to add this flag
+python="python-s"
 allow_root=""
 version_and_quit=""
 
@@ -773,7 +775,9 @@ if [ "$run_surf_pipeline" == "1" ]
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
     pushd "$reconsurfdir"
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile"
+    cmd="$cmd $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
+    cmd="$cmd $vcheck $vfst1 $allow_root"
     echo "$cmd" |& tee -a "$seg_log"
     $cmd
     if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi

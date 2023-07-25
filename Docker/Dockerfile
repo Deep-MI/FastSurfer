@@ -15,10 +15,10 @@
 # DOCUMENTATION FOR BUILD ARGS (use '--build-arg DEVICE=<VALUE>'):
 # - BUILD_BASE_IMAGE:
 #   The base image to build the conda and freesurfer build images from
-#   - default: ubuntu:20.04
+#   - default: ubuntu:22.04
 # - RUNTIME_BASE_IMAGE:
 #   The base image to build the runtime image on.
-#   - default: ubuntu:20.04
+#   - default: ubuntu:22.04
 # - FREESURFER_BUILD_IMAGE:
 #   Image to use to install freesurfer binaries from, the freesurfer binaries
 #   should be located in /opt/freesurfer in the image.
@@ -79,16 +79,16 @@ ENV PATH /opt/conda/bin:$PATH
 FROM build_base AS build_common
 
 # get install scripts into docker
-COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /fastsurfer/install/
+COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /install/
 
 # SHELL ["/bin/bash", "--login", "-c"]
 # Install conda for gpu
 
 ARG DEBUG=false
-RUN python /fastsurfer/install/install_env.py -m base -i /fastsurfer/install/fastsurfer.yml -o /fastsurfer/install/base-env.yml && \
-    conda env create -f "/fastsurfer/install/base-env.yml" > /fastsurfer/env-create.log ; \
+RUN python /install/install_env.py -m base -i /install/fastsurfer.yml -o /install/base-env.yml && \
+    conda env create -f "/install/base-env.yml" | tee /install/env-create.log ; \
     if [ "${DEBUG}" != "true" ]; then \
-      rm /fastsurfer/install/base-env.yml ; \
+      rm /install/base-env.yml ; \
     fi
 
 FROM build_common AS build_conda
@@ -96,26 +96,26 @@ FROM build_common AS build_conda
 ARG DEBUG=false
 ARG DEVICE=cu118
 # install additional packages for cuda/rocm/cpu
-RUN python /fastsurfer/install/install_env.py -m ${DEVICE} -i /fastsurfer/install/fastsurfer.yml -o /fastsurfer/install/${DEVICE}-env.yml && \
-    conda env update -n "fastsurfer" -f "/fastsurfer/install/${DEVICE}-env.yml" > /fastsurfer/env-update.log && \
-    /fastsurfer/install/conda_pack.sh "fastsurfer" && \
-    echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /fastsurfer/install/build_conda.args ; \
+RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /install/${DEVICE}-env.yml && \
+    conda env update -n "fastsurfer" -f "/install/${DEVICE}-env.yml" | tee /install/env-update.log && \
+    /install/conda_pack.sh "fastsurfer" && \
+    echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /install/build_conda.args ;  \
     if [ "${DEBUG}" != "true" ]; then \
       conda env remove -n "fastsurfer" && \
-      rm -R /fastsurfer/install ; \
+      rm -R /install ; \
     fi
 
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
 
 # get install scripts into docker
-COPY ./Docker/install_fs_pruned.sh /fastsurfer/install/
+COPY ./Docker/install_fs_pruned.sh /install/
 SHELL ["/bin/bash", "--login", "-c"]
 
 # install freesurfer and point to new python location
-RUN /fastsurfer/install/install_fs_pruned.sh /opt --upx && \
+RUN /install/install_fs_pruned.sh /opt --upx && \
     rm /opt/freesurfer/bin/fspython &&  \
-    rm -R /fastsurfer/install && \
+    rm -R /install && \
     ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
 
 
@@ -172,6 +172,7 @@ SHELL ["/bin/bash", "--login", "-c"]
 # seletced_<name>_build_image is a only a reference to $<NAME>_BUILD_IMAGE
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_conda_build_image /venv /venv
+COPY /Docker/python-s /venv/bin/
 
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/

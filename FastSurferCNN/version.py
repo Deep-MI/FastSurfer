@@ -199,7 +199,8 @@ def main(
             if sections != "":
                 futures["git_branch"] = Popen(["git", "branch", "--show-current"], **kw_root).as_future(pool)
             if "+git" in sections:
-                futures["git_status"] = Popen(["git", "status", "-s", "-b"], **kw_root).as_future(pool)
+
+                futures["git_status"] = pool.submit(filter_git_status, Popen(["git", "status", "-s", "-b"], **kw_root))
         else:
             build_cache_required = True
 
@@ -234,7 +235,9 @@ def main(
         future = futures.get(key, None)
         if future:
             returnmsg = future.result()
-            if returnmsg.retcode != 0:
+            if isinstance(returnmsg, str):
+                return returnmsg
+            elif returnmsg.retcode != 0:
                 raise RuntimeError(f"The calculation/determination of {key} has failed.")
             return returnmsg.out_str('utf-8').strip()
         elif key in cache:
@@ -357,8 +360,29 @@ def read_version_from_project_file(project_file: TextIOWrapper) -> str:
     return version
 
 
+def filter_git_status(git_process: 'FastSurferCNN.utils.run_tools.Popen') -> str:
+    """
+    Takes a running git status process and filters the output.
+
+    Parameters
+    ----------
+    git_process : FastSurferCNN.utils.run_tools.Popen
+        The Popen process object, that will return the git status output
+
+    Returns
+    -------
+    The git status string filtered for __pycache__
+    """
+    from FastSurferCNN.utils.run_tools import Popen
+    finished_process = git_process.finish()
+    if finished_process.retcode != 0:
+        raise RuntimeError("Failed git status command")
+    git_status_text = finished_process.out_str('utf-8')
+    return "\n".join(filter(lambda x: "__pycache__" not in x, git_status_text.split("\n")))
+
+
 def read_and_close_version(project_file: Optional[TextIOWrapper] = None) -> str:
-    """Read and close the vrsion from the pyproject file. Also fill default.
+    """Read and close the version from the pyproject file. Also fill default.
 
     Always closes the file pointer.
 

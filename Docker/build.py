@@ -46,8 +46,8 @@ class DEFAULTS:
         rocm="rocm5.1.1",
         cuda="cu117",
     )
-    BUILD_BASE_IMAGE = "ubuntu:20.04"
-    RUNTIME_BASE_IMAGE = "ubuntu:20.04"
+    BUILD_BASE_IMAGE = "ubuntu:22.04"
+    RUNTIME_BASE_IMAGE = "ubuntu:22.04"
     FREESURFER_BUILD_IMAGE = "build_freesurfer"
     CONDA_BUILD_IMAGE = "build_conda"
 
@@ -236,12 +236,12 @@ def make_parser() -> argparse.ArgumentParser:
         "--runtime_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the runtime image from (default: ubuntu:20.04).")
+        help="explicitly specifies the base image to build the runtime image from (default: ubuntu:22.04).")
     expert.add_argument(
         "--build_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the build images from (default: ubuntu:20.04).")
+        help="explicitly specifies the base image to build the build images from (default: ubuntu:22.04).")
 
     expert.add_argument(
         "--debug",
@@ -303,7 +303,7 @@ def docker_build_image(
         Popen = _import_calls(working_directory)  # from fastsurfer dir
         env = dict(os.environ)
         env.update(extra_env)
-        with Popen([docker_cmd] + args,
+        with Popen([docker_cmd] + args + ["--progress=plain"],
                    cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
             for msg in proc:
                 if msg.out:

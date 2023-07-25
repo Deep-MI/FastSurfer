@@ -25,11 +25,8 @@ dependencies:
   - yacs=0.1.8
   - pip
   - pip:
-    - --index-url https://download.pytorch.org/whl/cu117
-    - torch==2.0.1
-    - torchvision==0.15.2
-  - pip:
-    - simpleitk==2.2.1
-  - pip:
     - --extra-index-url https://download.pytorch.org/whl/cu117
+    - simpleitk==2.2.1
+    - torch==2.0.1
     - torchio==0.18.83
+    - torchvision==0.15.2

@@ -1,0 +1,3 @@
+#!/bin/bash
+inputargs=("$@")
+python3.10 -s ${inputargs[@]}
