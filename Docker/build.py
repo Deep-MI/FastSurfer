@@ -28,9 +28,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer', 'build_base', 'runtime_cuda']
+Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer',
+                 'build_base', 'runtime_cuda']
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu116", "cu117", "cu118", "rocm", "rocm5.1.1", "rocm5.4.2"]
+AllDeviceType = Literal["cpu", "cuda", "cu116", "cu117", "cu118", "rocm", "rocm5.1.1",
+                        "rocm5.4.2"]
 DeviceType = Literal["cpu", "cu116", "cu117", "cu118", "rocm5.1.1", "rocm5.4.2"]
 
 
@@ -38,7 +40,8 @@ __import_cache = {}
 
 
 class DEFAULTS:
-    # Here we need to update the cuda and rocm versions, if pytorch comes with new versions.
+    # Here (and in the Literals at the top of the document), we need to update the cuda
+    # and rocm versions, if pytorch comes with new versions.
     # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
     MapDeviceType: Dict[AllDeviceType, DeviceType] = dict(
@@ -65,10 +68,12 @@ def _import_calls(fasturfer_home: Path, token: str = "Popen") -> Callable:
 
         if token in ("Popen", "PyPopen"):
             # import Popen and PyPopen from FastSurferCNN.utils.run_tools
-            __import(fasturfer_home / "FastSurferCNN/utils/run_tools.py", "run_tools", "Popen", "PyPopen")
+            __import(fasturfer_home / "FastSurferCNN/utils/run_tools.py",
+                     "run_tools", "Popen", "PyPopen")
         elif token in ("version", "parse_build_file"):
             # import main as version from FastSurferCNN.version
-            __import(fasturfer_home / "FastSurferCNN/version.py", "version", "parse_build_file", version="main")
+            __import(fasturfer_home / "FastSurferCNN/version.py",
+                     "version", "parse_build_file", version="main")
 
     if token in __import_cache:
         return __import_cache[token]
@@ -77,7 +82,12 @@ def _import_calls(fasturfer_home: Path, token: str = "Popen") -> Callable:
 
 
 def docker_image(arg) -> str:
-    """Returns a str with the image or raises an error if it is not a valid docker image."""
+    """Returns a str with the image.
+
+    Raises
+    ======
+    ArgumentTypeError
+        if it is not a valid docker image."""
     from re import match
     # regex from https://stackoverflow.com/questions/39671641/regex-to-parse-docker-tag
     pattern = r"^(?:(?=[^:\/]{1,253})(?!-)[a-zA-Z0-9-]{1,63}(?<!-)" \
@@ -87,15 +97,22 @@ def docker_image(arg) -> str:
     if match(pattern, arg):
         return arg
     else:
-        raise argparse.ArgumentTypeError(f"The image '{arg}' does not look like a valid image name.")
+        raise argparse.ArgumentTypeError(f"The image '{arg}' does not look like a "
+                                         f"valid image name.")
 
 
 def target(arg) -> Target:
-    """Returns a tuple of the target (see `Target`) and a str with the docker image, raises an error if not valid."""
+    """Returns a tuple of the target (see `Target`) and a str with the docker image.
+
+    Raises
+    ======
+    ArgumentTypeError
+        if not valid."""
     if isinstance(arg, str) and arg in get_args(Target):
         return cast(Target, arg)
     else:
-        raise argparse.ArgumentTypeError(f"target must be one of {', '.join(get_args(Target))}, but was {arg}.")
+        raise argparse.ArgumentTypeError(
+            f"target must be one of {', '.join(get_args(Target))}, but was {arg}.")
 
 
 class CacheSpec:
@@ -144,7 +161,8 @@ class CacheSpec:
         if _type.lower() in get_args(CacheType):
             self._type = cast(CacheType, _type)
         else:
-            raise ValueError(f"{_type} is not a valid cache type of {', '.join(get_args(CacheType))}")
+            raise ValueError(f"{_type} is not a valid cache type of "
+                             f"{', '.join(get_args(CacheType))}")
 
     def to_str(self, from_str_format: bool, **kwargs) -> str:
         valid_parameters = self.CACHE_PARAMETERS[self.type][int(from_str_format)]
@@ -202,14 +220,15 @@ def make_parser() -> argparse.ArgumentParser:
         "--cache",
         type=CacheSpec,
         help="""cache as defined in https://docs.docker.com/build/cache/backends/ 
-                (using --cache-to syntax, parameters are automatically filtered for use in 
-                --cache-to and --cache-from), e.g.: --cache type=registry,ref=server/fastbuild,mode=max.""")
+                (using --cache-to syntax, parameters are automatically filtered for use 
+                in --cache-to and --cache-from), e.g.: 
+                --cache type=registry,ref=server/fastbuild,mode=max.""")
     parser.add_argument(
         "--dry_run",
         "--print",
         action="store_true",
-        help="Instead of starting processes, write the commands to stdout, so they can be dry_run with "
-             "build.py ... --dry_run | bash.")
+        help="Instead of starting processes, write the commands to stdout, so they can "
+             "be dry_run with 'build.py ... --dry_run | bash'.")
     parser.add_argument(
         "--tag_dev",
         action="store_true",
@@ -223,25 +242,29 @@ def make_parser() -> argparse.ArgumentParser:
         type=docker_image,
         metavar="image[:tag]",
         help="""explicitly specifies an image to copy freesurfer binaries from.
-                freesurfer binaries are expected to be in /opt/freesurfer in the image, like the runtime image. By default,
-                uses the "build_freesurfer" stage in the Dockerfile (either by building it or from cache, see --cache).""")
+                freesurfer binaries are expected to be in /opt/freesurfer in the image, 
+                like the runtime image. By default, uses the "build_freesurfer" stage in 
+                the Dockerfile (either by building it or from cache, see --cache).""")
     expert.add_argument(
         "--conda_build_image",
         type=docker_image,
         metavar="image[:tag]",
         help="""explicitly specifies an image to copy the python environment from.
-                The environment is expected to be in /venv in the image, like the runtime image. By default, uses the
-                "build_conda" stage in the Dockerfile (either by building it or from cache, see --cache).""")
+                The environment is expected to be in /venv in the image, like the 
+                runtime image. By default, uses the "build_conda" stage in the 
+                Dockerfile (either by building it or from cache, see --cache).""")
     expert.add_argument(
         "--runtime_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the runtime image from (default: ubuntu:22.04).")
+        help="explicitly specifies the base image to build the runtime image from "
+             "(default: ubuntu:22.04).")
     expert.add_argument(
         "--build_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the build images from (default: ubuntu:22.04).")
+        help="explicitly specifies the base image to build the build images from "
+             "(default: ubuntu:22.04).")
 
     expert.add_argument(
         "--debug",
@@ -342,21 +365,23 @@ def main(
         raise ValueError(f"Invalid target: {target}")
     if device not in get_args(AllDeviceType):
         raise ValueError(f"Invalid device: {device}")
-    # special case to add extra environment variables to better support AWS
-    if device == "cuda" and target == "runtime":
+    # special case to add extra environment variables to better support AWS and ROCm
+    if device.startswith("cu") and target == "runtime":
         target = "runtime_cuda"
     kwargs["target"] = target
     kwargs["build_arg"] = [f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}"]
     if debug:
         kwargs["build_arg"].append(f"DEBUG=true")
-    for key in ["build_base_image", "runtime_base_image", "freesurfer_build_image", "conda_build_image"]:
+    for key in ["build_base_image", "runtime_base_image", "freesurfer_build_image",
+                "conda_build_image"]:
         upper_key = key.upper()
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
     #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
 
     build_filename = fastsurfer_home / "BUILD.info"
-    with open(build_filename, "w") as build_file, open(fastsurfer_home / "pyproject.toml") as project_file:
+    with open(build_filename, "w") as build_file, \
+            open(fastsurfer_home / "pyproject.toml") as project_file:
         ret_version = version("+git", project_file=project_file, file=build_file)
         if ret_version != 0:
             return f"Creating the version file failed with message: {ret_version}"
