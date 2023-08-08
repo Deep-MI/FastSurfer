@@ -1,2 +1,11 @@
 **/.git
 **/.github
+checkpoints
+Singularity
+images
+venv
+Tutorial
+**/*.md
+Docker/Dockerfile*
+*.txt
+venv

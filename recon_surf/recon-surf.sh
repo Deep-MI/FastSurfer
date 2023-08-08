@@ -760,7 +760,8 @@ else
     # instead of mris_sphere, directly project to sphere with spectral approach
     # equivalent to -qsphere
     # (23sec)
-    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir --subject $subject --threads=$threads --py $python --binpath ${binpath}"
+    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir --subject $subject"
+    cmd="$cmd --threads=$threads --py $python --binpath ${binpath}"
 
     RunIt "$cmd" $LF $CMDF
 

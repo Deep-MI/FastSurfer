@@ -23,7 +23,6 @@ import torch
 import torchvision
 import yacs.config
 from torch.utils.data import Dataset
-import torchio as tio
 
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.utils import logging
@@ -357,6 +356,7 @@ class MultiScaleDataset(Dataset):
         label = padded_label[np.newaxis, :, :, np.newaxis]
         weight = padded_weight[np.newaxis, :, :, np.newaxis]
 
+        import torchio as tio
         subject = tio.Subject(
             {
                 "img": tio.ScalarImage(tensor=img),

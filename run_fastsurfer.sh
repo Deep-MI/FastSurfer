@@ -61,8 +61,11 @@ doParallel=""
 run_asegdkt_module="1"
 run_cereb_module="1"
 threads="1"
-python="python3.10"
+# python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
+# python-s is a miniscript to add this flag
+python="python-s"
 allow_root=""
+version_and_quit=""
 
 # Dev flags defaults
 vcheck=""
@@ -123,7 +126,12 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
-  --version               Print version information and exit
+  --version <info>        Print version information and exit; <info> is optional.
+                            <info> may be empty, just prints the version number,
+                            +git_branch also prints the current branch, and any
+                            combination of +git, +checkpoints, +pip to print
+                            additional for the git status, the checkpoints and
+                            installed python packages.
   -h --help               Print Help
 
   PIPELINES:
@@ -244,36 +252,6 @@ Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
 
 EOF
 }
-
-function version()
-{
-  VERSION_TAG=$(grep '[project]' -A 100 "$FASTSURFER_HOME/pyproject.toml" | \
-    grep -E 'version *= *("?)[[:alnum:]]*\1' -C 0 | head -n 1 | grep -E '[0-9][^" ]*' -o)
-  VERSION_FILE="$FASTSURFER_HOME/BUILD.txt"
-  # if we do not have git, try VERSION file else git sha and branch
-  if [ -n "$(which git)" ] && [ -d "$FASTSURFER_HOME/.git" ]; then
-    pushd  "$FASTSURFER_HOME" > /dev/null || return
-    VERSION_INFO="$VERSION_TAG-$(git rev-parse --short HEAD) ($(git branch --show-current))"
-    popd > /dev/null || return
-  else
-    VERSION_INFO="$([ -f "$VERSION_FILE" ] && head "$VERSION_FILE" -n 1 || echo "$VERSION_TAG")"
-  fi
-  if [ "$#" == "1" ] && [ "$1" == "long" ]; then
-    pushd "$FASTSURFER_HOME/checkpoints" > /dev/null || return
-    VERSION_INFO=$(printf "%s\ncheckpoints:\n%s" "$VERSION_INFO" "$(md5sum -- *)")
-    popd > /dev/null || return
-    if [ -n "$(which git)" ] && [ -d "$FASTSURFER_HOME/.git" ]; then
-      pushd  "$FASTSURFER_HOME" > /dev/null || return
-      VERSION_INFO=$(printf "%s\ngit status:\n%s" "$VERSION_INFO" "$(git status -s -b | grep -v __pycache__)")
-      popd > /dev/null || return
-    elif [ -f "$VERSION_FILE" ]; then
-      VERSION_INFO=$(printf "%s\n%s" "$VERSION_INFO" "$(grep 'git status:' -A 1000 "$VERSION_FILE")")
-    else
-      VERSION_INFO=$(printf "%s\nNo additional version info." "$VERSION_INFO")
-    fi
-  fi
-}
-
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -483,9 +461,28 @@ case $key in
     exit
     ;;
     --version)
-    version "$2"
-    echo "$VERSION_INFO"
-    exit
+      if [ "$#" -lt 2 ]; then
+          version_and_quit="1"
+      else
+        case $2 in
+          all)
+            version_and_quit="+checkpoints+git+pip"
+            shift
+            ;;
+          +*)
+            version_and_quit="$2"
+            shift
+            ;;
+          --*)
+            version_and_quit="1"
+            ;;
+          *)
+            echo "Invalid option for --version"
+            exit 1
+            ;;
+        esac
+      fi
+    shift
     ;;
     *)    # unknown option
     echo ERROR: Flag $1 unrecognized.
@@ -494,6 +491,32 @@ case $key in
 esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
+
+# make sure FastSurfer is in the PYTHONPATH
+if [ "$PYTHONPATH" == "" ]
+then
+  export PYTHONPATH="$FASTSURFER_HOME"
+else
+  export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
+fi
+
+########################################## VERSION AND QUIT HERE ########################################
+version_args=""
+if [ -f "$FASTSURFER_HOME/BUILD.info" ]
+  then
+    version_args="--build_cache $FASTSURFER_HOME/BUILD.info --prefer_cache"
+fi
+
+if [ -n "$version_and_quit" ]
+  then
+    # if version_and_quit is 1, it should only print the version number+git branch
+    if [ "$version_and_quit" != "1" ]
+      then
+        version_args="$version_args --sections $version_and_quit"
+    fi
+    $python $FASTSURFER_HOME/FastSurferCNN/version.py $version_args
+    exit
+fi
 
 # Warning if run as root user
 if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
@@ -572,17 +595,14 @@ if [ -z "$seg_log" ]
     seg_log="${sd}/${subject}/scripts/deep-seg.log"
 fi
 
+if [ -z "$build_log" ]
+ then
+    build_log="${sd}/${subject}/scripts/build.log"
+fi
+
 if [ -z "$PYTHONUNBUFFERED" ]
 then
   export PYTHONUNBUFFERED=0
-fi
-
-# make sure FastSurfer is in the PYTHONPATH
-if [ "$PYTHONPATH" == "" ]
-then
-  export PYTHONPATH="$FASTSURFER_HOME"
-else
-  export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
 fi
 
 # check the vox_size setting
@@ -671,10 +691,13 @@ if [ "$run_cereb_module" == "1" ]
 fi
 
 ########################################## START ########################################################
-
 mkdir -p "$(dirname "$seg_log")"
-version
-echo "Version: $VERSION_INFO" |& tee "$seg_log"
+VERSION=$($python $FASTSURFER_HOME/FastSurferCNN/version.py $version_args)
+echo "Version: $VERSION" |& tee "$seg_log"
+
+# create the build log, file with all version info in parallel
+printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
+$python "$FASTSURFER_HOME/FastSurferCNN/version.py" $version_args >> "$build_log" &
 
 if [ "$run_seg_pipeline" == "1" ]
   then
@@ -752,7 +775,9 @@ if [ "$run_surf_pipeline" == "1" ]
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
     pushd "$reconsurfdir"
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python $vcheck $vfst1 $allow_root"
+    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile"
+    cmd="$cmd $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
+    cmd="$cmd $vcheck $vfst1 $allow_root"
     echo "$cmd" |& tee -a "$seg_log"
     $cmd
     if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi

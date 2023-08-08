@@ -1,9 +1,9 @@
-name: fastsurfer_cpu
+name: fastsurfer
 
 channels:
   - conda-forge
   - defaults
-  
+
 dependencies:
   - h5py=3.7.0
   - lapy=1.0.1
@@ -23,9 +23,10 @@ dependencies:
   - tensorboard=2.12.1
   - tqdm=4.65.0
   - yacs=0.1.8
+  - pip
   - pip:
-    - --extra-index-url https://download.pytorch.org/whl/cpu
-    - torch==2.0.1+cpu
-    - torchvision==0.15.2+cpu
+    - --extra-index-url https://download.pytorch.org/whl/cu117
     - simpleitk==2.2.1
+    - torch==2.0.1
     - torchio==0.18.83
+    - torchvision==0.15.2
