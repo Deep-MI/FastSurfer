@@ -40,13 +40,16 @@ class Popen(subprocess.Popen):
     """Extension of subprocess.Popen for convenience."""
 
     def messages(self, timeout: float) -> Generator[MessageBuffer, None, None]:
-
+        from subprocess import TimeoutExpired
         while self.poll() is None:
-            stdout, stderr = self.communicate(timeout=timeout)
-            yield MessageBuffer(
-                out=stdout if stdout else b'',
-                err=stderr if stderr else b'',
-                retcode=self.returncode)
+            try:
+               stdout, stderr = self.communicate(timeout=timeout)
+               yield MessageBuffer(
+                    out=stdout if stdout else b'',
+                    err=stderr if stderr else b'',
+                    retcode=self.returncode)
+            except TimeoutExpired:
+                pass
 
         _stdout = b'' if self.stdout is None or self.stdout.closed else self.stdout.read()
         _stderr = b'' if self.stderr is None or self.stderr.closed else self.stderr.read()
@@ -64,6 +67,7 @@ class Popen(subprocess.Popen):
                 out=stdout if stdout else b'',
                 err=stderr if stderr else b'',
                 retcode=self.returncode)
+
         else:
             _stdout = b'' if self.stdout is None or self.stdout.closed else self.stdout.read()
             _stderr = b'' if self.stderr is None or self.stderr.closed else self.stderr.read()
