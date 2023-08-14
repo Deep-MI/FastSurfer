@@ -77,10 +77,29 @@ wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/mni-1.4' \
       --exclude='freesurfer/mni' \
       --exclude='freesurfer/models' \
-      --exclude='freesurfer/python/bin' \
       --exclude='freesurfer/python/include' \
-      --exclude='freesurfer/python/lib' \
-      --exclude='freesurfer/python/packages' \
+      --exclude='freesurfer/python/lib/libcrypto.so.10' \
+      --exclude='freesurfer/python/lib/libpython3.8.a' \
+      --exclude='freesurfer/python/bin/python3.8' \
+      --exclude='freesurfer/python/lib/python3.8/__pycache__' \
+      --exclude='freesurfer/python/lib/python3.8/asyncio' \
+      --exclude='freesurfer/python/lib/python3.8/config-3.8-x86_64-linux-gnu' \
+      --exclude='freesurfer/python/lib/python3.8/ctypes' \
+      --exclude='freesurfer/python/lib/python3.8/distutils' \
+      --exclude='freesurfer/python/lib/python3.8/email' \
+      --exclude='freesurfer/python/lib/python3.8/ensurepip' \
+      --exclude='freesurfer/python/lib/python3.8/idlelib' \
+      --exclude='freesurfer/python/lib/python3.8/multiprocessing' \
+      --exclude='freesurfer/python/lib/python3.8/lib2to3' \
+      --exclude='freesurfer/python/lib/python3.8/pydoc_data' \
+      --exclude='freesurfer/python/lib/python3.8/site-packages' \
+      --exclude='freesurfer/python/lib/python3.8/test' \
+      --exclude='freesurfer/python/lib/python3.8/tkinter' \
+      --exclude='freesurfer/python/lib/python3.8/unittest' \
+      --exclude='freesurfer/python/lib/python3.8/xml' \
+      --exclude='freesurfer/python/lib/python3.8/lib-dynload/_decimal.cpython-38-x86_64-linux-gnu.so' \
+      --exclude='freesurfer/python/lib/python3.8/lib-dynload/pyexpat.cpython-38-x86_64-linux-gnu.so' \
+      --exclude='freesurfer/python/lib/python3.8/lib-dynload/unicodedata.cpython-38-x86_64-linux-gnu.so' \
       --exclude='freesurfer/python/share' \
       --exclude='freesurfer/subjects/bert' \
       --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
@@ -96,7 +115,6 @@ wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/tktools' \
       --exclude='freesurfer/trctrain'
 
-
 # rename download to tmp
 mv $where/freesurfer $fss
 
@@ -106,6 +124,7 @@ mkdir -p $fsd/bin
 mkdir -p $fsd/etc
 mkdir -p $fsd/lib/bem
 mkdir -p $fsd/python/scripts
+mkdir -p $fsd/python/packages
 mkdir -p $fsd/subjects/fsaverage/label
 mkdir -p $fsd/subjects/fsaverage/surf
 
@@ -146,15 +165,21 @@ copy_files="
   average/rh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
   bin/analyzeto4dfp
   bin/AntsDenoiseImageFs
+  bin/asegstats2table
+  bin/aparcstats2table
   bin/avi2talxfm
   bin/compute_vox2vox
   bin/defect2seg
+  bin/fname2stem
+  bin/fspython
   bin/fs_temp_dir
   bin/fs_temp_file
   bin/fs-check-version
   bin/fsr-getxopts
   bin/gauss_4dfp
   bin/imgreg_4dfp
+  bin/isanalyze
+  bin/isnifti
   bin/lta_convert
   bin/mpr2mni305
   bin/mri_add_xform_to_header
@@ -169,6 +194,7 @@ copy_files="
   bin/mri_edit_wm_with_aseg
   bin/mri_fill
   bin/mri_fuse_segmentations
+  bin/mri_glmfit
   bin/mri_info
   bin/mri_label2label
   bin/mri_label2vol
@@ -182,6 +208,7 @@ copy_files="
   bin/mri_robust_template
   bin/mri_segment
   bin/mri_segstats
+  bin/mri_surf2surf
   bin/mri_surf2volseg
   bin/mri_tessellate
   bin/mri_vol2surf
@@ -203,6 +230,7 @@ copy_files="
   bin/mris_jacobian
   bin/mris_label2annot
   bin/mris_place_surface
+  bin/mris_preproc
   bin/mris_register
   bin/mris_remesh
   bin/mris_remove_intersection
@@ -222,6 +250,11 @@ copy_files="
   etc/recon-config.yaml
   lib/bem/ic4.tri
   lib/bem/ic7.tri
+  python/bin
+  python/lib
+  python/packages/fsbindings
+  python/scripts/asegstats2table
+  python/scripts/aparcstats2table
   python/scripts/rca-config
   python/scripts/rca-config2csh
   subjects/fsaverage/label/lh.aparc.annot
@@ -303,12 +336,14 @@ copy_files="
   subjects/fsaverage/surf/lh.white
   subjects/fsaverage/surf/rh.sphere
   subjects/fsaverage/surf/rh.sphere.reg
-  subjects/fsaverage/surf/rh.white"
+  subjects/fsaverage/surf/rh.white
+  "
+
 echo
 for file in $copy_files
 do
   echo "copying $file"
-  cp $fss/$file $fsd/$file
+  cp -r $fss/$file $fsd/$file
 done
 
 
@@ -341,7 +376,6 @@ link_files="
   bin/mri_relabel_nonwm_hypos
   bin/mri_remove_neck
   bin/mri_stats2seg
-  bin/mri_surf2surf
   bin/mri_surf2vol
   bin/mri_surfcluster
   bin/mri_vol2vol
@@ -354,6 +388,7 @@ link_files="
   bin/mris_thickness_diff
   bin/nu_correct
   bin/tkregister2_cmdl"
+
 
 # create target for link with ERROR message if called
 ltrg=$fsd/bin/not-here.sh
@@ -374,15 +409,6 @@ do
   echo "linking $file"
   ln -s $ltrg $fsd/$file 
 done
-
-# use our python (not really needed in recon-all anyway)
-p3=`which python3`
-if [ "$p3" == "" ]; then
-  echo "No python3 found, please install first!"
-  echo
-  exit 1
-fi
-ln -s $p3 $fsd/bin/fspython
 
 #cleanup
 rm -rf $fss
