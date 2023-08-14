@@ -346,8 +346,10 @@ def main(
         tag_dev: bool = True,
         **keywords
         ):
-
-    fastsurfer_home = Path(__file__).parent.parent
+    this_script = Path(__file__)
+    if not this_script.is_absolute():
+        this_script = Path.cwd() / __file__
+    fastsurfer_home = this_script.parent.parent
     version = _import_calls(fastsurfer_home, "version")
     parse_build_file = _import_calls(fastsurfer_home, "parse_build_file")
 
