@@ -77,29 +77,9 @@ wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/mni-1.4' \
       --exclude='freesurfer/mni' \
       --exclude='freesurfer/models' \
+      --exclude='freesurfer/python/bin' \
       --exclude='freesurfer/python/include' \
-      --exclude='freesurfer/python/lib/libcrypto.so.10' \
-      --exclude='freesurfer/python/lib/libpython3.8.a' \
-      --exclude='freesurfer/python/bin/python3.8' \
-      --exclude='freesurfer/python/lib/python3.8/__pycache__' \
-      --exclude='freesurfer/python/lib/python3.8/asyncio' \
-      --exclude='freesurfer/python/lib/python3.8/config-3.8-x86_64-linux-gnu' \
-      --exclude='freesurfer/python/lib/python3.8/ctypes' \
-      --exclude='freesurfer/python/lib/python3.8/distutils' \
-      --exclude='freesurfer/python/lib/python3.8/email' \
-      --exclude='freesurfer/python/lib/python3.8/ensurepip' \
-      --exclude='freesurfer/python/lib/python3.8/idlelib' \
-      --exclude='freesurfer/python/lib/python3.8/multiprocessing' \
-      --exclude='freesurfer/python/lib/python3.8/lib2to3' \
-      --exclude='freesurfer/python/lib/python3.8/pydoc_data' \
-      --exclude='freesurfer/python/lib/python3.8/site-packages' \
-      --exclude='freesurfer/python/lib/python3.8/test' \
-      --exclude='freesurfer/python/lib/python3.8/tkinter' \
-      --exclude='freesurfer/python/lib/python3.8/unittest' \
-      --exclude='freesurfer/python/lib/python3.8/xml' \
-      --exclude='freesurfer/python/lib/python3.8/lib-dynload/_decimal.cpython-38-x86_64-linux-gnu.so' \
-      --exclude='freesurfer/python/lib/python3.8/lib-dynload/pyexpat.cpython-38-x86_64-linux-gnu.so' \
-      --exclude='freesurfer/python/lib/python3.8/lib-dynload/unicodedata.cpython-38-x86_64-linux-gnu.so' \
+      --exclude='freesurfer/python/lib' \
       --exclude='freesurfer/python/share' \
       --exclude='freesurfer/subjects/bert' \
       --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
@@ -115,6 +95,7 @@ wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/tktools' \
       --exclude='freesurfer/trctrain'
 
+
 # rename download to tmp
 mv $where/freesurfer $fss
 
@@ -124,7 +105,7 @@ mkdir -p $fsd/bin
 mkdir -p $fsd/etc
 mkdir -p $fsd/lib/bem
 mkdir -p $fsd/python/scripts
-mkdir -p $fsd/python/packages
+mkdir -p $fsd/python/packages/fsbindings
 mkdir -p $fsd/subjects/fsaverage/label
 mkdir -p $fsd/subjects/fsaverage/surf
 
@@ -250,9 +231,7 @@ copy_files="
   etc/recon-config.yaml
   lib/bem/ic4.tri
   lib/bem/ic7.tri
-  python/bin
-  python/lib
-  python/packages/fsbindings
+  python/packages/fsbindings/legacy.py
   python/scripts/asegstats2table
   python/scripts/aparcstats2table
   python/scripts/rca-config
@@ -336,9 +315,7 @@ copy_files="
   subjects/fsaverage/surf/lh.white
   subjects/fsaverage/surf/rh.sphere
   subjects/fsaverage/surf/rh.sphere.reg
-  subjects/fsaverage/surf/rh.white
-  "
-
+  subjects/fsaverage/surf/rh.white"
 echo
 for file in $copy_files
 do
@@ -346,6 +323,8 @@ do
   cp -r $fss/$file $fsd/$file
 done
 
+# Modify fsbindings Python package to allow calling scripts like asegstats2table directly:
+echo "from . import legacy" > "$fsd/python/packages/fsbindings/__init__.py"
 
 # FS looks for them, but does not call them
 touch_files="/average/RB_all_2020-01-02.gca"
@@ -389,7 +368,6 @@ link_files="
   bin/nu_correct
   bin/tkregister2_cmdl"
 
-
 # create target for link with ERROR message if called
 ltrg=$fsd/bin/not-here.sh
 echo '#!/bin/bash
@@ -409,6 +387,15 @@ do
   echo "linking $file"
   ln -s $ltrg $fsd/$file 
 done
+
+# use our python (not really needed in recon-all anyway)
+p3=`which python3`
+if [ "$p3" == "" ]; then
+  echo "No python3 found, please install first!"
+  echo
+  exit 1
+fi
+ln -s $p3 $fsd/bin/fspython
 
 #cleanup
 rm -rf $fss
