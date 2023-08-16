@@ -175,7 +175,7 @@ COPY /Docker/python-s /venv/bin/
 
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
-ENV PYTHONPATH=/fastsurfer:$PYTHONPATH \
+ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/package:$PYTHONPATH \
     FASTSURFER_HOME=/fastsurfer
 
 # Download all remote network checkpoints already, compile all FastSurfer scripts into bytecode and update
