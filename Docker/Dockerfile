@@ -114,9 +114,9 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # install freesurfer and point to new python location
 RUN /install/install_fs_pruned.sh /opt --upx && \
-    rm /opt/freesurfer/bin/fspython &&  \
-    rm -R /install && \
-    ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
+rm /opt/freesurfer/bin/fspython &&  \
+rm -R /install && \
+ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
 
 
 # =======================================================
@@ -175,7 +175,7 @@ COPY /Docker/python-s /venv/bin/
 
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
-ENV PYTHONPATH=/fastsurfer:$PYTHONPATH \
+ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/package:$PYTHONPATH \
     FASTSURFER_HOME=/fastsurfer
 
 # Download all remote network checkpoints already, compile all FastSurfer scripts into bytecode and update
