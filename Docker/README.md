@@ -49,7 +49,7 @@ Within this directory, we currently provide a build script and Dockerfile to cre
 * CPU (Example 2)
 * AMD / rocm (experimental, Example 3)
 
-To run only the surface pipeline or only the segmentatino pipeline, the entrypoint to these images has to be adapted, which is possible through
+To run only the surface pipeline or only the segmentation pipeline, the entrypoint to these images has to be adapted, which is possible through
 -  for the segmentation pipeline: `--entrypoint "python /fastsurfer/FastSurferCNN/run_prediction.py"`
 -  for the surface pipeline: `--entrypoint "/fastsurfer/recon_surf/recon-surf.sh"`
 
