@@ -1,6 +1,6 @@
 # Pull FastSurfer from DockerHub
 
-We provide a number of prebuild docker images on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags). In order to get the latest GPU image you simply need to execute the following command:
+We provide a number of prebuild docker images on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags). In order to get the latest cuda image (for nVidia GPUs) you simply need to execute the following command:
 
 ```bash 
 docker pull deepmi/fastsurfer
@@ -49,19 +49,19 @@ Within this directory, we currently provide a build script and Dockerfile to cre
 * CPU (Example 2)
 * AMD / rocm (experimental, Example 3)
 
-To run only the surface pipeline or only the sgementatino pipeline, the entrypoint to these images has to be adapted, which is possible through
+To run only the surface pipeline or only the segmentation pipeline, the entrypoint to these images has to be adapted, which is possible through
 -  for the segmentation pipeline: `--entrypoint "python /fastsurfer/FastSurferCNN/run_prediction.py"`
 -  for the surface pipeline: `--entrypoint "/fastsurfer/recon_surf/recon-surf.sh"`
 
 Note, for many HPC users with limited GPUs or with very large datasets, it may be most efficient to run the full pipeline on the CPU, trading a longer run-time for the segmentation with massive parallelization on the subject level. 
 
-Also note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker when using the MPS device (experimental). 
+Also note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [docker for mac](https://docs.docker.com/docker-for-mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker, because the Apple Accelerator (use the experimental MPS device via `--device mps`) can be used. There is no support for MPS-based acceleration through docker at the moment. 
 
 ### General build settings
-The build script `build.py` supports additional args and targets and options, see `python Docker/build.py --help`.
+The build script `build.py` supports additional args, targets and options, see `python Docker/build.py --help`.
 
-Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). 
-In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well.
+Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
+In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of `FastSurferCNN` must be possible) and we only support Python 3.10 (Python 3.8+ still seems to work, but may stop working at any time).
 
 By default, the build script will tag your image as "fastsurfer:{version_tag}[-{device}]", where {version_tag} is {version-identifer from pyproject.toml}_{current git-hash} and {device} is the value to --device (and omitted for cuda), but a custom tag can be specified by `--tag {tag_name}`. 
 
@@ -70,10 +70,11 @@ By default, the build script will tag your image as "fastsurfer:{version_tag}[-{
 In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command after traversing into the *Docker* directory: 
 
 ```bash
+PYTHONPATH=<FastSurferRoot>
 python build.py --device cuda --tag my_fastsurfer:cuda
 ```
 
-For running the analysis, the command is basically the same as above for the prebuild option:
+For running the analysis, the command is the same as above for the prebuild option:
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
@@ -91,6 +92,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
+PYTHONPATH=<FastSurferRoot>
 python build.py --device cpu --tag my_fastsurfer:cpu
 ```
 
@@ -117,6 +119,7 @@ your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to w
 https://docs.amd.com/en/latest/deploy/linux/quick_start.html
 
 ```bash
+PYTHONPATH=<FastSurferRoot>
 python build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
