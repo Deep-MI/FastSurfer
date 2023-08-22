@@ -255,6 +255,7 @@ copy_files="
   subjects/fsaverage/label/lh.BA4p_exvivo.thresh.label
   subjects/fsaverage/label/lh.BA6_exvivo.label
   subjects/fsaverage/label/lh.BA6_exvivo.thresh.label
+  subjects/fsaverage/label/lh.cortex.label
   subjects/fsaverage/label/lh.entorhinal_exvivo.label
   subjects/fsaverage/label/lh.entorhinal_exvivo.thresh.label
   subjects/fsaverage/label/lh.FG1.mpm.vpnl.label
@@ -292,6 +293,7 @@ copy_files="
   subjects/fsaverage/label/rh.BA4p_exvivo.thresh.label
   subjects/fsaverage/label/rh.BA6_exvivo.label
   subjects/fsaverage/label/rh.BA6_exvivo.thresh.label
+  subjects/fsaverage/label/rh.cortex.label
   subjects/fsaverage/label/rh.entorhinal_exvivo.label
   subjects/fsaverage/label/rh.entorhinal_exvivo.thresh.label
   subjects/fsaverage/label/rh.FG1.mpm.vpnl.label
@@ -310,9 +312,15 @@ copy_files="
   subjects/fsaverage/label/rh.V1_exvivo.thresh.label
   subjects/fsaverage/label/rh.V2_exvivo.label
   subjects/fsaverage/label/rh.V2_exvivo.thresh.label
+  subjects/fsaverage/surf/lh.curv
+  subjects/fsaverage/surf/lh.pial
+  subjects/fsaverage/surf/lh.pial_semi_inflated
   subjects/fsaverage/surf/lh.sphere
   subjects/fsaverage/surf/lh.sphere.reg
   subjects/fsaverage/surf/lh.white
+  subjects/fsaverage/surf/rh.curv
+  subjects/fsaverage/surf/rh.pial
+  subjects/fsaverage/surf/rh.pial_semi_inflated
   subjects/fsaverage/surf/rh.sphere
   subjects/fsaverage/surf/rh.sphere.reg
   subjects/fsaverage/surf/rh.white"
