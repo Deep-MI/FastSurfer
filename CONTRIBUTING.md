@@ -54,6 +54,47 @@ Enhancement suggestions are tracked as [GitHub issues](issues).
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
 - **Explain why this enhancement would be useful** to most users.
 
+## Contributing Code
+
+1. [Fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo) this repository to your github account
+2. Clone your fork to your computer (`git clone https://github.com/<username>/FastSurfer.git`)
+3. Change into the project directory (`cd FastSurfer`)
+4. Add Deep-MI repo as upstream (`git remote add upstream https://github.com/Deep-MI/FastSurfer.git`)
+5. Update information from upstream (`git fetch upstream`)
+6. Checkout the upstream dev branch (`git checkout -b dev upstream/dev`)
+7. Create your feature branch from dev (`git checkout -b my-new-feature`)
+8. Commit your changes (`git commit -am 'Add some feature'`)
+9. Push to the branch to your github (`git push origin my-new-feature`)
+10. Create new pull request on github web interface from that branch into Deep-NI **dev branch** (not into stable, which is default)
+
+If lots of things changed in the meantime or the pull request is showing conflicts you should rebase your branch to the current upstream dev.
+This is the preferred way, but only possible if you are the sole develop or your branch:
+
+10. Switch into dev branch (`git checkout dev`)
+11. Update your dev branch (`git pull upstream dev`)
+12. Switch into your feature (`git chekcout my-new-feature`)
+13. Rebase your branch onto dev (`git rebase dev`), resolve conflicts and continue until complete
+14. Force push the updated feature branch to your gihub (`git push -f origin my-new-feature`)
+
+If other people co-develop the my-new-feature branch, rewriting history with a rebase is not possible.
+Instead you need to merge upstream dev into your branch:
+
+10. Switch into dev branch (`git checkout dev`)
+11. Update your dev branch (`git pull upstream dev`)
+12. Switch into your feature (`git chekcout my-new-feature`)
+13. Merge dev into your feature (`git merge dev`), resolve conflicts and commit
+14. Push to origin (`git push origin my-new-feature`)
+
+Either method updates the pull request and resolves conflicts, so that we can merge it once it is complete.
+Once the pull request is merged by us you can delete the feature branch in your clone and on your fork:
+
+15. Switch into dev branch (`git checkout dev`)
+16. Delete feature branch (`git branch -D my-new-feature`)
+17. Delete the branch on your github fork either via GUI, or via command line (`git push origin --delete my-new-feature`)
+
+This procedure will ensure that your local dev branch always follows our dev branch and will never diverge. You can, once in a while, push the dev branch, or similarly update stable and push it to your fork (origin), but that is not really necessary. 
+
+
 ## Attribution
 
 This guide is based on the **contributing-gen**. [Make your own](https://github.com/bttger/contributing-gen)!
