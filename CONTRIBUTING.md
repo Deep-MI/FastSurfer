@@ -94,6 +94,12 @@ Once the pull request is merged by us you can delete the feature branch in your 
 
 This procedure will ensure that your local dev branch always follows our dev branch and will never diverge. You can, once in a while, push the dev branch, or similarly update stable and push it to your fork (origin), but that is not really necessary. 
 
+Next time you contribute a feature, you do not need to go through the steps 1-6 above, but simply:
+- Switch to dev branch (`git checkout dev`)
+- Make sure it is identical to upstream (`git pull upstream dev`)
+- Check out a new feature branch and continue from 7. above. 
+
+Another good command, if for some reasons your dev branch diverged, which should never happen as you never commit to it, you can reset it by `git reset --hard upstream/dev`. Make absolutely sure you are in your dev branch (not the feature branch) and be aware that this will delete any local changes!
 
 ## Attribution
 
