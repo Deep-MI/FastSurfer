@@ -190,6 +190,34 @@ def align_seg_centroids(
     return T
 
 
+def get_vox2ras(img:sitk.Image) -> npt.NDArray:
+    """Extract voxel to RAS (affine) from sitk image.
+    
+    Parameters
+    ----------
+    seg : sitk.Image
+        sitk Image.
+
+    Returns
+    -------
+    vox2ras
+        VOX2RAS (affine) transformation matrix.
+    """
+    vox2ras = np.zeros((4,4))
+    vox2ras[3,3] = 1.0
+    # Rotation
+    cosines = img.GetDirection()
+    vox2ras[0,0:3] = cosines[0:3] * np.array([-1, -1, -1])
+    vox2ras[1,0:3] = cosines[3:6] * np.array([-1, -1, -1])
+    vox2ras[2,0:3] = cosines[6:9] 
+    # Scaling (multiply rows, hope this is correct)
+    # not tested for anisotropic images
+    spacing = img.GetSpacing()
+    vox2ras[0:3,0:3] = spacing * vox2ras[0:3,0:3]
+    # Translation
+    vox2ras[0:3,3] = img.GetOrigin() * np.array([-1, -1, 1])
+    return vox2ras
+
 def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDArray:
     """Registrate Left - right (make upright).
 
@@ -293,16 +321,10 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
         counter = counter + 1
 
     # compute vox2ras matrix from image information
-    vox2ras = np.zeros((4,4))
-    vox2ras[3,3] = 1.0
-    cosines = seg.GetDirection()
-    vox2ras[0,0:3] = cosines[0:3] * np.array([-1, -1, -1])
-    vox2ras[1,0:3] = cosines[3:6] * np.array([-1, -1, -1])
-    vox2ras[2,0:3] = cosines[6:9] 
-    vox2ras[0:3,3] = seg.GetOrigin() * np.array([-1, -1, 1])
-    #print("vox2ras:\n {}".format(vox2ras))
+    vox2ras = get_vox2ras(seg)
+    print("vox2ras:\n {}".format(vox2ras))
     ras2vox = np.linalg.inv(vox2ras)
-    #print("ras2vox:\n {}".format(ras2vox))
+    print("ras2vox:\n {}".format(ras2vox))
 
     # find mid slice of image (usually 127.5 for 256 width)
     # instead we could also fix this to be 128 independent of width
