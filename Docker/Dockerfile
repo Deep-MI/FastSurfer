@@ -162,7 +162,7 @@ ENV OS=Linux \
 # create matplotlib config dir; make sure we use bash and activate conda env
 #  (in case someone starts this interactively)
 RUN mkdir -m 777 $MPLCONFIGDIR && \
-    echo "source /venv/bin/activate" >> ~/.bashrc
+    echo "source /venv/bin/activate" >> /etc/bash.bashrc
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Copy fastsurfer venv and pruned freesurfer from build images

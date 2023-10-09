@@ -158,6 +158,7 @@ copy_files="
   bin/fs-check-version
   bin/fsr-getxopts
   bin/gauss_4dfp
+  bin/ifh2hdr
   bin/imgreg_4dfp
   bin/isanalyze
   bin/isnifti
