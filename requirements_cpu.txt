@@ -197,7 +197,7 @@ triton==2.0.0
     # via torch
 typing-extensions==4.6.3
     # via torch
-urllib3==1.26.16
+urllib3==1.26.18
     # via
     #   google-auth
     #   requests
