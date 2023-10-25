@@ -201,7 +201,7 @@ urllib3==1.26.16
     # via
     #   google-auth
     #   requests
-werkzeug==2.3.6
+werkzeug==3.0.1
     # via tensorboard
 wheel==0.40.0
     # via tensorboard
