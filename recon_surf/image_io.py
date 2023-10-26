@@ -22,7 +22,7 @@ import sys
 import SimpleITK as sitk
 import nibabel as nib
 from nibabel.freesurfer.mghformat import MGHHeader
-from typing import Union, Any, Optional, Tuple
+from typing import Union, Any, Optional, Tuple, overload
 
 
 def mgh_from_sitk(
@@ -104,6 +104,24 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
     origin = img.affine[:3, 3:] * [[-1], [-1], [1]]
     img_sitk.SetOrigin(origin.ravel())
     return img_sitk
+
+
+@overload
+def readITKimage(
+        filename: str,
+        vox_type: Optional[Any] = None,
+        with_header: False = False
+) -> sitk.Image:
+    ...
+
+
+@overload
+def readITKimage(
+        filename: str,
+        vox_type: Optional[Any] = None,
+        with_header: True = True
+) -> Tuple[sitk.Image, Any]:
+    ...
 
 
 def readITKimage(

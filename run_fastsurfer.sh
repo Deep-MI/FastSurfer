@@ -734,7 +734,7 @@ if [ "$run_seg_pipeline" == "1" ]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
-        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --threads $threads"
+        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $asegdkt_segfile --threads $threads"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         if [ "${PIPESTATUS[0]}" -ne 0 ]
