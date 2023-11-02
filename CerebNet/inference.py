@@ -14,7 +14,7 @@
 
 # IMPORTS
 import time
-from os import makedirs, cpu_count
+from os import makedirs
 from os.path import join, dirname, isfile
 from typing import Dict, List, Tuple, Optional, Literal
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -26,6 +26,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable
 from FastSurferCNN.utils.common import (
     find_device,
@@ -64,7 +65,7 @@ class Inference:
         self.pool = None
         self._threads = None
         self.threads = threads
-        torch.set_num_threads(cpu_count() if self._threads is None else self._threads)
+        torch.set_num_threads(get_num_threads() if self._threads is None else self._threads)
         self.pool = (
             ThreadPoolExecutor(self._threads) if async_io else NoParallelExecutor()
         )

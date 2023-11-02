@@ -16,7 +16,6 @@
 # IMPORTS
 import argparse
 import logging
-import multiprocessing
 from functools import partial, reduce
 from itertools import product
 from numbers import Number
@@ -27,6 +26,7 @@ import numpy as np
 import pandas as pd
 from numpy import typing as npt
 
+from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.parser_defaults import add_arguments
 from FastSurferCNN.utils.arg_types import (int_gt_zero as patch_size, int_ge_zero as id_type,
                                            float_gt_zero_and_le_one as robust_threshold)
@@ -115,9 +115,9 @@ def make_arguments() -> argparse.ArgumentParser:
                              "segmentation when calculating the statistics (default: no robust "
                              "statistics == `--robust 1.0`).")
     advanced = parser.add_argument_group(title="Advanced options")
-    advanced.add_argument('--threads', dest='threads', default=multiprocessing.cpu_count(), type=int,
+    advanced.add_argument('--threads', dest='threads', default=get_num_threads(), type=int,
                           help=f"Number of threads to use (defaults to number of hardware threads: "
-                               f"{multiprocessing.cpu_count()})")
+                               f"{get_num_threads()})")
     advanced.add_argument('--patch_size', type=patch_size, dest='patch_size', default=32,
                           help="Patch size to use in calculating the partial volumes (default: 32).")
     advanced.add_argument('--empty', action='store_true', dest='empty',
@@ -203,7 +203,7 @@ def main(args):
 
     threads = args.threads
     if threads <= 0:
-        threads = multiprocessing.cpu_count()
+        threads = get_num_threads()
 
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(threads) as tpe:
@@ -734,7 +734,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
 
     if seg.shape != norm.shape:
         raise RuntimeError(f"The shape of the segmentation and the norm must be identical, but shapes are {seg.shape} "
-            f"and {norm.shape}!")
+                           f"and {norm.shape}!")
 
     mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [{} for _ in range(7)]
     loc_border = {}
@@ -759,12 +759,11 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
     global_stats_filled = partial(global_stats,
                                   norm=norm[global_crop], seg=seg[global_crop],
                                   robust_percentage=robust_percentage)
-    from multiprocessing import cpu_count
-    map_kwargs = {"chunksize": np.ceil(len(labels) / cpu_count())}
     if threads < 0:
-        threads = cpu_count()
+        threads = get_num_threads()
     elif threads == 0:
         raise ValueError("Zero is not a valid number of threads.")
+    map_kwargs = {"chunksize": np.ceil(len(labels) / threads)}
 
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(threads) as pool:
@@ -802,10 +801,10 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
 
         for vols in pool.map(partial(pv_calc_patch, global_crop=global_crop, loc_border=loc_border, border=border,
-                    seg=seg, norm=norm, full_nbr_label=full_nbr_label, full_seg_mean=full_seg_mean,
-                    full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps,
-                    legacy_freesurfer=legacy_freesurfer),
-            patches, **map_kwargs):
+                                     seg=seg, norm=norm, full_nbr_label=full_nbr_label, full_seg_mean=full_seg_mean,
+                                     full_pv=full_pv, full_ipv=full_ipv, full_nbr_mean=full_nbr_mean, eps=eps,
+                                     legacy_freesurfer=legacy_freesurfer),
+                             patches, **map_kwargs):
             for lab in volumes.keys():
                 volumes[lab] += vols.get(lab, 0.) * vox_vol
 

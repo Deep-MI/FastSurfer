@@ -27,10 +27,10 @@ Values can also be extracted by
 """
 
 import argparse
-import multiprocessing
 from os import path
 from typing import Iterable, Mapping, Union, Literal, Dict, Protocol, TypeVar, Type
 
+from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.arg_types import (
     vox_size as __vox_size,
     float_gt_zero_and_le_one as __conform_to_one_mm,
@@ -262,9 +262,9 @@ ALL_FLAGS = {
     "threads": __arg(
         "--threads",
         dest="threads",
-        default=multiprocessing.cpu_count(),
+        default=get_num_threads(),
         type=int,
-        help=f"Number of threads to use (defaults to number of hardware threads: {multiprocessing.cpu_count()})",
+        help=f"Number of threads to use (defaults to number of hardware threads: {get_num_threads()})",
     ),
     "async_io": __arg(
         "--async_io",
