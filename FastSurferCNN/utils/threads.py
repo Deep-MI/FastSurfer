@@ -12,16 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    "checkpoint",
-    "common",
-    "load_config",
-    "logging",
-    "lr_scheduler",
-    "mapper",
-    "meters",
-    "metrics",
-    "misc",
-    "parser_defaults",
-    "threads",
-]
+def get_num_threads():
+    try:
+        from os import sched_getaffinity as __getaffinity
+        return len(__getaffinity(0))
+    except ImportError:
+        from os import cpu_count
+        return cpu_count()
