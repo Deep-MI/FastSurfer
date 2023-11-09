@@ -340,12 +340,12 @@ def normalize_img(
 
 
 def read_talairach_xfm(fname: Path | str) -> np.ndarray:
-    """Read TalairachXFM image.
+    """Read Talairach transform.
 
     Parameters
     ----------
     fname : str
-        Filename to TalairachXFM
+        Filename to Talairach transform
 
     Returns
     -------
@@ -379,19 +379,19 @@ def read_talairach_xfm(fname: Path | str) -> np.ndarray:
 
 
 def get_tal_origin_voxel(tal: npt.ArrayLike, image: sitk.Image) -> np.ndarray:
-    """Get the original Talairach Voxel.
+    """Get the origin of Talairach space in voxel coordinates.
 
     Parameters
     ----------
     tal : npt.ArrayLike
-        [MISSING]
+        Talairach transform matrix.
     image : sitk.Image
-        Original image
+        Image.
 
     Returns
     -------
     vox_origin : np.ndarray
-        Original Talairach Voxel
+        Voxel coordinate of Talairach origin
 
     """
     tal_inv = np.linalg.inv(tal)
