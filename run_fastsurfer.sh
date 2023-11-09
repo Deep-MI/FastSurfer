@@ -17,12 +17,12 @@
 VERSION='$Id$'
 
 # Set default values for arguments
-if [ -z "${BASH_SOURCE[0]}" ]; then
+if [[ -z "${BASH_SOURCE[0]}" ]]; then
     THIS_SCRIPT="$0"
 else
     THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
-if [ -z "$FASTSURFER_HOME" ]
+if [[ -z "$FASTSURFER_HOME" ]]
 then
   FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
   echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
@@ -63,8 +63,10 @@ run_cereb_module="1"
 threads="1"
 # python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
 # python-s is a miniscript to add this flag, but this only works if python-s is defined
-if [ -n "$(which python-s)" ]; then
+if [[ -n "$(which python-s)" ]]; then
   python="python-s"
+elif [[ -f "/fastsurfer/python-s" ]]; then
+  python="/fastsurfer/python-s"
 else
   python="python3.10"
 fi
@@ -274,7 +276,7 @@ key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 case $key in
     --fs_license)
-    if [ -f "$2" ]; then
+    if [[ -f "$2" ]]; then
         export FS_LICENSE="$2"
     else
         echo "Provided FreeSurfer license file $2 could not be found. Make sure to provide the full path and name. Exiting..."
@@ -304,10 +306,10 @@ case $key in
     shift # past value
     ;;
     --seg | --asegdkt_segfile | --aparc_aseg_segfile)
-    if [ "$key" == "--seg" ]; then
+    if [[ "$key" == "--seg" ]]; then
       echo "WARNING: --seg <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
     fi
-    if [ "$key" == "--aparc_aseg_segfile" ]; then
+    if [[ "$key" == "--aparc_aseg_segfile" ]]; then
       echo "WARNING: --aparc_aseg_segfile <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>"
     fi
     asegdkt_segfile="$2"
@@ -355,7 +357,7 @@ case $key in
     shift # past value
     ;;
     --viewagg_device | --run_viewagg_on)
-    if [ "$key" == "--run_viewagg_on" ]
+    if [[ "$key" == "--run_viewagg_on" ]]
     then
       echo "WARNING: --run_viewagg_on (cpu|gpu|check) is deprecated and will be removed, use --viewagg_device <device|auto>."
     fi
@@ -384,7 +386,7 @@ case $key in
     shift # past argument
     ;;
     --no_asegdkt | --no_aparc)
-    if [ "$key" == "--no_aparc" ]
+    if [[ "$key" == "--no_aparc" ]]
     then
       echo "WARNING: --no_aparc is deprecated and will be removed, use --no_asegdkt."
     fi
@@ -465,7 +467,7 @@ case $key in
     exit
     ;;
     --version)
-      if [ "$#" -lt 2 ]; then
+      if [[ "$#" -lt 2 ]]; then
           version_and_quit="1"
       else
         case $2 in
@@ -497,7 +499,7 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # make sure FastSurfer is in the PYTHONPATH
-if [ "$PYTHONPATH" == "" ]
+if [[ "$PYTHONPATH" == "" ]]
 then
   export PYTHONPATH="$FASTSURFER_HOME"
 else
@@ -506,15 +508,15 @@ fi
 
 ########################################## VERSION AND QUIT HERE ########################################
 version_args=""
-if [ -f "$FASTSURFER_HOME/BUILD.info" ]
+if [[ -f "$FASTSURFER_HOME/BUILD.info" ]]
   then
     version_args="--build_cache $FASTSURFER_HOME/BUILD.info --prefer_cache"
 fi
 
-if [ -n "$version_and_quit" ]
+if [[ -n "$version_and_quit" ]]
   then
     # if version_and_quit is 1, it should only print the version number+git branch
-    if [ "$version_and_quit" != "1" ]
+    if [[ "$version_and_quit" != "1" ]]
       then
         version_args="$version_args --sections $version_and_quit"
     fi
@@ -523,7 +525,7 @@ if [ -n "$version_and_quit" ]
 fi
 
 # Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
+if [[ -z "$allow_root" ]] && [[ "$(id -u)" == "0" ]]
   then
     echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
     echo "because it will lead to files and folders created as root."
@@ -535,76 +537,76 @@ fi
 
 
 # CHECKS
-if [ "$run_seg_pipeline" == "1" ] && { [ -z "$t1" ] || [ ! -f "$t1" ]; }
+if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
   then
     echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
     echo "--t1 (absolute path and name) for generating the segmentation."
     exit 1;
 fi
 
-if [ -z "$subject" ]
- then
+if [[ -z "$subject" ]]
+  then
     echo "ERROR: must supply subject name via --sid"
     exit 1;
 fi
 
-if [ -z "$merged_segfile" ]
+if [[ -z "$merged_segfile" ]]
   then
     merged_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz"
 fi
 
-if [ -z "$asegdkt_segfile" ]
+if [[ -z "$asegdkt_segfile" ]]
   then
     asegdkt_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
-if [ -z "$aseg_segfile" ]
+if [[ -z "$aseg_segfile" ]]
   then
     aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"
 fi
 
-if [ -z "$asegdkt_statsfile" ]
+if [[ -z "$asegdkt_statsfile" ]]
   then
     asegdkt_statsfile="${sd}/${subject}/stats/aseg+DKT.stats"
 fi
 
 
-if [ -z "$cereb_segfile" ]
+if [[ -z "$cereb_segfile" ]]
   then
     cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
 fi
 
-if [ -z "$cereb_statsfile" ]
+if [[ -z "$cereb_statsfile" ]]
   then
     cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats"
 fi
 
-if [ -z "$mask_name" ]
+if [[ -z "$mask_name" ]]
   then
     mask_name="${sd}/${subject}/mri/mask.mgz"
 fi
 
-if [ -z "$conformed_name" ]
+if [[ -z "$conformed_name" ]]
   then
     conformed_name="${sd}/${subject}/mri/orig.mgz"
 fi
 
-if [ -z "$norm_name" ]
+if [[ -z "$norm_name" ]]
   then
     norm_name="${sd}/${subject}/mri/orig_nu.mgz"
 fi
 
-if [ -z "$seg_log" ]
+if [[ -z "$seg_log" ]]
  then
     seg_log="${sd}/${subject}/scripts/deep-seg.log"
 fi
 
-if [ -z "$build_log" ]
+if [[ -z "$build_log" ]]
  then
     build_log="${sd}/${subject}/scripts/build.log"
 fi
 
-if [ -z "$PYTHONUNBUFFERED" ]
+if [[ -z "$PYTHONUNBUFFERED" ]]
 then
   export PYTHONUNBUFFERED=0
 fi
@@ -621,14 +623,14 @@ then
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
   fi
-elif [ "$vox_size" != "min" ]
+elif [[ "$vox_size" != "min" ]]
 then
   # not a number or "min"
   echo "Invalid option for --vox_size, only a number or 'min' are valid."
   exit 1;
 fi
 
-#if [ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]
+#if [[ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]]
 #  then
 #    # This is because we currently only do a symlink
 #    echo "ERROR: Specified segmentation outputs do not have same file type."
@@ -637,7 +639,7 @@ fi
 #    exit 1;
 #fi
 
-if [ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]
+if [[ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]]
   then
     echo "ERROR: Specified segmentation output and conformed image output do not have same file type."
     echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --conformed_name ${conformed_name}."
@@ -645,16 +647,16 @@ if [ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]
     exit 1;
 fi
 
-if [ "$run_surf_pipeline" == "1" ] && { [ "$run_asegdkt_module" == "0" ] || [ "$run_seg_pipeline" == "0" ]; }
+if [[ "$run_surf_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] || [[ "$run_seg_pipeline" == "0" ]]; }
   then
-    if [ ! -f "$asegdkt_segfile" ]
+    if [[ ! -f "$asegdkt_segfile" ]]
     then
         echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
         echo "You passed --surf_only or --no_asegdkt, but the whole-brain segmentation ($asegdkt_segfile) could not be found."
         echo "If the segmentation is not saved in the default location ($asegdkt_segfile_default), specify the absolute path and name via --asegdkt_segfile"
         exit 1;
     fi
-    if [ ! -f "$conformed_name" ]
+    if [[ ! -f "$conformed_name" ]]
     then
         echo "ERROR: To run the surface pipeline only, a conformed T1 image must already exist."
         echo "You passed --surf_only but the conformed image ($conformed_name) could not be found."
@@ -664,9 +666,9 @@ if [ "$run_surf_pipeline" == "1" ] && { [ "$run_asegdkt_module" == "0" ] || [ "$
     fi
 fi
 
-if [ "$run_seg_pipeline" == "1" ] && { [ "$run_asegdkt_module" == "0" ] && [ "$run_cereb_module" == "1" ]; }
+if [[ "$run_seg_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] && [[ "$run_cereb_module" == "1" ]]; }
   then
-    if [ ! -f "$asegdkt_segfile" ]
+    if [[ ! -f "$asegdkt_segfile" ]]
     then
         echo "ERROR: To run the cerebellum segmentation but no asegdkt, the aseg segmentation must already exist."
         echo "You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
@@ -676,7 +678,7 @@ if [ "$run_seg_pipeline" == "1" ] && { [ "$run_asegdkt_module" == "0" ] && [ "$r
 fi
 
 
-if [ "$run_surf_pipeline" == "0" ] && [ "$run_seg_pipeline" == "0" ]
+if [[ "$run_surf_pipeline" == "0" ]] && [[ "$run_seg_pipeline" == "0" ]]
   then
     echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
     echo "To run the whole FastSurfer pipeline, omit both flags."
@@ -684,45 +686,48 @@ if [ "$run_surf_pipeline" == "0" ] && [ "$run_seg_pipeline" == "0" ]
 fi
 
 
-if [ "$run_cereb_module" == "1" ]
-  then
-    if [ "$run_biasfield" == "1" ]
-      then
-        cereb_flags="$cereb_flags --norm_name $norm_name --cereb_statsfile $cereb_statsfile"
-    else
-        echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." |& tee -a $seg_log
-    fi
-fi
-
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
+
+if [[ -f "$seg_log" ]] && [[ "$run_seg_pipeline" == "1" ]]
+  then
+    append_flag=("$seg_log")
+else
+    append_flag=(-a "$seg_log")
+fi
+
 VERSION=$($python $FASTSURFER_HOME/FastSurferCNN/version.py $version_args)
-echo "Version: $VERSION" |& tee "$seg_log"
+echo "Version: $VERSION" |& tee "${append_flag[@]}"
 
 # create the build log, file with all version info in parallel
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" $version_args >> "$build_log" &
 
-if [ "$run_seg_pipeline" == "1" ]
+if [[ ! -f "$seg_log" ]] || [[ "$run_seg_pipeline" != "1" ]]
+  then
+    echo "Running run_fastsurfer.sh on a "
+fi
+
+
+if [[ "$run_seg_pipeline" == "1" ]]
   then
     # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
     # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
-    mkdir -p "$(dirname "$seg_log")"
     echo "Log file for segmentation FastSurferCNN/run_prediction.py" >> "$seg_log"
     date  |& tee -a "$seg_log"
     echo "" |& tee -a "$seg_log"
 
-    if [ "$run_asegdkt_module" == "1" ]
+    if [[ "$run_asegdkt_module" == "1" ]]
       then
         cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --asegdkt_segfile $asegdkt_segfile --conformed_name $conformed_name --brainmask_name $mask_name --aseg_name $aseg_segfile --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         exit_code="${PIPESTATUS[0]}"
-        if [ "${exit_code}" == 2 ]
+        if [[ "${exit_code}" == 2 ]]
           then
             echo "ERROR: FastSurfer asegdkt segmentation failed QC checks."
             exit 1
-        elif [ "${exit_code}" -ne 0 ]
+        elif [[ "${exit_code}" -ne 0 ]]
           then
             echo "ERROR: FastSurfer asegdkt segmentation failed."
             exit 1
@@ -730,25 +735,25 @@ if [ "$run_seg_pipeline" == "1" ]
     fi
 
     # compute the bias-field corrected image
-    if [ "$run_biasfield" == "1" ]
+    if [[ "$run_biasfield" == "1" ]]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
         cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --aseg $asegdkt_segfile --threads $threads"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
-        if [ "${PIPESTATUS[0]}" -ne 0 ]
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
             echo "ERROR: Biasfield correction failed" | tee -a "$seg_log"
             exit 1
         fi
 
-        if [ "$run_asegdkt_module" ]
+        if [[ "$run_asegdkt_module" ]]
           then
             cmd="$python ${fastsurfercnndir}/segstats.py --segfile $asegdkt_segfile --segstatsfile $asegdkt_statsfile --normfile $norm_name $allow_root --empty --excludeid 0 --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035 --lut $fastsurfercnndir/config/FreeSurferColorLUT.txt --threads $threads "
             echo "$cmd" |& tee -a "$seg_log"
             $cmd |& tee -a "$seg_log"
-            if [ "${PIPESTATUS[0]}" -ne 0 ]
+            if [[ "${PIPESTATUS[0]}" -ne 0 ]]
               then
                 echo "ERROR: asegdkt statsfile generation failed" | tee -a "$seg_log"
                 exit 1
@@ -756,25 +761,32 @@ if [ "$run_seg_pipeline" == "1" ]
         fi
     fi
 
-    if [ "$run_cereb_module" == "1" ]
+    if [[ "$run_cereb_module" == "1" ]]
       then
+        if [[ "$run_biasfield" == "1" ]]
+          then
+            cereb_flags="$cereb_flags --norm_name $norm_name --cereb_statsfile $cereb_statsfile"
+        else
+            echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." |& tee -a $seg_log
+        fi
+
         cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --asegdkt_segfile $asegdkt_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --seg_log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device --async_io --threads $threads$cereb_flags $allow_root"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
-        if [ "${PIPESTATUS[0]}" -ne 0 ]
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
             echo "ERROR: Cerebellum Segmentation failed" | tee -a "$seg_log"
             exit 1
         fi
     fi
 
-#    if [ ! -f "$merged_segfile" ]
+#    if [[ ! -f "$merged_segfile" ]]
 #      then
 #        ln -s -r "$asegdkt_segfile" "$merged_segfile"
 #    fi
 fi
 
-if [ "$run_surf_pipeline" == "1" ]
+if [[ "$run_surf_pipeline" == "1" ]]
   then
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
@@ -784,7 +796,7 @@ if [ "$run_surf_pipeline" == "1" ]
     cmd="$cmd $vcheck $vfst1 $allow_root"
     echo "$cmd" |& tee -a "$seg_log"
     $cmd
-    if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+    if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
     popd
 fi
 
