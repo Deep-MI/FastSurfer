@@ -1,0 +1,274 @@
+#!/bin/bash
+
+# script for functions used by srun_fastsurfer.sh and srun_freesufer.sh
+
+function read_cases ()
+{
+  # param1 data_dir
+  # param2 search_patttern
+  # param3 (optional, alternate mount_dir to print paths relative to)
+  # outputs one line per subject, format: "subject_id=input_path"
+  # cases are read based on globbing the search_pattern in data_dir,
+  # but may be transformed to the optional mount_dir
+  prev_pwd="$(pwd)"
+  { pushd "$1" > /dev/null || (echo "Could not go to $1" && exit 1)} >&2
+    for file_match in $2; do
+      subject_file="${file_match//\//_}"
+      subject="${subject_file/%.nii.gz/}"
+      subject="${subject/%.nii/}"
+      subject="${subject/%.mgz/}"
+      if [[ $(($#)) -gt 2 ]]
+      then
+        echo "$subject=$3/$file_match"
+      else
+        echo "$subject=$1/$file_match"
+      fi
+    done
+  { popd > /dev/null || (echo "Could not return to $prev_pwd" && exit 1)} >&2
+}
+
+function translate_cases ()
+{
+  #param1 root_dir
+  #param2 subject_list file
+  #param3 target_dir
+  #param4 optional, delimiter
+  #param5 optional, awk snippets to modify the subject_id and the subject_path (split by :), default '$1:$2'
+  if [[ "$#" -gt 3 ]]
+  then
+    delimiter=$4
+  else
+    delimiter=","
+  fi
+  if [[ "$#" -gt 4 ]]
+  then
+    subid_awk="$(echo "$5" | cut -f1 -d:)"
+    subpath_awk="$(echo "$5" | cut -f2 -d:)"
+  else
+    subid_awk='$1'
+    subpath_awk='$2'
+  fi
+  init='BEGIN { regex="^(" source_dir "|" target_dir ")"; }'
+  script=$(printf "%s length(\$NF) > 1 { subid=%s; subpath=%s; gsub(regex, \"\", subpath); print subid \"=\" target_dir \"/\" subpath; }" \
+           "$init" "$subid_awk" "$subpath_awk")
+  #>&2 echo "awk -F \"$delimiter\" -v target_dir=\"$3\" -v source_dir=\"$1\" \"$script\" \"$2\""
+  awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
+}
+
+# step zero: make directories
+function check_hpc_work ()
+{
+  #param1 hpc_work
+  if [[ -z "$1" ]] || [[ ! -d "$1" ]]; then
+    echo "The hpc_work directory $1 is not defined or does not exists."
+    exit 1
+  fi
+  if [[ "$(ls $1 | wc -w)" -gt "0" ]]; then
+    echo "The hpc_work directory $1 not empty."
+    exit 1
+  fi
+}
+function check_singularity_image ()
+{
+  #param1 singularity_image
+  if [[ -z "$1" ]] || [[ ! -f "$1" ]]; then
+    echo "The singularity image $1 did not exist."
+    exit 1
+  fi
+}
+function check_fs_license ()
+{
+  #param1 fs_license
+  if [[ -z "$1" ]] || [[ ! -f "$1" ]]; then
+    echo "Cannot find the FreeSurfer license (--fs_license, at \"$1\")"
+    exit 1
+  fi
+}
+function check_seg_surf_only ()
+{
+  #param1 seg_only
+  #param2 surf_only
+  if [[ "$1" == "true" ]] || [[ "$2" == "true" ]]; then
+    echo "Selecting both --seg_only and --surf_only is invalid!"
+    exit 1
+  fi
+}
+function check_subject_images ()
+{
+  #param1 in_dir
+  #param2 cases
+  if [[ "$#" -lt 2 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
+  local in_dir=$1
+  missing_subject_ids=""
+  missing_subject_imgs=""
+  for subject in $2
+  do
+    subject_id=$(echo "$subject" | cut -d= -f1)
+    image_path=$(echo "$subject" | cut -d= -f2)
+    if [[ ! -e "$in_dir/$image_path" ]]
+    then
+      if [[ -n "$missing_subject_ids" ]]
+      then
+        missing_subject_ids="$missing_subject_ids, "
+        missing_subject_imgs="$missing_subject_imgs, "
+      fi
+      missing_subject_ids="$missing_subject_ids$subject_id"
+      missing_subject_imgs="$missing_subject_imgs$1$image_path"
+    fi
+  done
+  if [[ -n "$missing_subject_ids" ]]
+  then
+    echo "ERROR: Some images are missing!"
+    echo "Subject IDs: $missing_subject_ids"
+    echo "Files: $missing_subject_imgs"
+    exit 1
+  fi
+}
+
+function make_hpc_work_dirs ()
+{
+  # param1: hpc_work
+  mkdir "$1/images" &
+  mkdir "$1/scripts" &
+  mkdir "$1/cases" &
+  mkdir "$1/logs" &
+}
+
+# copy results back and clean the output directory
+function make_cleanup_job ()
+{
+  # param1: hpc_work directory
+  # param2: output directory
+  # param3: dependency tag
+  # param4: optional: true/false (submit jobs, default=true)
+  local clean_cmd_file
+  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  then
+    clean_cmd_file=$(mktemp)
+  else
+    clean_cmd_file=$hpc_work/scripts/slurm_cleanup.sh
+  fi
+  local clean_cmd_filename=$hpc_work/scripts/slurm_cleanup.sh
+
+  local hpc_work=$1
+  local out_dir=$2
+  local clean_slurm_sched=(-d "$3" -J "FastSurfer-Cleanup-$USER"
+    --ntasks=1 --cpus-per-task=4 -o "$out_dir/logs/cleanup_%A.log"
+    "$clean_cmd_filename")
+
+  mkdir -p $out_dir/logs
+  {
+    echo "#!/bin/bash"
+    echo "set -e"
+    echo "mkdir -p $out_dir"
+    echo "for dir in \"$hpc_work/scripts\" \"$hpc_work/logs\"; do"
+    echo "  if [[ -d \"\$dir\" ]]"
+    echo "  then"
+    echo "    dirname=\$(basename \$dir)"
+    echo "    mkdir -p $out_dir/\$dirname"
+    echo "    mv -t \"$out_dir/\$dirname\" \$dir/* &"
+    echo "  fi"
+    echo "done"
+    echo "if [[ -d \"$hpc_work/cases\" ]] &&  [[ -n \"\$(ls $hpc_work/cases)\" ]]; then"
+    echo "  mv -t \"$out_dir\" $hpc_work/cases/* &"
+    echo "fi"
+    echo "echo \"Waiting to copy data... (will be confirmed by \\\"Finished!\\\")\""
+    echo "wait"
+    echo "echo \"Finished!\""
+    echo "rm -R $hpc_work/*"
+  } > $clean_cmd_file
+
+  chmod +x $clean_cmd_file
+  echo "sbatch --parsable ${clean_slurm_sched[*]}"
+  echo "--- sbatch script $clean_cmd_filename ---"
+  cat $clean_cmd_file
+  echo "--- end of script ---"
+
+  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  then
+    echo "Not submitting the Cleanup Jobs to slurm (--dry)."
+    clean_jobid=CLEAN_JOB_ID
+  else
+    clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
+    echo "Submitted Cleanup Jobs $clean_jobid"
+  fi
+}
+
+# copy initial state over to work from output directory
+function make_copy_job ()
+{
+  # param1: hpc_work directory
+  # param2: output directory
+  # param3: subject_list file
+  # param4: optional: true/false (submit jobs, default=true)
+  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  then
+    local copy_cmd_file=$(mktemp)
+  else
+    local copy_cmd_file=$hpc_work/scripts/slurm_copy.sh
+  fi
+  local copy_cmd_filename=$hpc_work/scripts/slurm_copy.sh
+
+  local hpc_work=$1
+  local out_dir=$2
+  local subject_list=$3
+  local copy_slurm_sched=(-J "FastSurfer-Copyseg-$USER"
+    --ntasks=1 --cpus-per-task=4 -o "$out_dir/logs/copy_%A.log"
+    "$copy_cmd_filename")
+
+  if [[ ! -d "$out_dir" ]]
+  then
+    echo "Trying to copy from $out_dir, but that is not a valid directory!"
+    exit 1
+  fi
+  {
+    echo "#!/bin/bash"
+    echo "set -e"
+    echo "mkdir -p $hpc_work/cases"
+    echo "for subject; do"
+    echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
+    echo "  cp -R -t \"$hpc_work/cases/\$subject_id\" \"$out_dir/\$subject_id\" &"
+    echo "done < $subject_list"
+    echo "echo \"Waiting to copy data... (will be confirmed by \\\"Finished!\\\")\""
+    echo "wait"
+    echo "echo \"Finished!\""
+  } > $copy_cmd_file
+
+  chmod +x $copy_cmd_file
+  echo "sbatch --parsable ${copy_slurm_sched[*]}"
+  echo "--- sbatch script $copy_cmd_filename ---"
+  cat $copy_cmd_file
+  echo "--- end of script ---"
+
+  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  then
+    echo "Not submitting the Copyseg Jobs to slurm (--dry)."
+    copy_jobid=COPY_JOB_ID
+  else
+    copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
+    echo "Submitted Copyseg Jobs $copy_jobid"
+  fi
+}
+
+function first_non_empty_partition ()
+{
+  for i in "$@"
+  do
+    if [[ -n "$i" ]]
+    then
+      echo "-p $i"
+      break
+    fi
+  done
+}
+function first_non_empty_partition2 ()
+{
+  for i in "$@"
+  do
+    if [[ -n "$i" ]]
+    then
+      echo "$i"
+      break
+    fi
+  done
+}
