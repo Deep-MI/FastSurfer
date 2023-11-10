@@ -142,7 +142,7 @@ def readITKimage(
 
     Returns
     -------
-    itkimage
+    itk_image
         itk image
     header
         Image header (if with_header = True)

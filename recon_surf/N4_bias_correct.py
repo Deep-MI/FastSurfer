@@ -51,21 +51,35 @@ avoid influence of flat zero regions on the bias field.
 
 WM Normalization and UCHAR:
 
-Unless --skipwm is passed the output will be converted to UCHAR.
-For this a ball of radius 50 voxels at the center of the image is used to find the
-1st and 90th percentile of intensities in the brain. This region is then mapped to
-3 .. 110, so that (WM) will be around 110.
+There are several options for normalization, depending on parameters and passed inputs. 
+The biasfield corrected image will always be converted and saved as UCHAR.
 
-There are different options how the center is found:
-- If a mask (e.g. brainmask) is passed, the centroid of the mask will be used and 
-  the ball will be masked to crop non-brain tissue.
-- If no mask is passed, the OTSU method is used to find a brain mask and centroid. 
-  Note, that the ball will not be cropped and may contain non-brain tissue.
-- If a talairach.xfm transform is passed, we use the origin of the Talairach space
-  as center for the ball. If additionally a mask was passed, the ball will be 
-  masked to crop non-brain tissue. 
+If a --mask image is passed, this mask is used both in the biasfield correction as well 
+as in the global rescaling.
 
+After bias field computation and application, the image will be rescaled. This procedure 
+is called WM normalization. The goal is to either, achieve a target white matter 
+intensity of 110 or similar mean image intensity as the input image.
 
+The most reliable way to achieve this white matter normalization is to pass a brainmask 
+(via --mask) and a brain segmentation (via --aseg). If both of these are passed, the 
+white matter regions from the aseg are used to rescale the intensity such that their 
+average intensity will be 110.
+
+If no brain segmentation (--aseg) is passed, the script tries to find an appropriate 
+segmentation via the Otsu thresholding method and a ball of radius 50 voxels around the 
+center of the image 90th percentile of intensities in this part of the image.
+To find the center of the brain, either a talairach.xfm transform is passed, we use the 
+origin of the Talairach space as center for the ball, or the center is computed based 
+on the brain mask. 
+
+If also no brain mask (--mask) is provided, the script creates an appropriate brainmask
+automatically.
+
+If no scaling to a target white matter intensity is wanted, the flag --skipwm 
+deactivates this component. Instead, the script then rescales the image such that the
+average intensity in the brain mask (see above) is the same between the input image and
+the output biasfield corrected image.
 
 Original Author: Martin Reuter
 Date: Mar-18-2022
@@ -427,7 +441,7 @@ def print_options(options: dict):
             _logger.info(m.format(**options))
 
 
-def get_image_mean(image: sitk.Image) -> float:
+def get_image_mean(image: sitk.Image, mask: Optional[sitk.Image] = None) -> float:
     """
     Get the mean of a sitk Image.
 
@@ -435,14 +449,18 @@ def get_image_mean(image: sitk.Image) -> float:
     ----------
     image : sitk.Image
         image to get mean of
+    mask : sitk.Image, optional
+        optional mask to apply first
 
     Returns
     -------
     mean : float
     """
-    stats = sitk.StatisticsImageFilter()
-    stats.Execute(image)
-    return stats.GetMean()
+    img = sitk.GetArrayFromImage(image)
+    if mask is not None:
+        mask = sitk.GetArrayFromImage(mask)
+        img = img[mask]
+    return np.mean(img)
 
 
 def get_brain_centroid(itk_mask: sitk.Image) -> np.ndarray:
@@ -524,9 +542,11 @@ if __name__ == "__main__":
 
     if options.skipwm:
         logger.info("Skipping WM normalization, ignoring talairach and aseg inputs")
+
         # normalize to average input intensity
-        m_bf_img = get_image_mean(itk_bfcorr_image)
-        m_image = get_image_mean(itk_image)
+        kw_mask = {"mask": itk_mask} if has_mask else {}
+        m_bf_img = get_image_mean(itk_bfcorr_image, **kw_mask)
+        m_image = get_image_mean(itk_image, **kw_mask)
         logger.info("- rescale")
         logger.info(f"   mean input: {m_image:.4f}, mean corrected {m_bf_img:.4f})")
         itk_bfcorr_image = normalize_img(itk_image, itk_mask, m_bf_img, m_image)
