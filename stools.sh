@@ -140,9 +140,10 @@ function make_cleanup_job ()
   # param1: hpc_work directory
   # param2: output directory
   # param3: dependency tag
-  # param4: optional: true/false (submit jobs, default=true)
+  # param4: optional: true/false (delete hpc_work directory, default=false)
+  # param5: optional: true/false (submit jobs, default=true)
   local clean_cmd_file
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
     clean_cmd_file=$(mktemp)
   else
@@ -175,7 +176,12 @@ function make_cleanup_job ()
     echo "echo \"Waiting to copy data... (will be confirmed by \\\"Finished!\\\")\""
     echo "wait"
     echo "echo \"Finished!\""
-    echo "rm -R $hpc_work/*"
+    if [[ "$#" -gt 3 ]] && [[ "$4" == "true" ]]
+    then
+      echo "rm -R $hpc_work"
+    else
+      echo "rm -R $hpc_work/*"
+    fi
   } > $clean_cmd_file
 
   chmod +x $clean_cmd_file

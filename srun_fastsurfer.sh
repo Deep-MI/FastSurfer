@@ -18,7 +18,7 @@
 # optimized for separate GPU and CPU scheduling.
 
 singularity_image=$HOME/singularity-images/fastsurfer.sif
-hpc_work=$HPCWORK/fastsurfer-processing
+hpc_work="default"
 in_dir=$(pwd)
 out_dir=$(pwd)/processed
 num_cases_per_task=16
@@ -36,7 +36,7 @@ pattern="*" #"*.{nii.gz,nii,mgz}"
 subject_list=""
 subject_list_awk_code="\$1:\$2"
 subject_list_delim=","
-
+jobarray=""
 
 function usage()
 {
@@ -50,7 +50,7 @@ srun_fastsurfer.sh [--data <directory to search images>]
                                           [--subject_list_delim <delimiter>
                                           [--subject_list_awk_code <subject_id code>:<subject_path code>])
     [--singularity_image <path to fastsurfer singularity image>]
-    [--num_cpus_per_task <number of cpus to allocate for seg>]
+    [--num_cpus_per_task <number of cpus to allocate for seg>] [--slurm_jobarray <jobarray specification>]
     [--num_cases_per_task <number>] [--partition [(surf|seg)=]<slurm partition>]
     [--email <email address>] [--debug] [--dry] [--help]
     [<additional fastsurfer options>]
@@ -90,6 +90,9 @@ Documentation of Options:
 --num_cases_per_task: number of cases batched into one job (slurm jobarray), will process
   in cases in parallel, id num_cases_per_task is smaller than the total number of cases,
   (default: 16).
+--slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
+  that have failed, for example '--slurm_jobarray 4,7' would only run the cases associated with a
+  (previous) run of srun_fastsurfer.sh, where log files '<sd>/logs/seg_*_{4,7}.log' indicate failure.
 --partition: (comma-separated list of) partition(s), supports 2 formats (and their combination):
    --partition seg=<slurm partition>,<other slurm partition>: will schedule the segmentation job on
      listed slurm partitions. It is recommended to select nodes/partitions with GPUs here.
@@ -240,6 +243,11 @@ case $key in
     debug="true"
     shift
     ;;
+  --slurm_jobarray)
+    jobarray=$2
+    shift
+    shift
+    ;;
   --help)
     usage
     exit
@@ -256,6 +264,23 @@ echo "Log of FastSurfer SLURM script"
 date -R
 echo "$THIS_SCRIPT ${inputargs[*]}"
 echo ""
+
+if [[ -d "$hpc_work" ]]
+then
+  delete_hpc_work="false"
+else
+  delete_hpc_work="true"
+fi
+if [[ "$hpc_work" == "default" ]]
+then
+  if [[ -z "$HPCWORK" ]]
+  then
+    echo "Neither --work nor \$HPCWORK are defined, make sure to pass --work!"
+    exit 1
+  else
+    hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
+  fi
+fi
 
 if [[ "$debug" == "true" ]]
 then
@@ -366,7 +391,12 @@ jobarray_size="$(($(($num_cases - 1)) / $num_cases_per_task + 1))"
 real_num_cases_per_task="$(($(($num_cases - 1)) / $jobarray_size + 1))"
 if [[ "$jobarray_size" -gt 1 ]]
 then
-  jobarray_option=("--array=1-$jobarray_size")
+  if [[ -n "$jobarray" ]]
+  then
+    jobarray_option=("--array=$jobarray")
+  else
+    jobarray_option=("--array=1-$jobarray_size")
+  fi
   jobarray_depend="aftercorr"
 else
   jobarray_option=()
@@ -486,4 +516,4 @@ then
 fi
 
 # step four: copy results back and clean the output directory
-make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_jobid_text" "$submit_jobs"
+make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_jobid_text" "$delete_hpc_work" "$submit_jobs"
