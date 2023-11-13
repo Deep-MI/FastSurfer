@@ -278,8 +278,12 @@ then
     echo "Neither --work nor \$HPCWORK are defined, make sure to pass --work!"
     exit 1
   else
+    check_hpc_work "$HPCWORK/fastsurfer-processing" "false"
     hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
+    mkdir "$hpc_work"
   fi
+else
+  check_hpc_work "$hpc_work" "true"
 fi
 
 if [[ "$debug" == "true" ]]
@@ -288,13 +292,19 @@ then
   echo ""
   echo "SLURM options:"
   echo "submit jobs and perform operations: $submit_jobs"
-  echo "seg/surf running on slurm partition: %s/%s" \
-    "$(first_non_empty_partition2 "$partition_seg" "$partition")" \
+  echo "seg/surf running on slurm partition:" \
+    "$(first_non_empty_partition2 "$partition_seg" "$partition")" "/" \
     "$(first_non_empty_partition2 "$partition_surf" "$partition")"
   echo "num_cpus_per_task/max. num_cases_per_task: $num_cpus_per_task/$num_cases_per_task"
   echo "Data options:"
   echo "source dir: $in_dir"
-  echo "pattern to search for images: $pattern"
+  if [[ -n "$subject_list" ]]
+  then
+    echo "Reading subjects from subject_list file $subject_list"
+    echo "subject_list read options: delimiter: '${subject_list_delim}', awk code: '${subject_list_awk_code}'"
+  else
+    echo "pattern to search for images: $pattern"
+  fi
   echo "output (subject) dir: $out_dir"
   echo "work dir: $hpc_work"
   echo ""
@@ -316,7 +326,6 @@ else
   if [[ "$submit_jobs" == "false" ]]; then echo "dry run, no jobs or operations are performed"; echo ""; fi
 fi
 
-check_hpc_work "$hpc_work"
 check_singularity_image "$singularity_image"
 check_fs_license "$fs_license"
 check_seg_surf_only "$seg_only" "$surf_only"
@@ -331,7 +340,6 @@ wait # for directories to be made
 
 # step one: copy singularity image to hpc
 all_cases_file="/$hpc_work/scripts/subject_list"
-all_cases_file_sg="/$hpc_work/scripts/subject_list_in_container"
 
 echo "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
 echo "cp \"$(dirname $THIS_SCRIPT)/brun_fastsurfer.sh\" \"$hpc_work/scripts\""
@@ -353,7 +361,7 @@ if [[ -n "$subject_list" ]]
 then
   # the test for files (check_subject_images) requires paths to be wrt
   cases=$(translate_cases "$in_dir" "$subject_list" "$in_dir" "${subject_list_delim}" "${subject_list_awk_code}")
-  check_subject_images "$in_dir" "$cases"
+  check_subject_images "$cases"
 
   cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code}" | $tofile)
 else
@@ -371,8 +379,8 @@ if [[ "$debug" == "true" ]]
 then
   fastsurfer_options=("${fastsurfer_options[@]}" --debug)
 fi
-cleanup_jobid_text=""
-depend_jobid=""
+cleanup_depend=""
+surf_depend=""
 
 slurm_email=()
 if [[ -n "$email" ]]
@@ -407,6 +415,7 @@ if [[ "$surf_only" != "true" ]]
 then
   fastsurfer_seg_options=(# brun_fastsurfer options (inside singularity)
                           --subject_list /data/scripts/subject_list
+                          --statusfile /data/scripts/subject_success
                           # run_fastsurfer options (inside singularity)
                           --sd "/data/cases" --threads "$num_cpus_per_task"
                           --seg_only "${POSITIONAL_FASTSURFER[@]}")
@@ -445,8 +454,8 @@ then
     seg_jobid=SEG_JOB_ID
   fi
 
-  cleanup_jobid_text="afternotok:$seg_jobid"
-  depend_jobid="--depend=$jobarray_depend:$seg_jobid"
+  cleanup_depend="afterany:$seg_jobid"
+  surf_depend="--depend=$jobarray_depend:$seg_jobid"
 elif [[ "$surf_only" == "true" ]]
 then
   # do not run segmentation, but copy over all cases from data to work
@@ -454,8 +463,7 @@ then
   make_copy_job "$hpc_work" "$out_dir" ""
   if [[ -n "$copy_jobid" ]]
   then
-    cleanup_jobid_text="afternotok:$copy_jobid"
-    depend_jobid="--depend=afterok:$copy_jobid"
+    surf_depend="--depend=afterok:$copy_jobid"
   else
     echo "ERROR: \$copy_jobid not defined!"
     exit 1
@@ -465,8 +473,9 @@ fi
 if [[ "$seg_only" != "true" ]]
 then
   fastsurfer_surf_options=(# brun_fastsurfer options (outside of singularity)
-                           --subject_list $hpc_work/scripts/subject_list
+                           --subject_list "$hpc_work/scripts/subject_list"
                            --parallel_subjects
+                           --statusfile "$hpc_work/scripts/subject_success"
                            # run_fastsurfer options (inside singularity)
                            --sd /data/cases  --parallel --surf_only --fs_license /data/scripts/.fs_license
                            "${POSITIONAL_FASTSURFER[@]}")
@@ -490,7 +499,7 @@ then
     echo "  ${fastsurfer_options[*]} ${fastsurfer_surf_options[*]}"
   } > $surf_cmd_file
   surf_slurm_sched=(--mem-per-cpu=5G "--ntasks=$real_num_cases_per_task"
-                    --cpus-per-task=2 "${jobarray_option[@]}" "$depend_jobid"
+                    --cpus-per-task=2 "${jobarray_option[@]}" "$surf_depend"
                     "--nodes=1-$real_num_cases_per_task"
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
                     $slurm_partition "${slurm_email[@]}" "$surf_cmd_filename")
@@ -508,12 +517,8 @@ then
     surf_jobid=SURF_JOB_ID
   fi
 
-  if [[ -n "$cleanup_jobid_text" ]]
-  then
-    cleanup_jobid_text="$cleanup_jobid_text?"
-  fi
-  cleanup_jobid_text="${cleanup_jobid_text}afterany:$surf_jobid"
+  cleanup_depend="afterany:$surf_jobid"
 fi
 
 # step four: copy results back and clean the output directory
-make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_jobid_text" "$delete_hpc_work" "$submit_jobs"
+make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$delete_hpc_work" "$submit_jobs"
