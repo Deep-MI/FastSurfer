@@ -59,11 +59,12 @@ function translate_cases ()
 function check_hpc_work ()
 {
   #param1 hpc_work
+  #param2 true/false, optional check empty, default false
   if [[ -z "$1" ]] || [[ ! -d "$1" ]]; then
     echo "The hpc_work directory $1 is not defined or does not exists."
     exit 1
   fi
-  if [[ "$(ls $1 | wc -w)" -gt "0" ]]; then
+  if [[ "$#" -gt 1 ]] && [[ "$2" == "true" ]] && [[ "$(ls $1 | wc -w)" -gt "0" ]]; then
     echo "The hpc_work directory $1 not empty."
     exit 1
   fi
@@ -95,17 +96,15 @@ function check_seg_surf_only ()
 }
 function check_subject_images ()
 {
-  #param1 in_dir
-  #param2 cases
-  if [[ "$#" -lt 2 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
-  local in_dir=$1
+  #param1 cases
+  if [[ "$#" -lt 1 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
   missing_subject_ids=""
   missing_subject_imgs=""
-  for subject in $2
+  for subject in $1
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
     image_path=$(echo "$subject" | cut -d= -f2)
-    if [[ ! -e "$in_dir/$image_path" ]]
+    if [[ ! -e "$image_path" ]]
     then
       if [[ -n "$missing_subject_ids" ]]
       then
@@ -113,7 +112,7 @@ function check_subject_images ()
         missing_subject_imgs="$missing_subject_imgs, "
       fi
       missing_subject_ids="$missing_subject_ids$subject_id"
-      missing_subject_imgs="$missing_subject_imgs$1$image_path"
+      missing_subject_imgs="$missing_subject_imgs$image_path"
     fi
   done
   if [[ -n "$missing_subject_ids" ]]
@@ -142,11 +141,24 @@ function make_cleanup_job ()
   # param3: dependency tag
   # param4: optional: true/false (delete hpc_work directory, default=false)
   # param5: optional: true/false (submit jobs, default=true)
+
+  # param4: optional: true/false (delete hpc_work, default=false)
+  # param5: optional: true/false (submit jobs, default=true)
   local clean_cmd_file
+  local submit_jobs
+  local delete_hpc_work_dir
+  if [[ "$#" -gt 3 ]] && [[ "$4" == "true" ]]
+  then
+    delete_hpc_work_dir="true"
+  else
+    delete_hpc_work_dir="false"
+  fi
   if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
+    submit_jobs="false"
     clean_cmd_file=$(mktemp)
   else
+    submit_jobs="true"
     clean_cmd_file=$hpc_work/scripts/slurm_cleanup.sh
   fi
   local clean_cmd_filename=$hpc_work/scripts/slurm_cleanup.sh
@@ -162,21 +174,23 @@ function make_cleanup_job ()
     echo "#!/bin/bash"
     echo "set -e"
     echo "mkdir -p $out_dir"
-    echo "for dir in \"$hpc_work/scripts\" \"$hpc_work/logs\"; do"
-    echo "  if [[ -d \"\$dir\" ]]"
-    echo "  then"
-    echo "    dirname=\$(basename \$dir)"
-    echo "    mkdir -p $out_dir/\$dirname"
-    echo "    mv -t \"$out_dir/\$dirname\" \$dir/* &"
-    echo "  fi"
-    echo "done"
+    echo "if [[ -d \"$hpc_work/scripts\" ]]"
+    echo "then"
+    echo "  mkdir -p $out_dir/slurm/scripts"
+    echo "  mv -t \"$out_dir/slurm/scripts\" \$dir/* &"
+    echo "fi"
+    echo "if [[ -d \"$hpc_work/logs\" ]]"
+    echo "then"
+    echo "  mkdir -p $out_dir/slurm/logs"
+    echo "  mv -t \"$out_dir/slurm/logs\" \$dir/* &"
+    echo "fi"
     echo "if [[ -d \"$hpc_work/cases\" ]] &&  [[ -n \"\$(ls $hpc_work/cases)\" ]]; then"
     echo "  mv -t \"$out_dir\" $hpc_work/cases/* &"
     echo "fi"
-    echo "echo \"Waiting to copy data... (will be confirmed by \\\"Finished!\\\")\""
+    echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
     echo "wait"
     echo "echo \"Finished!\""
-    if [[ "$#" -gt 3 ]] && [[ "$4" == "true" ]]
+    if [[ "$delete_hpc_work_dir" == "true" ]]
     then
       echo "rm -R $hpc_work"
     else
@@ -190,7 +204,7 @@ function make_cleanup_job ()
   cat $clean_cmd_file
   echo "--- end of script ---"
 
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$submit_jobs" == "false" ]]
   then
     echo "Not submitting the Cleanup Jobs to slurm (--dry)."
     clean_jobid=CLEAN_JOB_ID
@@ -207,11 +221,13 @@ function make_copy_job ()
   # param2: output directory
   # param3: subject_list file
   # param4: optional: true/false (submit jobs, default=true)
+
+  local copy_cmd_file
   if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
   then
-    local copy_cmd_file=$(mktemp)
+    copy_cmd_file=$(mktemp)
   else
-    local copy_cmd_file=$hpc_work/scripts/slurm_copy.sh
+    copy_cmd_file=$hpc_work/scripts/slurm_copy.sh
   fi
   local copy_cmd_filename=$hpc_work/scripts/slurm_copy.sh
 
@@ -277,4 +293,22 @@ function first_non_empty_partition2 ()
       break
     fi
   done
+}
+function print_status ()
+{
+  #param1 subject_id
+  #param2 command info
+  #param3 return value
+
+  local subject_id=$1
+  local info=$2
+  local retval=$3
+  local text
+  if [[ "$retval" != "0" ]]
+  then
+    text="Failed $info with exit code $retval"
+  else
+    text="Finished $info successfully"
+  fi
+  echo "$subject_id: $text"
 }

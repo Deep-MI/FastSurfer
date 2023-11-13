@@ -26,6 +26,7 @@ seg_only="false"
 debug="false"
 run_fastsurfer="default"
 parallel_subjects="false"
+statusfile=""
 
 function usage()
 {
@@ -41,7 +42,7 @@ brun_fastsurfer.sh [other options]
 
 Other options:
 brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel_subjects] [--run_fastsurfer <script to run fastsurfer>]
-    [--debug] [--help]
+    [--statusfile <filename>] [--debug] [--help]
     [<additional run_fastsurfer.sh options>]
 
 Author:   David Kügler, david.kuegler@dzne.de
@@ -72,6 +73,8 @@ iii. a list of subjects directly passed
   manner, for example to delegate the fastsurfer run to container:
   --run_fastsurfer "singularity exec --nv -B <dir>/data /fastsurfer/run_fastsurfer.sh"
   Note, paths to files and --sd have to be defined in the container file system in this case.
+--statusfile <filename>: a file to document which subject ran successfully. Also used to skip
+  surface recon, if the previous segmentation failed.
 --debug: Additional debug output.
 --help: print this help.
 
@@ -87,8 +90,6 @@ if [ -z "${BASH_SOURCE[0]}" ]; then
 else
     THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
-
-set -e
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -139,7 +140,12 @@ case $key in
     --parallel_subjects)
       parallel_subjects="true"
       shift
-      ;;
+    ;;
+    --statusfile)
+      statusfile="$statusfile"
+      shift
+      shift
+    ;;
     --surf_only)
       surf_only="true"
       shift
@@ -267,7 +273,7 @@ else
   echo "Processing subjects $subject_start to $subject_end"
 fi
 
-seg_surf_only=
+seg_surf_only=""
 if [[ "$surf_only" == "true" ]]
 then
   seg_surf_only=--surf_only
@@ -276,7 +282,8 @@ then
   seg_surf_only=--seg_only
 fi
 
-
+pids=()
+subjectids=()
 for subject in $subjects
 do
   if [[ "$debug" == "true" ]]
@@ -287,6 +294,19 @@ do
   if [[ "$i" -ge "$subject_start" ]] && [[ "$i" -le "$subject_end" ]]
   then
     subject_id=$(echo "$subject" | cut -d= -f1)
+
+    if [[ -n "$statusfile" ]] && [[ "$surf_only" == "true" ]]
+    then
+      status=$(awk -F ": " "/^$subject_id/ { print \$2 }" "$statusfile")
+      ## if status in statusfile is "Failed", skip this
+      if [[ "$status" =~ /^Failed.--seg_only/ ]]
+      then
+        echo "Skipping $subject_id's surface recon because the segmentation failed."
+        echo "$subject_id: Skipping surface recon (failed segmentation)" >> "$statusfile"
+        continue
+      fi
+    fi
+
     image_path=$(echo "$subject" | cut -d= -f2)
     args=(--sid "$subject_id")
     if [[ "$surf_only" == "false" ]]
@@ -300,8 +320,14 @@ do
     if [[ "$parallel_subjects" == "true" ]]
     then
       $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" &
+      pids=("${pids[@]}" "$!")
+      subjectids=("${subjectids[@]}" "$subject_id")
     else
       $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+      if [[ -n "$statusfile" ]]
+      then
+        print_status "$subject_id" "$seg_surf_only" "$?" | tee -a "$statusfile"
+      fi
     fi
   fi
   i=$(($i + 1))
@@ -309,5 +335,17 @@ done
 
 if [[ "$parallel_subjects" == "true" ]]
 then
-  wait
+  i=0
+  for pid in "${pids[@]}"
+  do
+    retval=$(wait $pid)
+    if [[ -n "$statusfile" ]]
+    then
+      print_status "${subjectids[$i]}" "$seg_surf_only" "$retval" | tee -a "$statusfile"
+    fi
+    i=$(($i + 1))
+  done
 fi
+
+# always exit successful
+exit 0
