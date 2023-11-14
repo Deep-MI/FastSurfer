@@ -69,6 +69,15 @@ function check_hpc_work ()
     exit 1
   fi
 }
+function check_out_dir ()
+{
+  #param1 out_dir
+  #param2 true/false, optional check empty, default false
+  if [[ -z "$1" ]] || [[ ! -d "$1" ]]; then
+    echo "The subject directory $1 (output directory) is not defined or does not exists."
+    exit 1
+  fi
+}
 function check_singularity_image ()
 {
   #param1 singularity_image
@@ -89,7 +98,7 @@ function check_seg_surf_only ()
 {
   #param1 seg_only
   #param2 surf_only
-  if [[ "$1" == "true" ]] || [[ "$2" == "true" ]]; then
+  if [[ "$1" == "true" ]] && [[ "$2" == "true" ]]; then
     echo "Selecting both --seg_only and --surf_only is invalid!"
     exit 1
   fi
@@ -104,6 +113,8 @@ function check_subject_images ()
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
     image_path=$(echo "$subject" | cut -d= -f2)
+    #TODO: also check here, if any of the folders up to the mounted dir leading to the file are symlinks
+    #TODO: if so, this will lead to problems
     if [[ ! -e "$image_path" ]]
     then
       if [[ -n "$missing_subject_ids" ]]
@@ -166,23 +177,22 @@ function make_cleanup_job ()
   local hpc_work=$1
   local out_dir=$2
   local clean_slurm_sched=(-d "$3" -J "FastSurfer-Cleanup-$USER"
-    --ntasks=1 --cpus-per-task=4 -o "$out_dir/logs/cleanup_%A.log"
+    --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/cleanup_%A.log"
     "$clean_cmd_filename")
 
-  mkdir -p $out_dir/logs
+  mkdir -p "$out_dir/slurm/logs"
   {
     echo "#!/bin/bash"
     echo "set -e"
-    echo "mkdir -p $out_dir"
+    echo "mkdir -p $out_dir/slurm/logs"
+    echo "mkdir -p $out_dir/slurm/scripts"
     echo "if [[ -d \"$hpc_work/scripts\" ]]"
     echo "then"
-    echo "  mkdir -p $out_dir/slurm/scripts"
-    echo "  mv -t \"$out_dir/slurm/scripts\" \$dir/* &"
+    echo "  mv -t \"$out_dir/slurm/scripts\" $hpc_work/scripts/* &"
     echo "fi"
     echo "if [[ -d \"$hpc_work/logs\" ]]"
     echo "then"
-    echo "  mkdir -p $out_dir/slurm/logs"
-    echo "  mv -t \"$out_dir/slurm/logs\" \$dir/* &"
+    echo "  mv -t \"$out_dir/slurm/logs\" $hpc_work/logs/* &"
     echo "fi"
     echo "if [[ -d \"$hpc_work/cases\" ]] &&  [[ -n \"\$(ls $hpc_work/cases)\" ]]; then"
     echo "  mv -t \"$out_dir\" $hpc_work/cases/* &"
@@ -235,7 +245,7 @@ function make_copy_job ()
   local out_dir=$2
   local subject_list=$3
   local copy_slurm_sched=(-J "FastSurfer-Copyseg-$USER"
-    --ntasks=1 --cpus-per-task=4 -o "$out_dir/logs/copy_%A.log"
+    --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/copy_%A.log"
     "$copy_cmd_filename")
 
   if [[ ! -d "$out_dir" ]]
@@ -247,11 +257,12 @@ function make_copy_job ()
     echo "#!/bin/bash"
     echo "set -e"
     echo "mkdir -p $hpc_work/cases"
-    echo "for subject; do"
+    echo "while read subject; do"
     echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
-    echo "  cp -R -t \"$hpc_work/cases/\$subject_id\" \"$out_dir/\$subject_id\" &"
+    echo "  echo \"cp -R -t \\\"$hpc_work/cases/\\\" \\\"$out_dir/\$subject_id\\\" &\""
+    echo "  cp -R -t \"$hpc_work/cases/\" \"$out_dir/\$subject_id\" &"
     echo "done < $subject_list"
-    echo "echo \"Waiting to copy data... (will be confirmed by \\\"Finished!\\\")\""
+    echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
     echo "wait"
     echo "echo \"Finished!\""
   } > $copy_cmd_file

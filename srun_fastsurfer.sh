@@ -37,6 +37,8 @@ subject_list=""
 subject_list_awk_code="\$1:\$2"
 subject_list_delim=","
 jobarray=""
+timelimit_seg=5
+timelimit_surf=60
 
 function usage()
 {
@@ -47,11 +49,11 @@ Usage:
 srun_fastsurfer.sh [--data <directory to search images>]
     [--sd <output directory>] [--work <work directory>]
     (--pattern <search pattern for images>|--subject_list <path to subject_list file>
-                                          [--subject_list_delim <delimiter>
-                                          [--subject_list_awk_code <subject_id code>:<subject_path code>])
-    [--singularity_image <path to fastsurfer singularity image>]
-    [--num_cpus_per_task <number of cpus to allocate for seg>] [--slurm_jobarray <jobarray specification>]
-    [--num_cases_per_task <number>] [--partition [(surf|seg)=]<slurm partition>]
+                                           [--subject_list_delim <delimiter>]
+                                           [--subject_list_awk_code <subject_id code>:<subject_path code>])
+    [--singularity_image <path to fastsurfer singularity image>] [--num_cases_per_task <number>]
+    [--num_cpus_per_task <number of cpus to allocate for seg>] [--time (surf|seg)=<timelimit>]
+    [--partition [(surf|seg)=]<slurm partition>] [--slurm_jobarray <jobarray specification>]
     [--email <email address>] [--debug] [--dry] [--help]
     [<additional fastsurfer options>]
 
@@ -61,12 +63,13 @@ Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:
---sd: output directory will have N+2 subdirectories (default: \$(pwd)/processed):
+--sd: output directory will have N+1 subdirectories (default: \$(pwd)/processed):
   - one directory per case plus
-  - logs for slurm logs,
-  - scripts for intermediate slurm scripts for debugging.
+  - slurm with two subdirectories:
+    - logs for slurm logs,
+    - scripts for intermediate slurm scripts for debugging.
   Note: files will be copied here only after all jobs have finished, so most IO happens on
-  a work directory (see --work).
+  a work directory, which can use IO-optimized cluster storage (see --work).
 --dry: performs all operations, but does not actually submit jobs to slurm
 --data: (root) directory to search in for t1 files (default: current work directory).
 --work: directory with fast filesystem on cluster (default: \$HPCWORK/fastsurfer-processing)
@@ -100,6 +103,9 @@ Documentation of Options:
    --partition <slurm partition>: default partition to used, if specific partition is not given
      (one of the above).
   default: slurm default partition
+--time: a per-subject time limit for individual steps, must be number in minutes:
+   --time seg=<timelimit>: time limit for the segmentation pipeline (per subject), default: seg=5 (5min).
+   --time surf=<timelimit>: time limit for the surface reconstruction (per subject), default: surf=60 (60min)
 --email: email address to send slurm status updates.
 --debug: Additional debug output.
 --help: print this help.
@@ -218,14 +224,31 @@ case $key in
     partition_temp="$2"
     # make key lowercase
     lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_value" = seg=* ]]
+    if [[ "$lower_value" =~ seg=* ]]
     then
       partition_seg=${partition_temp:4}
-    elif [[ "$lower_value" = surf=* ]]
+    elif [[ "$lower_value" =~ surf=* ]]
     then
       partition_surf=${partition_temp:5}
     else
       partition=$2
+    fi
+    shift
+    shift
+    ;;
+  --time)
+    time_temp="$2"
+    # make key lowercase
+    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    if [[ "$lower_value" =~ ^seg=[0-9]+ ]]
+    then
+      timelimit_seg=${time_temp:4}
+    elif [[ "$lower_value" =~ surf=([0-9]+|[0-9]{0,1}(:[0-9]{2}){0,1}) ]]
+    then
+      timelimit_surf=${time_temp:5}
+    else
+      echo "Invalid parameter to --time: $2, must be seg|surf=<integer (minutes)>"
+      exit 1
     fi
     shift
     shift
@@ -329,6 +352,7 @@ fi
 check_singularity_image "$singularity_image"
 check_fs_license "$fs_license"
 check_seg_surf_only "$seg_only" "$surf_only"
+check_out_dir "$out_dir"
 
 # step zero: make directories
 if [[ "$submit_jobs" == "true" ]]
@@ -344,7 +368,7 @@ all_cases_file="/$hpc_work/scripts/subject_list"
 echo "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
 echo "cp \"$(dirname $THIS_SCRIPT)/brun_fastsurfer.sh\" \"$hpc_work/scripts\""
 echo "cp \"$fs_license\" \"$hpc_work/scripts/.fs_license\""
-
+echo "Create Status/Success file at $hpc_work/scripts/subject_success"
 
 tofile="cat"
 if [[ "$submit_jobs" == "true" ]]
@@ -352,6 +376,7 @@ then
   cp "$singularity_image" "$hpc_work/images/fastsurfer.sif" &
   cp "$(dirname $THIS_SCRIPT)/brun_fastsurfer.sh" "$hpc_work/scripts" &
   cp "$fs_license" "$hpc_work/scripts/.fs_license" &
+  echo "#Status/Success file of srun_fastsurfer-run $(date)" > "$hpc_work/scripts/subject_success" &
 
   tofile="tee $all_cases_file"
 fi
@@ -432,11 +457,11 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "srun -J singularity-seg singularity exec --nv -B \"$hpc_work:/data\" -B \"$in_dir:/source\" \\"
+    echo "srun -J singularity-seg singularity exec --nv -B \"$hpc_work:/data\" -B \"$in_dir:/source:ro\" --no-home \\"
     echo "  $hpc_work/images/fastsurfer.sif /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
   } > $seg_cmd_file
   # note that there can be a decent startup cost for each run, running multiple cases per task significantly reduces this
-  seg_slurm_sched=(--gpus=1 --mem=10G --time=$((5 * $real_num_cases_per_task + 5)) "--cpus-per-task=$num_cpus_per_task"
+  seg_slurm_sched=(--gpus=1 --mem=10G --time=$(($timelimit_seg * $real_num_cases_per_task + 5)) "--cpus-per-task=$num_cpus_per_task"
     "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER" $slurm_partition "${slurm_email[@]}"
     -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
   echo "chmod +x $seg_cmd_filename"
@@ -460,7 +485,7 @@ elif [[ "$surf_only" == "true" ]]
 then
   # do not run segmentation, but copy over all cases from data to work
   copy_jobid=
-  make_copy_job "$hpc_work" "$out_dir" ""
+  make_copy_job "$hpc_work" "$out_dir" "$hpc_work/scripts/subject_list" "$submit_jobs"
   if [[ -n "$copy_jobid" ]]
   then
     surf_depend="--depend=afterok:$copy_jobid"
@@ -490,9 +515,9 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "run_fastsurfer=(srun -J singularity-surf"
-    echo "                --ntasks=1 --time=60 --nodes=1"
-    echo "                singularity exec -B '$hpc_work:/data'"
+    echo "run_fastsurfer=(srun -J singularity-surf  -o $hpc_work/logs/surf_%A_%a_%j.log"
+    echo "                --ntasks=1 --time=$timelimit_surf --nodes=1"
+    echo "                singularity exec --no-home -B '$hpc_work:/data'"
     echo "                '$hpc_work/images/fastsurfer.sif'"
     echo "                /fastsurfer/run_fastsurfer.sh)"
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
