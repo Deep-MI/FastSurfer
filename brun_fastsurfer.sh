@@ -210,6 +210,10 @@ then
   then
     echo "running $run_fastsurfer"
   fi
+  if [[ -n "$statusfile" ]]
+  then
+    echo "statusfile: $statusfile"
+  fi
   echo ""
   echo "FastSurfer parameters:"
   if [[ "$seg_only" == "true" ]]; then echo "--seg_only"; fi
@@ -338,10 +342,10 @@ then
   i=0
   for pid in "${pids[@]}"
   do
-    retval=$(wait $pid)
+    wait "$pid"
     if [[ -n "$statusfile" ]]
     then
-      print_status "${subjectids[$i]}" "$seg_surf_only" "$retval" | tee -a "$statusfile"
+      print_status "${subjectids[$i]}" "$seg_surf_only" "$?" | tee -a "$statusfile"
     fi
     i=$(($i + 1))
   done

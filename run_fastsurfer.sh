@@ -535,12 +535,12 @@ if [[ -z "$allow_root" ]] && [[ "$(id -u)" == "0" ]]
     exit 1;
 fi
 
-
 # CHECKS
 if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
   then
     echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
     echo "--t1 (absolute path and name) for generating the segmentation."
+    echo "NOTES: If running in a container, make sure symlinks are valid!"
     exit 1;
 fi
 
