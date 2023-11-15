@@ -62,8 +62,12 @@ run_asegdkt_module="1"
 run_cereb_module="1"
 threads="1"
 # python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
-# python-s is a miniscript to add this flag
-python="python-s"
+# python-s is a miniscript to add this flag, but this only works if python-s is defined
+if [ -n "$(which python-s)" ]; then
+  python="python-s"
+else
+  python="python3.10"
+fi
 allow_root=""
 version_and_quit=""
 
@@ -730,7 +734,7 @@ if [ "$run_seg_pipeline" == "1" ]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
-        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --threads $threads"
+        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --aseg $asegdkt_segfile --threads $threads"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         if [ "${PIPESTATUS[0]}" -ne 0 ]
