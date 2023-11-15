@@ -182,6 +182,7 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 echo "$THIS_SCRIPT ${inputargs[*]}"
+date -R
 echo ""
 
 if [[ -n "$SLURM_ARRAY_TASK_ID" ]]
@@ -285,6 +286,9 @@ elif [[ "$seg_only" == "true" ]]
 then
   seg_surf_only=--seg_only
 fi
+
+### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
+trap "{ echo \"brun_fastsurfer.sh terminated via signal at \$(date -R)!\" }" SIGINT SIGTERM
 
 pids=()
 subjectids=()
