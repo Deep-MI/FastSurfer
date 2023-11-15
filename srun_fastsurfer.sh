@@ -288,6 +288,8 @@ date -R
 echo "$THIS_SCRIPT ${inputargs[*]}"
 echo ""
 
+make_hpc_work="false"
+
 if [[ -d "$hpc_work" ]]
 then
   delete_hpc_work="false"
@@ -303,7 +305,7 @@ then
   else
     check_hpc_work "$HPCWORK/fastsurfer-processing" "false"
     hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
-    mkdir "$hpc_work"
+    make_hpc_work="true"
   fi
 else
   check_hpc_work "$hpc_work" "true"
@@ -357,6 +359,7 @@ check_out_dir "$out_dir"
 # step zero: make directories
 if [[ "$submit_jobs" == "true" ]]
 then
+  if [[ "$make_hpc_work" == "true" ]]; then mkdir "$hpc_work" ; fi
   make_hpc_work_dirs "$hpc_work"
 fi
 
@@ -457,7 +460,7 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "srun -J singularity-seg singularity exec --nv -B \"$hpc_work:/data\" -B \"$in_dir:/source:ro\" --no-home \\"
+    echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
     echo "  $hpc_work/images/fastsurfer.sif /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
   } > $seg_cmd_file
   # note that there can be a decent startup cost for each run, running multiple cases per task significantly reduces this
@@ -502,7 +505,7 @@ then
                            --parallel_subjects
                            --statusfile "$hpc_work/scripts/subject_success"
                            # run_fastsurfer options (inside singularity)
-                           --sd /data/cases  --parallel --surf_only --fs_license /data/scripts/.fs_license
+                           --sd /data/cases --parallel --surf_only --fs_license /data/scripts/.fs_license
                            "${POSITIONAL_FASTSURFER[@]}")
   surf_cmd_filename=$hpc_work/scripts/slurm_cmd_surf.sh
   if [[ "$submit_jobs" == "true" ]]
@@ -515,17 +518,18 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "run_fastsurfer=(srun -J singularity-surf  -o $hpc_work/logs/surf_%A_%a_%j.log"
-    echo "                --ntasks=1 --time=$timelimit_surf --nodes=1"
+    echo "run_fastsurfer=(srun -J singularity-surf -o $hpc_work/logs/surf_%A_%a_%s.log"
+    echo "                --ntasks=1 --time=$timelimit_surf --nodes=1 --mem=12G"
+    echo "                --hint=nomultithread"
     echo "                singularity exec --no-home -B '$hpc_work:/data'"
     echo "                '$hpc_work/images/fastsurfer.sif'"
     echo "                /fastsurfer/run_fastsurfer.sh)"
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
     echo "  ${fastsurfer_options[*]} ${fastsurfer_surf_options[*]}"
   } > $surf_cmd_file
-  surf_slurm_sched=(--mem-per-cpu=5G "--ntasks=$real_num_cases_per_task"
+  surf_slurm_sched=(--mem-per-cpu=6G "--ntasks=$real_num_cases_per_task"
                     --cpus-per-task=2 "${jobarray_option[@]}" "$surf_depend"
-                    "--nodes=1-$real_num_cases_per_task"
+                    "--nodes=1-$real_num_cases_per_task" "--hint=nomultithread"
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
                     $slurm_partition "${slurm_email[@]}" "$surf_cmd_filename")
   chmod +x $surf_cmd_file

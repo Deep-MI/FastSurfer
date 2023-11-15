@@ -73,9 +73,14 @@ function check_out_dir ()
 {
   #param1 out_dir
   #param2 true/false, optional check empty, default false
-  if [[ -z "$1" ]] || [[ ! -d "$1" ]]; then
-    echo "The subject directory $1 (output directory) is not defined or does not exists."
-    exit 1
+  if [[ -z "$1" ]]; then
+    echo "The subject directory (output directory) is not defined."
+  elif [[ ! -d "$1" ]]; then
+    echo "The subject directory $1 (output directory) does not exists."
+    read -r -p "Create the directory? [y/N]" -n 1 retval
+    echo ""
+    if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then mkdir -p "$1" ;
+    else exit 1; fi
   fi
 }
 function check_singularity_image ()
@@ -186,26 +191,43 @@ function make_cleanup_job ()
     echo "set -e"
     echo "mkdir -p $out_dir/slurm/logs"
     echo "mkdir -p $out_dir/slurm/scripts"
-    echo "if [[ -d \"$hpc_work/scripts\" ]]"
+    echo "pids=()"
+    echo "if [[ -d \"$hpc_work/scripts\" ]] && [[ -n \"\$(ls $hpc_work/scripts)\" ]]; then"
     echo "then"
     echo "  mv -t \"$out_dir/slurm/scripts\" $hpc_work/scripts/* &"
+    echo "  pids=(\$!)"
     echo "fi"
-    echo "if [[ -d \"$hpc_work/logs\" ]]"
+    echo "if [[ -d \"$hpc_work/logs\" ]] && [[ -n \"\$(ls $hpc_work/logs)\" ]]; then"
     echo "then"
     echo "  mv -t \"$out_dir/slurm/logs\" $hpc_work/logs/* &"
+    echo "  pids=(\${pids[@]} \$!)"
     echo "fi"
-    echo "if [[ -d \"$hpc_work/cases\" ]] &&  [[ -n \"\$(ls $hpc_work/cases)\" ]]; then"
-    echo "  mv -t \"$out_dir\" $hpc_work/cases/* &"
+    echo "if [[ -d \"$hpc_work/cases\" ]] && [[ -n \"\$(ls $hpc_work/cases)\" ]]; then"
+    echo "  for s in $hpc_work/cases/*"
+    echo "  do"
+    echo "    mv -f -t \"$out_dir\" \$s &"
+    echo "    pids=(\${pids[@]} \$!)"
+    echo "  done"
     echo "fi"
     echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
-    echo "wait"
-    echo "echo \"Finished!\""
+    echo "success=true"
+    echo "for p in \${pids[@]};"
+    echo "do"
+    echo "  wait \$p"
+    echo "  if [[ \"\$?\" != 0 ]] ; then success=false; fi"
+    echo "done"
+    echo "if [[ \$success == true ]]"
+    echo "then"
+    echo "  echo \"Finished!\""
     if [[ "$delete_hpc_work_dir" == "true" ]]
     then
-      echo "rm -R $hpc_work"
+      echo "  rm -R $hpc_work"
     else
-      echo "rm -R $hpc_work/*"
+      echo "  rm -R $hpc_work/*"
     fi
+    echo "else"
+    echo "  echo \"Cleanup finished with errors!\""
+    echo "fi"
   } > $clean_cmd_file
 
   chmod +x $clean_cmd_file
