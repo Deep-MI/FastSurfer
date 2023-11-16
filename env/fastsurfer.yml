@@ -11,7 +11,7 @@ dependencies:
   - nibabel=5.1.0
   - numpy=1.25.0
   - pandas=1.5.3
-  - pillow=9.5.0
+  - pillow=10.0.1
   - pip=23.1.2
   - python=3.10
   - python-dateutil=2.8.2
