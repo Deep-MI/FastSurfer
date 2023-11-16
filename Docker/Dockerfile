@@ -65,7 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG CONDA_FILE=Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
+ARG CONDA_FILE=Miniconda3-py310_23.9.0-0-Linux-x86_64.sh
 
 # Install conda
 RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/${CONDA_FILE} && \

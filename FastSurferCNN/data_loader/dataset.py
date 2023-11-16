@@ -20,7 +20,6 @@ import h5py
 import numpy as np
 import numpy.typing as npt
 import torch
-import torchvision
 import yacs.config
 from torch.utils.data import Dataset
 
