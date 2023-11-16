@@ -16,7 +16,7 @@
 import time
 from os import makedirs
 from os.path import join, dirname, isfile
-from typing import Dict, List, Tuple, Optional, Literal
+from typing import Dict, List, Tuple, Optional
 from concurrent.futures import Future, ThreadPoolExecutor
 
 import nibabel as nib
@@ -35,8 +35,8 @@ from FastSurferCNN.utils.common import (
     NoParallelExecutor,
 )
 from CerebNet.data_loader.augmentation import ToTensorTest
-from CerebNet.data_loader.dataset import SubjectDataset, Plane, LocalizerROI, PLANES
-from CerebNet.datasets.utils import crop_transform, load_reorient_lia
+from CerebNet.data_loader.dataset import SubjectDataset, Plane, PLANES
+from CerebNet.datasets.utils import crop_transform
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
 

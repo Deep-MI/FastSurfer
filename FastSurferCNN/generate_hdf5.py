@@ -17,13 +17,12 @@ import time
 import glob
 from os.path import join, dirname
 from collections import defaultdict
-from typing import Tuple, Any, Dict
+from typing import Tuple, Dict
 
 import numpy as np
 import nibabel as nib
 import h5py
-from numpy import typing as npt, ndarray, dtype
-from numpy._typing._generic_alias import ScalarType
+from numpy import typing as npt, ndarray
 
 from FastSurferCNN.data_loader.data_utils import (
     transform_axial,
