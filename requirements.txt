@@ -103,7 +103,7 @@ packaging==23.1
     #   scikit-image
 pandas==1.5.3
     # via -r requirements.in
-pillow==9.5.0
+pillow==10.0.1
     # via
     #   -r requirements.in
     #   imageio
@@ -209,3 +209,6 @@ wrapt==1.15.0
     # via deprecated
 yacs==0.1.8
     # via -r requirements.in
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
