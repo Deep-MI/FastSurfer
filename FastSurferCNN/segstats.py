@@ -795,7 +795,7 @@ def pv_calc(seg: npt.NDArray[_IntType], norm: np.ndarray, labels: Sequence[_IntT
         # iterate through patches of the image
         patch_iters = [range(slice_.start, slice_.stop, patch_size) for slice_ in global_crop]  # for 3D
 
-        map_kwargs["chunksize"] = int(np.ceil(len(voxel_counts) / cpu_count() / 4))  # 4 chunks per core
+        map_kwargs["chunksize"] = int(np.ceil(len(voxel_counts) / get_num_threads() / 4))  # 4 chunks per core
         _patches = pool.map(partial(patch_filter, mask=border, global_crop=global_crop, patch_size=patch_size),
                             product(*patch_iters), **map_kwargs)
         patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
