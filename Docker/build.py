@@ -181,7 +181,10 @@ class CacheSpec:
 
 
 def make_parser() -> argparse.ArgumentParser:
-    from FastSurferCNN.segstats import HelpFormatter
+    try:
+        from FastSurferCNN.segstats import HelpFormatter
+    except ImportError:
+        from argparse import HelpFormatter
     parser = argparse.ArgumentParser(
         description="Docker build script for FastSurfer",
         formatter_class=HelpFormatter,
@@ -425,5 +428,15 @@ if __name__ == "__main__":
     import sys
     logging.basicConfig(stream=sys.stdout)
     arguments = make_parser().parse_args()
+
+    # make sure the code can run without FastSurfer being in PYTHONPATH
+    if "FASTSURFER_HOME" in os.environ:
+        fastsurfer_home = os.environ["FASTSURFER_HOME"]
+    else:
+        fastsurfer_home = str(Path(__file__).parent.parent)
+
+    if fastsurfer_home not in sys.path:
+        sys.path.append(fastsurfer_home)
+
     logger.setLevel(logging.WARN if arguments.dry_run else logging.INFO)
     sys.exit(main(**vars(arguments)))
