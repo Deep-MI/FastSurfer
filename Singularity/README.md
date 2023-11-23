@@ -30,21 +30,24 @@ After building the Singularity image, you need to register at the FreeSurfer web
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:
 
 ```bash
-singularity exec --nv -B /home/user/my_mri_data:/data \
-                      -B /home/user/my_fastsurfer_analysis:/output \
-                      -B /home/user/my_fs_license_dir:/fs \
-                       /home/user/fastsurfer-gpu.sif \
-                       /fastsurfer/run_fastsurfer.sh \
-                      --fs_license /fs/license.txt \
-                      --t1 /data/subjectX/orig.mgz \
-                      --sid subjectX --sd /output \
-                      --parallel
+singularity exec --nv \
+                 --no-home \
+                 -B /home/user/my_mri_data:/data \
+                 -B /home/user/my_fastsurfer_analysis:/output \
+                 -B /home/user/my_fs_license_dir:/fs \
+                  /home/user/fastsurfer-gpu.sif \
+                  /fastsurfer/run_fastsurfer.sh \
+                 --fs_license /fs/license.txt \
+                 --t1 /data/subjectX/orig.mgz \
+                 --sid subjectX --sd /output \
+                 --parallel
 ```
-Singularity Flags:
+### Singularity Flags
 * `--nv`: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer
+* `--no-home`: This flag tells singularity to not mount the home directory inside the singularity image (see [Best Practice](#mounting-home))
 * `-B`: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs). 
 
-FastSurfer Flags:
+### FastSurfer Flags
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above, if you want to run the full surface analysis. 
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
@@ -61,7 +64,8 @@ You can run the Singularity equivalent of CPU-Docker by building a Singularity i
 cd /home/user/my_singlarity_images
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:cpu-v#.#.#
 
-singularity exec -B /home/user/my_mri_data:/data \
+singularity exec --no-home \
+                 -B /home/user/my_mri_data:/data \
                  -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs \
                   /home/user/fastsurfer-cpu.sif \
@@ -71,3 +75,13 @@ singularity exec -B /home/user/my_mri_data:/data \
                   --sid subjectX --sd /output \
                   --parallel
 ```
+
+# Singularity Best Practice
+
+### Mounting Home
+Do not mount the user home directory into the singularity container as the home directory.
+  
+Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `singularity exec ... --version +pip` outputs the FastSurfer version including a full list of python packages. 
+
+How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-home`. 
+

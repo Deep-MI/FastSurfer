@@ -53,6 +53,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
    (a) For __singularity__, the syntax is 
     ```
     singularity exec --nv \
+                     --no-home \
                      -B /home/user/my_mri_data:/data \
                      -B /home/user/my_fastsurfer_analysis:/output \
                      -B /home/user/my_fs_license_dir:/fs_license \
@@ -60,7 +61,9 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
                      /fastsurfer/run_fastsurfer.sh 
                      *fastsurfer-flags*
    ```
-   The `--nv` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU). 
+   The `--nv` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).
+
+   The `--no-home` flag tells singularity to not mount the home directory (see [Singularity README](Singularity/README.md#mounting-home) for more info).
 
    The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
  
@@ -194,22 +197,25 @@ To run FastSurfer on a given subject using the Singularity image with GPU access
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer
 
 # 2. Run command
-singularity exec --nv -B /home/user/my_mri_data:/data \
-                      -B /home/user/my_fastsurfer_analysis:/output \
-                      -B /home/user/my_fs_license_dir:/fs_license \
-                       ./fastsurfer-gpu.sif \
-                       /fastsurfer/run_fastsurfer.sh \
-                      --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/t1-weighted.nii.gz \
-                      --sid subjectX --sd /output \
-                      --parallel
+singularity exec --nv \
+                 --no-home \
+                 -B /home/user/my_mri_data:/data \
+                 -B /home/user/my_fastsurfer_analysis:/output \
+                 -B /home/user/my_fs_license_dir:/fs_license \
+                 ./fastsurfer-gpu.sif \
+                 /fastsurfer/run_fastsurfer.sh \
+                 --fs_license /fs_license/license.txt \
+                 --t1 /data/subjectX/t1-weighted.nii.gz \
+                 --sid subjectX --sd /output \
+                 --parallel
 ```
 
-Singularity Flags:
+#### Singularity Flags
 * The `--nv` flag is used to access GPU resources. 
+* The `--no-home` flag stops mounting your home directory into singularity.
 * The `-B` commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 
-FastSurfer Flags:
+#### FastSurfer Flags
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
@@ -275,54 +281,53 @@ done < ./data/subjects_list.txt
 
 ### Example 5: Quick Segmentation
 
-For many applications you won't need the surfaces. You can run only the aparkDKT segmentation (in 1 minute on a GPU) via
+For many applications you won't need the surfaces. You can run only the aparc+DKT segmentation (in 1 minute on a GPU) via
 
 ```bash
 ./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
                     --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
                     --conformed_name $outputdir/subject1/conformed.mgz \
-                    --parallel --threads 4 --seg_only --no_cereb --no_biasfield
+                    --threads 4 --seg_only --no_cereb
 ```
 
 This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
 Conformed means that the image will be isotropic in LIA orientation. 
-It will furthermore output a brain mask (mask.mgz) and a simplified segmentation file (aseg.auto_noCCseg.mgz). 
+It will furthermore output a brain mask (`mri/mask.mgz`), a simplified segmentation file (`mri/aseg.auto_noCCseg.mgz`), the biasfield corrected image (`mri/orig_nu.mgz`), and the volume statistics (without eTIV) based on the FastSurferVINN segmentation (without the corpus callosum) (`stats/aseg+DKT.stats`).
 
-
-Alternatively - but this requires a FreeSurfer install - you can get mask and also statistics after insertion of the corpus callosum by adding ```--vol_segstats``` in the run_fastsurfer.sh command:
-
-```bash
-./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
-                    --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                    --conformed_name $outputdir/subject1/conformed.mgz \
-                    --parallel --threads 4 --seg_only --vol_segstats
-```
+If you do not even need the biasfield corrected image and the volume statistics, you may add `--no_biasfield`. These steps especially benefit from larger assigned core counts `--threads 32`.
 
 The above ```run_fastsurfer.sh``` commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker or -B in Singularity). 
 
 ```bash
-# Docker - segmentation only
+# Docker
 docker run --gpus all -v $datadir:/data \
                       -v $outputdir:/output \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
                       --asegdkt_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
                       --conformed_name $outputdir/subject1/conformed.mgz \
-                      --parallel --threads 4 --seg_only
+                      --threads 4 --seg_only
 ```
 
-```bash                      
-# Docker - segmentation and statistics (fs-license required)
-docker run --gpus all -v $datadir:/data \
-                      -v $outputdir:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
-                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
-                      --fs_license /fs_license/license.txt \
-                      --t1 /data/subject1/t1-weighted.nii.gz \
-                      --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                      --conformed_name $outputdir/subject1/conformed.mgz \
-                      --parallel --threads 4 --seg_only --vol_segstats
+### Example 6: Running FastSurfer on a SLURM cluster via Singularity
+
+Starting with version 2.2, FastSurfer comes with a script that helps orchestrate FastSurfer optimally on a SLURM cluster: `srun_fastsurfer.sh`.
+
+This script distributes GPU-heavy and CPU-heavy workloads to different SLURM partitions and manages intermediate files in a work directory for IO performance.
+
+```bash
+srun_fastsurfer.sh --partition seg=GPU_Partition \
+                   --partition surf=CPU_Partition \
+                   --sd $outputdir \
+                   --data $datadir \
+                   --singularity_image $HOME/images/fastsurfer-singularity.sif \
+                   [...] # fastsurfer flags
 ```
+
+This will create three dependent SLURM jobs, one to segment, one for surface reconstruction and one for cleanup (which moves the data from the work directory to the `$outputdir`).
+There are many intricacies and options, so it is advised to use `--help`, `--debug` and `--dry` to inspect, what will be scheduled as well as run a test on a small subset. More control over subjects is available with `--subject_list`s.
+
+The `$outputdir` and the `$datadir` need to be accessible from cluster nodes. Most IO is performed on a work directory (automatically generated from `$HPCWORK` environment variable: `$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)`). Alternatively, an empty directory can be manually defined via `--work`. On successful cleanup, this directory will be removed.
 
 ## Output files
 

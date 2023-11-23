@@ -21,7 +21,6 @@ FS_VERSION_SUPPORT="7.4.1"
 t1=""                 # Path and name of T1 input
 asegdkt_segfile=""    # Path and name of segmentation
 subject=""            # Subject name
-vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from asegdkt_segfile
