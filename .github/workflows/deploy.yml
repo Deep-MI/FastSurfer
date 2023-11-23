@@ -23,7 +23,7 @@ jobs:
         with:
           fallback: "dev"
       - name: Build Docker image GPU
-        run: python Docker/build.py --device gpu --tag girodia/fastsurfer:gpu-${{ steps.get_tag.outputs.tag }}
+        run: python Docker/build.py --device cuda --tag girodia/fastsurfer:gpu-${{ steps.get_tag.outputs.tag }}
       - name: Build Docker image CPU
         run: python Docker/build.py --device cpu --tag girodia/fastsurfer:cpu-${{ steps.get_tag.outputs.tag }}
       - name: Push Docker image GPU
