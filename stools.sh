@@ -5,23 +5,27 @@
 function read_cases ()
 {
   # param1 data_dir
-  # param2 search_patttern
+  # param2 search_pattern
   # param3 (optional, alternate mount_dir to print paths relative to)
   # outputs one line per subject, format: "subject_id=input_path"
   # cases are read based on globbing the search_pattern in data_dir,
   # but may be transformed to the optional mount_dir
   prev_pwd="$(pwd)"
   { pushd "$1" > /dev/null || (echo "Could not go to $1" && exit 1)} >&2
-    for file_match in $2; do
-      subject_file="${file_match//\//_}"
-      subject="${subject_file/%.nii.gz/}"
-      subject="${subject/%.nii/}"
-      subject="${subject/%.mgz/}"
-      if [[ $(($#)) -gt 2 ]]
+    for file_match in ./$2; do
+      if [[ -e "$file_match" ]]
       then
-        echo "$subject=$3/$file_match"
-      else
-        echo "$subject=$1/$file_match"
+        file_match="${file_match/#.\/}"
+        subject_file="${file_match//\//_}"
+        subject="${subject_file/%.nii.gz/}"
+        subject="${subject/%.nii/}"
+        subject="${subject/%.mgz/}"
+        if [[ $(($#)) -gt 2 ]]
+        then
+          echo "$subject=$3/$file_match"
+        else
+          echo "$subject=$1/$file_match"
+        fi
       fi
     done
   { popd > /dev/null || (echo "Could not return to $prev_pwd" && exit 1)} >&2
