@@ -157,7 +157,7 @@ SEGMENTATION PIPELINE:
                             calculation of partial volume-corrected stats-files.
   --norm_name             Name of the biasfield corrected image
                             Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
+                            \$SUBJECTS_DIR/\$sid/mri/nu.mgz
 
   MODULES:
   By default, all modules are run.
@@ -593,7 +593,13 @@ fi
 
 if [[ -z "$norm_name" ]]
   then
-    norm_name="${sd}/${subject}/mri/orig_nu.mgz"
+    norm_name="${sd}/${subject}/mri/nu.mgz"
+fi
+
+if [[ -z "$norm_for_tal_option" ]] && [[ "$norm_name" != "${sd}/${subject}/mri/orig_nu.mgz" ]]
+  then
+    # This clause is custom to make sure there will be a orig_nu.mgz created to use by talairach registration
+    norm_for_tal_option="--out ${sd}/${subject}/mri/orig_nu.mgz"
 fi
 
 if [[ -z "$seg_log" ]]
@@ -742,7 +748,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
-        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --out $norm_name --mask $mask_name --aseg $asegdkt_segfile --threads $threads"
+        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --rescale $norm_name --aseg $asegdkt_segfile $norm_for_tal_option --threads $threads"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]

@@ -618,8 +618,12 @@ cmd="ln -sf talairach.xfm.lta talairach.lta"
 RunIt "$cmd" $LF
 popd
 
-# Add xfm to nu (we use orig_nu as input to write nu.mgz)
-cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $mdir/orig_nu.mgz $mdir/nu.mgz"
+# Add xfm to nu
+# (use orig_nu, if nu.mgz does not exist already); by default, it should exist
+if [[ -e "$mdir/nu.mgz" ]]; then src_nu_file="$mdir/nu.mgz"
+else src_nu_file="$mdir/orig_nu.mgz"
+fi
+cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
 RunIt "$cmd" $LF
 
 popd
