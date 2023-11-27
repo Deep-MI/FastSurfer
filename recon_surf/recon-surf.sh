@@ -595,7 +595,8 @@ fi
 ### ----------
 
 # talairach.xfm: compute talairach full head (25sec)
-cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm"
+atlas="--atlas 3T18yoSchwartzReactN32_as_orig"
+cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm $atlas"
 RunIt "$cmd" $LF
 # create copy
 cmd="cp $mdir/transforms/talairach.auto.xfm $mdir/transforms/talairach.xfm"
