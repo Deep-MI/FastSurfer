@@ -12,12 +12,17 @@ function read_cases ()
   # but may be transformed to the optional mount_dir
   prev_pwd="$(pwd)"
   { pushd "$1" > /dev/null || (echo "Could not go to $1" && exit 1)} >&2
+    # pattern without fixed postfixes, e.g. */mri/orig.mgz -> *
+    no_fixed_postfix="${2/%\/[^*{[]*}"
     for file_match in ./$2; do
       if [[ -e "$file_match" ]]
       then
         file_match="${file_match/#.\/}"
-        subject_file="${file_match//\//_}"
-        subject="${subject_file/%.nii.gz/}"
+        # remove postfix from file_match
+        subject="${file_match/%${2:${#no_fixed_postfix}}}"
+        subject="${subject//\//_}" # / -> _
+        # remove common file extensions
+        subject="${subject/%.nii.gz/}"
         subject="${subject/%.nii/}"
         subject="${subject/%.mgz/}"
         if [[ $(($#)) -gt 2 ]]

@@ -511,14 +511,16 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
-    echo "  $hpc_work/images/fastsurfer.sif /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
+    echo "srun --ntasks=1 --nodes=1 --cpus-per-task=$num_cpus_per_task \\"
+    echo "  singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
+    echo "  $hpc_work/images/fastsurfer.sif \\"
+    echo "  /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
   } > $seg_cmd_file
   if [[ "$cpu_only" == "true" ]]; then mem_seg="$mem_seg_cpu"
   else mem_seg="$mem_seg_gpu"
   fi
   # note that there can be a decent startup cost for each run, running multiple cases per task significantly reduces this
-  seg_slurm_sched=(--mem=$mem_seg "--cpus-per-task=$num_cpus_per_task"
+  seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task"
                    --time=$(($timelimit_seg * $real_num_cases_per_task + 5))
                    $slurm_partition "${slurm_email[@]}"
                    "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER"
@@ -598,7 +600,7 @@ then
     echo "module load singularity"
     echo "run_fastsurfer=(srun -J singularity-surf -o $hpc_work/logs/surf_%A_%a_%s.log"
     echo "                --ntasks=1 --time=$timelimit_surf --nodes=1"
-    echo "                --cpus=$cores_per_task --mem=$mem_surf"
+    echo "                --cpus-per-task=$cores_per_task --mem=${mem_surf}G"
     echo "                --hint=nomultithread"
     echo "                singularity exec --no-home -B '$hpc_work:/data'"
     echo "                '$hpc_work/images/fastsurfer.sif'"
