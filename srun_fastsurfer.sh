@@ -142,9 +142,9 @@ EOF
 # voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1m)
 mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
 mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
-mem_surf_parallel=10 # in GB, hemi in parallel
-mem_surf_noparallel=8 # in GB, hemi in series
-num_cpus_surf=1 # base number of cpus to use for surfaces (doubled if --parallel)
+mem_surf_parallel=16 # in GB, hemi in parallel
+mem_surf_noparallel=14 # in GB, hemi in series
+num_cpus_surf=2 # base number of cpus to use for surfaces (doubled if --parallel)
 
 do_parallel="false"
 
@@ -332,7 +332,12 @@ then
     exit 1
   else
     check_hpc_work "$HPCWORK/fastsurfer-processing" "false"
-    hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
+    hpc_work_already_exists="true"
+    # create a new and unused directory
+    while [[ "$hpc_work_already_exists" == "true" ]]; do
+      hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
+      if [[ -a "$hpc_work" ]]; then sleep 1; else hpc_work_already_exists="false"; fi
+    done
     make_hpc_work="true"
   fi
 else
@@ -587,13 +592,16 @@ then
   else surf_cmd_file=$(mktemp)
   fi
   if [[ "$do_parallel" == "true" ]]; then
-    cores_per_task=$(($num_cpus_surf * 2))
+    cores_per_task=$((num_cpus_surf * 2))
     mem_surf=$mem_surf_parallel
   else
     cores_per_task=$num_cpus_surf
     mem_surf=$mem_surf_noparallel
   fi
-  mem_per_core=$(($mem_surf / $cores_per_task))
+  mem_per_core=$((mem_surf / cores_per_task))
+  if [[ "$mem_surf" -gt "$((mem_per_core * cores_per_task))" ]]; then
+    mem_per_core=$((mem_per_core+1))
+  fi
   slurm_partition=$(first_non_empty_partition "$partition_surf" "$partition")
   {
     echo "#!/bin/bash"
@@ -608,9 +616,8 @@ then
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
     echo "  ${fastsurfer_options[*]} ${fastsurfer_surf_options[*]}"
   } > $surf_cmd_file
-  surf_slurm_sched=("--mem-per-cpu=$mem_per_core" "--cpus-per-task=$cores_per_task"
+  surf_slurm_sched=("--mem-per-cpu=${mem_per_core}G" "--cpus-per-task=$cores_per_task"
                     "--ntasks=$real_num_cases_per_task"
-                    "--ntasks-per-node=$real_num_cases_per_task"  # treated as maximum tasks per node
                     "--nodes=1-$real_num_cases_per_task" "--hint=nomultithread"
                     "${jobarray_option[@]}" "$surf_depend"
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
