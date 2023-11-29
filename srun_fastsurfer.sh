@@ -26,19 +26,21 @@ num_cpus_per_task=16
 POSITIONAL_FASTSURFER=()
 seg_only="false"
 surf_only="false"
+cpu_only="false"
+do_cleanup="true"
 debug="false"
 submit_jobs="true"
 partition=""
 partition_surf=""
 partition_seg=""
 email=""
-pattern="*" #"*.{nii.gz,nii,mgz}"
+pattern="*.{nii.gz,nii,mgz}"
 subject_list=""
 subject_list_awk_code="\$1:\$2"
 subject_list_delim=","
 jobarray=""
 timelimit_seg=5
-timelimit_surf=60
+timelimit_surf=180
 
 function usage()
 {
@@ -52,8 +54,8 @@ srun_fastsurfer.sh [--data <directory to search images>]
                                            [--subject_list_delim <delimiter>]
                                            [--subject_list_awk_code <subject_id code>:<subject_path code>])
     [--singularity_image <path to fastsurfer singularity image>] [--num_cases_per_task <number>]
-    [--num_cpus_per_task <number of cpus to allocate for seg>] [--time (surf|seg)=<timelimit>]
-    [--partition [(surf|seg)=]<slurm partition>] [--slurm_jobarray <jobarray specification>]
+    [--num_cpus_per_task <number of cpus to allocate for seg>] [--cpu_only] [--time (surf|seg)=<timelimit>]
+    [--partition [(surf|seg)=]<slurm partition>] [--slurm_jobarray <jobarray specification>] [--skip_cleanup]
     [--email <email address>] [--debug] [--dry] [--help]
     [<additional fastsurfer options>]
 
@@ -72,7 +74,8 @@ Documentation of Options:
   a work directory, which can use IO-optimized cluster storage (see --work).
 --dry: performs all operations, but does not actually submit jobs to slurm
 --data: (root) directory to search in for t1 files (default: current work directory).
---work: directory with fast filesystem on cluster (default: \$HPCWORK/fastsurfer-processing)
+--work: directory with fast filesystem on cluster
+  (default: \$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S))
 --fs_license: path to the freesurfer license
 --pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
    for example --data /data/ --pattern \*/\*/mri/t1.nii.gz
@@ -88,11 +91,14 @@ Documentation of Options:
 --singularity_image: Path to the singularity image to use for segmentation and surface
   reconstruction (default: \$HOME/singularity-images/fastsurfer.sif).
 
+--cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
 --num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
   (default: 16).
 --num_cases_per_task: number of cases batched into one job (slurm jobarray), will process
   in cases in parallel, id num_cases_per_task is smaller than the total number of cases,
   (default: 16).
+--skip_cleanup: Do not schedule step 3, cleanup (which moves the data from --work to --sd, etc.,
+  default: do the cleanup).
 --slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
   that have failed, for example '--slurm_jobarray 4,7' would only run the cases associated with a
   (previous) run of srun_fastsurfer.sh, where log files '<sd>/logs/seg_*_{4,7}.log' indicate failure.
@@ -105,12 +111,12 @@ Documentation of Options:
   default: slurm default partition
 --time: a per-subject time limit for individual steps, must be number in minutes:
    --time seg=<timelimit>: time limit for the segmentation pipeline (per subject), default: seg=5 (5min).
-   --time surf=<timelimit>: time limit for the surface reconstruction (per subject), default: surf=60 (60min)
+   --time surf=<timelimit>: time limit for the surface reconstruction (per subject), default: surf=180 (180min)
 --email: email address to send slurm status updates.
 --debug: Additional debug output.
 --help: print this help.
 
-Accepts additional fastsurfer options, such as --seg_only and --surf_only and only performs the
+Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the
 respective pipeline.
 This script will start three slurm jobs:
 1. a segmentation job (alternatively, if --surf_only, this copies previous segmentation data from
@@ -131,6 +137,16 @@ This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts (ex
 folder as this script) in addition to the fastsurfer singularity image.
 EOF
 }
+
+# the memory required for the surface and the segmentation pipeline depends on the
+# voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1m)
+mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
+mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
+mem_surf_parallel=16 # in GB, hemi in parallel
+mem_surf_noparallel=14 # in GB, hemi in series
+num_cpus_surf=2 # base number of cpus to use for surfaces (doubled if --parallel)
+
+do_parallel="false"
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -202,6 +218,14 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+  --cpu_only)
+    cpu_only="true"
+    shift # past argument
+    ;;
+  --skip_cleanup)
+    do_cleanup="false"
+    shift # past argument
+    ;;
   --work)
     hpc_work="$2"
     shift
@@ -213,6 +237,10 @@ case $key in
     ;;
   --seg_only)
     seg_only="true"
+    shift
+    ;;
+  --parallel)
+    do_parallel="true"
     shift
     ;;
   --singularity_image)
@@ -304,7 +332,12 @@ then
     exit 1
   else
     check_hpc_work "$HPCWORK/fastsurfer-processing" "false"
-    hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
+    hpc_work_already_exists="true"
+    # create a new and unused directory
+    while [[ "$hpc_work_already_exists" == "true" ]]; do
+      hpc_work=$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)
+      if [[ -a "$hpc_work" ]]; then sleep 1; else hpc_work_already_exists="false"; fi
+    done
     make_hpc_work="true"
   fi
 else
@@ -317,10 +350,12 @@ then
   echo ""
   echo "SLURM options:"
   echo "submit jobs and perform operations: $submit_jobs"
+  echo "perform the cleanup step: $do_cleanup"
   echo "seg/surf running on slurm partition:" \
     "$(first_non_empty_partition2 "$partition_seg" "$partition")" "/" \
     "$(first_non_empty_partition2 "$partition_surf" "$partition")"
   echo "num_cpus_per_task/max. num_cases_per_task: $num_cpus_per_task/$num_cases_per_task"
+  echo "segmentation on cpu only: $cpu_only"
   echo "Data options:"
   echo "source dir: $in_dir"
   if [[ -n "$subject_list" ]]
@@ -338,6 +373,7 @@ then
   echo "FreeSurfer license: $fs_license"
   if [[ "$seg_only" == "true" ]]; then echo "--seg_only"; fi
   if [[ "$surf_only" == "true" ]]; then echo "--surf_only"; fi
+  if [[ "$do_parallel" == "true" ]]; then echo "--parallel"; fi
   for p in "${POSITIONAL_FASTSURFER[@]}"
   do
     if [[ "$p" = --* ]]; then printf "\n%s" "$p";
@@ -351,16 +387,33 @@ else
   if [[ "$submit_jobs" == "false" ]]; then echo "dry run, no jobs or operations are performed"; echo ""; fi
 fi
 
+if [[ "${pattern/#\/}" != "$pattern" ]]
+  then
+    echo "ERROR: Absolute paths in --pattern are not allowed, set a base path with --data (this may even be /, i.e. root)."
+    exit 1
+fi
+
 check_singularity_image "$singularity_image"
 check_fs_license "$fs_license"
 check_seg_surf_only "$seg_only" "$surf_only"
 check_out_dir "$out_dir"
+
+if [[ "$cpu_only" == "true" ]] && [[ "$timelimit_seg" -lt 6 ]]
+then
+  echo "WARNING!!!"
+  echo "------------------------------------------------------------------------"
+  echo "You specified the segmentation shall be performed on the cpu, but the"
+  echo "time limit per segmentation is less than 6 minutes (default is optimized "
+  echo "for GPU acceleration @ 5 minutes). This is very likely insufficient!"
+  echo "------------------------------------------------------------------------"
+fi
 
 # step zero: make directories
 if [[ "$submit_jobs" == "true" ]]
 then
   if [[ "$make_hpc_work" == "true" ]]; then mkdir "$hpc_work" ; fi
   make_hpc_work_dirs "$hpc_work"
+  echo "Setting up the work directory..."
 fi
 
 wait # for directories to be made
@@ -397,7 +450,10 @@ else
 fi
 num_cases=$(echo "$cases" | wc -l)
 
-echo "Copying singularity image and scripts..."
+if [[ "$submit_jobs" != "true" ]]
+then
+  echo "Copying singularity image and scripts..."
+fi
 wait
 # for copy and other stuff
 
@@ -460,13 +516,29 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
-    echo "  $hpc_work/images/fastsurfer.sif /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
+    echo "srun --ntasks=1 --nodes=1 --cpus-per-task=$num_cpus_per_task \\"
+    echo "  singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
+    echo "  $hpc_work/images/fastsurfer.sif \\"
+    echo "  /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
   } > $seg_cmd_file
+  if [[ "$cpu_only" == "true" ]]; then mem_seg="$mem_seg_cpu"
+  else mem_seg="$mem_seg_gpu"
+  fi
   # note that there can be a decent startup cost for each run, running multiple cases per task significantly reduces this
-  seg_slurm_sched=(--gpus=1 --mem=10G --time=$(($timelimit_seg * $real_num_cases_per_task + 5)) "--cpus-per-task=$num_cpus_per_task"
-    "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER" $slurm_partition "${slurm_email[@]}"
-    -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
+  seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task"
+                   --time=$(($timelimit_seg * $real_num_cases_per_task + 5))
+                   $slurm_partition "${slurm_email[@]}"
+                   "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER"
+                   -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
+  if [[ "$cpu_only" == "true" ]]
+  then
+    if [[ "$debug" == "true" ]]
+    then
+      echo "Schedule SLURM job without gpu"
+    fi
+  else
+    seg_slurm_sched=(--gpus=1 "${seg_slurm_sched[@]}")
+  fi
   echo "chmod +x $seg_cmd_filename"
   chmod +x $seg_cmd_file
   echo "sbatch --parsable ${seg_slurm_sched[*]}"
@@ -500,26 +572,43 @@ fi
 
 if [[ "$seg_only" != "true" ]]
 then
+  if [[ "$do_parallel" == "true" ]]
+  then
+    fastsurfer_surf_options=(--parallel)
+  else
+    fastsurfer_surf_options=()
+  fi
   fastsurfer_surf_options=(# brun_fastsurfer options (outside of singularity)
                            --subject_list "$hpc_work/scripts/subject_list"
                            --parallel_subjects
                            --statusfile "$hpc_work/scripts/subject_success"
                            # run_fastsurfer options (inside singularity)
-                           --sd /data/cases --parallel --surf_only --fs_license /data/scripts/.fs_license
+                           --sd /data/cases --surf_only
+                           --fs_license /data/scripts/.fs_license
+                           "${fastsurfer_surf_options[@]}"
                            "${POSITIONAL_FASTSURFER[@]}")
   surf_cmd_filename=$hpc_work/scripts/slurm_cmd_surf.sh
-  if [[ "$submit_jobs" == "true" ]]
-  then
-    surf_cmd_file=$surf_cmd_filename
+  if [[ "$submit_jobs" == "true" ]]; then surf_cmd_file=$surf_cmd_filename
+  else surf_cmd_file=$(mktemp)
+  fi
+  if [[ "$do_parallel" == "true" ]]; then
+    cores_per_task=$((num_cpus_surf * 2))
+    mem_surf=$mem_surf_parallel
   else
-    surf_cmd_file=$(mktemp)
+    cores_per_task=$num_cpus_surf
+    mem_surf=$mem_surf_noparallel
+  fi
+  mem_per_core=$((mem_surf / cores_per_task))
+  if [[ "$mem_surf" -gt "$((mem_per_core * cores_per_task))" ]]; then
+    mem_per_core=$((mem_per_core+1))
   fi
   slurm_partition=$(first_non_empty_partition "$partition_surf" "$partition")
   {
     echo "#!/bin/bash"
     echo "module load singularity"
     echo "run_fastsurfer=(srun -J singularity-surf -o $hpc_work/logs/surf_%A_%a_%s.log"
-    echo "                --ntasks=1 --time=$timelimit_surf --nodes=1 --mem=12G"
+    echo "                --ntasks=1 --time=$timelimit_surf --nodes=1"
+    echo "                --cpus-per-task=$cores_per_task --mem=${mem_surf}G"
     echo "                --hint=nomultithread"
     echo "                singularity exec --no-home -B '$hpc_work:/data'"
     echo "                '$hpc_work/images/fastsurfer.sif'"
@@ -527,9 +616,10 @@ then
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
     echo "  ${fastsurfer_options[*]} ${fastsurfer_surf_options[*]}"
   } > $surf_cmd_file
-  surf_slurm_sched=(--mem-per-cpu=6G "--ntasks=$real_num_cases_per_task"
-                    --cpus-per-task=2 "${jobarray_option[@]}" "$surf_depend"
+  surf_slurm_sched=("--mem-per-cpu=${mem_per_core}G" "--cpus-per-task=$cores_per_task"
+                    "--ntasks=$real_num_cases_per_task"
                     "--nodes=1-$real_num_cases_per_task" "--hint=nomultithread"
+                    "${jobarray_option[@]}" "$surf_depend"
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
                     $slurm_partition "${slurm_email[@]}" "$surf_cmd_filename")
   chmod +x $surf_cmd_file
@@ -550,4 +640,9 @@ then
 fi
 
 # step four: copy results back and clean the output directory
-make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$delete_hpc_work" "$submit_jobs"
+if [[ "$do_cleanup" == "true" ]]
+then
+  make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$delete_hpc_work" "$submit_jobs"
+else
+  echo "Skipping the cleanup (no cleanup job scheduled, find your results in $hpc_work."
+fi
