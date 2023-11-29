@@ -27,12 +27,12 @@ List them by running the following command:
 ### Optional arguments
 * `--t1`: T1 full head input (not bias corrected). This must be conformed (dimensions: same along each axis, voxel size: isotropic, LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's [conform.py](https://github.com/Deep-MI/FastSurfer/blob/stable/FastSurferCNN/data_loader/conform.py) script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>). If not passed we use the orig.mgz in the output subject mri directory if available. 
 * `--asegdkt_segfile`: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: same along each axis, voxel size: isotropic, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed and equivalent in dimension and voxel size to the --t1 image. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz 
-* `--vol_segstats`: Additionally return volume-based aparc.DKTatlas+aseg statistics for DL-based segmentation (does not require surfaces and stops after cc-incorporation).
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
 * `--parallel`: Run both hemispheres in parallel
 * `--threads`: Set openMP and ITK threads to <int>
+* `--vol_segstats`: Warning, this flag is obsolete and no longer has an effect.
 
 ### Other
 * `--py`: Command for python, used in both pipelines. Default: python3.8
@@ -74,7 +74,8 @@ the surface pipeline on top of it (i.e. on a different cluster), the following c
 singularity build fastsurfer-reconsurf.sif docker://deepmi/fastsurfer:surfonly-cpu-v2.0.0
 
 # 2. Run command
-singularity exec -B /home/user/my_fastsurfer_analysis:/output \
+singularity exec --no-home \
+                 -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs_license \
                   ./fastsurfer-reconsurf.sif \
                   /fastsurfer/recon_surf/recon-surf.sh \
@@ -82,8 +83,10 @@ singularity exec -B /home/user/my_fastsurfer_analysis:/output \
                   --sid subjectX --sd /output 
 ```
 
-Singularity Flags: 
+#### Singularity Flags: 
 * The `-B` commands mount your output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
+
+* The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../Singularity/README.md#mounting-home))
 
 As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 

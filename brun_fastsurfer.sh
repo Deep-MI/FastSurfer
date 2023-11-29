@@ -71,7 +71,7 @@ iii. a list of subjects directly passed
   as that will cause out-of-memory errors.
 --run_fastsurfer <path/command>: This option enables the startup of fastsurfer in a more controlled
   manner, for example to delegate the fastsurfer run to container:
-  --run_fastsurfer "singularity exec --nv -B <dir>/data /fastsurfer/run_fastsurfer.sh"
+  --run_fastsurfer "singularity exec --nv --no-home -B <dir>:/data /fastsurfer/run_fastsurfer.sh"
   Note, paths to files and --sd have to be defined in the container file system in this case.
 --statusfile <filename>: a file to document which subject ran successfully. Also used to skip
   surface recon, if the previous segmentation failed.
