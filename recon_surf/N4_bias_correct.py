@@ -538,8 +538,6 @@ if __name__ == "__main__":
         options.thres,
     )
 
-    target_wm = 110.
-
     if options.outvol != "do not save":
         logger.info("Skipping WM normalization, ignoring talairach and aseg inputs")
 
@@ -564,10 +562,15 @@ if __name__ == "__main__":
 
     if options.rescalevol == "skip rescaling":
         logger.info("Skipping WM normalization, ignoring talairach and aseg inputs")
-
     else:
+        target_wm = 110.
         # do some rescaling
+
         if options.aseg:
+            # used to be 110, but we found experimentally, that freesurfer wm-normalized
+            # intensity is closer to 105 (but also quite inconsistent)
+            target_wm = 105.
+
             logger.info(f"normalize WM to {target_wm:.1f} (find WM from aseg)")
             # only grab the white matter
             itk_aseg = iio.readITKimage(options.aseg, with_header=False)

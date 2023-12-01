@@ -52,6 +52,7 @@ batch_size="1"
 run_seg_pipeline="1"
 run_biasfield="1"
 run_surf_pipeline="1"
+flag_3T=""
 fstess=""
 fsqsphere=""
 fsaparc=""
@@ -157,7 +158,7 @@ SEGMENTATION PIPELINE:
                             calculation of partial volume-corrected stats-files.
   --norm_name             Name of the biasfield corrected image
                             Default location:
-                            \$SUBJECTS_DIR/\$sid/mri/nu.mgz
+                            \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
 
   MODULES:
   By default, all modules are run.
@@ -196,7 +197,9 @@ SEGMENTATION PIPELINE:
 SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
-  --parallel              Run both hemispheres in parallel
+  --3T                    Use the 3T atlas for talairach registration (gives better
+                            etiv estimates for 3T MR images, default: 1.5T atlas).
+--parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
   Resource Options:
@@ -436,6 +439,10 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --3T)
+    flag_3T="--3T"
+    shift
+    ;;
     --parallel)
     doParallel="--parallel"
     shift # past argument
@@ -593,13 +600,7 @@ fi
 
 if [[ -z "$norm_name" ]]
   then
-    norm_name="${sd}/${subject}/mri/nu.mgz"
-fi
-
-if [[ -z "$norm_for_tal_option" ]] && [[ "$norm_name" != "${sd}/${subject}/mri/orig_nu.mgz" ]]
-  then
-    # This clause is custom to make sure there will be a orig_nu.mgz created to use by talairach registration
-    norm_for_tal_option="--out ${sd}/${subject}/mri/orig_nu.mgz"
+    norm_name="${sd}/${subject}/mri/orig_nu.mgz"
 fi
 
 if [[ -z "$seg_log" ]]
@@ -748,7 +749,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
-        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --rescale $norm_name --aseg $asegdkt_segfile $norm_for_tal_option --threads $threads"
+        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --rescale $norm_name --aseg $asegdkt_segfile --threads $threads"
         echo "$cmd" |& tee -a "$seg_log"
         $cmd
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -801,7 +802,7 @@ if [[ "$run_surf_pipeline" == "1" ]]
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
     pushd "$reconsurfdir"
     cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile"
-    cmd="$cmd $fstess $fsqsphere $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
+    cmd="$cmd $fstess $fsqsphere $flag_3T $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
     cmd="$cmd $vcheck $vfst1 $allow_root"
     echo "$cmd" |& tee -a "$seg_log"
     $cmd

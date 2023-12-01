@@ -29,6 +29,7 @@ python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
+atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
 
 # Dev flags default
 check_version=1       # Check for supported FreeSurfer version (terminate if not detected)
@@ -95,6 +96,8 @@ FLAGS:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine)
+  --3T                    Use the 3T atlas for talairach registration (gives better
+                            etiv estimates for 3T MR images, default: 1.5T atlas).
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
   --py <python_cmd>       Command for python, default $python
@@ -189,7 +192,7 @@ function RunBatchJobs()
   # wait till all processes have finished
   PIDS_STATUS=()
   for pid in "${PIDS[@]}"; do
-    echo "Waiting for PID $pid of (${PIDS[@]}) to complete..."
+    echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
     wait $pid
     PIDS_STATUS=(${PIDS_STATUS[@]} $?)
   done
@@ -199,7 +202,7 @@ function RunBatchJobs()
     cat $log >> $LOG_FILE
     rm -f $log
   done
-  echo "PIDs (${PIDS[@]}) completed and logs appended."
+  echo "PIDs (${PIDS[*]}) completed and logs appended."
   # and check for failures
   for pid_status in "${PIDS_STATUS[@]}"
   do
@@ -270,6 +273,10 @@ case $key in
     --no_surfreg)
     fssurfreg=0
     shift # past argument
+    ;;
+    --3T)
+    atlas3T="true"
+    shift
     ;;
     --parallel)
     DoParallel=1
@@ -594,7 +601,14 @@ fi
 ### ----------
 
 # talairach.xfm: compute talairach full head (25sec)
-atlas="--atlas 3T18yoSchwartzReactN32_as_orig"
+if [[ "$atlas3T" == "true" ]]
+then
+  echo "Using the 3T atlas for talairach registration."
+  atlas="--atlas 3T18yoSchwartzReactN32_as_orig"
+else
+  echo "Using the default atlas (1.5T) for talairach registration."
+  atlas=""
+fi
 cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm $atlas"
 RunIt "$cmd" $LF
 # create copy
