@@ -142,9 +142,9 @@ EOF
 # voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1m)
 mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
 mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
-mem_surf_parallel=16 # in GB, hemi in parallel
-mem_surf_noparallel=14 # in GB, hemi in series
-num_cpus_surf=2 # base number of cpus to use for surfaces (doubled if --parallel)
+mem_surf_parallel=20 # in GB, hemi in parallel
+mem_surf_noparallel=18 # in GB, hemi in series
+num_cpus_surf=1 # base number of cpus to use for surfaces (doubled if --parallel)
 
 do_parallel="false"
 
@@ -376,8 +376,8 @@ then
   if [[ "$do_parallel" == "true" ]]; then echo "--parallel"; fi
   for p in "${POSITIONAL_FASTSURFER[@]}"
   do
-    if [[ "$p" = --* ]]; then printf "\n%s" "$p";
-    else printf " %s" '$p';
+    if [[ "$p" == --* ]]; then printf "\n%s" "$p";
+    else printf " %s" "$p";
     fi
   done
   echo ""
@@ -449,6 +449,24 @@ else
   cases=$(read_cases "$in_dir" "$pattern" "/source" | $tofile)
 fi
 num_cases=$(echo "$cases" | wc -l)
+
+if [[ "$num_cases" -lt 1 ]] || [[ -z "$cases" ]]
+then
+  wait
+  echo "WARNING: No cases found using the parameters provided. Aborting job submission!"
+  if [[ "$submit_jobs" == "true" ]] && [[ "$do_cleanup" == "true" ]]
+  then
+    echo "Cleaning temporary work directory!"
+    rm -R "$hpc_work/images"
+    rm -R "$hpc_work/scripts"
+    if [[ "$delete_hpc_work" == "false" ]]
+    then
+      rm -R "$hpc_work"
+    fi
+  fi
+  exit 0
+fi
+
 
 if [[ "$submit_jobs" != "true" ]]
 then
