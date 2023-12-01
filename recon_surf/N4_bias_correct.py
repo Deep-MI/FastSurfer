@@ -47,28 +47,34 @@ N4 Bias Correction (performed if either --out <file> or --rescaled <file> is pas
 The input image will be N4 bias corrected. Optimally you would pass a brainmask via
 --mask. If --mask auto is given, all 0 values will be masked to speed-up correction 
 and avoid influence of flat zero regions on the bias field. If no mask is given, no 
-mask is applied. 
+mask is applied. The mean image intensity of the --out file is adjusted to be equal
+to the mean intenstiy of the input.
 
 
 WM Normalization and UCHAR (done if --rescale <filename> is passed):
 
-There are several options for normalization, depending on parameters and passed inputs. 
-The biasfield corrected image will always be converted and saved as UCHAR.
+There are several options for additional normalization, depending on additional
+parameters. The biasfield corrected image will always be converted and saved as
+UCHAR.
 
-After bias field computation and application, the image will be rescaled. This procedure 
-is called WM normalization. The goal is to either, achieve a target white matter 
-intensity of 110 or similar mean image intensity as the input image.
+After bias correction, the image will be rescaled with the goal to normalize the
+target white matter intensity to values usually around 105-110.
 
 The most reliable way to achieve this white matter normalization is to pass a brain 
 segmentation (via --aseg). Then, the white matter regions from the aseg are used to 
-rescale the intensity such that their average intensity will be 110.
+rescale the intensity such that their average intensity will be at 105 (similar to 
+FreeSurfer's nu.mgz).
 
 If no brain segmentation (--aseg) is passed, the script tries to find an appropriate 
 segmentation via a ball of radius 50 voxels around the center of the image and computes 
-the 90th percentile of intensities in this part of the image.
-To find the center of the brain, if a talairach.xfm transform (--tal) is passed, we 
-use the origin of the Talairach space as center for the ball, or, if a brain mask 
-(--mask) is passed, the center is computed based on the brain mask. 
+the 90th percentile of intensities in this part of the image. The center is found 
+by one of the following two methods:
+
+If a talairach.xfm transform (--tal) is passed, the center of the ball
+is placed at the origin of the Talairach space.
+
+If a brain mask (--mask) is passed, the center is placed at the centroid of the
+brainmask. 
 
 One of --mask, --tal, --aseg must be passed to achieve rescaling.
 
