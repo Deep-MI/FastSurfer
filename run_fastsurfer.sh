@@ -199,7 +199,7 @@ SURFACE PIPELINE:
                             to exist already in this case.
   --3T                    Use the 3T atlas for talairach registration (gives better
                             etiv estimates for 3T MR images, default: 1.5T atlas).
---parallel              Run both hemispheres in parallel
+  --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
   Resource Options:
