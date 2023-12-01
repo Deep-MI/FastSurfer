@@ -18,7 +18,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional, cast, Tuple
 import logging
 
 import SimpleITK as sitk
@@ -33,7 +33,7 @@ HELPTEXT = """
 Script to call SITK N4 Bias Correction
 
 USAGE:
-N4_bias_correct  --invol <img.nii> --outvol <corrected.nii> OPTIONS
+N4_bias_correct  --in <img.nii> [--out <corrected.nii>] [--rescaled <rescaled.nii>] OPTIONS
 
 
 Dependencies:
@@ -42,44 +42,41 @@ Dependencies:
     SimpleITK https://simpleitk.org/ (v2.1.1)
 
 
-N4 Bias Correction:
+N4 Bias Correction (performed if either --out <file> or --rescaled <file> is passed):
 
 The input image will be N4 bias corrected. Optimally you would pass a brainmask via
---mask. If no mask is given, all 0 values will be masked to speed-up correction and
-avoid influence of flat zero regions on the bias field. 
+--mask. If --mask auto is given, all 0 values will be masked to speed-up correction 
+and avoid influence of flat zero regions on the bias field. If no mask is given, no 
+mask is applied. The mean image intensity of the --out file is adjusted to be equal
+to the mean intenstiy of the input.
 
 
-WM Normalization and UCHAR:
+WM Normalization and UCHAR (done if --rescale <filename> is passed):
 
-There are several options for normalization, depending on parameters and passed inputs. 
-The biasfield corrected image will always be converted and saved as UCHAR.
+There are several options for additional normalization, depending on additional
+parameters. The biasfield corrected image will always be converted and saved as
+UCHAR.
 
-If a --mask image is passed, this mask is used both in the biasfield correction as well 
-as in the global rescaling.
+After bias correction, the image will be rescaled with the goal to normalize the
+target white matter intensity to values usually around 105-110.
 
-After bias field computation and application, the image will be rescaled. This procedure 
-is called WM normalization. The goal is to either, achieve a target white matter 
-intensity of 110 or similar mean image intensity as the input image.
-
-The most reliable way to achieve this white matter normalization is to pass a brainmask 
-(via --mask) and a brain segmentation (via --aseg). If both of these are passed, the 
-white matter regions from the aseg are used to rescale the intensity such that their 
-average intensity will be 110.
+The most reliable way to achieve this white matter normalization is to pass a brain 
+segmentation (via --aseg). Then, the white matter regions from the aseg are used to 
+rescale the intensity such that their average intensity will be at 105 (similar to 
+FreeSurfer's nu.mgz).
 
 If no brain segmentation (--aseg) is passed, the script tries to find an appropriate 
-segmentation via the Otsu thresholding method and a ball of radius 50 voxels around the 
-center of the image 90th percentile of intensities in this part of the image.
-To find the center of the brain, either a talairach.xfm transform is passed, we use the 
-origin of the Talairach space as center for the ball, or the center is computed based 
-on the brain mask. 
+segmentation via a ball of radius 50 voxels around the center of the image and computes 
+the 90th percentile of intensities in this part of the image. The center is found 
+by one of the following two methods:
 
-If also no brain mask (--mask) is provided, the script creates an appropriate brainmask
-automatically.
+If a talairach.xfm transform (--tal) is passed, the center of the ball
+is placed at the origin of the Talairach space.
 
-If no scaling to a target white matter intensity is wanted, the flag --skipwm 
-deactivates this component. Instead, the script then rescales the image such that the
-average intensity in the brain mask (see above) is the same between the input image and
-the output biasfield corrected image.
+If a brain mask (--mask) is passed, the center is placed at the centroid of the
+brainmask. 
+
+One of --mask, --tal, --aseg must be passed to achieve rescaling.
 
 Original Author: Martin Reuter
 Date: Mar-18-2022
@@ -91,13 +88,13 @@ Date: Oct-25-2023
 h_verbosity = "Logging verbosity: 0 (none), 1 (normal), 2 (debug)"
 h_invol = "path to input.nii.gz"
 h_outvol = "path to corrected.nii.gz"
+h_rescaled = "path to rescaled.nii.gz"
 h_mask = "optional: path to mask.nii.gz"
 h_aseg = "optional: path to aseg or aseg+dkt image to find the white matter mask"
 h_shrink = "<int> shrink factor, default: 4"
 h_levels = "<int> number of fitting levels, default: 4"
 h_numiter = "<int> max number of iterations per level, default: 50"
 h_thres = "<float> convergence threshold, default: 0.0"
-h_skipwm = "skip normalize WM to 110 (for UCHAR scale)"
 h_tal = "<string> file name of talairach.xfm if using this for finding origin"
 h_threads = "<int> number of threads, default: 1"
 
@@ -119,7 +116,8 @@ def options_parse():
         dest="verbosity", choices=(0, 1, 2), default=-1, help=h_verbosity, type=int
     )
     parser.add_argument("--in", dest="invol", help=h_invol, required=True)
-    parser.add_argument("--out", dest="outvol", help=h_outvol, required=True)
+    parser.add_argument("--out", dest="outvol", help=h_outvol, default="do not save")
+    parser.add_argument("--rescale", dest="rescalevol", help=h_rescaled, default="skip rescaling")
     parser.add_argument("--mask", dest="mask", help=h_mask, default=None)
     parser.add_argument("--aseg", dest="aseg", help=h_aseg, default=None)
     parser.add_argument("--shrink", dest="shrink", help=h_shrink, default=4, type=int)
@@ -128,9 +126,6 @@ def options_parse():
         "--numiter", dest="numiter", help=h_numiter, default=50, type=int
     )
     parser.add_argument("--thres", dest="thres", help=h_thres, default=0.0, type=float)
-    parser.add_argument(
-        "--skipwm", dest="skipwm", help=h_skipwm, default=False, action="store_true"
-    )
     parser.add_argument("--tal", dest="tal", help=h_tal, default=None)
     parser.add_argument(
         "--threads", dest="threads", help=h_threads, default=1, type=int
@@ -180,9 +175,9 @@ def itk_n4_bfcorrection(
         # binarize mask
         itk_mask = itk_mask > 0
     else:
-        itk_mask = itk_image > 0
+        itk_mask = sitk.Abs(itk_image) >= 0
         itk_mask.CopyInformation(itk_image)
-        _logger.info("- mask: default (>0)")
+        _logger.info("- mask: ones (default)")
 
     itk_orig = itk_image
 
@@ -213,10 +208,11 @@ def itk_n4_bfcorrection(
 
 def normalize_wm_mask_ball(
         itk_image: sitk.Image,
-        itk_mask: sitk.Image,
+        itk_mask: Optional[sitk.Image] = None,
         radius: float = 50.,
         centroid: Optional[np.ndarray] = None,
-        target_wm: float = 110.
+        target_wm: float = 110.,
+        target_bg: float = 3.
 ) -> sitk.Image:
     """Normalize WM image by Mask and optionally ball around talairach center.
 
@@ -224,7 +220,7 @@ def normalize_wm_mask_ball(
     ----------
     itk_image : sitk.Image
         n-dimensional itk image
-    itk_mask : sitk.Image
+    itk_mask : sitk.Image, optional
         Image mask.
     radius : float | int
         Defaults to 50 [MISSING]
@@ -232,6 +228,8 @@ def normalize_wm_mask_ball(
         brain centroid.
     target_wm : float | int
         Target white matter intensity. Defaults to 110.
+    target_bg : float | int
+        target background intensity. Defaults to 3 (1% of 255)
 
     Returns
     -------
@@ -260,26 +258,25 @@ def normalize_wm_mask_ball(
     distance = xx + yy + zz
     ball = distance < radius * radius
 
-    # get mask as intersection of ball and passed mask
-    ball_mask = np.logical_and(ball, sitk.GetArrayFromImage(itk_mask))
-
     # get ndarray from sitk image
     image = sitk.GetArrayFromImage(itk_image)
     # get 90th percentiles of intensities in ball (to identify WM intensity)
-    source_wm_intensity = np.percentile(image[ball_mask], 90)
+    source_intensity = np.percentile(image[ball], [1, 90])
 
     _logger.info(
-        f"- source white matter intensity: {source_wm_intensity:.2f}"
+        f"- source background intensity: {source_intensity[0]:.2f}"
+        f"- source white matter intensity: {source_intensity[1]:.2f}"
     )
 
-    return normalize_img(itk_image, itk_mask, source_wm_intensity, target_wm)
+    return normalize_img(itk_image, itk_mask, tuple(source_intensity.tolist()), (target_bg, target_wm))
 
 
 def normalize_wm_aseg(
         itk_image: sitk.Image,
-        itk_mask: sitk.Image,
+        itk_mask: Optional[sitk.Image],
         itk_aseg: sitk.Image,
-        target_wm: float = 110.
+        target_wm: float = 110.,
+        target_bg: float = 3.
 ) -> sitk.Image:
     """Normalize WM image [MISSING].
 
@@ -287,7 +284,7 @@ def normalize_wm_aseg(
     ----------
     itk_image : sitk.Image
         n-dimensional itk image
-    itk_mask : sitk.Image
+    itk_mask : sitk.Image | None
         Image mask.
     itk_aseg : sitk.Image
         aseg-like segmentation image to find WM.
@@ -296,7 +293,9 @@ def normalize_wm_aseg(
     centroid : Optional[np.ndarray]
         Image centroid. Defaults to None
     target_wm : float | int
-        Defaults to 110 [MISSING]
+        target white matter intensity. Defaults to 110
+    target_bg : float | int
+        target background intensity Defaults to 3 (1% of 255)
 
     Returns
     -------
@@ -311,30 +310,33 @@ def normalize_wm_aseg(
     aseg = sitk.GetArrayFromImage(itk_aseg)
     # Left and Right White Matter
     mask = (aseg == 2) | (aseg == 41)
-    source_wm_intensity = np.mean(img[mask])
+    source_wm_intensity = np.mean(img[mask]).item()
+    # mask = (aseg == 4) | (aseg == 43)
+    # source_bg = np.mean(img[mask]).item()
+    source_bg = np.percentile(img.flat[::100], 1)
 
     _logger.info(
         f"- source white matter intensity: {source_wm_intensity:.2f}"
     )
 
-    return normalize_img(itk_image, itk_mask, source_wm_intensity, target_wm)
+    return normalize_img(itk_image, itk_mask, (source_bg, source_wm_intensity), (target_bg, target_wm))
 
 
 def normalize_img(
         itk_image: sitk.Image,
-        itk_mask: sitk.Image,
-        source_intensity: float,
-        target_intensity: float
+        itk_mask: Optional[sitk.Image],
+        source_intensity: Tuple[float, float],
+        target_intensity: Tuple[float, float]
 ) -> sitk.Image:
     """
-    Normalize image by source and target intensity values (retains zero-point).
+    Normalize image by source and target intensity values.
 
     Parameters
     ----------
     itk_image : sitk.Image
-    itk_mask : sitk.Image
-    source_intensity : float
-    target_intensity : float
+    itk_mask : sitk.Image | None
+    source_intensity : Tuple[float, float]
+    target_intensity : Tuple[float, float]
 
     Returns
     -------
@@ -342,15 +344,18 @@ def normalize_img(
     """
     _logger = logging.getLogger(__name__ + ".normalize_wm")
     # compute intensity transformation
-    m = target_intensity / source_intensity
+    m = (target_intensity[0] - target_intensity[1]) / (source_intensity[0] - source_intensity[1])
     _logger.info(f"- m: {m:.4f}")
 
     # itk_image already is Float32 and output should be also Float32, we clamp outside
-    normalized = itk_image * m
+    normalized = (itk_image - source_intensity[0]) * m + target_intensity[0]
 
-    # ensure normalized image is > 0, where mask is true
-    correction_mask = cast(sitk.Image, (normalized < 1) & itk_mask)
-    return normalized + sitk.Cast(correction_mask, normalized.GetPixelID())
+    if itk_mask:
+        # ensure normalized image is > 0, where mask is true
+        correction_mask = cast(sitk.Image, (normalized < 1) & itk_mask)
+        return normalized + sitk.Cast(correction_mask, normalized.GetPixelID())
+    else:
+        return normalized
 
 
 def read_talairach_xfm(fname: Path | str) -> np.ndarray:
@@ -425,13 +430,13 @@ def print_options(options: dict):
            "- verbosity: {verbosity}",
            "- input volume: {invol}",
            "- output volume: {outvol}",
+           "- rescaled volume: {rescaledvol}",
            "- mask: {mask}" if options.get("mask") else "- mask: default (>0)",
            "- aseg: {aseg}" if options.get("aseg") else "- aseg: not defined",
            "- shrink factor: {shrink}",
            "- number fitting levels: {levels}",
            "- number iterations: {numiter}",
            "- convergence threshold: {thres}",
-           "- skipwm: {skipwm}",
            "- talairach: {tal}" if options.get("tal") else None,
            "- threads: {threads}")
 
@@ -460,7 +465,7 @@ def get_image_mean(image: sitk.Image, mask: Optional[sitk.Image] = None) -> floa
     if mask is not None:
         mask = sitk.GetArrayFromImage(mask)
         img = img[mask]
-    return np.mean(img)
+    return np.mean(img).item()
 
 
 def get_brain_centroid(itk_mask: sitk.Image) -> np.ndarray:
@@ -500,6 +505,10 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     print_options(vars(options))
 
+    if options.rescalevol == "skip rescaling" and options.outvol == "do not save":
+        logger.error("Neither the rescaled nor the unrescaled volume are saved, aborting.")
+        sys.exit(1)
+
     # set number of threads
     sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(options.threads)
 
@@ -514,7 +523,7 @@ if __name__ == "__main__":
     has_mask = bool(options.mask)
     if has_mask:
         logger.debug(f"reading mask {options.mask}")
-        itk_mask: sitk.Image = iio.readITKimage(
+        itk_mask: Optional[sitk.Image] = iio.readITKimage(
             options.mask,
             sitk.sitkUInt8,
             with_header=False
@@ -522,10 +531,7 @@ if __name__ == "__main__":
         # binarize mask
         itk_mask = cast(sitk.Image, itk_mask > 0)
     else:
-        logger.debug("generate mask with otsu (0, 1, 200)")
-        itk_mask = sitk.OtsuThreshold(itk_image, 0, 1, 200)
-        logger.info("- mask: default (otsu)")
-        itk_mask.CopyInformation(itk_image)
+        itk_mask = None
 
     # call N4 correct
     logger.info("executing N4 correction ...")
@@ -538,9 +544,7 @@ if __name__ == "__main__":
         options.thres,
     )
 
-    target_wm = 110.
-
-    if options.skipwm:
+    if options.outvol != "do not save":
         logger.info("Skipping WM normalization, ignoring talairach and aseg inputs")
 
         # normalize to average input intensity
@@ -549,43 +553,67 @@ if __name__ == "__main__":
         m_image = get_image_mean(itk_image, **kw_mask)
         logger.info("- rescale")
         logger.info(f"   mean input: {m_image:.4f}, mean corrected {m_bf_img:.4f})")
-        itk_bfcorr_image = normalize_img(itk_image, itk_mask, m_bf_img, m_image)
+        # rescale keeping the zero-point and the mean image intensity
+        itk_outvol = normalize_img(itk_image, itk_mask, (0., m_bf_img), (0., m_image))
 
-    elif options.aseg:
-        logger.info(f"normalize WM to {target_wm:.1f} (find WM from aseg)")
-        # only grab the white matter
-        itk_aseg = iio.readITKimage(options.aseg, with_header=False)
-
-        itk_bfcorr_image = normalize_wm_aseg(
-            itk_bfcorr_image,
-            itk_mask,
-            itk_aseg,
-            target_wm=target_wm
+        logger.info("converting outvol to UCHAR")
+        itk_outvol = sitk.Cast(
+            sitk.Clamp(itk_outvol, lowerBound=0, upperBound=255), sitk.sitkUInt8
         )
+
+        # write image
+        logger.info(f"writing: {options.outvol}")
+        iio.writeITKimage(itk_outvol, options.outvol, image_header)
+
+
+    if options.rescalevol == "skip rescaling":
+        logger.info("Skipping WM normalization, ignoring talairach and aseg inputs")
     else:
-        logger.info(f"normalize WM to {target_wm:.1f} (find WM from mask & otsu)")
-        if not has_mask:
-            logger.debug("generate white matter segmentation with otsu (0, 1, 200)")
-            itk_mask = sitk.OtsuThreshold(itk_image, 0, 1, 200)
-        if options.tal:
-            talairach_center = read_talairach_xfm(options.tal)
-            brain_centroid = get_tal_origin_voxel(talairach_center, itk_image)
-        else:
-            brain_centroid = get_brain_centroid(itk_mask)
+        target_wm = 110.
+        # do some rescaling
 
-        itk_bfcorr_image = normalize_wm_mask_ball(
-            itk_bfcorr_image,
-            itk_mask,
-            centroid=brain_centroid
+        if options.aseg:
+            # used to be 110, but we found experimentally, that freesurfer wm-normalized
+            # intensity insde the WM mask is closer to 105 (but also quite inconsistent).
+            # So when we have a WM mask, we need to use 105 and not 110 as for the 
+            # percentile approach above. 
+            target_wm = 105.
+
+            logger.info(f"normalize WM to {target_wm:.1f} (find WM from aseg)")
+            # only grab the white matter
+            itk_aseg = iio.readITKimage(options.aseg, with_header=False)
+
+            itk_bfcorr_image = normalize_wm_aseg(
+                itk_bfcorr_image,
+                itk_mask,
+                itk_aseg,
+                target_wm=target_wm
+            )
+        else:
+            logger.info(f"normalize WM to {target_wm:.1f} (find WM from mask & talairach)")
+            if options.tal:
+                talairach_center = read_talairach_xfm(options.tal)
+                brain_centroid = get_tal_origin_voxel(talairach_center, itk_image)
+            elif has_mask:
+                brain_centroid = get_brain_centroid(itk_mask)
+            else:
+                logger.error("Neither --tal, --mask, nor --aseg are passed, but rescaling is requested.")
+                sys.exit(1)
+
+            itk_bfcorr_image = normalize_wm_mask_ball(
+                itk_bfcorr_image,
+                itk_mask,
+                centroid=brain_centroid,
+                target_wm=target_wm
+            )
+
+        logger.info("converting rescaled to UCHAR")
+        itk_bfcorr_image = sitk.Cast(
+            sitk.Clamp(itk_bfcorr_image, lowerBound=0, upperBound=255), sitk.sitkUInt8
         )
 
-    logger.info("converting to UCHAR")
-    itk_bfcorr_image = sitk.Cast(
-        sitk.Clamp(itk_bfcorr_image, lowerBound=0, upperBound=255), sitk.sitkUInt8
-    )
-
-    # write image
-    logger.info(f"writing: {options.outvol}")
-    iio.writeITKimage(itk_bfcorr_image, options.outvol, image_header)
+        # write image
+        logger.info(f"writing: {options.rescalevol}")
+        iio.writeITKimage(itk_bfcorr_image, options.rescalevol, image_header)
 
     sys.exit(0)

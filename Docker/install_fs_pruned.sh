@@ -122,6 +122,12 @@ copy_files="
   sources.csh  
   SubCorticalMassLUT.txt
   WMParcStatsLUT.txt
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.hdr
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.ifh
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.img
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.img.rec
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.mat
+  average/3T18yoSchwartzReactN32_as_orig.lst
   average/711-2B_as_mni_average_305_mask.4dfp.hdr
   average/711-2B_as_mni_average_305_mask.4dfp.ifh
   average/711-2B_as_mni_average_305_mask.4dfp.img
