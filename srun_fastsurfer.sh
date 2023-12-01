@@ -142,8 +142,8 @@ EOF
 # voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1m)
 mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
 mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
-mem_surf_parallel=16 # in GB, hemi in parallel
-mem_surf_noparallel=14 # in GB, hemi in series
+mem_surf_parallel=20 # in GB, hemi in parallel
+mem_surf_noparallel=18 # in GB, hemi in series
 num_cpus_surf=2 # base number of cpus to use for surfaces (doubled if --parallel)
 
 do_parallel="false"

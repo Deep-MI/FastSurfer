@@ -270,7 +270,7 @@ def normalize_wm_aseg(
         itk_mask: Optional[sitk.Image],
         itk_aseg: sitk.Image,
         target_wm: float = 110.,
-        target_bg: float = 30.
+        target_bg: float = 3.
 ) -> sitk.Image:
     """Normalize WM image [MISSING].
 
@@ -289,7 +289,7 @@ def normalize_wm_aseg(
     target_wm : float | int
         target white matter intensity. Defaults to 110
     target_bg : float | int
-        target background intensity Defaults to 30 (1% of 255)
+        target background intensity Defaults to 3 (1% of 255)
 
     Returns
     -------
@@ -305,8 +305,9 @@ def normalize_wm_aseg(
     # Left and Right White Matter
     mask = (aseg == 2) | (aseg == 41)
     source_wm_intensity = np.mean(img[mask]).item()
-    mask = (aseg == 4) | (aseg == 43)
-    source_bg = np.mean(img[mask]).item()
+    # mask = (aseg == 4) | (aseg == 43)
+    # source_bg = np.mean(img[mask]).item()
+    source_bg = np.percentile(img.flat[::100], 1)
 
     _logger.info(
         f"- source white matter intensity: {source_wm_intensity:.2f}"
