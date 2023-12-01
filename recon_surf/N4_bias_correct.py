@@ -430,7 +430,7 @@ def print_options(options: dict):
            "- verbosity: {verbosity}",
            "- input volume: {invol}",
            "- output volume: {outvol}",
-           "- rescaled volume: {rescaledvol}",
+           "- rescaled volume: {rescalevol}",
            "- mask: {mask}" if options.get("mask") else "- mask: default (>0)",
            "- aseg: {aseg}" if options.get("aseg") else "- aseg: not defined",
            "- shrink factor: {shrink}",
