@@ -274,7 +274,7 @@ case $key in
     fssurfreg=0
     shift # past argument
     ;;
-    --3T)
+    --3t)
     atlas3T="true"
     shift
     ;;

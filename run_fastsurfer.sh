@@ -439,7 +439,7 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --3T)
+    --3t)
     flag_3T="--3T"
     shift
     ;;
