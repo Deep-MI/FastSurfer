@@ -26,7 +26,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
      - calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
-- approximately 60 minutes, `--surf_only` runs only the surface part
+- approximately 60-90 minutes, `--surf_only` runs only the surface part
 - supports high-resolution images (up to 0.7mm, experimental beyond that)
 
 ### Requirements to input images
@@ -231,6 +231,13 @@ You can run the Singularity equivalent of CPU-Docker by building a Singularity i
 
 ### Example 3: Native FastSurfer on subjectX (with parallel processing of hemis)
 
+For a native install you may want to make sure that you are on our stable branch, as the default dev branch is for development and could be broken at any time. For that you can directly clone the stable branch:
+
+```bash
+git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
+```
+
+More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [INSTALL.md file](INSTALL.md).
 Given you want to analyze data for subject which is stored on your computer under /home/user/my_mri_data/subjectX/t1-weighted.nii.gz, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
