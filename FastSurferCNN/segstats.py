@@ -119,8 +119,10 @@ class HelpFormatter(argparse.HelpFormatter):
         """
         Get the linebreak substitution string.
 
-        Returns:
-            str: The linebreak substitution string ("<br>").
+        Returns
+        -------
+        str
+            The linebreak substitution string ("<br>").
         """
         return getattr(self, "linebreak_sub", "<br>")
 
@@ -128,13 +130,19 @@ class HelpFormatter(argparse.HelpFormatter):
         """
         Fill text with line breaks based on the linebreak substitution string.
 
-        Args:
-            text (str): The input text.
-            width (int): The width for filling the text.
-            indent (int): The indentation level.
+        Parameters
+        ----------
+        text : str
+            The input text.
+        width : int
+            The width for filling the text.
+        indent : int
+            The indentation level.
 
-        Returns:
-            str: The formatted text with line breaks.
+        Returns
+        -------
+        str
+            The formatted text with line breaks.
         """
         texts = text.split(self._linebreak_sub())
         return "\n".join(
@@ -145,12 +153,16 @@ class HelpFormatter(argparse.HelpFormatter):
         """
         Split lines in the text based on the linebreak substitution string.
 
-        Args:
-            text (str): The input text.
-            width (int): The width for splitting lines.
+        Parameters
+        text : str
+            The input text.
+        width : int
+            The width for splitting lines.
 
-        Returns:
-            list: The list of lines.
+        Returns
+        -------
+        list[str]
+            The list of lines.
         """
         texts = text.split(self._linebreak_sub())
         from itertools import chain
@@ -347,7 +359,7 @@ def loadfile_full(file: str, name: str) -> Tuple[nib.analyze.SpatialImage, np.nd
 
     Returns
     -------
-    Tuple[nib.analyze.SpatialImage, np.ndarray]
+    tuple[nib.analyze.SpatialImage, np.ndarray]
         A tuple containing the loaded image and its corresponding data.
     """
     try:
@@ -425,8 +437,8 @@ def main(args):
                 seg.affine, norm.affine
             ):
                 return (
-                    "The shapes or affines of the segmentation and the norm image are not similar, both must be "
-                    "the same!"
+                    "The shapes or affines of the segmentation and the norm image are "
+                    "not similar, both must be the same!"
                 )
 
         except IOError as e:
@@ -451,7 +463,8 @@ def main(args):
                 list(filter(lambda x: x in exclude_id, labels))
             )
             if excluded_expl_ids.size > 0:
-                return "Some IDs explicitly passed via --ids are also in the list of ids to exclude (--excludeid)"
+                return ("Some IDs explicitly passed via --ids are also in the list of "
+                        "ids to exclude (--excludeid)")
         labels = np.asarray(list(filter(lambda x: x not in exclude_id, labels)))
     else:
         exclude_id = []
@@ -660,30 +673,28 @@ def write_statsfile(
             dataframe = index_df.join(dataframe)
 
         for i, col in enumerate(dataframe.columns):
-            for v, name in zip(
-                (col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA")),
-                ("ColHeader", "FieldName", "Units    "),
-            ):
+            for name, v in zip(
+                    ("ColHeader", "FieldName", "Units    "),
+                    (col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA"))):
                 fp.write(f"# TableCol {i+1: 2d} {name} {v}\n")
-        fp.write(
-            f"# NRows {len(dataframe)}\n" f"# NTableCols {len(dataframe.columns)}\n"
-        )
+        fp.write(f"# NRows {len(dataframe)}\n"
+                 f"# NTableCols {len(dataframe.columns)}\n")
         fp.write("# ColHeaders  " + " ".join(dataframe.columns) + "\n")
         max_index = int(np.ceil(np.log10(np.max(dataframe.index))))
 
         def fmt_field(code: str, data) -> str:
             is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
             filler = "<" if is_s else " >"
-            prec = int(
-                data.dropna().map(len).max() if is_s else np.ceil(np.log10(data.max()))
-            )
+            if is_s:
+                prec = int(data.dropna().map(len).max())
+            else:
+                prec = int(np.ceil(np.log10(data.max())))
             if is_f:
                 prec += int(code[-2]) + 1
             return filler + str(prec) + code
 
-        fmts = (
-            "{:" + fmt_field(FORMATS[k], dataframe[k]) + "}" for k in dataframe.columns
-        )
+        fmts = map(lambda k: "{:" + fmt_field(FORMATS[k], dataframe[k]) + "}",
+                   dataframe.columns)
         fmt = " ".join(fmts) + "\n"
         for index, row in dataframe.iterrows():
             data = [row[k] for k in dataframe.columns]
@@ -735,68 +746,59 @@ def read_classes_from_lut(lut_file: str | Path):
     )
 
 
+
 def seg_borders(
-    _array: _ArrayType,
-    label: Union[np.integer, bool],
-    out: Optional[_ArrayType] = None,
-    cmp_dtype: npt.DTypeLike = "int8",
-) -> _ArrayType:
+        _array: _ArrayType,
+        label: np.integer | bool,
+        out: Optional[npt.NDArray[bool]] = None,
+        cmp_dtype: npt.DTypeLike = "int8",
+) -> npt.NDArray[bool]:
     """
     Handle to fast 6-connected border computation.
 
     Parameters
     ----------
-    _array : _ArrayType
-        The input binary image or labeled array.
-    label : Union[np.int, bool]
-        The label of the region for which borders will be computed.
-    out : Optional[_ArrayType], optional
-        Output array to store the computed borders (Optional).
-    cmp_dtype : npt.DTypeLike, optional
-        The data type for the Laplace computation. Default is "int8" (Optional).
+    _array: numpy.ndarray
+        The image to compute borders from, typically either a label image or a binary
+        mask.
+    label: int, bool
+        Which classes to consider for border computation (True/False for binary mask).
+    out: nt.NDArray[bool], optional
+        The array for inplace computation.
+    cmp_dtype: npt.DTypeLike, default: int8
+        The data type to use for border laplace computation.
 
     Returns
     -------
-    _ArrayType
-        A binary image where borders are marked as True.
+    npt.NDArray[bool]
+        A binary mask with border voxels as True.
     """
     # binarize
-    bin_array = _array if np.issubdtype(_array.dtype, bool) else _array == label
+    bin_array: npt.NDArray[bool]
+    bin_array = _array if np.issubdtype(_array.dtype, bool) else np.equal(_array, label)
     # scipy laplace is about 20% faster than skimage laplace on cpu
     from scipy.ndimage import laplace
 
-    def _laplace(data):
-        """
-        Helper function to compute the Laplacian of the data, and return a
-        boolean array where the Laplacian is not zero.
-
-        Parameters
-        ----------
-        data : np.ndarray
-            Input data.
-
-        Returns
-        -------
-        npt.NDArray[bool]
-            Boolean array where Laplacian is not zero.
-        """
-        return laplace(data.astype(cmp_dtype)) != np.asarray(0.0, dtype=cmp_dtype)
-
-    # laplace
-    if out is not None:
-        out[:] = _laplace(bin_array)
-        return out
+    if np.issubdtype(cmp_dtype, bool):
+        laplace_data = laplace(bin_array).astype(bool)
+        if out is not None:
+            out[:] = laplace_data
+            laplace_data = out
+        return laplace_data
     else:
-        return _laplace(bin_array)
+        zeros = np.asarray(0., dtype=cmp_dtype)
+        # laplace
+        laplace_data = laplace(bin_array.astype(cmp_dtype))
+        return np.not_equal(laplace_data, zeros, out=out)
 
 
 def borders(
     _array: _ArrayType,
-    labels: Union[Iterable[np.integer], bool],
+    labels: Iterable[np.integer] | bool,
     max_label: Optional[np.integer] = None,
     six_connected: bool = True,
-    out: Optional[_ArrayType] = None,
-) -> _ArrayType:
+    out: Optional[npt.NDArray[bool]] = None,
+) -> npt.NDArray[bool]:
     """
     Handle to fast border computation.
 
@@ -819,9 +821,13 @@ def borders(
     -------
     _ArrayType
         A binary image where borders are marked as True.
+
+    Raises
+    ------
+    ValueError
+        if labels does not fit to _array (binary mask and integer and vice-versa)
     """
     dim = _array.ndim
-    array_alloc = partial(np.full, dtype=_array.dtype)
     _shape_plus2 = [s + 2 for s in _array.shape]
 
     if labels is True:  # already binarized
@@ -839,7 +845,7 @@ def borders(
 
         if max_label is None:
             max_label = _array.max().item()
-        lookup = array_alloc((max_label + 1,), fill_value=0)
+        lookup = np.zeros((max_label + 1,), dtype=_array.dtype)
         # filter labels from labels that are bigger than max_label
         labels = list(filter(lambda x: x <= max_label, labels))
         if 0 not in labels:
@@ -847,41 +853,48 @@ def borders(
         lookup[labels] = np.arange(len(labels), dtype=lookup.dtype)
         _array = lookup[_array]
     logical_or = np.logical_or
-    __array = array_alloc(_shape_plus2, fill_value=0)
-    __array[(slice(1, -1),) * dim] = _array
+    # pad array by 1 voxel of zeros all around
+    padded = np.pad(_array, 1)
 
-    mid = (slice(1, -1),) * dim
     if six_connected:
+        def indexer(axis: int, is_mid: bool) \
+                -> Tuple[Tuple[slice, ...], Tuple[slice, ...]]:
+            full_slice = (slice(1, -1),) if is_mid else (slice(None),)
+            more_axes = dim - axis - 1
+            return ((full_slice * axis + (slice(0, -1),) + full_slice * more_axes),
+                    (full_slice * axis + (slice(1, None),) + full_slice * more_axes))
 
-        def ii(axis: int, off: int, is_mid: bool) -> Tuple[slice, ...]:
-            other_slices = mid[:1] if is_mid else (slice(None),)
-            return (
-                other_slices * axis
-                + (slice(off, -1 if off == 0 else None),)
-                + other_slices * (dim - axis - 1)
-            )
-
-        nbr_same = [
-            cmp(__array[ii(i, 0, True)], __array[ii(i, 1, True)]) for i in range(dim)
-        ]
-        nbr_same = [
-            logical_or(_ns[ii(i, 0, False)], _ns[ii(i, 1, False)])
-            for i, _ns in enumerate(nbr_same)
-        ]
+        # compare the [padded] image/array in all directions, x, y, z...
+        # ([0], 0, 2, 2, 2, [0]) ==> (False, True, False, False, True)  for each dim
+        # is_mid=True: drops padded values in unaffected axes
+        ii = partial(indexer, is_mid=True)
+        nbr_same = [cmp(padded[ii(i)[0]], padded[ii(i)[1]]) for i in range(dim)]
+        # merge neighbors so each border is 2 thick (left and right of change)
+        # (False, True, False, False, True) ==> (True, True, False, True)  for each dim
+        # is_mid=False: padded values already dropped
+        ii = partial(indexer, is_mid=False)
+        nbr_same = [logical_or(_ns[ii(i)[0]], _ns[ii(i)[1]]) for i, _ns in enumerate(nbr_same)]
     else:
+        # all indexes of the neighbors: ((0, 0, 0), (0, 0, 1) ... (2, 2, 2))
+        ndindexes = tuple(np.ndindex((3,) * dim))
 
-        def ii(off: Iterable[int]) -> Tuple[slice, ...]:
-            return tuple(slice(o, None if o == 2 else o - 3) for o in off)
+        def nbr_i(__array: _ArrayType, neighbor_index: int) -> _ArrayType:
+            """Assuming a padded array __array, returns just the neighbor_index-th
+            neighbors throughout the array."""
+            # sample from 1d neighbor index to ndindex
+            nbr_ndid = ndindexes[neighbor_index]  # e.g. (1, 0, 2)
+            slice_ndindex = tuple(slice(o, None if o == 2 else o - 3) for o in nbr_ndid)
+            return __array[slice_ndindex]
 
-        nbr_same = [
-            cmp(__array[mid], __array[ii(i - 1)])
-            for i in np.ndindex((3,) * dim)
-            if np.all(i != 1)
-        ]
+        # compare the array (center point) with all neighboring voxels
+        # neighbor samples the neighboring voxel in the padded array
+        nbr_same = [cmp(_array, nbr_i(padded, i)) for i in range(3**dim) if i != 2**dim]
+
+    # reduce the per-direction/per-neighbor binary arrays into one array
     return np.logical_or.reduce(nbr_same, out=out)
 
 
-def unsqueeze(matrix, axis: Union[int, Sequence[int]] = -1):
+def unsqueeze(matrix, axis: int | Sequence[int] = -1):
     """
     Unsqueeze the matrix.
 
@@ -892,7 +905,7 @@ def unsqueeze(matrix, axis: Union[int, Sequence[int]] = -1):
     ----------
     matrix : np.ndarray
         Matrix to unsqueeze.
-    axis : Union[int, Sequence[int]]
+    axis : int, Sequence[int]
         Axis for unsqueezing.
 
     Returns
@@ -908,7 +921,8 @@ def grow_patch(
     patch: Sequence[slice], whalf: int, img_size: Union[np.ndarray, Sequence[float]]
 ) -> Tuple[Tuple[slice, ...], Tuple[slice, ...]]:
     """
-    Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow' the patch `patch` by `whalf` (also considering the image shape).
+    Create two slicing tuples for indexing ndarrays/tensors that 'grow' and re-'ungrow'
+    the patch `patch` by `whalf` (also considering the image shape).
 
     Parameters
     ----------
@@ -944,7 +958,7 @@ def uniform_filter(
     arr: _ArrayType,
     filter_size: int,
     fillval: float,
-    patch: Optional[Tuple[slice, ...]] = None,
+    patch: Optional[tuple[slice, ...]] = None,
     out: Optional[_ArrayType] = None,
 ) -> _ArrayType:
     """
@@ -998,7 +1012,7 @@ def pv_calc(
     threads: int = -1,
     return_maps: False = False,
     legacy_freesurfer: bool = False,
-) -> List[PVStats]:
+) -> list[PVStats]:
     """
     [MISSING].
     """
@@ -1018,7 +1032,7 @@ def pv_calc(
     threads: int = -1,
     return_maps: True = True,
     legacy_freesurfer: bool = False,
-) -> Tuple[List[PVStats], Dict[str, Dict[int, np.ndarray]]]:
+) -> tuple[list[PVStats], dict[str, dict[int, np.ndarray]]]:
     """
     [MISSING].
     """
@@ -1037,7 +1051,7 @@ def pv_calc(
     threads: int = -1,
     return_maps: bool = False,
     legacy_freesurfer: bool = False,
-) -> Union[List[PVStats], Tuple[List[PVStats], Dict[str, np.ndarray]]]:
+) -> list[PVStats] | tuple[list[PVStats], dict[str, np.ndarray]]:
     """
     Compute volume effects.
 
@@ -1077,7 +1091,6 @@ def pv_calc(
         segmean: The local mean intensity of the primary label at the specific voxel
         pv: The partial volume of the primary label at the location
         ipv: The partial volume of the alternative (nbr) label at the location
-        ipv: The partial volume of the alternative (nbr) label at the location.
     """
     if not isinstance(seg, np.ndarray) and np.issubdtype(seg.dtype, np.integer):
         raise TypeError("The seg object is not a numpy.ndarray of int type.")
@@ -1088,8 +1101,8 @@ def pv_calc(
 
     if seg.shape != norm.shape:
         raise RuntimeError(
-            f"The shape of the segmentation and the norm must be identical, but shapes are {seg.shape} "
-            f"and {norm.shape}!"
+            f"The shape of the segmentation and the norm must be identical, but shapes "
+            f"are {seg.shape} and {norm.shape}!"
         )
 
     mins, maxes, voxel_counts, __voxel_counts, sums, sums_2, volumes = [
@@ -1301,23 +1314,10 @@ def global_stats(
     seg: npt.NDArray[_IntType],
     out: Optional[npt.NDArray[bool]] = None,
     robust_percentage: Optional[float] = None,
-) -> Union[
-    Tuple[_IntType, int],
-    Tuple[
-        _IntType,
-        int,
-        int,
-        _NumberType,
-        _NumberType,
-        float,
-        float,
-        float,
-        npt.NDArray[bool],
-    ],
-]:
+) -> tuple[_IntType, int] | tuple[_IntType, int, int, _NumberType,npt.NDArray[bool], _NumberType, float, float, float, npt.NDArray[bool]]:
     """
-    Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum,
-    sum of squares and 6-connected border of label lab (out references the border).
+    Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
+    sum, sum of squares and 6-connected border of label lab (out references the border).
 
     Parameters
     ----------
@@ -1379,7 +1379,7 @@ def patch_filter(
     mask: npt.NDArray[bool],
     global_crop: Tuple[slice, ...],
     patch_size: int = 32,
-) -> Tuple[bool, Sequence[slice]]:
+) -> tuple[bool, Sequence[slice]]:
     """
     Return, whether there are mask-True voxels in the patch starting at pos with size patch_size and the resulting patch shrunk to mask-True regions.
 
@@ -1412,7 +1412,7 @@ def patch_filter(
 
 def crop_patch_to_mask(
     mask: npt.NDArray[_NumberType], sub_patch: Optional[Sequence[slice]] = None
-) -> Tuple[bool, Sequence[slice]]:
+) -> tuple[bool, Sequence[slice]]:
     """
     Crop the patch to regions of the mask that are non-zero.
 
@@ -1487,7 +1487,7 @@ def pv_calc_patch(
     full_nbr_mean: Optional[npt.NDArray[float]] = None,
     eps: float = 1e-6,
     legacy_freesurfer: bool = False,
-) -> Dict[_IntType, float]:
+) -> dict[_IntType, float]:
     """
     Calculate PV for patch.
 
