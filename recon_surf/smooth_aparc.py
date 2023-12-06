@@ -22,7 +22,6 @@ import sys
 import numpy as np
 from numpy import typing as npt
 import nibabel.freesurfer.io as fs
-from lapy._read_geometry import read_geometry
 from scipy import sparse
 
 
@@ -269,7 +268,7 @@ def smooth_aparc(
     """
     # read input files
     print("Reading in surface: {} ...".format(insurfname))
-    surf = read_geometry(insurfname, read_metadata=True)
+    surf = fs.read_geometry(insurfname, read_metadata=True)
     print("Reading in annotation: {} ...".format(inaparcname))
     aparc = fs.read_annot(inaparcname)
     print("Reading in cortex label: {} ...".format(incortexname))

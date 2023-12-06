@@ -21,7 +21,6 @@ import numpy as np
 import math
 from lapy.diffGeo import tria_mean_curvature_flow
 from lapy.triaMesh import TriaMesh
-from lapy.read_geometry import read_geometry
 from lapy.solver import Solver
 
 HELPTEXT = """
@@ -320,7 +319,7 @@ def spherically_project_surface(
         Try to use the Cholesky decomposition from the cholmod. Defaults to True
 
     """
-    surf = read_geometry(insurf, read_metadata=True)
+    surf = fs.read_geometry(insurf, read_metadata=True)
     projected = tria_spherical_project(
         TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod
     )
