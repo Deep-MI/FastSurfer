@@ -18,7 +18,6 @@ import sys
 import optparse
 import nibabel.freesurfer.io as fs
 from nibabel import load as nibload
-from lapy._read_geometry import read_geometry
 
 
 def options_parse():
@@ -69,7 +68,7 @@ def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
         Path and name of file the input surface was created on (e.g. filled-pretess127.mgz)
     
     """
-    surf = read_geometry(insurf, read_metadata=True)
+    surf = fs.read_geometry(insurf, read_metadata=True)
 
     if not surf[2]["filename"]:
         # Set information with file used for surface construction (volume info and name)
