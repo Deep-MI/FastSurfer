@@ -16,6 +16,7 @@
 # IMPORTS
 import argparse
 import logging
+import re
 from functools import partial, reduce
 from itertools import product
 from numbers import Number
@@ -24,7 +25,9 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    IO,
     List,
+    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -39,11 +42,13 @@ import numpy as np
 import pandas as pd
 from numpy import typing as npt
 
+from FastSurferCNN.utils.brainvolstats import MeasureTuple, AbstractMeasure, MEASURES
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as robust_threshold
 from FastSurferCNN.utils.arg_types import int_ge_zero as id_type
 from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size
 from FastSurferCNN.utils.parser_defaults import add_arguments
 from FastSurferCNN.utils.threads import get_num_threads
+
 
 USAGE = ("python seg_stats.py  -norm <input_norm> -i <input_seg> -o <output_seg_stats> "
          "[optional arguments]")
@@ -66,7 +71,9 @@ Dependencies:
 
 Original Author: David Kügler
 Date: Dec-30-2022
-Modified: May-08-2023
+Modified: Dec-07-2023
+
+Revision: 1.1
 """
 
 _NumberType = TypeVar("_NumberType", bound=Number)
@@ -182,7 +189,7 @@ class HelpFormatter(argparse.HelpFormatter):
 
 def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     """
-    Create and configure the argparse.ArgumentParser.
+    Create an argument parser object with all parameters of the script.
 
     Returns
     -------
@@ -237,7 +244,58 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--ids",
-        type=id_type, nargs="*",
+        '--compute_measure',
+        type=str,
+        nargs="+",
+        default=[],
+        dest="computed_measures",
+        help="Additional Measures to compute based on imported/computed measures:<br>"
+             "Cortex, CerebralWhiteMatter, SubCortGray, TotalGray, "
+             "BrainSegVol-to-eTIV, MaskVol-to-eTIV, SurfaceHoles, "
+             "EstimatedTotalIntraCranialVol"
+    )
+    parser.add_argument(
+        '--import_measure',
+        type=str,
+        nargs="+",
+        default=[],
+        dest="imported_measures",
+        help="Additional Measures to import from the measurefile. <br>"
+             "Example measures ('all' to import all measures in the measurefile):<br>"
+             "BrainSeg, BrainSegNotVent, SupraTentorial, SupraTentorialNotVent, "
+             "SubCortGray, lhCortex, rhCortex, Cortex, TotalGray, "
+             "lhCerebralWhiteMatter, rhCerebralWhiteMatter, CerebralWhiteMatter, Mask, "
+             "SupraTentorialNotVentVox, BrainSegNotVentSurf, VentricleChoroidVol, "
+             "BrainSegVol-to-eTIV, MaskVol-to-eTIV, lhSurfaceHoles, rhSurfaceHoles, "
+             "SurfaceHoles, EstimatedTotalIntraCranialVol"
+    )
+    parser.add_argument(
+        '--measurefile',
+        type=str,
+        dest='measurefile',
+        default='brainvol.stats',
+        help="File to read measures (--import_measure ...) from. If the path is "
+             "relative, it is interpreted as relative to the --segstatsfile <path>."
+    )
+    parser.add_argument(
+        "--talairach_ltafile",
+        type=str,
+        dest="talairach_ltafile",
+        help="File to read the talairach registration affine (--compute_measure "
+             "EstimatedTotalIntraCranialVol) from. If the path is relative, "
+             "it is interpreted as relative to the --segstatsfile <path>. This file "
+             "is needed if EstimatedTotalIntracranialVolume is in --computed_measures)."
+    )
+    parser.add_argument(
+        "-mask", "--maskfile",
+        type=str,
+        dest="maskfile",
+        help="Brainmask in the same image space as segmentation to calculate the "
+             "volume of the mask (needed if Mask is in --computed_measures).")
+    parser.add_argument(
+        "--ids",
+        type=id_type,
+        nargs="*",
         help="List of exclusive segmentation ids (integers) to use "
              "(default: all ids in --lut or all ids in image).",
     )
@@ -270,7 +328,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         default=get_num_threads(),
         type=int,
         help=f"Number of threads to use (defaults to number of hardware threads: "
-        f"{get_num_threads()})",
+             f"{get_num_threads()})",
     )
     advanced.add_argument(
         "--patch_size",
@@ -297,7 +355,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
              "combined with the fact that mri_segstats uses 'float' to measure the "
              "partial volume corrected volume. This yields differences of more than "
              "60mm3 or 0.1%% in large structures. This uniquely impacts highres images "
-             "with more voxels (on the boundry) and smaller voxel sizes (volume per "
+             "with more voxels (on the boundary) and smaller voxel sizes (volume per "
              "voxel).",
     )
     # Additional info:
@@ -369,8 +427,10 @@ def loadfile_full(file: str, name: str) -> tuple[nib.analyze.SpatialImage, np.nd
 
     Returns
     -------
-    tuple[nib.analyze.SpatialImage, np.ndarray]
-        A tuple containing the loaded image and its corresponding data.
+    nibabel.analyze.SpatialImage
+        The image container.
+    numpy.ndarray
+        The loaded data.
     """
     try:
         img = cast(nib.analyze.SpatialImage, nib.load(file))
@@ -394,8 +454,8 @@ def main(args):
 
     Returns
     -------
-    int
-        Exit code. Returns 0 upon successful execution.
+    Literal[0], str
+        Either a successful return code  (0) or a string with an error message.
     """
     import os
     import time
@@ -413,6 +473,7 @@ def main(args):
         return "No segstats file was passed"
 
     threads = args.threads
+    segstatsfile = Path(args.segstatsfile)
     if threads <= 0:
         threads = get_num_threads()
 
@@ -424,14 +485,31 @@ def main(args):
         seg_future = tpe.submit(loadfile_full, args.segfile, "segfile")
         norm_future = tpe.submit(loadfile_full, args.normfile, "normfile")
 
-        if hasattr(args, "lut") and args.lut is not None:
-            try:
-                lut = read_classes_from_lut(args.lut)
-            except FileNotFoundError as e:
-                return (f"Could not find the ColorLUT in {args.lut}, please make sure "
-                        f"the --lut argument is valid.")
+        measures: Dict[str, AbstractMeasure] = {}
+        if (getattr(args, "imported_measures", None) is not None and
+                len(args.imported_measures) > 0):
+            if getattr(args, "measurefile", None) is None:
+                measures.update(
+                    read_measures(
+                        args.imported_measures,
+                        from=args.measurefile,
+                    )
+                )
+
+            if (getattr(args, "computed_measures", None) is not None and
+                    len(args.computed_measures) > 0):
+                measures.update(read_measures(args.computed_measures))
+
+            # Only read and calculate the MaskVolume if we actually want it
+        if getattr(args, "lut", None) is not None and "Mask" in args.computed_measures:
+            mask_sum_future = tpe.submit(load_and_imgvol, args.maskfile, "maskfile")
         else:
-            lut = None
+            mask_sum_future = None
+        if getattr(args, "lut", None) is not None:
+            lut_future = tpe.submit(read_classes_from_lut, args.lut)
+        else:
+            lut_future = None
+
         try:
             seg: nib.analyze.SpatialImage
             norm: nib.analyze.SpatialImage
@@ -448,20 +526,48 @@ def main(args):
 
         except (IOError, RuntimeError, FileNotFoundError) as e:
             return e.args[0]
-    explicit_ids = False
-    if hasattr(args, "ids") and args.ids is not None and len(args.ids) > 0:
-        labels = np.asarray(args.ids)
-        explicit_ids = True
-    elif lut is not None:
-        labels = lut["ID"]  # the column ID contains all ids
-    else:
-        labels = np.unique(seg_data)
 
-    if (
-        hasattr(args, "excludeid")
-        and args.excludeid is not None
-        and len(args.excludeid) > 0
-    ):
+        lut: Optional[pd.DataFrame] = None
+        if lut_future is not None:
+            exception = lut_future.exception()
+            if isinstance(exception, FileNotFoundError):
+                return (f"Could not find the ColorLUT in {args.lut}, please make sure "
+                        f"the --lut argument is valid.")
+            elif exception is not None:
+                raise exception
+            lut = lut_future.result()
+
+        explicit_ids = False
+        labels = None
+        if getattr(args, "ids", None) is not None and len(args.ids) > 0:
+            labels = np.asarray(args.ids)
+            explicit_ids = True
+        elif lut is not None:
+            labels = lut["ID"]  # the column ID contains all ids
+        else:
+            # noinspection PyTypeChecker
+            labels_future = tpe.submit(np.unique, seg_data)
+
+        if mask_sum_future is None:
+            mask_vol = None
+        elif mask_sum_future.exception() is None:
+            mask, mask_vol = mask_sum_future.result()
+            if mask.shape != norm_data.shape or \
+                    not np.allclose(mask.affine, norm.affine):
+                return ("The shapes or affines of the mask and the norm image "
+                        "are not similar, both must be the same!")
+        else:
+            exception = mask_sum_future.exception()
+            if isinstance(exception, (IOError, RuntimeError, FileNotFoundError)):
+                return exception.args[0]
+            else:
+                raise exception
+
+        if labels is None:
+            labels = labels_future.result()
+
+    exclude_id = []
+    if getattr(args, "excludeid", None) is not None and len(args.excludeid) > 0:
         exclude_id = list(args.excludeid)
         if explicit_ids:
             _exclude = list(filter(lambda x: x in exclude_id, labels))
@@ -469,16 +575,18 @@ def main(args):
             if excluded_expl_ids.size > 0:
                 return ("Some IDs explicitly passed via --ids are also in the list of "
                         "ids to exclude (--excludeid).")
-        labels = np.asarray(list(filter(lambda x: x not in exclude_id, labels)))
-    else:
-        exclude_id = []
+        labels = np.asarray(list(filter(lambda x: x not in exclude_id, labels)),
+                            dtype=int)
 
-    kwargs = {
+    base_kwargs = {
         "vox_vol": np.prod(seg.header.get_zooms()).item(),
-        "robust_percentage": getattr(args, "robust", None),
-        "threads": threads,
         "legacy_freesurfer": bool(getattr(args, "legacy_freesurfer", False)),
-        "patch_size": args.patch_size,
+    }
+    kwargs = {
+        **base_kwargs,
+        "threads": threads,
+        "robust_percentage": getattr(args, "robust", None),
+        "patch_size": args.patch_size
     }
 
     if getattr(args, "volume_precision", None) is not None:
@@ -486,7 +594,7 @@ def main(args):
     elif kwargs["legacy_freesurfer"]:
         FORMATS["Volume_mm3"] = f".1f"
 
-    if args.merged_labels is not None and len(args.merged_labels) > 0:
+    if getattr(args, "merged_labels", None) is not None and len(args.merged_labels) > 0:
         kwargs["merged_labels"] = {lab: vals for lab, *vals in args.merged_labels}
 
     names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
@@ -528,128 +636,346 @@ def main(args):
         lut_idx = {i: lut["ID"] == i for i in exclude_id}
         _ids = [(i, lut_idx[i]) for i in exclude_id]
 
-        def get_labelname(lid) -> str:
-            return lut[lid]["LabelName"].item()
-        exclude = {i: get_labelname(lid) if lid.any() else "" for i, lid in _ids}
-    else:
-        exclude = {i: "" for i in exclude_id}
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
     if not bool(getattr(args, "empty", False)):
         dataframe = dataframe[dataframe["NVoxels"] != 0]
     dataframe = dataframe.sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
-    lines = []
-    if getattr(args, "in_dir", None):
-        lines.append(f'SUBJECTS_DIR {getattr(args, "in_dir")}')
-    if getattr(args, "sid", None):
-        lines.append(f'subjectname {getattr(args, "sid")}')
-    lines.append(
-        "compatibility with freesurfer's mri_segstats: "
-        + ("legacy" if kwargs["legacy_freesurfer"] else "fixed")
+    lines = format_parameters(
+        SUBJECT_DIR=getattr(args, "in_dir", None),
+        subjectname=getattr(args, "sid", None),
     )
 
-    write_statsfile(
-        args.segstatsfile,
+    measures = import_measures(
+        resolve_relative_path(
+            args.measurefile,
+            segstatsfile.parent,
+        ),
+        args.imported_measures,
+        on_missing="fail",
+    )
+    measures = update_measures(
+        measures,
+        args.computed_measures,
         dataframe,
-        exclude=exclude,
-        vox_vol=kwargs["vox_vol"],
+        resolve_relative_path(
+            args.talairach_ltafile,
+            segstatsfile.parent,
+        ),
+        mask_vol=mask_vol,
+        **base_kwargs,
+    )
+    lines.extend(format_measures(**measures))
+
+    write_statsfile(
+        segstatsfile,
+        dataframe,
+        exclude=exclude_id,
         segfile=args.segfile,
         normfile=args.normfile,
         lut=getattr(args, "lut", None),
         extra_header=lines,
+        **base_kwargs,
     )
     print(
         f"Partial volume stats for {dataframe.shape[0]} labels written to "
-        f"{args.segstatsfile}."
+        f"{segstatsfile}."
     )
     duration = (time.perf_counter_ns() - start) / 1e9
     print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
     return 0
 
 
+def format_parameters(**kwargs) -> list[str]:
+    """Format parameters passed."""
+    return [f"{k} {v}" for k, v in kwargs.items() if v]
+
+
+def format_measures(**kwargs: MeasureTuple) -> list[str]:
+    """Format measures passed."""
+    return [f"Measure {k}, {', '.join(map(str, m))}" for k, m in kwargs.items()]
+
+
+def resolve_relative_path(
+        path: Optional[Path],
+        search_folder: Optional[Path] = None,
+) -> Optional[Path]:
+    """Resolve path, if it is a relative path, resolve with respect to search_folder.
+
+    Parameters
+    ----------
+    path : Path
+        path to make absolute
+    search_folder : Path, optional
+        path to be relative to
+
+    Returns
+    -------
+    Path
+    """
+    if path is None:
+        return None
+    if not isinstance(path, Path):
+        path = Path(path)
+    if search_folder is not None and not path.is_absolute():
+        path = search_folder / path
+    return path
+
+
+def read_measures(
+        measure_names: Sequence[str],
+        from_file: Optional[Path] = None,
+) -> dict[str, AbstractMeasure]:
+    """
+    Read the measures from the list and obtain corresponding Measure objects.
+    """
+
+    if from_file is None:
+        def _get_measure(name: str) -> str:
+            measure = MEASURES.get(name)
+            if measure is None:
+                raise ValueError(f"{name} is not a valid Measure to compute.")
+            return measure
+        return {name: _get_measure(name) for name in measure_names}
+    else:
+        pass
+
+
+def import_measures(
+        path: Optional[Path],
+        imported_measures: Sequence[str],
+        on_missing: Literal["fail", "skip", "fill"] = "fail",
+) -> dict[str, ImportedMeasure]:
+    """
+    Read the measures from a file.
+
+    Parameters
+    ----------
+    path : Path
+        path to the file to import measures from (other stats file).
+    imported_measures : Sequence[str]
+        a sequence listing the measures to import
+    search_folder : Path, optional
+        base path to search for path in, if path is relative
+    on_missing : Literal["fail", "skip", "fill"]
+        behavior to follow if a requested measure does not exist in path.
+
+    Returns
+    -------
+    dict[str, ImportedMeasure]
+        A dictionary of name -> tuples, where each tuple is
+        (fullname, description, value, unit)
+    """
+    if path is None:
+        return {}
+
+    if not path.exists():
+        raise IOError(f"Measures could not be imported from {path}, "
+                      f"the file does not exist.")
+
+    with open(path, "r") as fp:
+        lines = filter(lambda l: l.startswith("# Measure "), fp.readlines())
+
+    def to_measure(line: str) -> Tuple[str, MeasureTuple]:
+        data = line.removeprefix("# Measure ").strip()
+        key, name, desc, sval, unit = re.split("\\s*,\\s*", data)
+        value = float(sval) if "." in sval else int(sval)
+        return key, (name, desc, value, unit)
+
+    measures = dict(map(to_measure, lines))
+    it_measure = ((key in measures.keys(), key) for key in imported_measures)
+    _skip = on_missing == "skip"
+
+    def get_measure(key, has):
+        if has:
+            return measures[key]
+        elif on_missing == "fill":
+            default = MEASURES.get(key, (f"Unknown measure {key}", "N/A", "unitless"))
+            return default[:2] + (0,) + default[-1:]
+        else:
+            raise RuntimeError(f"A requested measure could not be found in {path}.")
+    return {key: get_measure(key, has) for has, key in it_measure if _skip and has}
+
+
+def update_measures(measures: Dict[str, MeasureTuple],
+                    computed_measures: Iterable[str],
+                    dataframe: pd.DataFrame,
+                    talairach_ltafile: Path,
+                    vox_vol: float,
+                    mask_vol: Union[float, ] = 0.,
+                    legacy_freesurfer: bool = False,
+                    ) -> Dict[str, MeasureTuple]:
+    """Updated/Calculate a set of the measures."""
+    def _set_value_default(key: str, value: Union[int, float]):
+        try:
+            default = MEASURES[key]
+        except KeyError as e:
+            raise KeyError(f"The Measure {key} is unknown.") from e
+        measures[key] = default[:2] + (value,) + default[2:]
+
+    def _set_sum_default(key: str, dataframe: pd.DataFrame,
+                         other: float = 0., sign: float = 1.):
+        column = "NVoxels" if legacy_freesurfer else "Volume_mm3"
+        _voxvol = vox_vol if legacy_freesurfer else 1.
+        _set_value_default(key, sign * dataframe[column].sum().item() * _voxvol + other)
+
+    def is_structure(label: int, group: str) -> bool:
+        return label in STRUCTURES[group]
+
+
+    is_subcort = partial(is_structure, group="subcortical-GM")
+    is_cereb_gm = partial(is_structure, group="cerebellar-GM")
+    is_tffc = partial(is_structure, group="third-fourth-fifth-CSF")
+
+    if "Mask" in computed_measures:
+        _set_value_default("Mask", mask_vol)
+    if "SubCortGray" in computed_measures:
+        _set_sum_default("SubCortGray",
+                         dataframe[dataframe["SegId"].map(is_subcort)])
+    if "TotalGray" in computed_measures:
+        measures_to_sum = ["SubCortGray", "rhCortex", "lhCortex"]
+        _set_sum_default("TotalGray",
+                         dataframe[dataframe["SegId"].map(is_cereb_gm)],
+                         np.sum([measures[key][2] for key in measures_to_sum]).item())
+    for key in ["Cortex", "CerebralWhiteMatter", "SurfaceHoles"]:
+        # simple rk/lh sums
+        if key in computed_measures:
+            _set_value_default(key, measures["rh" + key][2] + measures["lh" + key][2])
+    if "SupraTentorialNotVent" in computed_measures:
+        _set_value_default("SupraTentorialNotVent",
+                           measures["SupraTentVol"][2] - measures["VentChorVol"][2])
+    if "BrainSegNotVent" in computed_measures:
+        _set_sum_default("BrainSegNotVent",
+                         dataframe[dataframe["SegId"].map(is_tffc)],
+                         - measures["BrainSeg"][2] + measures["VentricleChoroidVol"])
+    if "EstimatedTotalIntraCranialVol" in computed_measures:
+        etiv = read_compute_etiv(talairach_ltafile)
+        _set_value_default("EstimatedTotalIntraCranialVol", etiv)
+    for key in ["BrainSegVol-to-eTIV", "MaskVol-to-eTIV"]:
+        if key in computed_measures:
+            etiv = measures["EstimatedTotalIntraCranialVol"][2]
+            _set_value_default(key, measures[key.removesuffix("-to-eTIV")][2] / etiv)
+    for key in computed_measures:
+        if key not in ["BrainVol", "BrainSegNotVent", "SubCortGray", "TotalGray",
+                       "Cortex", "CerebralWhiteMatter", "SurfaceHoles",
+                       "BrainSegVol-to-eTIV", "MaskVol-to-eTIV",
+                       "EstimatedTotalIntraCranialVol"]:
+            raise KeyError(f"There is no update rule for the Measure {key}.")
+    return measures
+
+
+def read_compute_etiv(talairach_ltafile: Path) -> float:
+    """
+    Compute the eTIV based on the freesurfer talairach registration and lta.
+
+    Parameters
+    ----------
+    talairach_ltafile : Path
+        path to talairach lta file (with affine)
+
+    Returns
+    -------
+    float
+        The ICV estimate
+
+    Notes
+    -----
+    Reimplemneted from freesurfer/mri_sclimbic_seg
+    https://github.com/freesurfer/freesurfer/blob/
+    3296e52f8dcffa740df65168722b6586adecf8cc/mri_sclimbic_seg/mri_sclimbic_seg#L627
+    """
+    # this scale factor is a fixed number derived by freesurfer
+    from CerebNet.datasets.utils import readLTA
+    talairach_lta = readLTA(talairach_ltafile)
+    return ETIV_SCALE_FACTOR / talairach_lta["lta"].det().item()
+
+
 def write_statsfile(
-    segstatsfile: str,
+    segstatsfile: Path,
     dataframe: pd.DataFrame,
     vox_vol: float,
-    exclude: Optional[dict[int, str]] = None,
-    segfile: str = None,
-    normfile: str = None,
-    lut: str = None,
+    exclude: Optional[Sequence[Union[int, str]]] = None,
+    segfile: Optional[Path] = None,
+    normfile: Optional[Path] = None,
+    lut: Optional[Path] = None,
+    report_empty: bool = False,
     extra_header: Sequence[str] = (),
+    legacy_freesurfer: bool = False,
 ):
     """
     Write a segstatsfile very similar and compatible with mri_segstats output.
 
     Parameters
     ----------
-    segstatsfile : str
+    segstatsfile : Path
         Path to the output file.
     dataframe : pd.DataFrame
         Data to write into the file.
     vox_vol : float
         Voxel volume for the header.
-    exclude : Optional[Dict[int, str]]
-        Dictionary of ids and class names that were excluded from the pv analysis
+    exclude : Sequence[Union[int, str]]
+        Sequence of ids and class names that were excluded from the pv analysis
         (default: None).
-    segfile : str
-        Path to the segmentation file (default: empty).
-    normfile : str
-        Path to the bias-field corrected image (default: empty).
-    lut : str
+    segfile : Path, optional
+        path to the segmentation file (default: empty)
+    normfile : Path, optional
+        path to the bias-field corrected image (default: empty)
+    lut : Path, optional
         Path to the lookup table to find class names for label ids (default: empty).
-    extra_header : Sequence[str]
+    report_empty : bool, default=False
+        Do not skip non-empty regions in the lut.
+    extra_header : Sequence[str], default=()
         Sequence of additional lines to add to the header. The initial # and newline
         characters will be added. Should not include newline characters (expect at the
-        end of strings). (default: empty sequence).
+        end of strings).
+    legacy_freesurfer : bool, default=False
+        Whether the script ran with the legacy freesurfer option.
+
     """
     import datetime
-    import os
-    import sys
 
-    def file_annotation(_fp, name: str, file: Optional[str]) -> None:
-        if file is not None:
-            _fp.write(f"# {name} {file}\n")
-            stat = os.stat(file)
-            if stat.st_mtime:
-                mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
-                _fp.write(f"# {name}Timestamp {mtime:%Y/%m/%d %H:%M:%S}\n")
+    def _title(file: IO) -> None:
+        """
+        Write the file title to a file.
+        """
+        file.write("# Title Segmentation Statistics\n#\n")
 
-    os.makedirs(os.path.dirname(segstatsfile), exist_ok=True)
-    with open(segstatsfile, "w") as fp:
-        fp.write(
-            "# Title Segmentation Statistics\n#\n"
+    def _system_info(file: IO) -> None:
+        """
+        Write the call and system information comments of the header to a file.
+        """
+        import os
+        import sys
+        from FastSurferCNN.version import read_and_close_version
+        file.write(
             "# generating_program segstats.py\n"
+            "# FastSurfer_version " + read_and_close_version() + "\n"
             "# cmdline " + " ".join(sys.argv) + "\n"
         )
-        if os.name == "posix":
-            fp.write(
+        if os.name == 'posix':
+            file.write(
                 f"# sysname  {os.uname().sysname}\n"
                 f"# hostname {os.uname().nodename}\n"
                 f"# machine  {os.uname().machine}\n"
             )
         else:
             from socket import gethostname
-
-            fp.write(f"# platform {sys.platform}\n" f"# hostname {gethostname()}\n")
+            file.write(
+                f"# platform {sys.platform}\n"
+                f"# hostname {gethostname()}\n"
+            )
         from getpass import getuser
-
         try:
-            fp.write(f"# user       {getuser()}\n")
+            file.write(f"# user       {getuser()}\n")
         except KeyError:
-            fp.write(f"# user       UNKNOWN\n")
+            file.write(f"# user       UNKNOWN\n")
 
-        fp.write(f"# anatomy_type volume\n#\n")
-
-        file_annotation(fp, "SegVolFile", segfile)
-        file_annotation(fp, "ColorTable", lut)
-        file_annotation(fp, "PVVolFile", normfile)
-        if exclude is not None and len(exclude) > 0:
-            if any(len(e) > 0 for e in exclude.values()):
-                excl_names = ', '.join(filter(lambda x: len(x) > 0, exclude.values()))
-                fp.write(f"# Excluding {excl_names}\n")
-            fp.write("".join([f"# ExcludeSegId {id}\n" for id in exclude.keys()]))
+    def _extra_header(file: IO, lines_extra_header: Iterable[str]) -> None:
+        """
+        Write the extra_header (including measures) to a file.
+        """
         warn_msg_sent = False
-        for i, line in enumerate(extra_header):
+        for i, line in enumerate(lines_extra_header):
             if line.endswith("\n"):
                 line = line[:-1]
             if line.startswith("# "):
@@ -659,32 +985,56 @@ def write_statsfile(
             if "\n" in line:
                 line = line.replace("\n", " ")
                 from warnings import warn
-
                 warn_msg_sent or warn(
                     f"extra_header[{i}] includes embedded newline characters. "
-                    "Replacing all newline characters with <space>."
-                )
+                    "Replacing all newline characters with <space>.")
                 warn_msg_sent = True
-            fp.write(f"# {line}\n")
-        fp.write(f"#\n")
-        if lut is not None:
-            fp.write("# Only reporting non-empty segmentations\n")
-        fp.write(f"# VoxelVolume_mm3 {vox_vol}\n")
-        # add the Index column, if it is not in dataframe
-        if "Index" not in dataframe.columns:
-            index_df = pd.DataFrame.from_dict({"Index": dataframe.index})
-            index_df.index = dataframe.index
-            dataframe = index_df.join(dataframe)
+            file.write(f"# {line}\n")
 
-        for i, col in enumerate(dataframe.columns):
+    def _file_annotation(file: IO, name: str, path_to_annotate: Optional[Path]) -> None:
+        """
+        Write the annotation to file/path to a file.
+        """
+        if path_to_annotate is not None:
+            file.write(f"# {name} {path_to_annotate}\n")
+            stat = path_to_annotate.stat()
+            if stat.st_mtime:
+                mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
+                file.write(f"# {name}Timestamp {mtime:%Y/%m/%d %H:%M:%S}\n")
+
+    def _extra_parameters(file: IO, _voxvol: float, _exclude: Sequence[int | str],
+                          _report_empty: bool = False, _lut: Optional[Path] = None,
+                          _leg_freesurfer: bool = False) -> None:
+        """
+        Write the comments of the table header to a file.
+        """
+        if _exclude is not None and len(_exclude) > 0:
+            exclude_str = list(filter(lambda x: isinstance(x, str), _exclude))
+            exclude_int = list(filter(lambda x: isinstance(x, int), _exclude))
+            if len(exclude_str) > 0:
+                excl_names = ', '.join(exclude_str)
+                file.write(f"# Excluding {excl_names}\n")
+            if len(exclude_int) > 0:
+                file.write(f"# ExcludeSegId {' '.join(exclude_int)}\n")
+        if _lut is not None and not _report_empty:
+            file.write("# Only reporting non-empty segmentations\n")
+        file.write("# compatibility with freesurfer's mri_segstats: " +
+                   ("legacy" if _leg_freesurfer else "fixed"))
+        file.write(f"# VoxelVolume_mm3 {_voxvol}\n")
+
+    def _table_header(file: IO, _dataframe: pd.DataFrame) -> None:
+        """Write the comments of the table header to a file."""
+        for i, col in enumerate(_dataframe.columns):
             for name, v in zip(
                     ("ColHeader", "FieldName", "Units    "),
                     (col, FIELDS.get(col, "Unknown Column"), UNITS.get(col, "NA"))):
-                fp.write(f"# TableCol {i+1: 2d} {name} {v}\n")
-        fp.write(f"# NRows {len(dataframe)}\n"
-                 f"# NTableCols {len(dataframe.columns)}\n")
-        fp.write("# ColHeaders  " + " ".join(dataframe.columns) + "\n")
-        max_index = int(np.ceil(np.log10(np.max(dataframe.index))))
+                file.write(f"# TableCol {i + 1: 2d} {name} {v}\n")
+        file.write(f"# NRows {len(_dataframe)}\n"
+                   f"# NTableCols {len(_dataframe.columns)}\n")
+        file.write("# ColHeaders  " + " ".join(_dataframe.columns) + "\n")
+
+    def _table_body(file: IO, _dataframe: pd.DataFrame) -> None:
+        """Write the volume stats from _dataframe to a file."""
 
         def fmt_field(code: str, data) -> str:
             is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
@@ -697,12 +1047,38 @@ def write_statsfile(
                 prec += int(code[-2]) + 1
             return filler + str(prec) + code
 
-        fmts = map(lambda k: "{:" + fmt_field(FORMATS[k], dataframe[k]) + "}",
-                   dataframe.columns)
+        fmts = map(lambda k: "{:" + fmt_field(FORMATS[k], _dataframe[k]) + "}",
+                   _dataframe.columns)
         fmt = " ".join(fmts) + "\n"
-        for index, row in dataframe.iterrows():
-            data = [row[k] for k in dataframe.columns]
-            fp.write(fmt.format(*data))
+        for index, row in _dataframe.iterrows():
+            data = [row[k] for k in _dataframe.columns]
+            file.write(fmt.format(*data))
+
+    if not isinstance(segstatsfile, Path):
+        segstatsfile = Path(segstatsfile)
+    if normfile is not None and not isinstance(normfile, Path):
+        normfile = Path(normfile)
+    if segfile is not None and not isinstance(segfile, Path):
+        segfile = Path(segfile)
+
+    segstatsfile.parent.mkdir(exist_ok=True)
+    with open(segstatsfile, "w") as fp:
+        _title(fp)
+        _system_info(fp)
+        fp.write(f"# anatomy_type volume\n#\n")
+        _extra_header(fp, extra_header)
+
+        _file_annotation(fp, "SegVolFile", segfile)
+        _file_annotation(fp, "ColorTable", lut)
+        _file_annotation(fp, "PVVolFile", normfile)
+        _extra_parameters(fp, vox_vol, exclude, report_empty, lut)
+        # add the Index column, if it is not in dataframe
+        if "Index" not in dataframe.columns:
+            index_df = pd.DataFrame.from_dict({"Index": dataframe.index})
+            index_df.index = dataframe.index
+            dataframe = index_df.join(dataframe)
+        _table_header(fp, dataframe)
+        _table_body(fp, dataframe)
 
 
 # Label mapping functions (to aparc (eval) and to label (train))
@@ -715,11 +1091,12 @@ def read_classes_from_lut(lut_file: str | Path):
     Parameters
     ----------
     lut_file : Path, str
-        Path and name of FreeSurfer-style LUT file with classes of interest.
+        The path and name of FreeSurfer-style LUT file with classes of interest.
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
-        1   Left-Cerebral-Exterior 70  130 180 0.
+        1   Left-Cerebral-Exterior 70  130 180 0
+        ...
 
     Returns
     -------
@@ -768,7 +1145,7 @@ def seg_borders(
         Which classes to consider for border computation (True/False for binary mask).
     out: nt.NDArray[bool], optional
         The array for inplace computation.
-    cmp_dtype: npt.DTypeLike, default: int8
+    cmp_dtype: npt.DTypeLike, default=int8
         The data type to use for border laplace computation.
 
     Returns
@@ -873,13 +1250,16 @@ def borders(
         # compare the [padded] image/array in all directions, x, y, z...
         # ([0], 0, 2, 2, 2, [0]) ==> (False, True, False, False, True)  for each dim
         # is_mid=True: drops padded values in unaffected axes
-        ii = partial(indexer, is_mid=True)
-        nbr_same = [cmp(padded[ii(i)[0]], padded[ii(i)[1]]) for i in range(dim)]
+        indexes = (indexer(i, is_mid=True) for i in range(dim))
+        nbr_same = [cmp(padded[i], padded[j]) for i, j in indexes]
         # merge neighbors so each border is 2 thick (left and right of change)
-        # (False, True, False, False, True) ==> (True, True, False, True)  for each dim
+        # (False, True, False, False, True) ==>
+        # ((False, True), (True, False), (False, False), (False, True))  for each dim
         # is_mid=False: padded values already dropped
-        ii = partial(indexer, is_mid=False)
-        nbr_same = [logical_or(_ns[ii(i)[0]], _ns[ii(i)[1]]) for i, _ns in enumerate(nbr_same)]
+        indexes = (indexer(i, is_mid=False) for i in range(dim))
+        nbr_same = [(nbr_[i], nbr_[j]) for (i, j), nbr_ in zip(indexes, nbr_same)]
+        from itertools import chain
+        nbr_same = list(chain.from_iterable(nbr_same))
     else:
         # all indexes of the neighbors: ((0, 0, 0), (0, 0, 1) ... (2, 2, 2))
         ndindexes = tuple(np.ndindex((3,) * dim))
@@ -1101,11 +1481,12 @@ def pv_calc(
         - ipv: The partial volume of the alternative (nbr) label at the location.
 
     """
-    if not isinstance(seg, np.ndarray) or np.issubdtype(seg.dtype, np.integer):
+    if not isinstance(seg, np.ndarray) or not np.issubdtype(seg.dtype, np.integer):
         raise TypeError("The seg object is not a numpy.ndarray of int type.")
-    if not isinstance(norm, np.ndarray) or np.issubdtype(seg.dtype, np.number):
+    if not isinstance(norm, np.ndarray) or not np.issubdtype(seg.dtype, np.number):
         raise TypeError("The norm object is not a numpy.ndarray of number type.")
-    if not isinstance(labels, Sequence) or all(isinstance(lab, int) for lab in labels):
+    if (not isinstance(labels, Sequence) or
+            not all(np.issubdtype(lab, np.integer) for lab in labels)):
         raise TypeError("The labels list is not a sequence of ints.")
 
     if seg.shape != norm.shape:

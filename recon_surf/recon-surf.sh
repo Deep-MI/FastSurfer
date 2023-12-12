@@ -38,7 +38,8 @@ hires_voxsize_threshold=0.999  # Threshold below which the hires options are pas
 
 if [ -z "$FASTSURFER_HOME" ]
 then
-  binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
+  binpath="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
+  FASTSURFER_HOME="$(cd -- "$(dirname "$binpath")" >/dev/null 2>&1 ; pwd -P )/"
 else
   binpath="$FASTSURFER_HOME/recon_surf/"
 fi
@@ -441,7 +442,7 @@ if [ $CONFORM_LF != /dev/null ] ; then  rm -f $CONFORM_LF ; fi
 echo "Log file for Conform test" > $CONFORM_LF
 
 # check for input conformance
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
+cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
 RunIt "$cmd" "$LF -a $CONFORM_LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
@@ -450,7 +451,7 @@ vox_size=`cat $CONFORM_LF | grep -E " - Voxel Size " | cut -d' ' -f5 | cut -d'x'
 if [ -f "$CONFORM_LF" ]; then rm -f $CONFORM_LF ; fi
 
 # here, we check the correct vox_size by passing it to the next conform, so errors in this line might be caused above
-cmd="$python ${binpath}../FastSurferCNN/data_loader/conform.py -i $asegdkt_segfile --check_only --vox_size $vox_size --dtype any --verbose"
+cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $asegdkt_segfile --check_only --vox_size $vox_size --dtype any --verbose"
 RunIt "$cmd" $LF
 
 if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
@@ -496,7 +497,7 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   echo " " | tee -a $LF
   # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
   # output will be uchar (else mri_cc will fail below)
-  cmd="$python ${binpath}/../FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
+  cmd="$python $FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
   RunIt "$cmd" $LF
 fi
 
@@ -903,16 +904,16 @@ fi
 
     # pctsurfcon (has no way to specify which annot to use, so we need to link ours as aparc is not available)
     pushd $ldir
-    softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" $LF
-    softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" $LF
+      softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" $LF
+      softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" $LF
     popd
     for hemi in lh rh; do
       cmd="pctsurfcon --s $subject --$hemi-only"
       RunIt "$cmd" $LF
     done
     pushd $ldir
-    cmd="rm *h.aparc.annot"
-    RunIt "$cmd" $LF
+      cmd="rm *h.aparc.annot"
+      RunIt "$cmd" $LF
     popd
 
     # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
@@ -942,13 +943,23 @@ fi
 
 # ============================= MAPPED-WMPARC =========================================
 
-echo " " | tee -a $LF
-echo "===================== Creating wmparc from mapped =======================" | tee -a $LF
-echo " " | tee -a $LF
+  echo " " | tee -a $LF
+  echo "===================== Creating wmparc from mapped =======================" | tee -a $LF
+  echo " " | tee -a $LF
 
-  # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and hypos)
-  # difference between this and the surface improved one above are probably tiny, so the surface improvement above can probably be skipped to save time
-  cmd="mri_segstats --seed 1234 --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
+  # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and
+  # hypos) difference between this and the surface improved one above are probably tiny, so the surface improvement
+  # above can probably be skipped to save time
+  cmd="mri_segstats --seed 1234 --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats"
+  cmd="$cmd --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0"
+  cmd="$cmd --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm"
+  cmd="$cmd --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler"
+  cmd="$cmd --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
+  # segstats.py version of the mri_segstats call
+  cmd="$python ${binpath}/FastSurferCNN/segstats.py --segfile $mdir/aseg.presurf.hypos.mgz"
+  cmd="$cmd --segstatsfile $mdir/../stats/aseg.presurf.hypos.stats --normfile $mdir/norm.mgz --empty"
+  cmd="$cmd --lut /$FREESURFER_HOME/ASegStatsLUT.txt --maskfile $mdir/brainmask.mgz --sid $subject"
+  cmd="$cmd --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler"
   RunIt "$cmd" $LF
 
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:

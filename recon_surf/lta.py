@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from typing import Dict
 
 # Copyright 2021 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
@@ -24,9 +23,9 @@ def writeLTA(
         filename: str,
         T: npt.ArrayLike,
         src_fname: str,
-        src_header: Dict,
+        src_header: dict,
         dst_fname: str,
-        dst_header: Dict
+        dst_header: dict
 ) -> None:
     """
     Write linear transform array info to an .lta file.
