@@ -326,7 +326,7 @@ function first_non_empty_partition ()
     fi
   done
 }
-function first_non_empty_partition2 ()
+function first_non_empty_arg ()
 {
   for i in "$@"
   do
