@@ -24,9 +24,9 @@ jobs:
         with:
           fallback: "dev"
       - name: Build Docker image GPU
-        run: python Docker/build.py --device cuda --tag girodia/fastsurfer:gpu-${{ steps.get_tag.outputs.tag }}
+        run: python Docker/build.py --device cuda --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ steps.get_tag.outputs.tag }}
       - name: Push Docker image GPU
-        run: docker push girodia/fastsurfer:gpu-${{ steps.get_tag.outputs.tag }}
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ steps.get_tag.outputs.tag }}
   deploy-cpu:
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -48,7 +48,7 @@ jobs:
         with:
           fallback: "dev"
       - name: Build Docker image CPU
-        run: python Docker/build.py --device cpu --tag girodia/fastsurfer:cpu-${{ steps.get_tag.outputs.tag }}
+        run: python Docker/build.py --device cpu --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ steps.get_tag.outputs.tag }}
       - name: Push Docker image CPU
-        run: docker push girodia/fastsurfer:cpu-${{ steps.get_tag.outputs.tag }}
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ steps.get_tag.outputs.tag }}
         
