@@ -216,7 +216,7 @@ if __name__ == "__main__":
         start = 0  # to corresponding blocks from all_labels and all_values
         # print("Debug length all labels: {}".format(len(all_labels)))
         for annot in annotnames:
-            # print("Debug length labelids pos {}".format(len(label_ids[pos])))
+            # print("Debug length labelids patch_corner {}".format(len(label_ids[patch_corner])))
             stop = start + len(label_ids[pos])
             print("\nCreating {} annotation on {}".format(annot, white))
             # print("Debug info start: {}, stop: {}".format(start,stop))

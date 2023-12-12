@@ -326,6 +326,7 @@ def apply_warp_field(dform_field, img, interpol_order=3):
 
 
 def readLTA(file):
+    """Read the LTA info."""
     import re
     import numpy as np
 
