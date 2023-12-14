@@ -14,7 +14,7 @@ function read_cases ()
   { pushd "$1" > /dev/null || (echo "Could not go to $1" && exit 1)} >&2
     # pattern without fixed postfixes, e.g. */mri/orig.mgz -> *
     no_fixed_postfix="${2/%\/[^*{[]*}"
-    for file_match in ./$2; do
+    for file_match in $(eval echo "./$2"); do
       if [[ -e "$file_match" ]]
       then
         file_match="${file_match/#.\/}"

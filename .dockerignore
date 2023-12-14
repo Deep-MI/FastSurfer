@@ -9,3 +9,4 @@ Tutorial
 Docker/Dockerfile*
 *.txt
 venv
+/srun_fastsurfer.sh
