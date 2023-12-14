@@ -121,7 +121,7 @@ case $key in
         echo "ERROR: Could not find the subject list $2!"
         exit 1
       fi
-      subjects="$subjects $(cat $2)"
+      subjects="$subjects$newline$(cat $2)"
       subjects_stdin="false"
     shift # past argument
     shift # past value
