@@ -21,7 +21,7 @@ Non-NVIDIA GPU architectures (Apple M1, AMD) are not officially supported, but e
 
 Assuming you have singularity installed already (by a system admin), you can build an image easily from our Dockerhub images. Run this command from a directory where you want to store singularity images:
 
-```
+```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 ```
 Additionally, [the Singularity README](Singularity/README.md) contains detailed directions for building your own Singularity images from Docker.
@@ -33,7 +33,7 @@ Our [README](README.md#example-2--fastsurfer-singularity) explains how to run Fa
 
 This is very similar to Singularity. Assuming you have Docker installed (by a system admin) you just need to pull one of our pre-build Docker images from dockerhub:
 
-```
+```bash
 docker pull deepmi/fastsurfer:latest
 ```
 
@@ -48,7 +48,7 @@ In a native install you need to install all dependencies (distro packages, FreeS
 
 You will need a few additional packages that may be missing on your system (for this you need sudo access or ask a system admin):
 
-```
+```bash
 sudo apt-get update && apt-get install -y --no-install-recommends \
       wget \
       git \
@@ -58,7 +58,7 @@ sudo apt-get update && apt-get install -y --no-install-recommends \
 
 If you are using **Ubuntu 20.04**, you will need to upgrade to a newer version of libstdc++, as some 'newer' python packages need GLIBCXX 3.4.29, which is not distributed with Ubuntu 20.04 by default.
 
-```
+```bash
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt install -y g++-11
 ```
@@ -73,7 +73,7 @@ If you are using pip, make sure pip is updated as older versions will fail.
 
 We recommend to install conda as your python environment. If you don't have conda on your system, an admin needs to install it:
 
-```
+```bash
 wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.11.0-Linux-x86_64.sh
 chmod +x ~/miniconda.sh
 sudo ~/miniconda.sh -b -p /opt/conda && \
@@ -83,7 +83,7 @@ rm ~/miniconda.sh
 #### 3. FastSurfer
 Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly):
 
-```
+```bash
 git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 ```
@@ -92,7 +92,7 @@ cd FastSurfer
 
 Create a new environment and install FastSurfer dependencies:
 
-```
+```bash
 conda env create -f ./fastsurfer_env_gpu.yml 
 conda activate fastsurfer_gpu
 ```
@@ -101,17 +101,17 @@ If you do not have an NVIDIA GPU, replace `./fastsurfer_env_gpu.yml`  with the c
 If you only want to run the surface pipeline, replace `./fastsurfer_env_gpu.yml` with the reconsurf-only environment file `./fastsurfer_env_reconsurf.yml`.
 
 Next, add the fastsurfer directory to the python path (make sure you have changed into it already):
-```
+```bash
 export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
 
 This will need to be done every time you want to run FastSurfer, or you need to add this line to your `~/.bashrc` if you are using bash, for example:
-```
+```bash
 echo "export PYTHONPATH=\"\${PYTHONPATH}:$PWD\"" >> ~/.bashrc
 ```
 
 You can also download all network checkpoint files (this should be done if you are installing for multiple users):
-```
+```bash
 python3 FastSurferCNN/download_checkpoints.py --all
 ```
 
@@ -128,15 +128,15 @@ We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using
 
 Build the Docker container with ROCm support.
 
-```
-docker build --rm=true -t deepmi/fastsurfer:amd -f ./Docker/Dockerfile_FastSurferCNN_AMD .
+```bash
+python Docker/build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
 You will need to add a couple of flags to your docker run command for AMD, see [the Readme](README.md#example-1--fastsurfer-docker) for `**other-docker-flags**` or `**fastsurfer-flags**`:
-```
+```bash
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/kfd \
         --device=/dev/dri --group-add video --ipc=host --shm-size 8G \
-        **other-docker-flags** deepmi/fastsurfer:amd \
+        **other-docker-flags** my_fastsurfer:rocm \
                 **fastsurfer-flags**
 ```
 Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.
@@ -158,7 +158,7 @@ Start it and set Memory to 15 GB under Preferences -> Resources (or the largest 
 
 Second, pull one of our Docker containers. Open a terminal window and run:
 
-```
+```sh
 docker pull deepmi/fastsurfer:latest
 ```
 
@@ -173,7 +173,7 @@ On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a n
 If you do not have git and a recent bash (version > 4.0 required!) installed, install them via the packet manager, e.g. brew.
 This installs brew and then bash:
 
-```
+```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install bash
 ```
@@ -183,7 +183,7 @@ Make sure you use this bash and not the older one provided with MacOS!
 #### 2. Python
 Create a python environment, activate it, and upgrade pip. Here we use pip, but you should also be able to use [conda](#2-conda--for-python-): 
 
-```
+```sh
 python3 -m venv $HOME/python-envs/fastsurfer 
 source $HOME/python-envs/fastsurfer/bin/activate
 python3 -m pip install --upgrade pip
@@ -191,7 +191,7 @@ python3 -m pip install --upgrade pip
 
 #### 3. FastSurfer and Requirements
 Clone FastSurfer:
-```
+```sh
 git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 export PYTHONPATH="${PYTHONPATH}:$PWD"
@@ -199,21 +199,21 @@ export PYTHONPATH="${PYTHONPATH}:$PWD"
 
 
 Install the FastSurfer requirements
-```
+```sh
 python3 -m pip install -r requirements.mac.txt
 ```
 
 If this step fails, you may need to edit ```requirements.mac.txt``` and adjust version number to what is available. 
 On newer M1 Macs, we also had issues with the h5py package, which could be solved by using brew for help (not sure this is needed any longer):
 
-```
+```sh
 brew install hdf5
 export HDF5_DIR="$(brew --prefix hdf5)"
 pip3 install --no-binary=h5py h5py
 ```
 
 You can also download all network checkpoint files (this should be done if you are installing for multiple users):
-```
+```sh
 python3 FastSurferCNN/download_checkpoints.py --all
 ```
 
@@ -226,7 +226,7 @@ To run the full pipeline, install and source also the supported FreeSurfer versi
 #### 4. Apple AI Accelerator support
 You can also try the experimental support for the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps`:
 
-```
+```sh
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 ./run_fastsurfer.sh --seg_only --device mps ....
 ```
