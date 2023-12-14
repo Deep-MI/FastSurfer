@@ -23,4 +23,5 @@ __all__ = [
     "metrics",
     "misc",
     "parser_defaults",
+    "threads",
 ]

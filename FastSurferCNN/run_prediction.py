@@ -23,6 +23,7 @@ from concurrent.futures import Executor
 import numpy as np
 import torch
 import nibabel as nib
+import yacs.config
 
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.utils import logging, parser_defaults
@@ -51,7 +52,24 @@ LOGGER = logging.getLogger(__name__)
 ##
 # Processing
 ##
-def set_up_cfgs(cfg, args):
+def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
+    """Set up configuration.
+    
+    Sets up configurations with given arguments inside the yaml file
+
+    Parameters
+    ----------
+    cfg : str
+        path to yaml file of configurations
+    args : argparse.Namespace
+        {out_dir, batch_size} arguments
+
+    Returns
+    -------
+    yacs.config.CfgNode
+        Node of configurations
+
+    """
     cfg = load_config(cfg)
     cfg.OUT_LOG_DIR = args.out_dir if args.out_dir is not None else cfg.LOG_DIR
     cfg.OUT_LOG_NAME = "fastsurfer"
@@ -62,9 +80,19 @@ def set_up_cfgs(cfg, args):
     return cfg
 
 
-def args2cfg(args: argparse.Namespace):
-    """
-    Extract the configuration objects from the arguments.
+def args2cfg(args: argparse.Namespace) -> Tuple[yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode]:
+    """Extract the configuration objects from the arguments.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        arguments
+
+    Returns
+    -------
+     yacs.config.CfgNode
+        configurations for all planes
+
     """
     cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
     cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
@@ -76,7 +104,23 @@ def args2cfg(args: argparse.Namespace):
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """Similar to string.removesuffix in PY3.9+, removes a suffix from a string."""
+    """Remove a suffix from a string.
+
+    Similar to string.removesuffix in PY3.9+,
+
+    Parameters
+    ----------
+    string : str
+        string to be cut
+    suffix : str
+        suffix to be removed
+
+    Returns
+    -------
+    Str
+        Suffix removed string
+
+    """
     import sys
 
     if sys.version_info.minor >= 9:
@@ -96,6 +140,46 @@ def removesuffix(string: str, suffix: str) -> str:
 
 
 class RunModelOnData:
+    """Run the model prediction on given data.
+    
+    Methods
+    -------
+    __init__()
+        Construct object.
+    set_and_create_outdir()
+        sets and creates output directory
+    conform_and_save_orig()
+        saves original image
+    set_subject()
+        setter
+    get_subject_name()
+        getter
+    set_model()
+        setter
+    run_model()
+        calculates prediction
+    get_img()
+        getter
+    save_img()
+        saves image as file
+    set_up_model_params()
+        setter
+    get_num_classes()
+        getter
+
+    Attributes
+    ----------
+    pred_name : str
+    conf_name : str
+    orig_name : str
+    vox_size : Union[float, Literal["min"]]
+    current_plane : str
+    models : Dict[str, Inference]
+    view_ops : Dict[str, Dict[str, Any]]
+    conform_to_1mm_threshold : Optional[float]
+        threshold until which the image will be conformed to 1mm res
+    """
+
     pred_name: str
     conf_name: str
     orig_name: str
@@ -105,7 +189,24 @@ class RunModelOnData:
     view_ops: Dict[str, Dict[str, Any]]
     conform_to_1mm_threshold: Optional[float]
 
-    def __init__(self, args):
+    def __init__(self, args: argparse.Namespace):
+        """Construct RunModelOnData object.
+
+        Parameters
+        ----------
+        args : args: argparse.Namespace) [MISSING]
+            pred_name : str
+            conf_name (str
+            orig_name (str
+            remove_suffix
+            sf : float
+                Defaults to 1.0
+            out_dir : str
+                directory of output
+            viewagg_device : str
+                device to run viewagg on. Can be auto, cuda or cpu
+
+        """
         self.pred_name = args.pred_name
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
@@ -171,6 +272,7 @@ class RunModelOnData:
 
     @property
     def pool(self) -> Executor:
+        """[MISSING]."""
         if not hasattr(self, "_pool"):
             if not self._async_io:
                 self._pool = NoParallelExecutor()
@@ -181,14 +283,29 @@ class RunModelOnData:
         return self._pool
 
     def __del__(self):
+        """[MISSING]."""
         if hasattr(self, "_pool"):
             # only wait on futures, if we specifically ask (see end of the script, so we do not wait if we encounter a
             # fail case)
             self._pool.shutdown(True)
 
     def conform_and_save_orig(
-        self, subject: SubjectDirectory
+        self,
+        subject: SubjectDirectory
     ) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+        """Conform and saves original image.
+
+        Parameters
+        ----------
+        subject : SubjectDirectory
+            subject directory object
+
+        Returns
+        -------
+        Tuple[nib.analyze.SpatialImage, np.ndarray]
+            Conformed image
+
+        """
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
         LOGGER.info(f"Successfully loaded image from {subject.orig_name}.")
 
@@ -224,11 +341,32 @@ class RunModelOnData:
         return orig, orig_data
 
     def set_model(self, plane: str):
+        """[MISSING]."""
         self.current_plane = plane
 
     def get_prediction(
-        self, image_name: str, orig_data: np.ndarray, zoom: Union[np.ndarray, tuple]
+            self,
+            image_name: str,
+            orig_data: np.ndarray,
+            zoom: Union[np.ndarray, Tuple]
     ) -> np.ndarray:
+        """Run and get prediction.
+
+        Parameters
+        ----------
+        image_name : str
+            original image filename
+        orig_data : np.ndarray
+            original image data
+        zoom : Union[np.ndarray, Tuple]
+            original zoom
+
+        Returns
+        -------
+        np.ndarray
+            predicted classes
+
+        """
         shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": self.viewagg_device,
@@ -255,13 +393,26 @@ class RunModelOnData:
         return pred_classes
 
     def save_img(
-        self,
-        save_as: str,
-        data: Union[np.ndarray, torch.Tensor],
-        orig: nib.analyze.SpatialImage,
-        dtype: Union[None, type] = None,
+            self,
+            save_as: str,
+            data: Union[np.ndarray, torch.Tensor],
+            orig: nib.analyze.SpatialImage,
+            dtype: Optional[type] = None,
     ):
-        """Saves the image."""
+        """Save image as file.
+
+        Parameters
+        ----------
+        save_as : str
+            filename to give image
+        data : Union[np.ndarray, torch.Tensor]
+            image data
+        orig : nib.analyze.SpatialImage
+            original Image
+        dtype : Optional[type]
+             (Default value = None)
+
+        """
         # Create output directory if it does not already exist.
         if not os.path.exists(os.path.dirname(save_as)):
             LOGGER.info(
@@ -282,25 +433,28 @@ class RunModelOnData:
         return r
 
     def async_save_img(
-        self,
-        save_as: str,
-        data: Union[np.ndarray, torch.Tensor],
-        orig: nib.analyze.SpatialImage,
-        dtype: Union[None, type] = None,
+            self,
+            save_as: str,
+            data: Union[np.ndarray, torch.Tensor],
+            orig: nib.analyze.SpatialImage,
+            dtype: Union[None, type] = None,
     ):
-        """Saves the image asynchronously and returns a concurrent.futures.Future to track, when this finished."""
+        """Save the image asynchronously and return a concurrent.futures.Future to track, when this finished."""
         return self.pool.submit(self.save_img, save_as, data, orig, dtype)
 
     def set_up_model_params(self, plane, cfg, ckpt):
+        """Set up the model parameters from the configuration and checkpoint."""
         self.view_ops[plane]["cfg"] = cfg
         self.view_ops[plane]["ckpt"] = ckpt
 
     def get_num_classes(self) -> int:
+        """Return the number of classes."""
         return self.num_classes
 
     def pipeline_conform_and_save_orig(
-        self, subjects: SubjectList
+            self, subjects: SubjectList
     ) -> Iterator[Tuple[SubjectDirectory, Tuple[nib.analyze.SpatialImage, np.ndarray]]]:
+        """[MISSING]."""
         if not self._async_io:
             # do not pipeline, direct iteration and function call
             for subject in subjects:

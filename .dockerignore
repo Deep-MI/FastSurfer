@@ -1,2 +1,12 @@
 **/.git
 **/.github
+checkpoints
+Singularity
+images
+venv
+Tutorial
+**/*.md
+Docker/Dockerfile*
+*.txt
+venv
+/srun_fastsurfer.sh

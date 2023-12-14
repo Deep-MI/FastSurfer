@@ -20,6 +20,7 @@
 import optparse
 import os.path
 import os
+from typing import Tuple, List
 import numpy as np
 import sys
 import nibabel.freesurfer.io as fs
@@ -66,15 +67,20 @@ Date: Aug-31-2022
 
 h_sid = "subject id (name of directory within the subject directory)"
 h_sd = "subject directory path"
-h_hemi = 'optioal: "lh" or "rh" (default run both hemispheres)'
+h_hemi = 'optional: "lh" or "rh" (default run both hemispheres)'
 h_fsaverage = (
     "optional: path to fsaverage (default is $FREESURFER_HOME/subjects/fsaverage)"
 )
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser.
+
+    Returns
+    -------
+    options
+        object holding options
+
     """
     parser = optparse.OptionParser(
         version="$Id:fs_balabels.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -99,9 +105,33 @@ def options_parse():
     return options
 
 
-def read_colortables(colnames, colappend, drop_unknown=True):
-    # reads multiple colortables and appends extensions,
-    # drops unknown by default
+def read_colortables(
+        colnames: List[str],
+        colappend: List[str],
+        drop_unknown: bool = True
+) -> Tuple[List, List, List]:
+    """Read multiple colortables and appends extensions, drops unknown by default.
+
+    Parameters
+    ----------
+    colnames : List[str]
+        List of color-names
+    colappend : List[str]
+        List of appends for names
+    drop_unknown : bool
+        True if unknown colors should be dropped.
+        Defaults to True
+
+    Returns
+    -------
+    all_ids
+        List of all ids
+    all_names
+        List of all names
+    all_cols
+        List of all colors
+
+    """
     pos = 0
     all_names = []
     all_ids = []

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Contains the ALL_FLAGS dictionary, which can be used as follows to add default flags:
+Contains the ALL_FLAGS dictionary, which can be used as follows to add default flags.
 
 >>> parser = argparse.ArgumentParser()
 >>> ALL_FLAGS["allow_root"](parser, dest="root")
@@ -27,10 +27,10 @@ Values can also be extracted by
 """
 
 import argparse
-import multiprocessing
 from os import path
 from typing import Iterable, Mapping, Union, Literal, Dict, Protocol, TypeVar, Type
 
+from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.arg_types import (
     vox_size as __vox_size,
     float_gt_zero_and_le_one as __conform_to_one_mm,
@@ -47,23 +47,25 @@ VoxSize = Union[Literal["min"], float]
 
 
 class CanAddArguments(Protocol):
+    """[MISSING]."""
+
     def add_argument(self, *args, **kwargs):
+        """[MISSING]."""
         ...
 
 
 def __arg(*default_flags, **default_kwargs):
-    """
-    Function to create stub function, which sets default settings for argparse arguments.
-    The positional and keyword arguments function as if they were directly passed to parser.add_arguments().
+    """Create stub function, which sets default settings for argparse arguments.
 
+    The positional and keyword arguments function as if they were directly passed to parser.add_arguments().
+    
     The result will be a stub function, which has as first argument a parser (or other object with an
     add_argument method) to which the argument is added. The stub function also accepts positional and
     keyword arguments, which overwrite the default arguments. Additionally, these specific values can be callables,
     which will be called upon the default values (to alter the default value).
-
+    
     This function is private for this module.
     """
-
     def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
@@ -260,9 +262,9 @@ ALL_FLAGS = {
     "threads": __arg(
         "--threads",
         dest="threads",
-        default=multiprocessing.cpu_count(),
+        default=get_num_threads(),
         type=int,
-        help=f"Number of threads to use (defaults to number of hardware threads: {multiprocessing.cpu_count()})",
+        help=f"Number of threads to use (defaults to number of hardware threads: {get_num_threads()})",
     ),
     "async_io": __arg(
         "--async_io",
@@ -277,12 +279,20 @@ T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)
 
 
 def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
-    """
-    Add default flags to the parser from the flags list in order.
+    """Add default flags to the parser from the flags list in order.
 
-    Args:
-        parser: The parser to add flags to.
-        flags: the flags to add from 'device', 'viewagg_device'.
+    Parameters
+    ----------
+    parser : T_AddArgs
+        The parser to add flags to.
+    flags : Iterable[str]
+        the flags to add from 'device', 'viewagg_device'.
+
+    Returns
+    -------
+    T_AddArgs
+        The parser object
+
     """
     for flag in flags:
         if flag.startswith("--"):
@@ -302,21 +312,28 @@ def add_plane_flags(
     type: Literal["checkpoint", "config"],
     files: Mapping[str, str],
 ) -> argparse.ArgumentParser:
-    """
-    Helper function to add plane arguments. Arguments will be added for each entry in files, where the key is the "plane"
+    """Add plane arguments.
+
+    Arguments will be added for each entry in files, where the key is the "plane"
     and the values is the file name (relative for path relative to FASTSURFER_HOME.
 
-    Args:
-        parser: The parser to add flags to.
-        type: The type of files (for help text and prefix from "checkpoint" and "config".
-            "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
-        files: A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
-            directory.
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+        The parser to add flags to.
+    type : Literal["checkpoint", "config"]
+        The type of files (for help text and prefix from "checkpoint" and "config".
+        "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
+    files : Mapping[str, str]
+        A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
+        directory.
 
-    Returns:
+    Returns
+    -------
+    argparse.ArgumentParser
         The parser object.
+    
     """
-
     if type not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")
 

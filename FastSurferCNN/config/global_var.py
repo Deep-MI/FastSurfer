@@ -143,6 +143,20 @@ CLASS_DICT = {
 
 
 def get_class_names(plane, options):
+    """Get the class names
+
+    Parameters
+    ----------
+    plane :
+        [MISSING]
+    options :
+        [MISSING]
+
+    Returns
+    -------
+        [MISSING]
+
+    """
     selection = []
     for opt in options:
         if plane == "sagittal":

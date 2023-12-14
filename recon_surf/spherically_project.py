@@ -19,10 +19,9 @@ import sys
 import nibabel.freesurfer.io as fs
 import numpy as np
 import math
-from lapy.DiffGeo import tria_mean_curvature_flow
-from lapy.TriaMesh import TriaMesh
-from lapy.read_geometry import read_geometry
-from lapy.Solver import Solver
+from lapy.diffGeo import tria_mean_curvature_flow
+from lapy.triaMesh import TriaMesh
+from lapy.solver import Solver
 
 HELPTEXT = """
 Script to compute ShapeDNA using linear FEM matrices. 
@@ -72,8 +71,13 @@ h_output = "path to output surface, spherically projected"
 
 
 def options_parse():
-    """
-    Command line option parser for spherically_project.py
+    """Command line option parser.
+
+    Returns
+    -------
+    options
+        object holding options
+
     """
     parser = optparse.OptionParser(
         version="$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $",
@@ -89,20 +93,38 @@ def options_parse():
     return options
 
 
-def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
-    """
-    spherical(tria) computes the first three non-constant eigenfunctions
-           and then projects the spectral embedding onto a sphere. This works
-           when the first functions have a single closed zero level set,
-           splitting the mesh into two domains each. Depending on the original
-           shape triangles could get inverted. We also flip the functions
-           according to the axes that they are aligned with for the special
-           case of brain surfaces in FreeSurfer coordinates.
+def tria_spherical_project(
+        tria: TriaMesh,
+        flow_iter: int = 3,
+        debug: bool = False,
+        use_cholmod: bool = True
+) -> TriaMesh:
+    """Compute the first three sphere-projected non-constant eigenfunctions.
 
-    Inputs:   tria      : TriaMesh
-              flow_iter : mean curv flow iterations (3 should be enough)
+    Compute the first three non-constant eigenfunctions
+    and then projects the spectral embedding onto a sphere. This works
+    when the first functions have a single closed zero level set,
+    splitting the mesh into two domains each. Depending on the original
+    shape triangles could get inverted. We also flip the functions
+    according to the axes that they are aligned with for the special
+    case of brain surfaces in FreeSurfer coordinates.
 
-    Outputs:  tria      : TriaMesh
+    Parameters
+    ----------
+    tria : TriaMesh
+        Triangle Mesh
+    flow_iter : int
+        Mean curv flow iterations (3 should be enough). Defaults to 3
+    debug : bool
+        Whether to print EV info to the file debug.ev. Defaults to False
+    use_cholmod : bool
+        Try to use the Cholesky decomposition from the cholmod. Defaults to True
+
+    Returns
+    -------
+    trianew
+        Triangle Mesh spherically projected
+
     """
     if not tria.is_closed():
         raise ValueError("Error: Can only project closed meshes!")
@@ -135,9 +157,9 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
         data["Elements"] = tria.t.shape[0]
         data["DoF"] = evecs.shape[0]
         data["NumEW"] = 4
-        from lapy.FuncIO import export_ev
+        from lapy.io import write_ev
 
-        export_ev(data, "debug.ev")
+        write_ev(data, "debug.ev")
 
     # flip efuncs to align to coordinates consistently
     ev1 = evecs[:, 1]
@@ -280,11 +302,24 @@ def tria_spherical_project(tria, flow_iter=3, debug=False, use_cholmod=True):
     return trianew
 
 
-def spherically_project_surface(insurf, outsurf, use_cholmod=True):
-    """(string) -> None
-    takes path to insurf, spherically projects it, outputs it to outsurf
+def spherically_project_surface(
+        insurf: str,
+        outsurf: str,
+        use_cholmod: bool = True
+) -> None:
+    """Take path to insurf, spherically projects it, outputs it to outsurf.
+
+    Parameters
+    ----------
+    insurf : str
+        Path to input surface file
+    outsurf : str
+        Path to output surface file
+    use_cholmod : bool
+        Try to use the Cholesky decomposition from the cholmod. Defaults to True
+
     """
-    surf = read_geometry(insurf, read_metadata=True)
+    surf = fs.read_geometry(insurf, read_metadata=True)
     projected = tria_spherical_project(
         TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod
     )

@@ -3,23 +3,36 @@ import datetime
 import dateutil.parser
 import argparse
 import yaml
+import locale
 
 
-def get_recon_all_stage_duration(line, previous_datetime_str):
-    """
-    Extract the duration of a recon-all stage from its log string.
+def get_recon_all_stage_duration(line: str, previous_datetime_str: str) -> float:
+    """Extract the duration of a recon-all stage from its log string.
 
-    :param str line: line in recon-surf.log containing recon-all stage info.
+    Parameters
+    ----------
+    line : str
+        line in recon-surf.log containing recon-all stage info.
         This must be of the form:
         #@# STAGE_NAME Fri Nov 26 15:51:40 UTC 2021
-    :param str previous_datetime_str: datetime string of the previous recon-all stage
+    previous_datetime_str : str
+        datetime string of the previous recon-all stage
 
-    :return: str stage_duration: stage duration in seconds
+    Returns
+    -------
+    stage_duration
+        stage duration in seconds
+
     """
 
     current_datetime_str = " ".join(line.split()[-6:])
-    current_date_time = dateutil.parser.parse(current_datetime_str)
-    previous_date_time = dateutil.parser.parse(previous_datetime_str)
+    try:
+        current_date_time = dateutil.parser.parse(current_datetime_str)
+        previous_date_time = dateutil.parser.parse(previous_datetime_str)
+    except: # strptime considers the computers time locale settings
+        locale.setlocale(locale.LC_TIME,"")
+        current_date_time = datetime.datetime.strptime(current_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
+        previous_date_time = datetime.datetime.strptime(previous_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
     stage_duration = (current_date_time - previous_date_time).total_seconds()
 
     return stage_duration

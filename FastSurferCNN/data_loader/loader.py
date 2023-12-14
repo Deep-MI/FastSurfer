@@ -1,5 +1,4 @@
 # Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,7 +14,7 @@
 # IMPORTS
 from torchvision import transforms
 from torch.utils.data import DataLoader
-import torchio as tio
+import yacs.config
 
 from FastSurferCNN.data_loader import dataset as dset
 from FastSurferCNN.data_loader.augmentation import ToTensor, ZeroPad2D, AddGaussianNoise
@@ -24,12 +23,22 @@ from FastSurferCNN.utils import logging
 logger = logging.getLogger(__name__)
 
 
-def get_dataloader(cfg, mode):
-    """
-        Creating the dataset and pytorch data loader
-    :param cfg:
-    :param mode: loading data for train, val and test mode
-    :return:
+def get_dataloader(cfg: yacs.config.CfgNode, mode: str):
+    """Create the dataset and pytorch data loader.
+
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        configuration node
+    mode : str
+        loading data for train, val and test mode
+
+    Returns
+    -------
+    torch.utils.data.DataLoader
+        dataloader with given configs and mode
+
+
     """
     assert mode in ["train", "val"], f"dataloader mode is incorrect {mode}"
 
@@ -53,6 +62,7 @@ def get_dataloader(cfg, mode):
             dataset = dset.MultiScaleDatasetVal(data_path, cfg, transforms.Compose(tfs))
         else:
 
+            import torchio as tio
             # Elastic
             elastic = tio.RandomElasticDeformation(
                 num_control_points=7,

@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional, Any
 
 # IMPORTS
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+import yacs.config
 
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.metrics import DiceScore
@@ -25,17 +28,41 @@ logger = logging.getLogger(__name__)
 
 
 class Meter:
+    """[MISSING]."""
+
     def __init__(
         self,
-        cfg,
-        mode,
-        global_step,
-        total_iter=None,
-        total_epoch=None,
-        class_names=None,
-        device=None,
-        writer=None,
+        cfg: yacs.config.CfgNode,
+        mode: str,
+        global_step: int,
+        total_iter: Optional[int] = None,
+        total_epoch: Optional[int] = None,
+        class_names: Optional[Any] = None,
+        device: Optional[Any] = None,
+        writer:  Optional[Any] = None,
     ):
+        """Construct a Meter object.
+
+        Parameters
+        ----------
+        cfg
+            [MISSING]
+        mode
+            [MISSING]
+        global_step
+            [MISSING]
+        total_iter
+            [MISSING]
+        total_epoch
+            [MISSING]
+        class_names
+            [MISSING]
+        device
+            [MISSING]
+        writer
+            [MISSING]
+
+        """
         self._cfg = cfg
         self.mode = mode.capitalize()
         self.confusion_mat = False
@@ -51,20 +78,38 @@ class Meter:
         self.total_epochs = total_epoch
 
     def reset(self):
+        """Reset bach losses and dice scores."""
         self.batch_losses = []
         self.dice_score.reset()
 
     def enable_confusion_mat(self):
+        """[MISSING]."""
         self.confusion_mat = True
 
     def disable_confusion_mat(self):
+        """[MISSING]."""
         self.confusion_mat = False
 
     def update_stats(self, pred, labels, batch_loss):
+        """[MISSING]."""
         self.dice_score.update((pred, labels), self.confusion_mat)
         self.batch_losses.append(batch_loss.item())
 
     def write_summary(self, loss_total, lr=None, loss_ce=None, loss_dice=None):
+        """Write a summary of the losses and scores.
+
+        Parameters
+        ----------
+        loss_total :
+            [MISSING]
+        lr :
+            [MISSING] (Default value = None)
+        loss_ce :
+            [MISSING] (Default value = None)
+        loss_dice :
+            [MISSING] (Default value = None)
+
+        """
         self.writer.add_scalar(
             f"{self.mode}/total_loss", loss_total.item(), self.global_iter
         )
@@ -81,7 +126,17 @@ class Meter:
 
         self.global_iter += 1
 
-    def log_iter(self, cur_iter, cur_epoch):
+    def log_iter(self, cur_iter: int, cur_epoch: int):
+        """Log the current iteration.
+
+        Parameters
+        ----------
+        cur_iter : int
+            current iteration
+        cur_epoch : int
+            current epoch
+
+        """
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
             logger.info(
                 "{} Epoch [{}/{}] Iter [{}/{}] with loss {:.4f}".format(
@@ -94,7 +149,15 @@ class Meter:
                 )
             )
 
-    def log_epoch(self, cur_epoch):
+    def log_epoch(self, cur_epoch: int):
+        """Log the current epoch.
+
+        Parameters
+        ----------
+        cur_epoch : int
+            current epoch
+        
+        """
         dice_score = self.dice_score.compute_dsc()
         self.writer.add_scalar(f"{self.mode}/mean_dice_score", dice_score, cur_epoch)
         if self.confusion_mat:

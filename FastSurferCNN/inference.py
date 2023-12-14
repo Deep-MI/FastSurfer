@@ -15,9 +15,13 @@
 # IMPORTS
 import time
 from typing import Optional, Dict, Tuple, Union
+import os
 
 import numpy as np
+from numpy import typing as npt
 import torch
+import yacs.config
+from pandas import DataFrame
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -32,18 +36,70 @@ logger = logging.getLogger(__name__)
 
 
 class Inference:
+    """Model evaluation class to run inference using FastSurferCNN.
+    
+    Methods
+    -------
+    setup_model
+        Set up the initial model
+    set_cfg
+        Set configuration node
+    to
+        Moves and/or casts the parameters and buffers.
+    load_checkpoint
+        Load the checkpoint
+    eval
+        Evaluate predictions
+    run
+        Run the loaded model
+
+    Attributes
+    ----------
+    permute_order : Dict[str, Tuple[int, int, int, int]]
+        Permutation order for axial, coronal, and sagittal
+    device : Optional[torch.device])
+        Device specification for distributed computation usage.
+    default_device : torch.device
+        Default device specification for distributed computation usage.
+    cfg : yacs.config.CfgNode
+        Configuration Node
+    model_parallel : bool
+        Option for parallel run
+    model : torch.nn.Module
+        Neural network model
+    model_name : str
+        Name of the model
+    alpha : Dict[str, float]
+        [MISSING]
+    post_prediction_mapping_hook
+        [MISSING]
+    """
 
     permute_order: Dict[str, Tuple[int, int, int, int]]
     device: Optional[torch.device]
     default_device: torch.device
 
     def __init__(
-        self,
-        cfg,
-        device: torch.device,
-        ckpt: str = "",
-        lut: Union[None, str, np.ndarray] = None,
+            self,
+            cfg: yacs.config.CfgNode,
+            device: torch.device,
+            ckpt: str = "",
+            lut: Union[None, str, np.ndarray, DataFrame] = None
     ):
+        """Construct Inference object.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            configuration Node
+        device : torch.device
+            device specification for distributed computation usage.
+        ckpt : str
+            string or os.PathLike object containing the name to the checkpoint file (Default value = "")
+        lut : Union[None, str, np.ndarray, DataFrame]
+             [MISSING] (Default value = None)
+
+        """
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
         torch.manual_seed(cfg.RNG_SEED)
@@ -82,6 +138,16 @@ class Inference:
             self.load_checkpoint(ckpt)
 
     def setup_model(self, cfg=None, device: torch.device = None):
+        """Set up the model.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            configuration Node (Default value = None)
+        device : torch.device
+            device specification for distributed computation usage. (Default value = None)
+
+        """
         if cfg is not None:
             self.cfg = cfg
         if device is None:
@@ -94,10 +160,26 @@ class Inference:
         self._model_not_init.to(device)
         self.device = None
 
-    def set_cfg(self, cfg):
+    def set_cfg(self, cfg: yacs.config.CfgNode):
+        """[MISSING].
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            Configuration node
+
+        """
         self.cfg = cfg
 
     def to(self, device: Optional[torch.device] = None):
+        """Move and/or cast the parameters and buffers.
+
+        Parameters
+        ----------
+        device : Optional[torch.device]
+            the desired device of the parameters and buffers in this module (Default value = None)
+
+        """
         if self.model_parallel:
             raise RuntimeError(
                 "Moving the model to other devices is not supported for multi-device models."
@@ -106,7 +188,15 @@ class Inference:
         self.device = _device
         self.model.to(device=_device)
 
-    def load_checkpoint(self, ckpt):
+    def load_checkpoint(self, ckpt: Union[str, os.PathLike]):
+        """Load the checkpoint and set device and model.
+
+        Parameters
+        ----------
+        ckpt : Union[str, os.PathLike]
+            string or os.PathLike object containing the name to the checkpoint file
+
+        """
         logger.info("Loading checkpoint {}".format(ckpt))
 
         self.model = self._model_not_init
@@ -134,42 +224,70 @@ class Inference:
             self.model = torch.nn.DataParallel(self.model)
 
     def get_modelname(self):
+        """Return the model name."""
         return self.model_name
 
     def get_cfg(self):
+        """Return the configurations."""
         return self.cfg
 
     def get_num_classes(self):
+        """Return the number of classes."""
         return self.cfg.MODEL.NUM_CLASSES
 
     def get_plane(self):
+        """Return the plane."""
         return self.cfg.DATA.PLANE
 
     def get_model_height(self):
+        """Return the model height."""
         return self.cfg.MODEL.HEIGHT
 
     def get_model_width(self):
+        """Return the model width."""
         return self.cfg.MODEL.WIDTH
 
     def get_max_size(self):
+        """Return the max size."""
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH
         else:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
 
     def get_device(self):
+        """Return the device."""
         return self.device
 
     @torch.no_grad()
     def eval(
-        self,
-        init_pred: torch.Tensor,
-        val_loader: DataLoader,
-        *,
-        out_scale=None,
-        out: Optional[torch.Tensor] = None,
-    ):
-        """Perform prediction and inplace-aggregate views into pred_prob. Return pred_prob."""
+            self,
+            init_pred: torch.Tensor,
+            val_loader: DataLoader,
+            *,
+            out_scale: Optional = None,
+            out: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Perform prediction and inplace-aggregate views into pred_prob.
+
+        Parameters
+        ----------
+        init_pred : torch.Tensor
+            initial prediction
+        val_loader : DataLoader
+            value loader
+        * :
+            
+        out_scale : Optional
+            [MISSING] (Default value = None)
+        out : Optional[torch.Tensor]
+            previous prediction tensor (Default value = None)
+
+        Returns
+        -------
+        torch.Tensor
+            prediction probability tensor
+        
+        """
         self.model.eval()
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
         if not isinstance(val_loader.sampler, torch.utils.data.SequentialSampler):
@@ -241,16 +359,40 @@ class Inference:
 
     @torch.no_grad()
     def run(
-        self,
-        init_pred: torch.Tensor,
-        image_name,
-        orig_data,
-        orig_zoom,
-        out: Optional[torch.Tensor] = None,
-        out_res=None,
-        batch_size: int = None,
-    ):
-        """Run the loaded model on the data (T1) from orig_data and image_name (for messages only) with scale factors orig_zoom."""
+            self,
+            init_pred: torch.Tensor,
+            img_filename: str,
+            orig_data: npt.NDArray,
+            orig_zoom: npt.NDArray,
+            out: Optional[torch.Tensor] = None,
+            out_res: Optional[int] = None,
+            batch_size: int = None
+    ) -> torch.Tensor:
+        """Run the loaded model on the data (T1) from orig_data and img_filename (for messages only)  with scale factors orig_zoom.
+
+        Parameters
+        ----------
+        init_pred : torch.Tensor
+            initial prediction
+        img_filename : str
+            original image filename
+        orig_data : npt.NDArray
+            original image data
+        orig_zoom : npt.NDArray
+            original zoom
+        out : Optional[torch.Tensor]
+            updated output tensor (Default = None)
+        out_res : Optional[int]
+            output resolution (Default value = None)
+        batch_size : int
+            batch size (Default = None)
+
+        Returns
+        -------
+        toch.Tensor
+            prediction probability tensor
+        
+        """
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(
             orig_data,
@@ -270,7 +412,7 @@ class Inference:
         out = self.eval(init_pred, test_data_loader, out=out, out_scale=out_res)
         time_delta = time.time() - start
         logger.info(
-            f"{self.cfg.DATA.PLANE.capitalize()} inference on {image_name} finished in "
+            f"{self.cfg.DATA.PLANE.capitalize()} inference on {img_filename} finished in "
             f"{time_delta:0.4f} seconds"
         )
 

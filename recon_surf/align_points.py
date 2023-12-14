@@ -23,19 +23,48 @@
 
 # IMPORTS
 import numpy as np
+from numpy import typing as npt
+from typing import Tuple
 
 
-def rmat2angles(R):
-    # Extracts rotation angles (alpha,beta,gamma) in FreeSurfer format (mris_register)
-    # from a rotation matrix
+def rmat2angles(R: npt.NDArray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Extract rotation angles (alpha,beta,gamma) in FreeSurfer format (mris_register) from a rotation matrix.
+
+    Parameters
+    ----------
+    R : npt.NDArray
+        Rotation matrix
+
+    Returns
+    -------
+    alpha, beta, gamma
+        Rotation degree
+
+    """
     alpha = np.degrees(-np.arctan2(R[1, 0], R[0, 0]))
     beta = np.degrees(np.arcsin(R[2, 0]))
     gamma = np.degrees(np.arctan2(R[2, 1], R[2, 2]))
     return (alpha, beta, gamma)
 
 
-def angles2rmat(alpha, beta, gamma):
-    # Converts FreeSurfer angles (alpha,beta,gamma) in degrees to a rotation matrix
+def angles2rmat(alpha: float, beta: float, gamma: float) -> np.array:
+    """Convert FreeSurfer angles (alpha,beta,gamma) in degrees to a rotation matrix.
+
+    Parameters
+    ----------
+    alpha : float
+        FreeSurfer angle in degrees
+    beta : float
+        FreeSurfer angle in degrees
+    gamma : float
+        FreeSurfer angle in degrees
+
+    Returns
+    -------
+    R
+        rotation angles
+
+    """
     sa = np.sin(np.radians(alpha))
     sb = np.sin(np.radians(beta))
     sg = np.sin(np.radians(gamma))
@@ -52,7 +81,27 @@ def angles2rmat(alpha, beta, gamma):
     return R
 
 
-def find_rotation(p_mov, p_dst):
+def find_rotation(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
+    """Find the rotation matrix.
+
+    Parameters
+    ----------
+    p_mov : npt.NDArray
+        [MISSING]
+    p_dst : npt.NDArray
+        [MISSING]
+
+    Returns
+    -------
+    R
+        Rotation matrix
+
+    Raises
+    ------
+    ValueError
+        Shape of points should be identical
+
+    """
     if p_mov.shape != p_dst.shape:
         raise ValueError(
             "Shape of points should be identical, but mov = {}, dst = {} expecting Nx3".format(
@@ -80,7 +129,23 @@ def find_rotation(p_mov, p_dst):
     return R
 
 
-def find_rigid(p_mov, p_dst):
+
+def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
+    """[MISSING].
+
+    Parameters
+    ----------
+    p_mov : npt.NDArray
+        [MISSING]
+    p_dst : npt.NDArray
+        [MISSING]
+
+    Returns
+    -------
+    T
+        Homogeneous transformation matrix
+
+    """
     if p_mov.shape != p_dst.shape:
         raise ValueError(
             "Shape of points should be identical, but mov = {}, dst = {} expecting Nx3".format(
@@ -109,10 +174,29 @@ def find_rigid(p_mov, p_dst):
     # return T, R, t
     return T
 
+def find_affine(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
+    """Find affine by least squares solution of overdetermined system.
 
-def find_affine(p_mov, p_dst):
-    # find affine by least squares solution of overdetermined system
-    # (assuming we have more than 4 point pairs)
+    Assuming we have more than 4 point pairs
+
+    Parameters
+    ----------
+    p_mov : npt.NDArray
+        [MISSING]
+    p_dst : npt.NDArray
+        [MISSING]
+
+    Returns
+    -------
+    T
+        Affine transformation matrix
+
+    Raises
+    ------
+    ValueError
+        Shape of points should be identical
+
+    """
     from scipy.linalg import pinv
 
     if p_mov.shape != p_dst.shape:

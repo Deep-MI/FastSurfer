@@ -15,7 +15,7 @@
 
 
 # IMPORTS
-if ["$ANTSPATH" = "" ] || [ -f "$ANTSPATH/antsRegistrationSyNQuick.sh" ]
+if [ "$ANTSPATH" = "" ] || [ -f "$ANTSPATH/antsRegistrationSyNQuick.sh" ]
 then
   exit "environment \$ANTSPATH not defined or invalid. \$ANTSPATH must contain antsRegistrationSyNQuick.sh."
 fi
@@ -114,14 +114,16 @@ output_dir=$moving_dataroot/subj2subj_reg
 mkdir -p $output_dir
 
 if [ "$unlabeled_subject" != "UNDEFINED" ]
+then
     IFS=',' read -r -a unlabeled_subject_array <<< "$unlabeled_subject"
 fi
 
 if [ "$labeled_subject" != "UNDEFINED" ]
+then
     IFS=',' read -r -a labeled_subject_array <<< "$labeled_subject"
 fi
 
-if [ ${#labeled_subject_array} != 1 ] && [ ${#unlabeled_subject_array} != 1 ] &&  [ ${#labeled_subject_array} != ${#unlabeled_subject_array}]
+if [ ${#labeled_subject_array} != 1 ] && [ ${#unlabeled_subject_array} != 1 ] && [ ${#labeled_subject_array} != ${#unlabeled_subject_array} ]
 then
     exit "invalid parameters for labeled_subject and unlabeled_subject"
 fi
@@ -179,7 +181,7 @@ do
         else
             echo "$result_path$output_warp already exists, skipping $sub1 -> $sub2."
         fi
-    elif
+    else
         echo "WARNING: $lab_img or $unlab_img does not exist, skipping $sub1 -> $sub2."
     fi
 

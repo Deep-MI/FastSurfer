@@ -17,7 +17,9 @@
 
 # IMPORTS
 import optparse
+from typing import Optional, Tuple
 import numpy as np
+from numpy import typing as npt
 import sys
 import SimpleITK as sitk
 import image_io as iio
@@ -40,7 +42,7 @@ Dependencies:
     Python 3.8
     numpy
     SimpleITK https://simpleitk.org/ (v2.1.1)
-    
+
 
 Description:
 For each common segmentation ID in the two inputs, the centroid coordinate is 
@@ -52,18 +54,24 @@ Date: Aug-24-2022
 """
 
 
-h_srcseg = "path to src source segmentation (e.g. aparc+aseg.mgz)"
-h_trgseg = "path to trg source segmentation "
+h_srcseg = "path to source segmentation (e.g. aparc+aseg.mgz)"
+h_trgseg = "path to target segmentation "
 h_affine = (
     "register affine, instead of rigid (default), cannot be combined with --flipped"
 )
 h_outlta = "path to output transform lta file"
 h_flipped = "register to left-right flipped as target aparc+aseg (cortical needed)"
+h_midslice = "Optional, only for flipped. Slice where the midplane should be. Defaults to middle of image (width-1)/2."
 
 
 def options_parse():
-    """
-    Command line option parser
+    """Command line option parser.
+
+    Returns
+    -------
+    options
+        object holding options
+
     """
     parser = optparse.OptionParser(
         version="$Id:align_seg.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -77,6 +85,7 @@ def options_parse():
     parser.add_option(
         "--flipped", dest="flipped", help=h_flipped, default=False, action="store_true"
     )
+    parser.add_option("--midslice", dest="midslice", help=h_midslice, default=None, type="float")
     parser.add_option("--outlta", dest="outlta", help=h_outlta)
     (options, args) = parser.parse_args()
     if (
@@ -90,8 +99,26 @@ def options_parse():
     return options
 
 
-def get_seg_centroids(seg_mov, seg_dst, label_ids=[]):
-    # extracts the centroids of the segmentation labels for mov and dst in RAS coords
+def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optional[npt.NDArray[int]] = []) -> Tuple[npt.NDArray, npt.NDArray]:
+    """Extract the centroids of the segmentation labels for mov and dst in RAS coords.
+
+    Parameters
+    ----------
+    seg_mov : sitk.Image
+        Source segmentation image
+    seg_dst : sitk.Image
+        Target segmentation image
+    label_ids : Optional[npt.NDArray[int]]
+        List of label ids to extract (Default value = [])
+
+    Returns
+    -------
+    centroids_mov
+        List of centroids of source segmentation
+    centroids_dst
+        List of centroids of target segmentation
+
+    """
     if not label_ids:
         # use all joint labels except -1 and 0:
         nda1 = sitk.GetArrayFromImage(seg_mov)
@@ -126,9 +153,32 @@ def get_seg_centroids(seg_mov, seg_dst, label_ids=[]):
     return centroids_mov, centroids_dst
 
 
-def align_seg_centroids(seg_mov, seg_dst, label_ids=[], affine=False):
-    # Aligns the segmentations based on label centroids (rigid is default)#
-    # returns RAS2RAS transform
+def align_seg_centroids(
+        seg_mov: sitk.Image,
+        seg_dst: sitk.Image,
+        label_ids: Optional[npt.NDArray[int]] = [],
+        affine: bool = False
+) -> npt.NDArray:
+    """Align the segmentations based on label centroids (rigid is default).
+
+    Parameters
+    ----------
+    seg_mov : sitk.Image
+        Path to src segmentation (e.g. aparc+aseg.mgz).
+    seg_dst : sitk.Image
+        Path to trg segmentation.
+    label_ids : Optional[npt.NDArray[int]]
+        List of label ids to align. Defaults to [].
+    affine : bool
+        True if affine should be returned.
+        False if rigid should be returned. Defaults to False.
+
+    Returns
+    -------
+    T
+        Aligned centroids RAS2RAS transform.
+
+    """
     # get centroids of each label in image
     centroids_mov, centroids_dst = get_seg_centroids(seg_mov, seg_dst, label_ids)
     # register
@@ -140,11 +190,53 @@ def align_seg_centroids(seg_mov, seg_dst, label_ids=[], affine=False):
     return T
 
 
-def align_flipped(seg):
-    # left - right registration (make upright)
-    # segmentation should be aparc+aseg (DKT or not)
-    # we are registering cortial labels
+def get_vox2ras(img:sitk.Image) -> npt.NDArray:
+    """Extract voxel to RAS (affine) from sitk image.
+    
+    Parameters
+    ----------
+    seg : sitk.Image
+        sitk Image.
 
+    Returns
+    -------
+    vox2ras
+        VOX2RAS (affine) transformation matrix.
+    """
+    vox2ras = np.zeros((4,4))
+    vox2ras[3,3] = 1.0
+    # Rotation
+    cosines = img.GetDirection()
+    vox2ras[0,0:3] = cosines[0:3] * np.array([-1, -1, -1])
+    vox2ras[1,0:3] = cosines[3:6] * np.array([-1, -1, -1])
+    vox2ras[2,0:3] = cosines[6:9] 
+    # Scaling (multiply rows, hope this is correct)
+    # not tested for anisotropic images
+    spacing = img.GetSpacing()
+    vox2ras[0:3,0:3] = spacing * vox2ras[0:3,0:3]
+    # Translation
+    vox2ras[0:3,3] = img.GetOrigin() * np.array([-1, -1, 1])
+    return vox2ras
+
+def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDArray:
+    """Registrate Left - right (make upright).
+
+    Register cortial lables
+
+    Parameters
+    ----------
+    seg : sitk.Image
+        Segmentation Image. Should be aparc+aseg (DKT or not).
+    mid_slice : Optional[float]
+        Where the mid slice will be in upright space. Defaults to (width-1)/2.
+
+
+    Returns
+    -------
+    Tsqrt
+        RAS2RAS transformation matrix for registration.
+
+    """
     lhids = np.array(
         [
             1002,
@@ -219,15 +311,34 @@ def align_flipped(seg):
     label_stats = sitk.LabelShapeStatisticsImageFilter()
     label_stats.Execute(seg)
     centroids = np.empty([2 * lhids.size, 3])
+    centroidsras = np.empty([2 * lhids.size, 3])
     counter = 0
     for label in np.concatenate((lhids, rhids)):
         label = int(label)
-        centroids[counter] = label_stats.GetCentroid(label)
+        centroidsras[counter] = label_stats.GetCentroid(label)
+        # convert to vox coord:
+        centroids[counter] = seg.TransformPhysicalPointToContinuousIndex(centroidsras[counter])
         counter = counter + 1
 
-    centroids = centroids * np.array([-1, -1, 1])
-    # negate right-left
-    centroids_flipped = centroids * np.array([[-1, 1, 1]])
+    # compute vox2ras matrix from image information
+    vox2ras = get_vox2ras(seg)
+    print("vox2ras:\n {}".format(vox2ras))
+    ras2vox = np.linalg.inv(vox2ras)
+    print("ras2vox:\n {}".format(ras2vox))
+
+    # find mid slice of image (usually 127.5 for 256 width)
+    # instead we could also fix this to be 128 independent of width
+    # like mri_cc does. 
+    if not mid_slice:
+        middle = 0.5*(seg.GetWidth()-1.0)
+    else:
+        middle = mid_slice
+    print("Mid slice will be at: {}".format(middle))
+
+    # negate right-left by flipping across middle of image (as make_upright would do it)
+    centroids_flipped = centroids.copy()
+    centroids_flipped[:,0] = -1 * (centroids[:,0] - middle) + middle
+
     # now right is left and left is right (re-order)
     centroids_flipped = np.concatenate(
         (centroids_flipped[l::, :], centroids_flipped[0:l, :])
@@ -238,12 +349,16 @@ def align_flipped(seg):
     from scipy.linalg import sqrtm
 
     Tsqrt = np.real(sqrtm(T))
-    print(np.linalg.norm(T - (Tsqrt @ Tsqrt)))
+    print("Matrix sqrt diff: {}".format(np.linalg.norm(T - (Tsqrt @ Tsqrt))))
+
+    # convert vox2vox to ras2ras:
+    Tsqrt = vox2ras @ Tsqrt @ ras2vox 
+    #print(Tsqrt)
+
     return Tsqrt
 
 
 if __name__ == "__main__":
-
     # Command Line options are error checking done here
     options = options_parse()
 
@@ -274,7 +389,7 @@ if __name__ == "__main__":
         T = align_seg_centroids(srcseg, trgseg, affine=options.affine)
     else:
         # flipped:
-        T = align_flipped(srcseg)
+        T = align_flipped(srcseg, options.midslice)
         trgheader = srcheader
 
     # write transform lta

@@ -15,21 +15,21 @@
 # limitations under the License.
 
 VERSION='$Id$'
-FS_VERSION_SUPPORT="7.3.2"
+FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
 t1=""                 # Path and name of T1 input
 asegdkt_segfile=""    # Path and name of segmentation
 subject=""            # Subject name
-vol_segstats=0        # if 1, return volume-based aparc.DKTatlas+aseg stats based on dl-prediction
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
 fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from asegdkt_segfile
 fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
-python="python3.8"    # python version
+python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
+atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
 
 # Dev flags default
 check_version=1       # Check for supported FreeSurfer version (terminate if not detected)
@@ -96,6 +96,8 @@ FLAGS:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine)
+  --3T                    Use the 3T atlas for talairach registration (gives better
+                            etiv estimates for 3T MR images, default: 1.5T atlas).
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
   --py <python_cmd>       Command for python, default $python
@@ -190,7 +192,7 @@ function RunBatchJobs()
   # wait till all processes have finished
   PIDS_STATUS=()
   for pid in "${PIDS[@]}"; do
-    echo "Waiting for PID $pid of (${PIDS[@]}) to complete..."
+    echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
     wait $pid
     PIDS_STATUS=(${PIDS_STATUS[@]} $?)
   done
@@ -200,7 +202,7 @@ function RunBatchJobs()
     cat $log >> $LOG_FILE
     rm -f $log
   done
-  echo "PIDs (${PIDS[@]}) completed and logs appended."
+  echo "PIDs (${PIDS[*]}) completed and logs appended."
   # and check for failures
   for pid_status in "${PIDS_STATUS[@]}"
   do
@@ -271,6 +273,10 @@ case $key in
     --no_surfreg)
     fssurfreg=0
     shift # past argument
+    ;;
+    --3t)
+    atlas3T="true"
+    shift
     ;;
     --parallel)
     DoParallel=1
@@ -588,14 +594,22 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # talairach.xfm is also not needed here at all, it can be dropped if other places in the
   # stream can be changed to avoid it.
   #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-  cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz  --threads $threads"
+  cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
   RunIt "$cmd" $LF
 fi
 ### END SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 
 # talairach.xfm: compute talairach full head (25sec)
-cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm"
+if [[ "$atlas3T" == "true" ]]
+then
+  echo "Using the 3T atlas for talairach registration."
+  atlas="--atlas 3T18yoSchwartzReactN32_as_orig"
+else
+  echo "Using the default atlas (1.5T) for talairach registration."
+  atlas=""
+fi
+cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm $atlas"
 RunIt "$cmd" $LF
 # create copy
 cmd="cp $mdir/transforms/talairach.auto.xfm $mdir/transforms/talairach.xfm"
@@ -618,8 +632,12 @@ cmd="ln -sf talairach.xfm.lta talairach.lta"
 RunIt "$cmd" $LF
 popd
 
-# Add xfm to nu (we use orig_nu as input to write nu.mgz)
-cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $mdir/orig_nu.mgz $mdir/nu.mgz"
+# Add xfm to nu
+# (use orig_nu, if nu.mgz does not exist already); by default, it should exist
+if [[ -e "$mdir/nu.mgz" ]]; then src_nu_file="$mdir/nu.mgz"
+else src_nu_file="$mdir/orig_nu.mgz"
+fi
+cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
 RunIt "$cmd" $LF
 
 popd
@@ -712,7 +730,7 @@ else
     RunIt "$cmd" $LF $CMDF
 
     # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
-    cmd="mris_info $outmesh | grep -q 'vertex locs : surfaceRAS'"
+    cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
     echo "echo \"$cmd\" " |& tee -a $CMDF
     echo "$timecmd $cmd " |& tee -a $CMDF
     echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> $CMDF
@@ -760,7 +778,8 @@ else
     # instead of mris_sphere, directly project to sphere with spectral approach
     # equivalent to -qsphere
     # (23sec)
-    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir --subject $subject --threads=$threads --py $python --binpath ${binpath}"
+    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir --subject $subject"
+    cmd="$cmd --threads=$threads --py $python --binpath ${binpath}"
 
     RunIt "$cmd" $LF $CMDF
 

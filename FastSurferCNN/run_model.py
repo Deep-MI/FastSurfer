@@ -24,7 +24,16 @@ from FastSurferCNN.train import Trainer
 
 
 def setup_options():
-    # Training settings
+    """Set up the options parsed from STDIN.
+    
+    Parses arguments from the STDIN, including the flags: --cfg, --aug, --opt, opts,
+
+    Returns
+    -------
+    options
+        object holding options
+    
+    """
     parser = argparse.ArgumentParser(description="Segmentation")
 
     parser.add_argument(
@@ -51,6 +60,7 @@ def setup_options():
 
 
 def main():
+    """[MISSING] First set variables and then runs the trainer model."""
     args = setup_options()
     cfg = get_config(args)
 

@@ -12,7 +12,7 @@
 
 
 # Link where to find the FreeSurfer tarball: 
-fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.3.2/freesurfer-linux-ubuntu20_amd64-7.3.2.tar.gz"
+fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz"
 
 
 if [ "$#" -lt 1 ]; then
@@ -80,7 +80,6 @@ wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/python/bin' \
       --exclude='freesurfer/python/include' \
       --exclude='freesurfer/python/lib' \
-      --exclude='freesurfer/python/packages' \
       --exclude='freesurfer/python/share' \
       --exclude='freesurfer/subjects/bert' \
       --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
@@ -106,6 +105,7 @@ mkdir -p $fsd/bin
 mkdir -p $fsd/etc
 mkdir -p $fsd/lib/bem
 mkdir -p $fsd/python/scripts
+mkdir -p $fsd/python/packages/fsbindings
 mkdir -p $fsd/subjects/fsaverage/label
 mkdir -p $fsd/subjects/fsaverage/surf
 
@@ -122,6 +122,12 @@ copy_files="
   sources.csh  
   SubCorticalMassLUT.txt
   WMParcStatsLUT.txt
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.hdr
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.ifh
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.img
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.img.rec
+  average/3T18yoSchwartzReactN32_as_orig.4dfp.mat
+  average/3T18yoSchwartzReactN32_as_orig.lst
   average/711-2B_as_mni_average_305_mask.4dfp.hdr
   average/711-2B_as_mni_average_305_mask.4dfp.ifh
   average/711-2B_as_mni_average_305_mask.4dfp.img
@@ -146,15 +152,22 @@ copy_files="
   average/rh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
   bin/analyzeto4dfp
   bin/AntsDenoiseImageFs
+  bin/asegstats2table
+  bin/aparcstats2table
   bin/avi2talxfm
   bin/compute_vox2vox
   bin/defect2seg
+  bin/fname2stem
+  bin/fspython
   bin/fs_temp_dir
   bin/fs_temp_file
   bin/fs-check-version
   bin/fsr-getxopts
   bin/gauss_4dfp
+  bin/ifh2hdr
   bin/imgreg_4dfp
+  bin/isanalyze
+  bin/isnifti
   bin/lta_convert
   bin/mpr2mni305
   bin/mri_add_xform_to_header
@@ -169,6 +182,7 @@ copy_files="
   bin/mri_edit_wm_with_aseg
   bin/mri_fill
   bin/mri_fuse_segmentations
+  bin/mri_glmfit
   bin/mri_info
   bin/mri_label2label
   bin/mri_label2vol
@@ -182,6 +196,7 @@ copy_files="
   bin/mri_robust_template
   bin/mri_segment
   bin/mri_segstats
+  bin/mri_surf2surf
   bin/mri_surf2volseg
   bin/mri_tessellate
   bin/mri_vol2surf
@@ -203,6 +218,7 @@ copy_files="
   bin/mris_jacobian
   bin/mris_label2annot
   bin/mris_place_surface
+  bin/mris_preproc
   bin/mris_register
   bin/mris_remesh
   bin/mris_remove_intersection
@@ -222,6 +238,9 @@ copy_files="
   etc/recon-config.yaml
   lib/bem/ic4.tri
   lib/bem/ic7.tri
+  python/packages/fsbindings/legacy.py
+  python/scripts/asegstats2table
+  python/scripts/aparcstats2table
   python/scripts/rca-config
   python/scripts/rca-config2csh
   subjects/fsaverage/label/lh.aparc.annot
@@ -243,6 +262,7 @@ copy_files="
   subjects/fsaverage/label/lh.BA4p_exvivo.thresh.label
   subjects/fsaverage/label/lh.BA6_exvivo.label
   subjects/fsaverage/label/lh.BA6_exvivo.thresh.label
+  subjects/fsaverage/label/lh.cortex.label
   subjects/fsaverage/label/lh.entorhinal_exvivo.label
   subjects/fsaverage/label/lh.entorhinal_exvivo.thresh.label
   subjects/fsaverage/label/lh.FG1.mpm.vpnl.label
@@ -280,6 +300,7 @@ copy_files="
   subjects/fsaverage/label/rh.BA4p_exvivo.thresh.label
   subjects/fsaverage/label/rh.BA6_exvivo.label
   subjects/fsaverage/label/rh.BA6_exvivo.thresh.label
+  subjects/fsaverage/label/rh.cortex.label
   subjects/fsaverage/label/rh.entorhinal_exvivo.label
   subjects/fsaverage/label/rh.entorhinal_exvivo.thresh.label
   subjects/fsaverage/label/rh.FG1.mpm.vpnl.label
@@ -298,9 +319,15 @@ copy_files="
   subjects/fsaverage/label/rh.V1_exvivo.thresh.label
   subjects/fsaverage/label/rh.V2_exvivo.label
   subjects/fsaverage/label/rh.V2_exvivo.thresh.label
+  subjects/fsaverage/surf/lh.curv
+  subjects/fsaverage/surf/lh.pial
+  subjects/fsaverage/surf/lh.pial_semi_inflated
   subjects/fsaverage/surf/lh.sphere
   subjects/fsaverage/surf/lh.sphere.reg
   subjects/fsaverage/surf/lh.white
+  subjects/fsaverage/surf/rh.curv
+  subjects/fsaverage/surf/rh.pial
+  subjects/fsaverage/surf/rh.pial_semi_inflated
   subjects/fsaverage/surf/rh.sphere
   subjects/fsaverage/surf/rh.sphere.reg
   subjects/fsaverage/surf/rh.white"
@@ -308,9 +335,11 @@ echo
 for file in $copy_files
 do
   echo "copying $file"
-  cp $fss/$file $fsd/$file
+  cp -r $fss/$file $fsd/$file
 done
 
+# Modify fsbindings Python package to allow calling scripts like asegstats2table directly:
+echo "from . import legacy" > "$fsd/python/packages/fsbindings/__init__.py"
 
 # FS looks for them, but does not call them
 touch_files="/average/RB_all_2020-01-02.gca"
@@ -341,7 +370,6 @@ link_files="
   bin/mri_relabel_nonwm_hypos
   bin/mri_remove_neck
   bin/mri_stats2seg
-  bin/mri_surf2surf
   bin/mri_surf2vol
   bin/mri_surfcluster
   bin/mri_vol2vol
