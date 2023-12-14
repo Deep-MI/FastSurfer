@@ -25,7 +25,8 @@ surf_only="false"
 seg_only="false"
 debug="false"
 run_fastsurfer="default"
-parallel_subjects="false"
+parallel_subjects="1"
+parallel_surf="false"
 statusfile=""
 
 function usage()
@@ -41,8 +42,8 @@ OR
 brun_fastsurfer.sh [other options]
 
 Other options:
-brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel_subjects] [--run_fastsurfer <script to run fastsurfer>]
-    [--statusfile <filename>] [--debug] [--help]
+brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel_subjects [surf=][<N>]]
+    [--run_fastsurfer <script to run fastsurfer>] [--statusfile <filename>] [--debug] [--help]
     [<additional run_fastsurfer.sh options>]
 
 Author:   David Kügler, david.kuegler@dzne.de
@@ -65,10 +66,14 @@ iii. a list of subjects directly passed
   Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
   according to \$SLURM_ARRAY_TASK_ID and \$SLURM_ARRAY_TASK_COUNT (unless values are specifically
   assigned with the --batch argument).
---parallel_subjects: parallel execution of all subjects, specifically interesting for the surface
-  pipeline (--surf_only). (default: serial execution).
+--parallel_subjects [surf=][<n>]: parallel execution of <n> or all (if <n> is not provided) subjects,
+  specifically interesting for the surface pipeline (--surf_only) (default: serial execution, or
+  '--parallel_subjects 1'). (Note, that currently only n=1 and n=-1 (no limit) are implemented.)
   Note, it is not recommended to parallelize the segmentation using --parallel_subjects on gpus,
-  as that will cause out-of-memory errors.
+  as that will cause out-of-memory errors, use --parallel_subjects surf=<n> to process segmentation
+  in series and surfaces of <n> subjects in parallel.
+  Note, that --parallel_subjects surf=<n> is not compatible with either --seg_only or --surf_only.
+  The script will print the output of individual subjects interleaved, but prepend the subject_id.
 --run_fastsurfer <path/command>: This option enables the startup of fastsurfer in a more controlled
   manner, for example to delegate the fastsurfer run to container:
   --run_fastsurfer "singularity exec --nv --no-home -B <dir>:/data /fastsurfer/run_fastsurfer.sh"
@@ -78,10 +83,10 @@ iii. a list of subjects directly passed
 --debug: Additional debug output.
 --help: print this help.
 
-Almost all run_fastsurfer.sh options are supported, see run_fastsurfer.sh --help
+With the exception of --t1 and --sid, all run_fastsurfer.sh options are supported, see
+'run_fastsurfer.sh --help'.
 
-This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts (expected in same
-folder as this script) in addition to the fastsurfer singularity image.
+This tool requires functions in stools.sh (expected in same folder as this script).
 EOF
 }
 
@@ -116,7 +121,7 @@ case $key in
         echo "ERROR: Could not find the subject list $2!"
         exit 1
       fi
-      subjects="$subjects $(cat $2)"
+      subjects="$subjects$newline$(cat $2)"
       subjects_stdin="false"
     shift # past argument
     shift # past value
@@ -138,8 +143,46 @@ case $key in
       shift
     ;;
     --parallel_subjects)
-      parallel_subjects="true"
       shift
+      if [[ "$(expr match \"$1\" '--.')" == 0 ]]
+      then
+        lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+        # has parameter
+        if [[ "$lower_value" =~ ^surf=?$ ]]
+        then
+          parallel_subjects="max"
+          parallel_surf="true"
+        elif [[ "$lower_value" =~ ^[0-9]+$ ]]
+        then
+          if [[ "$lower_value" -lt 0 ]]
+          then
+            parallel_subjects="max"
+          elif [[ "$lower_value" -lt 2 ]]
+          then
+            parallel_subjects="1"
+          else
+            parallel_subjects="$lower_value"
+          fi
+        elif [[ "$lower_value" =~ ^surf=[0-9]+$ ]]
+        then
+          parallel_surf="true"
+          if [[ "${lower_value:5}" -lt 0 ]]
+          then
+            parallel_subjects="max"
+          elif [[ "${lower_value:5}" -lt 2 ]]
+          then
+            parallel_subjects="1"
+          else
+            parallel_subjects="${lower_value:5}"
+          fi
+        else
+          echo "Invalid option for --parallel_subjects: $1"
+          exit 1
+        fi
+        shift
+      else
+        parallel_subjects="max"
+      fi
     ;;
     --statusfile)
       statusfile="$statusfile"
@@ -185,6 +228,8 @@ echo "$THIS_SCRIPT ${inputargs[*]}"
 date -R
 echo ""
 
+set -eo pipefail
+
 if [[ -n "$SLURM_ARRAY_TASK_ID" ]]
 then
   if [[ -z "$task_count" ]]
@@ -207,6 +252,14 @@ then
   echo $subjects
   echo "---"
   echo "task_id/task_count: $task_id/$task_count"
+  if [[ "$parallel_subjects" != "1" ]]
+  then
+    printf "--parallel_subjects"
+    if [[ "$parallel_surf" == "true" ]]
+    then
+      printf "surf=%s\n" "$parallel_subjects"
+    fi
+  fi
   if [[ "$run_fastsurfer" != "/fastsurfer/run_fastsurfer.sh" ]]
   then
     echo "running $run_fastsurfer"
@@ -226,7 +279,7 @@ then
     fi
   done
   echo ""
-  echo "Running in$(ls -l /proc/$$/exe | cut -d">" -f2)"
+  echo "Running in $(ls -l /proc/$$/exe | cut -d">" -f2)"
   echo ""
   echo "---END DEBUG  ---"
 fi
@@ -278,6 +331,12 @@ else
   echo "Processing subjects $subject_start to $subject_end"
 fi
 
+if [[ "$parallel_subjects" != "1" ]] && [[ "$((subject_end - subject_start))" == 0 ]]
+then
+  if [[ "$debug" == "true" ]] ; then echo "DEBUG: --parallel_subjects deactivated, since only one subject" ; fi
+  parallel_subjects="1"
+fi
+
 seg_surf_only=""
 if [[ "$surf_only" == "true" ]]
 then
@@ -287,11 +346,21 @@ then
   seg_surf_only=--seg_only
 fi
 
+if [[ "$parallel_surf" == "true" ]]
+then
+ if [[ -n "$seg_surf_only" ]]
+  then
+    echo "ERROR: Cannot combine --parallel_subjects surf=<n> and --seg_only or --surf_only."
+  fi
+  seg_surf_only="--surf_only"
+fi
+
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"brun_fastsurfer.sh terminated via signal at \$(date -R)!\" }" SIGINT SIGTERM
 
 pids=()
 subjectids=()
+IFS=$'\n'
 for subject in $subjects
 do
   if [[ "$debug" == "true" ]]
@@ -317,7 +386,20 @@ do
 
     image_path=$(echo "$subject" | cut -d= -f2)
     args=(--sid "$subject_id")
-    if [[ "$surf_only" == "false" ]]
+    if [[ "$parallel_surf" == "true" ]]
+    then
+      if [[ "$debug" == "true" ]]
+      then
+        echo "DEBUG: $run_fastsurfer --seg_only --t1 "$image_path"" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+      fi
+      $run_fastsurfer "--seg_only"  --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+      if [[ -n "$statusfile" ]]
+      then
+        print_status "$subject_id" "--seg_only" "$?" | tee -a "$statusfile"
+      fi
+    fi
+
+    if [[ "$surf_only" == "false" ]] && [[ "$parallel_surf" == "false" ]]
     then
       args=("${args[@]}" --t1 "$image_path")
     fi
@@ -325,12 +407,12 @@ do
     then
       echo "DEBUG: $run_fastsurfer $seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" "[&]"
     fi
-    if [[ "$parallel_subjects" == "true" ]]
+    if [[ "$parallel_subjects" != "1" ]]
     then
-      $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" &
+      $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" | prepend "$subject_id: " &
       pids=("${pids[@]}" "$!")
       subjectids=("${subjectids[@]}" "$subject_id")
-    else
+    else # serial execution
       $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
       if [[ -n "$statusfile" ]]
       then
@@ -341,7 +423,7 @@ do
   i=$(($i + 1))
 done
 
-if [[ "$parallel_subjects" == "true" ]]
+if [[ "$parallel_subjects" != "1" ]]
 then
   i=0
   for pid in "${pids[@]}"

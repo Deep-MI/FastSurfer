@@ -40,7 +40,7 @@ email=""
 pattern="*.{nii.gz,nii,mgz}"
 subject_list=""
 subject_list_awk_code="\$1:\$2"
-subject_list_delim=","
+subject_list_delim="="
 jobarray=""
 timelimit_seg=5
 timelimit_surf=180
@@ -69,6 +69,12 @@ Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:
+General options:
+--dry: performs all operations, but does not actually submit jobs to slurm
+--debug: Additional debug output.
+--help: print this help.
+
+Data- and subject-related options:
 --sd: output directory will have N+1 subdirectories (default: \$(pwd)/processed):
   - one directory per case plus
   - slurm with two subdirectories:
@@ -76,28 +82,38 @@ Documentation of Options:
     - scripts for intermediate slurm scripts for debugging.
   Note: files will be copied here only after all jobs have finished, so most IO happens on
   a work directory, which can use IO-optimized cluster storage (see --work).
---dry: performs all operations, but does not actually submit jobs to slurm
---data: (root) directory to search in for t1 files (default: current work directory).
 --work: directory with fast filesystem on cluster
   (default: \$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S))
---fs_license: path to the freesurfer license
+--data: (root) directory to search in for t1 files (default: current work directory).
 --pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
    for example --data /data/ --pattern \*/\*/mri/t1.nii.gz
    will find all images of format /data/<somefolder>/<otherfolder>/mri/t1.nii.gz
---subject_list: alternative way to define cases to process, a csv file: comma-delimited.
-  column 1: subject id, column 2: path to input image.
+--subject_list: alternative way to define cases to process, files are of format:
+  subject_id1=/path/to/t1.mgz
+  ...
   This option invalidates the --pattern option.
---subject_list_delim: alternative delimiter in the file (default: ",").
+--subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
+  pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
 --subject_list_awk_code <subject_id code>:<subject_path code>: alternative way to construct
   subject_id and subject_path from the row in the subject_list (default: '\$1:\$2'), other
-  examples: '\$1:\$2/\$1/mri/orig.mgz',
+  examples: '\$1:\$2/\$1/mri/orig.mgz', where the first field is the subject_id and the second
+  field is the containing folder, e.g. the study.
 
+FastSurfer options:
+--fs_license: path to the freesurfer license (either absolute path or relative to pwd)
+--seg_only: only run the segmentation pipeline
+--surf_only: only run the surface pipeline (--sd must contain previous --seg_only processing)
+... also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
+
+Singularity-related options:
 --singularity_image: Path to the singularity image to use for segmentation and surface
   reconstruction (default: \$HOME/singularity-images/fastsurfer.sif).
 --extra_singularity_options: Extra options for singularity, needs to be double quoted to allow quoted strings,
   e.g. --extra_singularity_options "-B /\$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
   Supports two formats similar to --partition: --extra_singularity_options <option string> and
   --extra_singularity_options seg=<option string> and --extra_singularity_options surf=<option string>.
+
+SLURM-related options:
 --cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
 --num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
   (default: 16).
@@ -120,8 +136,6 @@ Documentation of Options:
    --time seg=<timelimit>: time limit for the segmentation pipeline (per subject), default: seg=5 (5min).
    --time surf=<timelimit>: time limit for the surface reconstruction (per subject), default: surf=180 (180min)
 --email: email address to send slurm status updates.
---debug: Additional debug output.
---help: print this help.
 
 Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the
 respective pipeline.

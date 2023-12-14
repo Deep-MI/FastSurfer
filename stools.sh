@@ -355,3 +355,12 @@ function print_status ()
   fi
   echo "$subject_id: $text"
 }
+function prepend ()
+{
+  #param1 string to prepend to every line
+  # https://serverfault.com/questions/72744/command-to-prepend-string-to-each-line
+  while read -r line;
+  do
+    echo "${1}${line}"
+  done
+}

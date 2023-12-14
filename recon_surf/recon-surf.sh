@@ -594,7 +594,7 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # talairach.xfm is also not needed here at all, it can be dropped if other places in the
   # stream can be changed to avoid it.
   #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-  cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --out $mdir/orig_nu.mgz --mask $mdir/mask.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
+  cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
   RunIt "$cmd" $LF
 fi
 ### END SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future

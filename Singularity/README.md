@@ -40,7 +40,7 @@ singularity exec --nv \
                  --fs_license /fs/license.txt \
                  --t1 /data/subjectX/orig.mgz \
                  --sid subjectX --sd /output \
-                 --parallel
+                 --parallel --3T
 ```
 ### Singularity Flags
 * `--nv`: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer
@@ -53,6 +53,7 @@ singularity exec --nv \
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
+* The `--3T` switches to the 3T atlas instead of the 1.5T atlas for Talairach registration. 
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-B` arguments. 
 
@@ -73,7 +74,7 @@ singularity exec --no-home \
                   --fs_license /fs/license.txt \
                   --t1 /data/subjectX/orig.mgz \
                   --sid subjectX --sd /output \
-                  --parallel
+                  --parallel --3T
 ```
 
 # Singularity Best Practice

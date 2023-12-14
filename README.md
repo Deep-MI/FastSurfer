@@ -97,9 +97,10 @@ Next, you will need to select the `*fastsurfer-flags*` and replace `*fastsurfer-
 The `*fastsurfer-flags*` will usually include the subject directory (`--sd`; Note, this will be the mounted path - `/output` - for containers), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
 
 ```bash
-... --sd /output --sid test_subject --t1 /data/test_subject_t1.nii.gz
+... --sd /output --sid test_subject --t1 /data/test_subject_t1.nii.gz --3T
 ```
 Additionally, you can use `--seg_only` or `--surf_only` to only run a part of the pipeline or `--no_biasfield`, `--no_cereb` and `--no_asegdkt` to switch off some segmentation modules (see above).
+Here, we have also added the `--3T` flag, which tells fastsurfer to register against the 3T atlas for ICV estimation (eTIV).
 
 In the following, we give an overview of the most important options, but you can view a full list of options with 
 
@@ -128,6 +129,7 @@ In the following, we give an overview of the most important options, but you can
 
 #### Surface pipeline arguments (optional)
 * `--surf_only`: only run the surface pipeline recon_surf. The segmentation created by FastSurferCNN must already exist in this case.
+* `--3T`: for Talairach registration, use the 3T atlas instead of the 1.5T atlas (which is used if the flag is not provided). This gives better (more consistent with FreeSurfer) ICV estimates (eTIV) for 3T and better Talairach registration matrices, but has little impact on standard volume or surface stats.
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
@@ -136,7 +138,7 @@ In the following, we give an overview of the most important options, but you can
 * `--no_surfreg`: Skip the surface registration (`sphere.reg`), which is generated automatically by default. To safe time, use this flag to turn this off.
 
 #### Other
-* `--threads`: Target number of threads for all modules (segmentation, surface pipeline), select `1` to force FastSurfer to only really use one core.
+* `--threads`: Target number of threads for all modules (segmentation, surface pipeline), `1` (default) forces FastSurfer to only really use one core. Note, that the default value may change in the future for better performance on multi-core architectures.
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed. 
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isometric.
@@ -164,7 +166,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
-                      --parallel
+                      --parallel --3T
 ```
 
 Docker Flags:
@@ -179,6 +181,7 @@ FastSurfer Flags:
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
+* The `--3T` changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments (part after colon). 
 
@@ -207,7 +210,7 @@ singularity exec --nv \
                  --fs_license /fs_license/license.txt \
                  --t1 /data/subjectX/t1-weighted.nii.gz \
                  --sid subjectX --sd /output \
-                 --parallel
+                 --parallel --3T
 ```
 
 #### Singularity Flags
@@ -221,6 +224,7 @@ singularity exec --nv \
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
+* The `--3T` changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments (part after colon).
 
@@ -252,23 +256,53 @@ fastsurferdir=/home/user/my_fastsurfer_analysis
 # Run FastSurfer
 ./run_fastsurfer.sh --t1 $datadir/subjectX/t1-weighted-nii.gz \
                     --sid subjectX --sd $fastsurferdir \
-                    --parallel --threads 4
+                    --parallel --threads 4 --3T
 ```
 
 The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subjectX/mri (default location)). Processing of the hemispheres will be run in parallel (--parallel flag) to significantly speed-up surface creation. Omit this flag to run the processing sequentially, e.g. if you want to save resources on a compute cluster.
 
 
-### Example 4: Native FastSurfer on multiple subjects
+### Example 4: FastSurfer on multiple subjects
 
-In order to run FastSurfer on multiple cases which are stored in the same directory, prepare a subjects_list.txt file listing the names line by line:
-subject1\n
-subject2\n
-subject3\n
+In order to run FastSurfer on multiple cases, you may use the helper script `brun_subjects.sh`. This script accepts multiple ways to define the subjects, for example a subjects_list file.
+Prepare the subjects_list file as follows:
+```
+subject_id1=path_to_t1\n
+subject2=path_to_t1\n
+subject3=path_to_t1\n
 ...
-subject10\n
+subject10=path_to_t1\n
+```
+Note, that all paths (`path_to_t1`) are as if you passed them to the `run_fastsurfer.sh` script via `--t1 <path>` so they may be with respect to the singularity or docker file system. Absolute paths are recommended. 
 
-And invoke the following command (make sure you have enough resources to run the given number of subjects in parallel!):
+The `brun_fastsurfer.sh` script can then be invoked in docker, singularity or on the native platform as follows:
 
+#### Docker
+```bash
+docker run --gpus all -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurfer_analysis:/output \
+                      -v /home/user/my_fs_license_dir:/fs_license \
+                      --entrypoint "/fastsurfer/brun_fastsurfer.sh" \
+                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
+                      --fs_license /fs_license/license.txt \
+                      --sd /output --subjects_list /data/subjects_list.txt \
+                      --parallel --3T
+```
+#### Singularity
+```bash
+singularity exec --nv \
+                 --no-home \
+                 -B /home/user/my_mri_data:/data \
+                 -B /home/user/my_fastsurfer_analysis:/output \
+                 -B /home/user/my_fs_license_dir:/fs_license \
+                 ./fastsurfer-gpu.sif \
+                 /fastsurfer/run_fastsurfer.sh \
+                 --fs_license /fs_license/license.txt \
+                 --sd /output \
+                 --subjects_list /data/subjects_list.txt \
+                 --parallel --3T
+```
+#### Native
 ```bash
 export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
@@ -276,15 +310,18 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 cd /home/user/FastSurfer
 datadir=/home/user/my_mri_data
 fastsurferdir=/home/user/my_fastsurfer_analysis
-mkdir -p $fastsurferdir/logs # create log dir for storing nohup output log (optional)
 
-while read p ; do
-  echo $p
-  nohup ./run_fastsurfer.sh --t1 $datadir/$p/t1-weighted.nii.gz
-                            --sid $p --sd $fastsurferdir > $fastsurferdir/logs/out-${p}.log &
-  sleep 90s 
-done < ./data/subjects_list.txt
+# Run FastSurfer
+./brun_fastsurfer.sh --subjects_list $datadir/subjects_list.txt \
+                     --sd $fastsurferdir \
+                     --parallel --threads 4 --3T
 ```
+
+#### Flags
+The `brun_fastsurfer.sh` script accepts almost all `run_fastsurfer.sh` flags (exceptions are `--t1` and `--sid`). In addition, 
+* the `--parallel_subjects` runs all subjects in parallel (experimental, parameter may change in future releases). This is particularly useful for surfaces computation `--surf_only`.
+* to run segmentation in series, but surfaces in parallel, you may use `--parallel_subjects surf`.
+* these options are in contrast (and in addition) to `--parallel`, which just parallelizes the hemispheres of one case.
 
 ### Example 5: Quick Segmentation
 
@@ -313,7 +350,7 @@ docker run --gpus all -v $datadir:/data \
                       --t1 /data/subject1/t1-weighted.nii.gz \
                       --asegdkt_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
                       --conformed_name $outputdir/subject1/conformed.mgz \
-                      --threads 4 --seg_only
+                      --threads 4 --seg_only --3T
 ```
 
 ### Example 6: Running FastSurfer on a SLURM cluster via Singularity
