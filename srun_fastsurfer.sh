@@ -33,6 +33,9 @@ submit_jobs="true"
 partition=""
 partition_surf=""
 partition_seg=""
+extra_singularity_options=""
+extra_singularity_options_surf=""
+extra_singularity_options_seg=""
 email=""
 pattern="*.{nii.gz,nii,mgz}"
 subject_list=""
@@ -53,7 +56,8 @@ srun_fastsurfer.sh [--data <directory to search images>]
     (--pattern <search pattern for images>|--subject_list <path to subject_list file>
                                            [--subject_list_delim <delimiter>]
                                            [--subject_list_awk_code <subject_id code>:<subject_path code>])
-    [--singularity_image <path to fastsurfer singularity image>] [--num_cases_per_task <number>]
+    [--singularity_image <path to fastsurfer singularity image>]
+    [--extra_singularity_options [(seg|surf)=]<singularity option string>] [--num_cases_per_task <number>]
     [--num_cpus_per_task <number of cpus to allocate for seg>] [--cpu_only] [--time (surf|seg)=<timelimit>]
     [--partition [(surf|seg)=]<slurm partition>] [--slurm_jobarray <jobarray specification>] [--skip_cleanup]
     [--email <email address>] [--debug] [--dry] [--help]
@@ -90,7 +94,10 @@ Documentation of Options:
 
 --singularity_image: Path to the singularity image to use for segmentation and surface
   reconstruction (default: \$HOME/singularity-images/fastsurfer.sif).
-
+--extra_singularity_options: Extra options for singularity, needs to be double quoted to allow quoted strings,
+  e.g. --extra_singularity_options "-B /\$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
+  Supports two formats similar to --partition: --extra_singularity_options <option string> and
+  --extra_singularity_options seg=<option string> and --extra_singularity_options surf=<option string>.
 --cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
 --num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
   (default: 16).
@@ -264,6 +271,22 @@ case $key in
     shift
     shift
     ;;
+  --extra_singularity_options)
+    singularity_opts_temp="$2"
+    # make key lowercase
+    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    if [[ "$lower_value" =~ seg=* ]]
+    then
+      extra_singularity_options_seg=${singularity_opts_temp:4}
+    elif [[ "$lower_value" =~ surf=* ]]
+    then
+      extra_singularity_options_surf=${singularity_opts_temp:5}
+    else
+      extra_singularity_options=$2
+    fi
+    shift
+    shift
+    ;;
   --time)
     time_temp="$2"
     # make key lowercase
@@ -352,8 +375,8 @@ then
   echo "submit jobs and perform operations: $submit_jobs"
   echo "perform the cleanup step: $do_cleanup"
   echo "seg/surf running on slurm partition:" \
-    "$(first_non_empty_partition2 "$partition_seg" "$partition")" "/" \
-    "$(first_non_empty_partition2 "$partition_surf" "$partition")"
+    "$(first_non_empty_arg "$partition_seg" "$partition")" "/" \
+    "$(first_non_empty_arg "$partition_surf" "$partition")"
   echo "num_cpus_per_task/max. num_cases_per_task: $num_cpus_per_task/$num_cases_per_task"
   echo "segmentation on cpu only: $cpu_only"
   echo "Data options:"
@@ -536,6 +559,9 @@ then
     echo "module load singularity"
     echo "srun --ntasks=1 --nodes=1 --cpus-per-task=$num_cpus_per_task \\"
     echo "  singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
+    if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]]; then
+      echo "  $extra_singularity_options $extra_singularity_options_seg\\"
+    fi
     echo "  $hpc_work/images/fastsurfer.sif \\"
     echo "  /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
   } > $seg_cmd_file
@@ -629,6 +655,9 @@ then
     echo "                --cpus-per-task=$cores_per_task --mem=${mem_surf}G"
     echo "                --hint=nomultithread"
     echo "                singularity exec --no-home -B '$hpc_work:/data'"
+    if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_surf" ]]; then
+      echo "                $extra_singularity_options $extra_singularity_options_surf"
+    fi
     echo "                '$hpc_work/images/fastsurfer.sif'"
     echo "                /fastsurfer/run_fastsurfer.sh)"
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
