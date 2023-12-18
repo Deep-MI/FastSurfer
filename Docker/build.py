@@ -654,7 +654,7 @@ def main(
         kwargs["build_arg"].append(f"{upper_key}={value}")
     #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
 
-    build_filename = fastsurfer_home / "BUILD.info"
+    build_filename = fastsurfer_home / "Docker/BUILD.info"
     if has_git():
         version_sections = "+git"
     else:
