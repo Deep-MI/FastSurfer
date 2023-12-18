@@ -203,8 +203,7 @@ ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
 RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
     python3 -m compileall * && \
     python3 FastSurferCNN/version.py --sections +git+checkpoints+pip \
-      --build_cache BUILD.info -o fullBUILD.info && \
-    mv fullBUILD.info BUILD.info
+      --build_cache Docker/BUILD.info -o BUILD.info
 
 # TODO: SBOM info of FastSurfer and FreeSurfer are missing, it is unclear how to add
 #       those at the moment, as the buildscanner syft does not find simple package.json
