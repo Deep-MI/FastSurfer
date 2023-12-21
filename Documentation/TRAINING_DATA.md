@@ -19,33 +19,34 @@ OASIS1 | Normal | 18 | 90 | 58 | 54 | 26 | 75 | 39 | 79 | NorthAmerica
 OASIS2 | AD/Normal | 60 | 90 | 75 | 75 | 67 | 83 | 32 | 65 | NorthAmerica
 RS | Normal | 30 | 95 | 69 | 59 | 42 | 76 | 15 | 30 | Europe
 
-All statistics refer to the "big" (N=1315) training sample. q15 and q85 refer to the 15th and 85th percentile of the distribution.
+All statistics refer to the "big" (N=1315) training sample. q15 and q85 refer to the 15th and 85th percentile of the distribution. Abbreviations: 
+'ASD': Autism Spectrum Disorder, 'AD': Alzheimer's Disease, 'MCI': Mild Cognitive Impairment, 'Neuropsych': various neuropsychiatric diseases.
 
 
 ## Technical information
 
 study | vendor | model | fieldstrength | n | voxel size | sequence
 --  | --  | --  | --  | --  | --  | --  
-abide-i | GE | mixed | 3T | 2 | 1.0 mm | mixed
-abide-i | Philips | mixed | 3T | 7 | 1.0 mm | mixed
-abide-i | Siemens | mixed | 3T | 59 | 1.0 mm | mixed
-adni | GE | mixed | 1.5T | 35 | 1.0 mm | IR-SPGR
-adni | GE | mixed | 3T | 35 | 1.0 mm | IR-SPGR
-adni | Other | mixed | 3T | 1 | 1.0 mm | N/A
-adni | Philips | mixed | 1.5T | 1 | 1.0 mm | MPRAGE
-adni | Philips | mixed | 3T | 23 | 1.0 mm | MPRAGE
-adni | Siemens | mixed | 1.5T | 30 | 1.0 mm | MPRAGE
-adni | Siemens | mixed | 3T | 90 | 1.0 mm | MPRAGE
-hcp | Siemens | Skyra | 3T | 30 | 0.7 mm | MEMPRAGE
-ixi | GE | N/A | 1.5T | 50 | 1.0 mm | N/A
-ixi | Philips | Intera | 1.5T | 225 | 1.0 mm | N/A
-ixi | Philips | Intera | 3T | 125 | 1.0 mm | N/A
-la5c | Siemens | Trio | 3T | 203 | 1.0 mm | MPRAGE
-miriad | GE | Signa | 1.5T | 30 | 1.0 mm | IR-FSPGR
-mpi-mbb | Siemens | Verio | 3T | 195 | 1.0 mm | MP2RAGE
-oasis1 | Siemens | Vision | 1.5T | 79 | 1.0 mm | MPRAGE
-oasis2 | Siemens | Vision | 1.5T | 65 | 1.0 mm | MPRAGE
-rs | Siemens | Prisma | 3T | 30 | 0.8 mm | MEMPRAGE, MPRAGE
+ABIDE-I | GE | mixed | 3T | 2 | 1.0 mm | mixed
+ABIDE-I | Philips | mixed | 3T | 7 | 1.0 mm | mixed
+ABIDE-I | Siemens | mixed | 3T | 59 | 1.0 mm | mixed
+ADNI | GE | mixed | 1.5T | 35 | 1.0 mm | IR-SPGR
+ADNI | GE | mixed | 3T | 35 | 1.0 mm | IR-SPGR
+ADNI | Other | mixed | 3T | 1 | 1.0 mm | N/A
+ADNI | Philips | mixed | 1.5T | 1 | 1.0 mm | MPRAGE
+ADNI | Philips | mixed | 3T | 23 | 1.0 mm | MPRAGE
+ADNI | Siemens | mixed | 1.5T | 30 | 1.0 mm | MPRAGE
+ADNI | Siemens | mixed | 3T | 90 | 1.0 mm | MPRAGE
+HCP | Siemens | Skyra | 3T | 30 | 0.7 mm | MEMPRAGE
+IXI | GE | N/A | 1.5T | 50 | 1.0 mm | N/A
+IXI | Philips | Intera | 1.5T | 225 | 1.0 mm | N/A
+IXI | Philips | Intera | 3T | 125 | 1.0 mm | N/A
+LA5C | Siemens | Trio | 3T | 203 | 1.0 mm | MPRAGE
+MIRIAD | GE | Signa | 1.5T | 30 | 1.0 mm | IR-FSPGR
+MBB | Siemens | Verio | 3T | 195 | 1.0 mm | MP2RAGE
+OASIS1 | Siemens | Vision | 1.5T | 79 | 1.0 mm | MPRAGE
+OASIS2 | Siemens | Vision | 1.5T | 65 | 1.0 mm | MPRAGE
+RS | Siemens | Prisma | 3T | 30 | 0.8 mm | MEMPRAGE, MPRAGE
 
 'Mixed' refers to multi-center studies with heterogeneous acquisition devices, where detailed information must be obtained from the respective data repositores. 'N/A' means not available.
 
@@ -54,16 +55,16 @@ rs | Siemens | Prisma | 3T | 30 | 0.8 mm | MEMPRAGE, MPRAGE
 
 study | reference | url
 --  | --  | --  
-abide-i | Di Martino et al. (2013) | https://fcon_1000.projects.nitrc.org/indi/abide/abide_I.html
-adni | Mueller et al. (2005) | https://www.adni-info.org
-hcp | Van Essen et al. (2012) | https://www.humanconnectome.org
-ixi | N/A | https://brain-development.org/ixi-dataset
-la5c | Poldrack et al. (2016)  | https://openfmri.org/dataset/ds000030
-miriad | Malone et al. (2013) | http://miriad.drc.ion.ucl.ac.uk
-mbb | Mendes et al. (2019) | https://openfmri.org/dataset/ds000221
-oasis1 | Marcus et al.(2007) | https://www.oasis-brains.org
-oasis2 | Marcus et al.(2010) | https://www.oasis-brains.org
-rs | Breteler et al. (2014) | N/A
+ABIDE-I | Di Martino et al. (2013) | https://fcon_1000.projects.nitrc.org/indi/abide/abide_I.html
+ADNI | Mueller et al. (2005) | https://www.adni-info.org
+HCP | Van Essen et al. (2012) | https://www.humanconnectome.org
+IXI | N/A | https://brain-development.org/ixi-dataset
+LA5C | Poldrack et al. (2016)  | https://openfmri.org/dataset/ds000030
+MIRIAD | Malone et al. (2013) | http://miriad.drc.ion.ucl.ac.uk
+MBB | Mendes et al. (2019) | https://openfmri.org/dataset/ds000221
+OASIS1 | Marcus et al.(2007) | https://www.oasis-brains.org
+OASIS2 | Marcus et al.(2010) | https://www.oasis-brains.org
+RS | Breteler et al. (2014) | N/A
 
 'N/A' means not available.
 
