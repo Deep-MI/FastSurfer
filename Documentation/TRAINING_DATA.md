@@ -18,7 +18,6 @@ MIRIAD | AD/Normal | 23 | 78 | 33 | 42 | 23 | 68 | 96 | 195 | Europe
 OASIS1 | Normal | 18 | 90 | 58 | 54 | 26 | 75 | 39 | 79 | NorthAmerica
 OASIS2 | AD/Normal | 60 | 90 | 75 | 75 | 67 | 83 | 32 | 65 | NorthAmerica
 RS | Normal | 30 | 95 | 69 | 59 | 42 | 76 | 15 | 30 | Europe
-|
 
 All statistics refer to the "big" (N=1315) training sample. q15 and q85 refer to the 15th and 85th percentile of the distribution.
 
@@ -47,7 +46,6 @@ mpi-mbb | Siemens | Verio | 3T | 195 | 1.0 mm | MP2RAGE
 oasis1 | Siemens | Vision | 1.5T | 79 | 1.0 mm | MPRAGE
 oasis2 | Siemens | Vision | 1.5T | 65 | 1.0 mm | MPRAGE
 rs | Siemens | Prisma | 3T | 30 | 0.8 mm | MEMPRAGE, MPRAGE
-| 
 
 'Mixed' refers to multi-center studies with heterogeneous acquisition devices, where detailed information must be obtained from the respective data repositores. 'N/A' means not available.
 
@@ -66,7 +64,6 @@ mbb | Mendes et al. (2019) | https://openfmri.org/dataset/ds000221
 oasis1 | Marcus et al.(2007) | https://www.oasis-brains.org
 oasis2 | Marcus et al.(2010) | https://www.oasis-brains.org
 rs | Breteler et al. (2014) | N/A
-|
 
 'N/A' means not available.
 
