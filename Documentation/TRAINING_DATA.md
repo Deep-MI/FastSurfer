@@ -7,7 +7,6 @@ For details, also refer to the corresponding [publication](https://doi.org/10.10
 
 study | population | min | max | median | mean | q15 | q85 | female | total | region
 -- | -- | -- | -- | -- | -- | -- | -- | -- | -- | --
-study | population | min | max | median | mean | q15 | q85 | female | total | region
 ABIDE-I | ASD/Normal | 18 | 46 | 24 | 26 | 20 | 32 | 34 | 68 | Europe, NorthAmerica
 ADNI | AD/MCI/Normal | 56 | 91 | 73 | 73 | 66 | 80 | 106 | 215 | NorthAmerica
 HCP | Normal | 24 | 33 | 28 | 28 | 24 | 33 | 15 | 30 | NorthAmerica
