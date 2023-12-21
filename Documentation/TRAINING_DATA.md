@@ -62,8 +62,8 @@ IXI | N/A | https://brain-development.org/ixi-dataset
 LA5C | Poldrack et al. (2016)  | https://openfmri.org/dataset/ds000030
 MIRIAD | Malone et al. (2013) | http://miriad.drc.ion.ucl.ac.uk
 MBB | Mendes et al. (2019) | https://openfmri.org/dataset/ds000221
-OASIS1 | Marcus et al.(2007) | https://www.oasis-brains.org
-OASIS2 | Marcus et al.(2010) | https://www.oasis-brains.org
+OASIS1 | Marcus et al. (2007) | https://www.oasis-brains.org
+OASIS2 | Marcus et al. (2010) | https://www.oasis-brains.org
 RS | Breteler et al. (2014) | N/A
 
 'N/A' means not available.
