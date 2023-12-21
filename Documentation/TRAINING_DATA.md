@@ -1,6 +1,6 @@
 # Training data
 
-This page provides technical and demograhic information about the training data that was used for the FastSurferVINN project.
+This page provides technical and demographic information about the training data that was used for the FastSurferVINN project.
 For details, also refer to the corresponding [publication](https://doi.org/10.1016/j.neuroimage.2022.118933).
 
 ## Demographic information
