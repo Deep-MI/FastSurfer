@@ -138,13 +138,22 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     ri = np.floor(rvox).astype(int)
     l = np.arange(-ri,ri+1)
     xv, yv, zv = np.meshgrid(l, l, l)
+    # modify distances slightly, to avoid randomness when
+    # sorting with different radius values for voxels that otherwise
+    # have the same distance to center
+    xvd = xv+0.001
+    yvd = yv+0.002
+    zvd = zv+0.003
+    ddm = np.sqrt(xvd*xvd + yvd*yvd + zvd*zvd).flatten()
+    # also compute correct distance for ball mask below
     dd = np.sqrt(xv*xv + yv*yv + zv*zv).flatten()
+    ddball = dd<=rvox
 
-    # flatten and keep only sphere with radius
-    xv = xv.flatten()[dd<=rvox]
-    yv = yv.flatten()[dd<=rvox]
-    zv = zv.flatten()[dd<=rvox]
-    dd = dd[dd<=rvox]
+    # flatten and keep only ball with radius
+    xv = xv.flatten()[ddball]
+    yv = yv.flatten()[ddball]
+    zv = zv.flatten()[ddball]
+    ddm = ddm[ddball]
 
     # stack to get offset vectors
     offsets = np.column_stack((xv, yv, zv))
@@ -152,8 +161,7 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     # sort offsets according to distance
     # Note: we keep the first zero voxel so we can later
     # determine if all voxels are zero with the argmax trick
-    sortidx = np.argsort(dd)
-    dd = dd[sortidx]
+    sortidx = np.argsort(ddm)
     offsets = offsets[sortidx,:]
 
     # reshape and tile to add to list of coords
