@@ -22,7 +22,7 @@ import sys
 import numpy as np
 from numpy import typing as npt
 import nibabel.freesurfer.io as fs
-from nibabel import load as nibload
+import nibabel as nib
 from scipy import sparse
 from lapy import TriaMesh
 from smooth_aparc import smooth_aparc
@@ -201,7 +201,7 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
     if isinstance(surf, str):
         surf = fs.read_geometry(surf, read_metadata=True)
     if isinstance(img, str):
-        img = nibload(img)
+        img = nib.load(img)
     if isinstance(cortex, str):
         cortex = fs.read_label(cortex)
     nvert = surf[0].shape[0]
@@ -241,7 +241,7 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
         return samplesfull
     # here we need to do the hard work of searching in a windows
     # for non-zero samples
-    print("sample_img: found {} zero samples, searching radius ...",zeros.size)
+    print("sample_img: found {} zero samples, searching radius ...".format(zeros.size))
     z_nn = x_nn[zeros]
     z_samples = sample_nearest_nonzero(img, z_nn, radius=radius)
     samples_nn[zeros] = z_samples
@@ -272,20 +272,16 @@ def replace_labels(img_labels, img_lut, surf_lut):
         Names of label regions.
     """
     surflut = np.loadtxt(surf_lut, usecols=(0,2,3,4,5), dtype="int")
-    surfids = surflut[:,0]
+    surf_ids = surflut[:,0]
     surf_ctab =  surflut[:,1:5]
     surf_names = np.loadtxt(surf_lut, usecols=(1), dtype="str")
     imglut = np.loadtxt(img_lut, usecols=(0,2,3,4,5), dtype="int")
+    img_ids = imglut[:,0]
     img_names = np.loadtxt(img_lut, usecols=(1), dtype="str")
     assert (np.all(img_names == surf_names)), "Label names in the LUTs do not agree!"
-    # find labels that have no replacement and map to 0=unknonw
-    missing = np.logical_not(np.isin(img_labels, surfids))
-    img_labels = img_labels.copy()
-    img_labels[missing] = 0
-    # translate the remaining labels
-    newids = imglut[:,0]
-    d = dict(zip(surfids, newids))
-    surf_labels=np.asarray([d.get(e, e) for e in img_labels])
+    lut = np.zeros((img_labels.max()+1,), dtype = img_labels.dtype)
+    lut[img_ids] = surf_ids
+    surf_labels = lut[img_labels]
     return surf_labels, surf_ctab, surf_names
 
 
@@ -299,7 +295,7 @@ def sample_parc (surf, seg, imglut, surflut, outaparc, cortex=None, projmm=0.0, 
         surf[0] is the np.array of (n, 3) vertex coordinates and
         surf[1] is the np.array of (m, 3) triangle indices.
         If type is str, read surface from file.
-    img : nibabel.image | str
+    seg : nibabel.image | str
         Image to sample.
         If type is str, read image from file.
     imglut : str
@@ -320,8 +316,14 @@ def sample_parc (surf, seg, imglut, surflut, outaparc, cortex=None, projmm=0.0, 
         cortex = fs.read_label(cortex)
     if isinstance(surf, str):
         surf = fs.read_geometry(surf, read_metadata=True)
-    samples = sample_img(surf, seg, cortex, projmm, radius)
-    surfsamples, surfctab, surfnames = replace_labels(samples, imglut, surflut)
+    if isinstance(seg, str):
+        seg = nib.load(seg)
+    # get rid of unknown labels first and translate the rest (avoids too much filling)
+    segdata, surfctab, surfnames = replace_labels(np.asarray(seg.dataobj), imglut, surflut)
+    # create img with new data (needed by sample img)
+    seg2 = nib.MGHImage(segdata, seg.affine, seg.header)
+
+    surfsamples = sample_img(surf, seg2, cortex, projmm, radius)
     smooths = smooth_aparc(surf, surfsamples, cortex)
     fs.write_annot(outaparc, smooths, ctab=surfctab, names=surfnames)
 

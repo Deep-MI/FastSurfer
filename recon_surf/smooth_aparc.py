@@ -91,7 +91,7 @@ def get_adjM(trias: npt.NDArray, n: int):
     Returns
     -------
     adjM : np.ndarray (bool) shape (n,n)
-        Symmetric adjacency matrix, true corresponds to an edge.
+        Symmetric sparse CSR adjacency matrix, true corresponds to an edge.
 
     """
     I = trias
@@ -132,7 +132,7 @@ def mode_filter(
         fillonlylabel = None,
         novote: npt.ArrayLike = []
 ) -> npt.NDArray[int]:
-    """Apply mode filter (smoothing) to int labels on mesh vertices.
+    """Apply mode filter (smoothing) to integer labels on mesh vertices.
 
     Parameters
     ----------
@@ -142,11 +142,11 @@ def mode_filter(
         identity to the adjacency matrix so that each vertex is included
         in its own vote. 
     labels : npt.NDArray[int]
-        List of integer labels.
+        List of integer labels at each vertex of the mesh.
     fillonlylabel : int
-        Label to fill exclusively. Defaults to None.
+        Label to fill exclusively. Defaults to None to smooth all labels.
     novote : npt.ArrayLike
-        Entries that should not vote. Defaults to [].
+        Label ids that should not vote. Defaults to [].
 
     Returns
     -------
@@ -347,7 +347,10 @@ def smooth_aparc(surf, labels, cortex = None):
         idssize = ids.size
         counter += 1
     # SMOOTH other labels (first with wider kernel then again fine-tune):
-    labels = mode_filter(adjM * adjM, labels)
+    adjM2 = adjM * adjM
+    adjM6 = adjM2 * adjM2 * adjM2
+    labels = mode_filter(adjM6, labels)
+    labels = mode_filter(adjM2, labels)
     labels = mode_filter(adjM, labels)
     # set labels outside cortex to -1
     labels[~mask] = -1

@@ -822,7 +822,7 @@ echo "echo \" \"" |& tee -a $CMDF
     #RunIt "$cmd" $LF $CMDF
     #cmd="$python ${binpath}smooth_aparc.py --insurf $sdir/$hemi.white.preaparc --inaparc $ldir/$hemi.aparc.DKTatlas.mapped.prefix.annot --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot"
     #RunIt "$cmd" $LF $CMDF
-    cmd="$python ${binpath}sample_parc.py --inseg $mdir/aparc.DKTatlas+aseg.orig.mgz --insurf $sdir/$hemi.white.preaparc --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot --surflut ${binpath}$hemi.DKTatlaslookup.txt --seglut ${binpath}DKTatlaslookup.txt --projmm 0.6 --radius 3" 
+    cmd="$python ${binpath}sample_parc.py --inseg $mdir/aparc.DKTatlas+aseg.orig.mgz --insurf $sdir/$hemi.white.preaparc --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot --seglut ${binpath}$hemi.DKTatlaslookup.txt --surflut ${binpath}DKTatlaslookup.txt --projmm 0.6 --radius 2" 
     RunIt "$cmd" $LF $CMDF
 
 # if we segment with FS or if surface registration is requested do it here:
