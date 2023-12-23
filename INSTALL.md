@@ -93,12 +93,12 @@ cd FastSurfer
 Create a new environment and install FastSurfer dependencies:
 
 ```bash
-conda env create -f ./fastsurfer_env_gpu.yml 
-conda activate fastsurfer_gpu
+conda env create -f ./env/fastsurfer.yml 
+conda activate fastsurfer
 ```
 
-If you do not have an NVIDIA GPU, replace `./fastsurfer_env_gpu.yml`  with the cpu-only environment file `./fastsurfer_env_cpu.yml`.
-If you only want to run the surface pipeline, replace `./fastsurfer_env_gpu.yml` with the reconsurf-only environment file `./fastsurfer_env_reconsurf.yml`.
+If you do not have an NVIDIA GPU, you can create appropriate ymls on the fly with `python ./Docker/install_env.py -m $MODE -i ./env/FastSurfer.yml -o ./fastsurfer_$MODE.yml`. Here `$MODE` can be for example `cpu`, see also `python ./Docker/install_env.py --help` for other options like rocm or cuda versions. Finally, replace `./env/fastsurfer.yml`  with your custom environment file `./fastsurfer_$MODE.yml`.
+If you only want to run the surface pipeline, use `./env/fastsurfer_reconsurf.yml`.
 
 Next, add the fastsurfer directory to the python path (make sure you have changed into it already):
 ```bash
