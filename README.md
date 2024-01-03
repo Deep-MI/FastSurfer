@@ -296,7 +296,7 @@ singularity exec --nv \
                  -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs_license \
                  ./fastsurfer-gpu.sif \
-                 /fastsurfer/run_fastsurfer.sh \
+                 /fastsurfer/brun_fastsurfer.sh \
                  --fs_license /fs_license/license.txt \
                  --sd /output \
                  --subjects_list /data/subjects_list.txt \
