@@ -24,7 +24,7 @@ deprecated==1.2.14
     # via torchio
 filelock==3.13.1
     # via torch
-fonttools==4.44.3
+fonttools==4.43.0
     # via matplotlib
 google-auth==2.23.4
     # via
