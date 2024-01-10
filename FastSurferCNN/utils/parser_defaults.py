@@ -28,14 +28,14 @@ Values can also be extracted by
 
 import argparse
 from os import path
-from typing import Iterable, Mapping, Union, Literal, Dict, Protocol, TypeVar, Type
+from typing import Dict, Iterable, Literal, Mapping, Protocol, Type, TypeVar, Union
 
-from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.arg_types import (
-    vox_size as __vox_size,
     float_gt_zero_and_le_one as __conform_to_one_mm,
-    unquote_str,
 )
+from FastSurferCNN.utils.arg_types import unquote_str
+from FastSurferCNN.utils.arg_types import vox_size as __vox_size
+from FastSurferCNN.utils.threads import get_num_threads
 
 FASTSURFER_ROOT = path.dirname(path.dirname(path.dirname(__file__)))
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
@@ -47,25 +47,31 @@ VoxSize = Union[Literal["min"], float]
 
 
 class CanAddArguments(Protocol):
-    """[MISSING]."""
+    """
+    [MISSING].
+    """
 
     def add_argument(self, *args, **kwargs):
-        """[MISSING]."""
+        """
+        [MISSING].
+        """
         ...
 
 
 def __arg(*default_flags, **default_kwargs):
-    """Create stub function, which sets default settings for argparse arguments.
+    """
+    Create stub function, which sets default settings for argparse arguments.
 
     The positional and keyword arguments function as if they were directly passed to parser.add_arguments().
-    
+
     The result will be a stub function, which has as first argument a parser (or other object with an
     add_argument method) to which the argument is added. The stub function also accepts positional and
     keyword arguments, which overwrite the default arguments. Additionally, these specific values can be callables,
     which will be called upon the default values (to alter the default value).
-    
+
     This function is private for this module.
     """
+
     def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
@@ -279,20 +285,20 @@ T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)
 
 
 def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
-    """Add default flags to the parser from the flags list in order.
+    """
+    Add default flags to the parser from the flags list in order.
 
     Parameters
     ----------
     parser : T_AddArgs
         The parser to add flags to.
     flags : Iterable[str]
-        the flags to add from 'device', 'viewagg_device'.
+        The flags to add from 'device', 'viewagg_device'.
 
     Returns
     -------
     T_AddArgs
-        The parser object
-
+        The parser object.
     """
     for flag in flags:
         if flag.startswith("--"):
@@ -312,7 +318,8 @@ def add_plane_flags(
     type: Literal["checkpoint", "config"],
     files: Mapping[str, str],
 ) -> argparse.ArgumentParser:
-    """Add plane arguments.
+    """
+    Add plane arguments.
 
     Arguments will be added for each entry in files, where the key is the "plane"
     and the values is the file name (relative for path relative to FASTSURFER_HOME.
@@ -323,7 +330,7 @@ def add_plane_flags(
         The parser to add flags to.
     type : Literal["checkpoint", "config"]
         The type of files (for help text and prefix from "checkpoint" and "config".
-        "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}"
+        "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to "--cfg_{plane}".
     files : Mapping[str, str]
         A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root
         directory.
@@ -332,7 +339,6 @@ def add_plane_flags(
     -------
     argparse.ArgumentParser
         The parser object.
-    
     """
     if type not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")

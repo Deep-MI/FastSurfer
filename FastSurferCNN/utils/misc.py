@@ -17,40 +17,41 @@ import os
 from itertools import product
 from typing import List
 
-import FastSurferCNN.data_loader.loader
 import matplotlib.figure
-import torch
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-import matplotlib.pyplot as plt
+import torch
 import yacs.config
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from torchvision import utils
 from skimage import color
+from torchvision import utils
+
+import FastSurferCNN.data_loader.loader
 
 
 def plot_predictions(
-        images_batch: torch.Tensor,
-        labels_batch: torch.Tensor,
-        batch_output: torch.Tensor,
-        plt_title: str,
-        file_save_name: str
+    images_batch: torch.Tensor,
+    labels_batch: torch.Tensor,
+    batch_output: torch.Tensor,
+    plt_title: str,
+    file_save_name: str,
 ) -> None:
-    """Plot predictions from validation set.
+    """
+    Plot predictions from validation set.
 
     Parameters
     ----------
     images_batch : torch.Tensor
-        batch of images
+        Batch of images.
     labels_batch : torch.Tensor
-        batch of labels
+        Batch of labels.
     batch_output : torch.Tensor
-        batch of output
+        Batch of output.
     plt_title : str
-        plot title
+        Plot title.
     file_save_name : str
-        name the plot should be saved tp
-
+        Name the plot should be saved tp.
     """
     f = plt.figure(figsize=(20, 10))
     n, c, h, w = images_batch.shape
@@ -81,32 +82,32 @@ def plot_predictions(
 
 
 def plot_confusion_matrix(
-        cm: npt.NDArray,
-        classes: List[str],
-        title: str = "Confusion matrix",
-        cmap: plt.cm.ColormapRegistry = plt.cm.Blues,
-        file_save_name: str = "temp.pdf"
+    cm: npt.NDArray,
+    classes: List[str],
+    title: str = "Confusion matrix",
+    cmap: plt.cm.ColormapRegistry = plt.cm.Blues,
+    file_save_name: str = "temp.pdf",
 ) -> matplotlib.figure.Figure:
-    """Plot the confusion matrix.
+    """
+    Plot the confusion matrix.
 
     Parameters
     ----------
     cm : npt.NDArray
-        confusion matrix
+        Confusion matrix.
     classes : List[str]
-        list of class names
+        List of class names.
     title : str
-        (Default value = "Confusion matrix")
+        (Default value = "Confusion matrix").
     cmap : plt.cm.ColormapRegistry
-        colour map (Default value = plt.cm.Blues)
+        Colour map (Default value = plt.cm.Blues).
     file_save_name : str
-        (Default value = "temp.pdf")
+        (Default value = "temp.pdf").
 
     Returns
     -------
     fig : matplotlib.figure.Figure
-        [MISSING]
-
+        [MISSING].
     """
     n_classes = len(classes)
 
@@ -149,18 +150,18 @@ def plot_confusion_matrix(
 
 
 def find_latest_experiment(path: str) -> int:
-    """Find and load latest experiment.
+    """
+    Find and load latest experiment.
 
     Parameters
     ----------
     path : str
-        path to the latest experiment
+        Path to the latest experiment.
 
     Returns
     -------
     int
-        latest experiments
-    
+        Latest experiments.
     """
     list_of_experiments = os.listdir(path)
     list_of_int_experiments = []
@@ -178,21 +179,24 @@ def find_latest_experiment(path: str) -> int:
 
 
 def check_path(path: str):
-    """Create path."""
+    """
+    Create path.
+    """
     os.makedirs(path, exist_ok=True)
     return path
 
 
-def update_num_steps(dataloader: FastSurferCNN.data_loader.loader.DataLoader,
-                     cfg: yacs.config.CfgNode):
-    """Update the number of steps.
+def update_num_steps(
+    dataloader: FastSurferCNN.data_loader.loader.DataLoader, cfg: yacs.config.CfgNode
+):
+    """
+    Update the number of steps.
 
     Parameters
     ----------
     dataloader : FastSurferCNN.data_loader.loader.DataLoader
-        [MISSING]
+        [MISSING].
     cfg : yacs.config.CfgNode
-        [MISSING]
-
+        [MISSING].
     """
     cfg.TRAIN.NUM_STEPS = len(dataloader)

@@ -14,27 +14,21 @@
 
 # IMPORTS
 from logging import *
-from logging import (
-    getLogger as get_logger,
-    StreamHandler,
-    FileHandler,
-    INFO,
-    DEBUG,
-    getLogger,
-    basicConfig,
-)
-from os import path, makedirs
+from logging import DEBUG, INFO, FileHandler, StreamHandler, basicConfig
+from logging import getLogger
+from logging import getLogger as get_logger
+from os import makedirs, path
 from sys import stdout as _stdout
 
 
 def setup_logging(log_file_path: str):
-    """Set up the logging.
+    """
+    Set up the logging.
 
     Parameters
     ----------
     log_file_path : str
-        Path to the logfile
-
+        Path to the logfile.
     """
     # Set up logging format.
     _FORMAT = "[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s"
