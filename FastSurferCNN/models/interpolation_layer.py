@@ -544,7 +544,7 @@ class Zoom3d(_ZoomNd):
         """
         Crop, interpolate and pad the tensor according to the scale_factor.
 
-        cale_factor must be 3-length sequence.
+        Scale_factor must be 3-length sequence.
 
         Parameters
         ----------
