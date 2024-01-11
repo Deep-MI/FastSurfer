@@ -595,14 +595,15 @@ def read_classes_from_lut(lut_file: Path | str) -> pd.DataFrame:
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
-        1   Left-Cerebral-Exterior 70  130 180 0.
+        1   Left-Cerebral-Exterior 70  130 180 0
+        ...
 
     Returns
     -------
     pd.Dataframe
         DataFrame with ids present, name of ids, color for plotting.
     """
-    if isinstance(lut_file, str):
+    if not isinstance(lut_file, Path):
         lut_file = Path(lut_file)
     # Read in file
     separator = {".tsv": "\t", ".csv": ",", ".txt": " "}
