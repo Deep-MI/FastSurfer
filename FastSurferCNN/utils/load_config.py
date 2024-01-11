@@ -20,18 +20,19 @@ from FastSurferCNN.config.defaults import get_cfg_defaults
 
 
 def get_config(args: argparse.Namespace) -> yacs.config.CfgNode:
-    """Given the arguments, load and initialize the configs.
+    """
+    Given the arguments, load and initialize the configs.
 
     Parameters
     ----------
     args : argparse.Namespace
-        Object holding args
+        Object holding args.
 
     Returns
     -------
     yacs.config.CfgNode
-        Configuration node
-    
+        Configuration node.
+
     """
     # Setup cfg.
     cfg = get_cfg_defaults()
@@ -54,18 +55,18 @@ def get_config(args: argparse.Namespace) -> yacs.config.CfgNode:
 
 
 def load_config(cfg_file: str) -> yacs.config.CfgNode:
-    """Load a yaml config file.
+    """
+    Load a yaml config file.
 
     Parameters
     ----------
     cfg_file : str
-        Configuration filepath
+        Configuration filepath.
 
     Returns
     -------
     yacs.config.CfgNode
-        configuration node
-    
+        Configuration node.
     """
     # setup base
     cfg = get_cfg_defaults()

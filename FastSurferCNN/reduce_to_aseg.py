@@ -13,16 +13,17 @@
 # limitations under the License.
 
 
+import copy
+
 # IMPORTS
 import optparse
 import sys
-import numpy as np
-import nibabel as nib
-import copy
 
+import nibabel as nib
+import numpy as np
 import scipy.ndimage
-from skimage.measure import label
 from skimage.filters import gaussian
+from skimage.measure import label
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right GM.
@@ -65,13 +66,13 @@ h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
@@ -92,17 +93,18 @@ def options_parse():
 
 
 def reduce_to_aseg(data_inseg):
-    """[MISSING].
+    """
+    [MISSING].
 
     Parameters
     ----------
-    data_inseg :
-        [MISSING]
+    data_inseg : -
+        [MISSING].
 
     Returns
     -------
-        [MISSING]
-
+    [MISSING]
+        Returns reduced_aseg.
     """
     print("Reducing to aseg ...")
     # replace 2000... with 42
@@ -113,21 +115,22 @@ def reduce_to_aseg(data_inseg):
 
 
 def create_mask(aseg_data, dnum, enum):
-    """Create dilated mask.
+    """
+    Create dilated mask.
 
     Parameters
     ----------
-    aseg_data
-        [MISSING]
-    dnum
-        [MISSING]
-    enum
-        [MISSING]
+    aseg_data : -
+        [MISSING].
+    dnum : -
+        [MISSING].
+    enum : -
+        [MISSING].
 
     Returns
     -------
-        [MISSING]
-
+    -
+        Returns aseg_data.
     """
     print("Creating dilated mask ...")
 
@@ -167,19 +170,18 @@ def create_mask(aseg_data, dnum, enum):
 
 
 def flip_wm_islands(aseg_data):
-    """[MISSING].
+    """
+    [MISSING].
 
     Parameters
     ----------
-    aseg_data
-        [MISSING]
-        
+    aseg_data : -
+        [MISSING].
 
     Returns
     -------
     flip_data
-        [MISSING]
-
+        [MISSING].
     """
     # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
     # These are usually islands, not connected to the main hemi WM component

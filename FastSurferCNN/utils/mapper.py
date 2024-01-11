@@ -19,40 +19,39 @@ Date: Aug-19-2022
 """
 
 import json
-from functools import partialmethod, partial, reduce
-from numbers import Number, Integral
+import os.path
+from functools import partial, partialmethod, reduce
+from numbers import Integral, Number
 from typing import (
-    Callable,
-    TypeVar,
-    Generic,
-    Mapping,
-    Tuple,
-    Optional,
-    Union,
-    Set,
-    overload,
-    cast,
-    Hashable,
-    Dict,
-    Sequence,
-    List,
-    Iterable,
     Any,
-    TextIO,
-    Literal,
-    Container,
+    Callable,
     Collection,
+    Container,
+    Dict,
+    Generic,
+    Hashable,
+    Iterable,
     Iterator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    TextIO,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
 )
 
-import os.path
-
 import numpy as np
-from numpy import typing as npt
+import pandas
 import torch
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap
-import pandas
+from numpy import typing as npt
 
 from FastSurferCNN.utils import logging
 
@@ -80,18 +79,18 @@ LabelImageType = TypeVar("LabelImageType", torch.Tensor, npt.NDArray[int])
 
 
 def is_int(a_object) -> bool:
-    """Check whether the array_or_tensor is an integer.
+    """
+    Check whether the array_or_tensor is an integer.
 
     Parameters
     ----------
-    a_object :
-        The object to check its type
+    a_object : Any
+        The object to check its type.
 
     Returns
     -------
     bool
-        Whether the data type of the object is int or not
-    
+        Whether the data type of the object is int or not.
     """
     from collections.abc import Collection
 
@@ -108,20 +107,20 @@ def is_int(a_object) -> bool:
 
 
 def to_same_type(data, type_hint: AT) -> AT:
-    """Convert data to the same type as type_hint.
+    """
+    Convert data to the same type as type_hint.
 
     Parameters
     ----------
-    data :
-        the data to convert
+    data : Any
+        The data to convert.
     type_hint : AT
-        hint for the data type
+        Hint for the data type.
 
     Returns
     -------
     AT
-        [MISSING]
-    
+        Data converted to the same type as specified by type_hint.
     """
     if torch.is_tensor(type_hint) and not torch.is_tensor(data):
         return torch.as_tensor(data, dtype=type_hint.dtype, device=type_hint.device)
@@ -134,7 +133,9 @@ def to_same_type(data, type_hint: AT) -> AT:
 
 
 class Mapper(Generic[KT, VT]):
-    """Map from one label space to a generic 'label'-space."""
+    """
+    Map from one label space to a generic 'label'-space.
+    """
 
     _map_dict: Dict[KT, npt.NDArray[VT]]
     _label_shape: Tuple[int, ...]
@@ -146,15 +147,15 @@ class Mapper(Generic[KT, VT]):
     def __init__(
         self, mappings: Mapping[KT, Union[VT, npt.NDArray[VT]]], name: str = "undefined"
     ):
-        """Construct `Mapper` object from a mappings dictionary.
+        """
+        Construct `Mapper` object from a mappings dictionary.
 
         Parameters
         ----------
         mappings : Mapping[KT, Union[VT, npt.NDArray[VT]]]
-            a dictionary of labels from -> to mappings
+            A dictionary of labels from -> to mappings.
         name : str
-            name for messages (default: "undefined").
-
+            Name for messages (default: "undefined").
         """
         if len(mappings) == 0:
             raise RuntimeError("The mappings object is empty.")
@@ -182,27 +183,37 @@ class Mapper(Generic[KT, VT]):
 
     @property
     def name(self) -> str:
-        """Return the name of the mapper."""
+        """
+        Return the name of the mapper.
+        """
         return self._name
 
     @name.setter
     def name(self, name: str):
-        """Set the name."""
+        """
+        Set the name.
+        """
         self._name = name
 
     @property
     def source_space(self) -> Set[KT]:
-        """Return a set of labels the mapper accepts."""
+        """
+        Return a set of labels the mapper accepts.
+        """
         return set(self._map_dict.keys())
 
     @property
     def target_space(self) -> Collection[VT]:
-        """Return the set of labels the mapper converts to as a set of python-natives (if possible), arrays expanded to tuples."""
+        """
+        Return the set of labels the mapper converts to as a set of python-natives (if possible), arrays expanded to tuples.
+        """
         return self._map_dict.values()
 
     @property
     def max_label(self) -> int:
-        """Return the max label."""
+        """
+        Return the max label.
+        """
         if self._max_label is None:
             raise RuntimeError("max_label is only valid for integer keys.")
         return self._max_label
@@ -210,20 +221,20 @@ class Mapper(Generic[KT, VT]):
     def update(
         self, other: "Mapper[KT, VT]", overwrite: bool = True
     ) -> "Mapper[KT, VT]":
-        """Merge another map into this mapper.
+        """
+        Merge another map into this mapper.
 
         Parameters
         ----------
         other : "Mapper[KT, VT]"
-            [MISSING]
+            [MISSING].
         overwrite : bool
-            [MISSING] (Default value = True)
+            [MISSING] (Default value = True).
 
         Returns
         -------
         "Mapper[KT, VT]"
-            [MISSING]
-        
+            [MISSING].
         """
         for key, value in iter(other):
             if overwrite or key not in self._map_dict:
@@ -239,21 +250,21 @@ class Mapper(Generic[KT, VT]):
     __iadd__ = partialmethod(update, overwrite=True)
 
     def map(self, image: AT, out: Optional[AT] = None) -> AT:
-        """Forward map the labels from prediction to internal space.
+        """
+        Forward map the labels from prediction to internal space.
 
         Parameters
         ----------
         image : AT
-            data to map to internal space
+            Data to map to internal space.
         out : Optional[AT]
-            output array for performance
-            Returns an `numpy.ndarray` with mapped values. (Default value = None)
+            Output array for performance.
+            Returns an `numpy.ndarray` with mapped values. (Default value = None).
 
         Returns
         -------
         AT
-            [MISSING]
-        
+            [MISSING].
         """
         # torch sparse tensors can't index with images
         # self._map = _b.torch.sparse_coo_tensor(src_labels, labels, (self._max_label,) + self._label_shape)
@@ -327,20 +338,20 @@ class Mapper(Generic[KT, VT]):
         return to_same_type(mapped, type_hint=image)
 
     def _map_py(self, image: AT, out: Optional[AT] = None) -> AT:
-        """Map internally by python, for example for strings.
+        """
+        Map internally by python, for example for strings.
 
         Parameters
         ----------
         image : AT
-            image data
+            Image data.
         out : Optional[AT]
-            output data. Optional (Default value = None)
+            Output data. Optional (Default value = None).
 
         Returns
         -------
         AT
-            [MISSING]
-        
+            [MISSING].
         """
         out_type = image if out is None else out
         if out is None:
@@ -369,28 +380,30 @@ class Mapper(Generic[KT, VT]):
     def __call__(
         self, image: AT, label_image: Union[npt.NDArray[KT], torch.Tensor]
     ) -> Tuple[AT, Union[npt.NDArray, torch.Tensor]]:
-        """Transform a dataset from prediction to internal space for sets of image and segmentation.
+        """
+        Transform a dataset from prediction to internal space for sets of image and segmentation.
 
         Parameters
         ----------
         image : AT
-            image - will stay same
+            Image - will stay same.
         label_image : Union[npt.NDArray[KT], torch.Tensor]
-            data to map to internal space
+            Data to map to internal space
             Returns two `numpy.ndarray`s with image and mapped values.
 
         Returns
         -------
         image : image
-            image
+            Image.
         Union[npt.NDArray, torch.Tensor]
-            mapped values
-
+            Mapped values.
         """
         return image, self.map(label_image)
 
     def reversed_dict(self) -> Mapping[VT, KT]:
-        """Map dictionary from the target space to the source space."""
+        """
+        Map dictionary from the target space to the source space.
+        """
         rev_mappings = {}
         for src in sorted(self.source_space):
             a = self._map_dict[src]
@@ -402,29 +415,40 @@ class Mapper(Generic[KT, VT]):
         return rev_mappings
 
     def __reversed__(self) -> "Mapper[VT, KT]":
-        """Reverse map the original transformation (with non-bijective mappings mapping to the lower key)."""
+        """
+        Reverse map the original transformation (with non-bijective mappings mapping to the lower key).
+        """
         return Mapper(self.reversed_dict(), name="reverse-" + self.name)
 
     def is_bijective(self) -> bool:
-        """Return, whether the Mapper is bijective."""
+        """
+        Return, whether the Mapper is bijective.
+        """
         return len(self.source_space) == len(self.target_space)
 
     def __getitem__(self, item: KT) -> VT:
-        """Return the value of the item."""
+        """
+        Return the value of the item.
+        """
         return self._map_dict[item]
 
     def __iter__(self) -> Iterator[Tuple[KT, VT]]:
-        """[MISSING]."""
+        """
+        [MISSING].
+        """
         return iter(self._map_dict.items())
 
     def __contains__(self, item: KT) -> bool:
-        """Check whether the mapping contains the item."""
+        """
+        Check whether the mapping contains the item.
+        """
         return self._map_dict.__contains__(item)
 
     def chain(
         self, other_mapper: "Mapper[VT, T_OtherValue]"
     ) -> "Mapper[KT, T_OtherValue]":
-        """Chain the current mapper with the `other_mapper`.
+        """
+        Chain the current mapper with the `other_mapper`.
 
         This effectively is an optimization to first applying this
         mapper and then applying the `other_mapper`.
@@ -438,7 +462,6 @@ class Mapper(Generic[KT, VT]):
         -------
         Mapper : "Mapper[KT, T_OtherValue]"
             A mapper mapping from the input space of this mapper to the target-space of the `other_mapper`.
-
         """
         target_space = list(self.target_space)
         is_target_set = [not isinstance(t, Hashable) for t in target_space]
@@ -472,35 +495,35 @@ class Mapper(Generic[KT, VT]):
         compress_out_space: bool = False,
         name: str = "undefined",
     ) -> "Mapper[int, int]":
-        """Map from one label space (int) to another (also int) using a mappings function.
+        """
+        Map from one label space (int) to another (also int) using a mappings function.
 
         Can also be used as a transform.
-        
+
         Creates a :class:`Mapper` object from a mappings dictionary and a
         list of labels to keep.
 
         Parameters
         ----------
         mappings : Dict[int, int]
-            a dictionary of labels from -> to mappings
+            A dictionary of labels from -> to mappings.
         keep_labels : Sequence[int]
-            a list of classes to keep after mapping, where all not included classes are not changed
-            (default: empty)
+            A list of classes to keep after mapping, where all not included classes are not changed
+            (default: empty).
         compress_out_space : bool
-            whether to reassign labels to reduce the maximum label (default: False)
+            Whether to reassign labels to reduce the maximum label (default: False).
         name : str
-            name for messages (default: "undefined").
+            Mame for messages (default: "undefined").
 
         Returns
         -------
         "Mapper[int, int]"
-            [MISSING]
+            [MISSING].
 
         Raises
         ------
         ValueError
             If keep_labels contains an entry > 65535.
-
         """
         if any(v not in keep_labels for v in mappings.values()):
             mappings.update(dict((k, k) for k in keep_labels))
@@ -525,7 +548,9 @@ class Mapper(Generic[KT, VT]):
         out: Optional[AT] = None,
         mode: Literal["logit", "prob"] = "logit",
     ) -> AT:
-        """Map logits or probabilities with the Mapper."""
+        """
+        Map logits or probabilities with the Mapper.
+        """
         if not is_int(self.source_space) or not is_int(self.target_space):
             raise ValueError("map_logits/map_probs requires a mapping from int to int.")
 
@@ -601,7 +626,9 @@ class Mapper(Generic[KT, VT]):
 
 
 class ColorLookupTable(Generic[KT]):
-    """This class provides utility in creating color palettes from colormaps."""
+    """
+    This class provides utility in creating color palettes from colormaps.
+    """
 
     _color_palette: Optional[npt.NDArray[float]]
     _colormap: Union[str, Colormap, ColormapGenerator]
@@ -615,22 +642,22 @@ class ColorLookupTable(Generic[KT]):
         colormap: Union[str, Colormap, ColormapGenerator] = "gist_ncar",
         name: Optional[str] = None,
     ):
-        """Construct a LookupTable object.
+        """
+        Construct a LookupTable object.
 
         Parameters
         ----------
         classes : Optional[Iterable[KT]]
-            Iterable of the classes. (Default value = None)
+            Iterable of the classes. (Default value = None).
         color_palette : Union[Dict[KT, npt.ArrayLike], npt.ArrayLike], Optional
             colors associated with each class, either indexed by a dictionary (class -> Color) or by the
-            order of classes in classes (default: None). (Default value = None)
+            order of classes in classes (default: None). (Default value = None).
         colormap : Union[str, Colormap, ColormapGenerator]
             Alternative to color_palette, uses a colormap to generate a color_palette automatically. Colormap
             can be string, matplotlib.Colormap or a function (num_classes -> NDArray of shape (num_classes, 3 or 4))
             (default: 'gist_ncar').
         name : Optional[str]
-            name for messages (default: "unnamed lookup table").
-
+            Name for messages (default: "unnamed lookup table").
         """
         self._name = "unnamed lookup table" if name is None else name
 
@@ -648,30 +675,36 @@ class ColorLookupTable(Generic[KT]):
 
     @property
     def name(self) -> str:
-        """Return the name of the mapper."""
+        """
+        Return the name of the mapper.
+        """
         return self._name
 
     @name.setter
     def name(self, name: str):
-        """Set the name."""
+        """
+        Set the name.
+        """
         self._name = name
 
     @property
     def classes(self) -> Optional[List[KT]]:
-        """Return the classes."""
+        """
+        Return the classes.
+        """
         return self._classes
 
     @classes.setter
     def classes(self, classes: Optional[Iterable[KT]]):
-        """Set the classes and generates a color palette for the given classes.
-        
+        """
+        Set the classes and generates a color palette for the given classes.
+
         Will override a manually set color_palette.
 
         Parameters
         ----------
         classes : Optional[Iterable[KT]]
             Iterable of the classes.
-
         """
         if classes is None:
             # resetting the classes
@@ -684,14 +717,18 @@ class ColorLookupTable(Generic[KT]):
 
     @property
     def color_palette(self) -> Optional[npt.NDArray[float]]:
-        """Return the color palette if it exists."""
+        """
+        Return the color palette if it exists.
+        """
         return self._color_palette
 
     @color_palette.setter
     def color_palette(
         self, color_palette: Union[Dict[KT, npt.ArrayLike], npt.ArrayLike, None]
     ):
-        """Set (or reset) the color palette of the LookupTable."""
+        """
+        Set (or reset) the color palette of the LookupTable.
+        """
         if color_palette is None:
             self._color_palette = None
         else:
@@ -713,18 +750,18 @@ class ColorLookupTable(Generic[KT]):
             self._color_palette = color_palette
 
     def __getitem__(self, key: KT) -> Tuple[int, KT, Tuple[int, int, int, int], Any]:
-        """Return index, key, colors and additional values for the key.
+        """
+        Return index, key, colors and additional values for the key.
 
         Parameters
         ----------
         key : KT
-            [MISSING]
+            [MISSING].
 
         Raises
         -------
         ValueError
-            If key is not in _classes
-
+            If key is not in _classes.
         """
         index = self._classes.index(key)
         return self.getitem_by_index(index)
@@ -732,12 +769,16 @@ class ColorLookupTable(Generic[KT]):
     def getitem_by_index(
         self, index: int
     ) -> Tuple[int, KT, Tuple[int, int, int, int], Any]:
-        """Return index, key, colors and additional values for the key."""
+        """
+        Return index, key, colors and additional values for the key.
+        """
         color = self.get_color_by_index(index, 255)
         return index, self._classes[index], color, None
 
     def get_color_by_index(self, index: int, base: NT = 1.0) -> Tuple[NT, NT, NT, NT]:
-        """Return the color (r, g, b, a) tuple associated with the index in the passed base."""
+        """
+        Return the color (r, g, b, a) tuple associated with the index in the passed base.
+        """
         if self._color_palette is None:
             raise RuntimeError("No color_palette set")
         base_type = type(base)
@@ -755,7 +796,9 @@ class ColorLookupTable(Generic[KT]):
         return color
 
     def colormap(self) -> Mapper[KT, ColorTuple]:
-        """[MISSING]."""
+        """
+        [MISSING].
+        """
         if self._color_palette is None:
             raise RuntimeError("No color_palette set")
         return Mapper(
@@ -763,7 +806,8 @@ class ColorLookupTable(Generic[KT]):
         )
 
     def labelname2index(self) -> Mapper[KT, int]:
-        """Return a mapping between the key and the (consecutive) index it is associated with.
+        """
+        Return a mapping between the key and the (consecutive) index it is associated with.
 
         This is the inverse of ColorLookupTable.classes.
         """
@@ -773,19 +817,24 @@ class ColorLookupTable(Generic[KT]):
         )
 
     def labelname2id(self) -> Mapper[KT, Any]:
-        """Return a mapping between the key and the value it is associated with.
+        """
+        Return a mapping between the key and the value it is associated with.
+
+        Mapper[KT, Any]
+            Not implemented in the base class.
 
         Raises
         ------
         RuntimeError
             If no value is associated.
-
         """
         raise RuntimeError("The base class keeps no ids (only indexes).")
 
 
 class JsonColorLookupTable(ColorLookupTable[KT]):
-    """[MISSING]."""
+    """
+    [MISSING].
+    """
 
     _data: Any
 
@@ -796,7 +845,8 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
         colormap: Union[str, Colormap, ColormapGenerator] = "gist_ncar",
         name: Optional[str] = None,
     ) -> None:
-        """Construct a JsonLookupTable object from `file_or_buffer` passed.
+        """
+        Construct a JsonLookupTable object from `file_or_buffer` passed.
 
         Parameters
         ----------
@@ -810,8 +860,7 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
             can be string, matplotlib.Colormap or a function (num_classes -> NDArray of shape (num_classes, 3 or 4))
             (default: 'gist_ncar').
         name : Optional[str]
-            name for messages (default: fallback to file_or_buffer, if possible).
-
+            Name for messages (default: fallback to file_or_buffer, if possible).
         """
         if isinstance(file_or_buffer, str) and file_or_buffer.lstrip().startswith("{"):
             self._data = json.loads(file_or_buffer)
@@ -853,7 +902,9 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
         )
 
     def _get_labels(self) -> Union[Dict[KT, Any], Iterable[KT]]:
-        """Return labels."""
+        """
+        Return labels.
+        """
         return (
             self._data["labels"]
             if isinstance(self._data, dict) and "labels" in self._data
@@ -861,12 +912,16 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
         )
 
     def dataframe(self) -> pandas.DataFrame:
-        """[MISSING]."""
+        """
+        [MISSING].
+        """
         if isinstance(self._data, dict) and "labels" in self._data:
             return pandas.DataFrame.from_dict(self._data["labels"])
 
     def __getitem__(self, key: KT) -> Tuple[int, KT, Tuple[int, int, int, int], Any]:
-        """Index by the index position, unless either key or value are int."""
+        """
+        Index by the index position, unless either key or value are int.
+        """
         labels = self._get_labels()
         index, key, color, _other = super(JsonColorLookupTable, self).__getitem__(key)
         if isinstance(labels, dict):
@@ -874,18 +929,18 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
         return index, key, color, _other
 
     def labelname2id(self) -> Mapper[KT, Any]:
-        """Return a mapping between the key and the value it is associated with.
+        """
+        Return a mapping between the key and the value it is associated with.
 
         Returns
         -------
         Mapper[KT, Any]
-            [MISSING]
+            A Mapper object that provides a mapping between label names (keys) and their corresponding IDs (values).
 
         Raises
         ------
         RuntimeError
             If no value is associated.
-
         """
         labels = self._get_labels()
         if not isinstance(labels, dict):
@@ -896,7 +951,9 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
 
 
 class TSVLookupTable(ColorLookupTable[str]):
-    """[MISSING]."""
+    """
+    [MISSING].
+    """
 
     _data: pandas.DataFrame
 
@@ -907,7 +964,8 @@ class TSVLookupTable(ColorLookupTable[str]):
         header: bool = False,
         add_background: bool = True,
     ) -> None:
-        """Create a CSVLookupTable object from `file_or_buffer` passed.
+        """
+        Create a CSVLookupTable object from `file_or_buffer` passed.
 
         Parameters
         ----------
@@ -915,12 +973,11 @@ class TSVLookupTable(ColorLookupTable[str]):
             A `pandas`-compatible object to read from. Refer to :func:`pandas.read_csv` for additional
             documentation.
         name : str, Optional
-            name for messages (default: fallback to file_or_buffer, if possible).
+            Name for messages (default: fallback to file_or_buffer, if possible).
         header : bool
-            whether the TSV file has a header line (default: False).
+            Whether the TSV file has a header line (default: False).
         add_background : bool
-            whether to add a label for background (default: True)
-
+            Whether to add a label for background (default: True).
         """
         if name is None:
             if isinstance(file_or_buffer, str):
@@ -967,45 +1024,48 @@ class TSVLookupTable(ColorLookupTable[str]):
     def getitem_by_index(
         self, index: int
     ) -> Tuple[int, str, Tuple[int, int, int, int], int]:
-        """Find the Entry associated by a No.
+        """
+        Find the Entry associated by a No.
 
         Parameters
         ----------
         index : int
-            the index
+            The index
             Returns a tuple of the index, the label, and a tuple of the RGBA color label.
 
         Returns
         -------
         index : int
-            [MISSING]
+            [MISSING].
         key : str
-            [MISSING]
+            [MISSING].
         color : Tuple[int, int, int, int]
-            [MISSING]
+            [MISSING].
         int
-            [MISSING]
-        
+            [MISSING].
         """
         index, key, color, _ = super(TSVLookupTable, self).getitem_by_index(index)
         return index, key, color, self._data.iloc[index].name
 
     def dataframe(self) -> pandas.DataFrame:
-        """Return the raw panda data object."""
+        """
+        Return the raw panda data object.
+        """
         return self._data
 
     def labelname2id(self) -> Mapper[KT, Any]:
-        """Return a Mapper between the key and the value it is associated with.
+        """
+        Return a Mapper between the key and the value it is associated with.
 
         Returns
         -------
         Mapper[KT, Any]
+            A Mapper object that links keys to their corresponding values based on the class and data index.
 
         Raises
         ------
         RuntimeError
             If no value is associated.
-
         """
         return Mapper(
             dict(zip(self._classes, self._data.index)), name="value-" + self.name

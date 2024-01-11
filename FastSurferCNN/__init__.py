@@ -21,6 +21,7 @@ __all__ = [
     "quick_qc",
     "reduce_to_aseg",
     "run_prediction",
+    "run_model",
     "segstats",
     "train",
 ]

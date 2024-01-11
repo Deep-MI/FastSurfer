@@ -12,27 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# IMPORTS
-from os.path import join
-import sys
 import argparse
 import json
+import sys
 
+# IMPORTS
+from os.path import join
+
+from FastSurferCNN.models import networks
+from FastSurferCNN.train import Trainer
 from FastSurferCNN.utils import misc
 from FastSurferCNN.utils.load_config import get_config
-from FastSurferCNN.train import Trainer
 
 
 def setup_options():
-    """Set up the options parsed from STDIN.
-    
-    Parses arguments from the STDIN, including the flags: --cfg, --aug, --opt, opts,
+    """
+    Set up the options parsed from STDIN.
+
+    Parses arguments from the STDIN, including the flags: --cfg, --aug, --opt, opts.
 
     Returns
     -------
     options
-        object holding options
-    
+        Object holding options.
     """
     parser = argparse.ArgumentParser(description="Segmentation")
 

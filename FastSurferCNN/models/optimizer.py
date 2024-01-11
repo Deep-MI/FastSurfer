@@ -12,33 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union
+
 # IMPORTS
 import torch
-from typing import Union
 import yacs
-
 from networks import FastSurferCNN, FastSurferVINN
 
-def get_optimizer(model: Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParallel], cfg: yacs.config.CfgNode) -> torch.optim.optimizer.Optimizer:
-    """Get an instance of requested optimizer.
+
+def get_optimizer(
+    model: Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParallel],
+    cfg: yacs.config.CfgNode,
+) -> torch.optim.optimizer.Optimizer:
+    """
+    Get an instance of requested optimizer.
 
     Parameters
     ----------
     model : Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParallel]
-        The model for which an optimizer schould be chosen
+        The model for which an optimizer schould be chosen.
     cfg : yacs.config.CfgNode
-        Configuration Node
+        Configuration Node.
 
     Returns
     -------
     torch.optim.optimizer.Optimizer
-        SGD, Adam, AdamW or rmsprop optimizer
+        SGD, Adam, AdamW or rmsprop optimizer.
 
     Raises
     ------
     NotImplementedError
-        Optimizer is not supported
-
+        Optimizer is not supported.
     """
     if cfg.OPTIMIZER.OPTIMIZING_METHOD == "sgd":
         return torch.optim.SGD(
