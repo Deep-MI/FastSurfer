@@ -14,15 +14,16 @@
 
 
 # IMPORTS
-from typing import Tuple, Union, Sequence, Optional, TypeVar
+from typing import Tuple, Union, Sequence, Optional, TypeVar, TypedDict
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+from numpy import typing as npt
 import torch
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
 
-# class names for network training and validation/testing
 CLASS_NAMES = {
     "Background": 0,
     "Left_I_IV": 1,
@@ -54,9 +55,36 @@ CLASS_NAMES = {
     "Right_Corpus_Medullare": 38,
 }
 
+# class names for network training and validation/testing
 subseg_labels = {"cereb_subseg": np.array(list(CLASS_NAMES.values()))}
 
 AT = TypeVar("AT", np.ndarray, torch.Tensor)
+
+
+class LTADict(TypedDict):
+    type: int
+    nxforms: int
+    mean: list[float]
+    sigma: float
+    lta: npt.NDArray[float]
+    src_valid: int
+    src_filename: str
+    src_volume: list[int]
+    src_voxelsize: list[float]
+    src_xras: list[float]
+    src_yras: list[float]
+    src_zras: list[float]
+    src_cras: list[float]
+    dst_valid: int
+    dst_filename: str
+    dst_volume: list[int]
+    dst_voxelsize: list[float]
+    dst_xras: list[float]
+    dst_yras: list[float]
+    dst_zras: list[float]
+    dst_cras: list[float]
+    src: npt.NDArray[float]
+    dst: npt.NDArray[float]
 
 
 def define_size(mov_dim, ref_dim):
@@ -325,7 +353,7 @@ def apply_warp_field(dform_field, img, interpol_order=3):
     return deformed_img
 
 
-def readLTA(file):
+def read_lta(file: Path | str) -> LTADict:
     """Read the LTA info."""
     import re
     import numpy as np
@@ -334,6 +362,9 @@ def readLTA(file):
         lta = f.readlines()
     d = dict()
     i = 0
+    matrix_pattern = re.compile(
+        "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+"
+    )
     while i < len(lta):
         if re.match("type", lta[i]) is not None:
             d["type"] = int(
@@ -361,57 +392,12 @@ def readLTA(file):
                 re.sub("=", "", re.sub("[a-z]+", "", re.sub("#.*", "", lta[i]))).strip()
             )
             i += 1
-        elif (
-            re.match(
-                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+", lta[i]
-            )
-            is not None
-        ):
-            d["lta"] = np.array(
-                [
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i],
-                            ).string.strip(),
-                        )
-                    ],
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i + 1],
-                            ).string.strip(),
-                        )
-                    ],
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i + 2],
-                            ).string.strip(),
-                        )
-                    ],
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i + 3],
-                            ).string.strip(),
-                        )
-                    ],
-                ]
-            )
-            i += 4
+        elif matrix_pattern.match(lta[i]):
+            from functools import partial
+            parse = partial(np.fromstring, sep=" ", dtype=float)
+            d["lta"] = np.fromiter(map(parse, filter(matrix_pattern.match, lta[i:i+4])),
+                                   dtype=float)
+            i += d["lta"].shape[0]
         elif re.match("src volume info", lta[i]) is not None:
             while i < len(lta) and re.match("dst volume info", lta[i]) is None:
                 if re.match("valid", lta[i]) is not None:
@@ -556,7 +542,7 @@ def readLTA(file):
 
 
 def load_talairach_coordinates(tala_path, img_shape, vox2ras):
-    tala_lta = readLTA(tala_path)
+    tala_lta = read_lta(tala_path)
     # create image grid p
     x, y, z = np.meshgrid(
         np.arange(img_shape[0]),
