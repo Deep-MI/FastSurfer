@@ -440,6 +440,10 @@ case $key in
     ;;
   --no_fs_t1) surf_flags=("${surf_flags[@]}" "--no_fs_T1") ;;
 
+  # temporary segstats development flag
+  --segstats_legacy)
+    surf_flags=("${surf_flags[@]}" "$key")
+    ;;
   *)    # unknown option
     # if not empty arguments, error & exit
     if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
@@ -776,7 +780,7 @@ then
   if [[ "$run_biasfield" == "1" ]]
   then
     {
-    # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
+      # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
            --rescale "$norm_name" --aseg "$asegdkt_segfile" --threads "$threads")
       echo "INFO: Running N4 bias-field correction"

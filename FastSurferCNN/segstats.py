@@ -199,6 +199,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     argparse.ArgumentParser
         The configured argument parser.
     """
+    import sys
     if helpformatter:
         kwargs = {
             "epilog": HELPTEXT.replace("\n", "<br>"),
