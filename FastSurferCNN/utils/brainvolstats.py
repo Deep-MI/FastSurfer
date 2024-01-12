@@ -94,9 +94,20 @@ def read_mesh_file(path: Path) -> "lapy.TriaMesh":
 
 
 def read_lta_transform_file(path: Path) -> "npt.NDArray[float]":
-    """Read and extract the transform from an lta file."""
+    """Read and extract the first lta transform from an LTA file.
+
+    Parameters
+    ----------
+    path : Path
+        Path of the LTA file
+
+    Returns
+    -------
+    matrix : npt.NDArray[float]
+        Matrix of shape (4, 4)
+    """
     from CerebNet.datasets.utils import read_lta
-    return read_lta(path)["lta"]
+    return read_lta(path)["lta"][0, 0]
 
 
 def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
