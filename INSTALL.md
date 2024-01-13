@@ -246,7 +246,7 @@ installed and running.
 After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on [dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) what version tag is most recent for cpu):
 
 ```bash
-docker pull deepmi/fastsurfer:cpu-v2.0.4
+docker pull deepmi/fastsurfer:cpu-latest
 ```
 
 Now you can run Fastsurfer the same way as described in our [README](README.md#example-1--fastsurfer-docker) for the CPU build, for example:
@@ -254,7 +254,7 @@ Now you can run Fastsurfer the same way as described in our [README](README.md#e
 docker run -v C:/Users/user/my_mri_data:/data \
            -v C:/Users/user/my_fastsurfer_analysis:/output \
            -v C:/Users/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v2.0.0 \
+           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-latest \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/orig.mgz \
            --device cpu \
