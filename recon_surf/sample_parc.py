@@ -24,6 +24,7 @@ from numpy import typing as npt
 import nibabel.freesurfer.io as fs
 import nibabel as nib
 from scipy import sparse
+from scipy.sparse.csgraph import connected_components
 from lapy import TriaMesh
 from smooth_aparc import smooth_aparc
 
@@ -32,9 +33,9 @@ HELPTEXT = """
 Script to sample labels from image to surface and clean up. 
 
 USAGE:
-sample_parc  --inseg <segimg> --insurf <surf> --incort <cortex.label>
-              --seglut <seglut> --surflut <surflut> --outaparc <out_aparc>
-              --projmm <float> --radius <float>
+sample_parc --inseg <segimg> --insurf <surf> --incort <cortex.label>
+            --seglut <seglut> --surflut <surflut> --outaparc <out_aparc>
+            --projmm <float> --radius <float>
 
 
 Dependencies:
@@ -99,7 +100,73 @@ def options_parse():
 
     return options
 
+def construct_adj_cluster(tria, annot):
+    """Adjacency matrix of edges from same annotation label only.
 
+    Operates only on triangles and removes edges that cross annotation
+    label boundaries.
+
+    Returns
+    -------
+    csc_matrix
+        The non-directed adjacency matrix
+        will be symmetric. Each inner edge (i,j) will have
+        the number of triangles that contain this edge.
+        Inner edges usually 2, boundary edges 1. Higher
+        numbers can occur when there are non-manifold triangles.
+        The sparse matrix can be binarized via:
+        adj.data = np.ones(adj.data.shape).
+     """
+    t0 = tria[:, 0]
+    t1 = tria[:, 1]
+    t2 = tria[:, 2]
+    i = np.column_stack((t0, t1, t1, t2, t2, t0)).reshape(-1)
+    j = np.column_stack((t1, t0, t2, t1, t0, t2)).reshape(-1)
+    ia = annot[i]
+    ja = annot[j]
+    keep_edges = (ia == ja)
+    i = i[keep_edges]
+    j = j[keep_edges]
+    dat = np.ones(i.shape)
+    n = annot.shape[0]
+    return sparse.csc_matrix((dat, (i, j)), shape=(n, n))
+
+def find_all_islands(surf, annot):
+    """Find vertices in disconnected islands for all labels in surface annotation.
+
+    Parameters
+    ----------
+    surf : tuple
+        Surface as returned by nibabel fs.read_geometry, where:
+        surf[0] is the np.array of (n, 3) vertex coordinates and
+        surf[1] is the np.array of (m, 3) triangle indices.
+    annot : np.ndarray
+        Annotation as an int array of (n,) with label ids for each vertex.
+        This is for example the first element of the tupel returned by
+        nibabel fs.read_annot.
+
+    Returns
+    -------
+    vidx : np.ndarray (i,)
+        Arrray listing vertex indices of island vertices, empty if no islands
+        (components disconnetcted from largest label region) are found.
+    """
+    # construct adjaceny matrix without edges across regions:
+    adjM = construct_adj_cluster(surf[1], annot)
+    # compute disconnected components
+    n_comp, labels = connected_components(csgraph=adjM, directed=False, return_labels=True)
+    # for each label, get islands that are not connected to main component
+    lids = np.unique(annot)
+    vidx = np.array([], dtype = np.int32)
+    for lid in lids:
+        ll = labels[annot==lid]
+        lidx = np.arange(labels.size)[annot==lid]
+        lmax = np.bincount(ll).argmax()
+        v = lidx[(ll != lmax)]
+        if v.size > 0:
+            print("Found disconnected islands ({} vertices total) for label {}!".format(v.size, lid))
+        vidx = np.concatenate((vidx,v))
+    return vidx
 
 def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     """Sample closest non-zero value in a ball of radius around vox_coords.
@@ -294,7 +361,7 @@ def replace_labels(img_labels, img_lut, surf_lut):
 
 
 def sample_parc (surf, seg, imglut, surflut, outaparc, cortex=None, projmm=0.0, radius=None):
-    """Replace image labels with corresponding surface labels or unknown.
+    """Sample cortical GM labels from image to surface and smooth.
 
     Parameters
     ----------
@@ -326,13 +393,20 @@ def sample_parc (surf, seg, imglut, surflut, outaparc, cortex=None, projmm=0.0, 
         surf = fs.read_geometry(surf, read_metadata=True)
     if isinstance(seg, str):
         seg = nib.load(seg)
-    # get rid of unknown labels first and translate the rest (avoids too much filling)
+    # get rid of unknown labels first and translate the rest (avoids too much filling
+    # later as sampling will search around sample point if label is zero)
     segdata, surfctab, surfnames = replace_labels(np.asarray(seg.dataobj), imglut, surflut)
     # create img with new data (needed by sample img)
     seg2 = nib.MGHImage(segdata, seg.affine, seg.header)
-
+    # sample from image to surface (and search if zero label)
     surfsamples = sample_img(surf, seg2, cortex, projmm, radius)
+    # find label islands
+    vidx = find_all_islands(surf, surfsamples)
+    # set islands to zero (to ensure they get smoothed away later)
+    surfsamples[vidx] = 0
+    # smooth boundaries and remove islands inside cortex region
     smooths = smooth_aparc(surf, surfsamples, cortex)
+    # write annotation
     fs.write_annot(outaparc, smooths, ctab=surfctab, names=surfnames)
 
 

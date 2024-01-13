@@ -250,7 +250,12 @@ def mode_filter(
 
 
 def smooth_aparc(surf, labels, cortex = None):
-    """Smoothes aparc.
+    """Smoothes aparc and fills holes.
+
+    First all labels with 0 and -1 unside cortex are filled via repeated
+    mode filtering, then all labels are smoothed first with a wider and
+    then with smaller filters to produce smooth label boundaries. Labels
+    outside cortex are set to -1 at the end.
 
     Parameters
     ----------
@@ -348,8 +353,8 @@ def smooth_aparc(surf, labels, cortex = None):
         counter += 1
     # SMOOTH other labels (first with wider kernel then again fine-tune):
     adjM2 = adjM * adjM
-    adjM6 = adjM2 * adjM2 * adjM2
-    labels = mode_filter(adjM6, labels)
+    adjM4 = adjM2 * adjM2
+    labels = mode_filter(adjM4, labels)
     labels = mode_filter(adjM2, labels)
     labels = mode_filter(adjM, labels)
     # set labels outside cortex to -1
