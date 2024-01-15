@@ -43,7 +43,7 @@ reduce_to_aseg  -i <input_seg> -o <output_seg>
 
     
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Numpy
     http://www.numpy.org

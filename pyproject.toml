@@ -8,7 +8,7 @@ version = "2.3.0-dev"
 description = 'a fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = {file = 'LICENSE'}
-requires-python = '>=3.8'
+requires-python = '>=3.10'
 authors = [
     {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
     {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
@@ -32,8 +32,6 @@ classifiers = [
     'Operating System :: Unix',
     'Operating System :: MacOS',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Natural Language :: English',

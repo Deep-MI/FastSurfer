@@ -144,7 +144,7 @@ In the following, we give an overview of the most important options, but you can
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isometric.
   If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isometric voxels of that voxel size.
   The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.
-* `--py`: Command for python, used in both pipelines. Default: python3.8
+* `--py`: Command for python, used in both pipelines. Default: python3.10
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
 * `--ignore_fs_version`: Switch on to avoid check for FreeSurfer version. Program will terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions.
 * `-h`, `--help`: Prints help text

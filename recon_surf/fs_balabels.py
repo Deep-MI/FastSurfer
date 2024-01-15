@@ -42,7 +42,7 @@ Optional flags:
                --fsaverage <fsaverage dir> --hemi <lh or rh>
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
     numpy, nibabel, sklearn
     
     Also FreeSurfer v7.3.2 is needed

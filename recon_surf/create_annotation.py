@@ -42,7 +42,7 @@ when mapping labels use these additional flags:
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
     numpy, nibabel, sklearn
     
 

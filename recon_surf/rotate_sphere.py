@@ -35,7 +35,7 @@ rotate_sphere.py --srcsphere <?h.sphere> --srcaparc <?h.aparc>
                  --out <angles.txt>
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     SimpleITK https://simpleitk.org/ (v2.1.1)
 

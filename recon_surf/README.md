@@ -37,7 +37,7 @@ List them by running the following command:
 * `--threads`: Set openMP and ITK threads to <int>
 
 ### Other
-* `--py`: Command for python, used in both pipelines. Default: python3.8
+* `--py`: Command for python, used in both pipelines. Default: python3.10
 * `--no_surfreg`: Skip surface registration with FreeSurfer (if only stats are needed)
 * `--fs_license`: Path to FreeSurfer license key file. Register at https://surfer.nmr.mgh.harvard.edu/registration.html for free to obtain it if you do not have FreeSurfer installed already
 
@@ -112,7 +112,7 @@ targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_
 # Run recon-surf
 ./recon-surf.sh --sid subjectX \
                 --sd $targetdir \
-                --py python3.8 \
+                --py python3.10 \
                 --3T
 
 ```

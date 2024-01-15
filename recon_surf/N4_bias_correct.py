@@ -37,7 +37,7 @@ N4_bias_correct  --in <img.nii> [--out <corrected.nii>] [--rescaled <rescaled.ni
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     SimpleITK https://simpleitk.org/ (v2.1.1)
 

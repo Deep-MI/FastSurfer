@@ -217,7 +217,7 @@ SURFACE PIPELINE:
                             device (no memory check will be done).
   --batch <batch_size>    Batch size for inference. Default: 1
   --py <python_cmd>       Command for python, used in both pipelines.
-                            Default: python3.8
+                            Default: python3.10
 
  Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
