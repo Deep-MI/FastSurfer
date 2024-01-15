@@ -15,7 +15,7 @@
 
 # IMPORTS
 import logging
-from typing import Optional, Type, Tuple, Union
+from typing import Optional, Type, Tuple, Union, Iterable, cast
 import argparse
 import sys
 
@@ -140,7 +140,7 @@ def options_parse():
 def map_image(
         img: nib.analyze.SpatialImage,
         out_affine: np.ndarray,
-        out_shape: np.ndarray,
+        out_shape: tuple[int, ...] | np.ndarray | Iterable[int],
         ras2ras: Optional[np.ndarray] = None,
         order: int = 1,
         dtype: Optional[Type] = None
@@ -153,7 +153,7 @@ def map_image(
         the src 3D image with data and affine set
     out_affine : np.ndarray
         trg image affine
-    out_shape : np.ndarray
+    out_shape : tuple[int, ...], np.ndarray
         the trg shape information
     ras2ras : Optional[np.ndarray]
         an additional mapping that should be applied (default=id to just reslice)
@@ -180,20 +180,36 @@ def map_image(
     # here we apply the inverse vox2vox (to pull back the src info to the target image)
     image_data = np.asanyarray(img.dataobj)
     # convert frames to single image
-    if len(image_data.shape) > 3:
-        if any(s != 1 for s in image_data.shape[3:]):
+
+    out_shape = tuple(out_shape)
+    # if input has frames
+    if image_data.ndim > 3:
+        # if the output has no frames
+        if len(out_shape) == 3:
+            if any(s != 1 for s in image_data.shape[3:]):
+                raise ValueError(
+                    f"Multiple input frames {tuple(image_data.shape)} not supported!"
+                )
+            image_data = np.squeeze(image_data, axis=tuple(range(3, image_data.ndim)))
+        # if the output has the same number of frames as the input
+        elif image_data.shape[3:] == out_shape[3:]:
+            # add a frame dimension to vox2vox
+            _vox2vox = np.eye(5, dtype=vox2vox.dtype)
+            _vox2vox[:3, :3] = vox2vox[:3, :3]
+            _vox2vox[3:, 4:] = vox2vox[:3, 3:]
+            vox2vox = _vox2vox
+        else:
             raise ValueError(
-                f"Multiple input frames {tuple(image_data.shape)} not supported!"
-            )
-        image_data = np.squeeze(image_data, axis=tuple(range(3, len(image_data.shape))))
+                    f"Input image and requested output shape have different frames:"
+                    f"{image_data.shape} vs. {out_shape}!"
+                )
 
     if dtype is not None:
         image_data = image_data.astype(dtype)
 
-    new_data = affine_transform(
+    return affine_transform(
         image_data, inv(vox2vox), output_shape=out_shape, order=order
     )
-    return new_data
 
 
 def getscale(
@@ -509,14 +525,17 @@ def conform(
     target_dtype = np.dtype(sctype)
 
     src_min, scale = 0, 1.0
-    # get scale for conversion on original input before mapping to be more similar to mri_convert
+    # get scale for conversion on original input before mapping to be more similar to
+    # mri_convert
     if (
         img.get_data_dtype() != np.dtype(np.uint8)
         or img.get_data_dtype() != target_dtype
     ):
         src_min, scale = getscale(np.asanyarray(img.dataobj), 0, 255)
 
-    kwargs = {"dtype": "float"} if sctype != np.uint else {}
+    kwargs = {}
+    if sctype != np.uint:
+        kwargs["dtype"] = "float"
     mapped_data = map_image(img, affine, h1.get_data_shape(), order=order, **kwargs)
 
     if img.get_data_dtype() != np.dtype(np.uint8) or (
@@ -527,10 +546,9 @@ def conform(
         scaled_data[mapped_data == 0] = 0
         mapped_data = scaled_data
 
-    mapped_data = sctype(
-        np.clip(np.rint(mapped_data),0,255) if target_dtype == np.dtype(np.uint8) else mapped_data
-    )
-    new_img = nib.MGHImage(mapped_data, affine, h1)
+    if target_dtype == np.dtype(np.uint8):
+        mapped_data = np.clip(np.rint(mapped_data), 0, 255)
+    new_img = nib.MGHImage(sctype(mapped_data), affine, h1)
 
     # make sure we store uchar
     try:
@@ -611,21 +629,30 @@ def is_conform(
 
     criteria = {}
     # check dimensions
-    criteria["Dimensions {0}x{0}x{0}".format(conformed_img_size)] = all(
-        s == conformed_img_size for s in ishape[:3]
-    )
+    criteria[f"Number of Dimensions 3"] = (len(ishape) == 3, f"image ndim {img.ndim}")
+    img_size_criteria = f"Dimensions {'x'.join([str(conformed_img_size)] * 3)}"
+    is_correct_img_size = all(s == conformed_img_size for s in ishape[:3])
+    criteria[img_size_criteria] = (is_correct_img_size, f"image dimensions {ishape}")
 
-    # check voxel size
+    # check voxel size, drop voxel sizes of dimension 4 if available
     izoom = np.array(img.header.get_zooms())
-    is_correct_vox_size = np.max(np.abs(izoom - conformed_vox_size) < eps)
-    criteria["Voxel Size {0}x{0}x{0}".format(conformed_vox_size)] = is_correct_vox_size
+    is_correct_vox_size = np.max(np.abs(izoom[:3] - conformed_vox_size)) < eps
+    vox_size_criteria = f"Voxel Size {'x'.join([str(conformed_vox_size)] * 3)}"
+    image_vox_size = f"image " + "x".join(map(str, izoom))
+    criteria[vox_size_criteria] = (is_correct_vox_size, image_vox_size)
 
     # check orientation LIA
-    LIA_affine = np.array([[-1, 0, 0], [0, 0, 1], [0, -1, 0]])
-    iaffine = img.affine[0:3, 0:3] - LIA_affine * (
-        conformed_vox_size if is_correct_vox_size else izoom
+    lia_affine = np.array([[-1, 0, 0], [0, 0, 1], [0, -1, 0]])
+    iaffine = img.affine[:3, :3] - lia_affine * (
+        conformed_vox_size if is_correct_vox_size else izoom[:3]
     )
-    criteria["Orientation LIA"] = np.max(np.abs(iaffine)) <= eps
+    is_correct_lia = np.max(np.abs(iaffine)) <= eps
+    if not is_correct_lia:
+        import re
+        lia_text = re.sub("\s+", " ", str(img.affine[:3, :3]))
+    else:
+        lia_text = ""
+    criteria["Orientation LIA"] = (is_correct_lia, lia_text)
 
     # check dtype uchar
     if check_dtype:
@@ -633,10 +660,10 @@ def is_conform(
             dtype = "uint8"
         else:  # assume obj
             dtype = np.dtype(np.obj2sctype(dtype)).name
-        criteria[f"Dtype {dtype}"] = img.get_data_dtype() == dtype
+        is_correct_dtype = img.get_data_dtype() == dtype
+        criteria[f"Dtype {dtype}"] = (is_correct_dtype, f"dtype {img.get_data_dtype()}")
 
-    _is_conform = all(criteria.values())
-    # result = (_is_conform, criteria) if return_criteria else _is_conform
+    _is_conform = all(map(lambda x: x[0], criteria.values()))
 
     if verbose:
         if not _is_conform:
@@ -646,8 +673,8 @@ def is_conform(
             "conformed" if conform_vox_size == 1.0 else f"{conform_vox_size}-conformed"
         )
         print(f"A {conform_str} image must satisfy the following criteria:")
-        for condition, value in criteria.items():
-            print(" - {:<30} {}".format(condition + ":", value))
+        for condition, (value, message) in criteria.items():
+            print(f" - {condition:<30}: {value if value else 'BUT ' + message}")
     return _is_conform
 
 
@@ -663,16 +690,21 @@ def get_conformed_vox_img_size(
     Parameters
     ----------
     img : nib.analyze.SpatialImage
-        Loaded source image
-    conform_vox_size : VoxSizeOption
-        [MISSING]
-    conform_to_1mm_threshold : Optional[float]
-        [MISSING]
+        Loaded source image.
+    conform_vox_size : float, "min"
+        The voxel size parameter to use: either a voxel size as float, or the string
+        "min" to automatically find a suitable voxel size (smallest per-dimension voxel
+        size).
+    conform_to_1mm_threshold : float, optional
+        The threshold for which image voxel size should be conformed to 1mm instead of
+        conformed to the smallest voxel size (default: None = 1.0, never apply).
 
     Returns
     -------
-    [MISSING]
-    
+    conformed_vox_size : float
+        The conformed voxel size of the image.
+    conformed_img_size : int
+        The conformed image size of the image.
     """
     # this is similar to mri_convert --conform_min
     if isinstance(conform_vox_size, str) and conform_vox_size.lower() in [
@@ -715,9 +747,6 @@ def check_affine_in_nifti(
 
     Returns
     -------
-    True, if
-        affine was reset to qform voxel sizes in affine are equivalent to
-        voxel sizes in header
     False, if
         voxel sizes in affine and header differ
 
@@ -725,49 +754,39 @@ def check_affine_in_nifti(
     check = True
     message = ""
 
+    header = cast(nib.Nifti1Header | nib.Nifti2Header, img.header)
     if (
-        img.header["qform_code"] != 0
-        and np.max(np.abs(img.get_sform() - img.get_qform())) > 0.001
+        header["qform_code"] != 0 and
+        not np.allclose(img.get_sform(), img.get_qform(), atol=0.001)
     ):
         message = (
-            "#############################################################"
-            "\nWARNING: qform and sform transform are not identical!\n sform-transform:\n{}\n "
-            "qform-transform:\n{}\n"
-            "You might want to check your Nifti-header for inconsistencies!"
-            "\n!!! Affine from qform transform will now be used !!!\n"
-            "#############################################################".format(
-                img.header.get_sform(), img.header.get_qform()
-            )
+            f"#############################################################\n"
+            f"WARNING: qform and sform transform are not identical!\n"
+            f" sform-transform:\n{header.get_sform()}\n"
+            f" qform-transform:\n{header.get_qform()}\n"
+            f"You might want to check your Nifti-header for inconsistencies!\n"
+            f"!!! Affine from qform transform will now be used !!!\n"
+            f"#############################################################"
         )
-        # Set sform with qform affine and update best affine in header
+        # Set sform with qform affine and update the best affine in header
         img.set_sform(img.get_qform())
         img.update_header()
 
     else:
-        # Check if affine correctly includes voxel information and print Warning/Exit otherwise
-        vox_size_head = img.header.get_zooms()
-        aff = img.affine
-        xsize = np.sqrt(
-            aff[0][0] * aff[0][0] + aff[1][0] * aff[1][0] + aff[2][0] * aff[2][0]
-        )
-        ysize = np.sqrt(
-            aff[0][1] * aff[0][1] + aff[1][1] * aff[1][1] + aff[2][1] * aff[2][1]
-        )
-        zsize = np.sqrt(
-            aff[0][2] * aff[0][2] + aff[1][2] * aff[1][2] + aff[2][2] * aff[2][2]
-        )
+        # Check if affine correctly includes voxel information and print Warning/
+        # Exit otherwise
+        vox_size_header = header.get_zooms()
 
-        if (
-            (abs(xsize - vox_size_head[0]) > 0.001)
-            or (abs(ysize - vox_size_head[1]) > 0.001)
-            or (abs(zsize - vox_size_head[2]) > 0.001)
-        ):
+        # voxel size in xyz direction from the affine
+        vox_size_affine = (img.affine[:3, :3] * img.affine[:3, :3]).sum(0).sqrt()
+
+        if not np.allclose(vox_size_affine, vox_size_header, atol=1e-3):
             message = (
                 f"#############################################################\n"
-                f"ERROR: Invalid Nifti-header! Affine matrix is inconsistent with Voxel sizes. "
-                f"\nVoxel size (from header) vs. Voxel size in affine: "
-                f"{tuple(vox_size_head[:3])}, {(xsize, ysize, zsize)}\n"
-                f"Input Affine----------------\n{aff}\n"
+                f"ERROR: Invalid Nifti-header! Affine matrix is inconsistent with "
+                f"Voxel sizes. \nVoxel size (from header) vs. Voxel size in affine:\n"
+                f"{tuple(vox_size_header[:3])}, {tuple(vox_size_affine)}\n"
+                f"Input Affine----------------\n{img.affine}\n"
                 f"#############################################################"
             )
             check = False
@@ -816,7 +835,8 @@ if __name__ == "__main__":
         print(f"Input {options.input} is already conformed! Exiting.\n")
         sys.exit(0)
     else:
-        # Note: if check_only, a non-conforming image leads to an error code, this result is needed in recon_surf.sh
+        # Note: if check_only, a non-conforming image leads to an error code, this
+        # result is needed in recon_surf.sh
         if options.check_only:
             print("check_only flag provided. Exiting without conforming input image.\n")
             sys.exit(1)
