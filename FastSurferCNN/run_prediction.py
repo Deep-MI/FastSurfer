@@ -323,7 +323,7 @@ class RunModelOnData:
             orig,
             conform_vox_size=self.vox_size,
             check_dtype=True,
-            verbose=False,
+            verbose=True,
             conform_to_1mm_threshold=self.conform_to_1mm_threshold,
         ):
             LOGGER.info("Conforming image")
