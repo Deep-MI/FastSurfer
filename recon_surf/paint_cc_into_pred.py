@@ -30,7 +30,7 @@ paint_cc_into_pred  -in_cc <input_seg_with_cc> -in_pred <input_seg_without_cc> -
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Nibabel to read and write FreeSurfer data
     http://nipy.org/nibabel/

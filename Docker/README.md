@@ -67,7 +67,7 @@ Also note, in order to run our Docker containers on a Mac, users need to increas
 The build script `build.py` supports additional args, targets and options, see `python Docker/build.py --help`.
 
 Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
-In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of `FastSurferCNN` must be possible) and we only support Python 3.10 (Python 3.8+ still seems to work, but may stop working at any time).
+In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of `FastSurferCNN` must be possible) and we only support Python 3.10.
 
 By default, the build script will tag your image as "fastsurfer:{version_tag}[-{device}]", where {version_tag} is {version-identifer from pyproject.toml}_{current git-hash} and {device} is the value to --device (and omitted for cuda), but a custom tag can be specified by `--tag {tag_name}`. 
 

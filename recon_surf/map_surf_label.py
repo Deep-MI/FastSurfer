@@ -36,7 +36,7 @@ map_surf_label.py --srclabel <in.label> --srcsphere <sphere.reg>
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
     numpy, nibabel, sklearn
     
 

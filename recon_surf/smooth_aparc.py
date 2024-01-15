@@ -33,7 +33,7 @@ smooth_aparc  --insurf <surf> --inaparc <in_aparc> --incort <cortex.label> --out
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Numpy
     http://www.numpy.org

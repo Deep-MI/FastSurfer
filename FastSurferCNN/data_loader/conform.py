@@ -36,7 +36,7 @@ conform.py  -i <input> -o <output> <options>
 OR
 conform.py  -i <input> --check_only <options>
 Dependencies:
-    Python 3.8
+    Python 3.8+
     Numpy
     http://www.numpy.org
     Nibabel to read and write FreeSurfer data
