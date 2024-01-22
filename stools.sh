@@ -42,7 +42,8 @@ function translate_cases ()
   #param2 subject_list file
   #param3 target_dir
   #param4 optional, delimiter
-  #param5 optional, awk snippets to modify the subject_id and the subject_path (split by :), default '$1=$2'
+  #param5 optional, awk snippets to modify the subject_id, default '$1'
+  #param6 optional, awk snippets to modify the image_path, default '$2'
   if [[ "$#" -gt 3 ]]
   then
     delimiter=$4
@@ -51,10 +52,14 @@ function translate_cases ()
   fi
   if [[ "$#" -gt 4 ]]
   then
-    subid_awk="$(echo "$5" | cut -f1 -d=)"
-    subpath_awk="$(echo "$5" | cut -f2 -d=)"
+    subid_awk="$5"
   else
     subid_awk='$1'
+  fi
+  if [[ "$#" -gt 5 ]]
+  then
+    subpath_awk="$6"
+  else
     subpath_awk='$2'
   fi
   script="
@@ -63,8 +68,8 @@ function translate_cases ()
     regex2=\",(\" source_dir \"|\" target_dir \")/*\";
   }
   length(\$NF) > 1 {
-    subid=$subid_awk;
-    subpath=$subpath_awk;
+    subid=${subid_awk@Q};
+    subpath=${subpath_awk@Q};
     gsub(regex, \"\", subpath);
     gsub(regex2, \",\" target_dir \"/\", subpath);
     print subid \"=\" target_dir \"/\" subpath;
@@ -135,7 +140,15 @@ function check_subject_images ()
   for subject in $1
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
-    image_path=$(echo "$subject" | cut -d= -f2)
+    image_parameters=$(echo "$subject" | cut -d= -f2)
+    OLD_IFS=$IFS
+    IFS=","
+    for arg in $image_parameters
+    do
+      if [[ "$i" == 0 ]]; then image_path="$arg"; fi
+      i=$(( i + 1))
+    done
+    IFS=$OLD_IFS
     #TODO: also check here, if any of the folders up to the mounted dir leading to the file are symlinks
     #TODO: if so, this will lead to problems
     if [[ ! -e "$image_path" ]]

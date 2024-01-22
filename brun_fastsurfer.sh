@@ -121,7 +121,7 @@ case $key in
         echo "ERROR: Could not find the subject list $2!"
         exit 1
       fi
-      subjects="$subjects$newline$(cat $2)"
+      subjects="$subjects$newline$(cat "$2")"
       subjects_stdin="false"
     shift # past argument
     shift # past value
@@ -129,7 +129,7 @@ case $key in
     --subjects)
       subjects_stdin="false"
       shift # argument
-      while [[ "$(expr match \"$1\" '--.')" == 0 ]]
+      while [[ "$1" =~ ^-- ]]
       do
         if [[ -n "$subjects" ]]; then subjects="$subjects$newline"; fi
         subjects="$subjects$1"
@@ -144,7 +144,7 @@ case $key in
     ;;
     --parallel_subjects)
       shift
-      if [[ "$(expr match \"$1\" '--.')" == 0 ]]
+      if [[ "$1" =~ ^-- ]]
       then
         lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
         # has parameter

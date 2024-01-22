@@ -39,7 +39,8 @@ extra_singularity_options_seg=""
 email=""
 pattern="*.{nii.gz,nii,mgz}"
 subject_list=""
-subject_list_awk_code="\$1=\$2"
+subject_list_awk_code_sid="\$1"
+subject_list_awk_code_args="\$2"
 subject_list_delim="="
 jobarray=""
 timelimit_seg=5
@@ -55,7 +56,8 @@ srun_fastsurfer.sh [--data <directory to search images>]
     [--sd <output directory>] [--work <work directory>]
     (--pattern <search pattern for images>|--subject_list <path to subject_list file>
                                            [--subject_list_delim <delimiter>]
-                                           [--subject_list_awk_code <subject_id code>:<subject_path code>])
+                                           [--subject_list_awk_code_sid <subject_id code>]
+                                           [--subject_list_awk_code_t1 <image_path code>])
     [--singularity_image <path to fastsurfer singularity image>]
     [--extra_singularity_options [(seg|surf)=]<singularity option string>] [--num_cases_per_task <number>]
     [--num_cpus_per_task <number of cpus to allocate for seg>] [--cpu_only] [--time (surf|seg)=<timelimit>]
@@ -96,15 +98,17 @@ Data- and subject-related options:
   subject_id1=/path/to/t1.mgz,--vox_size,1.0
 --subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
   pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
---subject_list_awk_code <subject_id code>=<subject_path code>: alternative way to construct
-  subject_id and subject_path from the row in the subject_list (default: '\$1=\$2'), other
-  examples: '\$1=\$2/\$1/mri/orig.mgz', where the first field is the subject_id and the second
-  field is the containing folder, e.g. the study.
+--subject_list_awk_code_sid <subject_id code>: alternative way to construct the subject_id
+  from the row in the subject_list (default: '\$1').
+--subject_list_awk_code_args <t1_path code>: alternative way to construct the image_path and
+  additional parameters from the row in the subject_list (default: '\$2'), other examples:
+  '\$2/\$1/mri/orig.mgz', where the first field (of the subject_list file) is the subject_id
+  and the second field is the containing folder, e.g. the study.
   Example for additional parameters:
-  --subject_list_delim "," --subject_list_awk_code '\$1=\$2,--vox_size,\$4'
+  --subject_list_delim "," --subject_list_awk_code_args '\$2 ",--vox_size," \$4'
   to implement from the subject_list line
   subject-101,raw/T1w-101A.nii.gz,study-1,0.9
-  to
+  to (additional arguments must be comma-separated)
   --sid subject-101 --t1 <data-path>/raw/T1w-101A.nii.gz --vox_size 0.9
 
 FastSurfer options:
@@ -233,7 +237,16 @@ case $key in
     shift
     ;;
   --subject_list_awk_code)
-    subject_list_awk_code="$2"
+    echo "--subject_list_awk_code is outdated, use subject_list_awk_code_sid and subject_list_awk_code_args!"
+    exit 1
+    ;;
+  --subject_list_awk_code_sid)
+    subject_list_awk_code_sid="$2"
+    shift
+    shift
+    ;;
+  --subject_list_awk_code_args)
+    subject_list_awk_code_args="$2"
     shift
     shift
     ;;
@@ -406,7 +419,7 @@ then
   if [[ -n "$subject_list" ]]
   then
     echo "Reading subjects from subject_list file $subject_list"
-    echo "subject_list read options: delimiter: '${subject_list_delim}', awk code: '${subject_list_awk_code}'"
+    echo "subject_list read options: delimiter: '${subject_list_delim}', sid awk code: '${subject_list_awk_code_sid}', args awk code: '${subject_list_awk_code_args}'"
   else
     echo "pattern to search for images: $pattern"
   fi
@@ -487,10 +500,10 @@ fi
 if [[ -n "$subject_list" ]]
 then
   # the test for files (check_subject_images) requires paths to be wrt
-  cases=$(translate_cases "$in_dir" "$subject_list" "$in_dir" "${subject_list_delim}" "${subject_list_awk_code}")
+  cases=$(translate_cases "$in_dir" "$subject_list" "$in_dir" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}")
   check_subject_images "$cases"
 
-  cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code}" | $tofile)
+  cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | $tofile)
 else
   cases=$(read_cases "$in_dir" "$pattern" "/source" | $tofile)
 fi
