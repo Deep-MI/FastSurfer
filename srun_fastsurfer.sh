@@ -502,6 +502,12 @@ then
   # the test for files (check_subject_images) requires paths to be wrt
   cases=$(translate_cases "$in_dir" "$subject_list" "$in_dir" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}")
   check_subject_images "$cases"
+  if [[ "$debug" == "true" ]]
+  then
+    echo "Debug output of the parsed subject_list:"
+    echo "$cases"
+    echo ""
+  fi
 
   cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | $tofile)
 else

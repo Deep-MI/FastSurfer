@@ -68,13 +68,15 @@ function translate_cases ()
     regex2=\",(\" source_dir \"|\" target_dir \")/*\";
   }
   length(\$NF) > 1 {
-    subid=${subid_awk@Q};
-    subpath=${subpath_awk@Q};
+    subid=${subid_awk};
+    subpath=${subpath_awk};
     gsub(regex, \"\", subpath);
     gsub(regex2, \",\" target_dir \"/\", subpath);
     print subid \"=\" target_dir \"/\" subpath;
   }"
   #>&2 echo "awk -F \"$delimiter\" -v target_dir=\"$3\" -v source_dir=\"$1\" \"$script\" \"$2\""
+  #>&2 cat "$2"
+  #>&2 awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
   awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
 }
 
@@ -141,12 +143,13 @@ function check_subject_images ()
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
     image_parameters=$(echo "$subject" | cut -d= -f2)
+    i=0
     OLD_IFS=$IFS
     IFS=","
     for arg in $image_parameters
     do
       if [[ "$i" == 0 ]]; then image_path="$arg"; fi
-      i=$(( i + 1))
+      i=$((i + 1))
     done
     IFS=$OLD_IFS
     #TODO: also check here, if any of the folders up to the mounted dir leading to the file are symlinks
