@@ -42,7 +42,7 @@ function translate_cases ()
   #param2 subject_list file
   #param3 target_dir
   #param4 optional, delimiter
-  #param5 optional, awk snippets to modify the subject_id and the subject_path (split by :), default '$1:$2'
+  #param5 optional, awk snippets to modify the subject_id and the subject_path (split by :), default '$1=$2'
   if [[ "$#" -gt 3 ]]
   then
     delimiter=$4
@@ -51,15 +51,24 @@ function translate_cases ()
   fi
   if [[ "$#" -gt 4 ]]
   then
-    subid_awk="$(echo "$5" | cut -f1 -d:)"
-    subpath_awk="$(echo "$5" | cut -f2 -d:)"
+    subid_awk="$(echo "$5" | cut -f1 -d=)"
+    subpath_awk="$(echo "$5" | cut -f2 -d=)"
   else
     subid_awk='$1'
     subpath_awk='$2'
   fi
-  init='BEGIN { regex="^(" source_dir "|" target_dir ")"; }'
-  script=$(printf "%s length(\$NF) > 1 { subid=%s; subpath=%s; gsub(regex, \"\", subpath); print subid \"=\" target_dir \"/\" subpath; }" \
-           "$init" "$subid_awk" "$subpath_awk")
+  script="
+  BEGIN {
+    regex=\"^(\" source_dir \"|\" target_dir \")\";
+    regex2=\",(\" source_dir \"|\" target_dir \")/*\";
+  }
+  length(\$NF) > 1 {
+    subid=$subid_awk;
+    subpath=$subpath_awk;
+    gsub(regex, \"\", subpath);
+    gsub(regex2, \",\" target_dir \"/\", subpath);
+    print subid \"=\" target_dir \"/\" subpath;
+  }"
   #>&2 echo "awk -F \"$delimiter\" -v target_dir=\"$3\" -v source_dir=\"$1\" \"$script\" \"$2\""
   awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
 }

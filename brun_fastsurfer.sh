@@ -55,7 +55,7 @@ Documentation of Options:
 Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over multiple subjects from
 i. a list passed through stdin of the format (one subject per line)
 ---
-<subject_id>=<path to t1 image>
+<subject_id>=<path to t1 image>[,<subject-specific parameters>[,...]]
 ...
 ---
 ii. a subject_list file using the same format (use Ctrl-D to end the input), or
@@ -384,13 +384,19 @@ do
       fi
     fi
 
-    image_path=$(echo "$subject" | cut -d= -f2)
+    subject_parameters=$(echo "$subject" | cut -d= -f2)
+    image_path=$(echo "$subject_parameters" | cut -d, -f1)
+    subject_flags=$(echo "$subject_parameters" | cut -d, --output-delimiter=" " -f2-1000)
     args=(--sid "$subject_id")
+    if [[ -n "${subject_flags// /}" ]]
+    then
+      args=("${args[@]}" $subject_flags)
+    fi
     if [[ "$parallel_surf" == "true" ]]
     then
       if [[ "$debug" == "true" ]]
       then
-        echo "DEBUG: $run_fastsurfer --seg_only --t1 "$image_path"" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+        echo "DEBUG: $run_fastsurfer --seg_only --t1" "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
       fi
       $run_fastsurfer "--seg_only"  --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
       if [[ -n "$statusfile" ]]

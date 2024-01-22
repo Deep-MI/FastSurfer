@@ -39,7 +39,7 @@ extra_singularity_options_seg=""
 email=""
 pattern="*.{nii.gz,nii,mgz}"
 subject_list=""
-subject_list_awk_code="\$1:\$2"
+subject_list_awk_code="\$1=\$2"
 subject_list_delim="="
 jobarray=""
 timelimit_seg=5
@@ -92,12 +92,20 @@ Data- and subject-related options:
   subject_id1=/path/to/t1.mgz
   ...
   This option invalidates the --pattern option.
+  May also add additional parameters like:
+  subject_id1=/path/to/t1.mgz,--vox_size,1.0
 --subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
   pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
---subject_list_awk_code <subject_id code>:<subject_path code>: alternative way to construct
-  subject_id and subject_path from the row in the subject_list (default: '\$1:\$2'), other
-  examples: '\$1:\$2/\$1/mri/orig.mgz', where the first field is the subject_id and the second
+--subject_list_awk_code <subject_id code>=<subject_path code>: alternative way to construct
+  subject_id and subject_path from the row in the subject_list (default: '\$1=\$2'), other
+  examples: '\$1=\$2/\$1/mri/orig.mgz', where the first field is the subject_id and the second
   field is the containing folder, e.g. the study.
+  Example for additional parameters:
+  --subject_list_delim "," --subject_list_awk_code '\$1=\$2,--vox_size,\$4'
+  to implement from the subject_list line
+  subject-101,raw/T1w-101A.nii.gz,study-1,0.9
+  to
+  --sid subject-101 --t1 <data-path>/raw/T1w-101A.nii.gz --vox_size 0.9
 
 FastSurfer options:
 --fs_license: path to the freesurfer license (either absolute path or relative to pwd)
