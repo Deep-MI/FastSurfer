@@ -467,7 +467,8 @@ wait # for directories to be made
 all_cases_file="/$hpc_work/scripts/subject_list"
 
 echo "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
-echo "cp \"$(dirname $THIS_SCRIPT)/brun_fastsurfer.sh\" \"$hpc_work/scripts\""
+script_dir="$(dirname "$THIS_SCRIPT")"
+echo "cp \"$script_dir/brun_fastsurfer.sh\" \"$script_dir/stools.sh\" \"$hpc_work/scripts\""
 echo "cp \"$fs_license\" \"$hpc_work/scripts/.fs_license\""
 echo "Create Status/Success file at $hpc_work/scripts/subject_success"
 
@@ -475,7 +476,7 @@ tofile="cat"
 if [[ "$submit_jobs" == "true" ]]
 then
   cp "$singularity_image" "$hpc_work/images/fastsurfer.sif" &
-  cp "$(dirname $THIS_SCRIPT)/brun_fastsurfer.sh" "$hpc_work/scripts" &
+  cp "$script_dir/brun_fastsurfer.sh" "$script_dir/stools.sh" "$hpc_work/scripts" &
   cp "$fs_license" "$hpc_work/scripts/.fs_license" &
   echo "#Status/Success file of srun_fastsurfer-run $(date)" > "$hpc_work/scripts/subject_success" &
 
