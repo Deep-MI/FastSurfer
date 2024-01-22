@@ -148,7 +148,7 @@ case $key in
       then
         lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
         # has parameter
-        if [[ "$lower_value" =~ ^surf=?$ ]]
+        if [[ "$lower_value" =~ ^surf(=[0-9]+|=max)?$ ]]
         then
           parallel_subjects="max"
           parallel_surf="true"
@@ -230,6 +230,8 @@ echo ""
 
 set -eo pipefail
 
+source "$(dirname "$THIS_SCRIPT")/stools.sh"
+
 if [[ -n "$SLURM_ARRAY_TASK_ID" ]]
 then
   if [[ -z "$task_count" ]]
@@ -251,13 +253,14 @@ then
   echo "subjects: "
   echo $subjects
   echo "---"
-  echo "task_id/task_count: $task_id/$task_count"
+  echo "task_id/task_count: ${task_id-not specified}/${task_count-not specified}"
   if [[ "$parallel_subjects" != "1" ]]
   then
-    printf "--parallel_subjects"
     if [[ "$parallel_surf" == "true" ]]
     then
-      printf "surf=%s\n" "$parallel_subjects"
+      echo "--parallel_subjects surf=$parallel_subjects"
+    else
+      echo "--parallel_subjects $parallel_subjects"
     fi
   fi
   if [[ "$run_fastsurfer" != "/fastsurfer/run_fastsurfer.sh" ]]
@@ -269,9 +272,9 @@ then
     echo "statusfile: $statusfile"
   fi
   echo ""
-  echo "FastSurfer parameters:"
-  if [[ "$seg_only" == "true" ]]; then echo "--seg_only"; fi
-  if [[ "$surf_only" == "true" ]]; then echo "--surf_only"; fi
+  printf "FastSurfer parameters:"
+  if [[ "$seg_only" == "true" ]]; then printf "\n--seg_only"; fi
+  if [[ "$surf_only" == "true" ]]; then printf "\n--surf_only"; fi
   for p in "${POSITIONAL_FASTSURFER[@]}"
   do
     if [[ "$p" = --* ]]; then printf "\n%s" "$p";
@@ -279,7 +282,8 @@ then
     fi
   done
   echo ""
-  echo "Running in $(ls -l /proc/$$/exe | cut -d">" -f2)"
+  echo ""
+  echo "Running in shell$(ls -l /proc/$$/exe | cut -d">" -f2)"
   echo ""
   echo "---END DEBUG  ---"
 fi
@@ -356,7 +360,12 @@ then
 fi
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
-trap "{ echo \"brun_fastsurfer.sh terminated via signal at \$(date -R)!\" }" SIGINT SIGTERM
+trap 'echo "brun_fastsurfer.sh terminated via signal at $(date -R)!"' SIGINT SIGTERM
+
+if [[ "$parallel_subjects" != "1" ]]
+then
+  echo "Running up to $parallel_subjects in parallel"
+fi
 
 pids=()
 subjectids=()
@@ -384,21 +393,32 @@ do
       fi
     fi
 
-    subject_parameters=$(echo "$subject" | cut -d= -f2)
-    image_path=$(echo "$subject_parameters" | cut -d, -f1)
-    subject_flags=$(echo "$subject_parameters" | cut -d, --output-delimiter=" " -f2-1000)
+    image_parameters=$(echo "$subject" | cut -d= -f2-1000 --output-delimiter="=")
+    i=0
     args=(--sid "$subject_id")
-    if [[ -n "${subject_flags// /}" ]]
-    then
-      args=("${args[@]}" $subject_flags)
-    fi
+    OLD_IFS=$IFS
+    IFS=","
+    for arg in $image_parameters
+    do
+      if [[ "$i" == 0 ]]; then image_path="$arg"
+      else args=("${args[@]}" "$arg")
+      fi
+      i=$(( i + 1))
+    done
+    IFS=$OLD_IFS
     if [[ "$parallel_surf" == "true" ]]
     then
+      cmd=($run_fastsurfer "--seg_only" --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}")
       if [[ "$debug" == "true" ]]
       then
-        echo "DEBUG: $run_fastsurfer --seg_only --t1" "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+        echo "DEBUG:" "${cmd[@]}"
       fi
-      $run_fastsurfer "--seg_only"  --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+      if [[ "$parallel_subjects" != "1" ]]
+      then
+        "${cmd[@]}" | prepend "$subject_id: "
+      else
+        "${cmd[@]}"
+      fi
       if [[ -n "$statusfile" ]]
       then
         print_status "$subject_id" "--seg_only" "$?" | tee -a "$statusfile"
