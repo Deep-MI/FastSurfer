@@ -285,7 +285,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --entrypoint "/fastsurfer/brun_fastsurfer.sh" \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
-                      --sd /output --subjects_list /data/subjects_list.txt \
+                      --sd /output --subject_list /data/subjects_list.txt \
                       --parallel --3T
 ```
 #### Singularity
@@ -299,7 +299,7 @@ singularity exec --nv \
                  /fastsurfer/brun_fastsurfer.sh \
                  --fs_license /fs_license/license.txt \
                  --sd /output \
-                 --subjects_list /data/subjects_list.txt \
+                 --subject_list /data/subjects_list.txt \
                  --parallel --3T
 ```
 #### Native
@@ -312,7 +312,7 @@ datadir=/home/user/my_mri_data
 fastsurferdir=/home/user/my_fastsurfer_analysis
 
 # Run FastSurfer
-./brun_fastsurfer.sh --subjects_list $datadir/subjects_list.txt \
+./brun_fastsurfer.sh --subject_list $datadir/subjects_list.txt \
                      --sd $fastsurferdir \
                      --parallel --threads 4 --3T
 ```
