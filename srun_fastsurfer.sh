@@ -226,12 +226,12 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-  --subject_list)
+  --subject_list|--subjects_list)
     subject_list="$2"
     shift
     shift
     ;;
-  --subject_list_delim)
+  --subject_list_delim|--subjects_list_delim)
     subject_list_delim="$2"
     shift
     shift
@@ -240,12 +240,12 @@ case $key in
     echo "--subject_list_awk_code is outdated, use subject_list_awk_code_sid and subject_list_awk_code_args!"
     exit 1
     ;;
-  --subject_list_awk_code_sid)
+  --subject_list_awk_code_sid|--subjects_list_awk_code_sid)
     subject_list_awk_code_sid="$2"
     shift
     shift
     ;;
-  --subject_list_awk_code_args)
+  --subject_list_awk_code_args|--subjects_list_awk_code_args)
     subject_list_awk_code_args="$2"
     shift
     shift

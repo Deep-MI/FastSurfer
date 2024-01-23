@@ -115,7 +115,7 @@ do
 key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 case $key in
-    --subject_list)
+    --subject_list|--subjects_list)
       if [[ ! -f "$2" ]]
       then
         echo "ERROR: Could not find the subject list $2!"
