@@ -265,13 +265,13 @@ The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+as
 ### Example 4: FastSurfer on multiple subjects
 
 In order to run FastSurfer on multiple cases, you may use the helper script `brun_subjects.sh`. This script accepts multiple ways to define the subjects, for example a subjects_list file.
-Prepare the subjects_list file as follows:
+Prepare the subjects_list file as follows (one line subject per line; delimited by `\n`):
 ```
-subject_id1=path_to_t1\n
-subject2=path_to_t1\n
-subject3=path_to_t1\n
+subject_id1=path_to_t1
+subject2=path_to_t1
+subject3=path_to_t1
 ...
-subject10=path_to_t1\n
+subject10=path_to_t1
 ```
 Note, that all paths (`path_to_t1`) are as if you passed them to the `run_fastsurfer.sh` script via `--t1 <path>` so they may be with respect to the singularity or docker file system. Absolute paths are recommended. 
 
