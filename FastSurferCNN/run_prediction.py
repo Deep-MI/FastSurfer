@@ -15,16 +15,17 @@
 # IMPORTS
 import argparse
 import copy
-import os
 import sys
+from concurrent.futures import Executor, ThreadPoolExecutor, Future
+from pathlib import Path
+from typing import Any, Iterator, Literal, Optional, Sequence
+
 import nibabel as nib
 import numpy as np
 import torch
 import yacs.config
-import FastSurferCNN.reduce_to_aseg as rta
 
-from concurrent.futures import Executor
-from typing import Any, Dict, Iterator, Literal, Optional, Tuple, Union
+import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
@@ -32,7 +33,7 @@ from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import VINN_AXI, VINN_COR, VINN_SAG, get_checkpoints
 from FastSurferCNN.utils.common import (
-    NoParallelExecutor,
+    SerialExecutor,
     SubjectDirectory,
     SubjectList,
     assert_no_root,
@@ -82,7 +83,7 @@ def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
 
 def args2cfg(
     args: argparse.Namespace,
-) -> Tuple[
+) -> tuple[
     yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode
 ]:
     """
@@ -157,11 +158,12 @@ class RunModelOnData:
     pred_name: str
     conf_name: str
     orig_name: str
-    vox_size: Union[float, Literal["min"]]
+    vox_size: float | Literal["min"]
     current_plane: str
-    models: Dict[str, Inference]
-    view_ops: Dict[str, Dict[str, Any]]
+    models: dict[str, Inference]
+    view_ops: dict[str, dict[str, Any]]
     conform_to_1mm_threshold: Optional[float]
+    _pool: Executor
 
     def __init__(self, args: argparse.Namespace):
         """
@@ -209,9 +211,10 @@ class RunModelOnData:
 
         try:
             self.lut = du.read_classes_from_lut(args.lut)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise ValueError(
-                f"Could not find the ColorLUT in {args.lut}, please make sure the --lut argument is valid."
+                f"Could not find the ColorLUT in {args.lut}, please make sure the "
+                f"--lut argument is valid."
             )
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
@@ -230,7 +233,7 @@ class RunModelOnData:
         for plane, view in self.view_ops.items():
             if view["cfg"] is not None and view["ckpt"] is not None:
                 self.models[plane] = Inference(
-                    view["cfg"], ckpt=view["ckpt"], device=device, lut=self.lut
+                    view["cfg"], ckpt=view["ckpt"], device=device, lut=self.lut,
                 )
 
         vox_size = args.vox_size
@@ -240,32 +243,34 @@ class RunModelOnData:
             self.vox_size = float(vox_size)
         else:
             raise ValueError(
-                f"Invalid value for vox_size, must be between 0 and 1 or 'min', was {vox_size}."
+                f"Invalid value for vox_size, must be between 0 and 1 or 'min', was "
+                f"{vox_size}."
             )
         self.conform_to_1mm_threshold = args.conform_to_1mm_threshold
 
     @property
     def pool(self) -> Executor:
-        """[MISSING]."""
+        """
+        Return, and maybe create the objects executor object (with the number of threads
+        specified in __init__).
+        """
         if not hasattr(self, "_pool"):
             if not self._async_io:
-                self._pool = NoParallelExecutor()
+                self._pool = SerialExecutor()
             else:
-                from concurrent.futures import ThreadPoolExecutor
-
                 self._pool = ThreadPoolExecutor(self._threads)
         return self._pool
 
     def __del__(self):
-        """[MISSING]."""
+        """Class destructor."""
         if hasattr(self, "_pool"):
-            # only wait on futures, if we specifically ask (see end of the script, so we do not wait if we encounter a
-            # fail case)
+            # only wait on futures, if we specifically ask (see end of the script, so we
+            # do not wait if we encounter a fail case)
             self._pool.shutdown(True)
 
     def conform_and_save_orig(
-        self, subject: SubjectDirectory
-    ) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
+        self, subject: SubjectDirectory,
+    ) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
         """
         Conform and saves original image.
 
@@ -276,7 +281,7 @@ class RunModelOnData:
 
         Returns
         -------
-        Tuple[nib.analyze.SpatialImage, np.ndarray]
+        tuple[nib.analyze.SpatialImage, np.ndarray]
             Conformed image.
         """
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
@@ -308,24 +313,25 @@ class RunModelOnData:
             )
         else:
             raise RuntimeError(
-                "Cannot resolve the name to the conformed image, please specify an absolute path."
+                "Cannot resolve the name to the conformed image, please specify an "
+                "absolute path."
             )
 
         return orig, orig_data
 
-    def set_model(self, plane: str):
+    def set_model(self, plane: "Plane"):
         """
         Set the current model for the specified plane.
 
         Parameters
         ----------
-        plane : str
+        plane : Plane
             The plane for which to set the current model.
         """
         self.current_plane = plane
 
     def get_prediction(
-        self, image_name: str, orig_data: np.ndarray, zoom: Union[np.ndarray, Tuple]
+        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int],
     ) -> np.ndarray:
         """
         Run and get prediction.
@@ -336,7 +342,7 @@ class RunModelOnData:
             Original image filename.
         orig_data : np.ndarray
             Original image data.
-        zoom : Union[np.ndarray, Tuple]
+        zoom : np.ndarray, tuple
             Original zoom.
 
         Returns
@@ -365,43 +371,42 @@ class RunModelOnData:
         del pred_prob
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
-        # return numpy array TODO: split_cortex_labels requires a numpy ndarray input, maybe we can also use Mapper here
+        # return numpy array
+        # TODO: split_cortex_labels requires a numpy ndarray input, maybe we can also
+        #  use Mapper here
         pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
         return pred_classes
 
     def save_img(
         self,
-        save_as: str,
-        data: Union[np.ndarray, torch.Tensor],
+        save_as: str | Path,
+        data: np.ndarray | torch.Tensor,
         orig: nib.analyze.SpatialImage,
         dtype: Optional[type] = None,
-    ):
+    ) -> None:
         """
         Save image as a file.
 
         Parameters
         ----------
-        save_as : str
+        save_as : str, Path
             Filename to give the image.
-        data : Union[np.ndarray, torch.Tensor]
+        data : np.ndarray, torch.Tensor
             Image data.
         orig : nib.analyze.SpatialImage
             Original Image.
-        dtype : Optional[type]
-            Data type to use for saving the image. If None, the original data type is used.
-            (Default value = None).
-
-        Returns
-        -------
-        Any
-            Return value indicating the success of the save operation.
+        dtype : type, optional
+            Data type to use for saving the image. If None, the original data type is
+            used (Default value = None).
         """
+        save_as = Path(save_as)
         # Create output directory if it does not already exist.
-        if not os.path.exists(os.path.dirname(save_as)):
+        if not save_as.parent.exists():
             LOGGER.info(
-                f"Output image directory {os.path.basename(save_as)} does not exist. Creating it now..."
+                f"Output image directory {save_as.parent} does not exist. "
+                f"Creating it now..."
             )
-            os.makedirs(os.path.dirname(save_as))
+            save_as.parent.mkdir(parents=True)
 
         np_data = data if isinstance(data, np.ndarray) else data.cpu().numpy()
         if dtype is not None:
@@ -409,41 +414,48 @@ class RunModelOnData:
             _header.set_data_dtype(dtype)
         else:
             _header = orig.header
-        r = du.save_image(_header, orig.affine, np_data, save_as, dtype=dtype)
+        du.save_image(_header, orig.affine, np_data, save_as, dtype=dtype)
         LOGGER.info(
             f"Successfully saved image {'asynchronously ' if self._async_io else ''}  as {save_as}."
         )
-        return r
 
     def async_save_img(
         self,
-        save_as: str,
-        data: Union[np.ndarray, torch.Tensor],
+        save_as: str | Path,
+        data: np.ndarray | torch.Tensor,
         orig: nib.analyze.SpatialImage,
-        dtype: Union[None, type] = None,
-    ):
+        dtype: type | None = None,
+    ) -> Future[None]:
         """
-        Save the image asynchronously and return a concurrent.futures.Future to track, when this finished.
+        Save the image asynchronously and return a concurrent.futures.Future to track,
+        when this finished.
 
         Parameters
         ----------
-        save_as : str
+        save_as : str, Path
             Filename to give the image.
         data : Union[np.ndarray, torch.Tensor]
             Image data.
         orig : nib.analyze.SpatialImage
             Original Image.
-        dtype : Union[None, type], optional
-            Data type to use for saving the image. If None, the original data type is used.
+        dtype : type, optional
+            Data type to use for saving the image. If None, the original data type is
+            used.
 
         Returns
         -------
-        [MISSING]
-            Execution of save_img method.
+        Future[None]
+            A Future object to synchronize (and catch/handle exceptions in the save_img
+            method).
         """
         return self.pool.submit(self.save_img, save_as, data, orig, dtype)
 
-    def set_up_model_params(self, plane, cfg, ckpt):
+    def set_up_model_params(
+            self,
+            plane: "Plane",
+            cfg: "yacs.ConfigNode",
+            ckpt: "torch.Tensor",
+    ) -> None:
         """
         Set up the model parameters from the configuration and checkpoint.
         """
@@ -462,8 +474,8 @@ class RunModelOnData:
         return self.num_classes
 
     def pipeline_conform_and_save_orig(
-        self, subjects: SubjectList
-    ) -> Iterator[Tuple[SubjectDirectory, Tuple[nib.analyze.SpatialImage, np.ndarray]]]:
+        self, subjects: SubjectList,
+    ) -> Iterator[tuple[SubjectDirectory, tuple[nib.analyze.SpatialImage, np.ndarray]]]:
         """
         Pipeline for conforming and saving original images asynchronously.
 
@@ -474,7 +486,7 @@ class RunModelOnData:
 
         Yields
         ------
-        Tuple[SubjectDirectory, Tuple[nib.analyze.SpatialImage, np.ndarray]]
+        tuple[SubjectDirectory, tuple[nib.analyze.SpatialImage, np.ndarray]]
             Subject directory and a tuple with the image and its data.
         """
         if not self._async_io:
@@ -571,7 +583,7 @@ if __name__ == "__main__":
     # Set Up Model
     eval = RunModelOnData(args)
 
-    args.copy_orig_name = os.path.join("mri", "orig", "001.mgz")
+    args.copy_orig_name = "mri/orig/001.mgz"
     # Get all subjects of interest
     subjects = SubjectList(args, segfile="pred_name", copy_orig_name="copy_orig_name")
     subjects.make_subjects_dir()
@@ -595,9 +607,11 @@ if __name__ == "__main__":
 
             # Create aseg and brainmask
 
-            # There is a funny edge case in legacy FastSurfer 2.0, where the behavior is not well-defined, if orig_name
-            # is an absolute path, but out_dir is not set. Then, we would create a sub-folder in the folder of orig_name
-            # using the subject_id (passed by --sid or extracted from the orig_name) and use that as the subject folder.
+            # There is a funny edge case in legacy FastSurfer 2.0, where the behavior is
+            # not well-defined, if orig_name is an absolute path, but out_dir is not
+            # set. Then, we would create a sub-folder in the folder of orig_name using
+            # the subject_id (passed by --sid or extracted from the orig_name) and use
+            # that as the subject folder.
             bm = None
             store_brainmask = subject.can_resolve_filename(args.brainmask_name)
             store_aseg = subject.can_resolve_filename(args.aseg_name)
@@ -612,9 +626,11 @@ if __name__ == "__main__":
                 )
             else:
                 LOGGER.info(
-                    "Not saving the brainmask, because we could not figure out where to store it. Please "
-                    "specify a subject id with {sid[flag]}, or an absolute brainmask path with "
-                    "{brainmask_name[flag]}.".format(**subjects.flags)
+                    "Not saving the brainmask, because we could not figure out where "
+                    "to store it. Please specify a subject id with {sid[flag]}, or an "
+                    "absolute brainmask path with {brainmask_name[flag]}.".format(
+                        **subjects.flags,
+                    )
                 )
 
             if store_aseg:
@@ -630,17 +646,20 @@ if __name__ == "__main__":
                 )
             else:
                 LOGGER.info(
-                    "Not saving the aseg file, because we could not figure out where to store it. Please "
-                    "specify a subject id with {sid[flag]}, or an absolute aseg path with "
-                    "{aseg_name[flag]}.".format(**subjects.flags)
+                    "Not saving the aseg file, because we could not figure out where "
+                    "to store it. Please specify a subject id with {sid[flag]}, or an "
+                    "absolute aseg path with {aseg_name[flag]}.".format(
+                        **subjects.flags,
+                    )
                 )
 
             # Run QC check
             LOGGER.info("Running volume-based QC check on segmentation...")
-            seg_voxvol = np.product(orig_img.header.get_zooms())
+            seg_voxvol = np.prod(orig_img.header.get_zooms())
             if not check_volume(pred_data, seg_voxvol):
                 LOGGER.warning(
-                    "Total segmentation volume is too small. Segmentation may be corrupted."
+                    "Total segmentation volume is too small. Segmentation may be "
+                    "corrupted."
                 )
                 if qc_file_handle is not None:
                     qc_file_handle.write(subject.id + "\n")

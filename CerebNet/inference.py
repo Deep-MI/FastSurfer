@@ -31,7 +31,7 @@ from FastSurferCNN.utils.common import (
     find_device,
     SubjectList,
     SubjectDirectory,
-    NoParallelExecutor,
+    SerialExecutor,
 )
 from CerebNet.data_loader.augmentation import ToTensorTest
 from CerebNet.data_loader.dataset import SubjectDataset, Plane, PLANES
@@ -55,21 +55,28 @@ class Inference:
         viewagg_device: str = "auto",
     ):
         """
-        Create the inference object to manage inferencing, batch processing, data loading, etc.
+        Create the inference object to manage inferencing, batch processing, data
+        loading, etc.
 
-        Args:
-            cfg: yaml configuration to populate default values for parameters
-            threads: number of threads to use, -1 is max (all), which is also the default.
-            async_io: whether io is run asynchronously (default: False)
-            device: device to perform inference on (default: auto)
-            viewagg_device: device to aggregate views on (default: auto)
+        Parameters
+        ----------
+        cfg : yacs.ConfigNode
+            Yaml configuration to populate default values for parameters.
+        threads : int, optional
+            Number of threads to use, -1 is max (all), which is also the default.
+        async_io : bool, optional
+            Whether io is run asynchronously (default: False).
+        device : str
+            Device to perform inference on (default: auto).
+        viewagg_device : str
+            Device to aggregate views on (default: auto).
         """
         self.pool = None
         self._threads = None
         self.threads = threads
         torch.set_num_threads(get_num_threads() if self._threads is None else self._threads)
         self.pool = (
-            ThreadPoolExecutor(self._threads) if async_io else NoParallelExecutor()
+            ThreadPoolExecutor(self._threads) if async_io else SerialExecutor()
         )
         self.cfg = cfg
         self._async_io = async_io
@@ -162,7 +169,8 @@ class Inference:
             checkpoint_path = cfg.TEST[f"{plane.upper()}_CHECKPOINT_PATH"]
             model = build_model(params)
             if not isfile(checkpoint_path):
-                # if the checkpoint path is not a file, but a folder search in there for the newest checkpoint
+                # if the checkpoint path is not a file, but a folder search in there for
+                # the newest checkpoint
                 checkpoint_path = cp.get_checkpoint_path(checkpoint_path).pop()
             cp.load_from_checkpoint(checkpoint_path, model)
             model.eval()
@@ -190,7 +198,8 @@ class Inference:
                 from CerebNet.data_loader.data_utils import slice_lia2ras, slice_ras2lia
 
                 for img in img_loader:
-                    # CerebNet is trained on RAS+ conventions, so we need to map between lia (FastSurfer) and RAS+
+                    # CerebNet is trained on RAS+ conventions, so we need to map between
+                    # lia (FastSurfer) and RAS+
                     # map LIA 2 RAS
                     img = slice_lia2ras(plane, img, thick_slices=True)
                     batch = img.to(self.device)
@@ -210,13 +219,17 @@ class Inference:
     def _post_process_preds(
         self, preds: Dict[Plane, List[torch.Tensor]]
     ) -> Dict[Plane, torch.Tensor]:
-        """Permutes axes, so it has consistent sagittal, coronal, axial, channels format. Also maps
-        classes of sagittal predictions into the global label space
+        """
+        Permutes axes, so it has consistent sagittal, coronal, axial, channels format.
+        Also maps classes of sagittal predictions into the global label space.
 
-        Args:
-            preds: predicted logits.
+        Parameters
+        ----------
+        preds:
+            predicted logits.
 
-        Returns:
+        Returns
+        -------
             dictionary of permuted logits.
         """
         axis_permutation = {
@@ -311,18 +324,27 @@ class Inference:
         return dataframe
 
     def _save_cerebnet_seg(
-        self, cerebnet_seg: np.ndarray, filename: str, orig: nib.analyze.SpatialImage
+            self,
+            cerebnet_seg: np.ndarray,
+            filename: str | Path,
+            orig: nib.analyze.SpatialImage
     ) -> "Future[None]":
         """
         Saving the segmentations asynchronously.
 
-        Args:
-            cerebnet_seg: segmentation data
-            filename: path and file name to the saved file
-            bounding_box: bounding box from the full image to fill with the segmentation
-            orig: file container (with header and affine) used to populate header and affine of the segmentation
+        Parameters
+        ----------
+        cerebnet_seg : np.ndarray
+            Segmentation data.
+        filename : Path, str
+            Path and file name to the saved file.
+        orig : nib.analyze.SpatialImage
+            File container (with header and affine) used to populate header and affine
+            of the segmentation.
 
-        Returns:
+        Returns
+        -------
+        Future[None]
             A Future to determine when the file was saved. Result is None.
         """
         from FastSurferCNN.data_loader.data_utils import save_image
@@ -336,8 +358,11 @@ class Inference:
 
     def _get_subject_dataset(
         self, subject: SubjectDirectory
-    ) -> Tuple[Optional[np.ndarray], Optional[str], SubjectDataset]:
-        """Load and prepare input files asynchronously, then locate the cerebellum and provide a localized patch."""
+    ) -> Tuple[Optional[np.ndarray], Optional[Path], SubjectDataset]:
+        """
+        Load and prepare input files asynchronously, then locate the cerebellum and
+        provide a localized patch.
+        """
 
         from FastSurferCNN.data_loader.data_utils import load_image, load_maybe_conform
 
@@ -347,8 +372,9 @@ class Inference:
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
 
                 raise ValueError(
-                    f"Cannot resolve the intended filename {subject.get_attribute('cereb_statsfile')} "
-                    f"for the cereb_statsfile, maybe specify an absolute path via "
+                    f"Cannot resolve the intended filename "
+                    f"{subject.get_attribute('cereb_statsfile')} for the "
+                    f"cereb_statsfile, maybe specify an absolute path via "
                     f"{ALL_FLAGS['cereb_statsfile'](dict)['flag']}."
                 )
             if not subject.has_attribute(
@@ -357,9 +383,11 @@ class Inference:
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
 
                 raise ValueError(
-                    f"Cannot resolve the file name {subject.get_attribute('norm_name')} for the "
-                    f"bias field corrected image, maybe specify an absolute path via "
-                    f"{ALL_FLAGS['norm_name'](dict)['flag']} or the file does not exist."
+                    f"Cannot resolve the file name "
+                    f"{subject.get_attribute('norm_name')} for the bias field "
+                    f"corrected image, maybe specify an absolute path via "
+                    f"{ALL_FLAGS['norm_name'](dict)['flag']} or the file does not "
+                    f"exist."
                 )
 
             norm_file = subject.filename_by_attribute("norm_name")
@@ -371,8 +399,8 @@ class Inference:
         # localization
         if not subject.fileexists_by_attribute("asegdkt_segfile"):
             raise RuntimeError(
-                f"The aseg.DKT-segmentation file '{subject.asegdkt_segfile}' did not exist, "
-                "please run FastSurferVINN first."
+                f"The aseg.DKT-segmentation file '{subject.asegdkt_segfile}' did not "
+                f"exist, please run FastSurferVINN first."
             )
         seg = self.pool.submit(
             load_image, subject.filename_by_attribute("asegdkt_segfile")
@@ -422,7 +450,7 @@ class Inference:
                     preds = self._predict_single_subject(subject_dataset)
                     # create the folder for the output file, if it does not exist
                     _mkdir = self.pool.submit(
-                        makedirs, dirname(subject.segfile), exist_ok=True
+                        subject.segfile.parent.mkdir, exist_ok=True, parents=True,
                     )
 
                     # postprocess logits (move axes, map sagittal to all classes)
@@ -430,7 +458,8 @@ class Inference:
                     # view aggregation in logit space and find max label
                     cerebnet_seg = self._view_aggregation(preds_per_plane)
 
-                    # map predictions into FreeSurfer Label space & move segmentation to cpu
+                    # map predictions into FreeSurfer Label space & move segmentation to
+                    # cpu
                     cerebnet_seg = self.cereb2fs.map(cerebnet_seg).cpu()
                     pred_time = time.time()
 
@@ -454,14 +483,15 @@ class Inference:
                     )
 
                     if subject.has_attribute("cereb_statsfile"):
-                        # vox_vol = np.prod(norm.header.get_zooms()).item()  # CerebNet always has vox_vol 1
+                        # vox_vol = np.prod(norm.header.get_zooms()).item()
+                        # CerebNet always has vox_vol 1
                         if norm is None:
                             raise RuntimeError("norm not loaded as expected!")
                         df = self._calc_segstats(full_cereb_seg, norm, vox_vol=1.0)
                         from FastSurferCNN.segstats import write_statsfile
 
-                        # in batch processing, we are finished with this subject and the output of this data can be
-                        # outsourced to a different process
+                        # in batch processing, we are finished with this subject and the
+                        # output of this data can be outsourced to a different process
                         futures.append(
                             self.pool.submit(
                                 write_statsfile,
@@ -475,8 +505,9 @@ class Inference:
                         )
 
                     logger.info(
-                        f"Subject {idx + 1}/{len(subject_directories)} with id '{subject.id}' "
-                        f"processed in {pred_time - start_time :.2f} sec."
+                        f"Subject {idx + 1}/{len(subject_directories)} with id "
+                        f"'{subject.id}' processed in {pred_time - start_time :.2f} "
+                        f"sec."
                     )
                 except Exception as e:
                     logger.exception(e)

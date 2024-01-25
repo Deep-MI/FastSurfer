@@ -78,7 +78,8 @@ if __name__ == "__main__":
     # FastSurferVINN checkpoints
     if args.vinn or args.all:
         get_checkpoints(
-            VINN_AXI, VINN_COR, VINN_SAG, URL if args.url is None else args.url
+            VINN_AXI, VINN_COR, VINN_SAG,
+            url=URL if args.url is None else args.url
         )
 
     # CerebNet checkpoints
@@ -87,7 +88,7 @@ if __name__ == "__main__":
             CEREBNET_AXI,
             CEREBNET_COR,
             CEREBNET_SAG,
-            CEREBNET_URL if args.url is None else args.url,
+            url=CEREBNET_URL if args.url is None else args.url,
         )
 
     # later we can add more defaults here (for other sub-segmentation networks, or old CNN)

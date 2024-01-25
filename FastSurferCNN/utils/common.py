@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import builtins
 
 # IMPORTS
 import os
 from concurrent.futures import Executor, Future
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -26,7 +26,6 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    Union,
 )
 
 import torch
@@ -39,7 +38,7 @@ __all__ = [
     "find_device",
     "handle_cuda_memory_exception",
     "iterate",
-    "NoParallelExecutor",
+    "SerialExecutor",
     "pipeline",
     "SubjectList",
     "SubjectDirectory",
@@ -51,7 +50,7 @@ _Ti = TypeVar("_Ti")
 
 
 def find_device(
-    device: Union[torch.device, str] = "auto",
+    device: torch.device | str = "auto",
     flag_name: str = "device",
     min_memory: int = 0,
 ) -> torch.device:
@@ -62,7 +61,7 @@ def find_device(
 
     Parameters
     ----------
-    device : Union[torch.device, str]
+    device : torch.device, str
         The device to search for and test following pytorch device naming
         conventions, e.g. 'cuda:0', 'cpu', etc. (default: 'auto').
     flag_name : str
@@ -103,7 +102,8 @@ def find_device(
         if total_gpu_memory < min_memory:
             giga = 1024**3
             logger.info(
-                f"Found {total_gpu_memory/giga:.1f} GB GPU memory, but {min_memory/giga:.f} GB was required."
+                f"Found {total_gpu_memory/giga:.1f} GB GPU memory, but "
+                f"{min_memory/giga:.f} GB was required."
             )
             device = torch.device("cpu")
 
@@ -123,15 +123,16 @@ def assert_no_root() -> bool:
     """
     if os.name == "posix" and os.getuid() == 0:
         import sys
-
         import __main__
 
         sys.exit(
             """----------------------------
-            ERROR: You are trying to run '{0}' as root. We advice to avoid running 
-            FastSurfer as root, because it will lead to files and folders created as root.
-            If you are running FastSurfer in a docker container, you can specify the user with 
-            '-u $(id -u):$(id -g)' (see https://docs.docker.com/engine/reference/run/#user).
+            ERROR
+            You are trying to run '{0}' as root. We advice to avoid running FastSurfer 
+            as root, because it will lead to files and folders created as root.
+            If you are running FastSurfer in a docker container, you can specify the 
+            user with '-u $(id -u):$(id -g)' 
+            (see https://docs.docker.com/engine/reference/run/#user).
             If you want to force running as root, you may pass --allow_root to {0}.
             """.format(
                 os.path.basename(__main__.__file__)
@@ -140,7 +141,7 @@ def assert_no_root() -> bool:
     return True
 
 
-def handle_cuda_memory_exception(exception: builtins.BaseException) -> bool:
+def handle_cuda_memory_exception(exception: BaseException) -> bool:
     """
     Handle CUDA out of memory exception and print a help text.
 
@@ -152,7 +153,7 @@ def handle_cuda_memory_exception(exception: builtins.BaseException) -> bool:
     Returns
     -------
     bool
-        Whether th exception was a RuntimeError caused by Cuda out memory.
+        Whether the exception was a RuntimeError caused by Cuda out memory.
     """
     if not isinstance(exception, RuntimeError):
         return False
@@ -160,12 +161,15 @@ def handle_cuda_memory_exception(exception: builtins.BaseException) -> bool:
     if message.startswith("CUDA out of memory. "):
         LOGGER.critical("ERROR - INSUFFICIENT GPU MEMORY")
         LOGGER.info(
-            "The memory requirements exceeds the available GPU memory, try using a smaller batch size "
-            "(--batch_size <int>) and/or view aggregation on the cpu (--viewagg_device 'cpu')."
-            "Note: View Aggregation on the GPU is particularly memory-hungry at approx. 5 GB for standard "
-            "256x256x256 images."
+            "The memory requirements exceeds the available GPU memory, try using a "
+            "smaller batch size (--batch_size <int>) and/or view aggregation on the "
+            "cpu (--viewagg_device 'cpu')."
         )
-        memory_message = message[message.find("(") + 1 : message.find(")")]
+        LOGGER.info(
+            "Note: View Aggregation on the GPU is particularly memory-hungry at "
+            "approx. 5 GB for standard 256x256x256 images."
+        )
+        memory_message = message[message.find("(") + 1:message.find(")")]
         LOGGER.info(f"Using {memory_message}.")
         return True
     else:
@@ -221,7 +225,7 @@ def pipeline(
 
 
 def iterate(
-    pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti]
+    pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti],
 ) -> Iterator[Tuple[_Ti, _T]]:
     """
     Iterate over iterable, yield pairs of elements and func(element).
@@ -266,39 +270,46 @@ class SubjectDirectory:
 
         Parameters
         ----------
-        **kwargs :
-            id: the subject id
-            orig_name: relative or absolute filename of the orig filename
-            conf_name: relative or absolute filename of the conformed filename
-            segfile: relative or absolute filename of the segmentation filename
-            main_segfile: relative or absolute filename of the main segmentation filename
-            asegdkt_segfile: relative or absolute filename of the aparc+aseg segmentation filename
-            subject_dir: path to the subjects directory (containing subject folders)
+        id : str
+            The subject id.
+        orig_name : str
+            Relative or absolute filename of the orig filename.
+        conf_name : str
+            Relative or absolute filename of the conformed filename.
+        segfile : str
+            Relative or absolute filename of the segmentation filename.
+        main_segfile : str
+            Relative or absolute filename of the main segmentation filename.
+        asegdkt_segfile : str
+            Relative or absolute filename of the aparc+aseg segmentation filename.
+        subject_dir : Path
+            Path to the subjects directory (containing subject folders).
         """
         for k, v in kwargs.items():
+            if k == "subject_dir":
+                v = Path(v)
             setattr(self, "_" + k, v)
 
-    def filename_in_subject_folder(self, filepath: str) -> str:
+    def filename_in_subject_folder(self, filepath: str | Path) -> Path:
         """
         Return the full path to the file.
 
         Parameters
         ----------
-        filepath : str
-            Absolute path.
+        filepath : str, Path
+            Absolute to the file or name of the file.
 
         Returns
         -------
-        str
+        Path
             Path to the file.
         """
-        return (
-            filepath
-            if os.path.isabs(filepath)
-            else os.path.join(self.subject_dir, self._id, filepath)
-        )
+        if Path(filepath).is_absolute():
+            return Path(filepath)
+        else:
+            return self.subject_dir / self._id / filepath
 
-    def filename_by_attribute(self, attr_name: str) -> str:
+    def filename_by_attribute(self, attr_name: str) -> Path:
         """
         Retrieve a filename based on the provided attribute name.
 
@@ -309,18 +320,18 @@ class SubjectDirectory:
 
         Returns
         -------
-        str
+        Path
             The filename corresponding to the provided attribute name.
         """
         return self.filename_in_subject_folder(self.get_attribute(attr_name))
 
-    def fileexists_in_subject_folder(self, filepath: str) -> bool:
+    def fileexists_in_subject_folder(self, filepath: str | Path) -> bool:
         """
         Check if file exists in the subject folder.
 
         Parameters
         ----------
-        filepath : str
+        filepath : Path, str
             Path to the file.
 
         Returns
@@ -328,7 +339,7 @@ class SubjectDirectory:
         bool
             Whether the file exists or not.
         """
-        return os.path.exists(self.filename_in_subject_folder(filepath))
+        return self.filename_in_subject_folder(filepath).exists()
 
     def fileexists_by_attribute(self, attr_name: str) -> bool:
         """
@@ -347,26 +358,26 @@ class SubjectDirectory:
         return self.fileexists_in_subject_folder(self.get_attribute(attr_name))
 
     @property
-    def subject_dir(self) -> str:
+    def subject_dir(self) -> Path:
         """
         Gets the subject directory name.
 
         Returns
         -------
-        str
+        Path
             The set subject directory.
         """
         assert hasattr(self, "_subject_dir") or "The folder attribute has not been set!"
-        return self._subject_dir
+        return Path(self._subject_dir)
 
     @subject_dir.setter
-    def subject_dir(self, _folder: str):
+    def subject_dir(self, _folder: str | Path):
         """
         Set the subject directory name.
 
         Parameters
         ----------
-        _folder : str
+        _folder : str, Path
             The subject directory.
         """
         self._subject_dir = _folder
@@ -427,7 +438,7 @@ class SubjectDirectory:
         self._orig_name = _orig_name
 
     @property
-    def copy_orig_name(self) -> str:
+    def copy_orig_name(self) -> Path:
         """
         Try to return absolute path.
 
@@ -436,7 +447,7 @@ class SubjectDirectory:
 
         Returns
         -------
-        str
+        Path
             The copy of orig name.
         """
         assert (
@@ -463,7 +474,7 @@ class SubjectDirectory:
         self._copy_orig_name = _copy_orig_name
 
     @property
-    def conf_name(self) -> str:
+    def conf_name(self) -> Path:
         """
         Try to return absolute path.
 
@@ -472,7 +483,7 @@ class SubjectDirectory:
 
         Returns
         -------
-        str
+        Path
             [MISSING].
         """
         assert (
@@ -498,7 +509,7 @@ class SubjectDirectory:
         self._conf_name = _conf_name
 
     @property
-    def segfile(self) -> str:
+    def segfile(self) -> Path:
         """
         Try to return absolute path.
 
@@ -506,7 +517,7 @@ class SubjectDirectory:
 
         Returns
         -------
-        str
+        Path
             Path to the segfile.
         """
         assert hasattr(self, "_segfile") or "The _segfile attribute has not been set!"
@@ -525,7 +536,7 @@ class SubjectDirectory:
         self._segfile = _segfile
 
     @property
-    def asegdkt_segfile(self) -> str:
+    def asegdkt_segfile(self) -> Path:
         """
         Try to return absolute path.
 
@@ -534,7 +545,7 @@ class SubjectDirectory:
 
         Returns
         -------
-        str
+        Path
             Path to segmentation file.
         """
         assert (
@@ -544,19 +555,19 @@ class SubjectDirectory:
         return self.filename_in_subject_folder(self._asegdkt_segfile)
 
     @asegdkt_segfile.setter
-    def asegdkt_segfile(self, _asegdkt_segfile: str):
+    def asegdkt_segfile(self, _asegdkt_segfile: str | Path):
         """
         Set path to segmentation file.
 
         Parameters
         ----------
-        _asegdkt_segfile : str
+        _asegdkt_segfile : Path, str
             Path to segmentation file.
         """
-        self._asegdkt_segfile = _asegdkt_segfile
+        self._asegdkt_segfile = str(_asegdkt_segfile)
 
     @property
-    def main_segfile(self) -> str:
+    def main_segfile(self) -> Path:
         """
         Try to return absolute path.
 
@@ -565,7 +576,7 @@ class SubjectDirectory:
 
         Returns
         -------
-        str
+        Path
             Path to the main segfile.
 
         """
@@ -635,7 +646,7 @@ class SubjectDirectory:
         """
         return getattr(self, "_" + attr_name, None) is not None
 
-    def get_attribute(self, attr_name: str):
+    def get_attribute(self, attr_name: str) -> str | Path:
         """
         Give the requested attribute.
 
@@ -646,7 +657,7 @@ class SubjectDirectory:
 
         Returns
         -------
-        object
+        str, Path
             The value of the requested attribute.
 
         Raises
@@ -664,60 +675,68 @@ class SubjectList:
     Represent a list of subjects.
     """
 
-    _subjects: List[str]
+    _subjects: List[Path]
     _orig_name_: str
     _conf_name_: str
     _segfile_: str
-    _flags: Dict[str, Dict]
+    _flags: Dict[str, dict]
 
     DEFAULT_FLAGS = {k: v(dict) for k, v in parser_defaults.ALL_FLAGS.items()}
 
-    def __init__(self, args, flags: Optional[Dict[str, Dict]] = None, **assign):
+    def __init__(self, args, flags: Optional[dict[str, dict]] = None, **assign):
         """
         Create an iterate-able list of subjects from the arguments passed.
+
+        There are three modes of operation:
+        If args has a non-empty csv_file attribute (cf. {csv_file[flag]} flag),
+            read subjects from a subject list file:  The subject listfile is a
+            textfile with one subject per line, where each line can be an absolute
+            or relative path. If they are relative paths, they are interpreted as
+            relative to args.in_dir, so args.in_dir needs to be defined. Paths can
+            either point to subject directories (file is path + the t1 image name in
+            args.orig_name) or directly to the t1 image.
+        Else, if args has a non-empty in_dir attribute (c.f. {in_dir[flag]} flag),
+            list the folder contents of in_dir: The search pattern can be specified
+            by the search_tag attribute of args (cf. {tag[flag]} flag), which is
+            {tag[default]} (all files and folders) by default.
+            For containing objects that are folders, these folders are interpreted
+            as subject directories and the t1 image is loaded according to the
+            (necessarily relative) {t1[flag]} (args.orig_name), which defaults to
+            {t1[default]}. The folder name is treated as the subject id, if no
+            {sid[flag]} is passed (args.sid).
+            For the containing objects that are files, these files are interpreted
+            are loaded as to-be analyzed data.
+        Finally, if an absolute path is specified with the orig_name attribute of
+            args (cf. {t1[flag]}), only this specific file is processed.
 
         Parameters
         ----------
         args :
-            The Namespace object (object with attributes to define parameters) with the following 'required'
-            definitions.
+            The Namespace object (object with attributes to define parameters) with the
+            following 'required' definitions.
             orig_name (str): the path to the input t1 file.
             conf_name (str): the path to the conformed t1 file.
             segfile (str): the path to the main output file.
             in_dir (str) or csv_file (str), if orig_name is not an absolute path.
-        flags : Optional[Dict[str, Dict]]
-            dictionary of flags used to generate args (used to populate messages). Default:
-                `SubjectList.DEFAULT_FLAGS`, which get initialized from `FastSurferCNN.utils.-parser_defaults.ALL_FLAGS`
-            `SubjectList.DEFAULT_FLAGS`, which get initialized from `FastSurferCNN.utils.-parser_defaults.ALL_FLAGS`
-        There are three modes of operation:
-            There are three modes of operation:
-            If args has a non-empty csv_file attribute (cf. {csv_file[flag]} flag), read subjects from a subject list file
-            The subject listfile is a textfile with one subject per line, where each line can be an absolute or relative
-            path. If they are relative paths, they are interpreted as relative to args.in_dir, so args.in_dir needs to
-            be defined. Paths can either point to subject directories (file is path + the t1 image name in
-            args.orig_name) or directly to the t1 image.
-            Else, if args has a non-empty in_dir attribute (c.f. {in_dir[flag]} flag), list the folder contents of in_dir
-            The search pattern can be specified by the search_tag attribute of args (cf. {tag[flag]} flag), which is
-            {tag[default]} (all files and folders) by default.
-            For containing objects that are folders, these folders are interpreted as subject directories and the t1
-            image is loaded according to the (necessarily relative) {t1[flag]} (args.orig_name), which defaults to
-            {t1[default]}. The folder name is treated as the subject id, if no {sid[flag]} is passed (args.sid).
-            For the containing objects that are files, these files are interpreted are loaded as to-be analyzed data.
-            Finally, if an absolute path is specified with the orig_name attribute of args (cf. {t1[flag]}), only this
-            specific file is processed.
-            If args is passed without a sid attribute (cf. {sid[flag]}), subject ids are extracted from the subject details
-            (excluding potentially added relative paths). Suffixes can be removed from this by use of the remove_suffix
-            attribute of args (cf. {remove_suffix[flag]}) including file extensions or subfolders (e.g. `{tag[flag]}
-            */anat {remove_suffix[flag]} /anat` or `{tag[flag]} *_t1.nii.gz {remove_suffix[flag]} _t1.nii.gz`).
+            If args is passed without a sid attribute (cf. {sid[flag]}), subject ids are
+            extracted from the subject details (excluding potentially added relative
+            paths). Suffixes can be removed from this by use of the remove_suffix
+            attribute of args (cf. {remove_suffix[flag]}) including file extensions or
+            subfolders (e.g. `{tag[flag]} */anat {remove_suffix[flag]} /anat` or
+            `{tag[flag]} *_t1.nii.gz {remove_suffix[flag]} _t1.nii.gz`).
+        flags : dict[str, Dict], optional
+            dictionary of flags used to generate args (used to populate messages).
+            Default: `SubjectList.DEFAULT_FLAGS`, which get initialized from
+            `FastSurferCNN.utils.parser_defaults.ALL_FLAGS`.
         **assign :
 
         Raises
         ------
         RuntimeError
-            For invalid configurations, e.g. no 'in_dir', 'csv_file', or absolute 'orig_name'.
+            For invalid configurations, e.g. no 'in_dir', 'csv_file', or absolute
+            'orig_name'.
         RuntimeError
             When using {sid[flag]} with multiple subjects.
-
         """
         # populate _flags with DEFAULT_FLAGS
         self._flags = flags.copy() if flags is not None else {}
@@ -730,13 +749,13 @@ class SubjectList:
             and getattr(args, "csv_file", None) is None
             and not os.path.isabs(getattr(args, "orig_name", "undefined"))
         ):
-            raise RuntimeError(
-                (
-                    "One of the following three options has to be passed {in_dir[flag]}, {csv_file[flag]} "
-                    "or {t1[flag]} with an absolute file path. Please specify the data input directory, "
-                    "the subject list file or the full path to input volume"
-                ).format(**self._flags)
+            msg = (
+                "One of the following three options has to be passed {in_dir[flag]}, "
+                "{csv_file[flag]} or {t1[flag]} with an absolute file path. Please "
+                "specify the data input directory, the subject list file or the full "
+                "path to input volume"
             )
+            raise RuntimeError(msg.format(**self._flags))
         assign.setdefault("segfile", "segfile")
         assign.setdefault("orig_name", "orig_name")
         assign.setdefault("conf_name", "conf_name")
@@ -745,94 +764,99 @@ class SubjectList:
         for subject_attribute, args_attribute in assign.items():
             if not hasattr(args, args_attribute):
                 raise ValueError(
-                    f"You have defined {args_attribute} as a attribute of `args`via keyword argument to "
-                    f"SubjectList.__init__ or {args_attribute} is required, but `args` does not have "
-                    f"{args_attribute} as an attribute."
+                    f"You have defined {args_attribute} as a attribute of `args` via "
+                    f"keyword argument to SubjectList.__init__ or {args_attribute} is "
+                    f"required, but `args` does not have {args_attribute} as an "
+                    f"attribute."
                 )
             setattr(self, "_" + subject_attribute + "_", getattr(args, args_attribute))
 
         self._out_segfile = getattr(self, "_segfile_", None)
         if self._out_segfile is None:
             raise RuntimeError(
-                f"The segmentation output file is not set, it should be either 'segfile' (which gets "
-                f"populated from args.segfile), or a keyword argument to __init__, e.g. "
-                f"`SubjectList(args, subseg='subseg_param', out_filename='subseg')`."
+                f"The segmentation output file is not set, it should be either "
+                f"'segfile' (which gets populated from args.segfile), or a keyword "
+                f"argument to __init__, e.g. `SubjectList(args, subseg='subseg_param', "
+                f"out_filename='subseg')`."
             )
 
         # if out_dir is not set, fall back to in_dir by default
         self._out_dir = getattr(args, "out_dir", None) or getattr(args, "in_dir", None)
         if self._out_dir in [None, ""] and not os.path.isabs(self._out_segfile):
-            raise RuntimeError(
-                (
-                    "Please specify, where the segmentation output should be stored by either the "
-                    "{sd[flag]} flag (output subject directory, this can be same as input directory) or an "
-                    "absolute path to the {asegdkt_segfile[flag]} output segmentation volume."
-                ).format(**self._flags)
+            msg = (
+                "Please specify, where the segmentation output should be stored by "
+                "either the {sd[flag]} flag (output subject directory, this can be "
+                "same as input directory) or an absolute path to the "
+                "{asegdkt_segfile[flag]} output segmentation volume."
             )
+            raise RuntimeError(msg.format(**self._flags))
 
         # 1. are we doing a csv file of subjects
         if getattr(args, "csv_file") is not None:
             with open(args.csv_file, "r") as s_dirs:
-                self._subjects = [line.strip() for line in s_dirs.readlines()]
-            if any(not os.path.isabs(d) for d in self._subjects):
+                self._subjects = [Path(line.strip()) for line in s_dirs.readlines()]
+            if any(not d.is_absolute() for d in self._subjects):
                 msg = f"At least one path in {args.csv_file} was relative, but the "
                 if getattr(args, "in_dir") is None:
                     raise RuntimeError(
-                        msg
-                        + "in_dir was not in args (no {in_dir[flag]} flag).".format(
-                            **self._flags
+                        "{}in_dir was not in args (no {in_dir[flag]} flag).".format(
+                            msg, **self._flags
                         )
                     )
                 elif not os.path.isdir(args.in_dir):
                     raise RuntimeError(
                         msg + f"input directory {args.in_dir} does not exist."
                     )
+                base = Path(args.in_dir)
                 self._subjects = [
-                    os.path.join(args.in_dir, d) if os.path.isabs(d) else d
+                    base / d if not d.is_absolute() else d
                     for d in self._subjects
                 ]
             self._num_subjects = len(self._subjects)
             LOGGER.info(
-                f"Analyzing all {self._num_subjects} subjects from csv_file {args.csv_file}."
+                f"Analyzing all {self._num_subjects} subjects from csv_file "
+                f"{args.csv_file}."
             )
 
         # 2. are we doing a single file (absolute path to the file)
-        elif os.path.isabs(self._orig_name_):
+        elif (orig_name := Path(self._orig_name_)).is_absolute():
             LOGGER.info("Single subject with absolute file path for input.")
-            if not os.path.isfile(self._orig_name_):
+            if not orig_name.is_file():
                 raise RuntimeError(
-                    f"The input file {self._orig_name_} does not exist (is not a file)."
+                    f"The input file {orig_name} does not exist (is not a file)."
                 )
             if self._out_dir is None:
                 sid = ""
-                if os.path.isabs(self._out_segfile):
-                    # try to extract the subject directory from the absolute out filename by, containing folder is 'mri'
-                    # or the subject id
-                    out_dirname = os.path.dirname(self._out_segfile)
-                    parent_dir = os.path.basename(out_dirname)
+                if (out_segfile := Path(self._out_segfile)).is_absolute():
+                    # try to extract the subject directory from the absolute out
+                    # filename by, containing folder is 'mri' or the subject id
+                    out_dirname = out_segfile.parent
+                    parent_dir = out_dirname.name
+                    msg = (
+                        f"No subjects directory specified, but the parent directory "
+                        f"of the output file {out_segfile} is"
+                    )
                     if parent_dir == "mri":
                         LOGGER.info(
-                            f"No subjects directory specified, but the parent directory of the output file "
-                            f"{self._out_segfile} is 'mri', so we are assuming this is the 'mri' folder in "
-                            f"the subject directory."
+                            f"{msg} 'mri', so we are assuming this is the 'mri' folder "
+                            f"in the subject directory."
                         )
-                        self._out_dir, sid = os.path.split(os.path.dirname(out_dirname))
-                        self._out_segfile = os.path.join(
-                            "mri", os.path.basename(self._out_segfile)
-                        )
+                        self._out_dir = out_dirname.parent.parent
+                        sid = out_dirname.parent.name
+                        self._out_segfile = "mri/" + out_segfile.name
                     elif parent_dir == getattr(args, "sid", ""):
                         LOGGER.info(
-                            f"No subjects directory specified, but the parent directory of the output file "
-                            f"{self._out_segfile} is the subject id, so we are assuming this is the subject "
-                            f"directory."
+                            f"{msg} the subject id, so we are assuming this is the "
+                            f"subject directory."
                         )
-                        self._out_dir, sid = os.path.split(out_dirname)
-                        self._out_segfile = os.path.basename(self._out_segfile)
+                        self._out_dir = out_dirname.parent
+                        sid = out_dirname.name
+                        self._out_segfile = out_segfile.name
 
                 def _not_abs(subj_attr):
                     return not os.path.isabs(getattr(self, f"_{subj_attr}_"))
 
-                if getattr(args, "sid", "") in [None, ""]:
+                if getattr(args, "sid", "") in (None, ""):
                     args.sid = sid
                 elif getattr(args, "sid", "") != sid and any(
                     map(_not_abs, self.__attr_assign.keys())
@@ -843,75 +867,79 @@ class SubjectList:
                         if _not_abs(k)
                     ]
                     msg = (
-                        "Could not extract the subject id from the command line and the output file '{0}', while at "
-                        "the same time, not all output files are absolute. Try passing the subjects directory in "
+                        "Could not extract the subject id from the command line and "
+                        "the output file '{0}', while at the same time, not all output "
+                        "files are absolute. Try passing the subjects directory in "
                         "args (c.f. {sd[flag]}), or absolute paths for {1}.".format(
                             self._segfile_, ", ".join(relative_files), **self._flags
                         )
                     )
                     raise RuntimeError(msg)
 
-            self._subjects = [self._orig_name_]
+            self._subjects = [Path(self._orig_name_)]
             self._num_subjects = 1
             LOGGER.info(f"Analyzing single subject {self._orig_name_}")
         # 3. do we search in a directory
         elif getattr(args, "search_tag", None) is not None:
             search_tag = args.search_tag
-            if not os.path.isabs(search_tag) and getattr(args, "in_dir") is not None:
-                if not os.path.isdir(args.in_dir):
-                    raise RuntimeError(
-                        f"The input directory {args.in_dir} does not exist."
-                    )
-                search_tag = os.path.join(args.in_dir, search_tag)
-                where = f"in_dir {args.in_dir}"
+            _in_dir = getattr(args, "in_dir", None)
+            if not Path(search_tag).is_absolute() and _in_dir:
+                base = Path(_in_dir)
+                if not base.is_dir():
+                    raise RuntimeError(f"The input directory {base} does not exist.")
+                where = f"in_dir {base}"
             else:
-                where = f"the working directory {os.getcwd()}"
-            from glob import glob
+                base = Path.cwd()
+                where = f"the working directory {Path.cwd()}"
 
-            self._subjects = glob(search_tag)
+            self._subjects = list(base.glob(search_tag))
             self._num_subjects = len(self._subjects)
             LOGGER.info(
-                f"Analyzing all {self._num_subjects} subjects from {where} with search pattern "
-                f"{search_tag}."
+                f"Analyzing all {self._num_subjects} subjects from {where} with search "
+                f"pattern {search_tag}."
             )
 
         else:
-            raise RuntimeError(
-                "Could not identify how to find images to segment. Options are:\n1. Provide a text "
-                "file with one subject directory or image file per line via args.csv (cf. "
-                "{csv_file[flag]});\n2. specify an absolute path for relevant files, specifically the "
-                "t1 file via args.orig_name (cf. {t1[flag]}), but ideally also for expected output "
-                "files such as the segmentation output file,\n 3. provide a search pattern to search "
-                "for subject directories or images via args.search_tag (c.f. {tag[flag]}).\n Note also, "
-                "that the input directory (specified via {in_dir[flag]}) will be used as the base path "
-                "for relative file paths of input files.".format(**self._flags)
+            msg = (
+                "Could not identify how to find images to segment. Options are:\n1. "
+                "Provide a text file with one subject directory or image file per line "
+                "via args.csv (cf. {csv_file[flag]});\n2. specify an absolute path for "
+                "relevant files, specifically the t1 file via args.orig_name (cf. "
+                "{t1[flag]}), but ideally also for expected output files such as the "
+                "segmentation output file,\n 3. provide a search pattern to search "
+                "for subject directories or images via args.search_tag (c.f. "
+                "{tag[flag]}).\n Note also, that the input directory (specified via "
+                "{in_dir[flag]}) will be used as the base path for relative file paths "
+                "of input files."
             )
+            raise RuntimeError(msg.format(**self._flags))
 
         self._remove_suffix = getattr(args, "remove_suffix", "")
         if self._num_subjects > 1:
             if getattr(args, "sid", "") not in ["", None]:
-                raise RuntimeError(
-                    "The usage of args.sid (cf. {sid[flag]}) with multiple subjects is undefined.".format(
-                        **self._flags
-                    )
+                msg = (
+                    "The usage of args.sid (cf. {sid[flag]}) with multiple subjects is "
+                    "undefined."
                 )
+                raise RuntimeError(msg.format(**self._flags))
             if self._remove_suffix == "":
                 all_subject_files = self.are_all_subject_files()
                 common_suffix = self.get_common_suffix()
-                if all_subject_files and common_suffix != "":
-                    LOGGER.info(
-                        "We detected that the subjects share the common suffix {0} in the subject name. You "
-                        "can remove trailing parts of the filename such as file extensions and/or other "
-                        "characters by passing this suffix in args.remove_suffix (cf. {remove_suffix[flag]} "
-                        "<suffix>, e.g. {remove_suffix[flag]} '{0}'.".format(
-                            common_suffix, **self._flags
-                        )
-                    )
-            if os.path.isabs(self._out_segfile):
-                raise RuntimeError(
-                    f"An absolute path was passed for the output segmentation {self._out_segfile}, "
-                    f"but more than one input image fits the input definition."
+                msg = (
+                    "We detected that the subjects share the common suffix {0} in the "
+                    "subject name. You can remove trailing parts of the filename such "
+                    "as file extensions and/or other characters by passing this suffix "
+                    "in args.remove_suffix (cf. {remove_suffix[flag]} <suffix>, e.g. "
+                    "{remove_suffix[flag]} '{0}'."
                 )
+                if all_subject_files and common_suffix != "":
+                    LOGGER.info(msg.format(common_suffix, **self._flags))
+                if os.path.isabs(self._out_segfile):
+                    raise RuntimeError(
+                        f"An absolute path was passed for the output segmentation "
+                        f"{self._out_segfile}, but more than one input image fits the "
+                        f"input definition."
+                    )
 
         self._sid = getattr(args, "sid", "")
 
@@ -946,7 +974,8 @@ class SubjectList:
         """
         if self._out_dir is None:
             LOGGER.info(
-                "No Subjects directory found, absolute paths for filenames are required."
+                "No Subjects directory found, absolute paths for filenames are "
+                "required."
             )
             return
 
@@ -956,13 +985,14 @@ class SubjectList:
             LOGGER.info("Output directory does not exist. Creating it now...")
             os.makedirs(self._out_dir)
 
-    def __getitem__(self, item: Union[int, str]) -> SubjectDirectory:
+    def __getitem__(self, item: int | str) -> SubjectDirectory:
         """
-        Return a SubjectDirectory object for the i-th subject (if item is an int) or for the subject with name/folder (if item is a str).
+        Return a SubjectDirectory object for the i-th subject (if item is an int) or for
+        the subject with name/folder (if item is a str).
 
         Parameters
         ----------
-        item : Union[int, str]
+        item : int, str
             [MISSING].
 
         Returns
@@ -976,15 +1006,16 @@ class SubjectList:
                     f"The index {item} is out of bounds for the subject list."
                 )
 
-            # subject is always an absolute path (or relative to the working directory) ... of the input file
+            # subject is always an absolute path (or relative to the working directory)
+            # ... of the input file
             subject = self._subjects[item]
             sid = (
-                os.path.basename(subject.removesuffix(self._remove_suffix))
+                Path(str(subject).removesuffix(self._remove_suffix)).name
                 if self._sid is None
                 else self._sid
             )
         elif isinstance(item, str):
-            subject = item
+            subject = Path(item)
             sid = item
         else:
             raise TypeError("Invalid type of the item, must be int or str.")
@@ -998,11 +1029,14 @@ class SubjectList:
         }
         orig_name = (
             subject
-            if os.path.isfile(subject)
-            else os.path.join(subject, self._orig_name_)
+            if subject.is_file()
+            else subject / self._orig_name_
         )
         return SubjectDirectory(
-            subject_dir=self._out_dir, id=sid, orig_name=orig_name, **subject_parameters
+            subject_dir=self._out_dir,
+            id=sid,
+            orig_name=orig_name,
+            **subject_parameters,
         )
 
     def get_common_suffix(self) -> str:
@@ -1015,7 +1049,8 @@ class SubjectList:
             The suffix the entries share.
         """
         suffix = self._subjects[0]
-        for subj in self._subjects[1:]:
+        for subject_path in self._subjects[1:]:
+            subj = str(subject_path)
             if subj.endswith(suffix):
                 continue
             for i in range(1 - len(suffix), 1):
@@ -1032,18 +1067,15 @@ class SubjectList:
 
         This is performed asynchronously internally.
         """
-        from asyncio import gather, run
+        from concurrent.futures import ThreadPoolExecutor
 
-        async def is_file(path):
-            return os.path.isfile(path)
-
-        async def check_files(files):
-            return await gather(*[is_file(s) for s in files])
-
-        return all(run(check_files(self._subjects)))
+        def is_file(p: Path):
+            return p.is_file()
+        with ThreadPoolExecutor(len(self._subjects)) as pool:
+            return all(pool.map(is_file, self._subjects))
 
 
-class NoParallelExecutor(Executor):
+class SerialExecutor(Executor):
     """
     Represent a serial executor.
     """
@@ -1072,7 +1104,8 @@ class NoParallelExecutor(Executor):
         Returns
         -------
         Iterator[_T]
-            An iterator that yields the results of applying 'fn' to the items of 'iterables'.
+            An iterator that yields the results of applying 'fn' to the items of
+            'iterables'.
         """
         return map(fn, *iterables)
 
