@@ -15,7 +15,7 @@
 # IMPORTS
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 from concurrent.futures import Future, ThreadPoolExecutor
 
 import nibabel as nib
@@ -39,16 +39,20 @@ from CerebNet.datasets.utils import crop_transform
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
 
+if TYPE_CHECKING:
+    import yacs.config
+
 logger = logging.get_logger(__name__)
 
 
 class Inference:
     """
-    Manages inference operations, including batch processing, data loading, and model predictions for neuroimaging data.
+    Manages inference operations, including batch processing, data loading, and model
+    predictions for neuroimaging data.
     """
     def __init__(
         self,
-        cfg: "yacs.ConfigNode",
+        cfg: "yacs.config.CfgNode",
         threads: int = -1,
         async_io: bool = False,
         device: str = "auto",
@@ -60,7 +64,7 @@ class Inference:
 
         Parameters
         ----------
-        cfg : yacs.ConfigNode
+        cfg : yacs.config.CfgNode
             Yaml configuration to populate default values for parameters.
         threads : int, optional
             Number of threads to use, -1 is max (all), which is also the default.
@@ -74,10 +78,9 @@ class Inference:
         self.pool = None
         self._threads = None
         self.threads = threads
-        torch.set_num_threads(get_num_threads() if self._threads is None else self._threads)
-        self.pool = (
-            ThreadPoolExecutor(self._threads) if async_io else SerialExecutor()
-        )
+        _threads = get_num_threads() if self._threads is None else self._threads
+        torch.set_num_threads(_threads)
+        self.pool = ThreadPoolExecutor(self._threads) if async_io else SerialExecutor()
         self.cfg = cfg
         self._async_io = async_io
 
@@ -90,58 +93,48 @@ class Inference:
             _viewagg_device = torch.device("cpu")
         else:
             _viewagg_device = find_device(
-                viewagg_device, flag_name="viewagg_device", min_memory=2 * (2**30)
+                viewagg_device,
+                flag_name="viewagg_device",
+                min_memory=2 * (2**30),
             )
 
         self.batch_size = cfg.TEST.BATCH_SIZE
-        cerebnet_labels_file = (
-            cp.FASTSURFER_ROOT / "CerebNet/config/CerebNet_ColorLUT.tsv"
-        )
-        _cerebnet_mapper = self.pool.submit(
-            TSVLookupTable, cerebnet_labels_file, header=True
-        )
-
-        self.freesurfer_color_lut_file = (
-            cp.FASTSURFER_ROOT / "FastSurferCNN/config/FreeSurferColorLUT.txt"
-        )
-        fs_color_map = self.pool.submit(
-            TSVLookupTable, self.freesurfer_color_lut_file, header=False
-        )
-
-        cerebnet2sagittal_lut = (
-            cp.FASTSURFER_ROOT /"CerebNet/config/CerebNet2Sagittal.json"
-        )
-        cereb2cereb_sagittal = self.pool.submit(
-            JsonColorLookupTable, cerebnet2sagittal_lut
-        )
-
-        cerebnet2freesurfer_lut = (
-            cp.FASTSURFER_ROOT / "CerebNet/config/CerebNet2FreeSurfer.json"
-        )
-        cereb2freesurfer = self.pool.submit(
-            JsonColorLookupTable, cerebnet2freesurfer_lut
-        )
-
         _models = self._load_model(cfg)
-
         self.device = _device
         self.viewagg_device = _viewagg_device
 
+
+        def prep_lut(
+                file: Path, *args, **kwargs,
+        ) -> Future[TSVLookupTable | JsonColorLookupTable]:
+            _cls = TSVLookupTable
+            cls = {".json": JsonColorLookupTable, ".txt": _cls, ".tsv": _cls}
+            return self.pool.submit(cls[file.suffix], file, *args, **kwargs)
+
+        def lut_path(module: str, file: str) -> Path:
+            return cp.FASTSURFER_ROOT / module / "config" / file
+
+        cerebnet_labels_file = lut_path("CerebNet", "CerebNet_ColorLUT.tsv")
+        _cerebnet_mapper = prep_lut(cerebnet_labels_file, header=True)
+
+        self.freesurfer_lut_file = lut_path("FastSurferCNN", "FreeSurferColorLUT.txt")
+        fs_color_map = prep_lut(self.freesurfer_lut_file, header=False)
+
+        cerebnet2sagittal_lut = lut_path("CerebNet", "CerebNet2Sagittal.json")
+        sagittal_cereb2cereb_mapper = prep_lut(cerebnet2sagittal_lut)
+
+        cerebnet2freesurfer_lut = lut_path("CerebNet", "CerebNet2FreeSurfer.json")
+        cereb2freesurfer_mapper = prep_lut(cerebnet2freesurfer_lut)
+
         self.cerebnet_labels = _cerebnet_mapper.result().labelname2id()
-
         self.freesurfer_name2id = fs_color_map.result().labelname2id()
-        self.cereb_name2freesurfer_id = (
-            cereb2freesurfer.result().labelname2id().chain(self.freesurfer_name2id)
-        )
+        cereb_name2fs_name = cereb2freesurfer_mapper.result().labelname2id()
+        cerebsag_name2cereb_name = sagittal_cereb2cereb_mapper.result().labelname2id()
 
-        # the id in cereb2freesurfer is also a labelname, i.e. cereb2freesurfer is a map of Labelname2Labelname
-        self.cereb2fs = self.cerebnet_labels.__reversed__().chain(
-            self.cereb_name2freesurfer_id
-        )
-
-        self.cereb2cereb_sagittal = self.cerebnet_labels.__reversed__().chain(
-            cereb2cereb_sagittal.result().labelname2id()
-        )
+        cereb_id2name = self.cerebnet_labels.__reversed__()
+        self.cereb_name2fs_id = cereb_name2fs_name.chain(self.freesurfer_name2id)
+        self.cereb_id2fs_id = cereb_id2name.chain(self.cereb_name2fs_id)
+        self.cerebsag_id2cereb_name = cereb_id2name.chain(cerebsag_name2cereb_name)
         self.models = {k: m.to(self.device) for k, m in _models.items()}
 
     @property
@@ -160,7 +153,7 @@ class Inference:
     def _load_model(self, cfg) -> Dict[Plane, torch.nn.Module]:
         """Loads the three models per plane."""
 
-        def __load_model(cfg: "yacs.ConfigNode", plane: Plane) -> torch.nn.Module:
+        def __load_model(cfg: "yacs.config.CfgNode", plane: Plane) -> torch.nn.Module:
             params = {k.lower(): v for k, v in dict(cfg.MODEL).items()}
             params["plane"] = plane
             if plane == "sagittal":
@@ -168,7 +161,7 @@ class Inference:
                     params["num_classes"] = params["num_classes_sag"]
             checkpoint_path = Path(cfg.TEST[f"{plane.upper()}_CHECKPOINT_PATH"])
             model = build_model(params)
-            if not checkpoint_path.isfile():
+            if not checkpoint_path.is_file():
                 # if the checkpoint path is not a file, but a folder search in there for
                 # the newest checkpoint
                 checkpoint_path = cp.get_checkpoint_path(checkpoint_path).pop()
@@ -244,7 +237,7 @@ class Inference:
         def _convert(plane: Plane) -> torch.Tensor:
             pred = torch.cat(preds[plane], dim=0)
             if plane == "sagittal":
-                pred = self.cereb2cereb_sagittal.map_probs(pred, axis=1, reverse=True)
+                pred = self.cerebsag_id2cereb_name.map_probs(pred, axis=1, reverse=True)
             return pred.permute(axis_permutation[plane])
 
         return {plane: _convert(plane) for plane in preds.keys()}
@@ -279,7 +272,7 @@ class Inference:
                 if name.startswith(prefix) and not name.endswith("Medullare")
             ]
 
-        freesurfer_id2cereb_name = self.cereb_name2freesurfer_id.__reversed__()
+        freesurfer_id2cereb_name = self.cereb_name2fs_id.__reversed__()
         freesurfer_id2name = self.freesurfer_name2id.__reversed__()
         label_map = dict(freesurfer_id2cereb_name)
         meta_labels = {
@@ -460,7 +453,7 @@ class Inference:
 
                     # map predictions into FreeSurfer Label space & move segmentation to
                     # cpu
-                    cerebnet_seg = self.cereb2fs.map(cerebnet_seg).cpu()
+                    cerebnet_seg = self.cereb_id2fs_id.map(cerebnet_seg).cpu()
                     pred_time = time.time()
 
                     # uncrop the segmentation
@@ -500,7 +493,7 @@ class Inference:
                                 vox_vol=1.0,
                                 segfile=subject.segfile,
                                 normfile=norm_file,
-                                lut=self.freesurfer_color_lut_file,
+                                lut=self.freesurfer_lut_file,
                             )
                         )
 

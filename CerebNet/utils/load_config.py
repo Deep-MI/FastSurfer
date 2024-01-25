@@ -55,21 +55,16 @@ def get_config(args) -> "yacs.CfgNode":
         cfg.LOG_DIR = join(cfg.LOG_DIR, cfg_file_name)
 
     # populate default paths for the checkpoints
-    default_paths = [
-        ("ax_ckpt", CEREBNET_AXI),
-        ("sag_ckpt", CEREBNET_SAG),
-        ("cor_ckpt", CEREBNET_COR),
-    ]
-    path_ax, path_sag, path_cor = [
-        getattr(args, name, default_path) for name, default_path in default_paths
-    ]
-
-    for plane, path in [
-        ("axial", path_ax),
-        ("sagittal", path_sag),
-        ("coronal", path_cor),
-    ]:
-        setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", path)
+    default_paths = {
+        "axial": ("ax_ckpt", CEREBNET_AXI),
+        "sagittal": ("sag_ckpt", CEREBNET_SAG),
+        "coronal": ("cor_ckpt", CEREBNET_COR),
+    }
+    paths = {
+        plane: getattr(args, key, path) for plane, (key, path) in default_paths.items()
+    }
+    for plane, path in paths.items():
+        setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", str(path))
 
     # overwrite the batch size if it is passed as a parameter
     batch_size = getattr(args, "batch_size", None)
