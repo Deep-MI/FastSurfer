@@ -453,7 +453,7 @@ class RunModelOnData:
     def set_up_model_params(
             self,
             plane: "Plane",
-            cfg: "yacs.ConfigNode",
+            cfg: "yacs.config.CfgNode",
             ckpt: "torch.Tensor",
     ) -> None:
         """

@@ -584,13 +584,13 @@ def deep_sulci_and_wm_strand_mask(
 
 
 # Label mapping functions (to aparc (eval) and to label (train))
-def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
+def read_classes_from_lut(lut_file: Path | str) -> pd.DataFrame:
     """
     Read in FreeSurfer-like LUT table.
 
     Parameters
     ----------
-    lut_file : str
+    lut_file : Path, str
         Path and name of FreeSurfer-style LUT file with classes of interest.
         Example entry:
         ID LabelName  R   G   B   A
@@ -602,9 +602,11 @@ def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
     pd.Dataframe
         DataFrame with ids present, name of ids, color for plotting.
     """
+    if isinstance(lut_file, str):
+        lut_file = Path(lut_file)
     # Read in file
-    separator = {"tsv": "\t", "csv": ",", "txt": " "}
-    return pd.read_csv(lut_file, sep=separator[lut_file[-3:]])
+    separator = {".tsv": "\t", ".csv": ",", ".txt": " "}
+    return pd.read_csv(lut_file, sep=separator[lut_file.suffix])
 
 
 def map_label2aparc_aseg(

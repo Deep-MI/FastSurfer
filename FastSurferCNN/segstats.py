@@ -19,6 +19,7 @@ import logging
 from functools import partial, reduce
 from itertools import product
 from numbers import Number
+from pathlib import Path
 from typing import (
     Callable,
     Dict,
@@ -684,7 +685,7 @@ def write_statsfile(
 
 
 # Label mapping functions (to aparc (eval) and to label (train))
-def read_classes_from_lut(lut_file):
+def read_classes_from_lut(lut_file: str | Path):
     """
     Modify from datautils to allow support for FreeSurfer-distributed ColorLUTs.
 
@@ -692,7 +693,7 @@ def read_classes_from_lut(lut_file):
 
     Parameters
     ----------
-    lut_file : str
+    lut_file : Path, str
         Path and name of FreeSurfer-style LUT file with classes of interest.
         Example entry:
         ID LabelName  R   G   B   A
@@ -704,7 +705,7 @@ def read_classes_from_lut(lut_file):
     pd.DataFrame
         DataFrame with ids present, name of ids, color for plotting.
     """
-    if lut_file.endswith(".tsv"):
+    if Path(lut_file).suffix == ".tsv":
         return pd.read_csv(lut_file, sep="\t")
 
     # Read in file
