@@ -16,6 +16,7 @@
 # IMPORTS
 import optparse
 import sys
+from typing import cast
 
 import nibabel as nib
 import numpy as np
@@ -175,11 +176,11 @@ def get_ventricle_bg_intersection_volume(seg_array, voxvol):
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
-    print("Reading in aparc+aseg: {} ...".format(options.asegdkt_segfile))
-    inseg = nib.load(options.asegdkt_segfile)
+    print(f"Reading in aparc+aseg: {options.asegdkt_segfile} ...")
+    inseg = cast(nib.analyze.SpatialImage, nib.load(options.asegdkt_segfile))
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
-    inseg_voxvol = np.product(inseg_header.get_zooms())
+    inseg_voxvol = np.prod(inseg_header.get_zooms())
 
     # Ventricle-BG intersection volume check:
     print("Estimating ventricle-background intersection volume...")
@@ -192,8 +193,7 @@ if __name__ == "__main__":
     # Total volume check:
     if not check_volume(inseg_data, inseg_voxvol):
         print(
-            "WARNING: Total segmentation volume is very small. Segmentation may be corrupted! Please check."
+            "WARNING: Total segmentation volume is very small. Segmentation may be "
+            "corrupted! Please check."
         )
-        sys.exit(0)
-    else:
-        sys.exit(0)
+    sys.exit(0)
