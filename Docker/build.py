@@ -285,39 +285,71 @@ def docker_build_image(
         image_name: str,
         dockerfile: Path,
         working_directory: Optional[Path] = None,
-        context: Path = ".",
+        context: Path | str = ".",
         dry_run: bool = False,
-        **kwargs):
-    logger.info("Building. This starts with sending the build context to the docker daemon, which may take a while...")
+        **kwargs) -> None:
+    """
+    Build a docker image.
+
+    Parameters
+    ----------
+    image_name : str
+        Name / target tag of the image.
+    dockerfile : Path, str
+        Path to the Dockerfile.
+    working_directory : Path, str, optional
+        Path o the working directory to perform the build operation (default: inherit).
+    context : Path, str, optional
+        Base path to the context folder to build the docker image from (default: '.').
+    dry_run : bool, optional
+        Whether to actually trigger the build, or just print the command to the console
+        (default: False => actually build).
+    cache_to : str, optional
+        Forces usage of buildx over build, use docker build caching as in the --cache-to
+        argument to docker buildx build.
+
+    Other Parameters
+    ----------------
+    Additional kwargs add additional build flags to the build command in the following
+    manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
+    with its own flag, e.g. `docker_build_image(..., build_arg=["TEST=1", "VAL=2"])` is
+    translated to `docker [buildx] build ... --build-arg TEST=1 --build-arg VAL=2`.
+    """
+    from itertools import chain, repeat
+    from subprocess import PIPE
+    logger.info("Building. This starts with sending the build context to the docker "
+                "daemon, which may take a while...")
     extra_env = {"DOCKER_BUILDKIT": "1"}
-    from itertools import chain
 
     def to_pair(key, values):
-        _values = values if isinstance(values, Sequence) and not isinstance(values, (str, bytes)) else [values]
+        if isinstance(values, Sequence) and isinstance(values, (str, bytes)):
+            values = [values]
         key_dashed = key.replace("_", "-")
-        return list(chain(*[[f"--{key_dashed}"] + ([] if val is None else [val]) for val in _values]))
+        # concatenate the --key_dashed value pairs
+        return list(chain(*zip(repeat(f"--{key_dashed}"), values)))
 
     # needs buildx
-    buildx = "cache_to" in kwargs
-    args = ["buildx", "build"] if buildx else ["build"]
+    args = ["buildx", "build"]
 
-    if buildx:
-        Popen = _import_calls(working_directory)  # from fastsurfer dir
-        buildx_test = Popen(["docker", "buildx", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE).finish()
-        if "'buildx' is not a docker command" in buildx_test.err_str('utf-8').strip():
-            raise RuntimeError(
-                "Using --cache requires docker buildx, install with 'wget -qO ~/"
-                ".docker/cli-plugins/docker-buildx https://github.com/docker/buildx/"
-                "releases/download/<version>/buildx-<version>.<platform>'\n"
-                "e.g. 'wget -qO ~/.docker/cli-plugins/docker-buildx "
-                "https://github.com/docker/buildx/releases/download/v0.11.2/"
-                "buildx-v0.11.2.linux-amd64'\n"
-                "You may need to 'chmod +x ~/.docker/cli-plugins/docker-buildx'\n"
-                "See also https://github.com/docker/buildx#manual-download")
-
+    # always use/require buildx (required for sbom and provenance)
+    Popen = _import_calls(working_directory)  # from fastsurfer dir
+    cmd_exec_args = ["docker", "buildx", "version"]
+    buildx_test = Popen(cmd_exec_args, stdout=PIPE, stderr=PIPE).finish()
+    if "'buildx' is not a docker command" in buildx_test.err_str('utf-8').strip():
+        raise RuntimeError(
+            "Using --cache requires docker buildx, install with 'wget -qO ~/"
+            ".docker/cli-plugins/docker-buildx https://github.com/docker/buildx/"
+            "releases/download/<version>/buildx-<version>.<platform>'\n"
+            "e.g. 'wget -qO ~/.docker/cli-plugins/docker-buildx "
+            "https://github.com/docker/buildx/releases/download/v0.12.1/"
+            "buildx-v0.12.1.linux-amd64'\n"
+            "You may need to 'chmod +x ~/.docker/cli-plugins/docker-buildx'\n"
+            "See also https://github.com/docker/buildx#manual-download"
+        )
     params = [to_pair(*a) for a in kwargs.items()]
-
-    args += ["-t", image_name, "-f", str(dockerfile)] + list(chain(*params)) + [str(context)]
+    args.extend(["--attest", "type=sbom", "--provenance=true"])
+    args.extend(["-t", image_name, "-f", str(dockerfile)] + list(chain(*params)))
+    args.append(str(context))
     if dry_run:
         extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
         print(" ".join(extra_environment + ["docker"] + args))

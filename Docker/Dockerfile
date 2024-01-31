@@ -48,6 +48,12 @@ ARG FREESURFER_BUILD_IMAGE=build_freesurfer
 ARG CONDA_BUILD_IMAGE=build_conda
 ARG RUNTIME_BASE_IMAGE=ubuntu:22.04
 ARG BUILD_BASE_IMAGE=ubuntu:22.04
+# BUILDKIT_SBOM:SCAN_CONTEXT enables buildkit to provide and scan build images
+# this is active by default to provide proper SBOM manifests, however, it may also
+# include parts that are not part of the distributed image (specifically build image
+# parts installed in the build image, but not transfered to the runtime image such as
+# git, wget, the miniconda installer, etc.)
+ARG BUILDKIT_SBOM_SCAN_CONTEXT=true
 
 ## Start with ubuntu base to build the conda base stage
 FROM $BUILD_BASE_IMAGE AS build_base
@@ -87,7 +93,8 @@ COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /instal
 # Install conda for gpu
 
 ARG DEBUG=false
-RUN python /install/install_env.py -m base -i /install/fastsurfer.yml -o /install/base-env.yml && \
+RUN python /install/install_env.py -m base -i /install/fastsurfer.yml \
+      -o /install/base-env.yml && \
     mamba env create -f "/install/base-env.yml" | tee /install/env-create.log ; \
     if [ "${DEBUG}" != "true" ]; then \
       rm /install/base-env.yml ; \
@@ -98,8 +105,10 @@ FROM build_common AS build_conda
 ARG DEBUG=false
 ARG DEVICE=cu118
 # install additional packages for cuda/rocm/cpu
-RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /install/${DEVICE}-env.yml && \
-    mamba env update -n "fastsurfer" -f "/install/${DEVICE}-env.yml" | tee /install/env-update.log && \
+RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml \
+      -o /install/${DEVICE}-env.yml && \
+    mamba env update -n "fastsurfer" -f "/install/${DEVICE}-env.yml" \
+      | tee /install/env-update.log && \
     /install/conda_pack.sh "fastsurfer" && \
     echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /install/build_conda.args ;  \
     if [ "${DEBUG}" != "true" ]; then \
@@ -124,7 +133,8 @@ ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
 # =======================================================
 # Here, we create references to the requested build image
 # =======================================================
-# This is needed because COPY --from=<image/stage> does not accept variables as part of the image/stage name
+# This is needed because COPY --from=<image/stage> does not accept variables as part of
+# the image/stage name
 # selected_freesurfer_build_image -> $FREESURFER_BUILD_IMAGE
 FROM $FREESURFER_BUILD_IMAGE AS selected_freesurfer_build_image
 # selected_conda_build_image -> $CONDA_BUILD_IMAGE
@@ -169,7 +179,8 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # Copy fastsurfer venv and pruned freesurfer from build images
 
-# Note, since COPY does not support variables in the --from parameter, so we point to a reference here, and the
+# Note, since COPY does not support variables in the --from parameter, so we point to a
+# reference here, and the
 # seletced_<name>_build_image is a only a reference to $<NAME>_BUILD_IMAGE
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_conda_build_image /venv /venv
@@ -180,15 +191,17 @@ COPY . /fastsurfer/
 ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages:$PYTHONPATH \
     FASTSURFER_HOME=/fastsurfer
 
-# Download all remote network checkpoints already, compile all FastSurfer scripts into bytecode and update
-# the build file with checkpoints md5sums and pip packages.
+# Download all remote network checkpoints already, compile all FastSurfer scripts into
+# bytecode and update the build file with checkpoints md5sums and pip packages.
 RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
     python3 -m compileall * && \
-    python3 FastSurferCNN/version.py --sections +git+checkpoints+pip --build_cache BUILD.info -o fullBUILD.info && \
+    python3 FastSurferCNN/version.py --sections +git+checkpoints+pip \
+      --build_cache BUILD.info -o fullBUILD.info && \
     mv fullBUILD.info BUILD.info
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
+USER nonroot
 WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
 CMD ["--help"]
