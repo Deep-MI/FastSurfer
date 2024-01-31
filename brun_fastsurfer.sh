@@ -24,7 +24,7 @@ task_id=""
 surf_only="false"
 seg_only="false"
 debug="false"
-run_fastsurfer="default"
+run_fastsurfer=()
 parallel_subjects="1"
 parallel_surf="false"
 statusfile=""
@@ -62,7 +62,7 @@ ii. a subject_list file using the same format (use Ctrl-D to end the input), or
 iii. a list of subjects directly passed
 
 --batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of subjects
-  (default: 1/1, == run all).
+  (default: 1/1, == run all). "slurm_task_id" is a valid option for "<i>".
   Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
   according to \$SLURM_ARRAY_TASK_ID and \$SLURM_ARRAY_TASK_COUNT (unless values are specifically
   assigned with the --batch argument).
@@ -146,46 +146,44 @@ case $key in
       shift
       if [[ "$1" =~ ^-- ]]
       then
+        # no additional parameter to --parallel_subjects, the next cmd args is unrelated
+        # use parallel_sujects = max
+        parallel_subjects="max"
+      else
         lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
         # has parameter
-        if [[ "$lower_value" =~ ^surf(=[0-9]+|=max)?$ ]]
+        if [[ "$lower_value" =~ ^surf(=-?[0-9]*|=max)?$ ]]
         then
-          parallel_subjects="max"
+          # parameter is surf=max or surf=<positive/negative number> or surf
           parallel_surf="true"
-        elif [[ "$lower_value" =~ ^[0-9]+$ ]]
-        then
-          if [[ "$lower_value" -lt 0 ]]
+          surf_p="${lower_value:5}"
+          if [[ "$surf_p" -lt 0 ]] || [[ "$surf_p" == "max" ]] || [[ -z "$surf_p" ]]
           then
+            # parameter is surf=max or surf=<negative number> or surf
             parallel_subjects="max"
-          elif [[ "$lower_value" -lt 2 ]]
+          else
+            # parameter is surf=<positive number>
+            parallel_subjects="$surf_p"
+          fi
+        elif [[ "$lower_value" =~ ^-?[0-9]+$ ]]
+        then
+          # parameter is a number
+          if [[ "$lower_value" -lt 0 ]] || [[ "$lower_value" == "max" ]]
           then
-            parallel_subjects="1"
+            # parameter is negative
+            parallel_subjects="max"
           else
             parallel_subjects="$lower_value"
-          fi
-        elif [[ "$lower_value" =~ ^surf=[0-9]+$ ]]
-        then
-          parallel_surf="true"
-          if [[ "${lower_value:5}" -lt 0 ]]
-          then
-            parallel_subjects="max"
-          elif [[ "${lower_value:5}" -lt 2 ]]
-          then
-            parallel_subjects="1"
-          else
-            parallel_subjects="${lower_value:5}"
           fi
         else
           echo "Invalid option for --parallel_subjects: $1"
           exit 1
         fi
         shift
-      else
-        parallel_subjects="max"
       fi
     ;;
     --statusfile)
-      statusfile="$statusfile"
+      statusfile="$2"
       shift
       shift
     ;;
@@ -211,7 +209,7 @@ case $key in
       exit
       ;;
     --run_fastsurfer)
-      run_fastsurfer="$2"
+      run_fastsurfer=($2)
       shift
       shift
       ;;
@@ -238,7 +236,7 @@ then
   then
     task_count=$SLURM_ARRAY_TASK_COUNT
   fi
-  if [[ -z "$task_id" ]]
+  if [[ -z "$task_id" ]] || [[ "$task_id" == "slurm_task_id" ]]
   then
     task_id=$SLURM_ARRAY_TASK_ID
   fi
@@ -263,9 +261,11 @@ then
       echo "--parallel_subjects $parallel_subjects"
     fi
   fi
-  if [[ "$run_fastsurfer" != "/fastsurfer/run_fastsurfer.sh" ]]
+  if [[ "${run_fastsurfer[*]}" == "" ]]
   then
-    echo "running $run_fastsurfer"
+    echo "running default run_fastsurfer"
+  else
+    echo "running ${run_fastsurfer[*]}"
   fi
   if [[ -n "$statusfile" ]]
   then
@@ -300,22 +300,21 @@ then
   exit 1
 fi
 
-i=1
 num_subjects=$(echo "$subjects" | wc -l)
 
-if [[ "$run_fastsurfer" == "default" ]]
+if [[ "${run_fastsurfer[*]}" == "" ]]
 then
   if [[ -n "$FASTSURFER_HOME" ]]
   then
-    run_fastsurfer=$FASTSURFER_HOME/run_fastsurfer.sh
+    run_fastsurfer=($FASTSURFER_HOME/run_fastsurfer.sh)
     echo "INFO: run_fastsurfer not explicitly specified, using \$FASTSURFER_HOME/run_fastsurfer.sh."
   elif [[ -f "$(dirname $THIS_SCRIPT)/run_fastsurfer.sh" ]]
   then
-    run_fastsurfer="$(dirname $THIS_SCRIPT)/run_fastsurfer.sh"
-    echo "INFO: run_fastsurfer not explicitly specified, using $run_fastsurfer."
+    run_fastsurfer=("$(dirname $THIS_SCRIPT)/run_fastsurfer.sh")
+    echo "INFO: run_fastsurfer not explicitly specified, using ${run_fastsurfer[0]}."
   elif [[ -f "/fastsurfer/run_fastsurfer.sh" ]]
   then
-    run_fastsurfer="/fastsurfer/run_fastsurfer.sh"
+    run_fastsurfer=("/fastsurfer/run_fastsurfer.sh")
     echo "INFO: run_fastsurfer not explicitly specified, using /fastsurfer/run_fastsurfer.sh."
   else
     echo "ERROR: Could not find FastSurfer, please set the \$FASTSURFER_HOME environment variable."
@@ -330,8 +329,8 @@ elif [[ -z "$task_id" ]] || [[ -z "$task_count" ]]
 then
   echo "Both task_id and task_count have to be defined, invalid --batch argument?"
 else
-  subject_start=$(($(($task_id - 1)) * "$num_subjects" / "$task_count" + 1))
-  subject_end=$(("$task_id" * "$num_subjects" / "$task_count"))
+  subject_start=$(((task_id - 1) * num_subjects / task_count + 1))
+  subject_end=$((task_id * num_subjects / task_count))
   echo "Processing subjects $subject_start to $subject_end"
 fi
 
@@ -370,8 +369,11 @@ fi
 pids=()
 subjectids=()
 IFS=$'\n'
+# i is a 1-to-n index of the subject
+i=0
 for subject in $subjects
 do
+  i=$((i + 1))
   if [[ "$debug" == "true" ]]
   then
     echo "DEBUG: subject $i: $subject"
@@ -385,7 +387,7 @@ do
     then
       status=$(awk -F ": " "/^$subject_id/ { print \$2 }" "$statusfile")
       ## if status in statusfile is "Failed", skip this
-      if [[ "$status" =~ /^Failed.--seg_only/ ]]
+      if [[ "$status" =~ /^Failed.*--seg_only/ ]]
       then
         echo "Skipping $subject_id's surface recon because the segmentation failed."
         echo "$subject_id: Skipping surface recon (failed segmentation)" >> "$statusfile"
@@ -394,21 +396,22 @@ do
     fi
 
     image_parameters=$(echo "$subject" | cut -d= -f2-1000 --output-delimiter="=")
-    i=0
+    j=0
     args=(--sid "$subject_id")
     OLD_IFS=$IFS
     IFS=","
     for arg in $image_parameters
     do
-      if [[ "$i" == 0 ]]; then image_path="$arg"
+      if [[ "$j" == 0 ]]; then image_path="$arg"
       else args=("${args[@]}" "$arg")
       fi
-      i=$(( i + 1))
+      j=$((j + 1))
     done
     IFS=$OLD_IFS
     if [[ "$parallel_surf" == "true" ]]
     then
-      cmd=($run_fastsurfer "--seg_only" --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}")
+      # parallel_surf implies $seg_surf_only == "" (see line 353), i.e. both seg and surf
+      cmd=("${run_fastsurfer[@]}" "--seg_only" --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}")
       if [[ "$debug" == "true" ]]
       then
         echo "DEBUG:" "${cmd[@]}"
@@ -431,35 +434,35 @@ do
     fi
     if [[ "$debug" == "true" ]]
     then
-      echo "DEBUG: $run_fastsurfer $seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" "[&]"
+      echo "DEBUG: ${run_fastsurfer[*]} $seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" "[&]"
     fi
     if [[ "$parallel_subjects" != "1" ]]
     then
-      $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" | prepend "$subject_id: " &
+      "${run_fastsurfer[@]}" $seg_surf_only "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" | prepend "$subject_id: " &
       pids=("${pids[@]}" "$!")
       subjectids=("${subjectids[@]}" "$subject_id")
     else # serial execution
-      $run_fastsurfer "$seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+      "${run_fastsurfer[@]}" $seg_surf_only "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
       if [[ -n "$statusfile" ]]
       then
         print_status "$subject_id" "$seg_surf_only" "$?" | tee -a "$statusfile"
       fi
     fi
   fi
-  i=$(($i + 1))
 done
 
 if [[ "$parallel_subjects" != "1" ]]
 then
-  i=0
+  # indexing in arrays is a 0-base operation, so array[0] is the first element
+  i=-1
   for pid in "${pids[@]}"
   do
+    i=$(($i + 1))
     wait "$pid"
     if [[ -n "$statusfile" ]]
     then
       print_status "${subjectids[$i]}" "$seg_surf_only" "$?" | tee -a "$statusfile"
     fi
-    i=$(($i + 1))
   done
 fi
 

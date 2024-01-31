@@ -86,6 +86,10 @@ Data- and subject-related options:
   a work directory, which can use IO-optimized cluster storage (see --work).
 --work: directory with fast filesystem on cluster
   (default: \$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S))
+  NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
+  No modifications should be made to the directory after the job is started until it is
+  finished (if the job fails, cleanup of this directory may be necessary) and it should be
+  empty!
 --data: (root) directory to search in for t1 files (default: current work directory).
 --pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
    for example --data /data/ --pattern \*/\*/mri/t1.nii.gz
@@ -115,7 +119,7 @@ FastSurfer options:
 --fs_license: path to the freesurfer license (either absolute path or relative to pwd)
 --seg_only: only run the segmentation pipeline
 --surf_only: only run the surface pipeline (--sd must contain previous --seg_only processing)
-... also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
+--***: also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
 
 Singularity-related options:
 --singularity_image: Path to the singularity image to use for segmentation and surface
@@ -175,8 +179,8 @@ EOF
 # voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1m)
 mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
 mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
-mem_surf_parallel=20 # in GB, hemi in parallel
-mem_surf_noparallel=18 # in GB, hemi in series
+mem_surf_parallel=6 # in GB, hemi in parallel
+mem_surf_noparallel=4 # in GB, hemi in series
 num_cpus_surf=1 # base number of cpus to use for surfaces (doubled if --parallel)
 
 do_parallel="false"
@@ -369,15 +373,24 @@ case $key in
 esac
 done
 
-echo "Log of FastSurfer SLURM script"
-date -R
-echo "$THIS_SCRIPT ${inputargs[*]}"
-echo ""
+# create a temporary logfile, which we copy over to the final log file location once it
+# is available
+tmpLF=$(mktemp)
+LF=$tmpLF
+
+function log() { echo "$@" | tee -a "$LF" ; }
+function logf() { printf "$@" | tee -a "$LF" ; }
+
+log "Log of FastSurfer SLURM script"
+log $(date -R)
+log "$THIS_SCRIPT ${inputargs[*]}"
+log ""
 
 make_hpc_work="false"
 
 if [[ -d "$hpc_work" ]]
 then
+  # delete_hpc_work is true, if the hpc_work directory was created by this script.
   delete_hpc_work="false"
 else
   delete_hpc_work="true"
@@ -389,6 +402,7 @@ then
     echo "Neither --work nor \$HPCWORK are defined, make sure to pass --work!"
     exit 1
   else
+    # check_hpc_work only has log messages, if it also exists
     check_hpc_work "$HPCWORK/fastsurfer-processing" "false"
     hpc_work_already_exists="true"
     # create a new and unused directory
@@ -399,56 +413,70 @@ then
     make_hpc_work="true"
   fi
 else
+  # also checks, if hpc_work is also empty (required)
+  # check_hpc_work only has log messages, if it also exists
   check_hpc_work "$hpc_work" "true"
 fi
 
 if [[ "$debug" == "true" ]]
 then
-  echo "Debug parameters to script srun_fastsurfer:"
-  echo ""
-  echo "SLURM options:"
-  echo "submit jobs and perform operations: $submit_jobs"
-  echo "perform the cleanup step: $do_cleanup"
-  echo "seg/surf running on slurm partition:" \
-    "$(first_non_empty_arg "$partition_seg" "$partition")" "/" \
-    "$(first_non_empty_arg "$partition_surf" "$partition")"
-  echo "num_cpus_per_task/max. num_cases_per_task: $num_cpus_per_task/$num_cases_per_task"
-  echo "segmentation on cpu only: $cpu_only"
-  echo "Data options:"
-  echo "source dir: $in_dir"
-  if [[ -n "$subject_list" ]]
-  then
-    echo "Reading subjects from subject_list file $subject_list"
-    echo "subject_list read options: delimiter: '${subject_list_delim}', sid awk code: '${subject_list_awk_code_sid}', args awk code: '${subject_list_awk_code_args}'"
-  else
-    echo "pattern to search for images: $pattern"
-  fi
-  echo "output (subject) dir: $out_dir"
-  echo "work dir: $hpc_work"
-  echo ""
-  echo "FastSurfer parameters:"
-  echo "singularity image: $singularity_image"
-  echo "FreeSurfer license: $fs_license"
-  if [[ "$seg_only" == "true" ]]; then echo "--seg_only"; fi
-  if [[ "$surf_only" == "true" ]]; then echo "--surf_only"; fi
-  if [[ "$do_parallel" == "true" ]]; then echo "--parallel"; fi
-  for p in "${POSITIONAL_FASTSURFER[@]}"
-  do
-    if [[ "$p" == --* ]]; then printf "\n%s" "$p";
-    else printf " %s" "$p";
-    fi
-  done
-  echo ""
-  echo "Running in$(ls -l /proc/$$/exe | cut -d">" -f2)"
-  echo ""
+  function debug () { log "$@" ; }
+  function debugf () { logf "$@" ; }
 else
-  if [[ "$submit_jobs" == "false" ]]; then echo "dry run, no jobs or operations are performed"; echo ""; fi
+  # all debug messages go into logfile no matter what, but here, not to the console
+  function debug () { echo "$@" >> "$LF" ;  }
+  function debugf () { printf "$@" >> "$LF" ;  }
+  if [[ "$submit_jobs" == "false" ]]
+  then
+    log "dry run, no jobs or operations are performed"
+    log ""
+  fi
 fi
 
+debug "Debug parameters to script srun_fastsurfer:"
+debug ""
+debug "SLURM options:"
+debug "submit jobs and perform operations: $submit_jobs"
+debug "perform the cleanup step: $do_cleanup"
+debug "seg/surf running on slurm partition:" \
+  "$(first_non_empty_arg "$partition_seg" "$partition")" "/" \
+  "$(first_non_empty_arg "$partition_surf" "$partition")"
+debug "num_cpus_per_task/max. num_cases_per_task: $num_cpus_per_task/$num_cases_per_task"
+debug "segmentation on cpu only: $cpu_only"
+debug "Data options:"
+debug "source dir: $in_dir"
+if [[ -n "$subject_list" ]]
+then
+  debug "Reading subjects from subject_list file $subject_list"
+  debug "subject_list read options:"
+  debug "  delimiter: '${subject_list_delim}'"
+  debug "  sid awk code: '${subject_list_awk_code_sid}'"
+  debug "  args awk code: '${subject_list_awk_code_args}'"
+else
+  debug "pattern to search for images: $pattern"
+fi
+debug "output (subject) dir: $out_dir"
+debug "work dir: $hpc_work"
+debug ""
+debug "FastSurfer parameters:"
+debug "singularity image: $singularity_image"
+debug "FreeSurfer license: $fs_license"
+if [[ "$seg_only" == "true" ]]; then debug "--seg_only"; fi
+if [[ "$surf_only" == "true" ]]; then debug "--surf_only"; fi
+if [[ "$do_parallel" == "true" ]]; then debug "--parallel"; fi
+for p in "${POSITIONAL_FASTSURFER[@]}"
+do
+  if [[ "$p" == --* ]]; then debugf "\n%s" "$p";
+  else debugf " %s" "$p";
+  fi
+done
+debug "Running in$(ls -l /proc/$$/exe | cut -d">" -f2)"
+debug ""
+
 if [[ "${pattern/#\/}" != "$pattern" ]]
-  then
-    echo "ERROR: Absolute paths in --pattern are not allowed, set a base path with --data (this may even be /, i.e. root)."
-    exit 1
+then
+  echo "ERROR: Absolute paths in --pattern are not allowed, set a base path with --data (this may even be /, i.e. root)."
+  exit 1
 fi
 
 check_singularity_image "$singularity_image"
@@ -458,12 +486,12 @@ check_out_dir "$out_dir"
 
 if [[ "$cpu_only" == "true" ]] && [[ "$timelimit_seg" -lt 6 ]]
 then
-  echo "WARNING!!!"
-  echo "------------------------------------------------------------------------"
-  echo "You specified the segmentation shall be performed on the cpu, but the"
-  echo "time limit per segmentation is less than 6 minutes (default is optimized "
-  echo "for GPU acceleration @ 5 minutes). This is very likely insufficient!"
-  echo "------------------------------------------------------------------------"
+  log "WARNING!!!"
+  log "------------------------------------------------------------------------"
+  log "You specified the segmentation shall be performed on the cpu, but the"
+  log "time limit per segmentation is less than 6 minutes (default is optimized "
+  log "for GPU acceleration @ 5 minutes). This is very likely insufficient!"
+  log "------------------------------------------------------------------------"
 fi
 
 # step zero: make directories
@@ -471,7 +499,7 @@ if [[ "$submit_jobs" == "true" ]]
 then
   if [[ "$make_hpc_work" == "true" ]]; then mkdir "$hpc_work" ; fi
   make_hpc_work_dirs "$hpc_work"
-  echo "Setting up the work directory..."
+  log "Setting up the work directory..."
 fi
 
 wait # for directories to be made
@@ -479,11 +507,11 @@ wait # for directories to be made
 # step one: copy singularity image to hpc
 all_cases_file="/$hpc_work/scripts/subject_list"
 
-echo "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
+log "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
 script_dir="$(dirname "$THIS_SCRIPT")"
-echo "cp \"$script_dir/brun_fastsurfer.sh\" \"$script_dir/stools.sh\" \"$hpc_work/scripts\""
-echo "cp \"$fs_license\" \"$hpc_work/scripts/.fs_license\""
-echo "Create Status/Success file at $hpc_work/scripts/subject_success"
+log "cp \"$script_dir/brun_fastsurfer.sh\" \"$script_dir/stools.sh\" \"$hpc_work/scripts\""
+log "cp \"$fs_license\" \"$hpc_work/scripts/.fs_license\""
+log "Create Status/Success file at $hpc_work/scripts/subject_success"
 
 tofile="cat"
 if [[ "$submit_jobs" == "true" ]]
@@ -491,7 +519,7 @@ then
   cp "$singularity_image" "$hpc_work/images/fastsurfer.sif" &
   cp "$script_dir/brun_fastsurfer.sh" "$script_dir/stools.sh" "$hpc_work/scripts" &
   cp "$fs_license" "$hpc_work/scripts/.fs_license" &
-  echo "#Status/Success file of srun_fastsurfer-run $(date)" > "$hpc_work/scripts/subject_success" &
+  log "#Status/Success file of srun_fastsurfer-run $(date)" > "$hpc_work/scripts/subject_success" &
 
   tofile="tee $all_cases_file"
 fi
@@ -504,9 +532,9 @@ then
   check_subject_images "$cases"
   if [[ "$debug" == "true" ]]
   then
-    echo "Debug output of the parsed subject_list:"
-    echo "$cases"
-    echo ""
+    log "Debug output of the parsed subject_list:"
+    log "$cases"
+    log ""
   fi
 
   cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | $tofile)
@@ -518,14 +546,15 @@ num_cases=$(echo "$cases" | wc -l)
 if [[ "$num_cases" -lt 1 ]] || [[ -z "$cases" ]]
 then
   wait
-  echo "WARNING: No cases found using the parameters provided. Aborting job submission!"
+  log "WARNING: No cases found using the parameters provided. Aborting job submission!"
   if [[ "$submit_jobs" == "true" ]] && [[ "$do_cleanup" == "true" ]]
   then
-    echo "Cleaning temporary work directory!"
+    log "Cleaning temporary work directory!"
     rm -R "$hpc_work/images"
     rm -R "$hpc_work/scripts"
-    if [[ "$delete_hpc_work" == "false" ]]
+    if [[ "$delete_hpc_work" == "true" ]]
     then
+      # delete_hpc_work is true, if the hpc_work directory was created by this script.
       rm -R "$hpc_work"
     fi
   fi
@@ -535,13 +564,14 @@ fi
 
 if [[ "$submit_jobs" != "true" ]]
 then
-  echo "Copying singularity image and scripts..."
+  log "Copying singularity image and scripts..."
 fi
 wait
 # for copy and other stuff
 
 brun_fastsurfer="scripts/brun_fastsurfer.sh"
 fastsurfer_options=()
+log_name="slurm-submit"
 if [[ "$debug" == "true" ]]
 then
   fastsurfer_options=("${fastsurfer_options[@]}" --debug)
@@ -555,10 +585,10 @@ then
   slurm_email=(--mail-user "$email")
   if [[ "$debug" == "true" ]]
   then
-    echo "Sending emails on ALL conditions"
+    log "Sending emails on ALL conditions"
     slurm_email=("${slurm_email[@]}" --mail-type "ALL,ARRAY_TASKS")
   else
-    echo "Sending emails on END,FAIL conditions"
+    log "Sending emails on END,FAIL conditions"
     slurm_email=("${slurm_email[@]}" --mail-type "END,FAIL,ARRAY_TASKS")
   fi
 fi
@@ -572,6 +602,7 @@ then
   else
     jobarray_option=("--array=1-$jobarray_size")
   fi
+  fastsurfer_options=("${fastsurfer_options[@]}" --batch "slurm_task_id/$jobarray_size")
   jobarray_depend="aftercorr"
 else
   jobarray_option=()
@@ -599,13 +630,16 @@ then
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "srun --ntasks=1 --nodes=1 --cpus-per-task=$num_cpus_per_task \\"
-    echo "  singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
+    echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
     if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]]; then
       echo "  $extra_singularity_options $extra_singularity_options_seg\\"
     fi
     echo "  $hpc_work/images/fastsurfer.sif \\"
     echo "  /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
+    echo "# discard the exit code of run_fastsurfer (exit with success), so following"
+    echo "# jobarray items will be started by slurm under the aftercorr dependency"
+    echo "# see https://github.com/Deep-MI/FastSurfer/pull/434#issuecomment-1910805112"
+    echo "exit 0"
   } > $seg_cmd_file
   if [[ "$cpu_only" == "true" ]]; then mem_seg="$mem_seg_cpu"
   else mem_seg="$mem_seg_gpu"
@@ -618,35 +652,33 @@ then
                    -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
   if [[ "$cpu_only" == "true" ]]
   then
-    if [[ "$debug" == "true" ]]
-    then
-      echo "Schedule SLURM job without gpu"
-    fi
+    debug "Schedule SLURM job without gpu"
   else
     seg_slurm_sched=(--gpus=1 "${seg_slurm_sched[@]}")
   fi
-  echo "chmod +x $seg_cmd_filename"
+  log "chmod +x $seg_cmd_filename"
   chmod +x $seg_cmd_file
-  echo "sbatch --parsable ${seg_slurm_sched[*]}"
+  log "sbatch --parsable ${seg_slurm_sched[*]}"
   echo "--- sbatch script $seg_cmd_filename ---"
   cat $seg_cmd_file
   echo "--- end of script ---"
   if [[ "$submit_jobs" == "true" ]]
   then
     seg_jobid=$(sbatch --parsable ${seg_slurm_sched[*]})
-    echo "Submitted Segmentation Jobs $seg_jobid"
+    log "Submitted Segmentation Jobs $seg_jobid"
   else
-    echo "Not submitting the Segmentation Jobs to slurm (--dry)."
+    log "Not submitting the Segmentation Jobs to slurm (--dry)."
     seg_jobid=SEG_JOB_ID
   fi
 
+  log_name="${log_name}_${seg_jobid}"
   cleanup_depend="afterany:$seg_jobid"
   surf_depend="--depend=$jobarray_depend:$seg_jobid"
 elif [[ "$surf_only" == "true" ]]
 then
   # do not run segmentation, but copy over all cases from data to work
   copy_jobid=
-  make_copy_job "$hpc_work" "$out_dir" "$hpc_work/scripts/subject_list" "$submit_jobs"
+  make_copy_job "$hpc_work" "$out_dir" "$hpc_work/scripts/subject_list" "$LF" "$submit_jobs"
   if [[ -n "$copy_jobid" ]]
   then
     surf_depend="--depend=afterok:$copy_jobid"
@@ -654,6 +686,7 @@ then
     echo "ERROR: \$copy_jobid not defined!"
     exit 1
   fi
+  log_name="${log_name}_${copy_jobid}"
 fi
 
 if [[ "$seg_only" != "true" ]]
@@ -712,26 +745,37 @@ then
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
                     $slurm_partition "${slurm_email[@]}" "$surf_cmd_filename")
   chmod +x $surf_cmd_file
-  echo "sbatch --parsable ${surf_slurm_sched[*]}"
+  log "sbatch --parsable ${surf_slurm_sched[*]}"
   echo "--- sbatch script $surf_cmd_filename ---"
   cat $surf_cmd_file
   echo "--- end of script ---"
   if [[ "$submit_jobs" == "true" ]]
   then
     surf_jobid=$(sbatch --parsable ${surf_slurm_sched[*]})
-    echo "Submitted Surface Jobs $surf_jobid"
+    log "Submitted Surface Jobs $surf_jobid"
   else
-    echo "Not submitting the Surface Jobs to slurm (--dry)."
+    log "Not submitting the Surface Jobs to slurm (--dry)."
     surf_jobid=SURF_JOB_ID
   fi
 
+  log_name="${log_name}_${surf_jobid}"
   cleanup_depend="afterany:$surf_jobid"
 fi
 
 # step four: copy results back and clean the output directory
 if [[ "$do_cleanup" == "true" ]]
 then
-  make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$delete_hpc_work" "$submit_jobs"
+  # delete_hpc_work is true, if the hpc_work directory was created by this script.
+  make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$LF" "$delete_hpc_work" "$submit_jobs"
 else
-  echo "Skipping the cleanup (no cleanup job scheduled, find your results in $hpc_work."
+  log "Skipping the cleanup (no cleanup job scheduled, find your results in $hpc_work."
 fi
+
+
+if [[ "$submit_jobs" == "true" ]]
+then
+  log_dir="$out_dir/slurm/logs"
+  mkdir -p "$log_dir"
+  cp $tmpLF "$log_dir/$log_name.log"
+fi
+rm $tmpLF

@@ -100,6 +100,7 @@ function check_out_dir ()
   #param2 true/false, optional check empty, default false
   if [[ -z "$1" ]]; then
     echo "The subject directory (output directory) is not defined."
+    exit 1
   elif [[ ! -d "$1" ]]; then
     echo "The subject directory $1 (output directory) does not exists."
     read -r -p "Create the directory? [y/N]" -n 1 retval
@@ -189,21 +190,19 @@ function make_cleanup_job ()
   # param1: hpc_work directory
   # param2: output directory
   # param3: dependency tag
-  # param4: optional: true/false (delete hpc_work directory, default=false)
-  # param5: optional: true/false (submit jobs, default=true)
-
-  # param4: optional: true/false (delete hpc_work, default=false)
-  # param5: optional: true/false (submit jobs, default=true)
+  # param4: logfile the log file
+  # param5: optional: true/false (delete hpc_work directory, default=false)
+  # param6: optional: true/false (submit jobs, default=true)
   local clean_cmd_file
   local submit_jobs
   local delete_hpc_work_dir
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "true" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "true" ]]
   then
     delete_hpc_work_dir="true"
   else
     delete_hpc_work_dir="false"
   fi
-  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
+  if [[ "$#" -gt 5 ]] && [[ "$6" == "false" ]]
   then
     submit_jobs="false"
     clean_cmd_file=$(mktemp)
@@ -218,6 +217,7 @@ function make_cleanup_job ()
   local clean_slurm_sched=(-d "$3" -J "FastSurfer-Cleanup-$USER"
     --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/cleanup_%A.log"
     "$clean_cmd_filename")
+  local logfile=$4
 
   mkdir -p "$out_dir/slurm/logs"
   {
@@ -258,7 +258,10 @@ function make_cleanup_job ()
     then
       echo "  rm -R $hpc_work"
     else
-      echo "  rm -R $hpc_work/*"
+      echo "  rm -R $hpc_work/images"
+      echo "  rm $hpc_work/scripts"
+      echo "  rm $hpc_work/cases"
+      echo "  rm $hpc_work/logs"
     fi
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
@@ -266,18 +269,18 @@ function make_cleanup_job ()
   } > $clean_cmd_file
 
   chmod +x $clean_cmd_file
-  echo "sbatch --parsable ${clean_slurm_sched[*]}"
+  echo "sbatch --parsable ${clean_slurm_sched[*]}" | tee -a $logfile
   echo "--- sbatch script $clean_cmd_filename ---"
   cat $clean_cmd_file
   echo "--- end of script ---"
 
   if [[ "$submit_jobs" == "false" ]]
   then
-    echo "Not submitting the Cleanup Jobs to slurm (--dry)."
+    echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a $logfile
     clean_jobid=CLEAN_JOB_ID
   else
     clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
-    echo "Submitted Cleanup Jobs $clean_jobid"
+    echo "Submitted Cleanup Jobs $clean_jobid" | tee -a $logfile
   fi
 }
 
@@ -287,10 +290,11 @@ function make_copy_job ()
   # param1: hpc_work directory
   # param2: output directory
   # param3: subject_list file
-  # param4: optional: true/false (submit jobs, default=true)
+  # param4: logfile log file
+  # param5: optional: true/false (submit jobs, default=true)
 
   local copy_cmd_file
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
     copy_cmd_file=$(mktemp)
   else
@@ -301,6 +305,7 @@ function make_copy_job ()
   local hpc_work=$1
   local out_dir=$2
   local subject_list=$3
+  local logfile=$4
   local copy_slurm_sched=(-J "FastSurfer-Copyseg-$USER"
     --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/copy_%A.log"
     "$copy_cmd_filename")
@@ -325,18 +330,18 @@ function make_copy_job ()
   } > $copy_cmd_file
 
   chmod +x $copy_cmd_file
-  echo "sbatch --parsable ${copy_slurm_sched[*]}"
+  echo "sbatch --parsable ${copy_slurm_sched[*]}" | tee -a "$logfile"
   echo "--- sbatch script $copy_cmd_filename ---"
   cat $copy_cmd_file
   echo "--- end of script ---"
 
   if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
   then
-    echo "Not submitting the Copyseg Jobs to slurm (--dry)."
+    echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
     copy_jobid=COPY_JOB_ID
   else
     copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
-    echo "Submitted Copyseg Jobs $copy_jobid"
+    echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
 }
 
