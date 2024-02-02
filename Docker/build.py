@@ -192,7 +192,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
-        choices=["cpu", "cuda", "cu117", "cu1118", "rocm", "rocm5.4.2"],
+        choices=["cpu", "cuda", "cu117", "cu118", "rocm", "rocm5.4.2"],
         required=True,
         help="""selection of internal build stages to build for a specific platform.<br>
                 - cuda: defaults to cu118, cuda 11.8<br>
