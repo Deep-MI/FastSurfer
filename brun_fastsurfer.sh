@@ -55,11 +55,11 @@ Documentation of Options:
 Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over multiple subjects from
 i. a list passed through stdin of the format (one subject per line)
 ---
-<subject_id>=<path to t1 image>[,<subject-specific parameters>[,...]]
+<subject_id>=<path to t1 image>[ <subject-specific parameters>[ ...]]
 ...
 ---
 ii. a subject_list file using the same format (use Ctrl-D to end the input), or
-iii. a list of subjects directly passed
+iii. a list of subjects directly passed (this does not support subject-specific parameters)
 
 --batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of subjects
   (default: 1/1, == run all). "slurm_task_id" is a valid option for "<i>".
@@ -121,7 +121,8 @@ case $key in
         echo "ERROR: Could not find the subject list $2!"
         exit 1
       fi
-      subjects="$subjects$newline$(cat "$2")"
+      if [[ -n "$subjects" ]]; then subjects="$subjects$newline"; fi
+      subjects="$subjects$(cat "$2")"
       subjects_stdin="false"
     shift # past argument
     shift # past value
@@ -243,13 +244,19 @@ then
   echo "SLURM TASK ARRAY detected"
 fi
 
+if [[ "$subjects_stdin" == "true" ]]
+then
+  echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
+  subjects="$(cat)"
+fi
+
 if [[ "$debug" == "true" ]]
 then
   echo "---START DEBUG---"
   echo "Debug parameters to script brun_fastsurfer:"
   echo ""
   echo "subjects: "
-  echo $subjects
+  echo "$subjects"
   echo "---"
   echo "task_id/task_count: ${task_id-not specified}/${task_count-not specified}"
   if [[ "$parallel_subjects" != "1" ]]
@@ -283,15 +290,9 @@ then
   done
   echo ""
   echo ""
-  echo "Running in shell$(ls -l /proc/$$/exe | cut -d">" -f2)"
+  echo "Running in shell$(ls -l "/proc/$$/exe" | cut -d">" -f2)"
   echo ""
   echo "---END DEBUG  ---"
-fi
-
-if [[ "$subjects_stdin" == "true" ]]
-then
-  echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
-  subjects="$(cat)"
 fi
 
 if [[ -z "$subjects" ]]
@@ -366,6 +367,33 @@ then
   echo "Running up to $parallel_subjects in parallel"
 fi
 
+function read_args_from_string ()
+{
+  tab=$(printf '\t')
+  str_len=${#1}
+  position=0
+  while [[ "$position" -le "$str_len" ]]
+  do
+    if [[ -z "${1:$position}" ]]; then position=$((str_len + 1)); continue ; fi
+    arg=$(expr "${1:$position} " : "\(\(\\\\.\|[^'\"[:space:]\\\\]\+\|'\([^']*\|''\)*'\|\"\([^\"\\\\]\+\|\\\\.\)*\"\)\+\).*")
+    if [[ -z "$arg" ]]
+    then
+      # could not parse
+      echo "Could not parse the line ${1:$position}, maybe incorrect quoting or escaping?"
+      exit 1
+    else
+      # arg parsed
+      if [[ "$position" == "0" ]]; then image_path=$arg
+      else args=("${args[@]}" "$arg")
+      fi
+      position=$((position + ${#arg}))
+    fi
+    while [[ "${1:$position:1}" == " " ]] || [[ "${1:$position:1}" == "$tab" ]]; do position=$((position + 1)) ; done
+  done
+  export image_path
+  export args
+}
+
 pids=()
 subjectids=()
 IFS=$'\n'
@@ -396,17 +424,10 @@ do
     fi
 
     image_parameters=$(echo "$subject" | cut -d= -f2-1000 --output-delimiter="=")
-    j=0
     args=(--sid "$subject_id")
     OLD_IFS=$IFS
-    IFS=","
-    for arg in $image_parameters
-    do
-      if [[ "$j" == 0 ]]; then image_path="$arg"
-      else args=("${args[@]}" "$arg")
-      fi
-      j=$((j + 1))
-    done
+    IFS=$' \t'
+    read_args_from_string "$image_parameters"
     IFS=$OLD_IFS
     if [[ "$parallel_surf" == "true" ]]
     then
@@ -457,7 +478,7 @@ then
   i=-1
   for pid in "${pids[@]}"
   do
-    i=$(($i + 1))
+    i=$((i + 1))
     wait "$pid"
     if [[ -n "$statusfile" ]]
     then

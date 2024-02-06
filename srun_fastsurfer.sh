@@ -99,7 +99,7 @@ Data- and subject-related options:
   ...
   This option invalidates the --pattern option.
   May also add additional parameters like:
-  subject_id1=/path/to/t1.mgz,--vox_size,1.0
+  subject_id1=/path/to/t1.mgz --vox_size 1.0
 --subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
   pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
 --subject_list_awk_code_sid <subject_id code>: alternative way to construct the subject_id
@@ -109,7 +109,7 @@ Data- and subject-related options:
   '\$2/\$1/mri/orig.mgz', where the first field (of the subject_list file) is the subject_id
   and the second field is the containing folder, e.g. the study.
   Example for additional parameters:
-  --subject_list_delim "," --subject_list_awk_code_args '\$2 ",--vox_size," \$4'
+  --subject_list_delim "," --subject_list_awk_code_args '\$2 " --vox_size " \$4'
   to implement from the subject_list line
   subject-101,raw/T1w-101A.nii.gz,study-1,0.9
   to (additional arguments must be comma-separated)
@@ -561,6 +561,18 @@ then
   exit 0
 fi
 
+cleanup_mode="mv"
+if [[ "$do_cleanup" == "true" ]]
+then
+  if [[ -n "$jobarray" ]]; then jobarray_defined="true"
+  else jobarray_defined="false"
+  fi
+  check_cases_in_out_dir "$out_dir" "$cases" "$jobarray_defined"
+  if [[ "$cleanup_mode" == "cp" ]]
+  then
+    log "Overwriting existing cases in $out_dir by data generated with FastSurfer."
+  fi
+fi
 
 if [[ "$submit_jobs" != "true" ]]
 then
@@ -644,7 +656,8 @@ then
   if [[ "$cpu_only" == "true" ]]; then mem_seg="$mem_seg_cpu"
   else mem_seg="$mem_seg_gpu"
   fi
-  # note that there can be a decent startup cost for each run, running multiple cases per task significantly reduces this
+  # note that there can be a decent startup cost for each run, running multiple cases
+  # per task significantly reduces this
   seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task"
                    --time=$(($timelimit_seg * $real_num_cases_per_task + 5))
                    $slurm_partition "${slurm_email[@]}"
@@ -766,7 +779,7 @@ fi
 if [[ "$do_cleanup" == "true" ]]
 then
   # delete_hpc_work is true, if the hpc_work directory was created by this script.
-  make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$LF" "$delete_hpc_work" "$submit_jobs"
+  make_cleanup_job "$hpc_work" "$out_dir" "$cleanup_depend" "$cleanup_mode" "$LF" "$delete_hpc_work" "$submit_jobs"
 else
   log "Skipping the cleanup (no cleanup job scheduled, find your results in $hpc_work."
 fi

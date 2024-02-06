@@ -125,6 +125,39 @@ function check_fs_license ()
     exit 1
   fi
 }
+function check_cases_in_out_dir ()
+{
+  #param1 out_dir
+  #param2 cases
+  #param3 optional: true/false jobarray defined (default: false)
+  if [[ "$#" -gt 2 ]] && [[ "$3" == "true" ]]
+  then
+    jobarray_defined="true"
+  else
+    jobarray_defined="false"
+  fi
+  case_already_exists=""
+  for subject in $2
+  do
+    subject_id=$(echo "$subject" | cut -d= -f1)
+    if [[ -e "$1/$subject_id" ]]
+    then
+      case_already_exists="$case_already_exists, $subject_id"
+    fi
+  done
+  if [[ "$case_already_exists" != "" ]]
+  then
+    echo "Some cases already exist in $1 (${case_already_exists:2})"
+    if [[ "$jobarray_defined" == "true" ]]
+    then
+      echo "This list does not filter for the --slurm_jobarray argument!"
+    fi
+    read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval
+    echo ""
+    if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
+    else exit 1; fi
+  fi
+}
 function check_seg_surf_only ()
 {
   #param1 seg_only
@@ -190,19 +223,20 @@ function make_cleanup_job ()
   # param1: hpc_work directory
   # param2: output directory
   # param3: dependency tag
-  # param4: logfile the log file
-  # param5: optional: true/false (delete hpc_work directory, default=false)
-  # param6: optional: true/false (submit jobs, default=true)
+  # param4: mode: the mode in which to copy (mv/cp)
+  # param5: logfile the log file
+  # param6: optional: true/false (delete hpc_work directory, default=false)
+  # param7: optional: true/false (submit jobs, default=true)
   local clean_cmd_file
   local submit_jobs
   local delete_hpc_work_dir
-  if [[ "$#" -gt 4 ]] && [[ "$5" == "true" ]]
+  if [[ "$#" -gt 5 ]] && [[ "$6" == "true" ]]
   then
     delete_hpc_work_dir="true"
   else
     delete_hpc_work_dir="false"
   fi
-  if [[ "$#" -gt 5 ]] && [[ "$6" == "false" ]]
+  if [[ "$#" -gt 6 ]] && [[ "$7" == "false" ]]
   then
     submit_jobs="false"
     clean_cmd_file=$(mktemp)
@@ -217,7 +251,13 @@ function make_cleanup_job ()
   local clean_slurm_sched=(-d "$3" -J "FastSurfer-Cleanup-$USER"
     --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/cleanup_%A.log"
     "$clean_cmd_filename")
-  local logfile=$4
+  local mode=$4
+  if [[ "$mode" != "mv" ]] && [[ "$mode" != "cp" ]]
+  then
+    >&2 echo "invalid mode $mode"
+    exit 1
+  fi
+  local logfile=$5
 
   mkdir -p "$out_dir/slurm/logs"
   {
@@ -240,7 +280,10 @@ function make_cleanup_job ()
     echo "then"
     echo "  for s in $hpc_work/cases/*"
     echo "  do"
-    echo "    mv -f -t \"$out_dir\" \$s &"
+    if [[ "$mode" == "mv" ]]; then echo "    mv -f -t \"$out_dir\" \$s &"
+    elif [[ "$mode" == "cp" ]]; then echo "    cp -r -t \"$out_dir\" \$s && rm -R \$s &"
+    else >&2 echo "invalid mode $mode"; exit 1;
+    fi
     echo "    pids=(\${pids[@]} \$!)"
     echo "  done"
     echo "fi"
@@ -277,9 +320,9 @@ function make_cleanup_job ()
   if [[ "$submit_jobs" == "false" ]]
   then
     echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a $logfile
-    clean_jobid=CLEAN_JOB_ID
+    export clean_jobid=CLEAN_JOB_ID
   else
-    clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
+    export clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
     echo "Submitted Cleanup Jobs $clean_jobid" | tee -a $logfile
   fi
 }
@@ -338,9 +381,9 @@ function make_copy_job ()
   if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
   then
     echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
-    copy_jobid=COPY_JOB_ID
+    export copy_jobid=COPY_JOB_ID
   else
-    copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
+    export copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
     echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
 }
