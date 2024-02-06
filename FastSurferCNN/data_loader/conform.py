@@ -778,7 +778,7 @@ def check_affine_in_nifti(
         vox_size_header = header.get_zooms()
 
         # voxel size in xyz direction from the affine
-        vox_size_affine = (img.affine[:3, :3] * img.affine[:3, :3]).sum(0).sqrt()
+        vox_size_affine = np.sqrt((img.affine[:3, :3] * img.affine[:3, :3]).sum(0))
 
         if not np.allclose(vox_size_affine, vox_size_header, atol=1e-3):
             message = (
