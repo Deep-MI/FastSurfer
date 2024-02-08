@@ -100,7 +100,7 @@ def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70)
 def get_region_bg_intersection_mask(
     seg_array, region_labels=VENT_LABELS, bg_label=BG_LABEL
 ):
-    """
+    f"""
     Return a mask of the intersection between the voxels of a given region and background voxels.
 
     This is obtained by dilating the region by 1 voxel and computing the intersection with the
@@ -112,18 +112,22 @@ def get_region_bg_intersection_mask(
     ----------
     seg_array : numpy.ndarray
         Segmentation array.
-    region_labels : Dict
-        Dictionary whose values correspond to the desired region's labels (Default value = VENT_LABELS).
-        VENT_LABELS is a dictionary containing labels for different regions related to the ventricles,
-        such as "Left-Lateral-Ventricle", "Right-Lateral-Ventricle", etc., along with their 
-        corresponding numeric values.
-    bg_label : int,  default="BG_LABEL"
-        (Default value = BG_LABEL).
+    region_labels : dict, default=<dict VENT_LABELS>
+        Dictionary whose values correspond to the desired region's labels (see Note).
+    bg_label : int,  default={BG_LABEL}
+        (Default value = {BG_LABEL}).
 
     Returns
     -------
     bg_intersect : numpy.ndarray
         Region and background intersection mask array.
+
+    Notes
+    -----
+    VENT_LABELS is a dictionary containing labels for four regions related to the ventricles:
+    "Left-Lateral-Ventricle", "Right-Lateral-Ventricle", "Left-choroid-plexus", 
+    "Right-choroid-plexus" along with their corresponding integer label values 
+    (see also FreeSurferColorLUT.txt).
     """
     region_array = seg_array.copy()
     conditions = np.all(

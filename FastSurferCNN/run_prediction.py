@@ -107,37 +107,6 @@ def args2cfg(
     return cfg_fin, cfg_cor, cfg_sag, cfg_ax
 
 
-def removesuffix(string: str, suffix: str) -> str:
-    """
-    Remove a suffix from a string.
-
-    Similar to string.removesuffix in PY3.9+,
-
-    Parameters
-    ----------
-    string : str
-        String to be cut.
-    suffix : str
-        Suffix to be removed.
-
-    Returns
-    -------
-    Str
-        Suffix removed string.
-    """
-    import sys
-
-    if sys.version_info.minor >= 9:
-        # removesuffix is a Python3.9 feature
-        return string.removesuffix(suffix)
-    else:
-        return (
-            string[: -len(suffix)]
-            if len(suffix) > 0 and string.endswith(suffix)
-            else string
-        )
-
-
 ##
 # Input array preparation
 ##

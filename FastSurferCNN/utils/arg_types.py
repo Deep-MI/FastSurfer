@@ -173,7 +173,7 @@ def int_ge_zero(value) -> int:
 
 def unquote_str(value) -> str:
     """
-    Unquote a (single quoted) string.
+    Unquote a (single quoted) string, i.e. remove one level of single-quotes.
 
     Parameters
     ----------
@@ -183,7 +183,7 @@ def unquote_str(value) -> str:
     Returns
     -------
     val : str
-        A string of the value without quoting with '''.
+        A string of the value without leading and trailing single-quotes.
     """
     val = str(value)
     if val.startswith("'") and val.endswith("'"):
