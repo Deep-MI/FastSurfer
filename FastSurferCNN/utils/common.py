@@ -41,7 +41,6 @@ __all__ = [
     "iterate",
     "NoParallelExecutor",
     "pipeline",
-    "removesuffix",
     "SubjectList",
     "SubjectDirectory",
 ]
@@ -190,20 +189,19 @@ def pipeline(
     ----------
     pool : Executor
         Thread pool executor for parallel execution.
-
-    func : Callable[[_Ti], _T] :
+    func : callable
         Function to use.
-
-    iterable : Iterable[_Ti]
+    iterable : Iterable
         Iterable containing input elements.
+    pipeline_size : int, default=1
+        Size of the processing pipeline.
 
-    pipeline_size : int
-        Size of the processing pipeline (default is 1).
-
-    Returns
-    -------
-    Iterator[Tuple[_Ti, _T]]
-        Iterator yielding input elements and corresponding results.
+    Yields
+    ------
+    element : _Ti
+        Elements
+    _T
+        Results of func corresponding to element: func(element).
     """
     # do pipeline loading the next element
     from collections import deque
@@ -231,52 +229,21 @@ def iterate(
     Parameters
     ----------
     pool : Executor
-        [MISSING].
-    func : Callable[[_Ti], _T]
+        The Executor object (dummy object to have a common API with pipeline).
+    func : callable
         Function to use.
-    iterable : Iterable[_Ti]
-        Iterable.
+    iterable : Iterable
+        Iterable to draw objects to process with func from.
 
     Yields
     ------
-     element : _Ti
+    element : _Ti
         Elements
     _T
-        [MISSING].
+        Results of func corresponding to element: func(element).
     """
     for element in iterable:
         yield element, func(element)
-
-
-def removesuffix(string: str, suffix: str) -> str:
-    """
-    Remove  a suffix from a string.
-
-    Similar to string.removesuffix in PY3.9+.
-
-    Parameters
-    ----------
-    string : str
-        String that should be edited.
-    suffix : str
-        Suffix to remove.
-
-    Returns
-    -------
-    str
-        Input string with removed suffix.
-    """
-    import sys
-
-    if sys.version_info.minor >= 9:
-        # removesuffix is a Python3.9 feature
-        return string.removesuffix(suffix)
-    else:
-        return (
-            string[: -len(suffix)]
-            if len(suffix) > 0 and string.endswith(suffix)
-            else string
-        )
 
 
 class SubjectDirectory:
@@ -318,7 +285,7 @@ class SubjectDirectory:
         Parameters
         ----------
         filepath : str
-            Abs path to the file or name of the file.
+            Absolute path.
 
         Returns
         -------
@@ -679,8 +646,13 @@ class SubjectDirectory:
 
         Returns
         -------
-        AttributeError
+        object
             The value of the requested attribute.
+
+        Raises
+        ------
+        AttributeError
+            If the subject has no attribute with the given name.
         """
         if not self.has_attribute(attr_name):
             raise AttributeError(f"The subject has no attribute named {attr_name}.")
@@ -1007,7 +979,7 @@ class SubjectList:
             # subject is always an absolute path (or relative to the working directory) ... of the input file
             subject = self._subjects[item]
             sid = (
-                os.path.basename(removesuffix(subject, self._remove_suffix))
+                os.path.basename(subject.removesuffix(self._remove_suffix))
                 if self._sid is None
                 else self._sid
             )

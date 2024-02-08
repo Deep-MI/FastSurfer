@@ -36,11 +36,10 @@ def vox_size(a: str) -> VoxSizeOption:
         If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
         If a valid voxel size (between 0 and 1) is provided, it returns a float.
 
-
     Raises
     ------
     argparse.ArgumentTypeError
-        An error from creating or using an argument. Additionally, vox_sizes may be 'min'.
+        If the arguemnt is not "min", "auto" or convertible to a float between 0 and 1.
     """
     if a.lower() in ["auto", "min"]:
         return "min"
@@ -66,7 +65,11 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
     float or None
         If `a` is a valid float between 0 and 1, return the float value.
         If `a` is 'none' or 'infinity', return None.
-        Otherwise, raise an argparse.ArgumentTypeError.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If `a` is neither a float between 0 and 1.
     """
     if a is None or a.lower() in ["none", "infinity"]:
         return None
@@ -84,7 +87,7 @@ def target_dtype(a: str) -> str:
     Parameters
     ----------
     a : str
-        Datatype.
+        Datatype descriptor.
 
     Returns
     -------
@@ -95,6 +98,11 @@ def target_dtype(a: str) -> str:
     ------
     argparse.ArgumentTypeError
         Invalid dtype.
+
+    See Also
+    --------
+    numpy.dtype
+        For more information on numpy data types and their properties.
     """
     dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
     dtypes.add("any")
@@ -165,7 +173,7 @@ def int_ge_zero(value) -> int:
 
 def unquote_str(value) -> str:
     """
-    Unquote a (single quoted) string.
+    Unquote a (single quoted) string, i.e. remove one level of single-quotes.
 
     Parameters
     ----------
@@ -175,7 +183,7 @@ def unquote_str(value) -> str:
     Returns
     -------
     val : str
-        A string of the value without quoting with '''.
+        A string of the value without leading and trailing single-quotes.
     """
     val = str(value)
     if val.startswith("'") and val.endswith("'"):

@@ -36,23 +36,23 @@ class _ZoomNd(nn.Module):
     Attributes
     ----------
     _mode
-        Interpolation mode as in `torch.nn.interpolate` (default: 'neareast').
+        (Protected) Interpolation mode as in `torch.nn.interpolate` (default: 'neareast').
     _target_shape
-        Target tensor size for after this module,
+        (Protected) Target tensor size for after this module,
         not including batchsize and channels.
     _N
-        Number of dimensions.
+        (Protected) Internal number of dimensions.
 
     Methods
     -------
     forward
         Forward propagation.
     _fix_scale_factors
-        Checking and fixing the conformity of scale_factors.
+        (Protected) Checking and fixing the conformity of scale_factors.
     _interpolate
-        Abstract method.
-    -calculate_crop_pad
-        Return start- and end- coordinate.
+        (Protected) Abstract method.
+    _calculate_crop_pad
+        (Protected) Return start- and end- coordinate.
     """
 
     def __init__(
@@ -68,7 +68,7 @@ class _ZoomNd(nn.Module):
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module,
             not including batchsize and channels.
-        interpolation_mode : str
+        interpolation_mode : str, default="nearest"
             Interpolation mode as in `torch.nn.interpolate`
             (default: 'neareast').
         """
@@ -132,7 +132,7 @@ class _ZoomNd(nn.Module):
             image: The first dimension corresponds to and must be equal to the batch size of the image. The second
             dimension is optional and may contain different values for the _scale_limits factor per axis. In consequence,
             this dimension can have 1 or {dim} values.
-        rescale : bool
+        rescale : bool, default="False"
             (Default value = False).
 
         Returns
@@ -201,7 +201,7 @@ class _ZoomNd(nn.Module):
 
         Yields
         ------
-        _T.Iterable[_T.Tuple[T_Scale, int]]
+        tuple[T_Scale, int]
             The next fixed scale factor.
 
         Raises
@@ -370,18 +370,13 @@ class Zoom2d(_ZoomNd):
     """
     Perform a crop and interpolation on a Four-dimensional Tensor respecting batch and channel.
 
-    Attributes
-    ----------
-     _N
-        Number of dimensions (Here 2).
-     _crop_position
-        Position to crop.
-
     Methods
     -------
     _interpolate
-        Crops, interpolates and pads the tensor.
+        (Protected) Crops, interpolates and pads the tensor.
     """
+
+    _crop_position: str
 
     def __init__(
         self,
@@ -396,15 +391,37 @@ class Zoom2d(_ZoomNd):
         ----------
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module, not including batchsize and channels.
-        interpolation_mode : str
+        interpolation_mode : str, default="nearest"
             Interpolation mode as in `torch.nn.interpolate` (default: 'nearest')
-        crop_position : str
+        crop_position : str, default="top_left"
             Crop position to use from 'top_left', 'bottom_left', top_right', 'bottom_right',
             'center' (default: 'top_left').
         """
         if interpolation_mode not in ["nearest", "bilinear", "bicubic", "area"]:
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
+        self._N = 2
+        super(Zoom2d, self).__init__(target_shape, interpolation_mode)
+        self.crop_position = crop_position
+
+    @property
+    def crop_position(self) -> str:
+        """
+        Property associated with the position of the image in the data.
+        """
+        return self._crop_position
+
+    @crop_position.setter
+    def crop_position(self, crop_position: str) -> None:
+        """
+        Set the crop position.
+
+        Parameters
+        ----------
+        crop_position : str
+            The crop position key from 'top_left', 'bottom_left', top_right', 
+            'bottom_right', 'center'.
+        """
         if crop_position not in [
             "top_left",
             "bottom_left",
@@ -413,11 +430,8 @@ class Zoom2d(_ZoomNd):
             "center",
         ]:
             raise ValueError(f"invalid crop_position, got {crop_position}")
-
-        self._N = 2
-        super(Zoom2d, self).__init__(target_shape, interpolation_mode)
-        self._crop_position = crop_position
-
+        self._crop_position = crop_position        
+    
     def _interpolate(
         self,
         data: Tensor,
@@ -510,10 +524,10 @@ class Zoom3d(_ZoomNd):
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module,
             not including batchsize and channels.
-        interpolation_mode : str
+        interpolation_mode : str, default="nearest"
             Interpolation mode as in `torch.nn.interpolate`,
             (default: 'neareast').
-        crop_position : str
+        crop_position : str, default="front_top_left"
             Crop position to use from 'front_top_left', 'back_top_left',
             'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
             'front_bottom_right', 'back_bottom_right', 'center' (default: 'front_top_left').
@@ -521,6 +535,29 @@ class Zoom3d(_ZoomNd):
         if interpolation_mode not in ["nearest", "trilinear", "area"]:
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
+        self._N = 3
+        super(Zoom3d, self).__init__(target_shape, interpolation_mode)
+        self.crop_position = crop_position
+
+    @property
+    def crop_position(self) -> str:
+        """
+        Property associated with the position of the image in the data.
+        """
+        return self._crop_position
+
+    @crop_position.setter
+    def crop_position(self, crop_position: str) -> None:
+        """
+        Set the crop position.
+
+        Parameters
+        ----------
+        crop_position : str
+            Crop position to use from 'front_top_left', 'back_top_left',
+            'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
+            'front_bottom_right', 'back_bottom_right', 'center' (default: 'front_top_left').
+        """
         if crop_position not in [
             "front_top_left",
             "back_top_left",
@@ -533,11 +570,8 @@ class Zoom3d(_ZoomNd):
             "center",
         ]:
             raise ValueError(f"invalid crop_position, got {crop_position}")
-
-        self._N = 3
-        super(Zoom3d, self).__init__(target_shape, interpolation_mode)
         self._crop_position = crop_position
-
+    
     def _interpolate(
         self, data: Tensor, scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[int]]
     ):

@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+# This is test line just to check rebase commit
 
 # IMPORTS
 import optparse
@@ -90,13 +90,13 @@ h_trgsid = "optional, when storing mapped labels: target subject id, also writte
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id:create_annotation.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -156,45 +156,45 @@ def map_multiple_labels(
         out_dir: Optional[str] = None,
         stop_missing: bool = True
 ) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
-    """Map a list of labels from one surface (e.g. fsavaerage sphere.reg) to another.
+    """
+    Map a list of labels from one surface (e.g. fsavaerage sphere.reg) to another.
 
     Labels are just names without hemisphere or path,
-    which are passed via hemi, src_dir, out_dir)
+    which are passed via hemi, src_dir, out_dir).
 
     Parameters
     ----------
     hemi : str
-        "lh" or "rh" for reading labels
+        "lh" or "rh" for reading labels.
     src_dir : str
-        director of the source file
+        Director of the source file.
     src_labels : npt.ArrayLike
-        List of labels
+        List of labels.
     src_sphere_name : str
-        filename of source sphere
+        Filename of source sphere.
     trg_sphere_name : str
-        filename of target sphere
+        Filename of target sphere.
     trg_white_name : str
-        filename of target white
+        Filename of target white.
     trg_sid : str
-        target subject id
+        Target subject id.
     out_dir : Optional[str]
-        directory for output, defaults to None
+        Directory for output, defaults to None.
     stop_missing : bool
-        determines whether to stop on a missing src label file, or continue
-        with a warning. Defaults to True
+        Determines whether to stop on a missing src label file, or continue
+        with a warning. Defaults to True.
 
     Returns
     -------
     all_labels
-        mapped labels
+        Mapped labels.
     all_values
-        values of mapped labels
+        Values of mapped labels.
 
     Raises
     ------
     ValueError
-        Label file missing
-
+        Label file missing.
     """
     # get reverse mapping (trg->src) for sampling
     rev_mapping, _, _ = getSurfCorrespondence(trg_sphere_name, src_sphere_name)
@@ -236,24 +236,24 @@ def read_multiple_labels(
         input_dir: str,
         label_names: npt.ArrayLike
 ) -> Tuple[ List[npt.NDArray],  List[npt.NDArray]]:
-    """Read multiple label files from input_dir.
+    """
+    Read multiple label files from input_dir.
 
     Parameters
     ----------
     hemi : str
-        "lh" or "rh" for reading labels
+        "lh" or "rh" for reading labels.
     input_dir : str
-        director of the source
+        Director of the source.
     label_names : npt.ArrayLike
-        List of labels
+        List of labels.
 
     Returns
     -------
     all_labels
-        read labels
+        Read labels.
     all_values
-        values of read labels
-
+        Values of read labels.
     """
     all_labels = []
     all_values = []
@@ -275,7 +275,8 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
                 col_ids: npt.ArrayLike, trg_white: Union[str, npt.NDArray],
                 cortex_label_name: Optional[str] = None
                 ) -> Tuple[npt.NDArray, npt.NDArray]:
-    """Create an annotation from multiple labels.
+    """
+    Create an annotation from multiple labels.
 
     Here we also consider the label values and overwrite existing labels
     if values of current are larger (or equal, so the order of the labels matters).
@@ -284,23 +285,22 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
     Parameters
     ----------
     all_labels : npt.ArrayLike
-        List of all Labels
+        List of all Labels.
     all_values : npt.ArrayLike
-        List of all values
+        List of all values.
     col_ids : npt.ArrayLike
-        List of col ids
+        List of col ids.
     trg_white : Union[str, npt.NDArray]
-        target file of white
+        Target file of white.
     cortex_label_name : Optional[str]
-        Path to the cortex label file. Defaults to None
+        Path to the cortex label file. Defaults to None.
 
     Returns
     -------
     annot_ids
-        Ids of build Annotations
+        Ids of build Annotations.
     annot_vals
-        Values of build Annotations
-
+        Values of build Annotations.
     """
     # create annot from a bunch of labels (and values)
     if isinstance(trg_white, str):
@@ -339,22 +339,22 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
 
 
 def read_colortable(colortab_name: str) -> Tuple[npt.ArrayLike, List[str], npt.ArrayLike]:
-    """Read the colortable of given name.
+    """
+    Read the colortable of given name.
 
     Parameters
     ----------
     colortab_name : str
-        Path and Name of the colortable file
+        Path and Name of the colortable file.
 
     Returns
     -------
     ids
-        List of ids
+        List of ids.
     names
-        List of names
+        List of names.
     colors
-        List of colors corresponding to ids and names
-
+        List of colors corresponding to ids and names.
     """
     colortab = np.genfromtxt(colortab_name, dtype="i8", usecols=(0, 2, 3, 4, 5))
     ids = colortab[:, 0]
@@ -371,25 +371,25 @@ def write_annot(
         out_annot: str,
         append: Union[None, str] = ""
 ) -> None:
-    """Combine the colortable with the annotations ids to write an annotation file.
+    """
+    Combine the colortable with the annotations ids to write an annotation file.
 
     The annotation file contains colortable information
     Care needs to be taken that the colortable file has the same number
-    and order of labels as specified in the label_names list
+    and order of labels as specified in the label_names list.
 
     Parameters
     ----------
     annot_ids : npt.ArrayLike
-        List of annotation ids
+        List of annotation ids.
     label_names : npt.ArrayLike
-        list of label names
+        List of label names.
     colortab_name : str
-        Path and name of colortable file
+        Path and name of colortable file.
     out_annot : str
-        Path and name of output annotation file
+        Path and name of output annotation file.
     append : Union[None, str]
-        String to append to colour name. Defaults to ""
-
+        String to append to colour name. Defaults to "".
     """
     # colortab_name="colortable_BA.txt"
     col_ids, col_names, col_colors = read_colortable(colortab_name)
@@ -413,14 +413,15 @@ def write_annot(
 
 
 def create_annotation(options, verbose: bool = True) -> None:
-    """Map (if required), build  and write annotation.
+    """
+    Map (if required), build  and write annotation.
 
     (Main function)
 
     Parameters
     ----------
-    options :
-        object holding options
+    options : Any
+        Object holding options
         hemi: "lh" or "rh" for reading labels
         colortab: colortab with label ids, names and colors
         labeldir: dir where to find the label files (when reading)
@@ -429,10 +430,9 @@ def create_annotation(options, verbose: bool = True) -> None:
         cortex: optional path to hemi.cortex for optional masking of annotation to only cortex
         append: optional, e.g. ".thresh" can be appended to label names (I/O) for exvivo FS labels
         srcsphere: optional, when mapping: path to src sphere.reg
-        trgsphere: optional, when mapping: path to trg sphere.reg
+        trgsphere: optional, when mapping: path to trg sphere.reg.
     verbose : bool
-        True if options should be printed. Defaults to True
-
+        True if options should be printed. Defaults to True.
     """
     print()
     print("Map BA Labels Parameters:")

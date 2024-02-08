@@ -12,21 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# IMPORTS
 import argparse
 import copy
 import os
-
-# IMPORTS
 import sys
-from concurrent.futures import Executor
-from typing import Any, Dict, Iterator, Literal, Optional, Tuple, Union
-
 import nibabel as nib
 import numpy as np
 import torch
 import yacs.config
-
 import FastSurferCNN.reduce_to_aseg as rta
+
+from concurrent.futures import Executor
+from typing import Any, Dict, Iterator, Literal, Optional, Tuple, Union
 from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
@@ -109,37 +107,6 @@ def args2cfg(
     return cfg_fin, cfg_cor, cfg_sag, cfg_ax
 
 
-def removesuffix(string: str, suffix: str) -> str:
-    """
-    Remove a suffix from a string.
-
-    Similar to string.removesuffix in PY3.9+,
-
-    Parameters
-    ----------
-    string : str
-        String to be cut.
-    suffix : str
-        Suffix to be removed.
-
-    Returns
-    -------
-    Str
-        Suffix removed string.
-    """
-    import sys
-
-    if sys.version_info.minor >= 9:
-        # removesuffix is a Python3.9 feature
-        return string.removesuffix(suffix)
-    else:
-        return (
-            string[: -len(suffix)]
-            if len(suffix) > 0 and string.endswith(suffix)
-            else string
-        )
-
-
 ##
 # Input array preparation
 ##
@@ -154,11 +121,11 @@ class RunModelOnData:
     pred_name : str
     conf_name : str
     orig_name : str
-    vox_size : Union[float, Literal["min"]]
+    vox_size : float, 'min'
     current_plane : str
     models : Dict[str, Inference]
     view_ops : Dict[str, Dict[str, Any]]
-    conform_to_1mm_threshold : Optional[float]
+    conform_to_1mm_threshold : float, optional
         threshold until which the image will be conformed to 1mm res
 
     Methods

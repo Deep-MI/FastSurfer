@@ -155,7 +155,7 @@ class H5pyDataset:
         self.gm_mask = params["gm_mask"]
 
         self.lut = read_classes_from_lut(params["lut"])
-        self.labels, self.labels_sag = get_labels_from_lut(self.lut, params["sag-mask"])
+        self.labels, self.labels_sag = get_labels_from_lut(self.lut, params["sag_mask"])
         self.lateralization = unify_lateralized_labels(self.lut, params["combi"])
 
         if params["csv_file"] is not None:
@@ -278,7 +278,7 @@ class H5pyDataset:
         Parameters
         ----------
         blt : int
-            Blank sliec threshold.
+            Blank slice threshold.
         """
         data_per_size = defaultdict(lambda: defaultdict(list))
         start_d = time.time()
@@ -540,7 +540,7 @@ if __name__ == "__main__":
         "plane": args.plane,
         "lut": args.lut,
         "combi": args.combi,
-        "sag-mask": args.sag_mask,
+        "sag_mask": args.sag_mask,
         "hires_weight": args.hires_w,
         "gm_mask": args.gm,
         "gradient": not args.no_grad,

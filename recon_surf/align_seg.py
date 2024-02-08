@@ -65,13 +65,13 @@ h_midslice = "Optional, only for flipped. Slice where the midplane should be. De
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id:align_seg.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -100,24 +100,24 @@ def options_parse():
 
 
 def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optional[npt.NDArray[int]] = []) -> Tuple[npt.NDArray, npt.NDArray]:
-    """Extract the centroids of the segmentation labels for mov and dst in RAS coords.
+    """
+    Extract the centroids of the segmentation labels for mov and dst in RAS coords.
 
     Parameters
     ----------
     seg_mov : sitk.Image
-        Source segmentation image
+        Source segmentation image.
     seg_dst : sitk.Image
-        Target segmentation image
+        Target segmentation image.
     label_ids : Optional[npt.NDArray[int]]
-        List of label ids to extract (Default value = [])
+        List of label ids to extract (Default value = []).
 
     Returns
     -------
     centroids_mov
-        List of centroids of source segmentation
+        List of centroids of source segmentation.
     centroids_dst
-        List of centroids of target segmentation
-
+        List of centroids of target segmentation.
     """
     if not label_ids:
         # use all joint labels except -1 and 0:
@@ -159,7 +159,8 @@ def align_seg_centroids(
         label_ids: Optional[npt.NDArray[int]] = [],
         affine: bool = False
 ) -> npt.NDArray:
-    """Align the segmentations based on label centroids (rigid is default).
+    """
+    Align the segmentations based on label centroids (rigid is default).
 
     Parameters
     ----------
@@ -177,7 +178,6 @@ def align_seg_centroids(
     -------
     T
         Aligned centroids RAS2RAS transform.
-
     """
     # get centroids of each label in image
     centroids_mov, centroids_dst = get_seg_centroids(seg_mov, seg_dst, label_ids)
@@ -191,12 +191,13 @@ def align_seg_centroids(
 
 
 def get_vox2ras(img:sitk.Image) -> npt.NDArray:
-    """Extract voxel to RAS (affine) from sitk image.
+    """
+    Extract voxel to RAS (affine) from sitk image.
     
     Parameters
     ----------
     seg : sitk.Image
-        sitk Image.
+        Sitk Image.
 
     Returns
     -------
@@ -219,7 +220,8 @@ def get_vox2ras(img:sitk.Image) -> npt.NDArray:
     return vox2ras
 
 def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDArray:
-    """Registrate Left - right (make upright).
+    """
+    Registrate Left - right (make upright).
 
     Register cortial lables
 
@@ -235,7 +237,6 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
     -------
     Tsqrt
         RAS2RAS transformation matrix for registration.
-
     """
     lhids = np.array(
         [
