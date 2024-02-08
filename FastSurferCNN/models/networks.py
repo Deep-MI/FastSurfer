@@ -12,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from typing import Dict, Optional, Union
-
+# IMPORTS
 import numpy as np
 import yacs
-
-# IMPORTS
-from torch import Tensor, nn
-
 import FastSurferCNN.models.interpolation_layer as il
 import FastSurferCNN.models.sub_module as sm
 
+from typing import Dict, Optional, Union
+from torch import Tensor, nn
 
 class FastSurferCNNBase(nn.Module):
     """
@@ -61,7 +57,7 @@ class FastSurferCNNBase(nn.Module):
         params : Dict
             Parameters in dictionary format
 
-        padded_size : int
+        padded_size : int, default = 256
             Size of image when padded (Default value = 256).
         """
         super(FastSurferCNNBase, self).__init__()
@@ -105,10 +101,10 @@ class FastSurferCNNBase(nn.Module):
         ----------
         x : Tensor
             Input image [N, C, H, W] representing the input data.
-        scale_factor : Optional[Tensor]
-            [N, 1] Defaults to None (Default value = None).
-        scale_factor_out : Optional[Tensor]
-            (Default value = None).
+        scale_factor : Tensor, optional
+            [N, 1] Defaults to None.
+        scale_factor_out : Tensor, optional
+            [Missing].
 
         Returns
         -------
@@ -195,10 +191,10 @@ class FastSurferCNN(FastSurferCNNBase):
         ----------
         x : Tensor
             Input image [N, C, H, W].
-        scale_factor : Optional[Tensor]
+        scale_factor : Tensor, optional
             [N, 1] Defaults to None.
-        scale_factor_out : Optional[Tensor]
-            Defaults to None.
+        scale_factor_out : Tensor, optional
+            [Missing].
 
         Returns
         -------
@@ -260,7 +256,7 @@ class FastSurferVINN(FastSurferCNNBase):
         ----------
         params : Dict
             Dictionary of configurations.
-        padded_size : int
+        padded_size : int, default = 256
             Size of image when padded (Default value = 256).
         """
         num_c = params["num_channels"]
@@ -342,7 +338,7 @@ class FastSurferVINN(FastSurferCNNBase):
         scale_factor : Tensor
             [MISSING] [N, 1].
         scale_factor_out : Tensor, Optional
-            [MISSING] Defaults to None.
+            [MISSING].
 
         Returns
         -------

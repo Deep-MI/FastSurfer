@@ -68,7 +68,7 @@ class _ZoomNd(nn.Module):
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module,
             not including batchsize and channels.
-        interpolation_mode : str
+        interpolation_mode : str, default="nearest"
             Interpolation mode as in `torch.nn.interpolate`
             (default: 'neareast').
         """
@@ -132,7 +132,7 @@ class _ZoomNd(nn.Module):
             image: The first dimension corresponds to and must be equal to the batch size of the image. The second
             dimension is optional and may contain different values for the _scale_limits factor per axis. In consequence,
             this dimension can have 1 or {dim} values.
-        rescale : bool
+        rescale : bool, default="False"
             (Default value = False).
 
         Returns
@@ -201,7 +201,7 @@ class _ZoomNd(nn.Module):
 
         Yields
         ------
-        _T.Iterable[_T.Tuple[T_Scale, int]]
+        tuple[T_Scale, int]
             The next fixed scale factor.
 
         Raises
@@ -370,17 +370,10 @@ class Zoom2d(_ZoomNd):
     """
     Perform a crop and interpolation on a Four-dimensional Tensor respecting batch and channel.
 
-    Attributes
-    ----------
-     _N
-        Number of dimensions (Here 2).
-     _crop_position
-        Position to crop.
-
     Methods
     -------
     _interpolate
-        Crops, interpolates and pads the tensor.
+        (Protected) Crops, interpolates and pads the tensor.
     """
 
     def __init__(
@@ -396,9 +389,9 @@ class Zoom2d(_ZoomNd):
         ----------
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module, not including batchsize and channels.
-        interpolation_mode : str
+        interpolation_mode : str, default="nearest"
             Interpolation mode as in `torch.nn.interpolate` (default: 'nearest')
-        crop_position : str
+        crop_position : str, default="top_left"
             Crop position to use from 'top_left', 'bottom_left', top_right', 'bottom_right',
             'center' (default: 'top_left').
         """
@@ -416,7 +409,7 @@ class Zoom2d(_ZoomNd):
 
         self._N = 2
         super(Zoom2d, self).__init__(target_shape, interpolation_mode)
-        self._crop_position = crop_position
+        self.crop_position = crop_position
 
     def _interpolate(
         self,
@@ -510,10 +503,10 @@ class Zoom3d(_ZoomNd):
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module,
             not including batchsize and channels.
-        interpolation_mode : str
+        interpolation_mode : str, default="nearest"
             Interpolation mode as in `torch.nn.interpolate`,
             (default: 'neareast').
-        crop_position : str
+        crop_position : str, default="front_top_left"
             Crop position to use from 'front_top_left', 'back_top_left',
             'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
             'front_bottom_right', 'back_bottom_right', 'center' (default: 'front_top_left').

@@ -495,12 +495,12 @@ class MultiScaleDatasetVal(Dataset):
 
         Parameters
         ----------
-        img_zoom :
-            Zooming factor [MISSING].
+        img_zoom : np.ndarray
+            Voxel sizes of the image.
 
         Returns
         -------
-        np.ndarray : float32
+        np.ndarray : numpy.typing.NDArray[float]
             Scale factor along x and y dimension.
         """
         scale = self.base_res / img_zoom

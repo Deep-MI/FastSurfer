@@ -13,16 +13,16 @@
 # limitations under the License.
 
 
-from numbers import Real
-from typing import Optional, Tuple, Union
 
 # IMPORTS
 import torch
 import yacs.config
+
 from torch import Tensor, nn
 from torch.nn import functional as F
 from torch.nn.modules.loss import _Loss
-
+from numbers import Real
+from typing import Optional, Tuple, Union
 
 class DiceLoss(_Loss):
     """
@@ -40,7 +40,7 @@ class DiceLoss(_Loss):
         target: Tensor,
         weights: Optional[int] = None,
         ignore_index: Optional[int] = None,
-    ) -> float:
+    ) -> torch.Tensor:
         """
         Calulate the DiceLoss.
 
@@ -50,14 +50,14 @@ class DiceLoss(_Loss):
             N x C x H x W Variable.
         target : Tensor
             N x C x W LongTensor with starting class at 0.
-        weights : Optional[int]
+        weights : int, optional
             C FloatTensor with class wise weights(Default value = None).
-        ignore_index : Optional[int]
+        ignore_index : int, optional
             Ignore label with index x in the loss calculation (Default value = None).
 
         Returns
         -------
-        float
+        torch.Tensor
             Calculated Diceloss.
         """
         eps = 0.001
@@ -114,7 +114,7 @@ class CrossEntropy2D(nn.Module):
 
         Parameters
         ----------
-        weight : Optional[Tensor]
+        weight : Tensor, optional 
             A manual rescaling weight given to each class. If given, has to be a Tensor of size `C`. Defaults to None.
         reduction : str
             Specifies the reduction to apply to the output, as in nn.CrossEntropyLoss. Defaults to 'None'.

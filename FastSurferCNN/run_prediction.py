@@ -12,21 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# IMPORTS
 import argparse
 import copy
 import os
-
-# IMPORTS
 import sys
-from concurrent.futures import Executor
-from typing import Any, Dict, Iterator, Literal, Optional, Tuple, Union
-
 import nibabel as nib
 import numpy as np
 import torch
 import yacs.config
-
 import FastSurferCNN.reduce_to_aseg as rta
+
+from concurrent.futures import Executor
+from typing import Any, Dict, Iterator, Literal, Optional, Tuple, Union
 from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
@@ -154,11 +152,11 @@ class RunModelOnData:
     pred_name : str
     conf_name : str
     orig_name : str
-    vox_size : Union[float, Literal["min"]]
+    vox_size : float, 'min'
     current_plane : str
     models : Dict[str, Inference]
     view_ops : Dict[str, Dict[str, Any]]
-    conform_to_1mm_threshold : Optional[float]
+    conform_to_1mm_threshold : float, optional
         threshold until which the image will be conformed to 1mm res
 
     Methods

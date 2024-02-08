@@ -1,5 +1,5 @@
-API
-===
+FastSurfer API
+==============
 
 .. toctree::
     :maxdepth: 2

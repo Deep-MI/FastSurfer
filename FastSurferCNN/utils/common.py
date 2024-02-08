@@ -200,10 +200,10 @@ def pipeline(
     pipeline_size : int
         Size of the processing pipeline (default is 1).
 
-    Returns
-    -------
+    Yields
+    ------
     Iterator[Tuple[_Ti, _T]]
-        Iterator yielding input elements and corresponding results.
+        Yielding elements from iterable and corresponding results from func(element).
     """
     # do pipeline loading the next element
     from collections import deque
@@ -231,8 +231,8 @@ def iterate(
     Parameters
     ----------
     pool : Executor
-        [MISSING].
-    func : Callable[[_Ti], _T]
+        Callable.
+    func : Iterable
         Function to use.
     iterable : Iterable[_Ti]
         Iterable.
@@ -242,7 +242,7 @@ def iterate(
      element : _Ti
         Elements
     _T
-        [MISSING].
+        Func(element).
     """
     for element in iterable:
         yield element, func(element)
@@ -318,7 +318,7 @@ class SubjectDirectory:
         Parameters
         ----------
         filepath : str
-            Abs path to the file or name of the file.
+            Absolute path.
 
         Returns
         -------
@@ -679,8 +679,13 @@ class SubjectDirectory:
 
         Returns
         -------
-        AttributeError
+        object
             The value of the requested attribute.
+
+        Raises
+        ------
+        AttributeError
+            If the subject has no attribute with the given name.
         """
         if not self.has_attribute(attr_name):
             raise AttributeError(f"The subject has no attribute named {attr_name}.")

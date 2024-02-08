@@ -278,7 +278,7 @@ class H5pyDataset:
         Parameters
         ----------
         blt : int
-            Blank sliec threshold.
+            Blank slice threshold.
         """
         data_per_size = defaultdict(lambda: defaultdict(list))
         start_d = time.time()

@@ -68,17 +68,17 @@ def options_parse():
     return options
 
 
-def check_volume(asegdkt_segfile, voxvol, thres=0.70):
+def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70):
     """
     Check if total volume is bigger or smaller than threshold.
 
     Parameters
     ----------
-    asegdkt_segfile : -
+    asegdkt_segfile : np.ndarray
         [MISSING].
-    voxvol : -
+    voxvol : float
         [MISSING].
-    thres : -
+    thres : float
         [MISSING].
 
     Returns
@@ -113,8 +113,11 @@ def get_region_bg_intersection_mask(
     seg_array : numpy.ndarray
         Segmentation array.
     region_labels : Dict
-        Dict whose values correspond to the desired region's labels (Default value = VENT_LABELS).
-    bg_label : int
+        Dictionary whose values correspond to the desired region's labels (Default value = VENT_LABELS).
+        VENT_LABELS is a dictionary containing labels for different regions related to the ventricles,
+        such as "Left-Lateral-Ventricle", "Right-Lateral-Ventricle", etc., along with their 
+        corresponding numeric values.
+    bg_label : int,  default="BG_LABEL"
         (Default value = BG_LABEL).
 
     Returns

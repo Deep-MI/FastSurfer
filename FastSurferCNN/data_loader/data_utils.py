@@ -572,7 +572,7 @@ def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
     Parameters
     ----------
     lut_file : str
-        Path and name of FreeSurfer-style LUT file with classes of interest
+        Path and name of FreeSurfer-style LUT file with classes of interest.
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
@@ -1039,7 +1039,7 @@ def infer_mapping_from_lut(
         lut: Union[str, pd.DataFrame]
 ) -> np.ndarray:
     """
-    [MISSING].
+    Guess the mapping from a lookup table.
 
     Parameters
     ----------

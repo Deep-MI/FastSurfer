@@ -223,7 +223,7 @@ class Inference:
         if self.model_parallel:
             self.model = torch.nn.DataParallel(self.model)
 
-    def get_modelname(self):
+    def get_modelname(self) -> str:
         """
         Return the model name.
 
@@ -234,7 +234,7 @@ class Inference:
         """
         return self.model_name
 
-    def get_cfg(self):
+    def get_cfg(self) -> yacs.config.CfgNode:
         """
         Return the configurations.
 
@@ -245,7 +245,7 @@ class Inference:
         """
         return self.cfg
 
-    def get_num_classes(self):
+    def get_num_classes(self) -> int:
         """
         Return the number of classes.
 
@@ -256,7 +256,7 @@ class Inference:
         """
         return self.cfg.MODEL.NUM_CLASSES
 
-    def get_plane(self):
+    def get_plane(self) -> str:
         """
         Return the plane.
 
@@ -267,7 +267,7 @@ class Inference:
         """
         return self.cfg.DATA.PLANE
 
-    def get_model_height(self):
+    def get_model_height(self) -> int:
         """
         Return the model height.
 
@@ -278,7 +278,7 @@ class Inference:
         """
         return self.cfg.MODEL.HEIGHT
 
-    def get_model_width(self):
+    def get_model_width(self) -> int:
         """
         Return the model width.
 
@@ -289,13 +289,13 @@ class Inference:
         """
         return self.cfg.MODEL.WIDTH
 
-    def get_max_size(self):
+    def get_max_size(self) -> int | tuple[int, int]:
         """
         Return the max size.
 
         Returns
         -------
-        Union[int, Tuple[int, int]]
+        int | tuple[int, int]
             The maximum size, either a single value or a tuple (width, height).
         """
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
@@ -303,7 +303,7 @@ class Inference:
         else:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
 
-    def get_device(self):
+    def get_device(self) -> torch.device:
         """
         Return the device.
 
