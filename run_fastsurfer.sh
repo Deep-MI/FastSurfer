@@ -705,15 +705,12 @@ fi
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
 
-if [[ -f "$seg_log" ]] && [[ "$run_seg_pipeline" == "1" ]]
-  then
-    append_flag=("$seg_log")
-else
-    append_flag=(-a "$seg_log")
+if [[ -f "$seg_log" ]]; then log_existed="true"
+else log_existed="false"
 fi
 
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
-echo "Version: $VERSION" |& tee "${append_flag[@]}"
+echo "Version: $VERSION" |& tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" }" SIGINT SIGTERM
@@ -722,9 +719,9 @@ trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$s
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}" >> "$build_log" &
 
-if [[ ! -f "$seg_log" ]] || [[ "$run_seg_pipeline" != "1" ]]
+if [[ "$run_seg_pipeline" != "1" ]]
   then
-    echo "Running run_fastsurfer.sh on a "
+    echo "Running run_fastsurfer.sh without segmentation ; expecting previous --seg_only run in ${sd}/${subject}" | tee -a "$seg_log"
 fi
 
 

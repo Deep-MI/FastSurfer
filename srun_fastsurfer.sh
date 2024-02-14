@@ -176,7 +176,7 @@ EOF
 }
 
 # the memory required for the surface and the segmentation pipeline depends on the
-# voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1m)
+# voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1mm)
 mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
 mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
 mem_surf_parallel=6 # in GB, hemi in parallel
@@ -365,6 +365,24 @@ case $key in
     usage
     exit
     ;;
+  --mem)
+    # make key lowercase
+    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    if [[ "$lower_value" =~ ^seg=[0-9]+$ ]]
+    then
+      mem_seg_cpu=${2:4}
+      mem_seg_gpu=${2:4}
+    elif [[ "$lower_value" =~ ^surf=[0-9]+$ ]]
+    then
+      mem_surf_parallel=${2:5}
+      mem_surf_noparallel=${2:5}
+    else
+      echo "Invalid parameter to --mem: $2, must be seg|surf=<integer (GigaBytes)>"
+      exit 1
+    fi
+    shift
+    shift
+    ;;
   *)    # unknown option
     POSITIONAL_FASTSURFER[$i]=$1
     i=$(($i + 1))
@@ -382,7 +400,7 @@ function log() { echo "$@" | tee -a "$LF" ; }
 function logf() { printf "$@" | tee -a "$LF" ; }
 
 log "Log of FastSurfer SLURM script"
-log $(date -R)
+log "$(date -R)"
 log "$THIS_SCRIPT ${inputargs[*]}"
 log ""
 
@@ -789,6 +807,6 @@ if [[ "$submit_jobs" == "true" ]]
 then
   log_dir="$out_dir/slurm/logs"
   mkdir -p "$log_dir"
-  cp $tmpLF "$log_dir/$log_name.log"
+  cp "$tmpLF" "$log_dir/$log_name.log"
 fi
-rm $tmpLF
+rm "$tmpLF"

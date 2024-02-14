@@ -16,7 +16,7 @@
 
 # script for batch-running FastSurfer
 
-subjects=""
+subjects=()
 subjects_stdin="true"
 POSITIONAL_FASTSURFER=()
 task_count=""
@@ -104,10 +104,9 @@ then
 fi
 
 # PARSE Command line
-newline="
-"
 inputargs=("$@")
 POSITIONAL=()
+SED_CLEANUP_SUBJECTS='s/\r$//;s/\s*\r\s*/\n/g;s/\s*$//;/^\s*$/d'
 i=0
 while [[ $# -gt 0 ]]
 do
@@ -121,8 +120,8 @@ case $key in
         echo "ERROR: Could not find the subject list $2!"
         exit 1
       fi
-      if [[ -n "$subjects" ]]; then subjects="$subjects$newline"; fi
-      subjects="$subjects$(cat "$2")"
+      # append the subjects in the listfile (cleanup first) to the subjects array
+      mapfile -t -O ${#subjects} subjects < <(sed "$SED_CLEANUP_SUBJECTS" "$2")
       subjects_stdin="false"
     shift # past argument
     shift # past value
@@ -132,8 +131,7 @@ case $key in
       shift # argument
       while [[ "$1" =~ ^-- ]]
       do
-        if [[ -n "$subjects" ]]; then subjects="$subjects$newline"; fi
-        subjects="$subjects$1"
+        subjects=("${subjects[@]}" "$1")
         shift # next value
       done
     ;;
@@ -247,7 +245,7 @@ fi
 if [[ "$subjects_stdin" == "true" ]]
 then
   echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
-  subjects="$(cat)"
+  mapfile -t -O ${#subjects[@]} subjects < <(sed "$SED_CLEANUP_SUBJECTS")
 fi
 
 if [[ "$debug" == "true" ]]
@@ -256,9 +254,9 @@ then
   echo "Debug parameters to script brun_fastsurfer:"
   echo ""
   echo "subjects: "
-  echo "$subjects"
+  printf "%s\n" "${subjects[@]}"
   echo "---"
-  echo "task_id/task_count: ${task_id-not specified}/${task_count-not specified}"
+  echo "task_id/task_count: ${task_id:-not specified}/${task_count:-not specified}"
   if [[ "$parallel_subjects" != "1" ]]
   then
     if [[ "$parallel_surf" == "true" ]]
@@ -295,23 +293,21 @@ then
   echo "---END DEBUG  ---"
 fi
 
-if [[ -z "$subjects" ]]
+if [[ "${#subjects[@]}" == 0 ]]
 then
   echo "ERROR: No subjects specified!"
   exit 1
 fi
 
-num_subjects=$(echo "$subjects" | wc -l)
-
 if [[ "${run_fastsurfer[*]}" == "" ]]
 then
   if [[ -n "$FASTSURFER_HOME" ]]
   then
-    run_fastsurfer=($FASTSURFER_HOME/run_fastsurfer.sh)
+    run_fastsurfer=("$FASTSURFER_HOME/run_fastsurfer.sh")
     echo "INFO: run_fastsurfer not explicitly specified, using \$FASTSURFER_HOME/run_fastsurfer.sh."
-  elif [[ -f "$(dirname $THIS_SCRIPT)/run_fastsurfer.sh" ]]
+  elif [[ -f "$(dirname "$THIS_SCRIPT")/run_fastsurfer.sh" ]]
   then
-    run_fastsurfer=("$(dirname $THIS_SCRIPT)/run_fastsurfer.sh")
+    run_fastsurfer=("$(dirname "$THIS_SCRIPT")/run_fastsurfer.sh")
     echo "INFO: run_fastsurfer not explicitly specified, using ${run_fastsurfer[0]}."
   elif [[ -f "/fastsurfer/run_fastsurfer.sh" ]]
   then
@@ -324,18 +320,21 @@ fi
 
 if [[ -z "$task_id" ]] && [[ -z "$task_count" ]]
 then
-  subject_start=1
-  subject_end=$num_subjects
+  subject_start=0
+  subject_end="${#subjects[@]}"
 elif [[ -z "$task_id" ]] || [[ -z "$task_count" ]]
 then
   echo "Both task_id and task_count have to be defined, invalid --batch argument?"
+  exit 1
 else
-  subject_start=$(((task_id - 1) * num_subjects / task_count + 1))
-  subject_end=$((task_id * num_subjects / task_count))
+  subject_start=$(((task_id - 1) * "${#subjects[@]}" / task_count))
+  subject_end=$((task_id * "${#subjects[@]}" / task_count))
+  subject_end=$((subject_end < "${#subjects[@]}" ? subject_end : "${#subjects[@]}"))
   echo "Processing subjects $subject_start to $subject_end"
 fi
+subject_len=$((subject_end - subject_start))
 
-if [[ "$parallel_subjects" != "1" ]] && [[ "$((subject_end - subject_start))" == 0 ]]
+if [[ "$parallel_subjects" != "1" ]] && [[ "$subject_len" == 1 ]]
 then
   if [[ "$debug" == "true" ]] ; then echo "DEBUG: --parallel_subjects deactivated, since only one subject" ; fi
   parallel_subjects="1"
@@ -396,81 +395,82 @@ function read_args_from_string ()
 
 pids=()
 subjectids=()
+ROOT_IFS=$IFS
 IFS=$'\n'
+
+echo "${subjects[@]}"
 # i is a 1-to-n index of the subject
-i=0
-for subject in $subjects
+i=$subject_start
+for subject in "${subjects[@]:$subject_start:$subject_len}"
 do
+  IFS=$ROOT_IFS
   i=$((i + 1))
   if [[ "$debug" == "true" ]]
   then
     echo "DEBUG: subject $i: $subject"
   fi
-  # if the subject is in the selected batch
-  if [[ "$i" -ge "$subject_start" ]] && [[ "$i" -le "$subject_end" ]]
+  subject_id=$(echo "$subject" | cut -d= -f1)
+
+  if [[ -n "$statusfile" ]] && [[ "$surf_only" == "true" ]]
   then
-    subject_id=$(echo "$subject" | cut -d= -f1)
-
-    if [[ -n "$statusfile" ]] && [[ "$surf_only" == "true" ]]
+    status=$(awk -F ": " "/^$subject_id/ { print \$2 }" "$statusfile")
+    ## if status in statusfile is "Failed", skip this
+    if [[ "$status" =~ /^Failed.*--seg_only/ ]]
     then
-      status=$(awk -F ": " "/^$subject_id/ { print \$2 }" "$statusfile")
-      ## if status in statusfile is "Failed", skip this
-      if [[ "$status" =~ /^Failed.*--seg_only/ ]]
-      then
-        echo "Skipping $subject_id's surface recon because the segmentation failed."
-        echo "$subject_id: Skipping surface recon (failed segmentation)" >> "$statusfile"
-        continue
-      fi
+      echo "Skipping $subject_id's surface recon because the segmentation failed."
+      echo "$subject_id: Skipping surface recon (failed segmentation)" >> "$statusfile"
+      continue
     fi
+  fi
 
-    image_parameters=$(echo "$subject" | cut -d= -f2-1000 --output-delimiter="=")
-    args=(--sid "$subject_id")
-    OLD_IFS=$IFS
-    IFS=$' \t'
-    read_args_from_string "$image_parameters"
-    IFS=$OLD_IFS
-    if [[ "$parallel_surf" == "true" ]]
-    then
-      # parallel_surf implies $seg_surf_only == "" (see line 353), i.e. both seg and surf
-      cmd=("${run_fastsurfer[@]}" "--seg_only" --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}")
-      if [[ "$debug" == "true" ]]
-      then
-        echo "DEBUG:" "${cmd[@]}"
-      fi
-      if [[ "$parallel_subjects" != "1" ]]
-      then
-        "${cmd[@]}" | prepend "$subject_id: "
-      else
-        "${cmd[@]}"
-      fi
-      if [[ -n "$statusfile" ]]
-      then
-        print_status "$subject_id" "--seg_only" "$?" | tee -a "$statusfile"
-      fi
-    fi
-
-    if [[ "$surf_only" == "false" ]] && [[ "$parallel_surf" == "false" ]]
-    then
-      args=("${args[@]}" --t1 "$image_path")
-    fi
+  image_parameters=$(echo "$subject" | cut -d= -f2-1000 --output-delimiter="=")
+  args=(--sid "$subject_id")
+  IFS=$' \t'
+  read_args_from_string "$image_parameters"
+  IFS=$ROOT_IFS
+  if [[ "$parallel_surf" == "true" ]]
+  then
+    # parallel_surf implies $seg_surf_only == "" (see line 353), i.e. both seg and surf
+    cmd=("${run_fastsurfer[@]}" "--seg_only" --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}")
     if [[ "$debug" == "true" ]]
     then
-      echo "DEBUG: ${run_fastsurfer[*]} $seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" "[&]"
+      echo "DEBUG:" "${cmd[@]}"
     fi
     if [[ "$parallel_subjects" != "1" ]]
     then
-      "${run_fastsurfer[@]}" $seg_surf_only "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" | prepend "$subject_id: " &
-      pids=("${pids[@]}" "$!")
-      subjectids=("${subjectids[@]}" "$subject_id")
-    else # serial execution
-      "${run_fastsurfer[@]}" $seg_surf_only "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
-      if [[ -n "$statusfile" ]]
-      then
-        print_status "$subject_id" "$seg_surf_only" "$?" | tee -a "$statusfile"
-      fi
+      "${cmd[@]}" | prepend "$subject_id: "
+    else
+      "${cmd[@]}"
+    fi
+    if [[ -n "$statusfile" ]]
+    then
+      print_status "$subject_id" "--seg_only" "$?" | tee -a "$statusfile"
     fi
   fi
+
+  if [[ "$surf_only" == "false" ]] && [[ "$parallel_surf" == "false" ]]
+  then
+    args=("${args[@]}" --t1 "$image_path")
+  fi
+  if [[ "$debug" == "true" ]]
+  then
+    echo "DEBUG: ${run_fastsurfer[*]} $seg_surf_only" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" "[&]"
+  fi
+  if [[ "$parallel_subjects" != "1" ]]
+  then
+    "${run_fastsurfer[@]}" $seg_surf_only "${args[@]}" "${POSITIONAL_FASTSURFER[@]}" | prepend "$subject_id: " &
+    pids=("${pids[@]}" "$!")
+    subjectids=("${subjectids[@]}" "$subject_id")
+  else # serial execution
+    "${run_fastsurfer[@]}" $seg_surf_only "${args[@]}" "${POSITIONAL_FASTSURFER[@]}"
+    if [[ -n "$statusfile" ]]
+    then
+      print_status "$subject_id" "$seg_surf_only" "$?" | tee -a "$statusfile"
+    fi
+  fi
+  IFS=$'\n'
 done
+IFS=$ROOT_IFS
 
 if [[ "$parallel_subjects" != "1" ]]
 then
