@@ -19,13 +19,15 @@
 # IMPORTS
 import optparse
 import sys
+
 import numpy as np
-from numpy import typing as npt
 import nibabel.freesurfer.io as fs
 import nibabel as nib
+from numpy import typing as npt
 from scipy import sparse
 from scipy.sparse.csgraph import connected_components
 from lapy import TriaMesh
+
 from smooth_aparc import smooth_aparc
 
 
@@ -64,13 +66,13 @@ h_radius = "Search around sample location at radius (in mm) for label if 'unknow
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: smooth_aparc,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
@@ -101,7 +103,8 @@ def options_parse():
     return options
 
 def construct_adj_cluster(tria, annot):
-    """Adjacency matrix of edges from same annotation label only.
+    """
+    Compute adjacency matrix of edges from same annotation label only.
 
     Operates only on triangles and removes edges that cross annotation
     label boundaries.
@@ -132,7 +135,8 @@ def construct_adj_cluster(tria, annot):
     return sparse.csc_matrix((dat, (i, j)), shape=(n, n))
 
 def find_all_islands(surf, annot):
-    """Find vertices in disconnected islands for all labels in surface annotation.
+    """
+    Find vertices in disconnected islands for all labels in surface annotation.
 
     Parameters
     ----------
@@ -169,7 +173,8 @@ def find_all_islands(surf, annot):
     return vidx
 
 def sample_nearest_nonzero(img, vox_coords, radius=3.0):
-    """Sample closest non-zero value in a ball of radius around vox_coords.
+    """
+    Sample closest non-zero value in a ball of radius around vox_coords.
 
     Parameters
     ----------
@@ -182,8 +187,8 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
 
     Returns
     -------
-    samples : np.ndarray (n,)
-        Sampled values. Retruns zero for vertices where values are zero in ball. 
+    samples : np.ndarray(n,)
+        Sampled values, returns zero for vertices where values are zero in ball.
     """
     # check for isotropic voxels 
     voxsize = img.header.get_zooms()
@@ -248,7 +253,8 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
 
 
 def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
-    """Sample volume at a distance from the surface.
+    """
+    Sample volume at a distance from the surface.
 
     Parameters
     ----------
@@ -261,10 +267,10 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
         Image to sample.
         If type is str, read image from file.
     cortex : np.ndarray | str
-        Filename of cortex label or np.array with cortex indices
+        Filename of cortex label or np.array with cortex indices.
     projmm : float
         Sample projmm mm along the surface vertex normals (default=0).
-    radius : float [optional] | None
+    radius : float, optional 
         If given and if the sample is equal to zero, then consider
         all voxels inside this radius to find a non-zero value.
 
@@ -326,7 +332,8 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
 
 
 def replace_labels(img_labels, img_lut, surf_lut):
-    """Replace image labels with corresponding surface labels or unknown.
+    """
+    Replace image labels with corresponding surface labels or unknown.
 
     Parameters
     ----------
@@ -361,7 +368,8 @@ def replace_labels(img_labels, img_lut, surf_lut):
 
 
 def sample_parc (surf, seg, imglut, surflut, outaparc, cortex=None, projmm=0.0, radius=None):
-    """Sample cortical GM labels from image to surface and smooth.
+    """
+    Sample cortical GM labels from image to surface and smooth.
 
     Parameters
     ----------
@@ -380,10 +388,10 @@ def sample_parc (surf, seg, imglut, surflut, outaparc, cortex=None, projmm=0.0, 
     outaparc : str
         Filename for output surface parcellation.
     cortex : np.ndarray | str
-        Filename of cortex label or np.ndarray with cortex indices
+        Filename of cortex label or np.ndarray with cortex indices.
     projmm : float
         Sample projmm mm along the surface vertex normals (default=0).
-    radius : float [optional] | None
+    radius : float, optional
         If given and if the sample is equal to zero, then consider
         all voxels inside this radius to find a non-zero value.
     """

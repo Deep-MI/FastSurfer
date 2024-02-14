@@ -20,8 +20,8 @@
 import optparse
 import sys
 import numpy as np
-from numpy import typing as npt
 import nibabel.freesurfer.io as fs
+from numpy import typing as npt
 from scipy import sparse
 
 
@@ -54,13 +54,13 @@ h_outaparc = "path to output aparc"
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
     options
-        object holding options
-
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: smooth_aparc,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
@@ -78,12 +78,14 @@ def options_parse():
     return options
 
 
-def get_adjM(trias: npt.NDArray, n: int):
-    """Create symmetric sparse adjacency matrix of triangle mesh.
+def get_adjM(trias: npt.NDArray[int], n: int):
+    """
+    Create symmetric sparse adjacency matrix of triangle mesh.
 
     Parameters
     ----------
-    trias : np.ndarray shape (m, 3) int
+    trias : npt.NDArray[int](m, 3)
+        Triangle mesh matrix.
         
     n : int
         Shape of output (n,n) adjaceny matrix, where n>=m.
@@ -92,7 +94,6 @@ def get_adjM(trias: npt.NDArray, n: int):
     -------
     adjM : np.ndarray (bool) shape (n,n)
         Symmetric sparse CSR adjacency matrix, true corresponds to an edge.
-
     """
     I = trias
     J = I[:, [1, 2, 0]]
@@ -108,7 +109,8 @@ def get_adjM(trias: npt.NDArray, n: int):
 
 
 def bincount2D_vectorized(a: npt.NDArray) -> np.ndarray:
-    """Count number of occurrences of each value in array of non-negative ints.
+    """
+    Count number of occurrences of each value in array of non-negative ints.
 
     Parameters
     ----------
@@ -119,7 +121,6 @@ def bincount2D_vectorized(a: npt.NDArray) -> np.ndarray:
     -------
     np.ndarray
         Array of counted values.
-    
     """
     N = a.max() + 1
     a_offs = a + np.arange(a.shape[0])[:, None] * N
@@ -132,15 +133,16 @@ def mode_filter(
         fillonlylabel = None,
         novote: npt.ArrayLike = []
 ) -> npt.NDArray[int]:
-    """Apply mode filter (smoothing) to integer labels on mesh vertices.
+    """
+    Apply mode filter (smoothing) to integer labels on mesh vertices.
 
     Parameters
     ----------
     adjM : sparse.csr_matrix[bool]
-        Symmetric adjacency matrix defining edges between vertices.
-        This determines what edges can vote so usually one adds the
+        Symmetric adjacency matrix defining edges between vertices,
+        this determines what edges can vote so usually one adds the
         identity to the adjacency matrix so that each vertex is included
-        in its own vote. 
+        in its own vote.
     labels : npt.NDArray[int]
         List of integer labels at each vertex of the mesh.
     fillonlylabel : int
@@ -152,7 +154,6 @@ def mode_filter(
     -------
     labels_new : npt.NDArray[int]
         New smoothed labels.
-    
     """
     # make sure labels lengths equals adjM dimension
     n = labels.shape[0]
@@ -250,7 +251,8 @@ def mode_filter(
 
 
 def smooth_aparc(surf, labels, cortex = None):
-    """Smoothes aparc and fills holes.
+    """
+    Smooth aparc label regions on the surface and fill holes.
 
     First all labels with 0 and -1 unside cortex are filled via repeated
     mode filtering, then all labels are smoothed first with a wider and
@@ -362,25 +364,25 @@ def smooth_aparc(surf, labels, cortex = None):
     return labels
 
 
-def smooth_aparc_files(
+def main(
         insurfname: str,
         inaparcname: str,
         incortexname: str,
         outaparcname: str
 ) -> None:
-    """Smoothes aparc.
+    """
+    Read files, smooth the aparc labels on the surface and save the smoothed labels.
 
     Parameters
     ----------
     insurfname : str
-        Suface filepath and name of source
+        Suface filepath and name of source.
     inaparcname : str
-        Annotation filepath and name of source
+        Annotation filepath and name of source.
     incortexname : str
-        Label filepath and name of source
+        Label filepath and name of source.
     outaparcname : str
-        Suface filepath and name of destination
-
+        Surface filepath and name of destination.
     """
     # read input files
     print("Reading in surface: {} ...".format(insurfname))
@@ -400,6 +402,6 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
-    smooth_aparc_files(options.insurf, options.inaparc, options.incort, options.outaparc)
+    main(options.insurf, options.inaparc, options.incort, options.outaparc)
 
     sys.exit(0)

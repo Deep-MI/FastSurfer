@@ -14,20 +14,52 @@
 # limitations under the License.
 
 # IMPORTS
-from os.path import join
 import numpy as np
 import nibabel as nib
 
+from os.path import join
 from CerebNet.datasets import utils
 
 
 def save_nii_image(img_data, save_path, header, affine):
+    """
+    Save an image data array as a NIfTI file.
+
+    Parameters
+    ----------
+    img_data : ndarray
+        The image data to be saved.
+    save_path : str
+        The path (including file name) where the image will be saved.
+    header : nibabel.Nifti1Header
+        The header information for the NIfTI file.
+    affine : ndarray
+        The affine matrix for the NIfTI file.
+    """
+
     img_out = nib.Nifti1Image(img_data, header=header, affine=affine)
     print(f"Saving {save_path}")
     nib.save(img_out, save_path)
 
 
-def store_warped_data(img_path, lbl_path, warp_path, result_path, patch_size):
+def main(img_path, lbl_path, warp_path, result_path, patch_size):
+
+    """
+    Load, warp, crop, and save both an image and its corresponding label based on a given warp field.
+
+    Parameters
+    ----------
+    img_path : str
+        Path to the T1-weighted MRI image to be warped.
+    lbl_path : str
+        Path to the label image corresponding to the T1 image, to be warped similarly.
+    warp_path : str
+        Path to the warp field file used to warp the images.
+    result_path : str
+        Directory path where the warped and cropped images will be saved.
+    patch_size : tuple of int
+        The dimensions (height, width, depth) cropped images after warping.
+    """
 
     img, img_file = utils.load_reorient_rescale_image(img_path)
 
@@ -78,7 +110,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     warp_path = join(args.result_path, args.warp_filename)
-    store_warped_data(args.img_path,
+    main(args.img_path,
                       args.lbl_path,
                       warp_path=warp_path,
                       result_path=args.result_path,

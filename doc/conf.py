@@ -21,10 +21,6 @@ import sys
 import os
 sys.path.append(os.path.dirname(__file__) + '/..') 
 sys.path.append(os.path.dirname(__file__) + '/../recon_surf') 
-# sys.path.insert(0, '..') #after
-
-# autodoc_mock_imports = ["torch", "yacs"]
-
 
 project = 'FastSurfer'
 copyright = '2023, Martin Reuter'

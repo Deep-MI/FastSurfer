@@ -21,14 +21,13 @@ from nibabel import load as nibload
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
     options
-        object holding options
-
-
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $",
@@ -54,19 +53,19 @@ def options_parse():
 
 
 def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
-    """Take path to insurf and rewrite it to outsurf thereby fixing vertex locs flag error.
+    """
+    Take path to insurf and rewrite it to outsurf thereby fixing vertex locs flag error.
 
-    (scannerRAS instead of surfaceRAS after marching cube)
+    (scannerRAS instead of surfaceRAS after marching cube).
 
     Parameters
     ----------
     insurf : str
-        Path and name of input surface
+        Path and name of input surface.
     outsurf : str
-        Path and name of output surface
+        Path and name of output surface.
     pretess : str
-        Path and name of file the input surface was created on (e.g. filled-pretess127.mgz)
-    
+        Path and name of file the input surface was created on (e.g. filled-pretess127.mgz).
     """
     surf = fs.read_geometry(insurf, read_metadata=True)
 

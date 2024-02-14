@@ -30,6 +30,14 @@ DEFAULT_CEREBELLUM_STATSFILE = "stats/cerebellum.CerebNet.stats"
 
 
 def setup_options():
+    """
+    Configure and return an argument parser for the segmentation script.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        The configured argument parser.
+    """
     # Training settings
     parser = argparse.ArgumentParser(description="Segmentation")
 
@@ -94,6 +102,28 @@ def setup_options():
 
 
 def main(args):
+    """
+    Main function to run the inference based on the given command line arguments.
+    This implementation is inspired by methods described in CerebNet for cerebellum sub-segmentation.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command line arguments parsed by `argparse.ArgumentParser`.
+
+    Returns
+    -------
+    int 
+        Returns 0 upon successful execution to indicate success.
+    str
+        A message indicating the failure reason in case of an exception.
+
+    References
+    ----------
+    Faber J, Kuegler D, Bahrami E, et al. CerebNet: A fast and reliable deep-learning 
+    pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. 
+    https://doi.org/10.1016/j.neuroimage.2022.119703
+    """
     cfg = get_config(args)
     cfg.TEST.ENABLE = True
     cfg.TRAIN.ENABLE = False
