@@ -23,14 +23,14 @@
 #   Image to use to install freesurfer binaries from, the freesurfer binaries
 #   should be located in /opt/freesurfer in the image.
 #   - default: build_freesurfer
-# - CONDA_BUILD_IAMGE:
+# - CONDA_BUILD_IMAGE:
 #   Image to use to install the python environment from, the python environment
 #   should be in /venv/ in the image.
 #   - default: build_cuda
-# - CONDA_FILE:
-#   Which conda minifile to download to install conda
-#   from https://repo.continuum.io/miniconda/${CONDA_FILE}
-#   - default: Miniconda3-py38_4.11.0-Linux-x86_64.sh
+# - MAMBA_FILE:
+#   Which miniforge file to download to install mamba
+#   from https://github.com/conda-forge/miniforge/releases/latest/download/${MAMBA_FILE}
+#   - default: Miniforge3-Linux-x86_64.sh
 
 # DOCUMENTATION FOR TARGETS (use '--target <VALUE>'):
 # To select which imaged will be tagged with '-t'
@@ -65,15 +65,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG CONDA_FILE=Miniconda3-py310_23.9.0-0-Linux-x86_64.sh
+ARG MAMBA_FILE=Miniforge3-Linux-x86_64.sh
 
 # Install conda
-RUN wget --no-check-certificate -qO ~/miniconda.sh https://repo.continuum.io/miniconda/${CONDA_FILE} && \
-     chmod +x ~/miniconda.sh && \
-     ~/miniconda.sh -b -p /opt/conda && \
-     rm ~/miniconda.sh 
+RUN wget --no-check-certificate -qO ~/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/${MAMBA_FILE} && \
+    chmod +x ~/miniforge.sh && \
+    ~/miniforge.sh -b -p /opt/miniforge && \
+    rm ~/miniforge.sh
 
-ENV PATH /opt/conda/bin:$PATH
+ENV PATH /opt/miniforge/bin:$PATH
 
 # create a stage for the common components used across different DEVICE settings
 FROM build_base AS build_common
@@ -86,7 +86,7 @@ COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /instal
 
 ARG DEBUG=false
 RUN python /install/install_env.py -m base -i /install/fastsurfer.yml -o /install/base-env.yml && \
-    conda env create -f "/install/base-env.yml" | tee /install/env-create.log ; \
+    mamba env create -f "/install/base-env.yml" | tee /install/env-create.log ; \
     if [ "${DEBUG}" != "true" ]; then \
       rm /install/base-env.yml ; \
     fi
@@ -97,11 +97,11 @@ ARG DEBUG=false
 ARG DEVICE=cu118
 # install additional packages for cuda/rocm/cpu
 RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /install/${DEVICE}-env.yml && \
-    conda env update -n "fastsurfer" -f "/install/${DEVICE}-env.yml" | tee /install/env-update.log && \
+    mamba env update -n "fastsurfer" -f "/install/${DEVICE}-env.yml" | tee /install/env-update.log && \
     /install/conda_pack.sh "fastsurfer" && \
     echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /install/build_conda.args ;  \
     if [ "${DEBUG}" != "true" ]; then \
-      conda env remove -n "fastsurfer" && \
+      mamba env remove -n "fastsurfer" && \
       rm -R /install ; \
     fi
 
