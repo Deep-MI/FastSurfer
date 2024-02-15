@@ -1,3 +1,11 @@
 /BUILD.info
 /.idea/**
 /rough_work/**
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Do not Commit checkpoints
+checkpoints/

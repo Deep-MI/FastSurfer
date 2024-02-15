@@ -13,13 +13,15 @@
 # limitations under the License.
 
 # IMPORTS
+from typing import Optional
+
 import numpy as np
 import yacs.config
+from torch import Tensor, nn
+
 import FastSurferCNN.models.interpolation_layer as il
 import FastSurferCNN.models.sub_module as sm
 
-from typing import Dict, Optional, Union
-from torch import Tensor, nn
 
 
 class FastSurferCNNBase(nn.Module):
@@ -49,7 +51,7 @@ class FastSurferCNNBase(nn.Module):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, padded_size: int = 256):
+    def __init__(self, params: dict, padded_size: int = 256):
         """
         Construct FastSurferCNNBase object.
 
@@ -154,7 +156,7 @@ class FastSurferCNN(FastSurferCNNBase):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, padded_size: int):
+    def __init__(self, params: dict, padded_size: int):
         """
         Construct FastSurferCNN object.
 
@@ -249,7 +251,7 @@ class FastSurferVINN(FastSurferCNNBase):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, padded_size: int = 256):
+    def __init__(self, params: dict, padded_size: int = 256):
         """
         Construct FastSurferVINN object.
 
@@ -385,7 +387,7 @@ _MODELS = {
 }
 
 
-def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN]:
+def build_model(cfg: yacs.config.CfgNode) -> FastSurferCNN | FastSurferVINN:
     """
     Build requested model.
 

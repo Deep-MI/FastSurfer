@@ -1,0 +1,101 @@
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+
+import HypVINN.data_loader.data_utils as du
+
+import FastSurferCNN.utils.logging as logging
+
+logger = logging.get_logger(__name__)
+
+# Operator to load imaged for inference
+class HypoVINN_dataset(Dataset):
+    """
+    Class to load MRI-Image and process it to correct format for network inference
+    """
+    def __init__(self, subject_name, modalities, orig_zoom, cfg, mode='multi', transforms=None):
+        self.subject_name = subject_name
+        self.plane = cfg.DATA.PLANE
+        #Inference Mode
+        self.mode = mode
+        #set thickness base on train paramters
+        if cfg.MODEL.MODE in ['t1','t2']:
+            self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
+        else:
+            self.slice_thickness = cfg.MODEL.NUM_CHANNELS//4
+
+        self.base_res = cfg.MODEL.BASE_RES
+
+        if self.mode == 't1':
+            orig_thick = self._conform_img(modalities['t1'],orig_zoom, modalitie='t1')
+            orig_thick = np.concatenate((orig_thick, orig_thick), axis=-1)
+            self.weight_factor = torch.from_numpy(np.asarray([1.0, 0.0]))
+
+        elif self.mode == 't2':
+            orig_thick = self._conform_img(modalities['t2'],orig_zoom, modalitie='t2')
+            orig_thick = np.concatenate((orig_thick, orig_thick), axis=-1)
+            self.weight_factor = torch.from_numpy(np.asarray([0.0, 1.0]))
+        else:
+            t1_orig_thick = self._conform_img(modalities['t1'], orig_zoom, modalitie='t1')
+            t2_orig_thick = self._conform_img(modalities['t2'],orig_zoom, modalitie='t2')
+            orig_thick = np.concatenate((t1_orig_thick, t2_orig_thick), axis=-1)
+            self.weight_factor = torch.from_numpy(np.asarray([0.5, 0.5]))
+        # Make 4D
+        orig_thick = np.transpose(orig_thick, (2, 0, 1, 3))
+        self.images = orig_thick
+        self.count = self.images.shape[0]
+        self.transforms = transforms
+
+        logger.info(f"Successfully loaded Image from {subject_name} for {self.plane} model")
+
+        if (cfg.MODEL.MULTI_AUTO_W or cfg.MODEL.MULTI_AUTO_W_CHANNELS) and (self.mode == 'multi' or cfg.MODEL.DUPLICATE_INPUT) :
+            logger.info(f"For inference T1 block weight and the T2 block are set to the weights learn during training")
+        else:
+            logger.info(f"For inference T1 block weight was set to : {self.weight_factor.numpy()[0]} and the T2 block was set to: {self.weight_factor.numpy()[1]}")
+
+    def _conform_img(self,orig_data,orig_zoom,modalitie):
+        if self.plane == "sagittal":
+            orig_data = du.transform_axial2sagittal(orig_data)
+            self.zoom = orig_zoom[::-1][:2]
+            logger.info("Loading {} sagittal with input voxelsize {}".format(modalitie,self.zoom))
+
+        elif self.plane == "coronal":
+            orig_data = du.transform_axial2coronal(orig_data)
+            self.zoom = orig_zoom[1:]
+            logger.info("Loading {} coronal with input voxelsize {}".format(modalitie,self.zoom))
+
+        else:
+            self.zoom = orig_zoom[:2]
+            logger.info("Loading {} axial with input voxelsize {}".format(modalitie,self.zoom))
+
+        # Create thick slices
+        orig_thick = du.get_thick_slices(orig_data, self.slice_thickness)
+
+        return orig_thick
+    def _get_scale_factor(self):
+        """
+        Get scaling factor to match original resolution of input image to
+        final resolution of FastSurfer base network. Input resolution is
+        taken from voxel size in image header.
+        ToDO: This needs to be updated based on the plane we are looking at in case we
+        are dealing with non-isotropic images as inputs.
+        :param img_zoom:
+        :return np.ndarray(float32): scale factor along x and y dimension
+        """
+        scale = self.base_res / np.asarray(self.zoom)
+
+        return scale
+
+    def __getitem__(self, index):
+        img = self.images[index]
+
+        scale_factor = self._get_scale_factor()
+        if self.transforms is not None:
+            img = self.transforms(img)
+
+        return {'image': img, 'scale_factor': scale_factor,'weight_factor' : self.weight_factor}
+
+    def __len__(self):
+        return self.count
+
