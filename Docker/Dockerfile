@@ -30,7 +30,7 @@
 # - MAMBA_FILE:
 #   Which miniforge file to download to install mamba
 #   from https://github.com/conda-forge/miniforge/releases/latest/download/${MAMBA_FILE}
-#   - default: Miniforge3-Linux-x86_64.sh
+#   - default: Miniforge3-23.11.0-0-Linux-x86_64.sh
 
 # DOCUMENTATION FOR TARGETS (use '--target <VALUE>'):
 # To select which imaged will be tagged with '-t'
@@ -65,7 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG MAMBA_FILE=Miniforge3-Linux-x86_64.sh
+ARG MAMBA_FILE=Miniforge3-23.11.0-0-Linux-x86_64.sh
 
 # Install conda
 RUN wget --no-check-certificate -qO ~/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/${MAMBA_FILE} && \
