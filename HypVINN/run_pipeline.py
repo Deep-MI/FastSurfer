@@ -43,7 +43,7 @@ def option_parse():
         parser, ["t1"]
     )
 
-    parser.add_argument('--t2', type=str, required=False, help="path to the T2 image to process")
+    parser.add_argument('--t2', type=lambda x : None if x == 'None' else str(x), default=None,required=False, help="path to the T2 image to process")
 
     parser.add_argument('--mode', type=str, default="auto", choices=["t2", "t1", "multi","auto"],
                         help="Modalities to load. t1 : only T1 images, t2 :only T2 images , multi: both T1 and T2 or auto: choose mode based on the passed inputs" )
@@ -128,7 +128,6 @@ if __name__ == "__main__":
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=HYPVINN_URL)
 
     LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
-    LOGGER.info('HypVINN is setup to {} input mode'.format(args.mode))
     LOGGER.info("Output will be stored in: {}".format(args.out_dir))
     LOGGER.info('T1 image input {}'.format(args.t1))
     LOGGER.info('T2 image input {}'.format(args.t2))

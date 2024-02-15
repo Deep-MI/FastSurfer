@@ -48,7 +48,6 @@ def load_volumes(mode,t1_path,t2_path):
         t2_mode = True
 
     if t1_mode:
-        assert os.path.isfile(t1_path), f"T1 image not found"
         logger.info('Loading T1 image from : {}'.format(t1_path))
         t1 = nib.load(t1_path)
         t1 = nib.as_closest_canonical(t1)
@@ -61,7 +60,6 @@ def load_volumes(mode,t1_path,t2_path):
         t1_size = modalities['t1'].shape
         size = t1_size
     if t2_mode:
-        assert os.path.isfile(t2_path), f"T2 image not found"
         logger.info('Loading T2 image from : {}'.format(t2_path))
         t2 = nib.load(t2_path)
         t2 = nib.as_closest_canonical(t2)
@@ -73,13 +71,6 @@ def load_volumes(mode,t1_path,t2_path):
         modalities['t2'] = np.asarray(rescale_image(t2.get_fdata()), dtype=np.uint8)
         t2_size = modalities['t2'].shape
         size = t2_size
-
-    if t1_mode and t2_mode:
-        assert np.allclose(np.array(t1_zoom), np.array(t2_zoom),
-                           rtol=0.05), "T1 : {} and T2 : {} images have different resolutions".format(t1_zoom,
-                                                                                                      t2_zoom)
-        assert np.allclose(np.array(t1_size), np.array(t2_size),
-                           rtol=0.05), "T1 : {} and T2 : {} images have different size".format(t1_size, t2_size)
 
     return modalities,affine,header,zoom,size
 
