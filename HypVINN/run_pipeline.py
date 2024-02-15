@@ -100,39 +100,40 @@ if __name__ == "__main__":
     # Warning if run as root user
     args.allow_root or assert_no_root()
 
-    #Get configuration to run multi-modal or uni-modal
-    args = get_hypinn_mode_config(args)
-    start = time.time()
-
-    args.out_dir = os.path.join(args.out_dir, args.sid)
-
-    # Create output directory if it does not already exist.
-    if args.out_dir is not None and not os.path.exists(args.out_dir):
-        LOGGER.info("Output directory does not exist. Creating it now...")
-        os.makedirs(args.out_dir)
-        os.makedirs(os.path.join(args.out_dir, 'mri','transforms'), exist_ok=True)
-        os.makedirs(os.path.join(args.out_dir, 'stats'), exist_ok=True)
-        os.makedirs(os.path.join(args.out_dir, 'qc_snapshots'), exist_ok=True)
-        os.makedirs(os.path.join(args.out_dir, 'logs'), exist_ok=True)
-
-    # Set up logging
-    from FastSurferCNN.utils.logging import setup_logging
-    from HypVINN.utils.checkpoint import URL as HYPVINN_URL
-
-    if args.log_name:
-        setup_logging(args.log_name)
-    else:
-        setup_logging(os.path.join(args.out_dir,'logs','hypvinn_seg.log'))
-
-    LOGGER.info("Checking or downloading default checkpoints ...")
-    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=HYPVINN_URL)
-
-    LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
-    LOGGER.info("Output will be stored in: {}".format(args.out_dir))
-    LOGGER.info('T1 image input {}'.format(args.t1))
-    LOGGER.info('T2 image input {}'.format(args.t2))
-
     try:
+        #Get configuration to run multi-modal or uni-modal
+        args = get_hypinn_mode_config(args)
+        start = time.time()
+
+        args.out_dir = os.path.join(args.out_dir, args.sid)
+
+        # Create output directory if it does not already exist.
+        if args.out_dir is not None and not os.path.exists(args.out_dir):
+            LOGGER.info("Output directory does not exist. Creating it now...")
+            os.makedirs(args.out_dir)
+            os.makedirs(os.path.join(args.out_dir, 'mri','transforms'), exist_ok=True)
+            os.makedirs(os.path.join(args.out_dir, 'stats'), exist_ok=True)
+            os.makedirs(os.path.join(args.out_dir, 'qc_snapshots'), exist_ok=True)
+            os.makedirs(os.path.join(args.out_dir, 'logs'), exist_ok=True)
+
+        # Set up logging
+        from FastSurferCNN.utils.logging import setup_logging
+        from HypVINN.utils.checkpoint import URL as HYPVINN_URL
+
+        if args.log_name:
+            setup_logging(args.log_name)
+        else:
+            setup_logging(os.path.join(args.out_dir,'logs','hypvinn_seg.log'))
+
+        LOGGER.info("Checking or downloading default checkpoints ...")
+        get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=HYPVINN_URL)
+
+        LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
+        LOGGER.info("Output will be stored in: {}".format(args.out_dir))
+        LOGGER.info('T1 image input {}'.format(args.t1))
+        LOGGER.info('T2 image input {}'.format(args.t2))
+
+    
         # Pre-processing -- Bias Field correction and T1 and T2 registration
         if args.pre_process_pipeline:
             args = run_hypo_preproc(args)
