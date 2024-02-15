@@ -481,5 +481,10 @@ _Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reli
 Stay tuned for updates and follow us on Twitter: https://twitter.com/deepmilab
 
 ## Acknowledgements
+
+This project is partially funded by:
+- [Chan Zuckerberg Initiative](https://chanzuckerberg.com/eoss/proposals/fastsurfer-ai-based-neuroimage-analysis-package/)
+- [German Federal Ministry of Education and Research](https://www.gesundheitsforschung-bmbf.de/de/deepni-innovative-deep-learning-methoden-fur-die-rechnergestutzte-neuro-bildgebung-10897.php)
+
 The recon-surf pipeline is largely based on FreeSurfer 
 https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferMethodsCitation
