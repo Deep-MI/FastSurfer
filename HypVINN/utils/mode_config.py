@@ -19,6 +19,8 @@ LOGGER = logging.get_logger(__name__)
 
 
 def assert_image_inputs(t1_path,t2_path,mode):
+    import nibabel as nib
+    import numpy as np
 
     if mode == 't1':
         t1_mode = True
@@ -88,7 +90,6 @@ def get_hypinn_mode_config(args):
     LOGGER.info('HypVINN mode is setup to {} input mode'.format(args.mode))
     LOGGER.info('Checking input data......')
 
-    assert_image_inputs(t1_path=args.t1,t2_path=args.t2,mode =args.mode)
 
     return args
 

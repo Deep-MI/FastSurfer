@@ -157,6 +157,8 @@ def plot_qc_images(save_dir,orig_path, prediction_path, padd=45, lut_file=HYPVIN
     from scipy import ndimage
     import os
 
+    os.makedirs(save_dir,exist_ok=True)
+
     image = nib.as_closest_canonical(nib.load(orig_path))
     pred  = nib.as_closest_canonical(nib.load(prediction_path))
 
