@@ -27,9 +27,10 @@
 #   Image to use to install the python environment from, the python environment
 #   should be in /venv/ in the image.
 #   - default: build_cuda
-# - MAMBA_FILE:
+# - MAMBA_VERSION:
 #   Which miniforge file to download to install mamba
-#   from https://github.com/conda-forge/miniforge/releases/latest/download/${MAMBA_FILE}
+#   from https://github.com/conda-forge/miniforge/releases/download/
+#   ${FORGE_VERSION}/Miniforge3-${FORGE_VERSION}-Linux-x86_64.sh
 #   - default: Miniforge3-23.11.0-0-Linux-x86_64.sh
 
 # DOCUMENTATION FOR TARGETS (use '--target <VALUE>'):
@@ -65,10 +66,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG MAMBA_FILE=Miniforge3-23.11.0-0-Linux-x86_64.sh
+ARG FORGE_VERSION=23.11.0-0
 
 # Install conda
-RUN wget --no-check-certificate -qO ~/miniforge.sh https://github.com/conda-forge/miniforge/releases/latest/download/${MAMBA_FILE} && \
+RUN wget --no-check-certificate -qO ~/miniforge.sh \
+    https://github.com/conda-forge/miniforge/releases/download/${FORGE_VERSION}/Miniforge3-${FORGE_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniforge.sh && \
     ~/miniforge.sh -b -p /opt/miniforge && \
     rm ~/miniforge.sh
