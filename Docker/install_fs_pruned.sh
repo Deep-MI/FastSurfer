@@ -240,6 +240,8 @@ copy_files="
   bin/mri_fuse_segmentations
   bin/mri_glmfit
   bin/mri_info
+  bin/mri_coreg
+  bin/mri_vol2vol
   bin/mri_label2label
   bin/mri_label2vol
   bin/mri_mask
@@ -436,7 +438,6 @@ link_files="
   bin/mri_stats2seg
   bin/mri_surf2vol
   bin/mri_surfcluster
-  bin/mri_vol2vol
   bin/mri_voldiff
   bin/mri_watershed
   bin/mris_divide_parcellation
