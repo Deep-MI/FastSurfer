@@ -123,8 +123,10 @@ FROM build_base AS build_freesurfer
 COPY ./Docker/install_fs_pruned.sh /install/
 SHELL ["/bin/bash", "--login", "-c"]
 
+ARG FREESURFER_URL=default
+
 # install freesurfer and point to new python location
-RUN /install/install_fs_pruned.sh /opt --upx && \
+RUN /install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL && \
 rm /opt/freesurfer/bin/fspython &&  \
 rm -R /install && \
 ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
