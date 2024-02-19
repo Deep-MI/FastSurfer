@@ -69,8 +69,12 @@ def get_hypinn_mode_config(args):
             elif args.t1:
                 args.mode ='t1'
                 args.t2 = None
+            elif args.t2:
+                args.mode ='t1'
+                args.t2 = None
             else:
-                args.mode = 't2'
+                args.mode = None
+                args.t1 = None
                 args.t1 = None
 
         elif hasattr(args, 't1'):
