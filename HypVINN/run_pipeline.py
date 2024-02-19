@@ -95,7 +95,9 @@ if __name__ == "__main__":
     #arguments
     args = option_parse()
     #mapped freesurfer orig input name to the hypvinn t1 name
-    args.t1 = args.orig_name
+    check_path = lambda x : None if x == 'None' else str(x)
+    args.t1 = check_path(args.orig_name)
+    #set output dir
     args.out_dir = os.path.join(args.out_dir, args.sid)
     # Warning if run as root user
     args.allow_root or assert_no_root()
@@ -115,28 +117,32 @@ if __name__ == "__main__":
         # Get configuration to run multi-modal or uni-modal
         args = get_hypinn_mode_config(args)
 
-        assert_image_inputs(t1_path=args.t1, t2_path=args.t2, mode=args.mode)
+        if args.mode:
 
-        # Create output directory if it does not already exist.
-        if args.out_dir is not None and not os.path.exists(args.out_dir):
-            LOGGER.info("Output directory does not exist. Creating it now...")
-            os.makedirs(args.out_dir)
-            os.makedirs(os.path.join(args.out_dir, 'mri','transforms'), exist_ok=True)
-            os.makedirs(os.path.join(args.out_dir, 'stats'), exist_ok=True)
-            os.makedirs(os.path.join(args.out_dir, 'qc_snapshots'), exist_ok=True)
-            os.makedirs(os.path.join(args.out_dir, 'scripts'), exist_ok=True)
+            assert_image_inputs(t1_path=args.t1, t2_path=args.t2, mode=args.mode)
+
+            # Create output directory if it does not already exist.
+            if args.out_dir is not None and not os.path.exists(args.out_dir):
+                LOGGER.info("Output directory does not exist. Creating it now...")
+                os.makedirs(args.out_dir)
+                os.makedirs(os.path.join(args.out_dir, 'mri','transforms'), exist_ok=True)
+                os.makedirs(os.path.join(args.out_dir, 'stats'), exist_ok=True)
+                os.makedirs(os.path.join(args.out_dir, 'qc_snapshots'), exist_ok=True)
+                os.makedirs(os.path.join(args.out_dir, 'scripts'), exist_ok=True)
 
 
-        LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
-        LOGGER.info("Output will be stored in: {}".format(args.out_dir))
-        LOGGER.info('T1 image input {}'.format(args.t1))
-        LOGGER.info('T2 image input {}'.format(args.t2))
+            LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
+            LOGGER.info("Output will be stored in: {}".format(args.out_dir))
+            LOGGER.info('T1 image input {}'.format(args.t1))
+            LOGGER.info('T2 image input {}'.format(args.t2))
 
-        # Pre-processing -- Bias Field correction and T1 and T2 registration
-        if args.pre_process_pipeline:
-            args = run_hypo_preproc(args)
-        # Segmentation pipeline
-        run_hypo_seg(args)
+            # Pre-processing -- Bias Field correction and T1 and T2 registration
+            if args.pre_process_pipeline:
+                args = run_hypo_preproc(args)
+            # Segmentation pipeline
+            run_hypo_seg(args)
+        else:
+            LOGGER.info("Failed Evaluation on {} couldnt determine the processing mode. Please check that T1 or T2 are available images \n)".format(args.sid))
 
     except FileNotFoundError as e:
         LOGGER.info("Failed Evaluation on {} with exception:\n{} )".format(args.sid, e))
