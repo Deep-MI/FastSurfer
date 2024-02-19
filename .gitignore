@@ -9,3 +9,5 @@ __pycache__/
 
 # Do not Commit checkpoints
 checkpoints/
+
+HypVINN/test

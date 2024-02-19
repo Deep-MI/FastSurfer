@@ -149,6 +149,7 @@ def get_clean_labels(segmentation):
 
 
 def run_N4_bias_correct(invol,outvol,threads=1):
+    #Calling previous version of N4 bias correct at it allows to correct without the need of aseg or brainmask by using an otsu thresholdig.
     from HypVINN.utils.N4_bias_correct import main
     #from recon_surf.N4_bias_correct import main
     from collections import namedtuple
