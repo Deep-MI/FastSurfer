@@ -120,23 +120,23 @@ def  select_index_to_plot(hyposeg,slice_step=2):
     idx = np.where(hyposeg > 0)
     idx= np.unique(idx[0])
     #get slices with 3rd ventricle
-    idx_with_third_ventricle = np.unique(np.where(hyposeg == 910)[0])
+    idx_with_third_ventricle = np.unique(np.where(hyposeg == 10)[0])
     #get slices with only 3rd ventricle
     idx_only_third_ventricle = []
     for i in idx_with_third_ventricle:
         label = np.unique(hyposeg[i])
         # Background is allways at position 0
-        if label[1] == 910:
+        if label[1] == 10:
             idx_only_third_ventricle.append(i)
     #Remove slices with only third ventricle from the total
     idx = list(set(list(idx)) - set(idx_only_third_ventricle))
     #get slices with hyppthalamus variables
-    idx_hypo = np.where(hyposeg > 920)
+    idx_hypo = np.where(hyposeg > 100)
     idx_hypo = np.unique(idx_hypo[0])
     #remove hypo_varaibles from the list
     idx = list(set(list(idx)) - set(idx_hypo))
     # optic nerve index
-    idx_with_optic_nerve = np.unique(np.where((hyposeg <= 902) & (hyposeg > 0))[0])
+    idx_with_optic_nerve = np.unique(np.where((hyposeg <= 2) & (hyposeg > 0))[0])
     #remove index from list
     idx = list(set(list(idx)) - set(idx_with_optic_nerve))
     #take optic nerve every 4 slices
@@ -151,7 +151,7 @@ def  select_index_to_plot(hyposeg,slice_step=2):
 
 
 def plot_qc_images(save_dir,orig_path, prediction_path, padd=45, lut_file=HYPVINN_LUT, slice_step =2):
-    from HypVINN.data_loader.data_utils import transform_axial2coronal
+    from HypVINN.data_loader.data_utils import transform_axial2coronal,hypo_map_subseg_2_fsseg
     from HypVINN.config.hypvinn_files import HYPVINN_QC_IMAGE_NAME
 
     from scipy import ndimage
@@ -161,10 +161,11 @@ def plot_qc_images(save_dir,orig_path, prediction_path, padd=45, lut_file=HYPVIN
 
     image = nib.as_closest_canonical(nib.load(orig_path))
     pred  = nib.as_closest_canonical(nib.load(prediction_path))
+    pred_arr = hypo_map_subseg_2_fsseg(pred.get_fdata(),reverse=True)
 
     mod_image = transform_axial2coronal(image.get_fdata())
     mod_image = np.transpose(mod_image,(2,0,1))
-    mod_pred  = transform_axial2coronal(pred.get_fdata())
+    mod_pred  = transform_axial2coronal(pred_arr)
     mod_pred = np.transpose(mod_pred, (2, 0, 1))
 
     idx = select_index_to_plot(hyposeg=mod_pred, slice_step=slice_step)

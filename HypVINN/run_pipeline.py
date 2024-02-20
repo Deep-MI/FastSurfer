@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import os
-import sys
 from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import get_checkpoints
 from FastSurferCNN.utils.common import assert_no_root
 from HypVINN.run_prediction import run_hypo_seg
-from HypVINN.run_preproc import run_hypo_preproc
-from HypVINN.utils.mode_config import get_hypinn_mode_config,assert_image_inputs
+from HypVINN.utils.preproc import hyvinn_preproc
+from HypVINN.utils.mode_config import get_hypinn_mode_config
+from HypVINN.utils.misc import create_expand_output_directory
 import time
 ##
 # Global Variables
@@ -45,15 +45,7 @@ def option_parse():
 
     parser.add_argument('--t2', type=lambda x : None if x == 'None' else str(x), default=None,required=False, help="path to the T2 image to process")
 
-    parser.add_argument('--mode', type=str, default="auto", choices=["t2", "t1", "multi","auto"],
-                        help="Modalities to load. t1 : only T1 images, t2 :only T2 images , multi: both T1 and T2 or auto: choose mode based on the passed inputs" )
-
-
-
     # 3. Image processing options
-    parser.add_argument("--no_pre_proc", action='store_false', dest="pre_process_pipeline", help="Deactivate preprocessing pipeline")
-    parser.add_argument("--no_bc", action='store_false', dest="bias_field_correction", help="Deactivate bias field correction, "
-                                                                                            "it is recommended to do bias field correction for calculating volumes taking account partial volume effects")
     parser.add_argument("--no_reg", action='store_false', dest="registration", help="Deactivate registration of T2 to t1,"
                                                                                     "If multi mode is run images need to be register properly")
 
@@ -118,32 +110,23 @@ if __name__ == "__main__":
         args = get_hypinn_mode_config(args)
 
         if args.mode:
-
-            assert_image_inputs(t1_path=args.t1, t2_path=args.t2, mode=args.mode)
-
             # Create output directory if it does not already exist.
-            if args.out_dir is not None and not os.path.exists(args.out_dir):
-                LOGGER.info("Output directory does not exist. Creating it now...")
-                os.makedirs(args.out_dir)
-                os.makedirs(os.path.join(args.out_dir, 'mri','transforms'), exist_ok=True)
-                os.makedirs(os.path.join(args.out_dir, 'stats'), exist_ok=True)
-                os.makedirs(os.path.join(args.out_dir, 'qc_snapshots'), exist_ok=True)
-                os.makedirs(os.path.join(args.out_dir, 'scripts'), exist_ok=True)
-
-
+            create_expand_output_directory(args.out_dir)
             LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
             LOGGER.info("Output will be stored in: {}".format(args.out_dir))
             LOGGER.info('T1 image input {}'.format(args.t1))
             LOGGER.info('T2 image input {}'.format(args.t2))
 
-            # Pre-processing -- Bias Field correction and T1 and T2 registration
-            if args.pre_process_pipeline:
-                args = run_hypo_preproc(args)
+            # Pre-processing -- T1 and T2 registration
+            args = hyvinn_preproc(args)
             # Segmentation pipeline
             run_hypo_seg(args)
         else:
-            LOGGER.info("Failed Evaluation on {} couldnt determine the processing mode. Please check that T1 or T2 are available images \n)".format(args.sid))
-
+            LOGGER.info("Failed Evaluation on {} couldn't determine the processing mode.\n "
+                        "Please check that T1 or T2 images are available.\n"
+                        "T1 image path: {} \n"
+                        "T2 image path {} )".format(args.sid,args.t1,args.t2))
+            raise RuntimeError("No T1 or T2 image available.")
     except FileNotFoundError as e:
         LOGGER.info("Failed Evaluation on {} with exception:\n{} )".format(args.sid, e))
 

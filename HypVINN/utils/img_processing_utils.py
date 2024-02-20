@@ -148,114 +148,12 @@ def get_clean_labels(segmentation):
     return clean_seg,labels_cc, savemask
 
 
-def run_N4_bias_correct(invol,outvol,threads=1):
-    #Calling previous version of N4 bias correct at it allows to correct without the need of aseg or brainmask by using an otsu thresholdig.
-    from HypVINN.utils.N4_bias_correct import main
-    #from recon_surf.N4_bias_correct import main
-    from collections import namedtuple
-    # args = namedtuple('ArgNamespace', ['verbosity','invol', 'outvol', 'mask',
-    #                                    'shrink', 'levels', 'numiter',
-    #                                    'thres', 'tal' ,'threads','rescalevol','aseg'])
-    #
-    # args.verbosity = 1
-    # args.invol = invol
-    # args.outvol = "do not save"
-    # args.mask = None
-    # args.shrink = 4
-    # args.levels = 4
-    # args.numiter = 50
-    # args.thres = 0.0
-    # args.tal = None
-    # args.threads = threads
-    # args.rescalevol = outvol
-    # args.aseg = None
-
-    args = namedtuple('ArgNamespace', ['invol', 'outvol', 'mask',
-                                       'shrink', 'levels', 'numiter',
-                                       'thres', 'skipwm', 'tal' ,'threads'])
 
 
-    args.invol = invol
-
-    args.outvol = outvol
-    args.mask = None
-    args.shrink = 4
-    args.levels = 4
-    args.numiter = 50
-    args.thres = 0.0
-    args.skipwm = False
-    args.tal = None
-    args.threads = threads
 
 
-    flag = main(options=args)
-
-    return flag
-
-def N4_bias_correct(t1_path,t2_path,mode,out_dir,threads=1):
-
-    t1_bc_path = None
-    t2_bc_path = None
-    if mode == 't1':
-        t1_mode = True
-        t2_mode = False
-    elif mode == 't2':
-        t1_mode = False
-        t2_mode = True
-    else:
-        t1_mode = True
-        t2_mode = True
-
-    if t1_mode:
-        assert os.path.isfile(t1_path), f"T1 image not found"
-        LOGGER.info('Loading T1 image from : {}'.format(t1_path))
-        temp_dir = os.path.join(out_dir,'mri')
-        os.makedirs(temp_dir,exist_ok=True)
-        t1_bc_path = os.path.join(temp_dir,'T1_nu.nii.gz')
-        flag = run_N4_bias_correct(t1_path,t1_bc_path,threads)
-        if flag != 0:
-            t1_bc_path = None
-    if t2_mode:
-        assert os.path.isfile(t2_path), f"T2 image not found"
-        LOGGER.info('Loading T2 image from : {}'.format(t2_path))
-        temp_dir = os.path.join(out_dir,'mri')
-        os.makedirs(temp_dir,exist_ok=True)
-        t2_bc_path = os.path.join(temp_dir,'T2_nu.nii.gz')
-        flag = run_N4_bias_correct(t2_path,t2_bc_path,threads)
-        if flag != 0:
-            t2_bc_path = None
-
-    return t1_bc_path,t2_bc_path
 
 
-def t1_to_t2_registration(t1_path,t2_path,out_dir,registration_type='coreg',bc_status=False):
-    from HypVINN.utils.misc import run_cmd
-    from HypVINN.data_loader.data_utils import rescale_image
 
-    lta_path = os.path.join(out_dir,'mri','transforms','t2tot1.lta')
-    if bc_status:
-        t2_reg_path = os.path.join(out_dir, 'mri', 'T2_nu_reg.nii.gz')
-    else:
-        t2_reg_path = os.path.join(out_dir, 'mri', 'T2_reg.nii.gz')
 
-    if registration_type == 'coreg':
-        cmd = 'mri_coreg --mov {} --targ {} --reg {}'.format(t2_path, t1_path, lta_path)
-        LOGGER.info(cmd)
-        run_cmd(cmd)
-        cmd = 'mri_vol2vol --mov {} --targ {} --lta {} --o {} --cubic --keep-precision'.format(t2_path, t1_path, lta_path, t2_reg_path)
-    else:
-        cmd = 'mri_robust_register --mov {} --dst {} --lta {} --mapmov {} --cost NMI'.format(t2_path, t1_path, lta_path, t2_reg_path)
 
-    LOGGER.info(cmd)
-    run_cmd(cmd)
-
-    if os.path.isfile(t2_reg_path):
-        img = nib.load(t2_reg_path)
-        affine = img.affine
-        header = img.header
-        conformed_arr = rescale_image(img.get_fdata())
-        img = nib.Nifti1Image(conformed_arr,affine,header)
-        img.set_data_dtype(np.dtype(np.uint8))
-        nib.save(img,filename=t2_reg_path)
-
-    return t2_reg_path
