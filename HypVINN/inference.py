@@ -62,19 +62,11 @@ class Inference:
 
         logger.info(f"Running view aggregation on {self.viewagg_device}")
 
-        # Options for parallel run
-        self.model_parallel = (
-                torch.cuda.device_count() > 1
-                and self.device.type == "cuda"
-                and self.device.index is None
-        )
-
         # Initial model setup
         self.model = self.setup_model(cfg)
         self.model_name = self.cfg.MODEL.MODEL_NAME
 
-        # Initial checkpoint loading
-        #self.load_checkpoint(ckpt)
+
 
     def setup_model(self, cfg=None):
         if cfg is not None:
@@ -83,9 +75,6 @@ class Inference:
         # Set up model
         model = build_model(self.cfg)  #
         model.to(self.device)
-
-        if self.model_parallel:
-            model = torch.nn.DataParallel(model)
 
         return model
 
@@ -99,9 +88,6 @@ class Inference:
         # Set up model
         model = build_model(self.cfg)
         model.to(self.device)
-
-        if self.model_parallel:
-            model = torch.nn.DataParallel(model)
         self.model = model
 
     def load_checkpoint(self, ckpt):

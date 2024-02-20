@@ -1,17 +1,10 @@
-import subprocess
-import shlex
 
-
-def run_cmd(cmd):
-    """
-    execute the comand
-    """
-    print('#@# Command: ' + cmd + '\n')
-    args = shlex.split(cmd)
-    try:
-        subprocess.check_call(args)
-    except subprocess.CalledProcessError as e:
-        print('ERROR: ' + 'cannot run command')
-        # sys.exit(1)
-        raise
-    print('\n')
+def create_expand_output_directory(root_path):
+    import os
+    paths = [root_path,
+             os.path.join(root_path, 'mri', 'transforms'),
+             os.path.join(root_path, 'stats'),
+             os.path.join(root_path, 'qc_snapshots')]
+    for path in paths:
+        if path is not None and not os.path.exists(path):
+            os.makedirs(path)

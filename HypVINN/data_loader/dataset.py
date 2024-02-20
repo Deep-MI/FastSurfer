@@ -17,7 +17,8 @@ import torch
 from torch.utils.data import Dataset
 
 
-import HypVINN.data_loader.data_utils as du
+from HypVINN.data_loader.data_utils import transform_axial2sagittal,transform_axial2coronal
+from FastSurferCNN.data_loader.data_utils import get_thick_slices
 
 import FastSurferCNN.utils.logging as logging
 
@@ -42,20 +43,21 @@ class HypoVINN_dataset(Dataset):
         self.base_res = cfg.MODEL.BASE_RES
 
         if self.mode == 't1':
-            orig_thick = self._conform_img(modalities['t1'],orig_zoom, modalitie='t1')
+            orig_thick = self._standarized_img(modalities['t1'],orig_zoom, modalitie='t1')
             orig_thick = np.concatenate((orig_thick, orig_thick), axis=-1)
             self.weight_factor = torch.from_numpy(np.asarray([1.0, 0.0]))
 
         elif self.mode == 't2':
-            orig_thick = self._conform_img(modalities['t2'],orig_zoom, modalitie='t2')
+            orig_thick = self._standarized_img(modalities['t2'],orig_zoom, modalitie='t2')
             orig_thick = np.concatenate((orig_thick, orig_thick), axis=-1)
             self.weight_factor = torch.from_numpy(np.asarray([0.0, 1.0]))
         else:
-            t1_orig_thick = self._conform_img(modalities['t1'], orig_zoom, modalitie='t1')
-            t2_orig_thick = self._conform_img(modalities['t2'],orig_zoom, modalitie='t2')
+            t1_orig_thick = self._standarized_img(modalities['t1'], orig_zoom, modalitie='t1')
+            t2_orig_thick = self._standarized_img(modalities['t2'],orig_zoom, modalitie='t2')
             orig_thick = np.concatenate((t1_orig_thick, t2_orig_thick), axis=-1)
             self.weight_factor = torch.from_numpy(np.asarray([0.5, 0.5]))
-        # Make 4D
+        
+        # Transpose from W,H,N,C to N,W,H,C
         orig_thick = np.transpose(orig_thick, (2, 0, 1, 3))
         self.images = orig_thick
         self.count = self.images.shape[0]
@@ -68,14 +70,14 @@ class HypoVINN_dataset(Dataset):
         else:
             logger.info(f"For inference T1 block weight was set to : {self.weight_factor.numpy()[0]} and the T2 block was set to: {self.weight_factor.numpy()[1]}")
 
-    def _conform_img(self,orig_data,orig_zoom,modalitie):
+    def _standarized_img(self,orig_data,orig_zoom,modalitie):
         if self.plane == "sagittal":
-            orig_data = du.transform_axial2sagittal(orig_data)
+            orig_data = transform_axial2sagittal(orig_data)
             self.zoom = orig_zoom[::-1][:2]
             logger.info("Loading {} sagittal with input voxelsize {}".format(modalitie,self.zoom))
 
         elif self.plane == "coronal":
-            orig_data = du.transform_axial2coronal(orig_data)
+            orig_data = transform_axial2coronal(orig_data)
             self.zoom = orig_zoom[1:]
             logger.info("Loading {} coronal with input voxelsize {}".format(modalitie,self.zoom))
 
@@ -84,7 +86,7 @@ class HypoVINN_dataset(Dataset):
             logger.info("Loading {} axial with input voxelsize {}".format(modalitie,self.zoom))
 
         # Create thick slices
-        orig_thick = du.get_thick_slices(orig_data, self.slice_thickness)
+        orig_thick = get_thick_slices(orig_data, self.slice_thickness)
 
         return orig_thick
     def _get_scale_factor(self):

@@ -72,6 +72,13 @@ def load_volumes(mode,t1_path,t2_path):
         t2_size = modalities['t2'].shape
         size = t2_size
 
+    if t1_mode and t2_mode:
+        assert np.allclose(np.array(t1_zoom), np.array(t2_zoom),
+                           rtol=0.05), "T1 : {} and T2 : {} images have different resolutions".format(t1_zoom,
+                                                                                                      t2_zoom)
+        assert np.allclose(np.array(t1_size), np.array(t2_size),
+                           rtol=0.05), "T1 : {} and T2 : {} images have different size".format(t1_size, t2_size)
+
     return modalities,affine,header,zoom,size
 
 
@@ -186,10 +193,15 @@ def run_hypo_seg(args):
         logger.info(f"Saving prediction at {args.out_dir}")
 
         save = time.time()
-        pred_path = save_segmentation(pred_classes, orig_path= args.t1, affine=ras_affine, header=ras_header, save_dir=os.path.join(args.out_dir,'mri'))
+        if args.mode == 'multi' or args.mode == 't1':
+            orig_path = args.t1
+        else:
+            orig_path = args.t2
+
+        pred_path = save_segmentation(pred_classes, orig_path= orig_path, affine=ras_affine, header=ras_header, save_dir=os.path.join(args.out_dir,'mri'))
         logger.info("Prediction successfully saved as {} in {:0.4f} seconds".format(pred_path, time.time()-save))
 
-        plot_qc_images(save_dir=os.path.join(args.out_dir,'qc_snapshots'),orig_path=args.t1,prediction_path=pred_path)
+        plot_qc_images(save_dir=os.path.join(args.out_dir,'qc_snapshots'),orig_path=orig_path,prediction_path=pred_path)
         logger.info('Computing stats')
         flag = compute_stats(orig_path=args.t1, prediction_path=pred_path, save_dir=os.path.join(args.out_dir,'stats'),threads=args.threads)
         if flag != 0:

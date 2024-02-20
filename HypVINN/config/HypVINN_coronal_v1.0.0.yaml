@@ -1,91 +1,44 @@
-{
-  "MODEL": {
-    "MODEL_NAME": "HypVinn",
-    "MODE": "multi",
-    "NUM_CLASSES": 27,
-    "LOSS_FUNC": "combined",
-    "NUM_FILTERS": 80,
-    "NUM_FILTERS_INTERPOL": 64,
-    "NUM_CHANNELS": 14,
-    "NUM_BRANCHES": 5,
-    "KERNEL_H": 3,
-    "KERNEL_W": 3,
-    "KERNEL_C": 1,
-    "STRIDE_CONV": 1,
-    "STRIDE_POOL": 2,
-    "POOL": 2,
-    "HEIGHT": 256,
-    "WIDTH": 256,
-    "BASE_RES": 1.0,
-    "INTERPOLATION_MODE": "bilinear",
-    "CROP_POSITION": "top_left",
-    "OUT_TENSOR_WIDTH": 320,
-    "OUT_TENSOR_HEIGHT": 320,
-    "SMOOTH": false,
-    "ATTENTION_BASE": false,
-    "ATTENTION_INPUT": false,
-    "ATTENTION_OUTPUT": false,
-    "ADDITION": false,
-    "MULTI_AUTO_W": true,
-    "MULTI_AUTO_W_CHANNELS": false,
-    "MULTI_SMOOTH": false,
-    "HETERO_INPUT": true,
-    "DUPLICATE_INPUT": false
-  },
-  "TRAIN": {
-    "BATCH_SIZE": 16,
-    "LOG_INTERVAL": 50,
-    "RESUME": false,
-    "RESUME_EXPR_NUM": 1,
-    "NUM_EPOCHS": 100,
-    "NUM_STEPS": 10,
-    "FINE_TUNE": false,
-    "CHECKPOINT_PERIOD": 2,
-    "NUM_WORKERS": 8,
-    "RUN_VAL": false
-  },
-  "TEST": {
-    "BATCH_SIZE": 16
-  },
-  "DATA": {
-    "PATH_HDF5_TRAIN": "",
-    "PATH_HDF5_VAL": "",
-    "PLANE": "coronal",
-    "REF_FRAME": -1,
-    "VAL_REF_FRAME": 0,
-    "SIZES": [
-      320
-    ],
-    "PADDED_SIZE": 320,
-    "BOUNDARY_CLASSES": "None",
-    "AUG": [
-      "Scaling",
-      "Gaussian",
-      "Rotation",
-      "Translation",
-      "BiasField"
-    ],
-    "SPLIT_NUM": 5
-  },
-  "DATA_LOADER": {
-    "NUM_WORKERS": 8,
-    "PIN_MEMORY": true
-  },
-  "OPTIMIZER": {
-    "BASE_LR": 0.05,
-    "LR_SCHEDULER": "multiStep",
-    "GAMMA": 0.1,
-    "STEP_SIZE": 5,
-    "ETA_MIN": 0.0001,
-    "T_ZERO": 10,
-    "T_MULT": 2,
-    "MILESTONES": [
-      70
-    ],
-    "MOMENTUM": 0.95,
-    "DAMPENING": 0.0,
-    "NESTEROV": true,
-    "WEIGHT_DECAY": 0.0001,
-    "OPTIMIZING_METHOD": "adamW"
-  }
-}
+MODEL:
+  MODEL_NAME : "HypVinn"
+  NUM_CLASSES : 27
+  NUM_CHANNELS : 14
+  LOSS_FUNC: "combined"
+  KERNEL_H: 3
+  KERNEL_W: 3
+  BASE_RES: 1.0
+  NUM_FILTERS_INTERPOL : 64
+  NUM_FILTERS : 80
+  OUT_TENSOR_WIDTH: 320
+  OUT_TENSOR_HEIGHT: 320
+  HEIGHT: 256
+  WIDTH: 256
+  MODE : 'multi'
+  MULTI_AUTO_W : True
+  HETERO_INPUT : True
+
+DATA:
+  SIZES : [320]
+  PATH_HDF5_TRAIN : '/data/train_data_08mm/split5/train_split5_coronal.hdf5'
+  PATH_HDF5_VAL : ''
+  PLANE : 'coronal'
+  AUG: ['Scaling','Gaussian','Rotation','Translation','BiasField']
+  PADDED_SIZE : 320
+  REF_FRAME : -1
+  VAL_REF_FRAME : 0
+
+TRAIN :
+  BATCH_SIZE : 16
+  NUM_EPOCHS : 100
+  RUN_VAL : FALSE
+
+OPTIMIZER:
+  OPTIMIZING_METHOD : 'adamW'
+  WEIGHT_DECAY : 1e-4
+  BASE_LR : 0.05
+  GAMMA: 0.1
+  LR_SCHEDULER : 'multiStep'
+  MILESTONES: [70]
+  MOMENTUM : 0.95
+
+NUM_GPUS : 2
+LOG_DIR : "/src/FSVINN/hetero_models/split5" 
