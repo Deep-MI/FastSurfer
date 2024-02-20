@@ -3,19 +3,19 @@
 Hypothalamic subfields segmentation pipeline
 
 ### Input
-*  T1 or T2 or both image
+*  a T1w image, a T2w image, or both images
 
 ### Requirements
 Same as FastSurfer
 FreeSurfer should also be source to run the code and the mri_coreg ang mri_vol2vol binary should be also available
 
 ### Model weights
-* Julich records: https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7
-* Zenodo records: https://zenodo.org/records/10623893
+* EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7
+* Zenodo data repository: https://zenodo.org/records/10623893
 
 ### Pipeline Steps
-1. Bias Field Correction Step
-2. Registration (only required when doing multi-modal input)
+1. Bias Field Correction Step (optional)
+2. Registration (optional, only required for multi-modal input)
 3. Hypothalamus Segmentation
 
 ### Running the tool
@@ -29,9 +29,9 @@ Run the HypVINN/run_pipeline.py which has the following arguments:
                      t1 : only T1 images, t2 : only T2 images or multi : both T1 and T2 images, default = 'auto'
  * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in /sd/sid/logs/hypvinn_seg.log 
 ### Image processing options
- * `--no_pre_proc`: Deactivate all pre-processing steps, This is recommended when images are already bias field corrected and co-register if T1 and T2 are available
+ * `--no_pre_proc`: Deactivate all pre-processing steps, This is recommended when images are already bias field corrected and co-registered if T1 and T2 are available
  * `--no_bc` : Deactivate bias field correction, it is recommended to do bias field correction for calculating volumes taking account partial volume effects, reguired = False
- * `--no_reg` : Deactivate registration of T2 to T1. If multi mode is used; images need to be register properly, required = False
+ * `--no_reg` : Deactivate registration of T2 to T1. If multi mode is used; images need to be registered externally, required = False
  * `--reg_type` : Freesurfer Registration type to run. coreg : mri_coreg (Default) or robust : mri_robust_register.
 ###  FastSurfer Technical parameters (see FastSurfer documentation)
  * `--device`
@@ -53,7 +53,7 @@ Run the HypVINN/run_pipeline.py which has the following arguments:
 
 ### Usage
 The Hypothalamus pipeline can be run by using a T1 a T2 or both images. 
-Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-register.
+Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-registered.
 The pipeline can do all pre-processing by itself (steps 1 and 2) or omit this step if images are already curated beforehand.
 
 1. Run full pipeline
