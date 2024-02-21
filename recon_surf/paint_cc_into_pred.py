@@ -81,7 +81,7 @@ def argument_parse():
 
 def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
     """
-    Paint corpus callosum segmentation into prediction.
+    Paint corpus callosum segmentation into aseg+dkt segmentation map.
 
     Note, that this function modifies the original array and does not create a copy.
 

@@ -56,7 +56,9 @@ def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
     """
     Take path to insurf and rewrite it to outsurf thereby fixing vertex locs flag error.
 
-    (scannerRAS instead of surfaceRAS after marching cube).
+    This function fixes header information not properly saved in marching cubes. 
+    It makes sure the file header correctly references the scannerRAS instead of the surfaceRAS,
+    i.e. filename and volume is set to the correct data in the header.
 
     Parameters
     ----------
