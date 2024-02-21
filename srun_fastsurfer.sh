@@ -44,7 +44,8 @@ subject_list_awk_code_args="\$2"
 subject_list_delim="="
 jobarray=""
 timelimit_seg=5
-timelimit_surf=180
+# 1mm can take 1h per hemi plus 1h extra on a single core (depending on cpu speed)
+timelimit_surf=$((4 * 60))
 
 function usage()
 {
