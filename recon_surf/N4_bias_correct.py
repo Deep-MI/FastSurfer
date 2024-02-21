@@ -15,18 +15,20 @@
 
 
 # IMPORTS
+# Group 1: Python native modules
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import Optional, cast, Tuple
-import logging
 
+# Group 2: External modules
 import SimpleITK as sitk
 import numpy as np
 from numpy import typing as npt
 
+# Group 3: Internal modules
 import image_io as iio
-
 
 HELPTEXT = """
 
@@ -100,13 +102,13 @@ h_threads = "<int> number of threads, default: 1"
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Namespace object holding options.
     """
     parser = argparse.ArgumentParser(
         description=HELPTEXT,
@@ -146,28 +148,28 @@ def itk_n4_bfcorrection(
         numiter: int = 50,
         thres: float = 0.0,
 ) -> sitk.Image:
-    """Perform the bias field correction.
+    """
+    Perform the bias field correction.
 
     Parameters
     ----------
     itk_image : sitk.Image
-        n-dimensional image
+        N-dimensional image.
     itk_mask : Optional[sitk.Image]
-        Image mask. Defaults to None. Optional
+        Image mask. Defaults to None. Optional.
     shrink : int
-        Shrink factors. Defaults to 4
+        Shrink factors. Defaults to 4.
     levels : int
-        Number of levels for maximum number of iterations. Defaults to 4
+        Number of levels for maximum number of iterations. Defaults to 4.
     numiter : int
-        Maximum number if iterations. Defaults 50
+        Maximum number if iterations. Defaults 50.
     thres : float
-        Convergence threshold. Defaults to 0.0
+        Convergence threshold. Defaults to 0.0.
 
     Returns
     -------
     itk_bfcorr_image
-        Bias field corrected image
-
+        Bias field corrected image.
     """
     _logger = logging.getLogger(__name__ + ".itk_n4_bfcorrection")
     # if no mask is passed, create a simple mask from the image
@@ -214,28 +216,28 @@ def normalize_wm_mask_ball(
         target_wm: float = 110.,
         target_bg: float = 3.
 ) -> sitk.Image:
-    """Normalize WM image by Mask and optionally ball around talairach center.
+    """
+    Normalize WM image by Mask and optionally ball around talairach center.
 
     Parameters
     ----------
     itk_image : sitk.Image
-        n-dimensional itk image
+        N-dimensional itk image.
     itk_mask : sitk.Image, optional
         Image mask.
     radius : float | int
-        Defaults to 50 [MISSING]
+        Defaults to 50 [MISSING].
     centroid : np.ndarray
-        brain centroid.
+        Brain centroid.
     target_wm : float | int
         Target white matter intensity. Defaults to 110.
     target_bg : float | int
-        target background intensity. Defaults to 3 (1% of 255)
+        Target background intensity. Defaults to 3 (1% of 255).
 
     Returns
     -------
     normalized_image : sitk.Image
-        Normalized WM image
-
+        Normalized WM image.
     """
     _logger = logging.getLogger(__name__ + ".normalize_wm_mask_ball")
     _logger.info(f"- centroid: {centroid}")
@@ -278,30 +280,31 @@ def normalize_wm_aseg(
         target_wm: float = 110.,
         target_bg: float = 3.
 ) -> sitk.Image:
-    """Normalize WM image [MISSING].
+    """
+    Normalize WM image so the white matter has a mean 
+    intensity of target_wm and the backgroud has intensity target_bg.
 
     Parameters
     ----------
     itk_image : sitk.Image
-        n-dimensional itk image
+        N-dimensional itk image.
     itk_mask : sitk.Image | None
         Image mask.
     itk_aseg : sitk.Image
-        aseg-like segmentation image to find WM.
+        Aseg-like segmentation image to find WM.
     radius : float | int
-        Defaults to 50 [MISSING]
+        Defaults to 50 [MISSING].
     centroid : Optional[np.ndarray]
-        Image centroid. Defaults to None
+        Image centroid. Defaults to None.
     target_wm : float | int
-        target white matter intensity. Defaults to 110
+        Target white matter intensity. Defaults to 110.
     target_bg : float | int
-        target background intensity Defaults to 3 (1% of 255)
+        Target background intensity Defaults to 3 (1% of 255).
 
     Returns
     -------
     normed : sitk.Image
-        Normalized WM image
-
+        Normalized WM image.
     """
     _logger = logging.getLogger(__name__ + ".normalize_wm_aseg")
 
@@ -325,8 +328,8 @@ def normalize_wm_aseg(
 def normalize_img(
         itk_image: sitk.Image,
         itk_mask: Optional[sitk.Image],
-        source_intensity: Tuple[float, float],
-        target_intensity: Tuple[float, float]
+        source_intensity: tuple[float, float],
+        target_intensity: tuple[float, float]
 ) -> sitk.Image:
     """
     Normalize image by source and target intensity values.
@@ -334,13 +337,19 @@ def normalize_img(
     Parameters
     ----------
     itk_image : sitk.Image
+        Input image to be normalized.
     itk_mask : sitk.Image | None
-    source_intensity : Tuple[float, float]
-    target_intensity : Tuple[float, float]
+        Brain mask, voxels inside the mask are guaranteed to be > 0,
+        None is optional.
+    source_intensity : tuple[float, float]
+        Source intensity range.
+    target_intensity : tuple[float, float]
+        Target intensity range.
 
     Returns
     -------
-    Rescaled image
+    sitk.Image
+        Rescaled image.
     """
     _logger = logging.getLogger(__name__ + ".normalize_wm")
     # compute intensity transformation
@@ -359,23 +368,23 @@ def normalize_img(
 
 
 def read_talairach_xfm(fname: Path | str) -> np.ndarray:
-    """Read Talairach transform.
+    """
+    Read Talairach transform.
 
     Parameters
     ----------
     fname : str
-        Filename to Talairach transform
+        Filename to Talairach transform.
 
     Returns
     -------
     tal
-        Talairach transform matrix
+        Talairach transform matrix.
 
     Raises
     ------
     ValueError
         if the file is of an invalid format.
-
     """
     _logger = logging.getLogger(__name__ + ".read_talairach_xfm")
     _logger.info(f"reading talairach transform from {fname}")
@@ -398,7 +407,8 @@ def read_talairach_xfm(fname: Path | str) -> np.ndarray:
 
 
 def get_tal_origin_voxel(tal: npt.ArrayLike, image: sitk.Image) -> np.ndarray:
-    """Get the origin of Talairach space in voxel coordinates.
+    """
+    Get the origin of Talairach space in voxel coordinates.
 
     Parameters
     ----------
@@ -410,8 +420,7 @@ def get_tal_origin_voxel(tal: npt.ArrayLike, image: sitk.Image) -> np.ndarray:
     Returns
     -------
     vox_origin : np.ndarray
-        Voxel coordinate of Talairach origin
-
+        Voxel coordinate of Talairach origin.
     """
     tal_inv = np.linalg.inv(tal)
     tal_origin = np.array(tal_inv[0:3, 3]).ravel()
@@ -453,13 +462,14 @@ def get_image_mean(image: sitk.Image, mask: Optional[sitk.Image] = None) -> floa
     Parameters
     ----------
     image : sitk.Image
-        image to get mean of
+        Image to get mean of.
     mask : sitk.Image, optional
-        optional mask to apply first
+        Optional mask to apply first.
 
     Returns
     -------
     mean : float
+        The mean value of the image.
     """
     img = sitk.GetArrayFromImage(image)
     if mask is not None:
@@ -470,16 +480,17 @@ def get_image_mean(image: sitk.Image, mask: Optional[sitk.Image] = None) -> floa
 
 def get_brain_centroid(itk_mask: sitk.Image) -> np.ndarray:
     """
-    Get the brain centroid from the itk_mask
+    Get the brain centroid from a binary image.
 
     Parameters
     ----------
     itk_mask : sitk.Image
+        Binary image to compute the centroid of its labeled region.
 
     Returns
     -------
-    brain centroid
-
+    np.ndarray
+        Brain centroid.
     """
     _logger = logging.getLogger(__name__ + ".get_brain_centroid")
     _logger.debug("No talairach center passed, estimating center from mask.")

@@ -14,17 +14,16 @@
 
 # IMPORTS
 import time
+import nibabel as nib
+import numpy as np
+import torch
+
 from os import makedirs
 from os.path import join, dirname, isfile
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import Future, ThreadPoolExecutor
-
-import nibabel as nib
-import numpy as np
-import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable
@@ -44,6 +43,9 @@ logger = logging.get_logger(__name__)
 
 
 class Inference:
+    """
+    Manages inference operations, including batch processing, data loading, and model predictions for neuroimaging data.
+    """
     def __init__(
         self,
         cfg: "yacs.ConfigNode",

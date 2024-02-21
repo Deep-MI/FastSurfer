@@ -9,4 +9,4 @@ FastSurfer API
     FastSurferCNN.utils.rst
     FastSurferCNN.data_loader.rst
     recon_surf.rst
-    
+    CerebNet.rst

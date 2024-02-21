@@ -28,28 +28,28 @@ def writeLTA(
         dst_fname: str,
         dst_header: Dict
 ) -> None:
-    """Write linear transform array info to a .lta file.
+    """
+    Write linear transform array info to an .lta file.
 
     Parameters
     ----------
     filename : str
-        File to write on
+        File to write on.
     T : npt.ArrayLike
-        Linear transform array to be saved
+        Linear transform array to be saved.
     src_fname : str
-        Source filename
+        Source filename.
     src_header : Dict
-        Source header
+        Source header.
     dst_fname : str
-        Destination filename
+        Destination filename.
     dst_header : Dict
-        Destination header
+        Destination header.
 
     Raises
     ------
     ValueError
-        Header format missing field (Source or Destination)
-    
+        Header format missing field (Source or Destination).
     """
     from datetime import datetime
     import getpass
