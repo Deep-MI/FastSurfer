@@ -21,7 +21,7 @@ import optparse
 import sys
 
 import numpy as np
-from numpy import typing as np
+from numpy import typing as npt
 import nibabel.freesurfer.io as fs
 
 import align_points as align

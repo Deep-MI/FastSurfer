@@ -21,7 +21,8 @@ import torch.nn as nn
 # Building Blocks
 class CompetitiveDenseBlock(nn.Module):
     """
-    Function to define a competitive dense block comprising of 3 convolutional layers, with BN/ReLU
+    Function to define a competitive dense block comprising 
+    of 3 convolutional layers, with BN/ReLU.
 
     Inputs:
     -- Params
@@ -37,10 +38,9 @@ class CompetitiveDenseBlock(nn.Module):
                'input':True
                }
     """
-
     def __init__(self, params, outblock=False, discriminator_block=False):
         """
-        Constructor to initialize the Competitive Dense Block
+        Constructor to initialize the Competitive Dense Block.
         :param dict params: dictionary with parameters specifying block architecture
         :param bool outblock: Flag indicating if last block (before classifier block) is set up.
                                Default: False
@@ -138,7 +138,8 @@ class CompetitiveDenseBlock(nn.Module):
 
 class CompetitiveDenseBlockInput(nn.Module):
     """
-    Function to define a competitive dense block comprising of 3 convolutional layers, with BN/ReLU for input
+    Function to define a competitive dense block comprising of
+    3 convolutional layers, with BN/ReLU for input.
 
     Inputs:
     -- Params
@@ -151,14 +152,16 @@ class CompetitiveDenseBlockInput(nn.Module):
                'stride_pool': 2,
                'num_classes': 44
                'kernel_c':1
-               'input':True
-              }
+               'input':True}
     """
-
     def __init__(self, params):
         """
-        Constructor to initialize the Competitive Dense Block
-        :param dict params: dictionary with parameters specifying block architecture
+        Constructor to initialize the Competitive Dense Block.
+
+        Parameters
+        ----------
+        params : dict  
+            Dictionary with parameters specifying block architecture.
         """
         super(CompetitiveDenseBlockInput, self).__init__()
 
@@ -242,7 +245,6 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
     """
     Encoder Block = CompetitiveDenseBlock + Max Pooling
     """
-
     def __init__(self, params):
         """
         Encoder Block initialization
@@ -277,7 +279,6 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
     """
     Encoder Block = CompetitiveDenseBlockInput + Max Pooling
     """
-
     def __init__(self, params):
         """
         Encoder Block initialization
@@ -314,7 +315,6 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
     """
     Decoder Block = (Unpooling + Skip Connection) --> Dense Block
     """
-
     def __init__(self, params, outblock=False):
         """
         Decoder Block initialization
@@ -354,7 +354,6 @@ class ClassifierBlock(nn.Module):
     """
     Classification Block
     """
-
     def __init__(self, params):
         """
         Classifier Block initialization

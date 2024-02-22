@@ -587,7 +587,9 @@ def normalize_array(arr):
 
 
 def _crop_transform_make_indices(image_shape, offsets, target_shape):
-    """Create the indexing tuple. Returned pad tuples are for the last N dimensions."""
+    """
+    Create the indexing tuple. Returned pad tuples are for the last N dimensions.
+    """
     if len(offsets) != len(target_shape):
         raise ValueError(
             f"offsets {offsets} and target shape {target_shape} must be same length."
@@ -611,7 +613,9 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
 
 
 def _crop_transform_pad_fn(image, pad_tuples, pad):
-    """Generate a parameterized pad function."""
+    """
+    Generate a parameterized pad function.
+    """
     if all(p1 == 0 and p2 == 0 for p1, p2 in pad_tuples):
         return None
 
@@ -641,36 +645,49 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
         )
 
 
-def crop_transform(
-    image: AT, offsets=None, target_shape=None, out: Optional[AT] = None, pad=0
-):
+def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT] = None, pad=0):
     """
-    Perform a crop transform of the last N dimensions on the image data. Cropping does not interpolate the image, but
-    "just removes" border pixels/voxels. Negative offsets lead to padding.
+    Perform a crop transform of the last N dimensions on the image data.
+    Cropping does not interpolate the image, but "just removes" border pixels/voxels.
+    Negative offsets lead to padding.
 
-    Args:
-        image: image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N image dimensions.
-        offsets: offset of the cropped region for the last N dimensions (default: center crop with less crop/pad
-            towards index 0).
-        target_shape: if defined, target_shape specifies the target shape of the "cropped region", else the crop
-            will be centered cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x
-            the dimension-specific offset). target_shape should have the same number of elements as offsets.
-            May be implicitly defined by out.
-        out: Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
-        pad: padding strategy to use when padding is required (default: zero-pad).
+    Parameters
+    ----------
+    image : [MISSING]
+        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N image dimensions.
+    offsets : [MISSING]
+        Offset of the cropped region for the last N dimensions (default: center crop with less crop/pad
+        towards index 0).
+    target_shape : [MISSING]
+        If defined, target_shape specifies the target shape of the "cropped region", else the crop
+        will be centered cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x
+        the dimension-specific offset). target_shape should have the same number of elements as offsets.
+        May be implicitly defined by out.
+    out : [MISSING]
+        Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
+    pad :  [MISSING]
+        Padding strategy to use when padding is required (default: zero-pad).
 
-    Notes:
-        Either offsets, target_shape or out must be defined.
-
-    Raises:
-        ValueError: If neither offsets nor target_shape nor out are defined.
-        ValueError: If out is not target_shape.
-        TypeError: If the type of image is not an np.ndarray or a torch.Tensor.
-        RuntimeError: If the dimensionality of image, out, offset or target_shape is invalid or inconsistent.
-
-    Returns:
+    Returns
+    -------
+    out : np.ndarray
         The image (stack) cropped in the last N dimensions by offsets to the shape target_shape, or if target_shape is
         not given image.shape[i+2] - 2*offset[i].
+
+    Raises
+    ------
+    ValueError
+        If neither offsets nor target_shape nor out are defined.
+    ValueError  
+        If out is not target_shape.
+    TypeError
+        If the type of image is not an np.ndarray or a torch.Tensor.
+    RuntimeError 
+        If the dimensionality of image, out, offset or target_shape is invalid or inconsistent.
+
+    Notes
+    -----
+    Either offsets, target_shape or out must be defined.
     """
     if target_shape is None and out is not None:
         target_shape = out.shape

@@ -29,8 +29,9 @@ logger = logging.get_logger(__name__)
 
 
 class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
-    """Extends the ReduceLROnPlateau class with the restart ability."""
-
+    """
+    Extends the ReduceLROnPlateau class with the restart ability.
+    """
     def __init__(self, optimizer, *args, T_0=10, Tmult=1, lr_restart=None, **kwargs):
         """
         Create a ReduceLROnPlateauWithRestarts learning rate scheduler.
@@ -71,7 +72,9 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
             self.lr_restart = 1
 
     def step(self, metrics, epoch=None):
-
+        """
+        [MISSING].
+        """
         self.Tcur += 1
         super(ReduceLROnPlateauWithRestarts, self).step(metrics, epoch)
         if self.Tcur >= self.T_i:
@@ -79,6 +82,9 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         self._last_lr = [group["lr"] for group in self.optimizer.param_groups]
 
     def _reset_lr(self):
+        """
+        [MISSING].
+        """
         self.Tcur = 0
         self.T_i *= self.Tmult
         self.i += 1
@@ -108,6 +114,9 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
 # https://detectron2.readthedocs.io/_modules/detectron2/solver/lr_scheduler.html
 class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
+    """
+    WarmupCosineLR class.
+    """
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -124,6 +133,9 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self) -> List[float]:
+        """
+        [MISSING].
+        """
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method, self.last_epoch, self.warmup_iters, self.warmup_factor
         )
@@ -175,6 +187,9 @@ def _get_warmup_factor_at_iter(
 
 
 class CosineLR:
+    """
+    CosineLR class.
+    """
     def __init__(self, base_lr, eta_min, max_epoch):
         self.base_lr = base_lr
         self.max_epoch = max_epoch
@@ -182,8 +197,12 @@ class CosineLR:
 
     def lr_func_cosine(self, cur_epoch):
         """
+        [MISSING].
 
-        cur_epoch (float): the number of epoch of the current training stage.
+        Parameters
+        ----------
+        cur_epoch : float 
+            The number of epoch of the current training stage.
         """
         return self.eta_min + (
             (self.base_lr - self.eta_min)
@@ -194,9 +213,12 @@ class CosineLR:
     def set_lr(self, optimizer, epoch):
         """
         Sets the optimizer lr to the specified value.
+        
         Args:
-            optimizer (optim): the optimizer using to optimize the current network.
-            new_lr (float): the new learning rate to set.
+            optimizer : optim 
+                The optimizer using to optimize the current network.
+            new_lr : float
+                The new learning rate to set.
         """
         new_lr = self.get_epoch_lr(epoch)
         for param_group in optimizer.param_groups:
@@ -205,13 +227,18 @@ class CosineLR:
     def get_epoch_lr(self, cur_epoch):
         """
         Retrieves the lr for the given epoch (as specified by the lr policy).
+
         Args:
-            cur_epoch (float): the number of epoch of the current training stage.
+            cur_epoch : float 
+                The number of epoch of the current training stage.
         """
         return self.lr_func_cosine(cur_epoch)
 
 
 class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
+    """
+    Cosine annealing warm restarts decay class.
+    """
     def __init__(self, optimizer, T_0, T_mult=1, eta_min=0, last_epoch=-1):
         super(CosineAnnealingWarmRestartsDecay, self).__init__(
             optimizer, T_0, T_mult=T_mult, eta_min=eta_min, last_epoch=last_epoch
@@ -219,6 +246,9 @@ class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
         pass
 
     def decay_base_lr(self, curr_iter, n_epochs, n_iter):
+        """
+        [MISSING].
+        """
         if self.T_cur + 1 == self.T_i:
             annealed_lrs = []
             for base_lr in self.base_lrs:
@@ -232,6 +262,9 @@ class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
 
 
 def get_lr_scheduler(optimizer, cfg):
+    """
+    [MISSING].
+    """
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":
         return scheduler.StepLR(

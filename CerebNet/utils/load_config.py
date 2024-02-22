@@ -26,7 +26,6 @@ from CerebNet.config import get_cfg_cerebnet
 def get_config(args) -> "yacs.CfgNode":
     """
     Given the arguments, load and initialize the config_files.
-
     """
     # Setup cfg.
     cfg = get_cfg_cerebnet()
@@ -81,6 +80,9 @@ def get_config(args) -> "yacs.CfgNode":
 
 
 def setup_options():
+    """
+    [MISSING].
+    """
     parser = argparse.ArgumentParser(description="Segmentation")
     parser.add_argument(
         "--cfg",

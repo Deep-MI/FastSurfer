@@ -37,8 +37,8 @@ CEREBNET_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_sagittal_v1.0
 
 def is_checkpoint_epoch(cfg, cur_epoch):
     """
-    Check if checkpoint need to be saved
-    Check if the
+    Check if checkpoint need to be saved.
+    Check if the.
     :param cfg:
     :param cur_epoch:
     :return:

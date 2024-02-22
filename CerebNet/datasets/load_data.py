@@ -24,6 +24,9 @@ from CerebNet.datasets import utils
 
 
 class SubjectLoader:
+    """
+    Subject loader class.
+    """
     def __init__(self, cfg, aux_subjects_files=None):
         self.cfg = cfg
         self.patch_size = cfg.PATCH_SIZE
@@ -37,22 +40,33 @@ class SubjectLoader:
         self,
         seg_map,
         label_map_func,
-        plane_transform=None,
-    ):
+        plane_transform=None,):
         """
+        Process segmentation volumes.
 
-        :param seg_map:
-        :param plane_transform:
-        :param label_map_func:
-        :return:
+        Parameters
+        ----------
+        seg_map : np.ndarray
+            The segmentation map to be processed.
+        label_map_func : function
+            A function to map labels in the segmentation map.
+        plane_transform : function, optional
+            A function to transform the segmentation map in plane. Defaults to None.
+
+        Returns
+        -------
+        np.ndarray
+            The processed segmentation map.
         """
-
         mapped_seg = label_map_func(seg_map)
         if plane_transform is not None:
             mapped_seg = plane_transform(mapped_seg)
         return mapped_seg
 
     def _load_volumes(self, subject_path, store_talairach=False):
+        """
+        [MISSING].
+        """
         orig_path = join(subject_path, self.cfg.IMAGE_NAME)
         subseg_path = join(subject_path, self.cfg.CEREB_SUBSEG_NAME)
 
@@ -163,11 +177,21 @@ class SubjectLoader:
 
     def load_subject(self, current_subject, store_talairach=False, load_aux_data=False):
         """
-        Loads and process the subject and return data in a dictionary
-        :param current_subject: subject ID
-        :param load_aux_data: to load auxiliary data or not
-        :return:
-            dictionary of processed data
+        Loads and processes the subject and returns data in a dictionary.
+
+        Parameters
+        ----------
+        current_subject : [MISSING]
+            Subject ID.
+        store_talairach : bool, optional
+            Whether to store Talairach coordinates. Defaults to False.
+        load_aux_data : bool, optional
+            Whether to load auxiliary data. Defaults to False.
+
+        Returns
+        -------
+        dict
+            Dictionary of processed data.
         """
         in_data = {}
         subject_path = join(self.cfg.DATA_DIR, current_subject)

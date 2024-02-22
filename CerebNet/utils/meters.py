@@ -30,8 +30,13 @@ logger = logging.get_logger(__name__)
 
 
 class TestMeter:
+    """
+    TestMeter class.
+    """
     def __init__(self, classname_to_ids):
-
+        """
+        Constructor function.
+        """
         # class_id: class_name
         self.classname_to_ids = classname_to_ids
         self.measure_func = lambda pred, gt: {
@@ -40,6 +45,9 @@ class TestMeter:
         }
 
     def _compute_hd(self, pred_bin, gt_bin):
+        """
+        [MISSING].
+        """
         hd_dict = {}
         if np.count_nonzero(pred_bin) == 0:
             hd_dict["HD_Max"] = np.nan
@@ -52,10 +60,16 @@ class TestMeter:
         return hd_dict
 
     def _get_binray_map(self, lbl_map, class_names):
+        """
+        [MISSING].
+        """
         bin_map = np.logical_or.reduce(list(map(lambda l: lbl_map == l, class_names)))
         return bin_map
 
     def metrics_per_class(self, pred, gt):
+        """
+        [MISSING].
+        """
         metrics = {"Label": [], "Dice": [], "HD95": [], "HD_Max": [], "VS": []}
         for lbl_name, lbl_id in self.classname_to_ids.items():
             # ignoring background
@@ -88,6 +102,9 @@ class TestMeter:
 
 
 class Meter:
+    """
+    Meter class.
+    """
     def __init__(
         self,
         cfg,
@@ -99,6 +116,9 @@ class Meter:
         device=None,
         writer=None,
     ):
+        """"
+        Constructor function.
+        """
         self._cfg = cfg
         self.mode = mode.capitalize()
         self.confusion_mat = self.mode == "Val"
@@ -115,10 +135,16 @@ class Meter:
         self.multi_gpu = cfg.NUM_GPUS > 1
 
     def reset(self):
+        """
+        Reset function.
+        """
         self.batch_losses = {}
         self.dice_score.reset()
 
     def update_stats(self, pred, labels, loss_dict=None):
+        """
+        Update stats.
+        """
         self.dice_score.update((pred, labels))
         if loss_dict is None:
             return
@@ -126,6 +152,9 @@ class Meter:
             self.batch_losses.setdefault(name, []).append(loss.item())
 
     def write_summary(self, loss_dict):
+        """
+        Write summary.
+        """
         if self.writer is None:
             return
         for name, loss in loss_dict.items():
@@ -135,6 +164,9 @@ class Meter:
     def prediction_visualize(
         self, cur_iter, cur_epoch, img_batch, label_batch, pred_batch
     ):
+        """
+        [MISSING].
+        """
         if self.writer is None:
             return
         if cur_iter == 1:
@@ -146,6 +178,9 @@ class Meter:
             plt.close("all")
 
     def log_iter(self, cur_iter, cur_epoch):
+        """
+        [MISSING].
+        """
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
             out_losses = {}
             for name, loss in self.batch_losses.items():
@@ -167,11 +202,17 @@ class Meter:
             )
 
     def log_lr(self, lr, step=None):
+        """
+        [MISSING].
+        """
         if step is None:
             step = self.global_iter
         self.writer.add_scalar("Train/lr", lr[0], step)
 
     def log_epoch(self, cur_epoch):
+        """
+        [MISSING].
+        """
         dice_score_per_class, confusion_mat = self.dice_score.compute(per_class=True)
         dice_score = dice_score_per_class[1:].mean()
         if self.writer is None:
