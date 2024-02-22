@@ -49,8 +49,12 @@ def option_parse():
     parser.add_argument("--no_reg", action='store_false', dest="registration", help="Deactivate registration of T2 to t1,"
                                                                                     "If multi mode is run images need to be register properly")
 
+    parser.add_argument("--qc_snap", action='store_true', dest="qc_snapshots",
+                        help="Create qc snapshots")
+
     parser.add_argument('--reg_type', type=str, default="coreg", choices=["coreg", "robust"],
                         help="Freesurfer Registration type to run. coreg: mri_coreg, robust : mri_robust_register  ")
+
 
 
     # 4. Options for advanced, technical parameters
@@ -111,7 +115,7 @@ if __name__ == "__main__":
 
         if args.mode:
             # Create output directory if it does not already exist.
-            create_expand_output_directory(args.out_dir)
+            create_expand_output_directory(args)
             LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
             LOGGER.info("Output will be stored in: {}".format(args.out_dir))
             LOGGER.info('T1 image input {}'.format(args.t1))
