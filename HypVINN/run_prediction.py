@@ -200,10 +200,11 @@ def run_hypo_seg(args):
 
         pred_path = save_segmentation(pred_classes, orig_path= orig_path, affine=ras_affine, header=ras_header, save_dir=os.path.join(args.out_dir,'mri'))
         logger.info("Prediction successfully saved as {} in {:0.4f} seconds".format(pred_path, time.time()-save))
+        if args.qc_snapshots:
+            plot_qc_images(save_dir=os.path.join(args.out_dir,'qc_snapshots'),orig_path=orig_path,prediction_path=pred_path)
 
-        plot_qc_images(save_dir=os.path.join(args.out_dir,'qc_snapshots'),orig_path=orig_path,prediction_path=pred_path)
         logger.info('Computing stats')
-        flag = compute_stats(orig_path=args.t1, prediction_path=pred_path, save_dir=os.path.join(args.out_dir,'stats'),threads=args.threads)
+        flag = compute_stats(orig_path=orig_path, prediction_path=pred_path, save_dir=os.path.join(args.out_dir,'stats'),threads=args.threads)
         if flag != 0:
             logger.info(flag)
 
