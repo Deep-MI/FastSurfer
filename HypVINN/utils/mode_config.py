@@ -40,7 +40,17 @@ def get_hypinn_mode_config(args):
             args.mode = 't1'
             args.t2 = None
         else:
-            args.mode = None
+            if hasattr(args,'t2'):
+                if os.path.isfile(str(args.t2)):
+                    args.mode = 't2'
+                    args.t1 = None
+                    LOGGER.info(
+                        'Warning: T2 mode selected. Only passing a T2 image can generate not so accurate results.\n '
+                        'Best results are obtained when a T2 image is accompanied with a T1 image.')
+                else:
+                    args.mode = None
+            else:
+                args.mode = None
     elif hasattr(args,'t2'):
         if os.path.isfile(str(args.t2)):
             args.mode = 't2'
