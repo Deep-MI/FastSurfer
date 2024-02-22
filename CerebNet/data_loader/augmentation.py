@@ -28,9 +28,8 @@ from torchvision import transforms
 from CerebNet.data_loader.data_utils import FLIPPED_LABELS
 
 
-##
+
 # Transformations for training
-##
 class ToTensor(object):
     """
     Convert ndarrays in sample to Tensors.
@@ -71,7 +70,7 @@ class RandomAffine(object):
     """
     Apply a random affine transformation to
     images, label and weight
-    the transformation includes translation, rotation and scaling
+    the transformation includes translation, rotation and scaling.
     """
 
     def __init__(self, cfg):
@@ -101,16 +100,16 @@ class RandomAffine(object):
              The value should be between 0 and 1.
         img_size : tuple
             img_size = (column_size, row_size)
-        scale: tuple, range of min and max scaling factor
+        scale: tuple
+            Range of min and max scaling factor.
         seed : int
-            random seed
+            Random seed.
 
         Returns
         -------
         transform_mat : 3x3 matrix
-            Random affine transformation
+            Random affine transformation.
         """
-
         if isinstance(self.degree, numbers.Number):
             if self.degree < 0:
                 raise ValueError("If degrees is a single number, it must be positive.")
@@ -179,9 +178,8 @@ class RandomAffine(object):
 
 class RandomFlip(object):
     """
-    Random horizontal flipping
+    Random horizontal flipping.
     """
-
     def __init__(self, cfg):
         self.prob = cfg.AUGMENTATION.PROB
         self.axis = cfg.AUGMENTATION.FLIP_AXIS
@@ -202,7 +200,8 @@ class RandomFlip(object):
 
 
 class RandomBiasField:
-    r"""Add random MRI bias field artifact.
+    """
+    Add random MRI bias field artifact.
 
     Based on https://github.com/fepegar/torchio
 
@@ -211,15 +210,21 @@ class RandomBiasField:
     white matter hyperintensities
     <https://www.sciencedirect.com/science/article/pii/S1361841517300257?via%3Dihub>`_.
 
-    Args:
-        coefficients: Magnitude :math:`n` of polynomial coefficients.
-            If a tuple :math:`(a, b)` is specified, then
-            :math:`n \sim \mathcal{U}(a, b)`.
-        order: Order of the basis polynomial functions.
-        p: Probability that this transform will be applied.
-        seed:
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Node to get Config from (should include:
+        AUGMENTATION.BIAS_FIELD_COEFFICIENTS
+        Magnitude :math:`n` of polynomial coefficients.
+        If a tuple :math:`(a, b)` is specified, then
+        :math:`n \sim \mathcal{U}(a, b)`.
+        AUGMENTATION.BIAS_FIELD_ORDER
+        Order of the basis polynomial functions.
+        AUGMENTATION.PROB
+        Probability that this transform will be applied.
+    seed : int, optional
+        Seed.
     """
-
     def __init__(
         self,
         cfg,
@@ -302,9 +307,8 @@ class RandomLabelsToImage(object):
     using the dataset intensity priors.
     based on  Billot et al.:
     A Learning Strategy for Contrast-agnostic MRI Segmentation
-     and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contrast.
+    and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contrast.
     """
-
     def __init__(self, mean, std, cfg, blur_factor=0.3):
         self.means = mean
         self.stds = std
@@ -335,7 +339,8 @@ class RandomLabelsToImage(object):
 def sample_intensity_stats_from_image(
     image, segmentation, labels_list, classes_list=None, keep_strictly_positive=True
 ):
-    """This function takes an image and corresponding segmentation as inputs. It estimates the mean and std intensity
+    """
+    This function takes an image and corresponding segmentation as inputs. It estimates the mean and std intensity
     for all specified label values. Labels can share the same statistics by being regrouped into K classes.
     :param image: image from which to evaluate mean intensity and std deviation.
     :param segmentation: segmentation of the input image. Must have the same size as image.

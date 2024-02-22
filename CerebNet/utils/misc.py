@@ -175,9 +175,12 @@ def get_selected_class_ids(num_classes, ignored_classes=None):
 
 def set_summary_path(cfg):
     """
-        Set last experiment number(EXPR_NUM) and updates the summary path accordingly
-    :param cfg:
-    :return:
+    Set last experiment number(EXPR_NUM) and updates the summary path accordingly.
+    
+    Parameters
+    ----------
+    cfg : [MISSING TYPE]
+        [MISSING].
     """
     summary_path = check_path(os.path.join(cfg.LOG_DIR, "summary"))
     cfg.EXPR_NUM = str(find_latest_experiment(os.path.join(cfg.LOG_DIR, "summary")) + 1)
@@ -188,7 +191,7 @@ def set_summary_path(cfg):
 
 def load_classwise_weights(cfg):
     """
-    Loading class-wise median frequency weights
+    Loading class-wise median frequency weights.
     """
     dataset_dir = os.path.dirname(cfg.DATA.PATH_HDF5_TRAIN)
     weight_path = glob.glob(os.path.join(dataset_dir, "*.npy"))
@@ -202,9 +205,12 @@ def load_classwise_weights(cfg):
 
 def update_results_dir(cfg):
     """
-    It will update the results path by finding the last experiment number
-    :param cfg:
-    :return:
+    It will update the results path by finding the last experiment number.
+
+    Parameters
+    ----------
+    cfg : [MISSING TYPE]
+        [MISSING].
     """
     cfg.EXPR_NUM = str(find_latest_experiment(cfg.TEST.RESULTS_DIR) + 1)
     cfg.TEST.RESULTS_DIR = check_path(
@@ -215,11 +221,11 @@ def update_results_dir(cfg):
 def update_split_path(cfg):
     """
     Updating path with respect to the split number
-    Args:
-        cfg:
-
-    Returns:
-
+    
+    Parameters
+    ----------
+    cfg : [MISSING TYPE]
+        [MISSING].
     """
     from os.path import split, join
 
@@ -240,7 +246,7 @@ def update_split_path(cfg):
 
 def visualize_batch(img, label, idx):
     """
-     For deubg
+    For deubg
     :param batch_dict:
     :return:
     """

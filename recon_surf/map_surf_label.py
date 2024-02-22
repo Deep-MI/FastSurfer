@@ -155,7 +155,7 @@ def getSurfCorrespondence(
     For each vertex in src_sphere find the closest vertex in trg_sphere.
 
     Spheres are Nx3 arrays of coordinates on the sphere (usually R=100 FS format).
-    *_sphere can also be a file name of the sphere.reg files, then we load it.
+    Sphere can also be a file name of the sphere.reg files, then we load it.
     The KDtree can be passed in cases where src moves around and trg stays fixed.
 
     Parameters
