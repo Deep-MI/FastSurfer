@@ -30,11 +30,6 @@ from FastSurferCNN.utils.checkpoint import (
 
 logger = logging.get_logger(__name__)
 
-# Defaults
-URL = "https://b2share.fz-juelich.de/api/files/c6cf7bc6-2ae5-4d0e-814d-2a3cf0e1a8c5"
-CEREBNET_AXI = FASTSURFER_ROOT / "checkpoints/CerebNet_axial_v1.0.0.pkl"
-CEREBNET_COR = FASTSURFER_ROOT / "checkpoints/CerebNet_coronal_v1.0.0.pkl"
-CEREBNET_SAG = FASTSURFER_ROOT / "checkpoints/CerebNet_sagittal_v1.0.0.pkl"
 
 
 def is_checkpoint_epoch(cfg: "yacs.config.CfgNode", cur_epoch: int) -> bool:

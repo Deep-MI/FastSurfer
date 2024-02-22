@@ -22,12 +22,13 @@ from pathlib import Path
 from FastSurferCNN.utils import logging, parser_defaults
 from CerebNet.utils.load_config import get_config
 from CerebNet.inference import Inference
-from FastSurferCNN.utils.checkpoint import get_checkpoints
+from FastSurferCNN.utils.checkpoint import get_checkpoints, get_plane_default
 from FastSurferCNN.utils.common import assert_no_root, SubjectList
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 logger = logging.get_logger(__name__)
 DEFAULT_CEREBELLUM_STATSFILE = Path("stats/cerebellum.CerebNet.stats")
-
+CEREBNET_CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
 
 def setup_options():
     """
@@ -80,20 +81,14 @@ def setup_options():
         ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
     )
 
-    from CerebNet.utils.checkpoint import CEREBNET_COR, CEREBNET_AXI, CEREBNET_SAG
 
     parser_defaults.add_plane_flags(
         advanced,
         "checkpoint",
-        {"coronal": CEREBNET_COR, "axial": CEREBNET_AXI, "sagittal": CEREBNET_SAG},
+        {"coronal": "default", "axial": "default", "sagittal": "default"},
+        CEREBNET_CHECKPOINT_PATHS_FILE
     )
 
-    parser.add_argument(
-        "--cfg",
-        dest="cfg_file",
-        help="Path to the config file",
-        type=Path,
-    )
     parser.add_argument(
         "opts",
         help="See CerebNet/config/cerebnet.py for additional options",
@@ -138,7 +133,6 @@ def main(args: argparse.Namespace) -> int | str:
 
     # Set up logging
     from FastSurferCNN.utils.logging import setup_logging
-    from CerebNet.utils.checkpoint import URL as CEREBNET_URL
 
     setup_logging(getattr(args, "log_name"))
 
@@ -157,7 +151,10 @@ def main(args: argparse.Namespace) -> int | str:
         subjects_kwargs["norm_name"] = "norm_name"
 
     logger.info("Checking or downloading default checkpoints ...")
-    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=CEREBNET_URL)
+    
+    urls = get_plane_default("URL", filename=CEREBNET_CHECKPOINT_PATHS_FILE)
+
+    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 
     # Check input and output options and get all subjects of interest
     subjects = SubjectList(
@@ -179,4 +176,6 @@ def main(args: argparse.Namespace) -> int | str:
 
 if __name__ == "__main__":
     parser = setup_options()
-    sys.exit(main(parser.parse_args()))
+    args = parser.parse_args()
+
+    sys.exit(main(args))

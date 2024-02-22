@@ -18,8 +18,7 @@ import argparse
 import os.path
 import sys
 from os.path import join, split, splitext
-
-from CerebNet.utils.checkpoint import CEREBNET_AXI, CEREBNET_SAG, CEREBNET_COR
+from FastSurferCNN.utils.checkpoint import get_plane_default
 from CerebNet.config import get_cfg_cerebnet
 
 
@@ -30,11 +29,6 @@ def get_config(args) -> "yacs.CfgNode":
     # Setup cfg.
     cfg = get_cfg_cerebnet()
     # Load config from cfg.
-    if getattr(args, "cfg_file") is not None:
-        if os.path.exists(args.cfg_file):
-            cfg.merge_from_file(args.cfg_file)
-        else:
-            raise RuntimeError(f"The config file {args.cfg_file} does not exist.")
     # Load config from command line, overwrite config from opts.
     if args.opts is not None:
         cfg.merge_from_list(args.opts)
@@ -42,29 +36,18 @@ def get_config(args) -> "yacs.CfgNode":
     if hasattr(args, "rng_seed"):
         cfg.RNG_SEED = args.rng_seed
     if hasattr(args, "out_dir"):
-        cfg.LOG_DIR = args.out_dir
 
-    if getattr(args, "cfg_file") is not None:
-        # derive some paths relative to the config file
-        cfg_file_name = splitext(split(args.cfg_file)[1])[0]
+        cfg.LOG_DIR = args.out_dir    
+    path_ax, path_sag, path_cor = [
+        getattr(args, name) for name in ["ckpt_ax", "ckpt_sag", "ckpt_cor"]
+    ]
 
-        if cfg.TEST.ENABLE:
-            cfg_file_name_first = "_".join(cfg_file_name.split("_"))
-            cfg.TEST.RESULTS_DIR = join(cfg.TEST.RESULTS_DIR, cfg_file_name_first)
-
-        cfg.LOG_DIR = join(cfg.LOG_DIR, cfg_file_name)
-
-    # populate default paths for the checkpoints
-    default_paths = {
-        "axial": ("ax_ckpt", CEREBNET_AXI),
-        "sagittal": ("sag_ckpt", CEREBNET_SAG),
-        "coronal": ("cor_ckpt", CEREBNET_COR),
-    }
-    paths = {
-        plane: getattr(args, key, path) for plane, (key, path) in default_paths.items()
-    }
-    for plane, path in paths.items():
-        setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", str(path))
+    for plane, path in [
+        ("AXIAL", path_ax),
+        ("SAGITTAL", path_sag),
+        ("CORONAL", path_cor),
+    ]:
+        setattr(cfg.TEST, f"{plane}_CHECKPOINT_PATH", str(path))
 
     # overwrite the batch size if it is passed as a parameter
     batch_size = getattr(args, "batch_size", None)
