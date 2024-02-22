@@ -161,7 +161,7 @@ def plot_qc_images(save_dir,orig_path, prediction_path, padd=45, lut_file=HYPVIN
 
     image = nib.as_closest_canonical(nib.load(orig_path))
     pred  = nib.as_closest_canonical(nib.load(prediction_path))
-    pred_arr = hypo_map_subseg_2_fsseg(pred.get_fdata(),reverse=True)
+    pred_arr = hypo_map_subseg_2_fsseg(np.asarray(pred.dataobj,dtype=np.int16),reverse=True)
 
     mod_image = transform_axial2coronal(image.get_fdata())
     mod_image = np.transpose(mod_image,(2,0,1))
