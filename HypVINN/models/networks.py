@@ -80,7 +80,7 @@ class HypVINN(FastSurferCNNBase):
 
         # Initialize learneble modality weights
         self.mod_weights = nn.Parameter(torch.ones(2) * 0.5)
-        self.smooth_weights = nn.Softmax(dim=0)
+        self.normalize_weights = nn.Softmax(dim=0)
 
         params["num_channels"] = params["num_filters"] + params["num_filters_interpol"]
 
@@ -112,8 +112,9 @@ class HypVINN(FastSurferCNNBase):
         :param tensor x: input image
         :return tensor: prediction logits
         """
-        eps = 0.00000001
-        # Comparison weights to set channels to 1 or zero
+        # Weight factor [wT1,wT2] has 3 stages [1,0],[0.5,0.5],[0,1],
+        #if the weight factor is [0.5,0.5] the automatically weights (s_weights)  are passed
+        #If there is a 1 in the comparison the automatically weights will be replace by the first weight_factors pass
         comparison = weight_factor[0]
 
         x = torch.tensor_split(x, 2, dim=1)
@@ -121,18 +122,14 @@ class HypVINN(FastSurferCNNBase):
         skip_encoder_01 = self.m1_inp_block(x[0])
         skip_encoder_02 = self.m2_inp_block(x[1])
 
+        s_weights = self.normalize_weights(self.mod_weights)
 
-        s_weights = self.smooth_weights(self.mod_weights)
-
-        # If one modality is not available
+        # If one weight 1 it means modality is not available
         if 1 in comparison:
-            s_weights = s_weights * comparison
-            s_max,_ = torch.max(s_weights,dim=0)
-            s_weights = s_weights / (s_max+eps)
+            s_weights = comparison
 
         mw1 = s_weights[0].float()
         mw2 = s_weights[1].float()
-
 
         skip_encoder_0 = mw1 * skip_encoder_01 + mw2 * skip_encoder_02
 
