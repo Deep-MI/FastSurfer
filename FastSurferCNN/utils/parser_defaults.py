@@ -30,12 +30,14 @@ import argparse
 from pathlib import Path
 from typing import Dict, Iterable, Literal, Mapping, Protocol, Type, TypeVar, Union
 
+FASTSURFER_ROOT = Path(__file__).parents[2]
+
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
 from FastSurferCNN.utils.arg_types import unquote_str
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.threads import get_num_threads
+from FastSurferCNN.utils.checkpoint import get_plane_default
 
-FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
 PLANE_HELP = {
     "checkpoint": "{} checkpoint to load",
@@ -339,6 +341,7 @@ def add_plane_flags(
     parser: argparse.ArgumentParser,
     type: Literal["checkpoint", "config"],
     files: Mapping[str, Path],
+    default_path: str,
 ) -> argparse.ArgumentParser:
     """
     Add plane arguments.
@@ -370,8 +373,10 @@ def add_plane_flags(
 
     for key, filepath in files.items():
         path = Path(filepath)
+        if str(path) == "default":
+            path = Path(get_plane_default(PLANE_SHORT[type], key, default_path))
         if not path.is_absolute():
-            path = FASTSURFER_ROOT / filepath
+            path = FASTSURFER_ROOT / path
         # find the first vowel in the key
         flag = key.strip().lower()
         index = min(i for i in (flag.find(v) for v in "aeiou") if i >= 0)

@@ -18,37 +18,41 @@ import copy
 import sys
 from concurrent.futures import Executor, ThreadPoolExecutor, Future
 from pathlib import Path
-from typing import Any, Iterator, Literal, Optional, Sequence
+from typing import Dict, Any, Iterator, Literal, Optional, Sequence
 
 import nibabel as nib
 import numpy as np
 import torch
+import nibabel as nib
 import yacs.config
 
 import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
-from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import logging, parser_defaults
-from FastSurferCNN.utils.checkpoint import VINN_AXI, VINN_COR, VINN_SAG, get_checkpoints
+from FastSurferCNN.utils.checkpoint import get_checkpoints, get_plane_default
+from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.common import (
     SerialExecutor,
     SubjectDirectory,
     SubjectList,
     assert_no_root,
     find_device,
+    assert_no_root,
     handle_cuda_memory_exception,
+    SubjectList,
+    SubjectDirectory,
     pipeline,
 )
-from FastSurferCNN.utils.load_config import load_config
+from FastSurferCNN.quick_qc import check_volume
 
 ##
 # Global Variables
 ##
-
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 LOGGER = logging.getLogger(__name__)
-
+FASTSURFERCNN_CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
 ##
 # Processing
@@ -526,18 +530,16 @@ if __name__ == "__main__":
     parser = parser_defaults.add_plane_flags(
         parser,
         "checkpoint",
-        {"coronal": VINN_COR, "axial": VINN_AXI, "sagittal": VINN_SAG},
+        {"coronal": "default", "axial": "default", "sagittal": "default"},
+        FASTSURFERCNN_CHECKPOINT_PATHS_FILE
     )
 
     # 4. CFG-file with default options for network
     parser = parser_defaults.add_plane_flags(
         parser,
         "config",
-        {
-            "coronal": "FastSurferCNN/config/FastSurferVINN_coronal.yaml",
-            "axial": "FastSurferCNN/config/FastSurferVINN_axial.yaml",
-            "sagittal": "FastSurferCNN/config/FastSurferVINN_sagittal.yaml",
-        },
+        {"coronal": "default", "axial": "default", "sagittal": "default"},
+        FASTSURFERCNN_CHECKPOINT_PATHS_FILE
     )
 
     # 5. technical parameters
@@ -578,7 +580,10 @@ if __name__ == "__main__":
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
     LOGGER.info("Checking or downloading default checkpoints ...")
-    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag)
+    
+    urls = get_plane_default("URL", filename=FASTSURFERCNN_CHECKPOINT_PATHS_FILE)
+
+    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 
     # Set Up Model
     eval = RunModelOnData(args)

@@ -20,14 +20,14 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * `--strip`: strip suffix from path definition of input file to yield correct subject name. (Optional, if full path is defined for `--t1`)
 * `--lut`: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv
 * `--seg`: Name of intermediate DL-based segmentation file (similar to aparc+aseg).
-* `--cfg_cor`: Path to the coronal config file
-* `--cfg_sag`: Path to the axial config file
-* `--cfg_ax`: Path to the sagittal config file
 
-#### Checkpoints
+#### Checkpoints and configs
 * `--ckpt_sag`: path to sagittal network checkpoint
 * `--ckpt_cor`: path to coronal network checkpoint
 * `--ckpt_ax`: path to axial network checkpoint
+* `--cfg_cor`: Path to the coronal config file
+* `--cfg_sag`: Path to the axial config file
+* `--cfg_ax`: Path to the sagittal config file
 
 #### Optional commands
 * `--clean`: clean up segmentation after running it (optional)

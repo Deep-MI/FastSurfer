@@ -12,28 +12,81 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import glob
-
 # IMPORTS
 import os
 from pathlib import Path
-from typing import Collection, Iterable, MutableSequence, Optional, Union
+from typing import MutableSequence, Optional, Union, Any
 
 import requests
 import torch
 import yacs.config
+import yaml
 
 from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+
 
 Scheduler = "torch.optim.lr_scheduler"
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
-URL = "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
-VINN_AXI = FASTSURFER_ROOT / "checkpoints/aparc_vinn_axial_v2.0.0.pkl"
-VINN_COR = FASTSURFER_ROOT / "checkpoints/aparc_vinn_coronal_v2.0.0.pkl"
-VINN_SAG = FASTSURFER_ROOT / "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl"
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
+
+
+def get_plane_dict(filename : Path = YAML_DEFAULT) -> dict[str, Union[str, list[str]]]:
+    """
+    Load the plane dictionary from the yaml file.
+
+    Parameters
+    ----------
+    filename : Path
+        path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+    Returns
+    -------
+
+    dict[str, Union[str, list[str]]]
+        dictionary of the yaml file
+
+    """
+    if not filename.absolute():
+        filename = FASTSURFER_ROOT / filename
+
+    with (open(filename, "r")) as file:
+        dictionary = yaml.load(file, Loader=yaml.FullLoader)
+    return dictionary
+
+def get_plane_default(type : str, plane : Optional[str] = None, filename : str | Path = YAML_DEFAULT) -> Union[str, list[str]]:
+    """
+    Get the default value for a specific plane.
+
+    Parameters
+    ----------
+    type : str
+        Type of value. Can be URL, CKPT, CFG
+    plane : str
+        Plane to get the default value for. Can be "axial", "coronal" or "sagittal".
+    filename : str | Path
+        path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+
+    Returns
+    -------
+    Union[str, list[str]]
+        Default value for the plane.
+
+    """
+    if not isinstance(filename, Path):
+        filename = Path(filename)
+
+    type = type.upper()
+    if type not in ["URL", "CKPT", "CFG"]:
+        raise ValueError("Type must be URL, CKPT or CFG")
+    
+    if type == "URL":
+        return get_plane_dict(filename)[type.upper()]
+    
+    if plane is None:
+        raise ValueError("Plane must be specified for type CKPT or CFG")
+    return get_plane_dict(filename)[type.upper()][plane.upper()]
 
 
 def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
@@ -233,7 +286,9 @@ def remove_ckpt(ckpt: str | Path):
 
 
 def download_checkpoint(
-    download_url: str, checkpoint_name: str, checkpoint_path: str | Path
+        checkpoint_name: str,
+        checkpoint_path: str | Path,
+        urls : list[str],
 ) -> None:
     """
     Download a checkpoint file.
@@ -242,27 +297,38 @@ def download_checkpoint(
 
     Parameters
     ----------
-    download_url : str
-        URL of checkpoint hosting site.
     checkpoint_name : str
         Name of checkpoint.
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
+    urls : list[str]
+        list of URLs of checkpoint hosting sites.
     """
-    try:
-        response = requests.get(download_url + "/" + checkpoint_name, verify=True)
-        # Raise error if file does not exist:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        LOGGER.info("Response code: {}".format(e.response.status_code))
-        response = requests.get(download_url + "/" + checkpoint_name, verify=False)
-        response.raise_for_status()
+    response = None
+    for url in urls:
+        try:
+            LOGGER.info(f"Downloading checkpoint from {url}")
+            response = requests.get(url + "/" + checkpoint_name, verify=True)
+            # Raise error if file does not exist:
+            response.raise_for_status()
+            break
+            
+        except requests.exceptions.HTTPError as e:
+            LOGGER.info(f"Server {url} not reachable.")
+            LOGGER.warn(f"Response code: {e.response.status_code}")
+        except requests.exceptions.RequestException as e:
+            LOGGER.warn(f"Server {url} not reachable.")
+    
+    if response is None:
+        raise requests.exceptions.RequestException("No server reachable.")
+    else:
+        response.raise_for_status() # Raise error if no server is reachable
 
     with open(checkpoint_path, "wb") as f:
         f.write(response.content)
 
 
-def check_and_download_ckpts(checkpoint_path: Path | str, url: str) -> None:
+def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
     """
     Check and download a checkpoint file, if it does not exist.
 
@@ -279,13 +345,9 @@ def check_and_download_ckpts(checkpoint_path: Path | str, url: str) -> None:
     if not checkpoint_path.exists():
         # create dir if it does not exist
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-        download_checkpoint(url, checkpoint_path.name, checkpoint_path)
+        download_checkpoint(checkpoint_path.name, checkpoint_path, urls)
 
-
-def get_checkpoints(
-        *checkpoints: Path | str,
-        url: str = URL,
-) -> None:
+def get_checkpoints(*checkpoints: Path | str, urls : list[str]) -> None:
     """
     Check and download checkpoint files if not exist.
 
@@ -293,8 +355,13 @@ def get_checkpoints(
     ----------
     *checkpoints : Path, str
         Paths of the files in which the checkpoint will be saved.
-    url : Path, str
-        URL of checkpoint hosting site (Default value = URL).
+    urls : Path, str
+        URLs of checkpoint hosting sites.
     """
-    for file in checkpoints:
-        check_and_download_ckpts(file, url)
+    try:
+        for file in checkpoints:
+            check_and_download_ckpts(file, urls)
+    except requests.exceptions.HTTPError:
+        LOGGER.error(f"Could not find nor download checkpoints from {urls}")
+        raise
+
