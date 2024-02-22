@@ -83,6 +83,14 @@ def hyvinn_preproc(args):
     if args.mode == 'multi':
         if args.registration:
             load_res = time.time()
+            #Print Warning if Resolution from both images is different
+            t1_zoom = nib.load(args.t1).header.get_zooms()
+            t2_zoom = nib.load(args.t2).header.get_zooms()
+
+            if not np.allclose(np.array(t1_zoom), np.array(t2_zoom),rtol=0.05):
+                LOGGER.info('Warning: Resolution from T1 ({}) and T2 ({}) image are different.\n '
+                            'Resolution of the T2 image will be interpolated to the one of the T1 image.')
+
             LOGGER.info("Registering T1 to T2 ...")
             args.in_t2 = t1_to_t2_registration(t1_path=args.t1, t2_path=args.t2, out_dir=args.out_dir,
                                                registration_type=args.reg_type)
