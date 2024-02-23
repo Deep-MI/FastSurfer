@@ -113,7 +113,7 @@ class HypVINN(FastSurferCNNBase):
         :return tensor: prediction logits
         """
         # Weight factor [wT1,wT2] has 3 stages [1,0],[0.5,0.5],[0,1],
-        #if the weight factor is [0.5,0.5] the automatically weights (s_weights)  are passed
+        #if the weight factor is [0.5,0.5] the automatically weights (s_weights) are passed
         #If there is a 1 in the comparison the automatically weights will be replace by the first weight_factors pass
         comparison = weight_factor[0]
 
@@ -131,6 +131,7 @@ class HypVINN(FastSurferCNNBase):
         mw1 = s_weights[0].float()
         mw2 = s_weights[1].float()
 
+        # Shared latent space
         skip_encoder_0 = mw1 * skip_encoder_01 + mw2 * skip_encoder_02
 
         encoder_output0, rescale_factor = self.interpol1(skip_encoder_0, scale_factor) # instead of maxpool = encoder_output_0
