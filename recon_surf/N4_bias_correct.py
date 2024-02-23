@@ -84,12 +84,13 @@ Original Author: Martin Reuter
 Date: Mar-18-2022
 
 Modified: David Kügler
-Date: Oct-25-2023
+Date: Feb-27-2024
 """
 
 h_verbosity = "Logging verbosity: 0 (none), 1 (normal), 2 (debug)"
 h_invol = "path to input.nii.gz"
 h_outvol = "path to corrected.nii.gz"
+h_uchar = "sets the output dtype to uchar (only applies to outvol, rescalevol is uchar by default.)"
 h_rescaled = "path to rescaled.nii.gz"
 h_mask = "optional: path to mask.nii.gz"
 h_aseg = "optional: path to aseg or aseg+dkt image to find the white matter mask"
@@ -119,6 +120,9 @@ def options_parse():
     )
     parser.add_argument("--in", dest="invol", help=h_invol, required=True)
     parser.add_argument("--out", dest="outvol", help=h_outvol, default="do not save")
+    parser.add_argument(
+        "--uchar", dest="dtype", action="store_const", const="uint8", help=h_uchar, default="keep"
+    )
     parser.add_argument("--rescale", dest="rescalevol", help=h_rescaled, default="skip rescaling")
     parser.add_argument("--mask", dest="mask", help=h_mask, default=None)
     parser.add_argument("--aseg", dest="aseg", help=h_aseg, default=None)
@@ -135,7 +139,7 @@ def options_parse():
     parser.add_argument(
         "--version",
         action="version",
-        version="$Id: N4_bias_correct.py,v 2.0 2023/10/25 20:02:08 mreuter,dkuegler Exp $"
+        version="$Id: N4_bias_correct.py,v 2.1 2024/02/27 20:02:08 mreuter,dkuegler Exp $"
     )
     return parser.parse_args()
 
@@ -560,22 +564,41 @@ if __name__ == "__main__":
 
         # normalize to average input intensity
         kw_mask = {"mask": itk_mask} if has_mask else {}
-        m_bf_img = get_image_mean(itk_bfcorr_image, **kw_mask)
-        m_image = get_image_mean(itk_image, **kw_mask)
-        logger.info("- rescale")
-        logger.info(f"   mean input: {m_image:.4f}, mean corrected {m_bf_img:.4f})")
-        # rescale keeping the zero-point and the mean image intensity
-        itk_outvol = normalize_img(itk_image, itk_mask, (0., m_bf_img), (0., m_image))
 
-        logger.info("converting outvol to UCHAR")
-        itk_outvol = sitk.Cast(
-            sitk.Clamp(itk_outvol, lowerBound=0, upperBound=255), sitk.sitkUInt8
-        )
+        logger.info("- rescale")
+        out_dtype = getattr(options, "dtype", "keep").lower()
+        if out_dtype == "uint8":
+            from FastSurferCNN.data_loader.conform import getscale
+            image = sitk.GetArrayFromImage(itk_bfcorr_image)
+            l_image, m_image = 0, 255
+            l_bf_img, scale = getscale(image, l_image, m_image)
+            m_bf_img = l_bf_img + (m_image - l_image) / scale
+            logger.info(f"   lower bound corrected: {l_bf_img:.4f}, upper bound corrected {m_bf_img:.4f})")
+        else:
+            m_bf_img = get_image_mean(itk_bfcorr_image, **kw_mask)
+            m_image = get_image_mean(itk_image, **kw_mask)
+            logger.info(f"   mean input: {m_image:.4f}, mean corrected {m_bf_img:.4f})")
+            l_bf_img, l_image = 0.0, 0.0
+            # rescale keeping the zero-point and the mean image intensity
+
+        itk_outvol = normalize_img(itk_image, itk_mask, (l_bf_img, m_bf_img), (l_image, m_image))
+
+        if out_dtype in ("uint8", "int8", "uint16", "int16"):
+            dtype_info = np.iinfo(np.dtype(out_dtype))
+            itk_outvol = sitk.Clamp(itk_outvol, lowerBound=dtype_info.min, upperBound=dtype_info.max)
+
+        if out_dtype != "keep":
+            logger.info(f"converting outvol to {out_dtype.upper()}")
+            cap_dtype = out_dtype.lower()
+            for prefix in ("i", "ui", "f"):
+                if cap_dtype.startswith(prefix):
+                    cap_dtype = prefix.upper() + cap_dtype[len(prefix):]
+            sitk_dtype = getattr(sitk, "sitk" + cap_dtype)
+            itk_outvol = sitk.Cast(itk_outvol, sitk_dtype)
 
         # write image
         logger.info(f"writing: {options.outvol}")
         iio.writeITKimage(itk_outvol, options.outvol, image_header)
-
 
     if options.rescalevol == "skip rescaling":
         logger.info("Skipping WM normalization, ignoring talairach and aseg inputs")
