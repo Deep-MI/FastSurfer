@@ -37,6 +37,7 @@ reconsurfdir="$FASTSURFER_HOME/recon_surf"
 # Regular flags defaults
 subject=""
 t1=""
+# TODO include <T2_input>
 merged_segfile=""
 cereb_segfile=""
 asegdkt_segfile=""
@@ -248,6 +249,11 @@ Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
  reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
  NeuroImage 264 (2022), 119703.
  https://doi.org/10.1016/j.neuroimage.2022.119703
+
+Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M. FastSurfer-HypVINN:
+Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI.
+Imaging Neuroscience 2023; 1 1–32.
+https://doi.org/10.1162/imag_a_00034
 
 EOF
 }
@@ -758,7 +764,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
             exit 1
         fi
     fi
-
+    # TODO Bias field correct also the the t2 input
     # compute the bias-field corrected image
     if [[ "$run_biasfield" == "1" ]]
       then
