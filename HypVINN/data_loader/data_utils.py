@@ -22,9 +22,21 @@ from HypVINN.config.hypvinn_global_var import hyposubseg_labels, SAG2FULL_MAP, H
 # Helper Functions
 ##
 def calculate_flip_orientation(iornt,base_ornt):
-    # ornt[P, 1] is flip of axis N, where 1 means no flip and -1 means flip.
+    """
+    Compute the flip orientation transform.
+
+    ornt[N, 1] is flip of axis N, where 1 means no flip and -1 means flip.
+    Parameters
+    ----------
+    iornt
+    base_ornt
+
+    Returns
+    -------
+    """
     new_iornt=iornt.copy()
 
+    # Find the axis to compared and then compared oriention, where 1 means no flip and -1 means flip.
     for axno, direction in np.asarray(base_ornt):
         idx=np.where(iornt[:,0] == axno)
         idirection=iornt[int(idx[0][0]),1]
@@ -38,13 +50,15 @@ def calculate_flip_orientation(iornt,base_ornt):
 # reorient image based on base image
 def reorient_img(img,ref_img):
     '''
-    orientation transform. ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and -1 means flip.
+    Function to reorient a Nibabel image based on the orientation of a reference nibabel image
+    The orientation transform. ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and -1 means flip.
     For example, if ``N==0 and ornt[0,1] == -1, and there’s an array arr of shape shape, the flip would correspond to the effect of
     np.flipud(arr). ornt[:,0] is the transpose that needs to be done to the implied array, as in arr.transpose(ornt[:,0])
+
     Parameters
     ----------
-    img
-    base_img
+    img: nibabel Image to reorient
+    base_img: referece orientation nibabel image
 
     Returns
     -------
@@ -55,10 +69,10 @@ def reorient_img(img,ref_img):
     iornt=nib.io_orientation(img.affine)
 
     if not np.array_equal(iornt,ref_ornt):
-        #flip orientation
+        #first flip orientation
         fornt = calculate_flip_orientation(iornt,ref_ornt)
         img = img.as_reoriented(fornt)
-        #transpose axis
+        #the transpose axis
         tornt = np.ones_like(ref_ornt)
         tornt[:,0] = ref_ornt[:,0]
         img = img.as_reoriented(tornt)
@@ -66,6 +80,7 @@ def reorient_img(img,ref_img):
     return img
 
 # Transformation for mapping
+#TODO check compatibility with axis transform from CerebNet
 def transform_axial2coronal(vol, axial2coronal=True):
     """
     Function to transform volume into coronal axis and back
@@ -78,7 +93,7 @@ def transform_axial2coronal(vol, axial2coronal=True):
         return np.moveaxis(vol, [0, 1, 2], [0, 2, 1])
     else:
         return np.moveaxis(vol, [0, 1, 2], [0, 2, 1])
-
+#TODO check compatibility with axis transform from CerebNet
 def transform_axial2sagittal(vol, axial2sagittal=True):
     """
     Function to transform volume into Sagittal axis and back
@@ -106,8 +121,20 @@ def rescale_image(img_data):
     return new_data
 
 
-# subseg: segmentation of subfield
+
 def hypo_map_subseg2label(subseg):
+    '''
+          Function to perform look-up table mapping from subseg space to label space
+
+
+    Parameters
+    ----------
+    subseg
+
+    Returns
+    -------
+
+    '''
 
     h, w, d = subseg.shape
     lbls, lbls_sag = hyposubseg_labels
@@ -168,6 +195,17 @@ def hypo_map_prediction_sagittal2full(prediction_sag):
 
 
 def hypo_map_subseg_2_fsseg(subseg,reverse=False):
+    """
+    Function to remap HypVINN internal labels to FastSurfer Labels and viceversa
+    Parameters
+    ----------
+    subseg
+    reverse
+
+    Returns
+    -------
+
+    """
     fsseg = np.zeros_like(subseg,dtype=np.int16)
 
     if not reverse:

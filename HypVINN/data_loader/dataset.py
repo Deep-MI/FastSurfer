@@ -27,7 +27,12 @@ logger = logging.get_logger(__name__)
 # Operator to load imaged for inference
 class HypoVINN_dataset(Dataset):
     """
-    Class to load MRI-Image and process it to correct format for network inference
+    Class to load MRI-Image and process it to correct format for HypVINN network inference
+    The HypVINN Dataset passed during Inference the input images,the scale factor for the VINN layer and a weight factor (wT1,wT2)
+    The Weight factor determines the running mode of the HypVINN model
+    if wT1 =1 and wT2 =0. The HypVINN model will only allow the flow of the T1 information (mode = t1)
+    if wT1 =0 and wT2 =1. The HypVINN model will only allow the flow of the T2 information (mode = t2)
+    if wT1 !=1 and wT2 !=1. The HypVINN model will automatically weigh the T1 information and the T2 information based on the learned modality weights (mode = multi)
     """
     def __init__(self, subject_name, modalities, orig_zoom, cfg, mode='multi', transforms=None):
         self.subject_name = subject_name
