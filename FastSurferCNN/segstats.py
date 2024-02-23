@@ -50,7 +50,7 @@ from numpy import typing as npt
 
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as robust_threshold
 from FastSurferCNN.utils.arg_types import int_ge_zero as id_type
-from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size
+from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size_type
 from FastSurferCNN.utils.parser_defaults import add_arguments
 from FastSurferCNN.utils.threads import get_num_threads
 
@@ -89,10 +89,10 @@ _NumberType = TypeVar("_NumberType", bound=Number)
 _IntType = TypeVar("_IntType", bound=np.integer)
 _DType = TypeVar("_DType", bound=np.dtype)
 _ArrayType = TypeVar("_ArrayType", bound=np.ndarray)
-SlicingTuple = Tuple[slice, ...]
+SlicingTuple = tuple[slice, ...]
 SlicingSequence = Sequence[slice]
-VirtualLabel = Dict[int, Sequence[int]]
-_GlobalStats = Tuple[int, int, Optional[_NumberType], Optional[_NumberType],
+VirtualLabel = dict[int, Sequence[int]]
+_GlobalStats = tuple[int, int, Optional[_NumberType], Optional[_NumberType],
                      Optional[float], Optional[float], float, npt.NDArray[bool]]
 SubparserCallback = Type[argparse.ArgumentParser.add_subparsers]
 
@@ -172,6 +172,7 @@ class HelpFormatter(argparse.HelpFormatter):
         Split lines in the text based on the linebreak substitution string.
 
         Parameters
+        ----------
         text : str
             The input text.
         width : int
@@ -230,9 +231,10 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         "--normfile",
         type=Path,
         dest="normfile",
-        help="Path to biasfield-corrected image (the same image space as segmentation). "
-             "This file is used to calculate intensity values. Also, if no pvfile is "
-             "defined, it is used as pvfile. One of normfile or pvfile is required.",
+        help="Path to biasfield-corrected image (the same image space as "
+             "segmentation). This file is used to calculate intensity values. Also, if "
+             "no pvfile is defined, it is used as pvfile. One of normfile or pvfile is "
+             "required.",
     )
     parser.add_argument(
         "-i",
@@ -303,7 +305,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     )
     advanced.add_argument(
         "--patch_size",
-        type=patch_size,
+        type=patch_size_type,
         dest="patch_size",
         default=32,
         help="Patch size to use in calculating the partial volumes (default: 32).",
@@ -464,6 +466,13 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
              "relative, it is interpreted as relative to subjects_dir/subject_id from"
              "--sd and --subject_id.",
     )
+    measure_parser.add_argument(
+        "--brainvol_statsfile",
+        type=Path,
+        dest="brainvol_stats",
+        help="File to write all measures to, replicating the default behavior of "
+             "FreeSurfer's stats/brainvol.stats."
+    )
 
 
 def add_two_help_messages(parser: argparse.ArgumentParser) -> None:
@@ -487,68 +496,231 @@ def add_two_help_messages(parser: argparse.ArgumentParser) -> None:
         help=this_msg("show a long, detailed help message and exit", "--help"))
 
 
-def main(args: object) -> Literal[0] | str:
-    """Main segstats function, handles io, input checking and calls pv_calc etc.
+def _check_arg_path(
+    __args: argparse.Namespace,
+    __attr: str,
+    subjects_dir: Path | None,
+    subject_id: str | None,
+    allow_subject_dir: bool = True,
+    require_exist: bool = True,
+) -> Path:
+    """
+    Check an argument that is supposed to be a Path object and finding the absolute
+    path, which can be derived from the subject_dir.
+
+    Parameters
+    ----------
+    __args : argparse.Namespace
+        The arguments object.
+    __attr: str
+        The name of the attribute in the Namespace object.
+    allow_subject_dir : bool, optional
+        Whether relative paths are supposed to be understood with respect to
+        subjects_dir / subject_id (default: True).
+    require_exist : bool, optional
+        Raise a ValueError, if the indicated file does not exist (default: True).
+
+    Returns
+    -------
+    Path
+        The resulting Path object.
+
+    Raises
+    ------
+    ValueError
+        If attribute does not exist, is not a Path (or convertible to a Path), or if
+        the file does not exist, but reuire_exist is True.
+    """
+    if (_attr_val := getattr(__args, __attr), None) is None:
+        raise ValueError(f"No {__attr} passed.")
+    if isinstance(_attr_val, str):
+        _attr_val = Path(_attr_val)
+    elif not isinstance(_attr_val, Path):
+        raise ValueError(f"{_attr_val} is not a Path object.")
+    if allow_subject_dir and not _attr_val.is_absolute():
+        if isinstance(subjects_dir, Path) and subject_id is not None:
+            _attr_val = subjects_dir / subject_id / _attr_val
+    if require_exist and not _attr_val.exists():
+        raise ValueError(f"Path {_attr_val} did not exist for {__attr}.")
+    return _attr_val
+
+
+def check_shape_affine(
+    img1: "nib.analyze.SpatialImage",
+    img2: "nib.analyze.SpatialImage",
+    name1: str,
+    name2: str,
+) -> None:
+    """
+    Check whether the shape and affine of
+
+    Parameters
+    ----------
+    img1 : nibabel.SpatialImage
+        Image 1.
+    img2 : nibabel.SpatialImage
+        Image 2.
+    name1 : str
+        Name of image 1.
+    name2 : str
+        Name of image 2.
+
+    Raises
+    -------
+    RuntimeError
+        If shapes or affines are not the same.
+    """
+    if img1.shape != img2.shape or not np.allclose(img1.affine, img2.affine):
+        raise RuntimeError(
+            f"The shapes or affines of the {name1} and the {name2} image are not "
+            f"similar, both must be the same!"
+        )
+
+
+def parse_files(
+    args: argparse.Namespace,
+    subjects_dir: Path | None = None,
+    subject_id: str | None = None,
+) -> tuple[Path, Path, Path | None, Path, Path | None]:
+    """
+    Parse and read paths of files.
 
     Parameters
     ----------
     args : argparse.Namespace
-        Command-line arguments parsed using argparse.
+        Parameters object from make_arguments.
+    subjects_dir : Path, optional
+        Path to SUBJECTS_DIR, where subject directories are.
+    subject_id : str, optional
+        The subject_id string.
+
+    Returns
+    -------
+    segfile : Path
+        Path to the segmentation file, most likely an absolute path.
+    pvfile : Path
+        Path to the pvfile file, most likely an absolute path.
+    normfile : Path, None
+        Path to the norm file, most likely an absolute path, or None if not passed.
+    segstatsfile : Path
+        Path to the output segstats file, most likely an absolute path.
+    measurefile : Path, None
+        Path to the measure file, most likely an absolute path, not None is not passed.
+
+    Raises
+    ------
+    ValueError
+        If there is a necessary parameter missing or invalid.
+    """
+    check_arg_path = partial(
+        _check_arg_path, subjects_dir=subjects_dir, subject_id=subject_id
+    )
+    segfile = check_arg_path(args, "segfile")
+    if getattr(args, "normfile", None) is None and getattr(args, "pvfile", None) is None:
+        raise ValueError("Either pvfile or normfile must be defined.")
+    elif getattr(args, "normfile", None) is None:
+        pvfile = check_arg_path(args, "pvfile")
+        normfile = None
+    else:
+        normfile = check_arg_path(args, "normfile")
+        if getattr(args, "pvfile", None) is None:
+            pvfile = normfile
+        else:
+            pvfile = check_arg_path(args, "pvfile")
+
+    segstatsfile = check_arg_path(args, "segstatsfile", require_exist=False)
+    if not segstatsfile.is_absolute():
+        raise ValueError("segstatsfile must be an absolute path!")
+
+    if getattr(args, "measurefile", None) is None:
+        measurefile = None
+    else:
+        measurefile = check_arg_path(args, "measurefile")
+
+    return segfile, pvfile, normfile, segstatsfile, measurefile
+
+
+def infer_labels_excludeid(
+    args: argparse.Namespace,
+    lut: "pd.DataFrame",
+    data: "npt.NDArray[int]",
+) -> tuple["npt.NDArray[int]", list[int]]:
+    """
+    Infer the labels and excluded ids from command line arguments, the lookup table, or
+    the segmentation image.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The commandline arguments object.
+    lut : pd.DataFrame
+        The ColorLUT lookup table object, e.g. FreeSurferColorLUT.
+    data : npt.NDArray[int]
+        The segmentation array.
+
+    Returns
+    -------
+    labels : npt.NDArray[int]
+        The array of all labels to calculate partial volumes for.
+    exclude_id : list[int]
+        A list of labels exlicitly excluded from the output table.
+    """
+    explicit_ids = False
+    if __ids := getattr(args, "ids", None):
+        labels = np.asarray(__ids)
+        explicit_ids = True
+    elif lut is not None:
+        labels = lut["ID"]  # the column ID contains all ids
+    else:
+        labels = np.unique(data)
+
+    # filter for excludeif entries
+    exclude_id = []
+    if _excl_id := getattr(args, "excludeid", None):
+        exclude_id = list(_excl_id)
+        # check whether
+        if explicit_ids:
+            _exclude = list(filter(lambda x: x in exclude_id, labels))
+            excluded_expl_ids = np.asarray(_exclude)
+            if excluded_expl_ids.size > 0:
+                raise ValueError(
+                    "Some IDs explicitly passed via --ids are also in the list of "
+                    "ids to exclude (--excludeid)."
+                )
+        labels = np.asarray([x for x in labels if x not in exclude_id], dtype=int)
+    return labels
+
+
+def main(args: argparse.Namespace) -> Literal[0] | str:
+    """
+    Main segstats function, based on mri_segstats.
+
+    Parameters
+    ----------
+    args : object
+        Parameter object as defined by `make_arguments().parse_args()`
 
     Returns
     -------
     Literal[0], str
-        Either a successful return code  (0) or a string with an error message.
+        Either as a successful return code or a string with an error message
     """
-    import time
-
-    start = time.perf_counter_ns()
+    from time import perf_counter_ns
     from FastSurferCNN.utils.common import assert_no_root
+    from FastSurferCNN.utils.brainvolstats import Manager, read_volume_file, ImageTuple
 
+    start = perf_counter_ns()
     getattr(args, "allow_root", False) or assert_no_root()
 
     subjects_dir = getattr(args, "out_dir", None)
     subject_id = getattr(args, "sid", None)
-    has_subj_dir_id = not (subjects_dir is None or subject_id is None)
 
-    def __check_arg_path(__args, __attr, allow_subject_dir=True, require_exist=True) \
-            -> Path:
-        if (_attr_val := getattr(__args, __attr), None) is None:
-            raise ValueError(f"No {__attr} passed.")
-        if isinstance(_attr_val, str):
-            _attr_val = Path(_attr_val)
-        elif not isinstance(_attr_val, Path):
-            raise ValueError(f"{_attr_val} is not a Path object.")
-        if allow_subject_dir and not _attr_val.is_absolute():
-            if isinstance(subjects_dir, Path) and subject_id is not None:
-                _attr_val = subjects_dir / subject_id / _attr_val
-        if require_exist and not _attr_val.exists():
-            raise ValueError(f"Path {_attr_val} did not exist for {__attr}.")
-        return _attr_val
-
-
+    # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
+    # measurefile
     try:
-        segfile = __check_arg_path(args, "segfile")
-        if getattr(args, "normfile") is None and getattr(args, "pvfile") is None:
-            return "Either pvfile or normfile must be defined."
-        elif getattr(args, "normfile") is None:
-            pvfile = __check_arg_path(args, "pvfile")
-            normfile = None
-        else:
-            normfile = __check_arg_path(args, "normfile")
-            if getattr(args, "pvfile") is None:
-                pvfile = normfile
-            else:
-                pvfile = __check_arg_path(args, "pvfile")
-
-        segstatsfile = __check_arg_path(args, "segstatsfile", require_exist=False)
-        if not segstatsfile.is_absolute():
-            return "segstatsfile must be an absolute path!"
-
-        if getattr(args, "measurefile", None) is None:
-            measurefile = None
-        else:
-            measurefile = __check_arg_path(args, "measurefile")
+        segfile, pvfile, normfile, segstatsfile, measurefile = parse_files(
+            args, subjects_dir, subject_id
+        )
     except ValueError as e:
         return e.args[0]
 
@@ -556,201 +728,184 @@ def main(args: object) -> Literal[0] | str:
     if threads <= 0:
         threads = get_num_threads()
 
-    io_threads = ThreadPoolExecutor(8)
     compute_threads = ThreadPoolExecutor(threads)
-
-    # Only read and calculate the MaskVolume if we actually want it
-    if lut_file := getattr(args, "lut", None):
-        lut_future = io_threads.submit(read_classes_from_lut, lut_file)
-    else:
-        lut_future = None
-
     legacy_freesurfer = bool(getattr(args, "legacy_freesurfer", False))
-    from FastSurferCNN.utils.brainvolstats import (MeasurePipeline, read_volume_file,
-                                                   ImageTuple)
-    computed_measures = getattr(args, "computed_measures", [])
-    imported_measures = getattr(args, "imported_measures", [])
-    measures = (computed_measures, imported_measures)
-    from itertools import chain
-    if not all(isinstance(i, Sequence) for i in measures):
-        return "computed measures and imported measures must be sequences."
-    elif not all(isinstance(i, str) for i in chain(*measures)):
-        return "computed measures and imported measures must be sequences of str."
-    measures = MeasurePipeline(*measures, measurefile=measurefile, executor=io_threads,
-                               legacy=legacy_freesurfer)
+
+    # the manager object supports preloading of files (see below) for io parallelization
+    # and calculates the measure
+    manager = Manager(args)
+    read_lut = manager.make_read_hook(read_classes_from_lut)
+    if lut_file := getattr(args, "lut", None):
+        read_lut(lut_file, blocking=False)
     # load these files in different threads to avoid waiting on IO
     # (not parallel due to GIL though)
-    load_image = measures.make_read_hook(read_volume_file)
+    load_image = manager.make_read_hook(read_volume_file)
     preload_image = partial(load_image, blocking=False)
     preload_image(segfile)
     if normfile is not None:
         preload_image(normfile)
     preload_image(pvfile)
 
-    if not has_subj_dir_id:
-        if len(computed_measures) > 0:
-            return "computed measures are defined, but no subjects dir or subject id"
-        elif (len(imported_measures) > 0 and
-                not (measurefile.is_absolute() and measurefile.exists())):
-            return ("imported measures are defined, but the measure file is not an "
-                    "absolute path or does not exist and no subjects dir or subject id "
-                    "are defined")
-        # else - no reading the subject required, because we have no measures to include
-    else:
-        # the subject is defined, we read it.
-        measures.start_read_subject(subjects_dir / subject_id)
+    with manager.with_subject(subjects_dir, subject_id):
+        try:
+            _pv: ImageTuple = load_image(pvfile, blocking=True)
+            pv_img, pv_data = _pv
 
-    try:
-        _pv: ImageTuple = load_image(pvfile, blocking=True)
-        pv_img, pv_data = _pv
-
-        if not empty(pvfile_preproc := getattr(args, "pvfile_preproc", None)):
-            pv_preproc_future = compute_threads.submit(preproc_image,
-                                                       pvfile_preproc, pv_data)
-        else:
+            # trigger preprocessing operations on the pvfile like --mul <factor>
             pv_preproc_future = None
+            if not empty(pvfile_preproc := getattr(args, "pvfile_preproc", None)):
+                pv_preproc_future = compute_threads.submit(
+                    preproc_image, pvfile_preproc, pv_data
+                )
 
-        _seg: ImageTuple = load_image(segfile, blocking=True)
-        seg, seg_data = _seg
-        if seg_data.shape != pv_data.shape or \
-                not np.allclose(seg.affine, pv_img.affine):
-            return ("The shapes or affines of the segmentation and the pv_guide image "
-                    "are not similar, both must be the same!")
+            _seg: ImageTuple = load_image(segfile, blocking=True)
+            seg, seg_data = _seg
+            check_shape_affine(seg, pv_img, "segmentation", "pv_guide")
 
-        if normfile is not None:
-            _norm: ImageTuple = load_image(normfile, blocking=True)
-            norm, norm_data = _norm
-            if seg_data.shape != norm_data.shape or \
-                    not np.allclose(seg.affine, norm.affine):
-                return ("The shapes or affines of the segmentation and the norm image "
-                        "are not similar, both must be the same!")
-        else:
             norm, norm_data = None, None
+            if normfile is not None:
+                _norm: ImageTuple = load_image(normfile, blocking=True)
+                norm, norm_data = _norm
+                check_shape_affine(seg, norm, "segmentation", "norm")
 
-    except (IOError, RuntimeError, FileNotFoundError) as e:
-        return e.args[0]
+        except (IOError, RuntimeError, FileNotFoundError) as e:
+            return e.args[0]
 
-    lut: Optional[pd.DataFrame] = None
-    if lut_future is not None:
-        exception = lut_future.exception()
-        if isinstance(exception, FileNotFoundError):
-            return (f"Could not find the ColorLUT in {lut_file}, please make sure "
-                    f"the --lut argument is valid.")
-        elif exception is not None:
-            raise exception
-        lut = lut_future.result()
+        lut: Optional[pd.DataFrame] = None
+        if lut_file:
+            try:
+                lut = read_lut(lut_file)
+            except FileNotFoundError:
+                return (
+                    f"Could not find the ColorLUT in {lut_file}, make sure the --lut "
+                    f"argument is valid."
+                )
+            except Exception as exception:
+                return exception.args[0]
+        try:
+            # construct the list of labels to calculate PV for
+            labels, exclude_id = infer_labels_excludeid(args, lut, seg_data)
+        except ValueError as e:
+            return e.args[0]
 
-    explicit_ids = False
-    if (__ids := getattr(args, "ids", None)) is not None and len(__ids) > 0:
-        labels = np.asarray(__ids)
-        explicit_ids = True
-    elif lut is not None:
-        labels = lut["ID"]  # the column ID contains all ids
-    else:
-        labels = np.unique(seg_data)
-
-    exclude_id = []
-    if (_excl_id := getattr(args, "excludeid", None)) is not None and len(_excl_id) > 0:
-        exclude_id = list(_excl_id)
-        if explicit_ids:
-            _exclude = list(filter(lambda x: x in exclude_id, labels))
-            excluded_expl_ids = np.asarray(_exclude)
-            if excluded_expl_ids.size > 0:
-                return ("Some IDs explicitly passed via --ids are also in the list of "
-                        "ids to exclude (--excludeid).")
-        labels = np.asarray(list(filter(lambda x: x not in exclude_id, labels)),
-                            dtype=int)
-
-    base_kwargs = {
-        "vox_vol": np.prod(seg.header.get_zooms()).item(),
+        merged_labels, measure_labels = infer_merged_labels(args, labels, manager)
+        vox_vol = np.prod(seg.header.get_zooms()).item()
+        # more args to pass to pv_calc
+        kwargs = {
+            "vox_vol": vox_vol,
         "legacy_freesurfer": legacy_freesurfer,
-    }
-    kwargs = {
-        **base_kwargs,
-        "threads": compute_threads,
-        "robust_percentage": getattr(args, "robust", None),
-        "patch_size": getattr(args, "patch_size", 16)
-    }
-
-    if (volume_precision := getattr(args, "volume_precision", None)) is None:
-        volume_precision = "1"
-
-    # TODO: virtual label indices are not good yet
-
-    if empty(m := getattr(args, "merged_labels", None)):
-        merged_labels = {}
-    else:
-        merged_labels = {lab: vals for lab, *vals in m}
-    all_labels = list(merged_labels.keys()) + list(labels)
-    _pv_merged_labels = measures.get_virtual_labels(
-        i for i in range(10000, 20000) if i not in all_labels
-    )
-    _merged_labels = _pv_merged_labels.copy()
-    _merged_labels.update(_pv_merged_labels)
-    kwargs["merged_labels"] = _merged_labels
-
-    measures.wait_read_subject()
-    measures_futures = measures.compute_non_derived_pv(compute_threads)
-
-    names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
-    var_names = ["nbr", "nbrmean", "segmean", "pv", "ipv"]
-    dtypes = [np.int16] + [np.float32] * 4
+        "legacy_freesurfer": legacy_freesurfer,
+            "legacy_freesurfer": legacy_freesurfer,
+            "threads": compute_threads,
+            "robust_percentage": getattr(args, "robust", None),
+            "patch_size": getattr(args, "patch_size", 16),
+            "merged_labels": merged_labels,
+        }
+        # more args to pass to write_segstatsfile
+        write_kwargs = {
+            "vox_vol": vox_vol,
+            "legacy_freesurfer": legacy_freesurfer,
+            "exclude": exclude_id,
+            "segfile": segfile,
+            "normfile": normfile,
+            "lut": lut_file,
+            "volume_precision": getattr(args, "volume_precision", "1"),
+        }
+    # ------
+    # finished manager io here
+    # ------
+    manager.compute_non_derived_pv(None)  #compute_threads)
 
     if pv_preproc_future is not None:
+        # wait for preprocessing options on pvfile
         pv_data = pv_preproc_future.result()
 
-    if any(getattr(args, n, "") for n in names):
-        table, maps = pv_calc(seg_data, pv_data, norm_data, labels,
-                              return_maps=True, **kwargs)
+    names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
+    save_maps = any(getattr(args, n, "") for n in names)
+    out = pv_calc(seg_data, pv_data, norm_data, labels, return_maps=save_maps, **kwargs)
 
-        for n, v, dtype in zip(names, var_names, dtypes):
-            if file := getattr(args, n, ""):
+    if save_maps:
+        table, maps = out
+        dtypes = [np.int16] + [np.float32] * 4
+        for name, dtype in zip(names, dtypes):
+            if not bool(file := getattr(args, name, "")):
+                # skip "fullview"-files that are not defined
                 continue
             try:
-                print(f"Saving {n} to {file}")
+                print(f"Saving {name} to {file}...")
                 from FastSurferCNN.data_loader.data_utils import save_image
+
                 _header = seg.header.copy()
                 _header.set_data_dtype(dtype)
-                save_image(_header, seg.affine, maps[v], file, dtype)
+                save_image(_header, seg.affine, maps[name], file, dtype)
             except Exception:
-                import traceback
-                traceback.print_exc()
+                from traceback import print_exc
 
+                print_exc()
+        print("Done.")
     else:
-        table: List[PVStats] = pv_calc(seg_data, pv_data, norm_data, labels, **kwargs)
+        table: list[PVStats] = out
 
     if lut is not None:
-        update_structnames(table, lut, m)
+        update_structnames(table, lut, merged_labels)
 
-    dataframe = table_to_dataframe(table, not bool(getattr(args, "empty", False)))
+    dataframe = table_to_dataframe(table, bool(getattr(args, "empty", False)))
     lines = format_parameters(SUBJECT_DIR=subjects_dir, subjectname=subject_id)
 
-    _ = [f.result() for f in measures_futures]
-
     # wait for computation of measures and return an error message if errors occur
-    errors = [e.args[0] for f in measures_futures if (e := f.exception()) is not None]
-    if len(errors) > 0:
-        return "\n - ".join(
-            ["Some errors occurred during measure computation:"] + errors
-        )
-    dataframe = measures.update_pv_from_table(dataframe, _pv_merged_labels)
-    lines.extend(measures.format_measures())
+    errors = list(manager.wait_compute())
+    if not empty(errors):
+        error_messages = ["Some errors occurred during measure computation:"]
+        error_messages.extend(map(lambda e: str(e.args[0]), errors))
+        return "\n - ".join(error_messages)
+    dataframe = manager.update_pv_from_table(dataframe, measure_labels)
+    lines.extend(manager.format_measures())
 
-    write_statsfile(segstatsfile, dataframe,
-                    exclude=exclude_id, segfile=segfile, normfile=normfile,
-                    lut=lut_file, extra_header=lines, volume_precision=volume_precision,
-                    **base_kwargs)
+    write_statsfile(
+        segstatsfile,
+        dataframe,
+        extra_header=lines,
+        **write_kwargs,
+    )
     print(f"Partial volume stats for {dataframe.shape[0]} labels written to "
           f"{segstatsfile}.")
-    duration = (time.perf_counter_ns() - start) / 1e9
+    duration = (perf_counter_ns() - start) / 1e9
     print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
     return 0
 
 
-def table_to_dataframe(table: list[PVStats], report_empty: bool) -> pd.DataFrame:
-    """Convert the list of PVStats dictionaries into a dataframe."""
+def infer_merged_labels(args, used_labels, manager):
+    if empty(_merged_labels := getattr(args, "merged_labels", None)):
+        merged_labels = {}
+    else:
+        merged_labels = {lab: vals for lab, *vals in _merged_labels}
+    all_labels = list(merged_labels.keys()) + list(used_labels)
+    _pv_merged_labels = manager.get_virtual_labels(
+        i for i in range(np.iinfo(int).max) if i not in all_labels
+    )
+    _merged_labels = merged_labels.copy()
+    _merged_labels.update(_pv_merged_labels)
+    return _merged_labels, _pv_merged_labels
+
+
+def table_to_dataframe(table: list[PVStats], report_empty: bool = True) -> pd.DataFrame:
+    """
+    Convert the list of PVStats dictionaries into a dataframe.
+
+    Parameters
+    ----------
+    table : list[PVStats]
+        List of partial volume stats dictionaries.
+    report_empty : bool, default=True
+        Whether empty regions should be part of the dataframe.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The DataFrame object of all columns and rows in table.
+    """
     dataframe = pd.DataFrame(table, index=np.arange(len(table)))
-    if report_empty:
+    if not report_empty:
         dataframe = dataframe[dataframe["NVoxels"] != 0]
     dataframe = dataframe.sort_values("SegId")
     dataframe.index = np.arange(1, len(dataframe) + 1)
@@ -758,9 +913,23 @@ def table_to_dataframe(table: list[PVStats], report_empty: bool) -> pd.DataFrame
 
 
 def update_structnames(
-        table: list[PVStats], lut: pd.DataFrame,
-        merged_labels: dict[_IntType, Sequence[_IntType]] = None) -> None:
-    """Update StructNames from `lut` and `merged_labels` in `table`."""
+    table: list[PVStats],
+    lut: pd.DataFrame,
+    merged_labels: dict[_IntType, Sequence[_IntType]] = None
+) -> None:
+    """
+    Update StructNames from `lut` and `merged_labels` in `table`.
+
+    Parameters
+    ----------
+    table : list[PVStats]
+        List of partial volume stats dictionaries.
+    lut : pandas.DataFrame
+        A pandas DataFrame object containing columns 'ID' and 'LabelName', which serves
+        as a lookup table for the structure names.
+    merged_labels : dict[int, Sequence[int]]
+        The dictionary with
+    """
     # table is a list of dicts, so we can add the StructName to the dict
     for i in range(len(table)):
         lut_idx = lut["ID"] == table[i]["SegId"]
@@ -779,48 +948,53 @@ def update_structnames(
 
 def format_parameters(**kwargs) -> list[str]:
     """
-    Format parameters passed.
+    Formats each keyword argument passed as a pair of key and value.
+
+    Returns
+    -------
+    list[str]
+        A list of one string per keyword arg formatted as a string.
     """
     return [f"{k} {v}" for k, v in kwargs.items() if v]
 
 
 def write_statsfile(
-    segstatsfile: Path,
+    segstatsfile: Path | str,
     dataframe: pd.DataFrame,
     vox_vol: float,
     exclude: Optional[Sequence[int | str]] = None,
-    segfile: Optional[Path] = None,
-    normfile: Optional[Path] = None,
-    pvfile: Optional[Path] = None,
-    lut: Optional[Path] = None,
+    segfile: Optional[Path | str] = None,
+    normfile: Optional[Path | str] = None,
+    pvfile: Optional[Path | str] = None,
+    lut: Optional[Path | str] = None,
     report_empty: bool = False,
     extra_header: Sequence[str] = (),
     norm_name: str = "norm",
     norm_unit: str = "MR",
     volume_precision: str = "1",
     legacy_freesurfer: bool = False,
-):
+) -> None:
     """
     Write a segstatsfile very similar and compatible with mri_segstats output.
 
     Parameters
     ----------
-    volume_precision
-    segstatsfile : Path
+    segstatsfile : Path, str
         Path to the output file.
     dataframe : pd.DataFrame
         Data to write into the file.
     vox_vol : float
         Voxel volume for the header.
     exclude : Sequence[Union[int, str]], optional
-        Sequence of ids and class names that were excluded from the pv analysis.
-    segfile : Path, optional
-        path to the segmentation file (default: empty)
-    normfile : Path, optional
-        path to the bias-field corrected image (default: empty)
-    pvfile : Path, optional
-        path to file used to compute the PV effects (default: empty)
-    lut : Path, optional
+        Sequence of ids and class names that were excluded from the pv analysis
+        (default: None).
+    segfile : Path, str, optional
+        Path to the segmentation file (default: empty).
+    normfile : Path, str, optional
+        Path to the bias-field corrected image (default: empty).
+    pvfile : Path, str, optional
+        Path to file used to compute the PV effects (default: empty).
+    lut : Path, str, optional
         Path to the lookup table to find class names for label ids (default: empty).
     report_empty : bool, default=False
         Do not skip non-empty regions in the lut.
@@ -870,6 +1044,7 @@ def write_statsfile(
                 f"# hostname {gethostname()}\n"
             )
         from getpass import getuser
+
         try:
             file.write(f"# user       {getuser()}\n")
         except KeyError:
@@ -890,9 +1065,11 @@ def write_statsfile(
             if "\n" in line:
                 line = line.replace("\n", " ")
                 from warnings import warn
+
                 warn_msg_sent or warn(
                     f"extra_header[{i}] includes embedded newline characters. "
-                    "Replacing all newline characters with <space>.")
+                    "Replacing all newline characters with <space>."
+                )
                 warn_msg_sent = True
             file.write(f"# {line}\n")
 
@@ -907,9 +1084,14 @@ def write_statsfile(
                 mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
                 file.write(f"# {name}Timestamp {mtime:%Y/%m/%d %H:%M:%S}\n")
 
-    def _extra_parameters(file: IO, _voxvol: float, _exclude: Sequence[int | str],
-                          _report_empty: bool = False, _lut: Optional[Path] = None,
-                          _leg_freesurfer: bool = False) -> None:
+    def _extra_parameters(
+        file: IO,
+        _voxvol: float,
+        _exclude: Sequence[int | str],
+        _report_empty: bool = False,
+        _lut: Optional[Path] = None,
+        _leg_freesurfer: bool = False,
+    ) -> None:
         """
         Write the comments of the table header to a file.
         """
@@ -975,7 +1157,7 @@ def write_statsfile(
     def _table_body(file: IO, _dataframe: pd.DataFrame) -> None:
         """Write the volume stats from _dataframe to a file."""
 
-        def fmt_field(code: str, data) -> str:
+        def fmt_field(code: str, data: pd.DataFrame) -> str:
             is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
             filler = "<" if is_s else " >"
             if is_s:
@@ -1047,7 +1229,7 @@ def read_classes_from_lut(lut_file: str | Path):
 
     Returns
     -------
-    pd.DataFrame
+    pandas.DataFrame
         DataFrame with ids present, name of ids, color for plotting.
     """
     if Path(lut_file).suffix == ".tsv":
@@ -1075,12 +1257,25 @@ def read_classes_from_lut(lut_file: str | Path):
 
 
 def preproc_image(
-    ops: Sequence[str],
-    data: npt.NDArray[_NumberType],
+        ops: Sequence[str],
+        data: npt.NDArray[_NumberType]
 ) -> npt.NDArray[_NumberType]:
     """
     Apply preprocessing operations to data. Performs, --mul, --abs, --sqr, --sqrt
     operations in that order.
+
+    Parameters
+    ----------
+    ops : Sequence[str]
+        Sequence of operations to perform from 'mul=<factor>', 'div=<factor>', 'sqr',
+        'abs', and 'sqrt'.
+    data : np.ndarray
+        Data to perform operations on.
+
+    Returns
+    -------
+    np.ndarray
+        Data after ops are performed on it.
     """
     mul_ops = np.asarray([o.startswith("mul=") or o.startswith("div=") for o in ops])
     if np.any(mul_ops):
@@ -1095,7 +1290,6 @@ def preproc_image(
         data = np.sqrt(data)
     return data
 
-
 def seg_borders(
     _array: _ArrayType,
     label: np.integer | bool,
@@ -1108,8 +1302,7 @@ def seg_borders(
     Parameters
     ----------
     _array: numpy.ndarray
-        The image to compute borders from, typically either a label image or a binary
-        mask.
+        Image to compute borders from, typically either a label image or a binary mask.
     label: int, bool
         Which classes to consider for border computation (True/False for binary mask).
     out: nt.NDArray[bool], optional
@@ -1172,12 +1365,12 @@ def borders(
     Returns
     -------
     npt.NDArray[bool]
-        A binary mask of border voxels.
+        Binary mask of border voxels.
 
     Raises
     ------
     ValueError
-        if labels does not fit to _array (binary mask and integer and vice-versa)
+        If labels does not fit to _array (binary mask and integer and vice-versa).
     """
     dim = _array.ndim
     _shape_plus2 = [s + 2 for s in _array.shape]
@@ -1209,8 +1402,7 @@ def borders(
     padded = np.pad(_array, 1)
 
     if six_connected:
-        def indexer(axis: int, is_mid: bool) \
-                -> tuple[SlicingTuple, SlicingTuple]:
+        def indexer(axis: int, is_mid: bool) -> tuple[SlicingTuple, SlicingTuple]:
             full_slice = (slice(1, -1),) if is_mid else (slice(None),)
             more_axes = dim - axis - 1
             return ((full_slice * axis + (slice(0, -1),) + full_slice * more_axes),
@@ -1249,29 +1441,6 @@ def borders(
     return np.logical_or.reduce(nbr_same, out=out)
 
 
-def unsqueeze(matrix, axis: int | Sequence[int] = -1):
-    """
-    Unsqueeze the matrix.
-
-    Allows insertions of axis into the data/tensor, see numpy.expand_dims. This expands
-    the torch.unsqueeze syntax to allow unsqueezing multiple axis at the same time.
-
-    Parameters
-    ----------
-    matrix : np.ndarray
-        Matrix to unsqueeze.
-    axis : int, Sequence[int]
-        Axis for unsqueezing.
-
-    Returns
-    -------
-    np.ndarray
-        The unsqueezed matrix.
-    """
-    if isinstance(matrix, np.ndarray):
-        return np.expand_dims(matrix, axis=axis)
-
-
 def pad_slicer(
     slicer: Sequence[slice],
     whalf: int,
@@ -1293,9 +1462,9 @@ def pad_slicer(
     Returns
     -------
     SlicingTuple
-        tuple of slice-objects to go from image to padded patch
+        Tuple of slice-objects to go from image to padded patch.
     SlicingTuple
-        tuple of slice-objects to go from padded patch to patch
+        Tuple of slice-objects to go from padded patch to patch.
 
     """
     # patch start/stop
@@ -1370,7 +1539,7 @@ def pv_calc(
     eps: float = 1e-6,
     robust_percentage: Optional[float] = None,
     merged_labels: Optional[VirtualLabel] = None,
-    threads: int = -1,
+    threads: int | Executor = -1,
     return_maps: False = False,
     legacy_freesurfer: bool = False,
 ) -> list[PVStats]:
@@ -1388,7 +1557,7 @@ def pv_calc(
     eps: float = 1e-6,
     robust_percentage: Optional[float] = None,
     merged_labels: Optional[VirtualLabel] = None,
-    threads: int = -1,
+    threads: int | Executor = -1,
     return_maps: True = True,
     legacy_freesurfer: bool = False,
 ) -> tuple[list[PVStats], dict[str, dict[int, np.ndarray]]]:
@@ -1414,13 +1583,13 @@ def pv_calc(
 
     Parameters
     ----------
-    seg : npt.NDArray[_IntType]
+    seg : np.ndarray
         Segmentation array with segmentation labels.
-    pv_guide : npt.NDArray[Number]
-        The image to use to calculate partial volume effects from.
-    norm : npt.NDArray[Number]
-        The intensity image to use to calculate image statistics from.
-    labels : npt.ArrayLike[_IntType]
+    pv_guide : np.ndarray
+        Image to use to calculate partial volume effects from.
+    norm : np.ndarray
+        Intensity image to use to calculate image statistics from.
+    labels : array_like
         Which labels are of interest.
     patch_size : int, default=32
         Size of patches.
@@ -1444,24 +1613,29 @@ def pv_calc(
     Returns
     -------
     pv_stats : list[PVStats]
-        Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, Mean,
-        StdDev, Min, Max, and Range.
-    maps : dict[str,np.ndarray], optional
+        Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, Mean, StdDev, Min,
+        Max, and Range.
+    maps : dict[str, np.ndarray], optional
         Only returned, if return_maps is True:
-        a dictionary with the 5 meta-information pv-maps:
-        - nbr: An image of alternative labels that were considered to mix with the
-          voxel's label.
-        - nbrmean: The local mean intensity of the label nbr at the specific voxel.
-        - segmean: The local mean intensity of the primary label at the specific voxel.
-        - pv: The partial volume of the primary label at the location.
-        - ipv: The partial volume of the alternative (nbr) label at the location.
+        A dictionary with the 5 meta-information pv-maps:
+        nbr: An image of alternative labels that were considered instead of the voxel's
+            label.
+        nbr_means: The local mean intensity of the label nbr at the specific voxel.
+        seg_means: The local mean intensity of the primary label at the specific voxel.
+        mixing_coeff: The partial volume of the primary label at the location.
+        nbr_mixing_coeff: The partial volume of the alternative (nbr) label at the
+            location.
 
     """
-    for img, type, name in ((seg, np.integer, "seg"), (pv_guide, np.number, "pv_guide"),
-                            (norm, np.number, "norm")):
+    input_checker = {
+        "seg": (seg, np.integer),
+        "pv_guide": (pv_guide, np.number),
+        "norm": (norm, np.number),
+    }
+    for name, (img, _type) in input_checker.items():
         if (img is not None and not isinstance(img, np.ndarray) or
-                not np.issubdtype(img.dtype, type)):
-            raise TypeError(f"The {name} object is not a numpy.ndarray of {type}.")
+                not np.issubdtype(img.dtype, _type)):
+            raise TypeError(f"The {name} object is not a numpy.ndarray of {_type}.")
     _labels = np.asarray(labels)
     if not isinstance(labels, Sequence):
         labels = _labels.tolist()
@@ -1494,8 +1668,10 @@ def pv_calc(
     if 0 not in all_labels:
         # crop global_crop to the data (plus one extra voxel)
         not_background = cast(npt.NDArray[bool], seg != 0)
-        any_in_global, global_crop = crop_patch_to_mask(not_background,
-                                                        sub_patch=global_crop)
+        any_in_global, global_crop = crop_patch_to_mask(
+            not_background,
+            sub_patch=global_crop
+        )
         # grow global_crop by one, so all border voxels are included
         global_crop = pad_slicer(global_crop, 1, seg.shape)[0]
         if not any_in_global:
@@ -1526,8 +1702,9 @@ def pv_calc(
         if return_maps:
             from concurrent.futures import ProcessPoolExecutor
             if isinstance(pool, ProcessPoolExecutor):
-                raise RuntimeError("The ProcessPoolExecutor is not compatible with "
-                                   "return_maps=True!")
+                raise NotImplementedError(
+                    "The ProcessPoolExecutor is not compatible with return_maps=True!"
+                )
             full_nbr_label = np.zeros(seg.shape, dtype=seg.dtype)
             full_nbr_mean = np.zeros(pv_guide.shape, dtype=float)
             full_seg_mean = np.zeros(pv_guide.shape, dtype=float)
@@ -1610,8 +1787,14 @@ def pv_calc(
                              volumes, maxes, mins, sums, sums_2, eps)
 
     if return_maps:
-        return table, {"nbr": full_nbr_label, "segmean": full_seg_mean,
-                       "nbrmean": full_nbr_mean, "pv": full_pv, "ipv": full_ipv}
+        maps = {
+            "nbr": full_nbr_label,
+            "seg_means": full_seg_mean,
+            "nbr_means": full_nbr_mean,
+            "mixing_coeff": full_pv,
+            "nbr_mixing_coeff": full_ipv,
+        }
+        return table, maps
     return table
 
 
@@ -1648,7 +1831,8 @@ def append_merged_labels(
         if all(l not in robust_voxel_counts for l in group):
             logging.getLogger(__name__).warning(
                 f"None of the labels {group} for merged label {lab} exist in the "
-                f"segmentation.")
+                f"segmentation."
+            )
             continue
 
         num_voxels = aggregate(voxel_counts, group)
@@ -1679,7 +1863,7 @@ def global_stats(
     norm: npt.NDArray[_NumberType] | None,
     seg: npt.NDArray[_IntType],
     out: Optional[npt.NDArray[bool]] = None,
-    robust_percentage: Optional[float] = None
+    robust_percentage: Optional[float] = None,
 ) -> tuple[_IntType, _GlobalStats]:
     """
     Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
@@ -1689,10 +1873,11 @@ def global_stats(
     ----------
     lab : _IntType
         Label to compute statistics for.
-    norm : pt.NDArray[_NumberType], optional
-        The intensity image.
+    norm : npt.NDArray[_NumberType], optional
+        The intensity image (default: None, do not compute intensity stats such as
+        normMin, normMax, etc.).
     seg : npt.NDArray[_IntType]
-        Segmentation image.
+        The segmentation image.
     out : npt.NDArray[bool], optional
         Output array to store the computed borders.
     robust_percentage : float, optional
@@ -1700,7 +1885,7 @@ def global_stats(
 
     Returns
     -------
-    label : _IntType
+    label : int
         The label the stats belong to (input).
     stats : _GlobalStats
         A tuple of number_of_voxels, number_of_within_robustness_thresholds,
@@ -1771,7 +1956,6 @@ def patch_filter(
         Whether there is any data in the patch at all.
     SlicingSequence
         Sequence of slice objects that describe patches with patch_corner and patch_size.
-
     """
 
     def _slice(patch_start, _patch_size, image_stop):
@@ -1806,7 +1990,7 @@ def crop_patch_to_mask(
     not_empty : bool
         Whether there is any voxel in the patch at all.
     target_slicer : SlicingSequence
-        sequence of slice-objects to extract the subregion of mask that is 'True'.
+        Sequence of slice-objects to extract the subregion of mask that is 'True'.
     """
     _target_slicer = []
     if sub_patch is None:
@@ -1875,24 +2059,25 @@ def pv_calc_patch(
     global_crop : SlicingTuple
         Tuple of slice-objects, a global mask to limit computing to relevant parts of
         the image.
-    borders : dict[_IntType, npt.NDArray[bool]]
+    borders : dict[int, npt.NDArray[bool]]
         Dictionary containing the borders for each label.
     seg : numpy.typing.NDArray[numpy.integer]
         The segmentation (full image) defining the labels.
-    pv_guide : numpy.typing.NDArray
+    pv_guide : numpy.ndarray
         The (full) image with intensities to guide the PV calculation.
     border : npt.NDArray[bool]
         Binary mask, True, where a voxel is considered to be a border voxel.
     full_pv : npt.NDArray[float], optional
-        [MISSING].
+        PV image to fill with values for debugging.
     full_ipv : npt.NDArray[float], optional
-        [MISSING].
+        IPV image to fill with values for debugging.
     full_nbr_label : npt.NDArray[_IntType], optional
-        [MISSING].
+        NBR image to fill with values for debugging.
     full_seg_mean : npt.NDArray[float], optional
-        [MISSING].
+        Mean pv_guide-values for current segmentation label-image to fill with values
+        for debugging.
     full_nbr_mean : npt.NDArray[float], optional
-        [MISSING].
+        Mean pv_guide-values for nbr label-image to fill with values for debugging.
     eps : float, default=1e-6
         Epsilon for considering a voxel being in the neighborhood.
     legacy_freesurfer : bool, default=False
@@ -1901,7 +2086,7 @@ def pv_calc_patch(
 
     Returns
     -------
-    dict[_IntType, float]
+    dict[int, float]
         Dictionary of per-label PV-corrected volume of affected voxels in the patch.
 
     """
@@ -1974,17 +2159,21 @@ def pv_calc_patch(
     pat1d_mean_intensity_lower = np.expand_dims(mean_label > pat1d_pv, 0)
     pat1d_mean_different = np.expand_dims(np.abs(mean_label - pat1d_pv) > eps, 0)
     pat1d_is_valid = np.all(
-        # 1. considered (mean of) alternative label must be on the other side of pv
-        # as the (mean of) the segmentation label of the current voxel
-        [np.logical_xor(pat1d_mean_intensity_higher, pat1d_mean_intensity_lower),
-         # 2. considered (mean of) alternative label must be different to pv of voxel
-         pat1d_label_means != np.expand_dims(pat1d_pv, 0),
-         # 3. (mean of) segmentation label must be different to pv of voxel
-         np.broadcast_to(pat1d_mean_different, pat1d_label_means.shape),
-         # 4. label must be a neighbor
-         pat_is_nbr[:, pat_border],
-         # 3. label must not be the segmentation
-         pat1d_seg[np.newaxis] != label_lookup[:, np.newaxis]], axis=0)
+        [
+            # 1. considered (mean of) alternative label must be on the other side of pv
+            # as the (mean of) the segmentation label of the current voxel
+            np.logical_xor(pat1d_mean_intensity_higher, pat1d_mean_intensity_lower),
+            # 2. considered (mean of) alternative label must be different to pv of voxel
+            pat1d_label_means != np.expand_dims(pat1d_pv, 0),
+            # 3. (mean of) segmentation label must be different to pv of voxel
+            np.broadcast_to(pat1d_mean_different, pat1d_label_means.shape),
+            # 4. label must be a neighbor
+            pat_is_nbr[:, pat_border],
+            # 3. label must not be the segmentation
+            pat1d_seg[np.newaxis] != label_lookup[:, np.newaxis],
+        ],
+        axis=0,
+    )
 
     pat1d_none_valid = ~pat1d_is_valid.any(axis=0, keepdims=False)
     # select the label, that is valid or not valid but also exists and is not the
@@ -2012,7 +2201,7 @@ def pv_calc_patch(
     pat1d_pv[pat1d_pv > 1.0] = 1.0
     pat1d_pv[pat1d_pv < 0.0] = 0.0
 
-    pat1d_inv_pv = 1. - pat1d_pv
+    pat1d_inv_pv = 1.0 - pat1d_pv
 
     if legacy_freesurfer:
         # re-create the "supposed" freesurfer inconsistency that does not count vertex
@@ -2058,18 +2247,21 @@ def patch_neighbors(
     slicer_large_to_patch: SlicingTuple,
     eps: float = 1e-6,
     legacy_freesurfer: bool = False,
-):
+) -> tuple[
+    "npt.NDArray[bool]",
+    "npt.NDArray[bool]",
+    "npt.NDArray[float]",
+    "npt.NDArray[float]",
+]:
     """
-    Calculate the neighbor statistics of labels for a specific patch.
-
-    The patch is defined by slicer_large_patch, slicer_path, slicer_large_to_small,
-    slicer_small_to_path, and slicer_large_to_patch.
+    Calculate the neighbor statistics of labels for a specific patch. The patch is
+    defined by patch_padded_large, patch_in_gc, patch_shrink6,
 
     Parameters
     ----------
     labels : Sequence[int]
         A sequence of all labels that we want to compute the PV for.
-    pv_guide : numpy.typing.NDArray
+    pv_guide : numpy.ndarray
         The (full) image with intensities to guide the PV calculation.
     seg : numpy.typing.NDArray[numpy.integer]
         The segmentation (full image) defining the labels.
@@ -2084,16 +2276,16 @@ def patch_neighbors(
     slicer_patch : SlicingTuple
         Tuple of slice-objects to extract the patch from the full image.
     slicer_large_to_small : SlicingTuple
-        tuple of slice-objects to extract the small patch (patch plus small filter
+        Tuple of slice-objects to extract the small patch (patch plus small filter
         window) from the large patch (patch plus large filter window).
     slicer_small_to_patch : SlicingTuple
-        tuple of slice-objects to extract the patch from the patch padded by the small
+        Tuple of slice-objects to extract the patch from the patch padded by the small
         filter size.
     slicer_large_to_patch : SlicingTuple
-        tuple of slice-objects to extract the patch from the patch padded by the large
+        Tuple of slice-objects to extract the patch from the patch padded by the large
         filter size.
     eps : float, default=1e-6
-        epsilon for considering a voxel being in the neighborhood.
+        Epsilon for considering a voxel being in the neighborhood.
     legacy_freesurfer : bool, default=False
         Whether to use the legacy freesurfer mri_segstats formula or the corrected
         formula.

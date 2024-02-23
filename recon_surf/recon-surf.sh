@@ -397,13 +397,13 @@ LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
 if [ $LF != /dev/null ] ; then  rm -f $LF ; fi
 echo "Log file for recon-surf.sh" >> $LF
 date  2>&1 | tee -a $LF
-echo "" | tee -a $LF
+echo " " | tee -a $LF
 echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a $LF
 echo "cd `pwd`"  | tee -a $LF
 echo $0 ${inputargs[*]} | tee -a $LF
-echo "" | tee -a $LF
+echo " " | tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a $LF
-echo $VERSION | tee -a $LF
+echo "$VERSION "| tee -a $LF
 uname -a  2>&1 | tee -a $LF
 
 echo " " | tee -a $LF
@@ -736,9 +736,9 @@ for hemi in lh rh; do
 
   # if we segment with FS or if surface registration is requested do it here:
   if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
-  echo "echo \" \"" | tee -a $CMDF
-  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" | tee -a $CMDF
-  echo "echo \" \"" | tee -a $CMDF
+    echo "echo \" \"" | tee -a $CMDF
+    echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" | tee -a $CMDF
+    echo "echo \" \"" | tee -a $CMDF
 
     # Surface registration for cross-subject correspondence (registration to fsaverage)
     cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
