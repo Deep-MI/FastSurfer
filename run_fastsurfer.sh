@@ -279,11 +279,12 @@ key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 case $key in
     --fs_license)
-    if [[ -f "$2" ]]; then
-        export FS_LICENSE="$2"
+    if [[ -f "$2" ]]
+    then
+      export FS_LICENSE="$2"
     else
-        echo "Provided FreeSurfer license file $2 could not be found. Make sure to provide the full path and name. Exiting..."
-        exit 1;
+      echo "Provided FreeSurfer license file $2 could not be found. Make sure to provide the full path and name. Exiting..."
+      exit 1;
     fi
     shift # past argument
     shift # past value
@@ -309,10 +310,12 @@ case $key in
     shift # past value
     ;;
     --seg | --asegdkt_segfile | --aparc_aseg_segfile)
-    if [[ "$key" == "--seg" ]]; then
+    if [[ "$key" == "--seg" ]]
+    then
       echo "WARNING: --seg <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
     fi
-    if [[ "$key" == "--aparc_aseg_segfile" ]]; then
+    if [[ "$key" == "--aparc_aseg_segfile" ]]
+    then
       echo "WARNING: --aparc_aseg_segfile <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>"
     fi
     asegdkt_segfile="$2"
@@ -474,32 +477,38 @@ case $key in
     exit
     ;;
     --version)
-      if [[ "$#" -lt 2 ]]; then
-          version_and_quit="1"
-      else
-        case $2 in
-          all)
-            version_and_quit="+checkpoints+git+pip"
-            shift
-            ;;
-          +*)
-            version_and_quit="$2"
-            shift
-            ;;
-          --*)
-            version_and_quit="1"
-            ;;
-          *)
-            echo "Invalid option for --version"
-            exit 1
-            ;;
-        esac
-      fi
+    if [[ "$#" -lt 2 ]]; then
+      version_and_quit="1"
+    else
+      case $2 in
+        all)
+        version_and_quit="+checkpoints+git+pip"
+        shift
+        ;;
+        +*)
+        version_and_quit="$2"
+        shift
+        ;;
+        --*)
+        version_and_quit="1"
+        ;;
+        *)
+        echo "Invalid option for --version: '$2', must be 'all' or [+checkpoints][+git][+pip]"
+        exit 1
+        ;;
+      esac
+    fi
     shift
     ;;
     *)    # unknown option
-    echo ERROR: Flag $1 unrecognized.
-    exit 1
+    if [[ "$1" == "" ]]
+    then
+      # skip empty arguments
+      shift
+    else
+      echo "ERROR: Flag '$1' unrecognized."
+      exit 1
+    fi
     ;;
 esac
 done
@@ -514,10 +523,10 @@ else
 fi
 
 ########################################## VERSION AND QUIT HERE ########################################
-version_args=""
+version_args=()
 if [[ -f "$FASTSURFER_HOME/BUILD.info" ]]
   then
-    version_args="--build_cache $FASTSURFER_HOME/BUILD.info --prefer_cache"
+    version_args=(--build_cache "$FASTSURFER_HOME/BUILD.info" --prefer_cache)
 fi
 
 if [[ -n "$version_and_quit" ]]
@@ -525,9 +534,9 @@ if [[ -n "$version_and_quit" ]]
     # if version_and_quit is 1, it should only print the version number+git branch
     if [[ "$version_and_quit" != "1" ]]
       then
-        version_args="$version_args --sections $version_and_quit"
+        version_args=("${version_args[@]}" --sections "$version_and_quit")
     fi
-    $python $FASTSURFER_HOME/FastSurferCNN/version.py $version_args
+    $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}"
     exit
 fi
 
@@ -696,26 +705,23 @@ fi
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
 
-if [[ -f "$seg_log" ]] && [[ "$run_seg_pipeline" == "1" ]]
-  then
-    append_flag=("$seg_log")
-else
-    append_flag=(-a "$seg_log")
+if [[ -f "$seg_log" ]]; then log_existed="true"
+else log_existed="false"
 fi
 
-VERSION=$($python $FASTSURFER_HOME/FastSurferCNN/version.py $version_args)
-echo "Version: $VERSION" |& tee "${append_flag[@]}"
+VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
+echo "Version: $VERSION" |& tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" }" SIGINT SIGTERM
 
 # create the build log, file with all version info in parallel
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
-$python "$FASTSURFER_HOME/FastSurferCNN/version.py" $version_args >> "$build_log" &
+$python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}" >> "$build_log" &
 
-if [[ ! -f "$seg_log" ]] || [[ "$run_seg_pipeline" != "1" ]]
+if [[ "$run_seg_pipeline" != "1" ]]
   then
-    echo "Running run_fastsurfer.sh on a "
+    echo "Running run_fastsurfer.sh without segmentation ; expecting previous --seg_only run in ${sd}/${subject}" | tee -a "$seg_log"
 fi
 
 
