@@ -122,6 +122,7 @@ class Inference:
     def get_device(self):
         return self.device,self.viewagg_device
 
+    #TODO check is possible to modify to CerebNet inference mode from RAS directly to LIA (CerebNet.Inference._predict_single_subject)
     @torch.no_grad()
     def eval(self, val_loader, pred_prob, out_scale=None):
         self.model.eval()
