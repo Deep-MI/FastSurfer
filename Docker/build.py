@@ -211,12 +211,6 @@ def make_parser() -> argparse.ArgumentParser:
         help="""tag build stage/target as <image>[:<tag>]""",
     )
     parser.add_argument(
-        "--attest",
-        action="store_true",
-        help="add sbom and provenance attestation (requires docker-container buildkit "
-             "builder created with 'docker buildx create')",
-    )
-    parser.add_argument(
         "--target",
         default="runtime",
         type=target,
@@ -270,6 +264,21 @@ def make_parser() -> argparse.ArgumentParser:
 
     expert = parser.add_argument_group('Expert options')
 
+    parser.add_argument(
+        "--attest",
+        action="store_true",
+        help="add sbom and provenance attestation (requires docker-container buildkit "
+             "builder created with 'docker buildx create')",
+    )
+    parser.add_argument(
+        "--action",
+        choices=("load", "push"),
+        default="load",
+        help="Which action to perform after building the image: "
+             "'load' loads the image into the current docker context (default), "
+             "'push' pushes the image to the registry (needs --tag <registry>/"
+             "<name+maybe organization>:<tag>",
+    )
     expert.add_argument(
         "--freesurfer_build_image",
         type=docker_image,
@@ -361,6 +370,7 @@ def docker_build_image(
         context: Path | str = ".",
         dry_run: bool = False,
         attestation: bool = False,
+        action: Literal["load", "push"] = "load",
         **kwargs) -> None:
     """
     Build a docker image.
@@ -383,6 +393,9 @@ def docker_build_image(
         argument to docker buildx build.
     attestation : bool, default=False
         Whether to create sbom and provenance attestation
+    action : "load", "push", default="load"
+        The operation to perform after the image is built (only in the attestation
+        pipeline, otherwise will load).
 
     Additional kwargs add additional build flags to the build command in the following
     manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
@@ -399,6 +412,9 @@ def docker_build_image(
     docker_cmd = which("docker")
     if docker_cmd is None:
         raise FileNotFoundError("Could not locate the docker executable")
+
+    if action not in ("load", "push"):
+        raise ValueError(f"Invalid Value for 'action' {action}, must be load or push.")
 
     def to_pair(key, values):
         if isinstance(values, Sequence) and isinstance(values, (str, bytes)):
@@ -445,7 +461,8 @@ def docker_build_image(
         )
         if not can_use_default_builder:
             args.extend(["--builder", alternative_builder])
-        args.extend(["--output", f"type=docker,name={image_name}", "--load"])
+        image_type = "registry" if action == "push" else "docker"
+        args.extend(["--output", f"type={image_type},name={image_name}", "--" + action])
     args.extend(("-t", image_name))
     params = [to_pair(*a) for a in kwargs.items()]
     args.extend(["-f", str(dockerfile)] + list(chain(*params)))
@@ -497,6 +514,8 @@ def main(
         raise ValueError(f"Invalid target: {target}")
     if device not in get_args(AllDeviceType):
         raise ValueError(f"Invalid device: {device}")
+    if keywords.get("action", "load") == "push":
+        kwargs["action"] = "push"
     # special case to add extra environment variables to better support AWS and ROCm
     if device.startswith("cu") and target == "runtime":
         target = "runtime_cuda"

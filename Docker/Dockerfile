@@ -201,6 +201,20 @@ RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
       --build_cache BUILD.info -o fullBUILD.info && \
     mv fullBUILD.info BUILD.info
 
+# TODO: SBOM info of FastSurfer and FreeSurfer are missing, it is unclear how to add
+#       those at the moment, as the buildscanner syft does not find simple package.json
+#       or pyproject.toml files right now. The easiest option seems to be to "setup"
+#       fastsurfer and freesurfer via pip instll.
+#ENV BUILDKIT_SCAN_SOURCE_EXTRAS="/fastsurfer"
+#ARG BUILDKIT_SCAN_SOURCE_EXTRAS="/fastsurfer"
+#RUN <<EOF > /fastsurfer/package.json
+#{
+#  "name": "fastsurfer",
+#  "version": "$(python3 FastSurferCNN/version.py)",
+#  "author": "David Kügler <david.kuegler@dzne.de>"
+#}
+#EOF
+
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
 USER nonroot
