@@ -3,36 +3,32 @@
 Hypothalamic subfields segmentation pipeline
 
 ### Input
-*  a T1w image, a T2w image, or both images
+*  T1w image, a T2w image, or both images. Note: Input images to the tool need to be Bias-Field corrected.
 
 ### Requirements
-Same as FastSurfer
-FreeSurfer should also be source to run the code and the mri_coreg ang mri_vol2vol binary should be also available
+* Same as FastSurfer.
+* If the T1w and T2w images are available and not co-registered, FreeSurfer should be source to run the registration code, and the mri_coreg and mri_vol2vol binary should also be available.
 
 ### Model weights
 * EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7
 * Zenodo data repository: https://zenodo.org/records/10623893
 
 ### Pipeline Steps
-1. Bias Field Correction Step (optional)
-2. Registration (optional, only required for multi-modal input)
-3. Hypothalamus Segmentation
+1. Registration (optional, only required for multi-modal input)
+2. Hypothalamus Segmentation
 
 ### Running the tool
 Run the HypVINN/run_pipeline.py which has the following arguments:
 ### Input and output arguments
  * `--sid <name>` :  Subject ID, the subject data upon which to operate
  * `--sd <name>` : Directory in which evaluation results should be written.
- *  `--t1 </dir/T1**.nii.gz>` : T1 image path, required = True
- *  `--t2 </dir/T2**.nii.gz>` : T2 image path, T2 image not required when running the t1 mode for the others is required , required = False
- * `--mode <name>` : Mode to run segmentation based on the available modalities. If is set to auto the model will choose the mode based on the passed input images, 
-                     t1 : only T1 images, t2 : only T2 images or multi : both T1 and T2 images, default = 'auto'
+ *  `--t1 </dir/T1**.nii.gz>` : T1 image path
+ *  `--t2 </dir/T2**.nii.gz>` : T2 image path
  * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in /sd/sid/logs/hypvinn_seg.log 
 ### Image processing options
- * `--no_pre_proc`: Deactivate all pre-processing steps, This is recommended when images are already bias field corrected and co-registered if T1 and T2 are available
- * `--no_bc` : Deactivate bias field correction, it is recommended to do bias field correction for calculating volumes taking account partial volume effects, reguired = False
- * `--no_reg` : Deactivate registration of T2 to T1. If multi mode is used; images need to be registered externally, required = False
+ * `--no_reg` : Deactivate registration of T2 to T1. If multi modal input is used; images need to be registered externally,
  * `--reg_type` : Freesurfer Registration type to run. coreg : mri_coreg (Default) or robust : mri_robust_register.
+ * `--qc_snap`: Activate the creation of QC snapshots of the predicted HypVINN segmentation.
 ###  FastSurfer Technical parameters (see FastSurfer documentation)
  * `--device`
  * `--viewgg_device`
@@ -54,7 +50,7 @@ Run the HypVINN/run_pipeline.py which has the following arguments:
 ### Usage
 The Hypothalamus pipeline can be run by using a T1 a T2 or both images. 
 Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-registered.
-The pipeline can do all pre-processing by itself (steps 1 and 2) or omit this step if images are already curated beforehand.
+The pipeline can do all pre-processing by itself (steps 1) or omit this step if images are already curated beforehand.
 
 1. Run full pipeline
     ```
@@ -65,33 +61,33 @@ The pipeline can do all pre-processing by itself (steps 1 and 2) or omit this st
                                      --seg_log /outdir/test_subject.log \
                                      --batch_size 6
    ```
-2. Run full pipeline t1 mode
+2. Run full pipeline only using a t1 
     ```
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --reg_type coreg \
                                      --seg_log /outdir/test_subject.log \
-                                     --batch_size 6 --mode t1
+                                     --batch_size 6
    ```
 
-3. Run pipeline with no pre-processing
+3. Run pipeline with no registration step
     ```
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
                                      --reg_type coreg \
                                      --seg_log /outdir/test_subject.log \
-                                     --batch_size 6 --no_pre_proc
+                                     --batch_size 6 --no_reg
    ```
 
-4. Run pipeline with no bias field correction
+4. Run pipeline with creation of qc snapshots
     ```
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
                                      --reg_type coreg \
                                      --seg_log /outdir/test_subject.log \
-                                     --batch_size 6 --no_bc
+                                     --batch_size 6 --qc_snap
    ```
 
 ### Output
@@ -104,20 +100,21 @@ The pipeline can do all pre-processing by itself (steps 1 and 2) or omit this st
             |-- hypothalamus_mask.HypVINN.nii.gz (Hypothalamus Segmentation Mask)
             |-- transforms
                 |-- t2tot1.lta (FreeSurfer registration file, only available if registration is performed)
-        |-- qc_snapshots : QC outputs
+        |-- qc_snapshots : QC outputs (optional)
             |-- hypothalamus.HypVINN_qc_screenshoot.png (Coronal quality control image)
         |-- stats : Statistics outputs                                                 
             |-- hypothalamus.HypVINN.stats (Segmentation stats)     
  ``` 
 
-### Registration script
-Registration of t1 and t2 is done by default using mri_coreg tool with the following commands
-```
-mri_coreg --mov /path/to/t1_image --targ path/to/t2_image --reg /outdir/test_subject/transforms/t2tot1.lta
-
-mri_vol2vol --mov /path/to/t1_image --targ path/to/t2_image --reg /outdir/test_subject/transforms/t2tot1.lta --o /outdir/test_subject/mri/T2_reg.nii.gz --cubic --keep-precision
-```
 
 ### Developer
 
 Santiago Estrada : santiago.estrada@dzne.de
+
+### Citation
+If you use the HypVINN module please cite
+```
+Santiago Estrada, David Kügler, Emad Bahrami, Peng Xu, Dilshad Mousa, Monique M.B. Breteler, N. Ahmad Aziz, Martin Reuter; 
+FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI. 
+Imaging Neuroscience 2023; 1 1–32. doi: https://doi.org/10.1162/imag_a_00034
+```
