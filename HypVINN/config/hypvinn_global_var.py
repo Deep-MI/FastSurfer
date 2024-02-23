@@ -59,44 +59,30 @@ HYPVINN_CLASS_NAMES = {
 FS_CLASS_NAMES = {
    "Background" : 0,
 
-    "R-N.opticus": 901,
-    "L-N.opticus": 902,
-
-    "R-C.mammilare": 903,
-    "L-C.mammilare": 906,
-
-    "R-Optic-tract": 904,
-    "L-Optic-tract": 905,
-
-    "R-Chiasma-Opticum": 907,
-    "L-Chiasma-Opticum": 908,
-
-    "Ant-Commisure": 909,
-    "3rd-Ventricle": 910,
-
-    "R-Fornix": 911,
-    "L-Fornix": 912,
-
-    "Epiphysis": 914,
-    "Hypophysis": 916,
-    "Infundibulum": 917,
-
-    "R-Globus-Pallidus": 913,
-    "L-Globus-pallidus": 920,
-
-    "Tuberal-Region": 922,
-
-    "L-Med-Hypothalamus": 926,
-    "R-Med-Hypothalamus": 936,
-
-    "L-Lat-Hypothalamus": 927,
-    "R-Lat-Hypothalamus": 937,
-
-    "L-Ant-Hypothalamus": 928,
-    "R-Ant-Hypothalamus": 938,
-
-    "L-Post-Hypothalamus": 929,
-    "R-Post-Hypothalamus": 939,
+    "R-N.opticus": 961,
+    "L-N.opticus": 962,
+    "R-C.mammilare": 963,
+    "R-Optic-tract": 964,
+    "L-Optic-tract": 965,
+    "L-C.mammilare": 966,
+    "R-Chiasma-Opticum": 967,
+    "L-Chiasma-Opticum": 968,
+    "Ant-Commisure": 969,
+    "3rd-Ventricle": 970,
+    "R-Fornix": 971,
+    "L-Fornix": 972,
+    "Epiphysis": 973,
+    "Hypophysis": 974,
+    "Infundibulum": 975,
+    "Tuberal-Region": 976,
+    "L-Med-Hypothalamus": 977,
+    "R-Med-Hypothalamus": 978,
+    "L-Lat-Hypothalamus": 979,
+    "R-Lat-Hypothalamus": 980,
+    "L-Ant-Hypothalamus": 981,
+    "R-Ant-Hypothalamus": 982,
+    "L-Post-Hypothalamus": 983,
+    "R-Post-Hypothalamus": 984,
 }
 
 
