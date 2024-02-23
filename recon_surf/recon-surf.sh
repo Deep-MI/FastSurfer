@@ -848,7 +848,9 @@ if [ "$fsaparc" == "1" ] ; then
   cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
   RunIt "$cmd" $LF
 
-  cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -segstats $hiresflag $fsthreads"
+  cmd="$python ${binpath}/../FastSurferCNN/segstats.py --"
+
+  cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
   RunIt "$cmd" $LF
   # removed -balabels here and do that below independent of fsaparc flag
 
@@ -906,6 +908,8 @@ if [ "$fsaparc" == "0" ] ; then
 
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
   cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
+  # calculate segstats with
+  cmd="$python "
   RunIt "$cmd" $LF
 
 fi
