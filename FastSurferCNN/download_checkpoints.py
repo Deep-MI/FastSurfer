@@ -24,10 +24,14 @@ from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
     YAML_DEFAULT as VINN_YAML,
-    )
+)
 
 from CerebNet.utils.checkpoint import (
-    YAML_DEFAULT as CEREBNET_YAML)
+    YAML_DEFAULT as CEREBNET_YAML,
+)
+from HypVINN.utils.checkpoint import (
+    YAML_DEFAULT as HYPVINN_YAML,
+)
 
 
 class ConfigCache:
@@ -38,6 +42,10 @@ class ConfigCache:
     @lru_cache
     def cerebnet_url(self):
         return load_checkpoint_config_defaults("url", filename=CEREBNET_YAML)
+
+    @lru_cache
+    def hypvinn_url(self):
+        return load_checkpoint_config_defaults("url", filename=HYPVINN_YAML)
 
     def all_urls(self):
         return self.vinn_url() + self.cerebnet_url()
@@ -88,13 +96,14 @@ def make_arguments():
 def main(
         vinn: bool,
         cerebnet: bool,
+        hypvinn: bool,
         all: bool,
         files: list[str],
         url: Optional[str] = None,
 ) -> int | str:
     if not vinn and not files and not cerebnet and not all:
-        return ("Specify either files to download or --vinn, --cerebnet or --all, "
-                "see help -h.")
+        return ("Specify either files to download or --vinn, --cerebnet, "
+                "--hypvinn, or --all, see help -h.")
 
     try:
         # FastSurferVINN checkpoints
@@ -116,6 +125,16 @@ def main(
             get_checkpoints(
                 *(cerebnet_config[plane] for plane in PLANES),
                 urls=defaults.cerebnet_url() if url is None else [url],
+            )
+        # HypVINN checkpoints
+        if hypvinn or all:
+            hypvinn_config = load_checkpoint_config_defaults(
+                "checkpoint",
+                filename=HYPVINN_YAML,
+            )
+            get_checkpoints(
+                *(hypvinn_config[plane] for plane in PLANES),
+                urls=defaults.hypvinn_url() if url is None else [url],
             )
         for fname in files:
             check_and_download_ckpts(
