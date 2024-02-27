@@ -76,13 +76,16 @@ FS_CLASS_NAMES = {
     "Infundibulum": 975,
     "Tuberal-Region": 976,
     "L-Med-Hypothalamus": 977,
-    "R-Med-Hypothalamus": 978,
-    "L-Lat-Hypothalamus": 979,
-    "R-Lat-Hypothalamus": 980,
-    "L-Ant-Hypothalamus": 981,
-    "R-Ant-Hypothalamus": 982,
-    "L-Post-Hypothalamus": 983,
+    "L-Lat-Hypothalamus": 978,
+    "L-Ant-Hypothalamus": 979,
+    "L-Post-Hypothalamus": 980,
+    "R-Med-Hypothalamus": 981,
+    "R-Lat-Hypothalamus": 982,
+    "R-Ant-Hypothalamus": 983,
     "R-Post-Hypothalamus": 984,
+    #excluded ids
+    "R-Globus-Pallidus": 985,
+    "L-Globus-pallidus": 986,
 }
 
 
