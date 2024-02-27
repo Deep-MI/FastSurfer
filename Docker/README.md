@@ -25,10 +25,13 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * `-v`: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).
 * `--rm`: The flag takes care of removing the container once the analysis finished. 
 * `-d`: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)
-* `--user $(id -u):$(id -g)`: This part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root which is strongly discouraged.
+* `--user $(id -u):$(id -g)`: Run the container with your account (your user-id and group-id), which are determined by `$(id -u)` and `$(id -g)`, respectively. Running the docker container as root `-u 0:0` is strongly discouraged.
+
+##### Advanced Docker Flags
+* `--group-add <list of groups>`: If additional user groups are required to access files, additional groups may be added via `--group-add <group id>[,...]` or `--group-add $(id -G <group name>)`. 
 
 ##### FastSurfer Flags
-* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
+* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the `my_fs_license_dir` that was mapped above. 
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
@@ -69,7 +72,10 @@ The build script `build.py` supports additional args, targets and options, see `
 Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
 In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of `FastSurferCNN` must be possible) and we only support Python 3.10.
 
-By default, the build script will tag your image as "fastsurfer:{version_tag}[-{device}]", where {version_tag} is {version-identifer from pyproject.toml}_{current git-hash} and {device} is the value to --device (and omitted for cuda), but a custom tag can be specified by `--tag {tag_name}`. 
+By default, the build script will tag your image as `"fastsurfer:{version_tag}[-{device}]"`, where `{version_tag}` is `{version-identifer from pyproject.toml}_{current git-hash}` and `{device}` is the value to `--device` (and omitted for cuda), but a custom tag can be specified by `--tag {tag_name}`. 
+
+#### BuildKit
+Note, we recommend using BuildKit to build docker images (e.g. `DOCKER_BUILDKIT=1` -- the build.py script already always adds this). To install BuildKit, run `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/<version>/buildx-<version>.<platform>`, for example `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.12.1/buildx-v0.12.1.linux-amd64`. See also https://github.com/docker/buildx#manual-download.
 
 ### Example 1: Build GPU FastSurfer Image
 
@@ -156,3 +162,42 @@ docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
 	   --sid subjectX --sd /output 
 ```
 
+## Build docker image with attestation and provenance
+
+To build a docker image with attestation and provenance, i.e. Software Bill Of Materials (SBOM) information, several requirements have to be met:
+
+1. The image must be built with version v0.11+ of BuildKit (we recommend you [install BuildKit](#buildkit) independent of attestation).
+2. You must configure a docker-container builder in buildx (`docker buildx create --use --bootstrap --name fastsurfer-bctx --driver docker-container`). Here, you can add additional configuration options such as safe registries to the builder configuration (add `--config /etc/buildkitd.toml`).
+   ```toml
+   root = "/path/to/data/for/buildkit"
+   [worker.containerd]
+     gckeepstorage=9000
+     [[worker.containerd.gcpolicy]]
+       keepBytes = 512000000
+       keepDuration = 172800
+       filters = [ "type==source.local", "type==exec.cachemount", "type==source.git.checkout"]
+     [[worker.containerd.gcpolicy]]
+       all = true
+       keepBytes = 1024000000
+   # settings to push to a "local", registry with self-signed certificates
+   # see for example https://tech.paulcz.net/2016/01/secure-docker-with-tls/ https://github.com/paulczar/omgwtfssl
+   [registry."host:5000"]
+     ca=["/path/to/registry/ssl/ca.pem"]
+     [[registry."landau.dzne.ds:5000".keypair]]
+       key="/path/to/registry/ssl/key.pem"
+       cert="/path/to/registry/ssl/cert.pem"
+   ```
+3. Attestation files are not supported by the standard docker image storage driver. Therefore, images cannot be tested locally. 
+   There are two solutions to this limitation.
+   1. Directly push to the registry: 
+      Add `--action push` to the build script (the default is `--action load`, which loads the created image into the current docker context, and for the image name, also add the registry name. For example `... python Docker/build.py ... --attest --action push --tag docker.io/<myaccount>/fastsurfer:latest`.
+   2. [Install the containerd image storage driver](https://docs.docker.com/storage/containerd/#enable-containerd-image-store-on-docker-engine), which supports attestation: To implement this on Linux, make sure your docker daemon config file `/etc/docker/daemon.json` includes
+      ```json
+      {
+          "features": {
+              "containerd-snapshotter": true
+          }
+      }
+      ```
+      Also note, that the image storage location with containerd is not defined by the docker config file `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd) file with `containerd config default > /etc/containerd/config.toml`, in this config file edit the `"root"`-entry (default value is `/var/lib/containerd`).  
+4. Finally, you can now build the FastSurfer image with `python Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
