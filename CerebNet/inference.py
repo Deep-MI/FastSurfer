@@ -14,16 +14,16 @@
 
 # IMPORTS
 import time
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional
+from concurrent.futures import Future, ThreadPoolExecutor
+
 import nibabel as nib
 import numpy as np
 import torch
-
-from os import makedirs
-from os.path import join, dirname, isfile
-from typing import Dict, List, Tuple, Optional
-from concurrent.futures import Future, ThreadPoolExecutor
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable
@@ -94,29 +94,29 @@ class Inference:
             )
 
         self.batch_size = cfg.TEST.BATCH_SIZE
-        cerebnet_labels_file = join(
-            cp.FASTSURFER_ROOT, "CerebNet", "config", "CerebNet_ColorLUT.tsv"
+        cerebnet_labels_file = (
+            cp.FASTSURFER_ROOT / "CerebNet/config/CerebNet_ColorLUT.tsv"
         )
         _cerebnet_mapper = self.pool.submit(
             TSVLookupTable, cerebnet_labels_file, header=True
         )
 
-        self.freesurfer_color_lut_file = join(
-            cp.FASTSURFER_ROOT, "FastSurferCNN", "config", "FreeSurferColorLUT.txt"
+        self.freesurfer_color_lut_file = (
+            cp.FASTSURFER_ROOT / "FastSurferCNN/config/FreeSurferColorLUT.txt"
         )
         fs_color_map = self.pool.submit(
             TSVLookupTable, self.freesurfer_color_lut_file, header=False
         )
 
-        cerebnet2sagittal_lut = join(
-            cp.FASTSURFER_ROOT, "CerebNet", "config", "CerebNet2Sagittal.json"
+        cerebnet2sagittal_lut = (
+            cp.FASTSURFER_ROOT /"CerebNet/config/CerebNet2Sagittal.json"
         )
         cereb2cereb_sagittal = self.pool.submit(
             JsonColorLookupTable, cerebnet2sagittal_lut
         )
 
-        cerebnet2freesurfer_lut = join(
-            cp.FASTSURFER_ROOT, "CerebNet", "config", "CerebNet2FreeSurfer.json"
+        cerebnet2freesurfer_lut = (
+            cp.FASTSURFER_ROOT / "CerebNet/config/CerebNet2FreeSurfer.json"
         )
         cereb2freesurfer = self.pool.submit(
             JsonColorLookupTable, cerebnet2freesurfer_lut
@@ -166,9 +166,9 @@ class Inference:
             if plane == "sagittal":
                 if params["num_classes"] != params["num_classes_sag"]:
                     params["num_classes"] = params["num_classes_sag"]
-            checkpoint_path = cfg.TEST[f"{plane.upper()}_CHECKPOINT_PATH"]
+            checkpoint_path = Path(cfg.TEST[f"{plane.upper()}_CHECKPOINT_PATH"])
             model = build_model(params)
-            if not isfile(checkpoint_path):
+            if not checkpoint_path.isfile():
                 # if the checkpoint path is not a file, but a folder search in there for
                 # the newest checkpoint
                 checkpoint_path = cp.get_checkpoint_path(checkpoint_path).pop()

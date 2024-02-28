@@ -73,7 +73,19 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
     def step(self, metrics, epoch=None):
         """
-        [MISSING].
+        Perfroms an optimization step.
+
+        Parameters
+        ----------
+        metrics : float
+            The value of matrics= used to determine learning rate adjustments.
+        epoch : int, default=None
+            Number of epochs.
+        
+        Notes
+        -----
+        For details, refer to the PyTorch documentation for `ReduceLROnPlateau` at:
+        https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html
         """
         self.Tcur += 1
         super(ReduceLROnPlateauWithRestarts, self).step(metrics, epoch)
@@ -83,7 +95,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
     def _reset_lr(self):
         """
-        [MISSING].
+        Internal method to reset the learning rate.
         """
         self.Tcur = 0
         self.T_i *= self.Tmult
@@ -115,7 +127,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 # https://detectron2.readthedocs.io/_modules/detectron2/solver/lr_scheduler.html
 class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
     """
-    WarmupCosineLR class.
+    Learning Rate scheduler that combines a cosine schedule with a warmup phase.
     """
     def __init__(
         self,
@@ -134,7 +146,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
 
     def get_lr(self) -> List[float]:
         """
-        [MISSING].
+        Get the learning rates at the current epoch.
         """
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method, self.last_epoch, self.warmup_iters, self.warmup_factor
@@ -188,7 +200,7 @@ def _get_warmup_factor_at_iter(
 
 class CosineLR:
     """
-    CosineLR class.
+    Learning rate scheduler that follows a Cosine trajectory.
     """
     def __init__(self, base_lr, eta_min, max_epoch):
         self.base_lr = base_lr
@@ -197,7 +209,7 @@ class CosineLR:
 
     def lr_func_cosine(self, cur_epoch):
         """
-        [MISSING].
+        Get the learning rate following a cosine pattern for the epoch `cur_epoch`.
 
         Parameters
         ----------
@@ -214,11 +226,12 @@ class CosineLR:
         """
         Sets the optimizer lr to the specified value.
         
-        Args:
-            optimizer : optim 
-                The optimizer using to optimize the current network.
-            new_lr : float
-                The new learning rate to set.
+        Parameters
+        ----------
+        optimizer : optim 
+            The optimizer using to optimize the current network.
+        new_lr : float
+            The new learning rate to set.
         """
         new_lr = self.get_epoch_lr(epoch)
         for param_group in optimizer.param_groups:
@@ -228,9 +241,10 @@ class CosineLR:
         """
         Retrieves the lr for the given epoch (as specified by the lr policy).
 
-        Args:
-            cur_epoch : float 
-                The number of epoch of the current training stage.
+        Parameters
+        ----------
+        cur_epoch : float 
+            The number of epoch of the current training stage.
         """
         return self.lr_func_cosine(cur_epoch)
 
@@ -247,7 +261,8 @@ class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
 
     def decay_base_lr(self, curr_iter, n_epochs, n_iter):
         """
-        [MISSING].
+        Learning rate scheduler that combines a Cosine annealing with warm restarts pattern, 
+        but also adds a decay factor for where the learning rate restarts at. 
         """
         if self.T_cur + 1 == self.T_i:
             annealed_lrs = []
@@ -263,7 +278,7 @@ class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
 
 def get_lr_scheduler(optimizer, cfg):
     """
-    [MISSING].
+    Build a learning rate scheduler object from the config data in cfg.
     """
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":

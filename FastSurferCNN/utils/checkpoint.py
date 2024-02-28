@@ -95,7 +95,7 @@ def get_checkpoint_path(
     Returns
     -------
     prior_model_paths : MutableSequence[Path]
-        a list of filenames for checkpoints.
+        A list of filenames for checkpoints.
     """
     if resume_experiment == "Default" or resume_experiment is None:
         return []

@@ -57,7 +57,8 @@ extensions = [
     "sphinx_design",
     "sphinx_issues",
     "nbsphinx",
-    "IPython.sphinxext.ipython_console_highlighting"
+    "IPython.sphinxext.ipython_console_highlighting",
+    "myst_parser",
 ]
 
 

@@ -31,7 +31,7 @@ NT = TypeVar("NT", bound=Number)
 
 def locating_unknowns(gm_binary, wm_mask):
     """
-    [MISSING].
+    Find labels with missing labels, i.e. find holes.
     """
     selem = ndimage.generate_binary_structure(3, 3)
     wm_binary = np.array(wm_mask, dtype=np.bool)
@@ -67,7 +67,7 @@ def drop_disconnected_component(
 
 def filling_unknown_labels(segmap, unknown_mask, candidate_lbls):
     """
-    [MISSING].
+    For each unknown voxel in unknown_mask, find and fill it with a candidate.
     """
     h, w, d = segmap.shape
     blur_vals = np.ndarray((h, w, d, 0), dtype=np.float)
@@ -85,7 +85,7 @@ def filling_unknown_labels(segmap, unknown_mask, candidate_lbls):
 
 def cereb_subseg_lateral_mask(cereb_subseg):
     """
-    [MISSING]
+    Create mask for left and right cerebellar gray matter.
     """
     left_gm_idxs = np.array([1, 3, 5, 8, 11, 14, 17, 20, 23, 26])
     right_gm_idxs = np.array([2, 4, 7, 10, 13, 16, 19, 22, 25, 28])
@@ -103,7 +103,7 @@ def cereb_subseg_lateral_mask(cereb_subseg):
 
 def sphere(radius):
     """
-    [MISSING].
+    Create a spherical binary mask.
     """
     shape = (2 * radius + 1,) * 3
     struct = np.zeros(shape)
@@ -271,7 +271,8 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
 
 def correct_cereb_brainstem(cereb_subseg, brainstem, manual_cereb):
     """
-    [MISSING].
+    Correct brainstem or cereb_subseg according to the 
+    other (select which to correct by manual_cereb).
     """
     if manual_cereb:
         print("Correcting brainstem according to cerebellum dzne_manual subseg.")
@@ -286,7 +287,7 @@ def correct_cereb_brainstem(cereb_subseg, brainstem, manual_cereb):
 
 def save_mgh_image(img_data, save_path, header, affine):
     """
-    [MISSING].
+    Save data as mgh image.
     """
     mgh_out = nib.MGHImage(img_data, header=header, affine=affine)
     print(f"Saving {save_path}")
