@@ -75,12 +75,12 @@ class RandomAffine(object):
 
     def __init__(self, cfg):
         """
-        Constructor function.
+        Create a Affine augmentation operation with Random Parameter initialization.
 
         Parameters
         ----------
-        cfg : [MISSING]
-            [MISSING].
+        cfg : yacs.config.CfgNode
+            Parameters degree, img_size, scale, translate, prob are filled from its attributes AUGMENTATION and MODEL.
         degrees : sequence or float or int,
              Range of degrees to select from.
              If degrees is a number instead of sequence like (min, max), the range of degrees

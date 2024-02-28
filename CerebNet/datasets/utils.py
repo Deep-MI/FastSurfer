@@ -601,8 +601,10 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
 
     Returns
     -------
-    [MISSING TYPE]
-        [MISSING Discription].
+    paddings: list of 2-tuples of paddings or None
+        A list of per-axis tuples of the padding to apply to the slice to get the target_shape.
+    indices : tuple of indices
+        A tuple of per-axis indices to index in the data to get the target_shape.
     """
     if len(offsets) != len(target_shape):
         raise ValueError(
@@ -679,20 +681,24 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
 
     Parameters
     ----------
-    image : [MISSING]
+    image : np.ndarray
         Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N image dimensions.
-    offsets : [MISSING]
+    offsets : Sequence[int]
         Offset of the cropped region for the last N dimensions (default: center crop with less crop/pad
         towards index 0).
-    target_shape : [MISSING]
+    target_shape : Sequence[int], optional
         If defined, target_shape specifies the target shape of the "cropped region", else the crop
         will be centered cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x
         the dimension-specific offset). target_shape should have the same number of elements as offsets.
         May be implicitly defined by out.
-    out : [MISSING]
+    out : np.ndarray, optional
         Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
-    pad :  [MISSING]
-        Padding strategy to use when padding is required (default: zero-pad).
+    pad :  int, str, default=0
+        Padding strategy to use when padding is required, if int, pad with that value (default: zero-pad).
+        
+     See Also
+     --------
+     numpy.pad
 
     Returns
     -------

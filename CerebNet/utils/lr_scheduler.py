@@ -213,7 +213,7 @@ class CosineLR:
 
         Parameters
         ----------
-        cur_epoch : float 
+        cur_epoch : int
             The number of epoch of the current training stage.
         """
         return self.eta_min + (
@@ -228,10 +228,10 @@ class CosineLR:
         
         Parameters
         ----------
-        optimizer : optim 
+        optimizer : torch.optim.Optimizer
             The optimizer using to optimize the current network.
-        new_lr : float
-            The new learning rate to set.
+        epoch : int
+            The epoch for which to update the learning rate.
         """
         new_lr = self.get_epoch_lr(epoch)
         for param_group in optimizer.param_groups:
@@ -243,7 +243,7 @@ class CosineLR:
 
         Parameters
         ----------
-        cur_epoch : float 
+        cur_epoch : int
             The number of epoch of the current training stage.
         """
         return self.lr_func_cosine(cur_epoch)
@@ -251,7 +251,7 @@ class CosineLR:
 
 class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
     """
-    Cosine annealing warm restarts decay class.
+    Learning rate scheduler that combines a Cosine annealing with warm restarts pattern, but also adds a decay factor for where the learning rate restarts at. 
     """
     def __init__(self, optimizer, T_0, T_mult=1, eta_min=0, last_epoch=-1):
         super(CosineAnnealingWarmRestartsDecay, self).__init__(
