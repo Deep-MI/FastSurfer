@@ -74,19 +74,13 @@ class RandomAffine(object):
     """
 
     def __init__(self, cfg):
-        self.degree = cfg.AUGMENTATION.DEGREE
-        self.img_size = [cfg.MODEL.HEIGHT, cfg.MODEL.WIDTH]
-        self.scale = cfg.AUGMENTATION.SCALE
-        self.translate = cfg.AUGMENTATION.TRANSLATE
-        self.prob = cfg.AUGMENTATION.PROB
-        self.seed = None
-
-    def _get_random_affine(self):
         """
-        Random inverse affine matrix composed of rotation matrix (of each axis)and translation.
+        Constructor function.
 
         Parameters
         ----------
+        cfg : [MISSING]
+            [MISSING].
         degrees : sequence or float or int,
              Range of degrees to select from.
              If degrees is a number instead of sequence like (min, max), the range of degrees
@@ -109,6 +103,17 @@ class RandomAffine(object):
         -------
         transform_mat : 3x3 matrix
             Random affine transformation.
+        """
+        self.degree = cfg.AUGMENTATION.DEGREE
+        self.img_size = [cfg.MODEL.HEIGHT, cfg.MODEL.WIDTH]
+        self.scale = cfg.AUGMENTATION.SCALE
+        self.translate = cfg.AUGMENTATION.TRANSLATE
+        self.prob = cfg.AUGMENTATION.PROB
+        self.seed = None
+
+    def _get_random_affine(self):
+        """
+        Random inverse affine matrix composed of rotation matrix (of each axis)and translation.
         """
         if isinstance(self.degree, numbers.Number):
             if self.degree < 0:
@@ -340,22 +345,37 @@ def sample_intensity_stats_from_image(
     image, segmentation, labels_list, classes_list=None, keep_strictly_positive=True
 ):
     """
-    This function takes an image and corresponding segmentation as inputs. It estimates the mean and std intensity
-    for all specified label values. Labels can share the same statistics by being regrouped into K classes.
-    :param image: image from which to evaluate mean intensity and std deviation.
-    :param segmentation: segmentation of the input image. Must have the same size as image.
-    :param labels_list: list of labels for which to evaluate mean and std intensity.
-    Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
-    :param classes_list: (optional) enables to regroup structures into classes of similar intensity statistics.
-    Intenstites associated to regrouped labels will thus contribute to the same Gaussian during statistics estimation.
-    Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
-    It should have the same length as labels_list, and contain values between 0 and K-1, where K is the total number of
-    classes. Default is all labels have different classes (K=len(labels_list)).
-    :param keep_strictly_positive: (optional) whether to only keep strictly positive intensity values when
-    computing stats. This doesn't apply to the first label in label_list (or class if class_list is provided), for
-    which we keep positive and zero values, as we consider it to be the background label.
-    :return: a numpy array of size (2, K), the first row being the mean intensity for each structure,
-    and the second being the median absolute deviation (robust estimation of std).
+    This function takes an image and corresponding segmentation as inputs. 
+
+    It estimates the mean and std intensity for all specified label values.
+    Labels can share the same statistics by being regrouped into K classes.
+
+    Parameters
+    ----------
+    image : array_like
+        Image from which to evaluate mean intensity and std deviation.
+    segmentation : array_like
+        Segmentation of the input image. Must have the same size as image.
+    labels_list : array_like
+        List of labels for which to evaluate mean and std intensity.
+        Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
+    classes_list : array_like, optional
+        Enables grouping structures into classes of similar intensity statistics.
+        The intensities associated with regrouped labels will contribute to the same
+        Gaussian during statistics estimation. Can be a sequence, a 1D numpy array,
+        or the path to a 1D numpy array. It should have the same length as `labels_list`,
+        and contain values between 0 and K-1, where K is the total number of classes.
+        By default, each label is considered its own class (K=len(labels_list)).
+    keep_strictly_positive : optional
+        Whether to only keep strictly positive intensity values when computing stats. 
+        This doesn't apply to the first label in label_list (or class if class_list is provided), for
+        which we keep positive and zero values, as we consider it to be the background label.
+
+    Returns
+    -------
+    numpy.ndarray 
+        A numpy array of size (2, K), the first row being the mean intensity for each structure,
+        and the second being the median absolute deviation (robust estimation of std).
     """
     # reformat labels and classes
     if classes_list is not None:
