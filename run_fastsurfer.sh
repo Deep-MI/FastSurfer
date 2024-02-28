@@ -43,40 +43,33 @@ asegdkt_segfile=""
 asegdkt_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
 asegdkt_statsfile=""
 cereb_statsfile=""
-cereb_flags=""
+cereb_flags=()
 conformed_name=""
 seg_log=""
+run_talairach_registration="false"
+atlas3T="false"
 viewagg="auto"
 device="auto"
 batch_size="1"
 run_seg_pipeline="1"
 run_biasfield="1"
 run_surf_pipeline="1"
-flag_3T=""
-fstess=""
-fsqsphere=""
-fsaparc=""
-fssurfreg=""
+surf_flags=()
 vox_size="min"
-doParallel=""
 run_asegdkt_module="1"
 run_cereb_module="1"
 threads="1"
 # python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
 # python-s is a miniscript to add this flag, but this only works if python-s is defined
-if [[ -n "$(which python-s)" ]]; then
-  python="python-s"
-elif [[ -f "/fastsurfer/python-s" ]]; then
-  python="/fastsurfer/python-s"
-else
-  python="python3.10"
-fi
-allow_root=""
+#if [[ -n "$(which python-s)" ]]; then
+  python="python3.10 -s"
+#elif [[ -f "/fastsurfer/python-s" ]]; then
+#  python="/fastsurfer/python-s"
+#else
+#  python="python3.10"
+#fi
+allow_root=()
 version_and_quit=""
-
-# Dev flags defaults
-vcheck=""
-vfst1=""
 
 function usage()
 {
@@ -159,6 +152,9 @@ SEGMENTATION PIPELINE:
   --norm_name             Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
+  --tal_reg               Perform the talairach registration for eTIV estimates
+                            in --seg_only stream and stats files (is affected by
+                            the --3T flag, see below).
 
   MODULES:
   By default, all modules are run.
@@ -202,7 +198,7 @@ SURFACE PIPELINE:
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
 
-  Resource Options:
+Resource Options:
   --device                Set device on which inference should be run ("cpu" for
                             CPU, "cuda" for Nvidia GPU, or pass specific device,
                             e.g. cuda:1), default check GPU and then CPU
@@ -217,7 +213,8 @@ SURFACE PIPELINE:
                             device (no memory check will be done).
   --batch <batch_size>    Batch size for inference. Default: 1
   --py <python_cmd>       Command for python, used in both pipelines.
-                            Default: python3.10
+                            Default: "$python"
+                            (-s: do no search for packages in home directory)
 
  Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
@@ -403,6 +400,10 @@ case $key in
     run_cereb_module="0"
     shift  # past argument
     ;;
+    --tal_reg)
+    run_talairach_registration="true"
+    shift
+    ;;
     --device)
     device=$2
     shift # past argument
@@ -422,19 +423,19 @@ case $key in
     shift # past argument
     ;;
     --fstess)
-    fstess="--fstess"
+    surf_flags=("${surf_flags[@]}" "--fstess")
     shift # past argument
     ;;
     --fsqsphere)
-    fsqsphere="--fsqsphere"
+    surf_flags=("${surf_flags[@]}" "--fsqsphere")
     shift # past argument
     ;;
     --fsaparc)
-    fsaparc="--fsaparc"
+    surf_flags=("${surf_flags[@]}" "--fsaparc")
     shift # past argument
     ;;
     --no_surfreg)
-    fssurfreg="--no_surfreg"
+    surf_flags=("${surf_flags[@]}" "--no_surfreg")
     shift # past argument
     ;;
     --vox_size)
@@ -443,11 +444,12 @@ case $key in
     shift # past value
     ;;
     --3t)
-    flag_3T="--3T"
+    surf_flags=("${surf_flags[@]}" "--3T")
+    atlas3T="true"
     shift
     ;;
     --parallel)
-    doParallel="--parallel"
+    surf_flags=("${surf_flags[@]}" "--parallel")
     shift # past argument
     ;;
     --threads)
@@ -461,15 +463,17 @@ case $key in
     shift # past value
     ;;
     --ignore_fs_version)
-    vcheck="--ignore_fs_version"
+    # Dev flag
+    surf_flags=("${surf_flags[@]}" "--ignore_fs_version")
     shift # past argument
     ;;
     --no_fs_t1 )
-    vfst1="--no_fs_T1"
+    # Dev flag
+    surf_flags=("${surf_flags[@]}" "--no_fs_T1")
     shift # past argument
     ;;
     --allow_root)
-    allow_root="--allow_root"
+    allow_root=("--allow_root")
     shift # past argument
     ;;
     -h|--help)
@@ -480,7 +484,7 @@ case $key in
     if [[ "$#" -lt 2 ]]; then
       version_and_quit="1"
     else
-      case $2 in
+      case "$2" in
         all)
         version_and_quit="+checkpoints+git+pip"
         shift
@@ -540,8 +544,14 @@ if [[ -n "$version_and_quit" ]]
     exit
 fi
 
+# make sure the python  executable is valid and found
+if [[ -z "$(which "${python/ */}")" ]]; then
+    echo "Cannot find the python interpreter ${python/ */}."
+    exit 1
+fi
+
 # Warning if run as root user
-if [[ -z "$allow_root" ]] && [[ "$(id -u)" == "0" ]]
+if [[ "${#allow_root}" == 0 ]] && [[ "$(id -u)" == "0" ]]
   then
     echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
     echo "because it will lead to files and folders created as root."
@@ -735,9 +745,15 @@ if [[ "$run_seg_pipeline" == "1" ]]
 
     if [[ "$run_asegdkt_module" == "1" ]]
       then
-        cmd="$python $fastsurfercnndir/run_prediction.py --t1 $t1 --asegdkt_segfile $asegdkt_segfile --conformed_name $conformed_name --brainmask_name $mask_name --aseg_name $aseg_segfile --sid $subject --seg_log $seg_log --vox_size $vox_size --batch_size $batch_size --viewagg_device $viewagg --device $device $allow_root"
-        echo "$cmd" |& tee -a "$seg_log"
-        $cmd
+        cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1"
+             --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
+             --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
+             --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
+             --viewagg_device "$viewagg" --device "$device" "${allow_root[@]}")
+        # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
+        if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
+        echo "${cmd[@]}" |& tee -a "$seg_log"
+        "${cmd[@]}"
         exit_code="${PIPESTATUS[0]}"
         if [[ "${exit_code}" == 2 ]]
           then
@@ -755,20 +771,44 @@ if [[ "$run_seg_pipeline" == "1" ]]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
-        cmd="$python ${reconsurfdir}/N4_bias_correct.py --in $conformed_name --rescale $norm_name --aseg $asegdkt_segfile --threads $threads"
-        echo "$cmd" |& tee -a "$seg_log"
-        $cmd
+        cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
+             --rescale "$norm_name" --aseg "$asegdkt_segfile" --threads "$threads")
+        echo "${cmd[@]}" |& tee -a "$seg_log"
+        "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
             echo "ERROR: Biasfield correction failed" | tee -a "$seg_log"
             exit 1
         fi
 
+        if [[ "$run_talairach_registration" == "true" ]]
+          then
+            echo "INFO: Running talairach registration" | tee -a "$seg_log"
+            cmd=("$reconsurfdir/talairach-reg.sh" "$sd/$subject/mri" "$atlas3T" "$seg_log")
+            echo "${cmd[@]}" |& tee -a "$seg_log"
+            "${cmd[@]}"
+            if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+              then
+                echo "ERROR: talairach registration failed" | tee -a "$seg_log"
+                exit 1
+            fi
+        fi
+
         if [[ "$run_asegdkt_module" ]]
           then
-            cmd="$python ${fastsurfercnndir}/segstats.py --segfile $asegdkt_segfile --segstatsfile $asegdkt_statsfile --normfile $norm_name $allow_root --empty --excludeid 0 --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035 --lut $fastsurfercnndir/config/FreeSurferColorLUT.txt --threads $threads "
-            echo "$cmd" |& tee -a "$seg_log"
-            $cmd |& tee -a "$seg_log"
+            cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
+                 --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
+                  --threads "$threads" "${allow_root[@]}" --empty --excludeid 0
+                 --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
+                       49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
+                       1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
+                       1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031
+                       1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013
+                       2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
+                       2027 2028 2029 2030 2031 2034 2035
+                 --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt")
+            echo "${cmd[@]}" |& tee -a "$seg_log"
+            "${cmd[@]}" |& tee -a "$seg_log"
             if [[ "${PIPESTATUS[0]}" -ne 0 ]]
               then
                 echo "ERROR: asegdkt statsfile generation failed" | tee -a "$seg_log"
@@ -781,14 +821,21 @@ if [[ "$run_seg_pipeline" == "1" ]]
       then
         if [[ "$run_biasfield" == "1" ]]
           then
-            cereb_flags="$cereb_flags --norm_name $norm_name --cereb_statsfile $cereb_statsfile"
+            cereb_flags=("${cereb_flags[@]}" --norm_name "$norm_name"
+                         --cereb_statsfile "$cereb_statsfile")
         else
             echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." |& tee -a $seg_log
         fi
 
-        cmd="$python $cerebnetdir/run_prediction.py --t1 $t1 --asegdkt_segfile $asegdkt_segfile --conformed_name $conformed_name --cereb_segfile $cereb_segfile --seg_log $seg_log --batch_size $batch_size --viewagg_device $viewagg --device $device --async_io --threads $threads$cereb_flags $allow_root"
-        echo "$cmd" |& tee -a "$seg_log"
-        $cmd
+        cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1"
+             --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
+             --cereb_segfile "$cereb_segfile" --seg_log "$seg_log" --async_io
+             --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
+             --threads "$threads" "${cereb_flags[@]}" "${allow_root[@]}")
+        # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
+        if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
+        echo "${cmd[@]}" |& tee -a "$seg_log"
+        "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
             echo "ERROR: Cerebellum Segmentation failed" | tee -a "$seg_log"
@@ -806,14 +853,14 @@ if [[ "$run_surf_pipeline" == "1" ]]
   then
     # ============= Running recon-surf (surfaces, thickness etc.) ===============
     # use recon-surf to create surface models based on the FastSurferCNN segmentation.
-    pushd "$reconsurfdir"
-    cmd="./recon-surf.sh --sid $subject --sd $sd --t1 $conformed_name --asegdkt_segfile $asegdkt_segfile"
-    cmd="$cmd $fstess $fsqsphere $flag_3T $fsaparc $fssurfreg $doParallel --threads $threads --py $python"
-    cmd="$cmd $vcheck $vfst1 $allow_root"
-    echo "$cmd" |& tee -a "$seg_log"
-    $cmd
+    pushd "$reconsurfdir" || exit 1
+    cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
+         --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
+         "${surf_flags[@]}" "${allow_root[@]}")
+    echo "${cmd[@]}" |& tee -a "$seg_log"
+    "${cmd[@]}"
     if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
-    popd
+    popd || return
 fi
 
 ########################################## End ########################################################
