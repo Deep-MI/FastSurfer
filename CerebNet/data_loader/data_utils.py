@@ -277,12 +277,12 @@ def filter_blank_slices_thick(data_dict, img_key="img", lbl_key="label", thresho
     ----------
     data_dict : dict
         A dictionary containing all volumes that need to be filtered.
-    img_key : str
-        Default is "img".
-    lbl_key : str
-        Default is "label".
-    threshold : int
-        Default is 10.
+    img_key : str, default="img"
+        Name of the key with the image.
+    lbl_key : str, default="label"
+        Name of the key with the target label.
+    threshold : int, default=10
+        Threshold for number of voxels so this slice is included (or filtered).
     """
     # Get indices of all slices with more than threshold labels/pixels
     selected_slices = (np.sum(data_dict[lbl_key], axis=(1, 2)) > threshold)
@@ -433,18 +433,18 @@ def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
 
     Parameters
     ----------
-        plane : [MISSING]
+        plane : Plane
             The slicing direction (usually moved into batch dimension).
-        data :  [MISSING]
+        data :  np.ndarray
             The data array of shape [plane, Channels, H, W].
         thick_slices : bool, default=False
             Whether the channels are thick slices and should also be flipped (default: False).
 
     Returns
     -------
-    AT
+    np.ndarray
         Data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
-        [plane, Channels, W, H] (plane: 'axial').
+        [plane, Channels, W, H] (plane: 'axial'). The dtype of the array is the same as data.
     """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes

@@ -64,12 +64,12 @@ class Inference:
             Yaml configuration to populate default values for parameters.
         threads : int, optional
             Number of threads to use, -1 is max (all), which is also the default.
-        async_io : bool, optional
-            Whether io is run asynchronously (default: False).
-        device : str
-            Device to perform inference on (default: auto).
-        viewagg_device : str
-            Device to aggregate views on (default: auto).
+        async_io : bool, default=False
+            Whether io is run asynchronously.
+        device : str, default="auto"
+            Device to perform inference on.
+        viewagg_device : str, default="auto"
+            Device to aggregate views on.
         """
         self.pool = None
         self._threads = None

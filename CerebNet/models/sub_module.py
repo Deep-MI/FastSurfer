@@ -48,7 +48,7 @@ class CompetitiveDenseBlock(nn.Module):
             Dictionary with parameters specifying block architecture
         outblock : bool, default=False 
             Flag indicating if last block (before classifier block) is set up.
-        discriminator_block : bool 
+        discriminator_block : bool, default=False
             Flag indicating if the block is discriminator block or not
         """
         super(CompetitiveDenseBlock, self).__init__()
