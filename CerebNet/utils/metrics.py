@@ -249,7 +249,7 @@ def hd95(result, reference, voxelspacing=None, connectivity=1):
 
     Parameters
     ----------
-    result
+    result : [MISSING]
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
     reference : array_like
