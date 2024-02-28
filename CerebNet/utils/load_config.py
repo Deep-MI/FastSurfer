@@ -81,7 +81,12 @@ def get_config(args) -> "yacs.CfgNode":
 
 def setup_options():
     """
-    [MISSING].
+    Set up the command-line options for the segmentation.
+
+    Returns
+    -------
+    argparse.Namespace
+        The configured argument parser.
     """
     parser = argparse.ArgumentParser(description="Segmentation")
     parser.add_argument(

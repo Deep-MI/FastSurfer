@@ -40,7 +40,7 @@ class FastSurferCNN(nn.Module):
 
     def __init__(self, params):
         """
-        [MISSING]
+        Create the FastSurferCNN model.
         """
         super(FastSurferCNN, self).__init__()
 
@@ -115,7 +115,7 @@ _MODELS = {
 
 def build_model(params: Mapping) -> torch.nn.Module:
     """
-    [MISSING]
+    Build the model based on the params Mapping.
     """
     params = {k.lower(): v for k, v in dict(params).items()}
     assert (
