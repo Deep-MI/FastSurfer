@@ -274,10 +274,11 @@ def make_parser() -> argparse.ArgumentParser:
         "--action",
         choices=("load", "push"),
         default="load",
-        help="Which action to perform after building the image: "
+        help="Which action to perform after building the image (if a docker-container "
+             "is detected): "
              "'load' loads the image into the current docker context (default), "
              "'push' pushes the image to the registry (needs --tag <registry>/"
-             "<name+maybe organization>:<tag>",
+             "<name+maybe organization>:<tag>)",
     )
     expert.add_argument(
         "--freesurfer_build_image",
@@ -394,8 +395,8 @@ def docker_build_image(
     attestation : bool, default=False
         Whether to create sbom and provenance attestation
     action : "load", "push", default="load"
-        The operation to perform after the image is built (only in the attestation
-        pipeline, otherwise will load).
+        The operation to perform after the image is built (only if a docker-container
+        builder is detected).
 
     Additional kwargs add additional build flags to the build command in the following
     manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
@@ -448,21 +449,26 @@ def docker_build_image(
                 f"See also https://github.com/docker/buildx#manual-download"
             )
 
+    default_builder_is_container, alternative_builder = get_builder(
+        Popen,
+        "docker-container",
+    )
+    args.append("--output")
     if not attestation:
         # tag image_name in local registry (simple standard case)
-        args.extend(["--output", f"type=image,name={image_name}"])
+        if default_builder_is_container:
+            args.extend([f"type=docker,name={image_name}", "--" + action])
+        else:
+            args.append(f"type=image,name={image_name}")
     else:
         # want to create sbom and provenance manifests, so needs to use a
         # docker-container builder
-        args.extend(["--attest", "type=sbom", "--provenance=true"])
-        can_use_default_builder, alternative_builder = get_builder(
-            Popen,
-            "docker-container",
-        )
-        if not can_use_default_builder:
-            args.extend(["--builder", alternative_builder])
         image_type = "registry" if action == "push" else "docker"
-        args.extend(["--output", f"type={image_type},name={image_name}", "--" + action])
+        args.extend([f"type={image_type},name={image_name}", "--" + action])
+
+        args.extend(["--attest", "type=sbom", "--provenance=true"])
+        if not default_builder_is_container:
+            args.extend(["--builder", alternative_builder])
     args.extend(("-t", image_name))
     params = [to_pair(*a) for a in kwargs.items()]
     args.extend(["-f", str(dockerfile)] + list(chain(*params)))
@@ -552,9 +558,14 @@ def main(
     if not attestation:
         # only attestation requires and actively changes to a docker-container driver
         if cache is not None and cache.type != "inline":
-            return ("The docker build interface only support caching inline, i.e. "
-                    "--cache type=inline. Use --save_docker or --save_oci for other "
-                    "caching drivers.")
+            Popen = _import_calls(fastsurfer_home, "Popen")
+            try:
+                can_default, _ = get_builder(Popen, "docker-container")
+            except RuntimeError as e:
+                return e.args[0]
+            if not can_default:
+                return ("The docker build interface only support caching inline, i.e. "
+                        "--cache type=inline.")
 
     if tag_dev:
         kwargs["tag"] = f"fastsurfer:dev{image_suffix}"

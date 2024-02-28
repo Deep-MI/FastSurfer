@@ -43,15 +43,6 @@ else
   binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 
-# fs_time command from fs60, fs72 fails in parallel mode, use local one
-# also check for failure (e.g. on mac it fails)
-timecmd="${binpath}fs_time"
-$timecmd echo testing &> /dev/null
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then 
-  echo "time command failing, not using time..."
-  timecmd=""
-fi
-
 
 # check bash version > 4
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
@@ -100,7 +91,7 @@ FLAGS:
                             etiv estimates for 3T MR images, default: 1.5T atlas).
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
-  --py <python_cmd>       Command for python, default $python
+  --py <python_cmd>       Command for python, default ${python@Q}
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
@@ -137,82 +128,8 @@ EOF
 
 }
 
-
-function RunIt()
-{
-# parameters
-# $1 : cmd  (command to run)
-# $2 : LF   (log file)
-# $3 : CMDF (command file) optional
-# if CMDF is passed, then LF is ignored and cmd is echoed into CMDF and not run
-  cmd=$1
-  LF=$2
-  if [[ $# -eq 3 ]]
-  then
-    CMDF=$3
-    echo "echo \"$cmd\" " |& tee -a $CMDF
-    echo "$timecmd $cmd " |& tee -a $CMDF
-    echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
-  else
-    echo $cmd |& tee -a $LF
-    $timecmd $cmd |& tee -a $LF
-    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-  fi
-}
-
-function RunBatchJobs()
-{
-# parameters
-# $1 : LF
-# $2 ... : CMDFS
-  LOG_FILE=$1
-  # launch jobs found in command files (shift past first logfile arg).
-  # job output goes to a logfile named after the command file, which
-  # later gets appended to LOG_FILE
-
-  echo
-  echo "RunBatchJobs: Logfile: $LOG_FILE"
-
-  PIDS=()
-  LOGS=()
-  shift
-  for cmdf in $*; do
-    echo "RunBatchJobs: CMDF: $cmdf"
-    chmod u+x $cmdf
-    JOB="$cmdf"
-    LOG=$cmdf.log
-    echo "" >& $LOG
-    echo " $JOB" >> $LOG
-    echo "" >> $LOG
-    exec $JOB >> $LOG 2>&1 &
-    PIDS=(${PIDS[@]} $!)
-    LOGS=(${LOGS[@]} $LOG)
-
-  done
-  # wait till all processes have finished
-  PIDS_STATUS=()
-  for pid in "${PIDS[@]}"; do
-    echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
-    wait $pid
-    PIDS_STATUS=(${PIDS_STATUS[@]} $?)
-  done
-  # now append their logs to the main log file
-  for log in "${LOGS[@]}"
-  do
-    cat $log >> $LOG_FILE
-    rm -f $log
-  done
-  echo "PIDs (${PIDS[*]}) completed and logs appended."
-  # and check for failures
-  for pid_status in "${PIDS_STATUS[@]}"
-  do
-    if [ "$pid_status" != "0" ] ; then
-      exit 1
-    fi
-  done
-}
-
-
+# Load the RunIt and the RunBatchJobs functions
+source "$binpath/functions.sh"
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -577,8 +494,6 @@ echo " " |& tee -a $LF
 echo "============= Computing Talairach Transform and NU (bias corrected) ============" |& tee -a $LF
 echo " " |& tee -a $LF
 
-pushd $mdir
-
 ### START SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 # only run the bias field correction, if the bias field corrected does not exist already
@@ -593,55 +508,20 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # frontal head), we don't. Also this avoids a second call to nu correct.
   # talairach.xfm is also not needed here at all, it can be dropped if other places in the
   # stream can be changed to avoid it.
+  pushd "$mdir" || ( echo "Cannot change to $mdir" | tee -a "$LF" || exit 1 )
+
   #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
   cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
+
+  popd || return
 fi
 ### END SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
 ### ----------
 
-# talairach.xfm: compute talairach full head (25sec)
-if [[ "$atlas3T" == "true" ]]
-then
-  echo "Using the 3T atlas for talairach registration."
-  atlas="--atlas 3T18yoSchwartzReactN32_as_orig"
-else
-  echo "Using the default atlas (1.5T) for talairach registration."
-  atlas=""
+if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
+  "$binpath/talairach-reg.sh" "$mdir" "$atlas3T" "$LF"
 fi
-cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm $atlas"
-RunIt "$cmd" $LF
-# create copy
-cmd="cp $mdir/transforms/talairach.auto.xfm $mdir/transforms/talairach.xfm"
-RunIt "$cmd" $LF
-# talairach.lta: convert to lta
-cmd="lta_convert --src $mdir/orig.mgz --trg $FREESURFER_HOME/average/mni305.cor.mgz --inxfm $mdir/transforms/talairach.xfm --outlta $mdir/transforms/talairach.xfm.lta --subject fsaverage --ltavox2vox"
-RunIt "$cmd" $LF
-
-# FS would here create better nu.mgz using talairach transform (finds wm and maps it to approx 110)
-#NuIterations="1 --proto-iters 1000 --distance 50"  # default 3T
-#FS60 cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --mask $mdir/mask.mgz"
-#FS72 cmd="mri_nu_correct.mni --i $mdir/orig.mgz --o $mdir/nu.mgz --uchar $mdir/transforms/talairach.xfm --n $NuIterations --ants-n4"
-# all this is basically useless, as we did a good orig_nu already, including WM normalization
-
-# Since we do not run mri_em_register we sym-link other talairach transform files here
-pushd $mdir/transforms
-cmd="ln -sf talairach.xfm.lta talairach_with_skull.lta"
-RunIt "$cmd" $LF
-cmd="ln -sf talairach.xfm.lta talairach.lta"
-RunIt "$cmd" $LF
-popd
-
-# Add xfm to nu
-# (use orig_nu, if nu.mgz does not exist already); by default, it should exist
-if [[ -e "$mdir/nu.mgz" ]]; then src_nu_file="$mdir/nu.mgz"
-else src_nu_file="$mdir/orig_nu.mgz"
-fi
-cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
-RunIt "$cmd" $LF
-
-popd
-
 
 echo " " |& tee -a $LF
 echo "============ Creating brainmask from aseg and norm, and update aseg ============" |& tee -a $LF
@@ -778,8 +658,8 @@ else
     # instead of mris_sphere, directly project to sphere with spectral approach
     # equivalent to -qsphere
     # (23sec)
-    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir --subject $subject"
-    cmd="$cmd --threads=$threads --py $python --binpath ${binpath}"
+    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
+    cmd="$cmd --subject $subject --threads=$threads --py ${python@Q} --binpath ${binpath}"
 
     RunIt "$cmd" $LF $CMDF
 
