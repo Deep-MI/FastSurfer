@@ -151,14 +151,16 @@ def transform_axial(vol, coronal2axial=True):
     """
     Function to transform volume into Axial axis and back.
 
-    Parameters:
+    Parameters
+    ----------
     vol : np.ndarray
         Image volume to transform.
-    coronal2axial : bool
+    coronal2axial : bool, default = True
         If True (default), transforms from coronal to axial.
         If False, transforms from axial to coronal.
 
-    Returns:
+    Returns
+    -------
     np.ndarray
         Transformed image volume.
     """
@@ -176,7 +178,7 @@ def transform_sagittal(vol, coronal2sagittal=True):
     ----------
     vol : np.ndarray
         The image volume to transform.
-    coronal2sagittal : bool, optional
+    coronal2sagittal : bool, default = True
         If True (default), transforms from coronal to sagittal.
         If False, transforms from sagittal to coronal.
 
@@ -199,7 +201,7 @@ def transform_coronal(vol, axial2coronal=True):
     ----------
     vol : np.ndarray
         The image volume to transform.
-    axial2coronal : bool, optional
+    axial2coronal : bool, default=True
         If True (default), transforms from axial to coronal.
         If False, transforms from coronal to axial.
 
@@ -228,7 +230,7 @@ def transform_axial2sagittal(vol, axial2sagittal=True):
     ----------
     vol : np.ndarray
         The image volume to transform.
-    axial2sagittal : bool, optional
+    axial2sagittal : bool, default=True
         If True (default), transforms from axial to sagittal.
         If False, transforms from sagittal to axial.
 
@@ -276,11 +278,11 @@ def filter_blank_slices_thick(data_dict, img_key="img", lbl_key="label", thresho
     data_dict : dict
         A dictionary containing all volumes that need to be filtered.
     img_key : str
-        [MISSING].
+        Default is "img".
     lbl_key : str
-        [MISSING].
+        Default is "label".
     threshold : int
-        [MISSING].
+        Default is 10.
     """
     # Get indices of all slices with more than threshold labels/pixels
     selected_slices = (np.sum(data_dict[lbl_key], axis=(1, 2)) > threshold)
@@ -312,14 +314,17 @@ def map_sag2label(lbl_data, label_type='cereb_subseg'):
     """
     Mapping right ids to left and relabeling.
 
-    Args:
-        lbl_data:
-            [MISSING]
-        label_type:
-            [MISSING]
+    Parameters
+    ----------
+        lbl_data : [MISSING]
+            [MISSING].
+        label_type : str
+            Default is "cereb_subseg".
 
-    Returns:
-        [MISSING]
+    Returns
+    -------
+    np.ndarray
+        [MISSING].
     """
     for r_lbl, l_lbl in sag_right2left.items():
         lbl_data[lbl_data == r_lbl] = l_lbl
@@ -426,14 +431,20 @@ def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
     """
     Maps the data from RAS to LIA orientation.
 
-    Args:
-        plane: the slicing direction (usually moved into batch dimension)
-        data: the data array of shape [plane, Channels, H, W]
-        thick_slices: whether the channels are thick slices and should also be flipped (default: False).
+    Parameters
+    ----------
+        plane : [MISSING]
+            The slicing direction (usually moved into batch dimension).
+        data :  [MISSING]
+            The data array of shape [plane, Channels, H, W].
+        thick_slices : bool, default=False
+            Whether the channels are thick slices and should also be flipped (default: False).
 
-    Returns:
-        data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
-            [plane, Channels, W, H] (plane: 'axial').
+    Returns
+    -------
+    AT
+        Data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
+        [plane, Channels, W, H] (plane: 'axial').
     """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes

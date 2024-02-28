@@ -588,7 +588,21 @@ def normalize_array(arr):
 
 def _crop_transform_make_indices(image_shape, offsets, target_shape):
     """
-    Create the indexing tuple. Returned pad tuples are for the last N dimensions.
+    Create the indexing tuple and return padding tuples for the last N dimensions.
+
+    Parameters
+    ----------
+    image_shape : [MISSING]
+        [MISSING].
+    offsets : [MISSING]
+        [MISSING]
+    target_shape : [MISSING]
+        [MISSING].
+
+    Returns
+    -------
+    [MISSING TYPE]
+        [MISSING Discription].
     """
     if len(offsets) != len(target_shape):
         raise ValueError(
@@ -615,6 +629,18 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
 def _crop_transform_pad_fn(image, pad_tuples, pad):
     """
     Generate a parameterized pad function.
+
+    Parameters
+    ----------
+    image : [MISSING]
+        [MISSING].
+    pad_tuples : [MISSING]
+        [MISSING].
+
+    Returns
+    -------
+    [MISSING TYPE]
+        [MISSING Discription].
     """
     if all(p1 == 0 and p2 == 0 for p1, p2 in pad_tuples):
         return None
