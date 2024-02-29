@@ -592,12 +592,12 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
 
     Parameters
     ----------
-    image_shape : [MISSING]
-        [MISSING].
-    offsets : [MISSING]
-        [MISSING]
-    target_shape : [MISSING]
-        [MISSING].
+    image_shape : np.ndarray
+        The shape of the image from which a region is to be cropped.
+    offsets : Sequence[int]
+        Exact location within the image from which the cropping should start.
+    target_shape : Sequence[int], optional
+        The desired shape of the cropped region.
 
     Returns
     -------

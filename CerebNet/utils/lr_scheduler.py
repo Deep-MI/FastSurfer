@@ -251,7 +251,8 @@ class CosineLR:
 
 class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
     """
-    Learning rate scheduler that combines a Cosine annealing with warm restarts pattern, but also adds a decay factor for where the learning rate restarts at. 
+    Learning rate scheduler that combines a Cosine annealing with warm restarts pattern, but also adds a 
+    decay factor for where the learning rate restarts at. 
     """
     def __init__(self, optimizer, T_0, T_mult=1, eta_min=0, last_epoch=-1):
         super(CosineAnnealingWarmRestartsDecay, self).__init__(
