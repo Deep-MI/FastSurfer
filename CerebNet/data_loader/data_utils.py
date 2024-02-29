@@ -271,7 +271,7 @@ def get_plane_transform(plane, primary_slice_dir='coronal'):
 
 def filter_blank_slices_thick(data_dict, img_key="img", lbl_key="label", threshold=10):
     """
-    Function to filter blank slices from the volume using the label volume
+    Function to filter blank slices from the volume using the label volume.
 
     Parameters
     ----------
@@ -292,11 +292,16 @@ def filter_blank_slices_thick(data_dict, img_key="img", lbl_key="label", thresho
 
 def create_weight_mask2d(label_map, class_wise_weights, max_edge_weight=5):
     """
-    Function to create weighted mask - with median frequency balancing and edge-weighting
-    :param label_map:
-    :param class_wise_weights:
-    :param max_edge_weight:
-    :return:
+    Function to create weighted mask - with median frequency balancing and edge-weighting.
+    
+    Parameters
+    ----------
+    label_map : np.ndarray
+        A 2D array representing the label map.
+    class_wise_weights : np.ndarray
+        A 1D array where each element is the weight corresponding to a class in the label map.
+    max_edge_weight : float, default=5
+        The maximum weight to be applied at the edges in the label map to emphasize boundaries.
     """
     (h, w) = label_map.shape
     weights_mask = np.reshape(class_wise_weights[label_map.ravel()], (h, w))
@@ -316,15 +321,15 @@ def map_sag2label(lbl_data, label_type='cereb_subseg'):
 
     Parameters
     ----------
-        lbl_data : [MISSING]
-            [MISSING].
-        label_type : str
-            Default is "cereb_subseg".
+        lbl_data : np.ndarray
+            An array of label data.
+        label_type : str, default="cereb_subseg"
+            A string identifier for the type of labels to map to.
 
     Returns
     -------
     np.ndarray
-        [MISSING].
+        The remapped label array with continuous labels
     """
     for r_lbl, l_lbl in sag_right2left.items():
         lbl_data[lbl_data == r_lbl] = l_lbl
@@ -399,14 +404,17 @@ def get_binary_map(lbl_map, class_names):
 
 
 def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
-    """Maps the data from LIA to RAS orientation.
+    """
+    Maps the data from LIA to RAS orientation.
 
-    Args:
+    Parameters
+    ----------
         plane: the slicing direction (usually moved into batch dimension)
         data: the data array of shape [plane, Channels, H, W]
         thick_slices: whether the channels are thick slices and should also be flipped (default: False).
 
-    Returns:
+    Returns
+    -------
         data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
             [plane, Channels, W, H] (plane: 'axial').
     """
@@ -433,12 +441,12 @@ def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
 
     Parameters
     ----------
-        plane : Plane
-            The slicing direction (usually moved into batch dimension).
-        data :  np.ndarray
-            The data array of shape [plane, Channels, H, W].
-        thick_slices : bool, default=False
-            Whether the channels are thick slices and should also be flipped (default: False).
+    plane : Plane
+        The slicing direction (usually moved into batch dimension).
+    data :  np.ndarray
+        The data array of shape [plane, Channels, H, W].
+    thick_slices : bool, default=False
+        Whether the channels are thick slices and should also be flipped.
 
     Returns
     -------

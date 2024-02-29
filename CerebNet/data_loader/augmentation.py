@@ -81,28 +81,6 @@ class RandomAffine(object):
         ----------
         cfg : yacs.config.CfgNode
             Parameters degree, img_size, scale, translate, prob are filled from its attributes AUGMENTATION and MODEL.
-        degrees : sequence or float or int,
-             Range of degrees to select from.
-             If degrees is a number instead of sequence like (min, max), the range of degrees
-             will be (-degrees, +degrees).
-        translate : tuple, float
-             if translate=(a,b), the value for translation is uniformly sampled
-             in the range
-              -column_size * a < dx < column_size * a
-              -row_size * b < dy < row_size * b
-             If translate is a number then a=b=c.
-             The value should be between 0 and 1.
-        img_size : tuple
-            img_size = (column_size, row_size)
-        scale: tuple
-            Range of min and max scaling factor.
-        seed : int
-            Random seed.
-
-        Returns
-        -------
-        transform_mat : 3x3 matrix
-            Random affine transformation.
         """
         self.degree = cfg.AUGMENTATION.DEGREE
         self.img_size = [cfg.MODEL.HEIGHT, cfg.MODEL.WIDTH]
@@ -214,27 +192,30 @@ class RandomBiasField:
     `Sudre et al., 2017, Longitudinal segmentation of age-related
     white matter hyperintensities
     <https://www.sciencedirect.com/science/article/pii/S1361841517300257?via%3Dihub>`_.
-
-    Parameters
-    ----------
-    cfg : yacs.config.CfgNode
-        Node to get Config from (should include:
-        AUGMENTATION.BIAS_FIELD_COEFFICIENTS
-        Magnitude :math:`n` of polynomial coefficients.
-        If a tuple :math:`(a, b)` is specified, then
-        :math:`n \sim \mathcal{U}(a, b)`.
-        AUGMENTATION.BIAS_FIELD_ORDER
-        Order of the basis polynomial functions.
-        AUGMENTATION.PROB
-        Probability that this transform will be applied.
-    seed : int, optional
-        Seed.
     """
     def __init__(
         self,
         cfg,
         seed: Optional[int] = None,
     ):
+        """
+        Initialize the RandomBiasField object with configuration and optional seed.
+        
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            Node to get Config from (should include:
+            AUGMENTATION.BIAS_FIELD_COEFFICIENTS
+            Magnitude :math:`n` of polynomial coefficients.
+            If a tuple :math:`(a, b)` is specified, then
+            :math:`n \sim \mathcal{U}(a, b)`.
+            AUGMENTATION.BIAS_FIELD_ORDER
+            Order of the basis polynomial functions.
+            AUGMENTATION.PROB
+            Probability that this transform will be applied.
+        seed : int, optional
+            Seed.
+        """
         coefficients = cfg.AUGMENTATION.BIAS_FIELD_COEFFICIENTS
         if isinstance(coefficients, float):
             coefficients = (-coefficients, coefficients)
