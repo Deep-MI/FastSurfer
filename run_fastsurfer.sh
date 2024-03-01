@@ -59,7 +59,7 @@ vox_size="min"
 run_asegdkt_module="1"
 run_cereb_module="1"
 threads="1"
-# python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
+# python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
 allow_root=()
 version_and_quit=""
