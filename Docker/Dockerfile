@@ -186,7 +186,6 @@ SHELL ["/bin/bash", "--login", "-c"]
 # seletced_<name>_build_image is a only a reference to $<NAME>_BUILD_IMAGE
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_conda_build_image /venv /venv
-COPY /Docker/python-s /venv/bin/
 
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
