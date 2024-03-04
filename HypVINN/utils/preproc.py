@@ -28,7 +28,7 @@ def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type='coreg'):
 
     lta_path = os.path.join(out_dir, 'mri', 'transforms', 't2tot1.lta')
 
-    t2_reg_path = os.path.join(out_dir, 'mri', 'T2_reg.nii.gz')
+    t2_reg_path = os.path.join(out_dir, 'mri', 'T2_nu_reg.mgz')
 
     if registration_type == 'coreg':
         exe = shutil.which("mri_coreg")

@@ -62,6 +62,7 @@ vox_size="min"
 doParallel=""
 run_asegdkt_module="1"
 run_cereb_module="1"
+# TODO include <run_hypvinn_module>
 threads="1"
 # python3.10 -s excludes user-directory package inclusion, but passing "python3.10 -s" is not possible
 # python-s is a miniscript to add this flag, but this only works if python-s is defined
