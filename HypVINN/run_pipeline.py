@@ -104,7 +104,7 @@ if __name__ == "__main__":
         if args.log_name:
             setup_logging(args.log_name)
         else:
-            setup_logging(os.path.join(args.out_dir,'logs','hypvinn_seg.log'))
+            setup_logging(os.path.join(args.out_dir,'scripts','hypvinn_seg.log'))
 
         LOGGER.info("Checking or downloading default checkpoints ...")
         from HypVINN.utils.checkpoint import URL as HYPVINN_URL
