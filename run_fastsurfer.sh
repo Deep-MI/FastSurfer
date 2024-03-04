@@ -59,6 +59,7 @@ surf_flags=()
 vox_size="min"
 run_asegdkt_module="1"
 run_cereb_module="1"
+# TODO include <run_hypvinn_module>
 threads="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
