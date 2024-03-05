@@ -170,7 +170,7 @@ SEGMENTATION PIPELINE:
                             APARC module (see above). Requires an ABSOLUTE Path!
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-	--cereb_segfile <seg_output>
+  --cereb_segfile <seg_output>
                           Name of DL-based segmentation file of the cerebellum.
                             This segmentation is always at 1mm isotropic
                             resolution, since inference is always based on a
