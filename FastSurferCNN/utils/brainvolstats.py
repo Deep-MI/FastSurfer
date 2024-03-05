@@ -1162,7 +1162,8 @@ class DerivedMeasure(AbstractMeasure):
 
 
 def format_measure(key: str, data: MeasureTuple) -> str:
-    return f"# Measure {key}, {data[0]}, {data[1]}, {data[2]}, {data[3]}"
+    value = data[2] if isinstance(data[2], int) else ("%.6f" % data[2])
+    return f"# Measure {key}, {data[0]}, {data[1]}, {value}, {data[3]}"
 
 
 class Manager(dict[str, AbstractMeasure]):

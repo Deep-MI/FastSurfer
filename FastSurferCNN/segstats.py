@@ -688,7 +688,7 @@ def infer_labels_excludeid(
                     "ids to exclude (--excludeid)."
                 )
         labels = np.asarray([x for x in labels if x not in exclude_id], dtype=int)
-    return labels
+    return labels, exclude_id
 
 
 def main(args: argparse.Namespace) -> Literal[0] | str:
@@ -814,7 +814,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # ------
     # finished manager io here
     # ------
-    manager.compute_non_derived_pv(None)  #compute_threads)
+    manager.compute_non_derived_pv(compute_threads)
 
     if pv_preproc_future is not None:
         # wait for preprocessing options on pvfile
