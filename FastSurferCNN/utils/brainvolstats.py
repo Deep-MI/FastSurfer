@@ -4,11 +4,9 @@ import re
 from concurrent.futures import Executor
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (Tuple, Union, TYPE_CHECKING, Sequence, List, cast, Literal,
-                    Iterable, Callable, Optional, Dict, overload, TextIO, Protocol,
-                    TypeVar, Generic)
+from typing import (TYPE_CHECKING, Sequence, cast, Literal, Iterable, Callable, Union,
+                    Optional, overload, TextIO, Protocol, TypeVar, Generic)
 from concurrent.futures import Future
-
 
 import numpy as np
 
@@ -20,14 +18,14 @@ if TYPE_CHECKING:
 
     from CerebNet.datasets.utils import LTADict
 
-MeasureTuple = Tuple[str, str, Union[int, float], str]
-ImageTuple = Tuple["nib.analyze.SpatialImage", "np.ndarray"]
-MeasureString = Union["Measure", str]
+MeasureTuple = tuple[str, str, int | float, str]
+ImageTuple = tuple["nib.analyze.SpatialImage", "np.ndarray"]
+MeasureString = Union[str, "Measure"]
 AnyBufferType = Union[dict[str, MeasureTuple], ImageTuple, "lapy.TriaMesh",
                       "npt.NDArray[float]", "pd.DataFrame"]
 T_BufferType = TypeVar("T_BufferType",
-                       bound=(ImageTuple | dict[str, MeasureTuple] | "lapy.TriaMesh" |
-                              "np.ndarray" | "pd.DataFrame"))
+                       bound=(ImageTuple | dict[str, MeasureTuple] |
+                              Union["lapy.TriaMesh", "np.ndarray", "pd.DataFrame"]))
 DerivedAggOperation = Literal["sum", "ratio", "by_vox_vol"]
 AnyMeasure = Union["AbstractMeasure", str]
 PVMode = Literal["vox", "pv"]
@@ -48,7 +46,7 @@ class ReadFileHook(Protocol[T_BufferType]):
     def __call__(self, file: Path, b: bool = True) -> Optional[T_BufferType]: ...
 
 
-def read_measure_file(path: Path) -> Dict[str, MeasureTuple]:
+def read_measure_file(path: Path) -> dict[str, MeasureTuple]:
     """
     Read '# Measure <key> <name> <description> <value> <unit>'-entries from stats files.
 
@@ -69,7 +67,7 @@ def read_measure_file(path: Path) -> Dict[str, MeasureTuple]:
         lines = list(fp.readlines())
     lines = filter(lambda l: l.startswith("# Measure "), lines)
 
-    def to_measure(line: str) -> Tuple[str, MeasureTuple]:
+    def to_measure(line: str) -> tuple[str, MeasureTuple]:
         data = line.removeprefix("# Measure ").strip()
         import re
         key, name, desc, sval, unit = re.split("\\s*,\\s*", data)
@@ -487,7 +485,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         name: str = "N/A",
         description: str = "N/A",
         unit: str = "unitless",
-        read_file: Optional[ReadFileHook[Dict[str, MeasureTuple]]] = None,
+        read_file: Optional[ReadFileHook[dict[str, MeasureTuple]]] = None,
     ):
         self._key: str = key
         super().__init__(measurefile, name, description, unit,
@@ -624,7 +622,7 @@ class PVMeasure(AbstractMeasure):
     def vox_vol(self, v: float):
         self._vox_vol = v
 
-    def labels(self) -> List[int]:
+    def labels(self) -> list[int]:
         return list(self._classes)
 
     def update_data(self, value: "pd.Series"):
@@ -667,13 +665,18 @@ def format_classes(_classes: Iterable[int]) -> str:
     Parameters
     ----------
     _classes : Iterable[int]
-        An iterable of intetegers.
+        An iterable of integers.
 
     Returns
     -------
     A string of sorted integers and integer ranges, '()' if iterable is empty, or just
     the string conversion of _classes, if _classes is not an iterable.
+
+    Notes
+    -----
+    This function will likely be moved to a different file.
     """
+    # TODO move this function to a more appropriate module
     if not isinstance(_classes, Iterable):
         return str(_classes)
     from itertools import pairwise
@@ -819,107 +822,8 @@ class MaskMeasure(VolumeMeasure):
         return f"voxel > {self._threshold}"
 
 
-class MultiVolumeMeasure(VolumeMeasure):
-
-    Condition = Callable[["npt.NDArray[int]"], "npt.NDArray[bool]"]
-
-    def __init__(
-            self,
-            segfile: Path,
-            other_file: Path,
-            classes_or_cond: ClassesOrCondType,
-            name: str,
-            description: str,
-            unit: Literal["unitless", "mm^3"] = "unitless",
-            read_file: Optional[ReadFileHook[ImageTuple]] = None,
-            other_classes_or_cond: ClassesOrCondType = (0,),
-    ):
-        self._other_file = other_file
-        self._other_data = None
-        super().__init__(segfile, classes_or_cond, name, description, unit, read_file)
-        if callable(other_classes_or_cond):
-            self._other_classes: Optional[ClassesType] = None
-            self._other_cond: MultiVolumeMeasure.Condition = other_classes_or_cond
-        else:
-            if len(other_classes_or_cond) == 0:
-                raise ValueError(f"No other_classes passed to {type(self).__name__}.")
-            self._other_classes = other_classes_or_cond
-            from functools import partial
-            self._other_cond = partial(mask_in_array, items=self._other_classes)
-
-    def read_subject(self, subject_dir: Path) -> bool:
-        """
-        Perform IO required to compute/fill the Measure. Delegates file reading to
-        read_hook (set in __init__).
-
-        Parameters
-        ----------
-        subject_dir : Path
-            Path to the directory of the subject_dir (often subject_dir/subject_id).
-
-        Returns
-        -------
-        bool
-            Whether there was an update.
-        """
-        if super().read_subject(subject_dir):
-            self._other_data = self._callback(self._other_filename())
-            return True
-        return False
-
-    def _other_filename(self) -> Path:
-        return self._subject_dir / self._other_file
-
-    def _compute(self) -> int | float:
-        if not isinstance(self._data, tuple) or len(self._data) != 2:
-            raise self._load_error("data")
-
-        if not isinstance(self._other_data, tuple) or len(self._other_data) != 2:
-            raise self._load_error("other data")
-
-        if not np.all(np.isclose(self._data[0].affine, self._other_data[0].affine)):
-            raise RuntimeError(
-                f"The two images {self._filename()} and {self._other_filename()} do "
-                f"not share the same affines."
-            )
-
-        # duplicate the seg-data
-        self._data = self._data[0], self._data[1].copy()
-        # only count regions that are not in the background for the ribbon
-        # freesurfer/utils/cma.cpp#504
-        mask = self._other_cond(self._other_data[1])
-        self._data[1][mask] = self._fill_data(mask)
-        self._other_data = None
-        # compute the volume of operation in volume
-        return super()._compute()
-
-    def _fill_data(self, mask: "npt.NDArray[bool]") -> "npt.ArrayLike":
-        return 0
-
-    def _parsable_args(self) -> list[str]:
-        return ["segfile", "other_file", "operation", "other_classes"]
-
-    def set_args(self, other_file: str | None = None,
-                 other_classes: str | None = None, **kwargs: str) -> None:
-        if other_file is not None:
-            self._other_file = other_file
-        self._set_classes(other_classes, "_other_classes", "_other_cond")
-        return super().set_args(**kwargs)
-
-    def help(self) -> str:
-        multi_vol_help = f"and {self._param_help('_other')} in {self._other_file}"
-        return super().help() + multi_vol_help
-
-    def __str__(self) -> str:
-        return (
-            f"{type(self).__name__}(segfile={self._file}, "
-            f"other_file={self._other_file}, {self._param_string()}, "
-            f"{self._param_string('_other')})"
-        )
-
-
-AnyParentsTuple = Tuple[float, AnyMeasure]
-ParentsTuple = Tuple[float, AnyMeasure]
+AnyParentsTuple = tuple[float, AnyMeasure]
+ParentsTuple = tuple[float, AnyMeasure]
 
 
 class TransformMeasure(Measure, metaclass=abc.ABCMeta):
@@ -1003,7 +907,7 @@ class DerivedMeasure(AbstractMeasure):
 
     def __init__(
             self,
-            parents: Iterable[Tuple[float, AnyMeasure] | AnyMeasure],
+            parents: Iterable[tuple[float, AnyMeasure] | AnyMeasure],
             name: str,
             description: str,
             unit: str = "from parents",
@@ -1035,8 +939,8 @@ class DerivedMeasure(AbstractMeasure):
         """
 
         def to_tuple(
-                value: Tuple[float, AnyMeasure] | AnyMeasure,
-        ) -> Tuple[float, AnyMeasure]:
+                value: tuple[float, AnyMeasure] | AnyMeasure,
+        ) -> tuple[float, AnyMeasure]:
             if isinstance(value, Sequence) and not isinstance(value, str):
                 if len(value) != 2:
                     raise ValueError("A tuple was not length 2.")
@@ -1120,7 +1024,7 @@ class DerivedMeasure(AbstractMeasure):
         """Iterable of the measures this measure depends on."""
         return (p for _, p in self.parents_items())
 
-    def parents_items(self) -> Iterable[Tuple[float, AbstractMeasure]]:
+    def parents_items(self) -> Iterable[tuple[float, AbstractMeasure]]:
         """Iterable of the measures this measure depends on."""
         return ((f, self._measure_host[p] if isinstance(p, str) else p)
                 for f, p in self._parents)
@@ -1215,7 +1119,7 @@ class DerivedMeasure(AbstractMeasure):
             pat = re.compile("^(\\d+\\.?\\d*\\s+)?(\\s.*)")
             stripped = parents.lstrip("[ ").rstrip("] ")
 
-            def parse(p: str) -> Tuple[float, str]:
+            def parse(p: str) -> tuple[float, str]:
                 hit = pat.match(p)
                 if hit is None:
                     return 1., p
@@ -1257,10 +1161,16 @@ class DerivedMeasure(AbstractMeasure):
             return f"invalid operation {self._operation}"
 
 
+def format_measure(key: str, data: MeasureTuple) -> str:
+    return f"# Measure {key}, {data[0]}, {data[1]}, {data[2]}, {data[3]}"
+
+
 class Manager(dict[str, AbstractMeasure]):
     _PATTERN_NO_ARGS = re.compile("^\\s*([^(]+?)\\s*$")
     _PATTERN_ARGS = re.compile("^\\s*([^(]+)\\(\\s*([^)]*)\\s*\\)\\s*$")
     _PATTERN_DELIM = re.compile("\\s*,\\s*")
+
+    _compute_futures: list[Future]
 
     def __init__(
             self,
@@ -1268,7 +1178,7 @@ class Manager(dict[str, AbstractMeasure]):
             measurefile: Optional[Path] = None,
             on_missing: Literal["fail", "skip", "fill"] = "fail",
             executor: Optional[Executor] = None,
-            compat: Optional[Literal["FS6", "FS7"]] = None,
+            compat: Optional[bool] = None,
     ):
         """
 
@@ -1281,11 +1191,33 @@ class Manager(dict[str, AbstractMeasure]):
             behavior to follow if a requested measure does not exist in path.
         executor : concurrent.futures.Executor, optional
             thread pool to parallelize io
-        compat : "FS6", "FS7", optional
-            FreeSurfer compatibility mode (default: off).
+        compat : bool, optional
+            FreeSurfer compatibility mode (default: legacy_freesurfer in args).
         """
 
         super().__init__()
+        self._default_measures = (
+            "BrainSeg",
+            "BrainSegNotVent",
+            "VentricleChoroidVol",
+            "lhCortex",
+            "rhCortex",
+            "Cortex",
+            "lhCerebralWhiteMatter",
+            "rhCerebralWhiteMatter",
+            "CerebralWhiteMatter",
+            "SubCortGray",
+            "TotalGray",
+            "SupraTentorial",
+            "SupraTentorialNotVent",
+            "Mask",
+            "BrainSegVol-to-eTIV",
+            "MaskVol-to-eTIV",
+            "lhSurfaceHoles",
+            "rhSurfaceHoles",
+            "SurfaceHoles",
+            "EstimatedTotalIntraCranialVol",
+        )
         computed_measures = getattr(args, "computed_measures", [])
         imported_measures = getattr(args, "imported_measures", [])
         all_measures = (computed_measures, imported_measures)
@@ -1298,8 +1230,8 @@ class Manager(dict[str, AbstractMeasure]):
             raise ValueError(
                 "computed measures and imported measures must be sequences of str."
             )
-        if compat is None and getattr(args, "legacy_freesurfer", False):
-            compat = cast(Literal["FS7"], "FS7")
+        if compat is None:
+            compat = getattr(args, "legacy_freesurfer", False)
         from concurrent.futures import ThreadPoolExecutor, Future
         if executor is None:
             self._executor = ThreadPoolExecutor(8)
@@ -1316,10 +1248,9 @@ class Manager(dict[str, AbstractMeasure]):
         self._import_all_measures: list[Path] = []
         self._subject_all_imported: list[Path] = []
         self._exported_measures: list[str] = []
-        self._cache: Dict[Path, Future[AnyBufferType] | AnyBufferType] = {}
-        self._fs_compat: Literal["FS6", "FS7"] | None = compat
-        if compat == "FS6":
-            raise NotImplementedError("The FreeSurfer compatibility mode is disabled.")
+        self._cache: dict[Path, Future[AnyBufferType] | AnyBufferType] = {}
+        # self._lut: Optional[pd.DataFrame] = None
+        self._fs_compat: bool = compat
 
         _imported_measures = list(imported_measures)
         if len(_imported_measures) != 0:
@@ -1346,6 +1277,14 @@ class Manager(dict[str, AbstractMeasure]):
     @property
     def executor(self) -> Executor:
         return self._executor
+
+    # @property
+    # def lut(self) -> Optional["pd.DataFrame"]:
+    #     return self._lut
+    #
+    # @lut.setter
+    # def lut(self, lut: Optional["pd.DataFrame"]):
+    #     self._lut = lut
 
     def assert_measure_need_subject(self) -> None:
         """
@@ -1544,7 +1483,7 @@ class Manager(dict[str, AbstractMeasure]):
                 self._io_futures.append(self._executor.submit(_read, x))
         return True
 
-    def extract_key_args(self, measure: str) -> Tuple[str, List[str]]:
+    def extract_key_args(self, measure: str) -> tuple[str, list[str]]:
         """
         Extract the name and options from a string like '<name>' or
         '<name>(<option_list>)'.
@@ -1558,7 +1497,7 @@ class Manager(dict[str, AbstractMeasure]):
         -------
         key : str
             the name of the measure
-        args : List[str]
+        args : list[str]
             a list of options
 
         """
@@ -1641,40 +1580,48 @@ class Manager(dict[str, AbstractMeasure]):
             measures.update(read_file(path))
         return measures
 
-    def format_measures(self) -> Iterable[str]:
-        """Formats all measures as strings and returns them as an iterable of str."""
-        def fmt(key: str, data: MeasureTuple) -> str:
-            return f"# Measure {key}, {data[0]}, {data[1]}, {data[2]}, {data[3]}"
+    def format_measures(
+            self, /,
+            fmt_func: Callable[[str, MeasureTuple], str] = format_measure,
+    ) -> Iterable[str]:
+        """
+        Formats all measures as strings and returns them as an iterable of str.
 
+        Parameters
+        ----------
+        fmt_func: callable, default=fmt_measure
+            Function to format the key and a MeasureTuple object into a string.
+
+        Returns
+        -------
+        Iterable[str]
+            An iterable of the measure strings.
+        """
         measures = self.get_imported_all_measures()
         measures.update({key: self[key].as_tuple() for key in self._exported_measures})
 
         # order the measures, so they are in default order, appends "new" keys in the
         # order they were in exported measures
-        ordered_keys = tuple(self.default_measures())
+        ordered_keys = tuple(self.default_measures)
         ordered = {k: measures[k] for k in ordered_keys if k in measures}
         ordered.update(filter(lambda i: i[0] not in ordered_keys, measures.items()))
-        return map(fmt, ordered.keys(), ordered.values())
+        return map(fmt_func, ordered.keys(), ordered.values())
 
+    @property
     def default_measures(self) -> Iterable[str]:
-        """Iterable over measures typically included stats files in correct order."""
-        return ("BrainSeg", "BrainSegNotVent", "VentricleChoroidVol", "lhCortex",
-                "rhCortex", "Cortex", "lhCerebralWhiteMatter", "rhCerebralWhiteMatter",
-                "CerebralWhiteMatter", "SubCortGray", "TotalGray", "SupraTentorial",
-                "SupraTentorialNotVent", "Mask", "BrainSegVol-to-eTIV",
-                "MaskVol-to-eTIV", "lhSurfaceHoles", "rhSurfaceHoles", "SurfaceHoles",
-                "EstimatedTotalIntraCranialVol")
+        """
+        Iterable over measures typically included stats files in correct order.
+        """
+        return self._default_measures
+
+    @default_measures.setter
+    def default_measures(self, values: Iterable[str]):
+        self._default_measures = values
 
     @property
     def voxel_class(self):
         from functools import partial
-        if self._fs_compat == "FS6":
-            return partial(
-                VolumeMeasure,
-                Path("mri/aseg.presurf.mgz"),
-                read_file=self.make_read_hook(VolumeMeasure.read_file),
-            )
-        elif self._fs_compat == "FS7":
+        if self._fs_compat:
             return partial(
                 VolumeMeasure,
                 Path("mri/aseg.mgz"),
@@ -1683,37 +1630,14 @@ class Manager(dict[str, AbstractMeasure]):
         else:  # FastSurfer compat == None
             return PVMeasure
 
-    @property
-    def supratentorial_class(self):
-        # supratentorial_class and ribbon_corrected_class are only used with FS6 compat
-        from functools import partial
-        return partial(
-            MultiVolumeMeasure,
-            Path("mri/aseg.presurf.mgz"),
-            Path("mri/ribbon.mgz"),
-            other_classes_or_cond=lambda x: x > 0,
-            read_file=self.make_read_hook(VolumeMeasure.read_file),
-        )
-
-    @property
-    def ribboncorrected_class(self):
-        # supratentorial_class and ribbon_corrected_class are only used with FS6 compat
-        from functools import partial
-        return partial(
-            MultiVolumeMeasure,
-            Path("mri/aseg.presurf.mgz"),
-            Path("mri/ribbon.mgz"),
-            read_file=self.make_read_hook(VolumeMeasure.read_file),
-        )
-
     def default(self, key: str) -> AbstractMeasure:
         """Returns the default Measure object for the measure with key `key`."""
 
         hemi = key[:2]
         side = "Left" if hemi != "rh" else "Right"
-        cc_classes = (251, 252, 253, 253, 255)
+        cc_classes = tuple(range(251, 256))
         if key in ("lhSurfaceHoles", "rhSurfaceHoles"):
-            # FastSurfer, FS6 and FS7 are same
+            # FastSurfer and FS7 are same
             # l/rSurfaceHoles: (1-lheno/2) -- Euler number of /surf/l/rh.orig.nofix
             return SurfaceHoles(
                 Path(f"surf/{hemi}.orig.nofix"),
@@ -1730,44 +1654,39 @@ class Manager(dict[str, AbstractMeasure]):
                 measure_host=self,
             )
         elif key in ("lhPialTotal", "rhPialTotal"):
-            # FastSurfer, FS6 and FS7 are same
+            # FastSurfer and FS7 are same
             return SurfaceVolume(
                 Path(f"surf/{hemi}.pial"),
                 f"{hemi}PialTotalVol",
                 f"{side} hemisphere total pial volume",
                 "mm^3",
             )
-        elif key in ("lhWhiteMatterTotal", "rhWhiteMatterTotal"):
-            # FastSurfer, FS6 and FS7 are same
-            return SurfaceVolume(
-                Path(f"surf/{hemi}.white"),
-                f"{hemi}PialVol",
+        elif key in ("lhWhiteMatterVol", "rhWhiteMatterVol"):
+            # This is volume-based in FS7 (ComputeBrainVolumeStats2)
+            if key[:1] == "l":
+                classes = (2, 78)
+            else:  # r
+                classes = (41, 79)
+            return self.voxel_class(
+                classes,
+                f"{hemi}WhiteMatterVol",
                 f"{side} hemisphere total white matter volume",
                 "mm^3",
             )
-        elif key in ("lhCortexRibbon", "rhCortexRibbon"):
-            # FS6 only
-            # l/rhCtxGMCor: 3/42 in ribbon, but not (0, 2, 3)/(0, 41, 42) in aseg
-            classes = {"lh": (3,), "rh": (42,)}
-            ribbon_classes = {"lh": (0, 2, 3), "rh": (0, 41, 42)}
-            from functools import partial
-            return self.ribboncorrected_class(
-                classes[hemi],
-                key,
-                f"{side} hemisphere cortical gray matter volume correction",
+        elif key in ("lhWhiteMatterTotal", "rhWhiteMatterTotal"):
+            return SurfaceVolume(
+                Path(f"surf/{hemi}.white"),
+                f"{hemi}WhiteMatterSurfVol",
+                f"{side} hemisphere total white matter volume",
                 "mm^3",
-                other=partial(mask_not_in_array, items=ribbon_classes[hemi]),
             )
         elif key in ("lhCortex", "rhCortex"):
-            # 5/6 => l/rhCtxGM: (l/rhpialvolTot - l/hwhitevolTot - l/rhCtxGMCor)
             # From https://github.com/freesurfer/freesurfer/blob/
             # 3753f8a1af484ac2507809c0edf0bc224bb6ccc1/utils/cma.cpp#L1190C1-L1192C52
             # CtxGM = everything inside pial surface minus everything in white surface.
             parents = [f"{hemi}PialTotal", (-1, f"{hemi}WhiteMatterTotal")]
             # With version 7, don't need to do a correction because the pial surface is
             # pinned to the white surface in the medial wall
-            if self._fs_compat == "FS6":
-                parents.append((-1, f"{hemi}CortexRibbon"))
             return DerivedMeasure(
                 parents,
                 f"{hemi}CortexVol",
@@ -1783,7 +1702,7 @@ class Manager(dict[str, AbstractMeasure]):
                 measure_host=self,
             )
         elif key == "CorpusCallosumVol":
-            # FastSurfer, FS6 and FS7 are same
+            # FastSurfer and FS7 are same
             # CCVol:
             # CC_Posterior CC_Mid_Posterior CC_Central CC_Mid_Anterior CC_Anterior
             return self.voxel_class(
@@ -1792,26 +1711,39 @@ class Manager(dict[str, AbstractMeasure]):
                 "Volume of the Corpus Callosum",
                 "mm^3",
             )
-        elif key in ("lhWhiteMatterRibbon", "rhWhiteMatterRibbon"):
-            # FS6 only
-            # l/rhCtxWMCor:
-            # 2/41 in ribbon, but not (2/41, 77, Corpus Callosum) in aseg
-            classes = {"lh": (3,), "rh": (42,)}
-            ribbon_classes = ({"lh": 2, "rh": 41}[hemi], 77) + cc_classes
-            from functools import partial
-            return self.ribboncorrected_class(
-                classes[hemi],
-                key,
-                f"{side} hemisphere cortical gray matter volume correction",
-                "mm^3",
-                other=partial(mask_not_in_array, items=ribbon_classes),
+        elif key in ("lhWM-hypointensities", "rhWM-hypointensities"):
+            # lateralized counting of class 77 WM hypo intensities
+            def mask_77_lat(arr):
+                """
+                This function returns a lateralized mask of hypo-WM (class 77).
+
+                This is achieved by looking at surrounding labels and associating them
+                with left or right (this is not 100% robust when there is no clear
+                classes with left aseg labels present, but it is cheap to perform.
+                """
+                mask = arr == 77
+                left_aseg = (2, 4, 5, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 30, 31)
+                is_left = mask_in_array(arr, left_aseg)
+                from scipy.ndimage import uniform_filter
+                is_left = uniform_filter(is_left.astype(np.float32), size=7) > 0.2
+                is_side = np.logical_not(is_left) if hemi == "rh" else is_left
+                return np.logical_and(mask, is_side)
+
+            return VolumeMeasure(
+                Path("mri/aseg.mgz"),
+                mask_77_lat,
+                f"{side}WhiteMatterHypoIntensities",
+                f"Volume of {side} White matter hypointensities",
+                "mm^3"
             )
         elif key in ("lhCerebralWhiteMatter", "rhCerebralWhiteMatter"):
-            # FS6 only: reduce WhiteMatter Ribbon, FS7/FastSurfer: only SurfaceVolume
-            # 9/10 => l/rCtxWM (FS6): l/rWhiteMatter; l/rCerebralWM (FS7)
-            parents = [f"{hemi}WhiteMatterTotal"]
-            if self._fs_compat == "FS6":
-                parents.append((-1, f"{hemi}WhiteMatterRibbon"))
+            # SurfaceVolume
+            # 9/10 => l/rCerebralWM
+            parents = [
+                f"{hemi}WhiteMatterVol",
+                f"{hemi}WM-hypointensities",
+                (0.5, "CorpusCallosumVol"),
+            ]
             return DerivedMeasure(
                 parents,
                 f"{hemi}CerebralWhiteMatterVol",
@@ -1827,7 +1759,6 @@ class Manager(dict[str, AbstractMeasure]):
                 measure_host=self,
             )
         elif key == "CerebellarGM":
-            #
             # Left-Cerebellum-Cortex Right-Cerebellum-Cortex Cbm_Left_I_IV
             # Cbm_Right_I_IV Cbm_Left_V Cbm_Right_V Cbm_Left_VI Cbm_Vermis_VI
             # Cbm_Right_VI Cbm_Left_CrusI Cbm_Vermis_CrusI Cbm_Right_CrusI
@@ -1843,6 +1774,15 @@ class Manager(dict[str, AbstractMeasure]):
                 cerebellum_classes,
                 "CerebellarGMVol",
                 "Cerebellar gray matter volume",
+                "mm^3",
+            )
+        elif key == "CerebellarWM":
+            # Left-Cerebellum-White-Matter Right-Cerebellum-White-Matter
+            cerebellum_classes = [7, 46]
+            return self.voxel_class(
+                cerebellum_classes,
+                "CerebellarWMVol",
+                "Cerebellar white matter volume",
                 "mm^3",
             )
         elif key == "SubCortGray":
@@ -1894,40 +1834,32 @@ class Manager(dict[str, AbstractMeasure]):
                 "Volume of ventricles and choroid plexus",
                 "mm^3",
             )
-        elif key == "BrainSeg":
+        elif key in "BrainSeg":
             # 0 => BrainSegVol:
-            if self._fs_compat == "FS6":
-                brain_seg_classes = list(range(256))
-                # not background
-                brain_seg_classes.remove(0)
-                # not brainstem
-                brain_seg_classes.remove(16)
-                brainseg_class = self.voxel_class
-            else:  # FS7, FastSurfer
-                # FS7 (does mot use ribbon any more, just )
-                #   not background, in aseg ctab, not Brain stem, not optic chiasm,
-                #   aseg undefined in aseg ctab and not cortex or WM (L/R Cerebral
-                #   Ctx/WM)
-                # ComputeBrainStats2 also removes any regions that are not part of the
-                # AsegStatsLUT.txt
-                # background, brainstem, optic chiasm: 0, 16, 85
-                # not cortex or WM (L/R Cerebral Ctx/WM): 2, 3, 41, 42
-                brain_seg_classes = [4, 5, 7, 8]
-                brain_seg_classes.extend(range(10, 16))
-                brain_seg_classes.extend([17, 18, 24, 26, 28, 30, 31, 43, 44, 46, 47])
-                brain_seg_classes.extend(range(49, 55))
-                brain_seg_classes.extend([58, 60, 62, 63, 72])
-                brain_seg_classes.extend(range(77, 83))
-                brain_seg_classes.extend(cc_classes)
-                brainseg_class = self.ribboncorrected_class
-
+            # FS7 (does mot use ribbon any more, just )
+            #   not background, in aseg ctab, not Brain stem, not optic chiasm,
+            #   aseg undefined in aseg ctab and not cortex or WM (L/R Cerebral
+            #   Ctx/WM)
+            # ComputeBrainStats2 also removes any regions that are not part of the
+            # AsegStatsLUT.txt
+            # background, brainstem, optic chiasm: 0, 16, 85
+            brain_seg_classes = [2, 3, 4, 5, 7, 8]
+            brain_seg_classes.extend(range(10, 16))
+            brain_seg_classes.extend([17, 18, 24, 26, 28, 30, 31])
+            brain_seg_classes.extend(range(41, 55))
+            brain_seg_classes.remove(45)
+            brain_seg_classes.remove(48)
+            brain_seg_classes.extend([58, 60, 62, 63, 72])
+            brain_seg_classes.extend(range(77, 83))
+            brain_seg_classes.extend(cc_classes)
+            brainseg_class = self.voxel_class
             return brainseg_class(
                 brain_seg_classes,
                 "BrainSegVol",
                 "Brain Segmentation Volume",
                 "mm^3",
             )
-        elif key == "BrainSegNotVent":
+        elif key in ("BrainSegNotVent", "BrainSegNotVentSurf"):
             # FastSurfer, FS6 and FS7 are same
             # 1 => BrainSegNotVent: BrainSegVolNotVent (BrainSegVol-VentChorVol-TFFC)
             return DerivedMeasure(
@@ -1936,34 +1868,15 @@ class Manager(dict[str, AbstractMeasure]):
                 "Brain Segmentation Volume Without Ventricles",
                 measure_host=self,
             )
-        elif key == "SupraTentorialRibbon":
-            # FS6 only
-            # SupraTentCor:
-            # Left-Thalamus Right-Thalamus Left-Caudate Right-Caudate Left-Putamen
-            # Right-Putamen Left-Pallidum Right-Pallidum Left-Hippocampus
-            # Right-Hippocampus Left-Amygdala Right-Amygdala Left-Accumbens-area
-            # Right-Accumbens-area Left-VentralDC Right-VentralDC
-            # Left-Lateral-Ventricle Right-Lateral-Ventricle Left-Inf-Lat-Vent
-            # Right-Inf-Lat-Vent Left-choroid-plexus Right-choroid-plexus
-            # WM-hypointensities Left-WM-hypointensities Right-WM-hypointensities
-            # CC_Posterior CC_Mid_Posterior CC_Central CC_Mid_Anterior CC_Anterior
-            supratentorial_classes = [4, 5, 17, 18, 26, 28, 31, 43, 44, 58, 60, 63]
-            supratentorial_classes.extend(range(10, 14))
-            supratentorial_classes.extend(range(49, 55))
-            supratentorial_classes.extend(range(77, 80))
-            supratentorial_classes.extend(cc_classes)
-            return self.supratentorial_class(
-                supratentorial_classes,
-                "Ribbon-Corrected-Supratentorial",
-                "Volume of supratentorial operation, but not ribbon",
-                "mm^3",
+        elif key == "Cerebellum":
+            return DerivedMeasure(
+                ("CerebellarGM", "CerebellarWM"),
+                "CerebellumVol",
+                "Cerebellar volume",
+                measure_host=self,
             )
         elif key == "SupraTentorial":
-            if self._fs_compat == "FS6":
-                # 2 => SupraTentVol: (lhpialvolTot + rhpialvolTot + SupraTentVolCor)
-                parents = ["lhPialTotal", "rhPialTotal", (-1, "SupraTentorialRibbon")]
-            else:  # FS7/FastSurfer
-                parents = ["BrainSegVol", "CerebellumVol"]
+            parents = ["BrainSeg", (-1.0, "Cerebellum")]
             return DerivedMeasure(
                 parents,
                 "SupraTentorialVol",
@@ -1972,9 +1885,7 @@ class Manager(dict[str, AbstractMeasure]):
             )
         elif key == "SupraTentorialNotVent":
             # 3 => SupraTentVolNotVent: SupraTentorial w/o Ventricles & Choroid Plexus
-            parents = ["SupraTentorial", (-1, "VentricleChoroidVol")]
-            if self._fs_compat != "FS6":
-                parents.append((-1, "TFFC"))
+            parents = ["SupraTentorial", (-1, "VentricleChoroidVol"), (-1, "TFFC")]
             return DerivedMeasure(
                 parents,
                 "SupraTentorialVolNotVent",
@@ -2025,7 +1936,7 @@ class Manager(dict[str, AbstractMeasure]):
                 operation="ratio",
             )
 
-    def __iter__(self) -> List[AbstractMeasure]:
+    def __iter__(self) -> list[AbstractMeasure]:
         """Iterate through all measures that are exported directly or indirectly."""
 
         out = [self[name] for name in self._exported_measures]
@@ -2065,13 +1976,13 @@ class Manager(dict[str, AbstractMeasure]):
         if isinstance(compute_threads, Executor):
             run = compute_threads.submit
 
-        valid_types = (DerivedMeasure, PVMeasure)
+        invalid_types = (DerivedMeasure, PVMeasure)
         self._compute_futures = [
-            run(this) for this in self.values() if not isinstance(this, valid_types)
+            run(this) for this in self.values() if not isinstance(this, invalid_types)
         ]
         return self._compute_futures
 
-    def get_virtual_labels(self, label_pool: Iterable[int]) -> dict[int, List[int]]:
+    def get_virtual_labels(self, label_pool: Iterable[int]) -> dict[int, list[int]]:
         """Get the virtual substitute labels that are required."""
         lbls = (this.labels() for this in self.values() if isinstance(this, PVMeasure))
         no_duplicate_dict = {self.__to_lookup(labs): labs for labs in lbls}
@@ -2119,3 +2030,18 @@ class Manager(dict[str, AbstractMeasure]):
                 filtered_df = filtered_df[filtered_df["SegId"] != virtual_label]
 
         return filtered_df
+
+    def wait_compute(self) -> Sequence[BaseException]:
+        """
+        Wait for all pending computation processes and return their errors.
+
+        Also resets the internal compute futures.
+
+        Returns
+        -------
+        Sequence[BaseException]
+            The errors raised in the computations.
+        """
+        errors = [future.exception() for future in self._compute_futures]
+        self._compute_futures = []
+        return [error for error in errors if error is not None]

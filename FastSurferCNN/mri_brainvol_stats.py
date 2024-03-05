@@ -22,8 +22,28 @@ from pathlib import Path
 from typing import Literal
 
 from FastSurferCNN.segstats import HelpFormatter, VERSION, empty, _check_arg_path
-from FastSurferCNN.mri_segstats import print_and_exit, ETIV_RATIOS, ETIV_FROM_TAL
+from FastSurferCNN.mri_segstats import print_and_exit
+from FastSurferCNN.utils.brainvolstats import MeasureTuple
 from FastSurferCNN.utils.threads import get_num_threads
+
+DEFAULT_MEASURES = [
+    "BrainSeg",
+    "BrainSegNotVent",
+    "SupraTentorial",
+    "SupraTentorialNotVent",
+    "SubCortGray",
+    "lhCortex",
+    "rhCortex",
+    "Cortex",
+    "TotalGray",
+    "lhCerebralWhiteMatter",
+    "rhCerebralWhiteMatter",
+    "CerebralWhiteMatter",
+    "Mask",
+    "SupraTentorialNotVentVox",
+    "BrainSegNotVentSurf",
+    "VentricleChoroidVol",
+]
 
 USAGE = "python mri_brainvol_stats.py -s <subject>"
 HELPTEXT = f"""
@@ -88,30 +108,12 @@ def make_arguments() -> argparse.ArgumentParser:
         help="Where to save the brainvol.stats, if relative path, this will be "
              "relative to the subject directory."
     )
+    fs_home = "FREESURFER_HOME"
+    default_lut = Path(env[fs_home]) / "ASegStatsLUT.txt" if fs_home in env else None
     parser.set_defaults(
         segfile=Path("mri/aseg.mgz"),
-        # this file is not really necessary to exist, but segstats.py requires it
-        # here we just add it to be able to use segstats.py's main function
-        pvfile=Path("mri/orig.mgz"),
-        computed_measures=[
-            "rhCerebralWhiteMatter",
-            "lhCerebralWhiteMatter",
-            "CerebralWhiteMatter",
-            "rhCortex",
-            "lhCortex",
-            "Cortex",
-            "BrainSeg",
-            "BrainSegNotVent",
-            "SupraTentorial",
-            "SupraTentorialNotVent",
-            "SubCortGray",
-            "TotalGray",
-            ETIV_FROM_TAL,
-            *ETIV_RATIOS.keys(),
-            "rhSurfaceHoles",
-            "lhSurfaceHoles",
-            "SurfaceHoles",
-        ],
+        computed_measures=DEFAULT_MEASURES,
+        lut=default_lut,
     )
     parser.add_argument(
         "--no_legacy",
@@ -160,6 +162,15 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
             subject_id=subject_id,
             require_exist=False,
         )
+        # lutfile = _check_arg_path(
+        #     args,
+        #     "lut",
+        #     subjects_dir=subjects_dir,
+        #     subject_id=subject_id,
+        #     require_exist=False,
+        # )
+        # lut = manager.make_read_hook(read_classes_from_lut)(lutfile)
+
         threads = getattr(args, "threads", 0)
         if threads <= 0:
             threads = get_num_threads()
@@ -167,16 +178,22 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
 
         if any(isinstance(m, PVMeasure) for m in manager.values()):
             return "mri_brainvol_stats does not support PVMeasures."
+        manager.default_measures = DEFAULT_MEASURES
 
     # finished manager io here
-    manager.compute_non_derived_pv(None) #compute_threads)
+    # manager.lut = lut
+    manager.compute_non_derived_pv(compute_threads)
     # wait for computation of measures and return an error message if errors occur
     errors = list(manager.wait_compute())
     if not empty(errors):
         error_messages = ["Some errors occurred during measure computation:"]
         error_messages.extend(map(lambda e: str(e.args[0]), errors))
         return "\n - ".join(error_messages)
-    lines = manager.format_measures()
+
+    def fmt_measure(key: str, data: MeasureTuple) -> str:
+        return f"# Measure {key}, {data[0]}, {data[1]}, {data[2]:.12f}, {data[3]}"
+
+    lines = manager.format_measures(fmt_func=fmt_measure)
 
     with open(segstatsfile, "w") as file:
         for line in lines:

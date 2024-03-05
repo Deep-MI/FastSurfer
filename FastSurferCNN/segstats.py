@@ -734,6 +734,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # the manager object supports preloading of files (see below) for io parallelization
     # and calculates the measure
     manager = Manager(args)
+    from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
     read_lut = manager.make_read_hook(read_classes_from_lut)
     if lut_file := getattr(args, "lut", None):
         read_lut(lut_file, blocking=False)
@@ -775,6 +776,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         if lut_file:
             try:
                 lut = read_lut(lut_file)
+                # manager.lut = lut
             except FileNotFoundError:
                 return (
                     f"Could not find the ColorLUT in {lut_file}, make sure the --lut "
@@ -793,8 +795,6 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         # more args to pass to pv_calc
         kwargs = {
             "vox_vol": vox_vol,
-        "legacy_freesurfer": legacy_freesurfer,
-        "legacy_freesurfer": legacy_freesurfer,
             "legacy_freesurfer": legacy_freesurfer,
             "threads": compute_threads,
             "robust_percentage": getattr(args, "robust", None),
@@ -1208,52 +1208,6 @@ def write_statsfile(
             dataframe = index_df.join(dataframe)
         _table_header(fp, dataframe)
         _table_body(fp, dataframe)
-
-
-# Label mapping functions (to aparc (eval) and to label (train))
-def read_classes_from_lut(lut_file: str | Path):
-    """
-    Modify from datautils to allow support for FreeSurfer-distributed ColorLUTs.
-
-    Read in **FreeSurfer-like** LUT table.
-
-    Parameters
-    ----------
-    lut_file : Path, str
-        The path and name of FreeSurfer-style LUT file with classes of interest.
-        Example entry:
-        ID LabelName  R   G   B   A
-        0   Unknown   0   0   0   0
-        1   Left-Cerebral-Exterior 70  130 180 0
-        ...
-
-    Returns
-    -------
-    pandas.DataFrame
-        DataFrame with ids present, name of ids, color for plotting.
-    """
-    if Path(lut_file).suffix == ".tsv":
-        return pd.read_csv(lut_file, sep="\t")
-
-    # Read in file
-    names = {
-        "ID": "int",
-        "LabelName": "str",
-        "Red": "int",
-        "Green": "int",
-        "Blue": "int",
-        "Alpha": "int",
-    }
-    return pd.read_csv(
-        lut_file,
-        sep="\\s+",
-        index_col=False,
-        skip_blank_lines=True,
-        comment="#",
-        header=None,
-        names=list(names.keys()),
-        dtype=names,
-    )
 
 
 def preproc_image(
