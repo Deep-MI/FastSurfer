@@ -716,7 +716,7 @@ VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]
 echo "Version: $VERSION" |& tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
-trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" }" SIGINT SIGTERM
+trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" ; }" SIGINT SIGTERM
 
 # create the build log, file with all version info in parallel
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
