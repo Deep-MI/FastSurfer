@@ -136,6 +136,18 @@ def make_parser():
     return parser
 
 
+def has_git():
+    """
+    Determine whether FastSurfer is installed as a git directory.
+
+    Returns
+    -------
+    bool
+        Whether git commands on the FastSurfer dir likely work.
+    """
+    return shutil.which("git") is not None and (DEFAULTS.PROJECT_ROOT / ".git").is_dir()
+
+
 def print_build_file(
     version: str,
     git_hash: str = "",
@@ -197,7 +209,7 @@ def print_build_file(
 def main(
     sections: str = "",
     project_file: Optional[TextIOWrapper] = None,
-    build_cache: Optional[TextIOWrapper] = None,
+    build_cache: Optional[TextIOWrapper | bool] = None,
     file: Optional[TextIOWrapper] = None,
     prefer_cache: bool = False,
 ) -> str | int:
@@ -238,9 +250,10 @@ def main(
     project_file : TextIOWrapper, optional
         A file-like object to read the projects toml file, with the '[project]' section
         with a 'version' attribute. Defaults to $PROJECT_ROOT/pyproject.toml.
-    build_cache : TextIOWrapper, optional
+    build_cache : False, TextIOWrapper, optional
         A file-like object to read cached version information, the format should be
         formatted like the output of `main`. Defaults to $PROJECT_ROOT/BUILD.info.
+        If build_cache is false, it is ignored.
     file : TextIOWrapper, optional
         A file-like object to write the output to, defaults to stdout if None or not
         passed.
@@ -252,11 +265,11 @@ def main(
     int or str
         Returns 0, if the function was successful, or an error message.
     """
-    has_git = (
-        shutil.which("git") is not None and (DEFAULTS.PROJECT_ROOT / ".git").is_dir()
-    )
-    has_git = False
-    has_build_cache = build_cache is not None or DEFAULTS.BUILD_TXT.is_file()
+    has_build_cache = False
+    # ignore build_cache, if it is False
+    if build_cache is not False:
+        # if build_cache is not False, use the passed value or the default
+        has_build_cache = build_cache is not None or DEFAULTS.BUILD_TXT.is_file()
 
     if prefer_cache and not has_build_cache:
         return (
@@ -268,16 +281,16 @@ def main(
     if sections == "all":
         sections = "+checkpoints+git+pip"
 
-    from FastSurferCNN.utils.run_tools import Popen, PyPopen
+    from FastSurferCNN.utils.run_tools import Popen, PyPopen, MessageBuffer
 
     build_cache_required = prefer_cache
     kw_root = {"cwd": DEFAULTS.PROJECT_ROOT, "stdout": subprocess.PIPE}
-    futures = {}
+    futures: dict[str, Future[str | MessageBuffer | VersionDict]] = {}
 
     with ThreadPoolExecutor() as pool:
         futures["version"] = pool.submit(read_and_close_version, project_file)
         # if we do not have git, try VERSION file else git sha and branch
-        if has_git and not prefer_cache:
+        if has_git() and not prefer_cache:
             futures["git_hash"] = Popen(
                 ["git", "rev-parse", "--short", "HEAD"], **kw_root
             ).as_future(pool)
@@ -290,9 +303,10 @@ def main(
                     filter_git_status, Popen(["git", "status", "-s", "-b"], **kw_root)
                 )
         else:
+            # we go not have git, try loading the build cache
             build_cache_required = True
 
-        if build_cache_required:
+        if build_cache_required and build_cache is not False:
             futures["build_cache"] = pool.submit(parse_build_file, build_cache)
 
         if "+checkpoints" in sections and not prefer_cache:
@@ -312,10 +326,10 @@ def main(
                 ["-m", "pip", "list", "--verbose"], **kw_root
             ).as_future(pool)
 
-    if build_cache_required:
+    if build_cache_required and build_cache is not False:
         build_cache: VersionDict = futures.pop("build_cache").result()
     else:
-        build_cache: VersionDict = {}
+        build_cache: VersionDict = get_default_version_info()
 
     build_file_kwargs = {}
 
