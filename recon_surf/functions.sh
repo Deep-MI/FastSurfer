@@ -20,11 +20,11 @@ export timecmd
 
 function RunIt()
 {
-# parameters
-# $1 : cmd  (command to run)
-# $2 : LF   (log file)
-# $3 : CMDF (command file) optional
-# if CMDF is passed, then LF is ignored and cmd is echoed into CMDF and not run
+  # parameters
+  # $1 : cmd  (command to run)
+  # $2 : LF   (log file)
+  # $3 : CMDF (command file) optional
+  # if CMDF is passed, then LF is ignored and cmd is echoed into CMDF and not run
   cmd=$1
   LF=$2
   if [[ $# -eq 3 ]]
@@ -90,4 +90,37 @@ function RunBatchJobs()
       exit 1
     fi
   done
+}
+
+function softlink_or_copy()
+{
+  # params
+  # 1: file
+  # 2: target
+  # 3: logfile
+  # 4: cmdf
+  LF="$3"
+  CMDF="$4"
+  ln_cmd="ln -sf $1 $2"
+  cp_cmd="cp $1 $2"
+  if [[ $# -eq 4 ]]
+  then
+    CMDF=$3
+    echo "echo \"$ln_cmd\" " |& tee -a $CMDF
+    echo "$timecmd $ln_cmd " |& tee -a $CMDF
+    echo "if [ \${PIPESTATUS[0]} -ne 0 ]" |& tee -a $CMDF
+    echo "  echo \"$cp_cmd\" " |& tee -a $CMDF
+    echo "  $timecmd $cp_cmd " |& tee -a $CMDF
+    echo "  if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
+    echo "fi" |& tee -a $CMDF
+  else
+    echo $ln_cmd |& tee -a $LF
+    $timecmd $ln_cmd |& tee -a $LF
+    if [ ${PIPESTATUS[0]} -ne 0 ]
+    then
+      echo $cp_cmd |& tee -a $LF
+      $timecmd $cp_cmd |& tee -a $LF
+      if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+    fi
+  fi
 }
