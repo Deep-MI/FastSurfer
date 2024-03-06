@@ -6,7 +6,8 @@ import shutil
 import subprocess
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, cast, get_args, Literal, Optional, TypedDict, Sequence
+from concurrent.futures import ThreadPoolExecutor, Future
 
 
 class DEFAULTS:
@@ -18,6 +19,47 @@ class DEFAULTS:
         "git_status": ("+git", "git status:"),
         "pypackages": ("+pip", "python packages:"),
     }
+
+
+class _RequiredVersionDict(TypedDict):
+    """
+    Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch'.
+    """
+    git_branch: str
+    git_hash: str
+    version: str
+    version_line: str
+
+
+class _OptionalVersionDict(TypedDict, total=False):
+    """
+    Dictionary with optional keys 'checkpoints', 'git_status', and 'pypackages'.
+    """
+    content: str
+    checkpoints: str
+    git_status: str
+    pypackages: str
+    version_tag: str
+
+
+class VersionDict(_RequiredVersionDict, _OptionalVersionDict):
+    """
+    Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch',
+    'checkpoints', 'git_status', and 'pypackages'. The last 3 are optional and may
+    be missing depending on the content of the file.
+    """
+    pass
+
+
+VersionDictKeys = Literal[
+    "git_branch",
+    "git_hash",
+    "version",
+    "version_line",
+    "checkpoints",
+    "git_status",
+    "pypackages",
+]
 
 
 def section(arg: str) -> str:
@@ -89,7 +131,7 @@ def make_parser():
     parser.add_argument(
         "--prefer_cache",
         action="store_true",
-        help="Avoid running commands and only read the build file ",
+        help="Avoid running commands and only read the build file.",
     )
     return parser
 
@@ -158,7 +200,7 @@ def main(
     build_cache: Optional[TextIOWrapper] = None,
     file: Optional[TextIOWrapper] = None,
     prefer_cache: bool = False,
-) -> Union[str, int]:
+) -> str | int:
     """
     Print version info to stdout or file.
 
@@ -208,17 +250,19 @@ def main(
     Returns
     -------
     int or str
-        Returns 0, if the function was successful, a error message if a problem occurred.
+        Returns 0, if the function was successful, or an error message.
     """
     has_git = (
         shutil.which("git") is not None and (DEFAULTS.PROJECT_ROOT / ".git").is_dir()
     )
+    has_git = False
     has_build_cache = build_cache is not None or DEFAULTS.BUILD_TXT.is_file()
 
     if prefer_cache and not has_build_cache:
         return (
-            "Trying to force the use cached version information, but no build information file "
-            f"was passed found at the default location ({DEFAULTS.BUILD_TXT})."
+            "Trying to force the use of cached version information (--prefer_cache), "
+            "but no build information file was passed found at the default location "
+            f"({DEFAULTS.BUILD_TXT})."
         )
 
     if sections == "all":
@@ -229,8 +273,6 @@ def main(
     build_cache_required = prefer_cache
     kw_root = {"cwd": DEFAULTS.PROJECT_ROOT, "stdout": subprocess.PIPE}
     futures = {}
-
-    from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor() as pool:
         futures["version"] = pool.submit(read_and_close_version, project_file)
@@ -271,22 +313,22 @@ def main(
             ).as_future(pool)
 
     if build_cache_required:
-        build_cache = futures.pop("build_cache").result()
+        build_cache: VersionDict = futures.pop("build_cache").result()
     else:
-        build_cache = {}
+        build_cache: VersionDict = {}
 
     build_file_kwargs = {}
 
     try:
         version = futures.pop("version").result()
     except IOError:
-        version = build_cache["version_no"]
+        version = build_cache["version"]
 
     def __future_or_cache(
-        key: str, futures: Dict[str, Any], cache: Dict[str, Any]
+        key: VersionDictKeys, futures: dict[str, Future[Any]], cache: VersionDict,
     ) -> str:
-        future = futures.get(key, None)
-        if future:
+        future: None | Future[Any] = futures.get(key, None)
+        if future is not None:
             returnmsg = future.result()
             if isinstance(returnmsg, str):
                 return returnmsg
@@ -300,8 +342,11 @@ def main(
             return cache[key]
         else:
             add_msg = ""
+            if key == "git_status":
+                add_msg += (" --sections all or --sections with +git require a build "
+                            "cache file or a FastSurfer git directory and git.")
             if prefer_cache:
-                add_msg = " The cached build file seems to not contain this info?"
+                add_msg += " The cached build file seems to not contain this info?"
             # ERROR
             raise RuntimeError(f"Could not find a valid value for {key}!" + add_msg)
 
@@ -313,7 +358,8 @@ def main(
             build_file_kwargs["git_branch"] = __future_or_cache(
                 "git_branch", futures, build_cache
             )
-        for key in ("git_status", "checkpoints", "pypackages"):
+        keys: Sequence[VersionDictKeys] = ("git_status", "checkpoints", "pypackages")
+        for key in keys:
             if DEFAULTS.VERSION_SECTIONS[key][0] in sections:
                 # stuff that is needed
                 build_file_kwargs[key] = __future_or_cache(key, futures, build_cache)
@@ -325,7 +371,24 @@ def main(
     return 0
 
 
-def parse_build_file(build_file: Optional[TextIOWrapper]) -> Dict[str, str]:
+def get_default_version_info() -> VersionDict:
+    """
+    Get the blank version information.
+
+    Returns
+    -------
+    VersionDict
+        A dictionary with blank version information.
+    """
+    return {
+        "version_line": "N/A",
+        "version": "N/A",
+        "git_hash": "0000000",
+        "git_branch": "release",
+    }
+
+
+def parse_build_file(build_file: Optional[TextIOWrapper]) -> VersionDict:
     """Read and parse a build file (same as output of `main`).
 
     Read and parse a file with version information in the format that is also the
@@ -338,21 +401,23 @@ def parse_build_file(build_file: Optional[TextIOWrapper]) -> Dict[str, str]:
 
     Returns
     -------
-    dict
+    VersionDict
         Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch',
-        'checkpoints', 'git_status', and 'pip'. The last 3 are optional and may
+        'checkpoints', 'git_status', and 'pypackages'. The last 3 are optional and may
         be missing depending on the content of the file.
 
     Notes
     -----
     See also main.
     """
-    file_cache: Dict[str, str] = {}
-    try:
-        if build_file is None:
+    file_cache: VersionDict = {}
+    if build_file is None:
+        try:
             build_file = open(DEFAULTS.BUILD_TXT, "r")
-        file_cache["content"] = "".join(build_file.readlines())
-    finally:
+        except FileNotFoundError as e:
+            return get_default_version_info()
+    file_cache["content"] = "".join(build_file.readlines())
+    if not build_file.closed:
         build_file.close()
     section_pattern = re.compile("\n={3,}\n")
     file_cache["version_line"], *rest = section_pattern.split(file_cache["content"], 1)
@@ -362,9 +427,9 @@ def parse_build_file(build_file: Optional[TextIOWrapper]) -> Dict[str, str]:
     hits = version_regex.search(file_cache["version_line"])
     if hits is None:
         raise RuntimeError(
-            "The build file has invalid formatting, version tag not " "recognized!",
-            f"First line was '{file_cache['version_line']}' and did "
-            f"not fit the pattern '{version_regex.pattern}.",
+            f"The build file {build_file.name} has invalid formatting, version tag not "
+            f"recognized! First line was '{file_cache['version_line']}' and did "
+            f"not fit the pattern '{version_regex.pattern}'.",
         )
     (
         file_cache["version"],
@@ -386,8 +451,8 @@ def parse_build_file(build_file: Optional[TextIOWrapper]) -> Dict[str, str]:
     while len(rest) > 0:
         section_header, section_content, *rest = section_pattern.split(rest[0], 2)
         section_name = get_section_name_by_header(section_header)
-        if section_name:
-            file_cache[section_name] = section_content
+        if section_name and section_name in get_args(VersionDictKeys):
+            file_cache[cast(VersionDictKeys, section_name)] = section_content
     return file_cache
 
 
@@ -444,8 +509,6 @@ def filter_git_status(git_process: "FastSurferCNN.utils.run_tools.Popen") -> str
     str
         The git status string filtered to exclude lines containing "__pycache__".
     """
-    from FastSurferCNN.utils.run_tools import Popen
-
     finished_process = git_process.finish()
     if finished_process.retcode != 0:
         raise RuntimeError("Failed git status command")
