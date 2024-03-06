@@ -9,5 +9,6 @@ Welcome to FastSurfer's documentation!
 .. toctree::
    :hidden:
 
+   overview/index
    scripts/index
    api/index
