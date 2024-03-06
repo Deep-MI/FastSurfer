@@ -403,7 +403,7 @@ echo "cd `pwd`"  | tee -a $LF
 echo $0 ${inputargs[*]} | tee -a $LF
 echo " " | tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a $LF
-echo "$VERSION "| tee -a $LF
+echo "$VERSION" | tee -a $LF
 uname -a  2>&1 | tee -a $LF
 
 echo " " | tee -a $LF
@@ -956,11 +956,18 @@ fi
   cmd="$cmd --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler"
   cmd="$cmd --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
   # segstats.py version of the mri_segstats call
-  cmd="$python ${binpath}/FastSurferCNN/segstats.py --segfile $mdir/aseg.presurf.hypos.mgz"
-  cmd="$cmd --segstatsfile $mdir/../stats/aseg.presurf.hypos.stats --normfile $mdir/norm.mgz --empty"
-  cmd="$cmd --lut /$FREESURFER_HOME/ASegStatsLUT.txt --maskfile $mdir/brainmask.mgz --sid $subject"
-  cmd="$cmd --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray --in-intensity-name norm --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler"
-  RunIt "$cmd" $LF
+  sdir=$(dirname "$mdir")/stats
+  cmd=($python "${binpath}/FastSurferCNN/segstats.py" --legacy_freesurfer --sd "$sd"
+       --segfile "$mdir/aseg.presurf.hypos.mgz" --normfile "$mdir/norm.mgz" --sid "$sid"
+       --pvfile "$mdir/norm.mgz" --segstatsfile "$sdir/aseg.presurf.hypos.stats"
+       --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads"
+       measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
+       "SupraTentorial" "SupraTentorialNotVent" "SubCortGray"
+       "EstimatedTotalIntraCranialVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
+       "CerebralWhiteMatter" "rhCortex" "lhCortex" "Cortex" "TotalGray" "rhSurfaceHoles"
+       "lhSurfaceHoles" "SurfaceHoles" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
+       )
+  RunIt "${cmd[*]@Q}" $LF
 
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
@@ -968,7 +975,13 @@ fi
 
   # takes a few mins
   cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
-  RunIt "$cmd" $LF
+  cmd=($python "${binpath}/FastSurferCNN/segstats.py" --legacy_freesurfer --sid "$sid"
+       --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
+       --pvfile "$mdir/norm.mgz" --segstatsfile "$sdir/wmparc.DKTatlas.mapped.stats"
+       --sd "$sd" --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
+       measures --compute "Mask($mdir/brainmask.mgz)" "VentricleChoroidVol"
+       "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter")
+  RunIt "${cmd[*]@Q}" $LF
 
 
 # ============================= FASTSURFER - SYMLINKS =========================================

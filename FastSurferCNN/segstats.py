@@ -387,7 +387,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         "--volume_precision",
         type=id_type,
         dest="volume_precision",
-        default=None,
+        default="3",
         help="Number of digits after dot in summary stats file (default: 3). Note, "
              "--legacy_freesurfer sets this to 1.",
     )
@@ -412,7 +412,7 @@ def empty(__arg: Any) -> bool:
     """
     Checks if the argument is an empty list (or None).
     """
-    return not isinstance(__arg, Sized) or len(__arg) == 0
+    return __arg is None or (isinstance(__arg, Sized) and len(__arg) == 0)
 
 
 def add_measure_parser(subparser_callback: SubparserCallback) -> None:
@@ -465,13 +465,6 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
         help="Default file to read measures (--import ...) from. If the path is "
              "relative, it is interpreted as relative to subjects_dir/subject_id from"
              "--sd and --subject_id.",
-    )
-    measure_parser.add_argument(
-        "--brainvol_statsfile",
-        type=Path,
-        dest="brainvol_stats",
-        help="File to write all measures to, replicating the default behavior of "
-             "FreeSurfer's stats/brainvol.stats."
     )
 
 
@@ -545,6 +538,26 @@ def _check_arg_path(
     return _attr_val
 
 
+def _check_arg_defined(attr: str, /, args: argparse.Namespace) -> bool:
+    """
+    Check whether the attribute attr is defined in args.
+
+    Parameters
+    ----------
+    attr: str
+        The name of the attribute.
+    args: argparse.Namespace
+        The argument container object.
+
+    Returns
+    -------
+    bool
+        Whether the argument is defined (not None, not an empty container/str).
+    """
+    value = getattr(args, attr, None)
+    return not (value is None or empty(value))
+
+
 def check_shape_affine(
     img1: "nib.analyze.SpatialImage",
     img2: "nib.analyze.SpatialImage",
@@ -579,9 +592,10 @@ def check_shape_affine(
 
 def parse_files(
     args: argparse.Namespace,
-    subjects_dir: Path | None = None,
+    subjects_dir: Path | str | None = None,
     subject_id: str | None = None,
-) -> tuple[Path, Path, Path | None, Path, Path | None]:
+    require_measurefile: bool = False,
+) -> tuple[Path, Path | None, Path | None, Path, Path | None]:
     """
     Parse and read paths of files.
 
@@ -589,16 +603,18 @@ def parse_files(
     ----------
     args : argparse.Namespace
         Parameters object from make_arguments.
-    subjects_dir : Path, optional
+    subjects_dir : Path, str, optional
         Path to SUBJECTS_DIR, where subject directories are.
     subject_id : str, optional
         The subject_id string.
+    require_measurefile: bool, default=False
+        require the measurefile to exist.
 
     Returns
     -------
     segfile : Path
         Path to the segmentation file, most likely an absolute path.
-    pvfile : Path
+    pvfile : Path, None
         Path to the pvfile file, most likely an absolute path.
     normfile : Path, None
         Path to the norm file, most likely an absolute path, or None if not passed.
@@ -612,12 +628,16 @@ def parse_files(
     ValueError
         If there is a necessary parameter missing or invalid.
     """
+    if subjects_dir is not None:
+        subjects_dir = Path(subjects_dir)
     check_arg_path = partial(
         _check_arg_path, subjects_dir=subjects_dir, subject_id=subject_id
     )
     segfile = check_arg_path(args, "segfile")
-    if getattr(args, "normfile", None) is None and getattr(args, "pvfile", None) is None:
-        raise ValueError("Either pvfile or normfile must be defined.")
+    not_has_arg = partial(_check_arg_defined, args=args)
+    if not any(map(not_has_arg, ("normfile", "pvfile"))):
+        pvfile = None
+        normfile = None
     elif getattr(args, "normfile", None) is None:
         pvfile = check_arg_path(args, "pvfile")
         normfile = None
@@ -635,7 +655,11 @@ def parse_files(
     if getattr(args, "measurefile", None) is None:
         measurefile = None
     else:
-        measurefile = check_arg_path(args, "measurefile")
+        measurefile = check_arg_path(
+            args,
+            "measurefile",
+            require_exist=require_measurefile,
+        )
 
     return segfile, pvfile, normfile, segstatsfile, measurefile
 
@@ -713,14 +737,26 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     getattr(args, "allow_root", False) or assert_no_root()
 
     subjects_dir = getattr(args, "out_dir", None)
+    if subjects_dir is not None:
+        subjects_dir = Path(subjects_dir)
     subject_id = getattr(args, "sid", None)
+    legacy_freesurfer = bool(getattr(args, "legacy_freesurfer", False))
 
     # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
     # measurefile
     try:
         segfile, pvfile, normfile, segstatsfile, measurefile = parse_files(
-            args, subjects_dir, subject_id
+            args,
+            subjects_dir,
+            subject_id,
+            require_measurefile=not empty(getattr(args, "imported_measures", [])),
         )
+        brainvolstats_only = pvfile is None
+        if brainvolstats_only:
+            print("No files are defined via -pv/--pvfile or -norm/--normfile:")
+            if not legacy_freesurfer:
+                return "But legacy mode is not enabled, so those are required."
+            print("Only computing brainvol stats in legacy mode.")
     except ValueError as e:
         return e.args[0]
 
@@ -729,7 +765,6 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         threads = get_num_threads()
 
     compute_threads = ThreadPoolExecutor(threads)
-    legacy_freesurfer = bool(getattr(args, "legacy_freesurfer", False))
 
     # the manager object supports preloading of files (see below) for io parallelization
     # and calculates the measure
@@ -745,25 +780,28 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     preload_image(segfile)
     if normfile is not None:
         preload_image(normfile)
-    preload_image(pvfile)
+    if not brainvolstats_only:
+        preload_image(pvfile)
 
     with manager.with_subject(subjects_dir, subject_id):
         try:
-            _pv: ImageTuple = load_image(pvfile, blocking=True)
-            pv_img, pv_data = _pv
+            _seg: ImageTuple = load_image(segfile, blocking=True)
+            seg, seg_data = _seg
+            pv_img, pv_data = None, None
+            norm, norm_data = None, None
 
             # trigger preprocessing operations on the pvfile like --mul <factor>
             pv_preproc_future = None
-            if not empty(pvfile_preproc := getattr(args, "pvfile_preproc", None)):
-                pv_preproc_future = compute_threads.submit(
-                    preproc_image, pvfile_preproc, pv_data
-                )
+            if not brainvolstats_only:
+                _pv: ImageTuple = load_image(pvfile, blocking=True)
+                pv_img, pv_data = _pv
 
-            _seg: ImageTuple = load_image(segfile, blocking=True)
-            seg, seg_data = _seg
-            check_shape_affine(seg, pv_img, "segmentation", "pv_guide")
+                if not empty(pvfile_preproc := getattr(args, "pvfile_preproc", None)):
+                    pv_preproc_future = compute_threads.submit(
+                        preproc_image, pvfile_preproc, pv_data
+                    )
 
-            norm, norm_data = None, None
+                check_shape_affine(seg, pv_img, "segmentation", "pv_guide")
             if normfile is not None:
                 _norm: ImageTuple = load_image(normfile, blocking=True)
                 norm, norm_data = _norm
@@ -816,6 +854,17 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # ------
     manager.compute_non_derived_pv(compute_threads)
 
+    if brainvolstats_only:
+        # if we are
+        try:
+            manager.wait_write_brainvolstats(segstatsfile)
+        except RuntimeError as e:
+            return e.args[0]
+        print(f"Brain volume stats written to {segstatsfile}.")
+        duration = (perf_counter_ns() - start) / 1e9
+        print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
+        return 0
+
     if pv_preproc_future is not None:
         # wait for preprocessing options on pvfile
         pv_data = pv_preproc_future.result()
@@ -856,7 +905,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     errors = list(manager.wait_compute())
     if not empty(errors):
         error_messages = ["Some errors occurred during measure computation:"]
-        error_messages.extend(map(lambda e: str(e.args[0]), errors))
+        error_messages.extend(map(lambda e: f"{type(e).__name__}: {e.args[0]}", errors))
         return "\n - ".join(error_messages)
     dataframe = manager.update_pv_from_table(dataframe, measure_labels)
     lines.extend(manager.format_measures())
@@ -1007,11 +1056,13 @@ def write_statsfile(
     norm_unit : str, default="MR"
         Unit of the intensity image.
     volume_precision : str, default="1"
-        Number of digits after the comma for volume.
+        Number of digits after the comma for volume. Forced to 1 for legacy_freesurfer.
     legacy_freesurfer : bool, default=False
         Whether the script ran with the legacy freesurfer option.
     """
     import datetime
+
+    volume_precision = "1" if legacy_freesurfer else volume_precision
 
     def _title(file: IO) -> None:
         """

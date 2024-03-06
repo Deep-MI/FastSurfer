@@ -926,7 +926,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
           then
             cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
                  --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
-                  --threads "$threads" "${allow_root[@]}" --empty --excludeid 0
+                 --threads "$threads" "${allow_root[@]}" --empty --excludeid 0
                  --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
                        49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
                        1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
@@ -934,7 +934,14 @@ if [[ "$run_seg_pipeline" == "1" ]]
                        1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013
                        2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
                        2027 2028 2029 2030 2031 2034 2035
-                 --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt")
+                 --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt"
+                 measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
+                                    "SupraTentorial" "SupraTentorialNotVent"
+                                    "SubCortGray" "rhCerebralWhiteMatter"
+                                    "lhCerebralWhiteMatter" "CerebralWhiteMatter"
+                                    "EstimatedTotalIntraCranialVol"
+                                    "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
+                 )
             echo "${cmd[@]}" | tee -a "$seg_log"
             "${cmd[@]}" 2>&1 | tee -a "$seg_log"
             if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -963,9 +970,14 @@ if [[ "$run_seg_pipeline" == "1" ]]
       if [[ -n "$t2" ]]
       then
         # no biasfield, but a t2 is passed; presumably, this is biasfield corrected
-        echo "INFO: Linking $norm_name_t2 to $t2, which is assumed to already be biasfield corrected." | tee -a "$seg_log"
-        source "${reconsurfdir}/functions.sh"
-        softlink_or_copy "$norm_name_t2" "$t2" "$seg_log"
+        echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is assumed to already be biasfield corrected." | tee -a "$seg_log"
+        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_force_lia
+             --no_force_vox_size --no_force_img_size "$t2" "$norm_name_t2")
+        echo "WARNING: --no_biasfield is activated, but FastSurfer does not check, if "
+        echo "  passed T2 image is properly scaled and typed. T2 needs to be uchar and"
+        echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
+        # TODO implement/validate no changes to affine parameters for conform
+        # "${cmd[@]}" 2>&1 | tee -a "$seg_log"
       fi
     fi
 

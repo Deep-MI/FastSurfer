@@ -21,9 +21,8 @@ from os import environ as env
 from pathlib import Path
 from typing import Literal
 
-from FastSurferCNN.segstats import HelpFormatter, VERSION, empty, _check_arg_path
+from FastSurferCNN.segstats import HelpFormatter, VERSION, _check_arg_path
 from FastSurferCNN.mri_segstats import print_and_exit
-from FastSurferCNN.utils.brainvolstats import MeasureTuple
 from FastSurferCNN.utils.threads import get_num_threads
 
 DEFAULT_MEASURES = [
@@ -184,20 +183,10 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # manager.lut = lut
     manager.compute_non_derived_pv(compute_threads)
     # wait for computation of measures and return an error message if errors occur
-    errors = list(manager.wait_compute())
-    if not empty(errors):
-        error_messages = ["Some errors occurred during measure computation:"]
-        error_messages.extend(map(lambda e: str(e.args[0]), errors))
-        return "\n - ".join(error_messages)
-
-    def fmt_measure(key: str, data: MeasureTuple) -> str:
-        return f"# Measure {key}, {data[0]}, {data[1]}, {data[2]:.12f}, {data[3]}"
-
-    lines = manager.format_measures(fmt_func=fmt_measure)
-
-    with open(segstatsfile, "w") as file:
-        for line in lines:
-            print(line, file=file)
+    try:
+        manager.wait_write_brainvolstats(segstatsfile)
+    except RuntimeError as e:
+        return e.args[0]
     print(f"Brain volume stats written to {segstatsfile}.")
     duration = (perf_counter_ns() - start) / 1e9
     print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
