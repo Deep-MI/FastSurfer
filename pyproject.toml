@@ -47,7 +47,28 @@ dependencies = [
     'torchio>=0.18.83',
     'tqdm>=4.64',
 ]
-
+doc = [
+    'furo!=2023.8.17',
+    'matplotlib',
+    'memory-profiler',
+    'numpydoc',
+    'sphinx!=7.2.*',
+    'sphinxcontrib-bibtex',
+    'sphinx-copybutton',
+    'sphinx-design',
+    'sphinx-gallery',
+    'sphinx-issues',
+    'pypandoc',
+    'nbsphinx',
+    'IPython', # For syntax highlighting in notebooks
+    'ipykernel',
+]
+all = [
+    'fastsurfer[doc]'
+]
+full = [
+    'fastSurfer[all]',
+]
 [project.urls]
 homepage = 'https://fastsurfer.org'
 documentation = 'https://fastsurfer.org'

@@ -35,7 +35,8 @@ class CompetitiveDenseBlock(nn.Module):
               'stride_pool' : 2,
               'num_classes' : 44,
               'kernel_c' : 1,
-              'input' : True}.
+              'input' : True
+               }.
     """
     def __init__(self, params, outblock=False, discriminator_block=False):
         """
@@ -162,7 +163,8 @@ class CompetitiveDenseBlockInput(nn.Module):
                'stride_pool' : 2,
                'num_classes' : 44,
                'kernel_c' : 1,
-               'input' : True}.
+               'input' : True
+               }.
     """
     def __init__(self, params):
         """
@@ -286,6 +288,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
           * Max Pooling (+ retain indices)
 
         Parameters
+        ----------
         ----------
         x : tensor
             Feature map from previous block.

@@ -1,0 +1,63 @@
+name: doc
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
+on:
+  pull_request:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  build:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: ./dev
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.10
+          architecture: 'x64'
+      - name: Install package
+        run: |
+          python -m pip install --progress-bar off --upgrade pip setuptools wheel
+          python -m pip install --progress-bar off dev/.[doc]
+      - name: Build doc
+        run: TZ=UTC sphinx-build ./dev/doc ./doc-build/dev -W --keep-going
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-dev
+          path: ./doc-build/dev
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: doc-dev
+          path: ./doc-dev
+      - name: Deploy dev documentation
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./doc-dev
+          destination_dir: ./dev
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'

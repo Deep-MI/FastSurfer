@@ -333,14 +333,14 @@ def sample_intensity_stats_from_image(
 
     Parameters
     ----------
-    image : np.ndarray
+    image : array_like
         Image from which to evaluate mean intensity and std deviation.
-    segmentation : np.ndarray
+    segmentation : array_like
         Segmentation of the input image. Must have the same size as image.
-    labels_list : np.ndarray
+    labels_list : array_like
         List of labels for which to evaluate mean and std intensity.
         Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
-    classes_list : np.ndarray, optional
+    classes_list : array_like, optional
         Enables grouping structures into classes of similar intensity statistics.
         The intensities associated with regrouped labels will contribute to the same
         Gaussian during statistics estimation. Can be a sequence, a 1D numpy array,
