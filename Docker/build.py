@@ -70,10 +70,11 @@ def _import_calls(fasturfer_home: Path, token: str = "Popen") -> Callable:
             # import Popen and PyPopen from FastSurferCNN.utils.run_tools
             __import(fasturfer_home / "FastSurferCNN/utils/run_tools.py",
                      "run_tools", "Popen", "PyPopen")
-        elif token in ("version", "parse_build_file"):
+        elif token in ("version", "parse_build_file", "has_git"):
             # import main as version from FastSurferCNN.version
             __import(fasturfer_home / "FastSurferCNN/version.py",
-                     "version", "parse_build_file", version="main")
+                     "version", "parse_build_file", "has_git",
+                     version="main")
 
     if token in __import_cache:
         return __import_cache[token]
@@ -498,12 +499,14 @@ def main(
         dry_run: bool = False,
         tag_dev: bool = True,
         **keywords
-        ):
+        ) -> int | str:
+    from shutil import which
     this_script = Path(__file__)
     if not this_script.is_absolute():
         this_script = Path.cwd() / __file__
     fastsurfer_home = this_script.parent.parent
     version = _import_calls(fastsurfer_home, "version")
+    has_git = _import_calls(fastsurfer_home, "has_git")
     parse_build_file = _import_calls(fastsurfer_home, "parse_build_file")
 
     kwargs: Dict[str, Union[str, List[str]]] = {}
@@ -537,11 +540,27 @@ def main(
     #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
 
     build_filename = fastsurfer_home / "BUILD.info"
+    if has_git():
+        version_sections = "+git"
+    else:
+        # try creating the build file without git info
+        version_sections = ""
+        logger.warning(
+            "Failed to create the git_status section in the BUILD.info file. "
+            "The resulting build file will not have valid git information, so "
+            "the version command of FastSurfer in the image will not complete."
+        )
+
     with open(build_filename, "w") as build_file, \
             open(fastsurfer_home / "pyproject.toml") as project_file:
-        ret_version = version("+git", project_file=project_file, file=build_file)
-        if ret_version != 0:
-            return f"Creating the version file failed with message: {ret_version}"
+        ret_version = version(
+            version_sections,
+            project_file=project_file,
+            file=build_file,
+            build_cache=False,
+        )
+    if ret_version != 0:
+        return f"Creating the version file failed with message: {ret_version}"
 
     with open(build_filename, "r") as build_file:
         build_info = parse_build_file(build_file)
