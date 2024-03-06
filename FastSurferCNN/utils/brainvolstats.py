@@ -500,7 +500,10 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         value : int | float
             value of the measure (as read from the file)
         """
-        self._name, self._description, out, self._unit = self._data[self._key]
+        try:
+            self._name, self._description, out, self._unit = self._data[self._key]
+        except KeyError as e:
+            raise KeyError(f"Could not find {self._key} in {self._file}.") from e
         return out
 
     def _parsable_args(self) -> list[str]:
@@ -519,7 +522,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         return super().set_args(**kwargs)
 
     def help(self) -> str:
-        return super().help() + f"imported from {self._file}"
+        return super().help() + f" imported from {self._file}"
 
     def __str__(self) -> str:
         return f"ImportedMeasure(key={self._key}, measurefile={self._file})"
@@ -1231,6 +1234,10 @@ class Manager(dict[str, AbstractMeasure]):
             raise ValueError(
                 "computed measures and imported measures must be sequences of str."
             )
+        if measurefile is None:
+            measurefile = getattr(args, "measurefile", None)
+        if measurefile is not None:
+            measurefile = Path(measurefile)
         if compat is None:
             compat = getattr(args, "legacy_freesurfer", False)
         from concurrent.futures import ThreadPoolExecutor, Future
@@ -1260,13 +1267,12 @@ class Manager(dict[str, AbstractMeasure]):
                     "Measures defined to import, but no measurefile specified. "
                     "A default must always be defined."
                 )
-            _measurefile = Path(measurefile)
             _read_measurefile = self.make_read_hook(read_measure_file)
-            _read_measurefile(_measurefile, blocking=False)
+            _read_measurefile(measurefile, blocking=False)
             for measure_string in _imported_measures:
                 self.add_imported_measure(
                     measure_string,
-                    measurefile=_measurefile,
+                    measurefile=measurefile,
                     read_file=_read_measurefile
                 )
 
@@ -1343,21 +1349,17 @@ class Manager(dict[str, AbstractMeasure]):
         if key == "all":
             _mfile = kwargs["measurefile"] if len(args) == 0 else Path(args[0])
             self._import_all_measures.append(_mfile)
+        elif key not in self.keys() or isinstance(self[key], ImportedMeasure):
+            # note: name, description and unit are always updated from the input file
+            self[key] = ImportedMeasure(key, **kwargs)
+            # parse the arguments (inplace)
+            self[key].parse_args(*args)
+            self._exported_measures.append(key)
         else:
-            # get default name, description and unit of key
-            default = self.default(key)
-            kws = () if default is None else ("name", "description", "unit")
-            kwargs.update({k: getattr(default, k) for k in kws})
-            if key not in self.keys() or isinstance(self[key], ImportedMeasure):
-                self[key] = ImportedMeasure(key, **kwargs)
-                # parse the arguments (inplace)
-                self[key].parse_args(*args)
-                self._exported_measures.append(key)
-            else:
-                raise RuntimeError(
-                    "Illegal operation: Trying to replace the computed measure at "
-                    f"{key} ({self[key]}) with an imported measure."
-                )
+            raise RuntimeError(
+                "Illegal operation: Trying to replace the computed measure at "
+                f"{key} ({self[key]}) with an imported measure."
+            )
 
     def add_computed_measure(self, measure_string: str) -> None:
         """Add a computed measure from the measure_string definition."""
@@ -1853,6 +1855,14 @@ class Manager(dict[str, AbstractMeasure]):
             brain_seg_classes.extend([58, 60, 62, 63, 72])
             brain_seg_classes.extend(range(77, 83))
             brain_seg_classes.extend(cc_classes)
+            if not self._fs_compat:
+                # also add asegdkt regions 1002-1035, 2002-2035
+                brain_seg_classes.extend(range(1002, 1032))
+                brain_seg_classes.remove(1004)
+                brain_seg_classes.extend((1034, 1035))
+                brain_seg_classes.extend(range(2002, 2032))
+                brain_seg_classes.remove(2004)
+                brain_seg_classes.extend((2034, 2035))
             brainseg_class = self.voxel_class
             return brainseg_class(
                 brain_seg_classes,
@@ -2046,3 +2056,32 @@ class Manager(dict[str, AbstractMeasure]):
         errors = [future.exception() for future in self._compute_futures]
         self._compute_futures = []
         return [error for error in errors if error is not None]
+
+    def wait_write_brainvolstats(self, brainvol_statsfile: Path):
+        """
+        Wait for measure computation to finish and write results to brainvol_statsfile.
+
+        Parameters
+        ----------
+        brainvol_statsfile: Path
+            The file to write the measures to.
+
+        Raises
+        ------
+        RuntimeError
+            If errors occured during measure computation.
+        """
+        errors = list(self.wait_compute())
+        if len(errors) != 0:
+            error_messages = ["Some errors occurred during measure computation:"]
+            error_messages.extend(map(lambda e: str(e.args[0]), errors))
+            raise RuntimeError("\n - ".join(error_messages))
+
+        def fmt_measure(key: str, data: MeasureTuple) -> str:
+            return f"# Measure {key}, {data[0]}, {data[1]}, {data[2]:.12f}, {data[3]}"
+
+        lines = self.format_measures(fmt_func=fmt_measure)
+
+        with open(brainvol_statsfile, "w") as file:
+            for line in lines:
+                print(line, file=file)

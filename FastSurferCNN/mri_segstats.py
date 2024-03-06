@@ -134,7 +134,7 @@ def make_arguments() -> argparse.ArgumentParser:
                 pass
 
     parser.set_defaults(
-        brainvol_statsfile="stats/brainvol.stats",
+        measurefile="stats/brainvol.stats",
         parse_actions=[add_etiv_measures],
     )
 
@@ -453,6 +453,7 @@ def make_arguments() -> argparse.ArgumentParser:
 def print_and_exit(args: object):
     """Print the commandline arguments of the segstats script to stdout and exit."""
     print(" ".join(format_cmdline_args(args)))
+    import sys
     sys.exit(0)
 
 
@@ -461,7 +462,7 @@ def format_cmdline_args(args: object) -> list[str]:
     arglist = ["python", str(Path(__file__).parent / "segstats.py")]
     if getattr(args, "allow_root", False):
         arglist.append("--allow_root")
-    if getattr(args, "legacy_freesuirfer", False):
+    if getattr(args, "legacy_freesurfer", False):
         arglist.append("--legacy_freesurfer")
     if (segfile := getattr(args, "segfile", None)) is not None:
         arglist.extend(["--segfile", str(segfile)])
@@ -471,9 +472,9 @@ def format_cmdline_args(args: object) -> list[str]:
         arglist.extend(["--pvfile", str(pvfile)])
     if (segstatsfile := getattr(args, "segstatsfile", None)) is not None:
         arglist.extend(["--segstatsfile", str(segstatsfile)])
-    if (subjects_dir := getattr(args, "subjects_dir", None)) is not None:
+    if (subjects_dir := getattr(args, "out_dir", None)) is not None:
         arglist.extend(["--sd", str(subjects_dir)])
-    if (subject_id := getattr(args, "subject_id", None)) is not None:
+    if (subject_id := getattr(args, "sid", None)) is not None:
         arglist.extend(["--sid", str(subject_id)])
     if (threads := getattr(args, "threads", 0)) > 0:
         arglist.extend(["--threads", str(threads)])
@@ -482,17 +483,18 @@ def format_cmdline_args(args: object) -> list[str]:
     if not empty(__ids := getattr(args, "ids", [])):
         arglist.extend(["--id"] + list(map(str, __ids)))
 
-    if (not empty(computed_measures := getattr(args, "computed_measures", [])) or
-            not empty(imported_measures := getattr(args, "imported_measures", []))):
+    computed_measures = getattr(args, "computed_measures", [])
+    imported_measures = getattr(args, "imported_measures", [])
+    if not empty(computed_measures) or not empty(imported_measures):
         arglist.append("measures")
         if (measurefile := getattr(args, "measurefile", None)) is not None:
             arglist.extend(["--file", str(measurefile)])
         if not empty(computed_measures):
-            arglist.extend(["--compute", str(computed_measures)])
+            arglist.append("--compute")
+            arglist.extend(map(str, computed_measures))
         if not empty(imported_measures):
-            arglist.extend(["--import", str(imported_measures)])
-        if not empty(brainvol_statsfile := getattr(args, "brainvol_statsfile")):
-            arglist.extend(["--brainvol_statsfile", brainvol_statsfile])
+            arglist.append("--import")
+            arglist.extend(map(str, imported_measures))
 
     return arglist
 
