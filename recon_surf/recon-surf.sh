@@ -470,8 +470,7 @@ RunIt "$cmd" $LF
 
 # link to rawavg (needed by pctsurfcon)
 pushd $mdir
-cmd="ln -sf orig.mgz rawavg.mgz"
-RunIt "$cmd" $LF
+softlink_or_copy "orig.mgz" "rawavg.mgz" "$LF"
 popd
 
 ### START SUPERSEDED BY SEGMENTATION PIPELINE, will be removed in the future
@@ -543,8 +542,7 @@ then
 else
   # Default: create brainmask by linkage to norm.mgz (masked nu.mgz)
   pushd $mdir
-  cmd="ln -sf norm.mgz brainmask.mgz"
-  RunIt "$cmd" $LF
+  softlink_or_copy "norm.mgz" "brainmask.mgz" $LF
   popd
 fi
 
@@ -777,8 +775,7 @@ else
     # Here insert DoT2Pial  later --> if T2pial is not run, need to softlink pial.T1 to pial!
 
     echo "pushd $sdir" >> $CMDF
-    cmd="ln -sf $hemi.pial.T1 $hemi.pial"
-    RunIt "$cmd" $LF $CMDF
+    softlink_or_copy "$hemi.pial.T1" "$hemi.pial" $LF $CMDF
     echo "popd" >> $CMDF
 
     echo "pushd $mdir" >> $CMDF
@@ -876,10 +873,8 @@ if [ "$fsaparc" == "0" ] ; then
 
   # pctsurfcon (has no way to specify which annot to use, so we need to link ours as aparc is not available)
   pushd $ldir
-  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.annot"
-  RunIt "$cmd" $LF
-  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.annot"
-  RunIt "$cmd" $LF
+  softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" $LF
+  softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" $LF
   popd
   for hemi in lh rh; do
     cmd="pctsurfcon --s $subject --$hemi-only"
@@ -936,24 +931,19 @@ echo " " |& tee -a $LF
 if [ "$fsaparc" == "0" ] ; then
   # Symlink of aparc.DKTatlas+aseg.mapped.mgz
   pushd $mdir
-  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc.DKTatlas+aseg.mgz"
-  RunIt "$cmd" $LF
-  cmd="ln -sf aparc.DKTatlas+aseg.mapped.mgz aparc+aseg.mgz"
-  RunIt "$cmd" $LF
+  softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc.DKTatlas+aseg.mgz" $LF
+  softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc+aseg.mgz" $LF
   popd
 
   # Symlink of wmparc.mapped
   pushd $mdir
-  cmd="ln -sf wmparc.DKTatlas.mapped.mgz wmparc.mgz"
-  RunIt "$cmd" $LF
+  softlink_or_copy "wmparc.DKTatlas.mapped.mgz" "wmparc.mgz" $LF
   popd
 
   # Symbolic link for mapped surface parcellations
   pushd $ldir
-  cmd="ln -sf lh.aparc.DKTatlas.mapped.annot lh.aparc.DKTatlas.annot"
-  RunIt "$cmd" $LF
-  cmd="ln -sf rh.aparc.DKTatlas.mapped.annot rh.aparc.DKTatlas.annot"
-  RunIt "$cmd" $LF
+  softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.DKTatlas.annot" $LF
+  softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.DKTatlas.annot" $LF
 fi
 
 
