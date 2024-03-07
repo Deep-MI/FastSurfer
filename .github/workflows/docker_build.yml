@@ -27,5 +27,5 @@ jobs:
         
     - name: Build GPU FastSurfer Image
       run: |
-        PYTHONPATH=$pwd
+        PYTHONPATH=$PYTHONPATH
         python3 Docker/build.py --device cuda --tag my_fastsurfer:cuda
