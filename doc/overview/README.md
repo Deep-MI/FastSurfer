@@ -93,7 +93,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    See also example 3 i.e. native fastsurfer on subjectx with-parallel processing of hemis for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
 
-### FastSurfer Flags
+### FastSurfer_Flags
 Next, you will need to select the `*fastsurfer-flags*` and replace `*fastsurfer-flags*` with your options. Please see the Examples below for some example flags.
 
 The `*fastsurfer-flags*` will usually include the subject directory (`--sd`; Note, this will be the mounted path - `/output` - for containers), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
@@ -177,7 +177,7 @@ Docker Flags:
 * The `--rm` flag takes care of removing the container once the analysis finished. 
 * The `--user $(id -u):$(id -g)` part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root which is discouraged.
 
-FastSurfer Flags:
+FastSurfer Flag:
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)

@@ -3,7 +3,6 @@
 We host our releases as docker images on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags)
 For use on HPCs or in other cases where Docker is not preferred you can easily create a Singularity image from the Docker images. 
 
-# FastSurfer Singularity Image Creation
 For creating a singularity image from the Dockerhub just run: 
 
 ```bash
