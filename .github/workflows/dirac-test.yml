@@ -2,7 +2,7 @@ name: dirac-test
 
 on:
   # Triggers workflow on push event 
-  push:
+  # push:
 
   # Allows workflow to be run manually from Actions tab
   workflow_dispatch:
