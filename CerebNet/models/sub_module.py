@@ -24,19 +24,19 @@ class CompetitiveDenseBlock(nn.Module):
     Function to define a competitive dense block comprising 
     of 3 convolutional layers, with BN/ReLU.
 
-    Inputs:
-    -- Params
-     params = {'num_channels': 1,
-               'num_filters': 64,
-               'kernel_h': 5,
-               'kernel_w': 5,
-               'stride_conv': 1,
-               'pool': 2,
-               'stride_pool': 2,
-               'num_classes': 44
-               'kernel_c':1
-               'input':True
-               }
+    Parameters
+    ----------
+    params = {'num_channels' : 1,
+              'num_filters' : 64,
+              'kernel_h' : 5,
+              'kernel_w' : 5,
+              'stride_conv' : 1,
+              'pool' : 2,
+              'stride_pool' : 2,
+              'num_classes' : 44,
+              'kernel_c' : 1,
+              'input' : True
+               }.
     """
     def __init__(self, params, outblock=False, discriminator_block=False):
         """
@@ -45,11 +45,11 @@ class CompetitiveDenseBlock(nn.Module):
         Parameters
         ----------
         params : dict
-            Dictionary with parameters specifying block architecture
+            Dictionary with parameters specifying block architecture.
         outblock : bool, default=False 
             Flag indicating if last block (before classifier block) is set up.
         discriminator_block : bool, default=False
-            Flag indicating if the block is discriminator block or not
+            Flag indicating if the block is discriminator block or not.
         """
         super(CompetitiveDenseBlock, self).__init__()
 
@@ -152,18 +152,19 @@ class CompetitiveDenseBlockInput(nn.Module):
     Function to define a competitive dense block comprising of
     3 convolutional layers, with BN/ReLU for input.
 
-    Inputs:
-    -- Params
-     params = {'num_channels': 1,
-               'num_filters': 64,
-               'kernel_h': 5,
-               'kernel_w': 5,
-               'stride_conv': 1,
-               'pool': 2,
-               'stride_pool': 2,
-               'num_classes': 44
-               'kernel_c':1
-               'input':True}
+    Parameters
+    ----------
+    params = {'num_channels' : 1,
+               'num_filters' : 64,
+               'kernel_h' : 5,
+               'kernel_w' : 5,
+               'stride_conv' : 1,
+               'pool' : 2,
+               'stride_pool' : 2,
+               'num_classes' : 44,
+               'kernel_c' : 1,
+               'input' : True
+               }.
     """
     def __init__(self, params):
         """
@@ -222,7 +223,7 @@ class CompetitiveDenseBlockInput(nn.Module):
     def forward(self, x):
         """
         CompetitiveDenseBlockInput's computational Graph
-        in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out
+        in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out.
 
         Parameters
         ----------
@@ -261,7 +262,7 @@ class CompetitiveDenseBlockInput(nn.Module):
 
 class CompetitiveEncoderBlock(CompetitiveDenseBlock):
     """
-    Encoder Block = CompetitiveDenseBlock + Max Pooling
+    Encoder Block = CompetitiveDenseBlock + Max Pooling.
     """
     def __init__(self, params):
         """
@@ -281,13 +282,12 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
     def forward(self, x):
         """
-        CComputational graph for Encoder Block:
+        CComputational graph for Encoder Block :
           * CompetitiveDenseBlock
           * Max Pooling (+ retain indices)
 
         Parameters
         ----------  
-
         x : tensor
             Feature map from previous block.
 
@@ -311,7 +311,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
 class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
     """
-    Encoder Block = CompetitiveDenseBlockInput + Max Pooling
+    Encoder Block = CompetitiveDenseBlockInput + Max Pooling.
     """
     def __init__(self, params):
         """
@@ -415,7 +415,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
 
 class ClassifierBlock(nn.Module):
     """
-    Classification Block
+    Classification Block.
     """
     def __init__(self, params):
         """

@@ -65,11 +65,11 @@ sudo apt install -y g++-11
 
 You also need to have bash-4.0 or higher (check with `bash --version`). 
 
-You also need a [working version of python3](#2-conda--for-python-) (we recommend python 3.10 -- we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies).
+You also need a working version of python3 (we recommend python 3.10 -- we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies).
 
 If you are using pip, make sure pip is updated as older versions will fail.
 
-#### 2. Conda (for python)
+#### 2. Conda for python
 
 We recommend to install conda as your python environment. If you don't have conda on your system, an admin needs to install it:
 
@@ -181,7 +181,7 @@ brew install bash
 Make sure you use this bash and not the older one provided with MacOS!
 
 #### 2. Python
-Create a python environment, activate it, and upgrade pip. Here we use pip, but you should also be able to use [conda](#2-conda--for-python-): 
+Create a python environment, activate it, and upgrade pip. Here we use pip, but you should also be able to use conda for python: 
 
 ```sh
 python3 -m venv $HOME/python-envs/fastsurfer 

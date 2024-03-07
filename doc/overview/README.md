@@ -69,7 +69,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
  
-   See also __[Example 2](#example-2--fastSurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity README](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
+   See also example 2 fastSurfer singularity for a full singularity FastSurfer run command and [the Singularity README](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
 
    (b) For __docker__, the syntax is
     ```
@@ -85,13 +85,13 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-v` flag is used to tell docker, which folders FastSurfer can read and write to.
  
-   See also __[Example 1](#example-1--fastSurfer-docker)__ for a full FastSurfer run inside a Docker container and [the Docker README](Docker/README.md#docker-flags-) for more details on the docker flags including `--rm` and `--user`.
+   See also example 1 fastSurfer-docker for a full FastSurfer run inside a Docker container and [the Docker README](Docker/README.md#docker-flags-) for more details on the docker flags including `--rm` and `--user`.
 
 2. For a __native install__, you need to activate your FastSurfer environment (e.g. `conda activate fastsurfer_gpu`) and make sure you have added the FastSurfer path to your `PYTHONPATH` variable, e.g. `export PYTHONPATH=$(pwd)`. 
 
    You will then be able to run fastsurfer with `./run_fastsurfer.sh *fastsurfer-flags*`.
 
-   See also [Example 3](#example-3--native-fastsurfer-on-subjectx--with-parallel-processing-of-hemis-) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
+   See also example 3 i.e. native fastsurfer on subjectx with-parallel processing of hemis for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
 
 ### FastSurfer Flags
 Next, you will need to select the `*fastsurfer-flags*` and replace `*fastsurfer-flags*` with your options. Please see the Examples below for some example flags.
@@ -234,7 +234,7 @@ A directory with the name as specified in `--sid` (here subjectX) will be create
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command. Also append `--device cpu` as a FastSurfer flag.
 
 
-### Example 3: Native FastSurfer on subjectX (with parallel processing of hemis)
+### Example 3: Native FastSurfer on subjectX with parallel processing of hemis
 
 For a native install you may want to make sure that you are on our stable branch, as the default dev branch is for development and could be broken at any time. For that you can directly clone the stable branch:
 
