@@ -26,7 +26,7 @@ jobs:
       run: |
         docker pull deepmi/fastsurfer
         # PYTHONPATH=<FastSurferRoot>
-        python build.py --device cuda --tag my_fastsurfer:cuda
+        # python build.py --device cuda --tag my_fastsurfer:cuda
         docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \
