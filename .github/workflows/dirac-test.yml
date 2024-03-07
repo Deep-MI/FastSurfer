@@ -1,0 +1,30 @@
+name: dirac-test
+
+on:
+  # Triggers workflow on push event 
+  push:
+
+  # Allows workflow to be run manually from Actions tab
+  workflow_dispatch:
+
+# Jobs that the workflow will perform (can be more than one, in sequence or parallel)
+jobs:
+  # Job called 'build' that builds the enironment for the code to run
+  build:
+    # The runner that 'build' will run on
+    runs-on:
+      # Self hosted runner called 'dirac'
+      - dirac
+
+    # Sequence of steps carried out to complete 'build'
+    steps:
+      # Checks out repo so that 'build' can use it (under $GITHUB_WORKSPACE)
+      - uses: actions/checkout@v4
+
+      # Runs a simple script in the runner's shell (just to test if the workflow is working)
+      - name: Run a simple script
+        run: |
+          echo Hello, world!
+          sleep 10
+          echo Goodbye!
+          
