@@ -329,7 +329,7 @@ def map_sag2label(lbl_data, label_type='cereb_subseg'):
     Returns
     -------
     np.ndarray
-        The remapped label array with continuous labels
+        The remapped label array with continuous labels.
     """
     for r_lbl, l_lbl in sag_right2left.items():
         lbl_data[lbl_data == r_lbl] = l_lbl
@@ -409,14 +409,18 @@ def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
 
     Parameters
     ----------
-        plane: the slicing direction (usually moved into batch dimension)
-        data: the data array of shape [plane, Channels, H, W]
-        thick_slices: whether the channels are thick slices and should also be flipped (default: False).
+    plane : Plane 
+        The slicing direction (usually moved into batch dimension).
+    data : np.ndarray
+        The data array of shape [plane, Channels, H, W].
+    thick_slices : bool, default = False
+        Whether the channels are thick slices and should also be flipped.
 
     Returns
     -------
-        data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
-            [plane, Channels, W, H] (plane: 'axial').
+    np.ndarray
+        Data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
+        [plane, Channels, W, H] (plane: 'axial').
     """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes

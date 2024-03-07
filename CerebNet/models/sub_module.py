@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,22 +21,21 @@ import torch.nn as nn
 # Building Blocks
 class CompetitiveDenseBlock(nn.Module):
     """
-    Function to define a competitive dense block comprising 
+    Function to define a competitive dense block comprising
     of 3 convolutional layers, with BN/ReLU.
 
-    Inputs:
-    -- Params
-     params = {'num_channels': 1,
-               'num_filters': 64,
-               'kernel_h': 5,
-               'kernel_w': 5,
-               'stride_conv': 1,
-               'pool': 2,
-               'stride_pool': 2,
-               'num_classes': 44
-               'kernel_c':1
-               'input':True
-               }
+    Parameters
+    ----------
+    params = {'num_channels' : 1,
+              'num_filters' : 64,
+              'kernel_h' : 5,
+              'kernel_w' : 5,
+              'stride_conv' : 1,
+              'pool' : 2,
+              'stride_pool' : 2,
+              'num_classes' : 44,
+              'kernel_c' : 1,
+              'input' : True}.
     """
     def __init__(self, params, outblock=False, discriminator_block=False):
         """
@@ -45,11 +44,11 @@ class CompetitiveDenseBlock(nn.Module):
         Parameters
         ----------
         params : dict
-            Dictionary with parameters specifying block architecture
-        outblock : bool, default=False 
+            Dictionary with parameters specifying block architecture.
+        outblock : bool, default=False
             Flag indicating if last block (before classifier block) is set up.
         discriminator_block : bool, default=False
-            Flag indicating if the block is discriminator block or not
+            Flag indicating if the block is discriminator block or not.
         """
         super(CompetitiveDenseBlock, self).__init__()
 
@@ -112,7 +111,7 @@ class CompetitiveDenseBlock(nn.Module):
 
         Returns
         -------
-        tensor 
+        tensor
             Output tensor (processed feature map).
         """
         # Activation from pooled input
@@ -152,18 +151,18 @@ class CompetitiveDenseBlockInput(nn.Module):
     Function to define a competitive dense block comprising of
     3 convolutional layers, with BN/ReLU for input.
 
-    Inputs:
-    -- Params
-     params = {'num_channels': 1,
-               'num_filters': 64,
-               'kernel_h': 5,
-               'kernel_w': 5,
-               'stride_conv': 1,
-               'pool': 2,
-               'stride_pool': 2,
-               'num_classes': 44
-               'kernel_c':1
-               'input':True}
+    Parameters
+    ----------
+    params = {'num_channels' : 1,
+               'num_filters' : 64,
+               'kernel_h' : 5,
+               'kernel_w' : 5,
+               'stride_conv' : 1,
+               'pool' : 2,
+               'stride_pool' : 2,
+               'num_classes' : 44,
+               'kernel_c' : 1,
+               'input' : True}.
     """
     def __init__(self, params):
         """
@@ -171,7 +170,7 @@ class CompetitiveDenseBlockInput(nn.Module):
 
         Parameters
         ----------
-        params : dict  
+        params : dict
             Dictionary with parameters specifying block architecture.
         """
         super(CompetitiveDenseBlockInput, self).__init__()
@@ -222,7 +221,7 @@ class CompetitiveDenseBlockInput(nn.Module):
     def forward(self, x):
         """
         CompetitiveDenseBlockInput's computational Graph
-        in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out
+        in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out.
 
         Parameters
         ----------
@@ -261,8 +260,9 @@ class CompetitiveDenseBlockInput(nn.Module):
 
 class CompetitiveEncoderBlock(CompetitiveDenseBlock):
     """
-    Encoder Block = CompetitiveDenseBlock + Max Pooling
+    Encoder Block = CompetitiveDenseBlock + Max Pooling.
     """
+
     def __init__(self, params):
         """
         Encoder Block initialization.
@@ -281,13 +281,12 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
     def forward(self, x):
         """
-        CComputational graph for Encoder Block:
+        CComputational graph for Encoder Block :
           * CompetitiveDenseBlock
           * Max Pooling (+ retain indices)
 
         Parameters
-        ----------  
-
+        ----------
         x : tensor
             Feature map from previous block.
 
@@ -311,12 +310,13 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
 class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
     """
-    Encoder Block = CompetitiveDenseBlockInput + Max Pooling
+    Encoder Block = CompetitiveDenseBlockInput + Max Pooling.
     """
+
     def __init__(self, params):
         """
         Encoder Block initialization.
-        
+
         Parameters
         ----------
         params : dict
@@ -364,6 +364,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
     """
     Decoder Block = (Unpooling + Skip Connection) --> Dense Block
     """
+
     def __init__(self, params, outblock=False):
         """
         Decoder Block initialization.
@@ -396,7 +397,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
             Skip connection feature map from the corresponding Encoder.
         indices : tensor
             Indices for unpooling from the corresponding Encoder (maxpool op).
-        
+
         Returns
         -------
         out_block
@@ -415,8 +416,9 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
 
 class ClassifierBlock(nn.Module):
     """
-    Classification Block
+    Classification Block.
     """
+
     def __init__(self, params):
         """
         Classifier Block initialization

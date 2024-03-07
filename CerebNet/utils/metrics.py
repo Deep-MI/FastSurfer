@@ -194,10 +194,10 @@ def hd(result, reference, voxelspacing=None, connectivity=1):
 
     Parameters
     ----------
-    result : array_like
+    result : np.ndarray
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
-    reference : array_like
+    reference : np.ndarray
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
     voxelspacing : float or sequence of floats, optional
@@ -249,10 +249,10 @@ def hd95(result, reference, voxelspacing=None, connectivity=1):
 
     Parameters
     ----------
-    result : [MISSING]
+    result : Any
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
-    reference : array_like
+    reference : np.ndarray
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
     voxelspacing : float or sequence of floats, optional

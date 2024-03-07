@@ -7,24 +7,22 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
-
 import inspect
 from datetime import date
 from importlib import import_module
 from typing import Dict, Optional
 
-
+import sys
+import os
 
 # here i added the relative path because sphinx was not able
 # to locate FastSurferCNN module directly for autosummary
-import sys
-import os
-sys.path.append(os.path.dirname(__file__) + '/..') 
-sys.path.append(os.path.dirname(__file__) + '/../recon_surf') 
+sys.path.append(os.path.dirname(__file__) + "/..")
+sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
 
-project = 'FastSurfer'
-copyright = '2023, Martin Reuter'
-author = 'Martin Reuter'
+project = "FastSurfer"
+copyright = "2023, Martin Reuter"
+author = "Martin Reuter"
 copyright = f"{date.today().year}, {author}"
 # release = FastSurferCNN.__version__
 # package = fsqc.__name__
@@ -61,8 +59,13 @@ extensions = [
     "myst_parser",
 ]
 
+# Suppress myst.xref_missing warning and  i.e A target was
+# not found for a cross-reference
+# Reference: https://myst-parser.readthedocs.io/en/latest/configuration.html#build-warnings
+suppress_warnings = ["myst.xref_missing",
+                     "myst.duplicate_def",]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = [
     "_build",
     "Thumbs.db",
@@ -106,7 +109,6 @@ html_theme_options = {
         },
     ],
 }
-
 
 
 # -- autosummary -------------------------------------------------------------
@@ -176,7 +178,7 @@ error_ignores = {
     "GL03",  # Double line break found; please use only one blank line to
     "SS03",  # Summary does not end with a period
     "YD01",  # No Yields section found
-    "PR02"   # Unknown parameters {unknown_params}
+    "PR02",  # Unknown parameters {unknown_params}
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {"all"} | set(error_ignores)
@@ -217,5 +219,3 @@ def linkcode_resolve(domain, info):
         anchor = ""
     result = f"{gh_url}/blob/stable/{filename}.py{anchor}"
     return result
-
-
