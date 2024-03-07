@@ -1,0 +1,23 @@
+name: dirac-docker
+
+on:
+  # push:
+  #   branches: [ "dev" ]
+  # pull_request:
+  #   branches: [ "dev" ]
+
+  workflow-dispatch:
+  
+
+jobs:
+
+  build:
+
+    runs-on: dirac
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run the Docker image
+      run: |
+        docker pull deepmi/fastsurfer
