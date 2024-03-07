@@ -1,0 +1,33 @@
+name: Run Tests
+
+on:
+  # push:
+  #   branches: [ "dev" ]
+  # pull_request:
+  #   branches: [ "dev" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: dirac
+
+    steps:
+    # Checkout repo
+    - uses: actions/checkout@v4
+
+    # Set up Python 3.10
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install pyyaml
+        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Test File Existence
+      run: |
+        cd test
+        python3 test_file_existence.py

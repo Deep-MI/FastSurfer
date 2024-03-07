@@ -1,0 +1,9 @@
+log_path: '/home/abdullaht/actions-runner/_work/fastsurfer_analysis/subjectx/scripts/'
+
+error_messages:
+ - "error: No such file or directory"
+ - "error: MRISread(/data/cases/149741_MR2/surf/lh.white): could not open file"
+ - "TypeError: 'PosixPath' object is not subscriptable"
+ - "ERROR: Cerebellum Segmentation failed"
+ - "Error: Process completed with exit code 1."
+ - "exit with error"

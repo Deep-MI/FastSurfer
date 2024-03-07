@@ -1,0 +1,36 @@
+name: dirac-docker
+
+on:
+  # push:
+  #   branches: [ "dev" ]
+  # pull_request:
+  #   branches: [ "dev" ]
+
+  workflow_dispatch:
+  
+
+jobs:
+
+  build:
+    runs-on: dirac
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # - name: Set up Python 3.10
+    #   uses: actions/setup-python@v3
+    #   with:
+    #     python-version: "3.10"
+    
+    - name: Run the Docker image
+      run: |
+        docker pull deepmi/fastsurfer 
+        
+        docker run --gpus all -v $FREESURFER_MRI_DATA:/data:ro \
+                      -v $FREESURFER_OUTPUT:/output \
+                      -v $FREESURFER_HOME:/fs_license:ro \
+                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
+                      --fs_license /fs_license/.license \
+                      --t1 /data/subjectx/orig.mgz \
+                      --sid subjectX --sd /output \
+                      --parallel
