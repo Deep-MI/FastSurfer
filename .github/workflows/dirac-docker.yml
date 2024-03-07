@@ -24,14 +24,13 @@ jobs:
     
     - name: Run the Docker image
       run: |
-        docker pull deepmi/fastsurfer
-        # PYTHONPATH=<FastSurferRoot>
-        # python build.py --device cuda --tag my_fastsurfer:cuda
-        docker run --gpus all -v /localmount/volume-ssd/users/abdullaht/my_mri_data:/data \
-                      -v /localmount/volume-ssd/users/abdullaht/my_fastsurfer_analysis:/output \
-                      -v /localmount/volume-ssd/users/abdullaht/my_fs_license_dir:/fs_license \
+        docker pull deepmi/fastsurfer 
+        
+        docker run --gpus all -v $FREESURFER_MRI_DATA:/data:ro \
+                      -v $FREESURFER_OUTPUT:/output \
+                      -v $FREESURFER_HOME:/fs_license:ro \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
-                      --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/t1-weighted.nii.gz \
+                      --fs_license /fs_license/.license \
+                      --t1 /data/subjectx/orig.mgz \
                       --sid subjectX --sd /output \
                       --parallel
