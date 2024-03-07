@@ -1,0 +1,90 @@
+name: FastSurfer Singularity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Checkout repo
+  checkout:
+    runs-on: ci-gpu
+    steps:
+    - uses: actions/checkout@v2
+
+  # Prepare job: Set up Python, Go, Singularity
+  prepare-job:
+    runs-on: ci-gpu
+    needs: checkout
+    steps:
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Set up Go 
+      uses: actions/setup-go@v5
+      with:
+        go-version: '^1.13.1' # The Go version to download (if necessary) and use.
+    - name: Set up Singularity
+      uses: eWaterCycle/setup-singularity@v7
+      with:
+        singularity-version: 3.8.3
+        
+  # Build Docker Image and convert it to Singularity
+  build-singularity-image:
+    runs-on: ci-gpu
+    needs: prepare-job
+    steps:
+    - name: Build Docker Image and conver to Singularity
+      run: |
+        cd $RUNNER_SINGULARITY_IMGS
+        FILE="fastsurfer-gpu.sif"
+        if [ ! -f "$FILE" ]; then
+        # If the file does not exist, build the file
+          echo "SIF File does not exist. Building file."
+          PYTHONPATH=$PYTHONPATH
+          cd $PYTHONPATH
+          python3 Docker/build.py --device cuda --dry_run --tag fastsurfer_gpu:cuda | bash
+          cd $RUNNER_SINGULARITY_IMGS
+          singularity build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
+        else
+          echo "File already exists"
+          cd $PYTHONPATH
+        fi
+
+  # Run FastSurfer on MRI data
+  run-fastsurfer:
+    runs-on: ci-gpu
+    needs: build-singularity-image
+    steps:
+    - name: Run FastSurfer
+      run: |
+        singularity exec --nv \
+                      --no-home \
+                      --bind $GITHUB_WORKSPACE:/fastsurfer-dev \
+                      --env FASTSURFER_HOME=/fastsurfer-dev \
+                      -B $RUNNER_FS_MRI_DATA:/data \
+                      -B $RUNNER_FS_OUTPUT:/output \
+                      -B $RUNNER_FS_LICENSE:/fs_license \
+                      $RUNNER_SINGULARITY_IMGS/fastsurfer-gpu.sif \
+                      /fastsurfer/run_fastsurfer.sh \
+                      --fs_license /fs_license/.license \
+                      --t1 /data/subjectx/orig.mgz \
+                      --sid subjectX --sd /output \
+                      --parallel --3T
+
+  # Test file existence
+  test-file-existence:
+    runs-on: ci-gpu
+    needs: run-fastsurfer
+    steps:
+    - name: Test File Existence
+      run: |
+        python3 test/quick_test/test_file_existence.py $RUNNER_FS_OUTPUT_FILES
+
+  # Test for errors in log files
+  test-error-messages:
+    runs-on: ci-gpu
+    needs: [run-fastsurfer, test-file-existence]
+    steps:
+    - name: Test Log Files For Error Messages
+      run: |
+        python3 test/quick_test/test_error_messages.py $RUNNER_FS_OUTPUT_LOGS

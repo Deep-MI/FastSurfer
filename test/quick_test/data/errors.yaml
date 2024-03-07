@@ -1,0 +1,9 @@
+errors:
+ - "error"
+ - "exception"
+ - "traceback"
+
+whitelist:
+    - "error"
+    - "exception"
+    - "traceback"
