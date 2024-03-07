@@ -12,7 +12,6 @@ on:
 jobs:
 
   build:
-
     runs-on: dirac
 
     steps:
@@ -20,4 +19,16 @@ jobs:
     
     - name: Run the Docker image
       run: |
+        PYTHONPATH=<FastSurferRoot>
+        python build.py --device cuda --tag my_fastsurfer:cuda
+        
         docker pull deepmi/fastsurfer
+
+        docker run --gpus all -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurfer_analysis:/output \
+                      -v /home/user/my_fs_license_dir:/fs_license \
+                      --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
+                      --fs_license /fs_license/license.txt \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
+                      --sid subjectX --sd /output \
+                      --parallel
