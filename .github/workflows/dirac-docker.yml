@@ -28,8 +28,8 @@ jobs:
         # PYTHONPATH=<FastSurferRoot>
         # python build.py --device cuda --tag my_fastsurfer:cuda
         docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
+                      -v /localmount/volume-ssd/users/abdullaht/my_fastsurfer_analysis:/output \
+                      -v /localmount/volume-ssd/users/abdullaht/my_fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
