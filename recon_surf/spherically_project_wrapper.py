@@ -69,10 +69,14 @@ def call(command: str, **kwargs: Any) -> int:
     command_split = shlex.split(command)
 
     p = Popen(command_split, **kwargs)
-    stdout = p.communicate()[0]
+    stdout, stderr = p.communicate()
 
     if stdout:
         for line in stdout.decode("utf-8").split("\n"):
+            print(line)
+    if stderr:
+        print("stderr")
+        for line in stderr.decode("utf-8").split("\n"):
             print(line)
 
     return p.returncode
@@ -144,4 +148,8 @@ if __name__ == "__main__":
         + " -qsphere -no-isrunning "
         + threading
     )
-    spherical_wrapper(cmd1, cmd2)
+    # make sure the process has a username, so nibabel does not crash in write_geometry
+    from os import environ
+    env = dict(environ)
+    env.setdefault("USERNAME", "UNKNOWN")
+    spherical_wrapper(cmd1, cmd2, env=env)

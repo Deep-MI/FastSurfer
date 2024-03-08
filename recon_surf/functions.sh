@@ -30,8 +30,8 @@ function RunIt()
   if [[ $# -eq 3 ]]
   then
     CMDF=$3
-    echo "echo \"$cmd\" " |& tee -a $CMDF
-    echo "$timecmd $cmd " |& tee -a $CMDF
+    echo "echo ${cmd@Q}" |& tee -a $CMDF
+    echo "$timecmd $cmd" |& tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else
     echo $cmd |& tee -a $LF
@@ -64,7 +64,7 @@ function RunBatchJobs()
     echo "" >& $LOG
     echo " $JOB" >> $LOG
     echo "" >> $LOG
-    exec $JOB >> $LOG 2>&1 &
+    bash "$JOB" >> $LOG 2>&1 &
     PIDS=(${PIDS[@]} $!)
     LOGS=(${LOGS[@]} $LOG)
 
