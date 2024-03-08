@@ -19,8 +19,8 @@ import sys
 import nibabel.freesurfer.io as fs
 import numpy as np
 import math
-from lapy.diffGeo import tria_mean_curvature_flow
-from lapy.triaMesh import TriaMesh
+from lapy.diffgeo import tria_mean_curvature_flow
+from lapy import TriaMesh
 from lapy.solver import Solver
 
 HELPTEXT = """
