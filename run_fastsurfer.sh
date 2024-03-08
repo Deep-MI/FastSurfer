@@ -37,7 +37,7 @@ reconsurfdir="$FASTSURFER_HOME/recon_surf"
 # Regular flags defaults
 subject=""
 t1=""
-# TODO include <T2_input>
+t2=""
 merged_segfile=""
 cereb_segfile=""
 asegdkt_segfile=""
@@ -45,6 +45,9 @@ asegdkt_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
 asegdkt_statsfile=""
 cereb_statsfile=""
 cereb_flags=()
+hypo_segfile=""
+hypo_statsfile=""
+hypvinn_flags=()
 conformed_name=""
 seg_log=""
 run_talairach_registration="false"
@@ -59,7 +62,7 @@ surf_flags=()
 vox_size="min"
 run_asegdkt_module="1"
 run_cereb_module="1"
-# TODO include <run_hypvinn_module>
+run_hypvinn_module="1"
 threads="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
@@ -185,6 +188,23 @@ SEGMENTATION PIPELINE:
   --no_biasfield          Deactivate the calculation of partial volume-corrected
                             statistics.
 
+  HYPOTHALAMUS MODULE (HypVINN):
+  --no_hypvinn            Skip the hypothalamus segmentation.
+  --no_biasfield          This option implies --no_hypvinn, as the hypothalamus
+                            sub-segmentation requires biasfield-corrected images.
+  --t2 <T2_input>         *Optional* T2 full head input (does not have to be bias
+                            corrected, a mandatory biasfield correction step is
+                            performed). Requires an ABSOLUTE Path!
+  --reg_mode <none|coreg|robust>
+                          Ignored, if no T2 image is passed.
+                            Specifies the registration method used to register T1
+                            and T2 images. Options are 'coreg' (default) for
+                            mri_coreg, 'robust' for mri_robust_register, and 'none'
+                            to skip registration (this requires T1 and T2 are
+                            externally co-registered).
+  --qc_snap               Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
+                            to simplify the QC process.
+
 SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
@@ -246,15 +266,17 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
  http://dx.doi.org/10.1016/j.neuroimage.2022.118933
 
+For cerebellum sub-segmentation:
 Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
  reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
  NeuroImage 264 (2022), 119703.
  https://doi.org/10.1016/j.neuroimage.2022.119703
 
-Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M. FastSurfer-HypVINN:
-Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI.
-Imaging Neuroscience 2023; 1 1–32.
-https://doi.org/10.1162/imag_a_00034
+For hypothalamus sub-segemntation:
+Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
+ FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
+ structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
+ https://doi.org/10.1162/imag_a_00034
 
 EOF
 }
@@ -301,6 +323,11 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --t2)
+    t2="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --merged_segfile)
     merged_segfile="$2"
     shift # past argument
@@ -331,6 +358,26 @@ case $key in
     ;;
     --cereb_statsfile)
     cereb_statsfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --hypo_segfile)
+    hypo_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --hypo_statsfile)
+    hypo_statsfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --reg_mode)
+    mode=$(echo "$2" | tr "[:upper:]" "[:lower:]")
+    if [[ "$mode" =~ /^(none|coreg|robust)$/ ]] ; then
+      hypvinn_flags=("${hypvinn_flags[@]}" --regmode "$mode")
+    else
+      echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'."
+    fi
     shift # past argument
     shift # past value
     ;;
@@ -398,6 +445,10 @@ case $key in
     ;;
     --no_cereb)
     run_cereb_module="0"
+    shift  # past argument
+    ;;
+    --no_hypvinn)
+    run_hypvinn_module="0"
     shift  # past argument
     ;;
     --tal_reg)

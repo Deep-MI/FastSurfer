@@ -93,7 +93,7 @@ def hyvinn_preproc(args):
 
             LOGGER.info("Registering T1 to T2 ...")
             args.t2 = t1_to_t2_registration(t1_path=args.t1, t2_path=args.t2, out_dir=args.out_dir,
-                                               registration_type=args.reg_type)
+                                               registration_type=args.reg_mode)
             LOGGER.info("Registration finish in {:0.4f} seconds".format(time.time() - load_res))
         else:
             LOGGER.info(
