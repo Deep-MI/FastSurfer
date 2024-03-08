@@ -7,7 +7,7 @@ Hypothalamic subfields segmentation pipeline
 
 ### Requirements
 * Same as FastSurfer.
-* If the T1w and T2w images are available and not co-registered, FreeSurfer should be source to run the registration code, and the mri_coreg and mri_vol2vol binary should also be available.
+* If the T1w and T2w images are available and not co-registered, FreeSurfer should be sourced to run the registration code, and the mri_coreg and mri_vol2vol binaries should also be available.
 
 ### Model weights
 * EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7
@@ -50,7 +50,7 @@ Run the HypVINN/run_pipeline.py which has the following arguments:
 ### Usage
 The Hypothalamus pipeline can be run by using a T1 a T2 or both images. 
 Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-registered.
-The pipeline can do all pre-processing by itself (steps 1) or omit this step if images are already curated beforehand.
+The pipeline can do all pre-processing by itself (step 1). This step can be skipped if images are already registered externally. Note, that images are conformed as a first step, which can lead to additional interpolation reducing quality.
 
 1. Run full pipeline
     ```
@@ -70,7 +70,7 @@ The pipeline can do all pre-processing by itself (steps 1) or omit this step if 
                                      --batch_size 6
    ```
 
-3. Run pipeline with no registration step
+3. Run pipeline without the registration step
     ```
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
