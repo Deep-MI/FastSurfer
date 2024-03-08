@@ -23,26 +23,27 @@ import FastSurferCNN.utils.logging as logging
 LOGGER = logging.get_logger(__name__)
 
 
-def save_segmentation(prediction,orig_path,affine,header,save_dir):
+def save_segmentation(prediction,orig_path,ras_affine,ras_header,save_dir):
     from HypVINN.data_loader.data_utils import reorient_img
     from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME,HYPVINN_SEG_NAME
 
     pred_arr, labels_cc, savemask = get_clean_labels(np.array(prediction, dtype=np.uint8))
     #Mapped HypVINN labelst to FreeSurfer Hypvinn Labels
     pred_arr = hypo_map_subseg_2_fsseg(pred_arr)
-    LOGGER.info('Orig data orientation : {}'.format(nib.aff2axcodes(nib.load(orig_path).affine)))
+    orig_img = nib.load(orig_path)
+    LOGGER.info('Orig data orientation : {}'.format(nib.aff2axcodes(orig_img.affine)))
 
     if savemask:
-        mask_img = nib.Nifti1Image(labels_cc, affine, header)
+        mask_img = nib.Nifti1Image(labels_cc, affine=ras_affine, header=ras_header)
         LOGGER.info('HypoVINN Mask orientation : {}'.format(nib.aff2axcodes(mask_img.affine)))
-        mask_img = reorient_img(mask_img,nib.load(orig_path))
+        mask_img = reorient_img(mask_img,orig_img)
         LOGGER.info('HypoVINN Mask after re-orientation : {}'.format(nib.aff2axcodes(mask_img.affine)))
         name = HYPVINN_MASK_NAME
         nib.save(mask_img, os.path.join(save_dir, name))
 
-    pred_img = nib.Nifti1Image(pred_arr, affine=affine, header=header)
+    pred_img = nib.Nifti1Image(pred_arr, affine=ras_affine, header=ras_header)
     LOGGER.info('HypoVINN Prediction orientation : {}'.format(nib.aff2axcodes(pred_img.affine)))
-    pred_img = reorient_img(pred_img,nib.load(orig_path))
+    pred_img = reorient_img(pred_img,orig_img)
     LOGGER.info('HypoVINN Prediction after re-orientation : {}'.format(nib.aff2axcodes(pred_img.affine)))
     pred_img.set_data_dtype(np.int16) #Maximum value 939
     save_as = os.path.join(save_dir, HYPVINN_SEG_NAME)
@@ -50,12 +51,13 @@ def save_segmentation(prediction,orig_path,affine,header,save_dir):
 
     return save_as
 
-def save_logits(logits,orig_path,affine,header,save_dir,mode):
+def save_logits(logits,orig_path,ras_affine,ras_header,save_dir,mode):
     from HypVINN.data_loader.data_utils import reorient_img
-    LOGGER.info('Orig data orientation : {}'.format(nib.aff2axcodes(nib.load(orig_path).affine)))
-    nifti_img = nib.Nifti1Image(logits.astype(np.float32), affine=affine, header=header)
+    orig_img = nib.load(orig_path)
+    LOGGER.info('Orig data orientation : {}'.format(nib.aff2axcodes(orig_img.affine)))
+    nifti_img = nib.Nifti1Image(logits.astype(np.float32), affine=ras_affine, header=ras_header)
     LOGGER.info('HypoVINN logits orientation : {}'.format(nib.aff2axcodes(nifti_img.affine)))
-    nifti_img = reorient_img(nifti_img,orig_path)
+    nifti_img = reorient_img(nifti_img,orig_img)
     LOGGER.info('HypoVINN logits after re-orientation : {}'.format(nib.aff2axcodes(nifti_img.affine)))
     nifti_img.set_data_dtype(np.float32)
     save_as = os.path.join(save_dir, 'HypVINN_logits_{}.nii.gz'.format(mode))
