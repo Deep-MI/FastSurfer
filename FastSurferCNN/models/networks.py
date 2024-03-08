@@ -13,15 +13,15 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import numpy as np
-import yacs.config
 from torch import Tensor, nn
+if TYPE_CHECKING:
+    import yacs.config
 
 import FastSurferCNN.models.interpolation_layer as il
 import FastSurferCNN.models.sub_module as sm
-
 
 
 class FastSurferCNNBase(nn.Module):
@@ -388,7 +388,7 @@ _MODELS = {
 }
 
 
-def build_model(cfg: yacs.config.CfgNode) -> FastSurferCNN | FastSurferVINN:
+def build_model(cfg: 'yacs.config.CfgNode') -> FastSurferCNN | FastSurferVINN:
     """
     Build requested model.
 

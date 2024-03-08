@@ -42,18 +42,31 @@ def option_parse():
     parser = parser_defaults.add_arguments(
         parser, ["t1"]
     )
-
-    parser.add_argument('--t2', type=lambda x : None if x == 'None' else str(x), default=None,required=False, help="path to the T2 image to process")
+    parser.add_argument(
+        '--t2',
+        type=lambda x : None if x == 'None' else str(x),
+        default=None,
+        required=False,
+        help="Path to the T2 image to process.",
+    )
 
     # 3. Image processing options
-    parser.add_argument("--no_reg", action='store_false', dest="registration", help="Deactivate registration of T2 to t1,"
-                                                                                    "If multi mode is run images need to be register properly")
-
-    parser.add_argument("--qc_snap", action='store_true', dest="qc_snapshots",
-                        help="Create qc snapshots")
-
-    parser.add_argument('--reg_type', type=str, default="coreg", choices=["coreg", "robust"],
-                        help="Freesurfer Registration type to run. coreg: mri_coreg, robust : mri_robust_register  ")
+    parser.add_argument(
+        "--qc_snap",
+        action='store_true',
+        dest="qc_snapshots",
+        help="Create qc snapshots",
+    )
+    parser.add_argument(
+        "--reg_mode",
+        type=str,
+        default="coreg",
+        choices=["none", "coreg", "robust"],
+        help="Freesurfer Registration type to run. coreg: mri_coreg, "
+             "robust : mri_robust_register, none: entirely deactivates "
+             "registration of T2 to T1, if both images are passed, "
+             "images need to be register properly externally.",
+    )
 
 
 

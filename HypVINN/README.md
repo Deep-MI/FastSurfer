@@ -27,7 +27,7 @@ Run the HypVINN/run_pipeline.py which has the following arguments:
  * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in /sd/sid/logs/hypvinn_seg.log 
 ### Image processing options
  * `--no_reg` : Deactivate registration of T2 to T1. If multi modal input is used; images need to be registered externally,
- * `--reg_type` : Freesurfer Registration type to run. coreg : mri_coreg (Default) or robust : mri_robust_register.
+ * `--reg_mode` : Freesurfer Registration type to run. coreg : mri_coreg (Default) or robust : mri_robust_register.
  * `--qc_snap`: Activate the creation of QC snapshots of the predicted HypVINN segmentation.
 ###  FastSurfer Technical parameters (see FastSurfer documentation)
  * `--device`
@@ -57,7 +57,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
-                                     --reg_type coreg \
+                                     --reg_mode coreg \
                                      --seg_log /outdir/test_subject.log \
                                      --batch_size 6
    ```
@@ -65,7 +65,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
     ```
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
-                                     --reg_type coreg \
+                                     --reg_mode coreg \
                                      --seg_log /outdir/test_subject.log \
                                      --batch_size 6
    ```
@@ -75,7 +75,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
-                                     --reg_type coreg \
+                                     --reg_mode coreg \
                                      --seg_log /outdir/test_subject.log \
                                      --batch_size 6 --no_reg
    ```
@@ -85,7 +85,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
     python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
-                                     --reg_type coreg \
+                                     --reg_mode coreg \
                                      --seg_log /outdir/test_subject.log \
                                      --batch_size 6 --qc_snap
    ```
