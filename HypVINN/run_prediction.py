@@ -51,8 +51,9 @@ def load_volumes(mode,t1_path,t2_path):
         logger.info('Loading T1 image from : {}'.format(t1_path))
         t1 = nib.load(t1_path)
         t1 = nib.as_closest_canonical(t1)
-        affine = t1.affine
-        header = t1.header
+        if mode == 'multi' or mode == 't1':
+            affine = t1.affine
+            header = t1.header
         t1_zoom = t1.header.get_zooms()
         zoom = np.round(t1_zoom, 3)
         # Conform Intensities
@@ -63,8 +64,9 @@ def load_volumes(mode,t1_path,t2_path):
         logger.info('Loading T2 image from : {}'.format(t2_path))
         t2 = nib.load(t2_path)
         t2 = nib.as_closest_canonical(t2)
-        affine = t2.affine
-        header = t2.header
+        if mode == 't2':
+            affine = t2.affine
+            header = t2.header
         t2_zoom = t2.header.get_zooms()
         zoom = np.round(t2_zoom, 3)
         # Conform Intensities
@@ -198,7 +200,7 @@ def run_hypo_seg(args):
         else:
             orig_path = args.t2
 
-        pred_path = save_segmentation(pred_classes, orig_path= orig_path, affine=ras_affine, header=ras_header, save_dir=os.path.join(args.out_dir,'mri'))
+        pred_path = save_segmentation(pred_classes, orig_path= orig_path, ras_affine=ras_affine, ras_header=ras_header, save_dir=os.path.join(args.out_dir,'mri'))
         logger.info("Prediction successfully saved as {} in {:0.4f} seconds".format(pred_path, time.time()-save))
         if args.qc_snapshots:
             plot_qc_images(save_dir=os.path.join(args.out_dir,'qc_snapshots'),orig_path=orig_path,prediction_path=pred_path)
