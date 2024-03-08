@@ -607,6 +607,16 @@ if [[ -z "$cereb_statsfile" ]]
     cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats"
 fi
 
+if [[ -z "$hypo_segfile" ]]
+  then
+    hypo_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
+fi
+
+if [[ -z "$hypo_statsfile" ]]
+  then
+    hypo_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats"
+fi
+
 if [[ -z "$mask_name" ]]
   then
     mask_name="${sd}/${subject}/mri/mask.mgz"
