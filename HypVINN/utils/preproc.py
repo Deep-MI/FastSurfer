@@ -92,7 +92,7 @@ def hyvinn_preproc(args):
                             'Resolution of the T2 image will be interpolated to the one of the T1 image.')
 
             LOGGER.info("Registering T1 to T2 ...")
-            args.in_t2 = t1_to_t2_registration(t1_path=args.t1, t2_path=args.t2, out_dir=args.out_dir,
+            args.t2 = t1_to_t2_registration(t1_path=args.t1, t2_path=args.t2, out_dir=args.out_dir,
                                                registration_type=args.reg_type)
             LOGGER.info("Registration finish in {:0.4f} seconds".format(time.time() - load_res))
         else:
