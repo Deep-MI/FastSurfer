@@ -38,8 +38,7 @@ If the env variable FSTIME_LOAD is set to 1 or not set at all, then
 uptime is run before and after each process to give the load on the
 system (see below for output)
 
-Default fs_time Output
-} (see also the manual page for /usr/bin/time):
+Default fs_time Output (see also the manual page for /usr/bin/time):
 1. Key (default is @#@FSTIME)
 2. Time stamp at the onset of execution
 3. Command name
