@@ -4,21 +4,13 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'fastsurfer'
-version = "2.3.0-dev"
-description = 'a fast and accurate deep-learning based neuroimaging pipeline'
+version = '2.3.0-dev'
+description = 'A fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = {file = 'LICENSE'}
 requires-python = '>=3.10'
-authors = [
-    {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
-    {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
-    {name = 'David Kügler', email = 'david.kuegler@dzne.de'},
-]
-maintainers = [
-    {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
-    {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
-    {name = 'David Kügler', email = 'david.kuegler@dzne.de'},
-]
+authors = [{name = 'Martin Reuter et al.'}]
+maintainers = [{name = 'FastSurfer Developers']
 keywords = [
     'python',
     'Deep learning',
@@ -35,7 +27,7 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Natural Language :: English',
-    'License :: OSI Approved :: MIT License',
+    'License :: OSI Approved :: Apache Software License',
     'Intended Audience :: Science/Research',
 ]
 dependencies = [
