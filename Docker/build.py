@@ -500,7 +500,6 @@ def main(
         tag_dev: bool = True,
         **keywords
         ) -> int | str:
-    from shutil import which
     this_script = Path(__file__)
     if not this_script.is_absolute():
         this_script = Path.cwd() / __file__
