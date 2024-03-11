@@ -253,7 +253,7 @@ def main(
     build_cache : False, TextIOWrapper, optional
         A file-like object to read cached version information, the format should be
         formatted like the output of `main`. Defaults to $PROJECT_ROOT/BUILD.info.
-        If build_cache is false, it is ignored.
+        If build_cache is False, it is ignored.
     file : TextIOWrapper, optional
         A file-like object to write the output to, defaults to stdout if None or not
         passed.
