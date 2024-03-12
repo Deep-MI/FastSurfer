@@ -18,12 +18,11 @@ import copy
 import sys
 from concurrent.futures import Executor, ThreadPoolExecutor, Future
 from pathlib import Path
-from typing import Dict, Any, Iterator, Literal, Optional, Sequence
+from typing import Any, Iterator, Literal, Optional, Sequence
 
 import nibabel as nib
 import numpy as np
 import torch
-import nibabel as nib
 import yacs.config
 
 import FastSurferCNN.reduce_to_aseg as rta
