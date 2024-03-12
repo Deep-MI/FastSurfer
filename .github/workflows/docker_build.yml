@@ -32,6 +32,7 @@ jobs:
 
   run-fastsurfer:
     runs-on: dirac
+    needs: build-gpu-image
     
     steps:    
     - name: Run FastSurfer
