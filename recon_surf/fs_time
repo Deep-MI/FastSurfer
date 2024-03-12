@@ -166,7 +166,7 @@ do
     *)
       # must be at the start of the command to run
       # put item back into the list
-      cmd=($flag "$@")
+      cmd=("$(which "$flag")" "$@")
       break
       ;;
   esac

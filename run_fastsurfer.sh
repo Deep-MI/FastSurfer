@@ -826,12 +826,12 @@ if [[ "$run_seg_pipeline" == "1" ]]
              --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
              --threads "$threads" "${cereb_flags[@]}" "${allow_root[@]}")
         # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
-        if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
+        if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
         echo "${cmd[@]}" |& tee -a "$seg_log"
         "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
-            echo "ERROR: Cerebellum Segmentation failed" | tee -a "$seg_log"
+            echo "ERROR: Cerebellum Segmentation failed" |& tee -a "$seg_log"
             exit 1
         fi
     fi
