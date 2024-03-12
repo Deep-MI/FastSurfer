@@ -30,6 +30,7 @@ DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
+segstats_legacy="false" # flag to enable segstats legacy mode
 
 # Dev flags default
 check_version=1       # Check for supported FreeSurfer version (terminate if not detected)
@@ -47,7 +48,7 @@ fi
 
 # check bash version > 3.1 (needed for printf %q)
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
-if [ $(version ${BASH_VERSION}) -lt $(version "3.1.0") ]; then
+if [ "$(version "${BASH_VERSION}")" -lt "$(version "3.1.0")" ]; then
     echo "bash ${BASH_VERSION} is too old. Should be newer than 3.1, please upgrade!"
     exit 1
 fi
@@ -135,7 +136,7 @@ EOF
 
 }
 
-# Load the RunIt and the RunBatchJobs functions
+# Load the RunIt and the RunBatchJobs functions, also sets up timecmd
 source "$binpath/functions.sh"
 
 # PRINT USAGE if called without params
@@ -181,6 +182,11 @@ case $key in
     --vol_segstats)
     echo "WARNING: the --vol_segstats flag is obsolete and will be removed, --vol_segstats ignored."
     shift # past argument
+    ;;
+    --segstats_legacy)
+    # Dev Option, maybe remove
+    segstats_legacy="true"
+    shift
     ;;
     --fstess)
     fstess=1
@@ -243,7 +249,7 @@ case $key in
     exit
     ;;
     *)    # unknown option
-    echo ERROR: Flag $key unrecognized.
+    echo "ERROR: Flag $key unrecognized."
     exit 1
     ;;
 esac
@@ -251,11 +257,11 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # CHECKS
-echo
-echo sid $subject
-echo T1  $t1
-echo asegdkt_segfile $asegdkt_segfile
-echo
+echo ""
+echo "sid $subject"
+echo "T1  $t1"
+echo "asegdkt_segfile $asegdkt_segfile"
+echo ""
 
 
 # Warning if run as root user
@@ -269,6 +275,7 @@ if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
     exit 1;
 fi
 
+# TODO remove: using segstats.py should resolve this limitation
 if [ "$subject" == "subject" ]
 then
   echo "Subject ID cannot be \"subject\", please choose a different sid"
@@ -296,9 +303,9 @@ export FREESURFER=$FREESURFER_HOME
 
 if [ "$check_version" == "1" ]
 then
-  if grep -q -v ${FS_VERSION_SUPPORT} $FREESURFER_HOME/build-stamp.txt
+  if grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
   then
-    echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat $FREESURFER_HOME/build-stamp.txt)."
+    echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat "$FREESURFER_HOME/build-stamp.txt")."
     echo "We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT"
     echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
     echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
@@ -350,7 +357,7 @@ then
   fsthreads="-threads $threads -itkthreads $threads"
 fi
 
-if [ $(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m) -gt 185 ]
+if [ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]
 then
   echo "ERROR: subject directory path is very long."
   echo "This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
@@ -366,13 +373,13 @@ if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mr
 fi
 
 # collect info
-StartTime=`date`;
-tSecStart=`date '+%s'`;
-year=`date +%Y`
-month=`date +%m`
-day=`date +%d`
-hour=`date +%H`
-min=`date +%M`
+StartTime=$(date);
+tSecStart=$(date '+%s')
+year=$(date +%Y)
+month=$(date +%m)
+day=$(date +%d)
+hour=$(date +%H)
+min=$(date +%M)
 
 
 # Setup dirs
@@ -385,6 +392,7 @@ mkdir -p "$SUBJECTS_DIR/$subject/stats"
 
 mdir="$SUBJECTS_DIR/$subject/mri"
 sdir="$SUBJECTS_DIR/$subject/surf"
+statsdir="$SUBJECTS_DIR/$subject/stats"
 ldir="$SUBJECTS_DIR/$subject/label"
 
 mask="$mdir/mask.mgz"
@@ -392,38 +400,41 @@ mask="$mdir/mask.mgz"
 
 # Set up log file
 DoneFile="$SUBJECTS_DIR/$subject/scripts/recon-surf.done"
-if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
+if [ "$DoneFile" != /dev/null ] ; then  rm -f "$DoneFile" ; fi
 LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
-if [ $LF != /dev/null ] ; then  rm -f $LF ; fi
-echo "Log file for recon-surf.sh" >> $LF
-date  2>&1 | tee -a $LF
-echo " " | tee -a $LF
-echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a $LF
-echo "cd `pwd`"  | tee -a $LF
-echo $0 ${inputargs[*]} | tee -a $LF
-echo " " | tee -a $LF
-cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a $LF
-echo "$VERSION" | tee -a $LF
-uname -a  2>&1 | tee -a $LF
-
-echo " " | tee -a $LF
-echo "==================== Checking validity of inputs =================================" | tee -a $LF
-echo " " | tee -a $LF
+if [ "$LF" != /dev/null ] ; then  rm -f "$LF" ; fi
+echo "Log file for recon-surf.sh" >> "$LF"
+{ # all output tee -a "$LF"
+  date 2>&1
+  echo " "
+  echo "export SUBJECTS_DIR=$SUBJECTS_DIR"
+  echo "cd $(pwd)"
+  echo "$0 ${inputargs[*]}"
+  echo " "
+  cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
+  echo "$VERSION"
+  uname -a 2>&1
+  echo " "
+  echo " "
+  echo "==================== Checking validity of inputs ================================="
+  echo " "
 
 # Print parallelization parameters
-echo " " | tee -a $LF
-if [ "$DoParallel" == "1" ]
-then
-  echo " RUNNING both hemis in PARALLEL " | tee -a $LF
-else
-  echo " RUNNING both hemis SEQUENTIALLY " | tee -a $LF
-fi
-echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " | tee -a $LF
-echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " | tee -a $LF
-echo " " | tee -a $LF
+  # Print parallelization parameters
+  if [ "$DoParallel" == "1" ]
+  then
+    echo " RUNNING both hemis in PARALLEL"
+  else
+    echo " RUNNING both hemis SEQUENTIALLY"
+  fi
+  echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS"
+  echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS"
+  echo " "
 
-# Check input segmentation quality
-echo "Checking Input Segmentation Quality ..." | tee -a "$LF"
+  # Check input segmentation quality
+  echo "Checking Input Segmentation Quality ..."
+} | tee -a "$LF"
+
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/quick_qc.py --asegdkt_segfile $asegdkt_segfile"
 RunIt "$cmd" "$LF"
 echo "" | tee -a "$LF"
@@ -433,35 +444,37 @@ echo "" | tee -a "$LF"
 
 ########################################## START ########################################################
 
-echo " " | tee -a $LF
-echo "================== Creating orig and rawavg from input =========================" | tee -a $LF
-echo " " | tee -a $LF
+{
+  echo " "
+  echo "================== Creating orig and rawavg from input ========================="
+  echo " "
+} | tee -a "$LF"
 
 CONFORM_LF=$SUBJECTS_DIR/$subject/scripts/conform.log
-if [ $CONFORM_LF != /dev/null ] ; then  rm -f $CONFORM_LF ; fi
-echo "Log file for Conform test" > $CONFORM_LF
+if [ "$CONFORM_LF" != /dev/null ] ; then  rm -f "$CONFORM_LF" ; fi
+echo "Log file for Conform test" > "$CONFORM_LF"
 
 # check for input conformance
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
 RunIt "$cmd" "$LF -a $CONFORM_LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
-vox_size=`cat $CONFORM_LF | grep -E " - Voxel Size " | cut -d' ' -f5 | cut -d'x' -f1`
+vox_size=$(grep -E " - Voxel Size " "$CONFORM_LF" | cut -d' ' -f5 | cut -d'x' -f1)
 # remove the temporary conform_log (all info is also in the recon-surf logfile)
-if [ -f "$CONFORM_LF" ]; then rm -f $CONFORM_LF ; fi
+if [ -f "$CONFORM_LF" ]; then rm -f "$CONFORM_LF" ; fi
 
 # here, we check the correct vox_size by passing it to the next conform, so errors in this line might be caused above
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $asegdkt_segfile --check_only --vox_size $vox_size --dtype any --verbose"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 
 if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
 then
-  echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." | tee -a $LF
+  echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." | tee -a "$LF"
   hiresflag="-hires"
   noconform_if_hires=" -noconform"
   hires_surface_suffix=".predec"
 else
-  echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." | tee -a $LF
+  echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." | tee -a "$LF"
   hiresflag=""
   noconform_if_hires=""
   hires_surface_suffix=""
@@ -470,15 +483,15 @@ fi
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of T1 and segmentation)
 # also ensures .mgz format (in case inputs are nifti)
 cmd="mri_convert $t1 $mdir/orig.mgz"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 
 cmd="mri_convert $asegdkt_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 
 # link original T1 input to rawavg (needed by pctsurfcon)
-pushd $mdir
-softlink_or_copy "orig.mgz" "rawavg.mgz" "$LF"
-popd
+pushd "$mdir" || ( echo "Could not change to $mdir" ; exit 1 )
+  softlink_or_copy "orig.mgz" "rawavg.mgz" "$LF"
+popd || ( echo "Could not change to subject_dir" ; exit 1 )
 
 
 
@@ -491,23 +504,29 @@ popd
 # ============================= MASK & ASEG_noCC ========================================
 
 if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
-  # Mask or aseg.auto_noCCseg not found; create them from aparc.DKTatlas+aseg
-  echo " " | tee -a $LF
-  echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ===============" | tee -a $LF
-  echo " " | tee -a $LF
+  {
+    # Mask or aseg.auto_noCCseg not found; create them from aparc.DKTatlas+aseg
+    echo " "
+    echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ==============="
+    echo " "
+  } | tee -a "$LF"
+
   # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
   # output will be uchar (else mri_cc will fail below)
   cmd="$python $FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 fi
+
 
 # ============================= NU BIAS CORRECTION =======================================
 
 if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # only run the bias field correction, if the bias field corrected does not exist already
-  echo " " | tee -a $LF
-  echo "============= Computing NU (bias corrected) ============" | tee -a $LF
-  echo " " | tee -a $LF
+  {
+    echo " "
+    echo "============= Computing NU (bias corrected) ============"
+    echo " "
+  } | tee -a "$LF"
   # nu processing is changed here compared to recon-all: we use the brainmask from the
   # segmentation to improve the nu correction (and speedup)
   # orig_nu N3 in FS6 took 44 sec, FS 7.3.2 uses --ants-n4 (takes 3 min and does not accept
@@ -518,73 +537,81 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # frontal head), we don't. Also this avoids a second call to nu correct.
   # talairach.xfm is also not needed here at all, it can be dropped if other places in the
   # stream can be changed to avoid it.
-  pushd "$mdir" || ( echo "Cannot change to $mdir" | tee -a "$LF" || exit 1 )
-  #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-  cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
-  RunIt "$cmd" "$LF"
-  popd || return
+  pushd "$mdir" || ( echo "Cannot change to $mdir" ; exit 1 )
+    #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
+    cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
+    RunIt "$cmd" "$LF"
+  popd || (echo "Could not popd" ; exit 1)
 fi
 
 
 # ============================= TALAIRACH ==============================================
 
 if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
-  echo " " | tee -a $LF
-  echo "============= Computing Talairach Transform ============" | tee -a $LF
-  echo " " | tee -a $LF
-  echo "\"$binpath/talairach-reg.sh\" \"$mdir\" \"$atlas3T\" \"$LF\"" | tee -a "$LF"
+  {
+    echo " "
+    echo "============= Computing Talairach Transform ============"
+    echo " "
+    echo "\"$binpath/talairach-reg.sh\" \"$mdir\" \"$atlas3T\" \"$LF\""
+  } | tee -a "$LF"
   "$binpath/talairach-reg.sh" "$mdir" "$atlas3T" "$LF"
 fi
 
 
 # ============================= BRAINMASK ==============================================
+{
+  echo " "
+  echo "============ Creating brainmask from aseg and nu or T1 ============"
+  echo " "
+} | tee -a $LF
 
-echo " " | tee -a $LF
-echo "============ Creating brainmask from aseg and nu or T1 ============" | tee -a $LF
-echo " " | tee -a $LF
 # create norm by masking nu
 cmd="mri_mask $mdir/nu.mgz $mdir/mask.mgz $mdir/norm.mgz"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
   cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
   # create brainmask by masking T1
   cmd="mri_mask $mdir/T1.mgz $mdir/mask.mgz $mdir/brainmask.mgz"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 else
   # create brainmask by linkage to norm.mgz (masked nu.mgz)
-  pushd $mdir
-  softlink_or_copy "norm.mgz" "brainmask.mgz" $LF
-  popd
+  pushd "$mdir" || ( echo "Could not cd to $mdir" ; exit 1 )
+    softlink_or_copy "norm.mgz" "brainmask.mgz" "$LF"
+  popd || (echo "Could not popd" ; exit 1 )
 fi
 
 
 # ============================= CC SEGMENTATION ============================================
 
-echo " " | tee -a $LF
-echo "============ Creating and adding CC Segmentation ============" | tee -a $LF
-echo " " | tee -a $LF
+{
+  echo " "
+  echo "============ Creating and adding CC Segmentation ============"
+  echo " "
+} | tee -a $LF
 # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
 # Note: if original input segmentation already contains CC, this will exit with ERROR
 # in the future maybe check and skip this step (and next)
 cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 # add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
 cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 
 
 # ============================= FILLED =====================================================
 
-echo " " | tee -a $LF
-echo "========= Creating filled from brain (brainfinalsurfs, wm.asegedit, wm)  =======" | tee -a $LF
-echo " " | tee -a $LF
+{
+  echo " "
+  echo "========= Creating filled from brain (brainfinalsurfs, wm.asegedit, wm)  ======="
+  echo " "
+} | tee -a $LF
 
 # filled is needed to generate initial WM surfaces
 cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill $hiresflag $fsthreads"
-RunIt "$cmd" $LF
+RunIt "$cmd" "$LF"
 
 
 
@@ -592,25 +619,27 @@ RunIt "$cmd" $LF
 # ================================================== SURFACES ==============================================================
 # =======
 
-CMDFS=""
+CMDFS=()
 
 for hemi in lh rh; do
 
   CMDF="$SUBJECTS_DIR/$subject/scripts/$hemi.processing.cmdf"
-  CMDFS="$CMDFS $CMDF"
-  rm -rf $CMDF
-  echo "#!/bin/bash" > $CMDF
+  CMDFS+=("$CMDF")
+  rm -rf "$CMDF"
+  echo "#!/bin/bash" > "$CMDF"
 
 
 # ============================= TESSELATE - SMOOTH =====================================================
 
-  echo "echo " | tee -a $CMDF
-  echo "echo \"================== Creating surfaces $hemi - orig.nofix ==================\"" | tee -a $CMDF
-  echo "echo " | tee -a $CMDF
+  {
+    echo "echo \" \""
+    echo "echo \"================== Creating surfaces $hemi - orig.nofix ==================\""
+    echo "echo \" \""
+  } | tee -a "$CMDF"
   if [ "$fstess" == "1" ]
   then
     cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning $hiresflag $fsthreads"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
   else
     # instead of mri_tesselate lego land use marching cube
 
@@ -622,57 +651,61 @@ for hemi in lh rh; do
 
     # extract initial surface "?h.orig.nofix"
     cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
 
     # Marching cube does not return filename and wrong volume info!
     outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix
     cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
 
     # Rewrite surface orig.nofix to fix vertex locs bug (scannerRAS instead of surfaceRAS set with mc)
     #cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
-    #RunIt "$cmd" $LF $CMDF
+    #RunIt "$cmd" "$LF" "$CMDF"
 
     # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
-    cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
-    echo "echo \"$cmd\" " | tee -a $CMDF
-    echo "$timecmd $cmd " | tee -a $CMDF
-    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> $CMDF
+    {
+      cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
+      echo "echo \"$cmd\""
+      echo "$timecmd $cmd"
+    } | tee -a "$CMDF"
+    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> "$CMDF"
 
     # Reduce to largest component (usually there should only be one)
     cmd="mris_extract_main_component $outmesh $outmesh"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     
     # for hires decimate mesh 
-    if [ ! -z "$hiresflag" ]; then
+    if [ -n "$hiresflag" ]; then
       DecimationFaceArea="0.5"
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
       # than DecimationFaceArea, then the surface is not changed.
       # set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
       cmd="mris_remesh --desired-face-area $DecimationFaceArea --input $outmesh --output $sdir/$hemi.orig.nofix"
-      RunIt "$cmd" $LF $CMDF
+      RunIt "$cmd" "$LF" "$CMDF"
     fi
-
     # -smooth1 (explicitly state 10 iteration (default) but may change in future)
     cmd="mris_smooth -n 10 -nw -seed 1234 $sdir/$hemi.orig.nofix $sdir/$hemi.smoothwm.nofix"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
   fi
-
 
 # ============================= INFLATE1 - QSPHERE =====================================================
 
-  echo "echo  " | tee -a $CMDF
-  echo "echo \"=================== Creating surfaces $hemi - qsphere ====================\"" | tee -a $CMDF
-  echo "echo " | tee -a $CMDF
+  {
+    echo "echo \"\""
+    echo "echo \"=================== Creating surfaces $hemi - qsphere ====================\""
+    echo "echo \"\""
+  } | tee -a "$CMDF"
+
   #surface inflation (54sec both hemis) (needed for qsphere and for topo-fixer)
   cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" $LF $CMDF
+  RunIt "$cmd" "$LF" "$CMDF"
+
   if [ "$fsqsphere" == "1" ]
   then
     # quick spherical mapping (2min48sec)
     cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning $hiresflag $fsthreads"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
   else
     # instead of mris_sphere, directly project to sphere with spectral approach
     # equivalent to -qsphere
@@ -680,14 +713,17 @@ for hemi in lh rh; do
     cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
     printf -v tmp %q "$python"
     cmd="$cmd --subject $subject --threads=$threads --py ${tmp} --binpath ${binpath}"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
   fi
 
 # ============================= FIX - WHITEPREAPARC - CORTEXLABEL ============================================
 
-  echo "echo " | tee -a $CMDF
-  echo "echo \"=================== Creating surfaces $hemi - fix ========================\"" | tee -a $CMDF
-  echo "echo " | tee -a $CMDF
+  {
+    echo "echo \"\""
+    echo "echo \"=================== Creating surfaces $hemi - fix ========================\""
+    echo "echo \"\""
+  } | tee -a "$CMDF"
+
   cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" $LF $CMDF
 
@@ -698,7 +734,7 @@ for hemi in lh rh; do
   RunIt "$cmd" $LF $CMDF
 
   cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" $LF $CMDF
+  RunIt "$cmd" "$LF" "$CMDF"
   ## copy nofix to orig and inflated for next step
   # -white (don't know how to call this from recon-all as it needs -whiteonly setting and by default it also creates the pial.
   # create first WM surface white.preaparc from topo fixed orig surf, also first cortex label (1min), (3min for deep learning surf)
@@ -706,43 +742,51 @@ for hemi in lh rh; do
 
 # ============================= INFLATE2 - CURVHK ===================================================
 
-  echo "echo \" \"" | tee -a $CMDF
-  echo "echo \"================== Creating surfaces $hemi - inflate2 ====================\"" | tee -a $CMDF
-  echo "echo \" \"" | tee -a $CMDF
+  {
+    echo "echo \"\""
+    echo "echo \"================== Creating surfaces $hemi - inflate2 ====================\""
+    echo "echo \"\""
+  } | tee -a "$CMDF"
+
   # create nicer inflated surface from topo fixed (not needed, just later for visualization)
   cmd="recon-all -subject $subject -hemi $hemi -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" $LF $CMDF
+  RunIt "$cmd" "$LF" "$CMDF"
 
 
 # ============================= MAP-DKT ==========================================================
 
-  echo "echo \" \"" | tee -a $CMDF
-  echo "echo \"=========== Creating surfaces $hemi - map input asegdkt_segfile to surf ===============\"" | tee -a $CMDF
-  echo "echo \" \"" | tee -a $CMDF
+  {
+    echo "echo \" \""
+    echo "echo \"=========== Creating surfaces $hemi - map input asegdkt_segfile to surf ===============\""
+    echo "echo \" \""
+  } | tee -a "$CMDF"
+
   # sample input segmentation (aparc.DKTatlas+aseg orig) onto wm surface:
   # map input aparc to surface (requires thickness (and thus pail) to compute projfrac 0.5), here we do projmm which allows us to compute based only on white
   # this is dangerous, as some cortices could be < 0.6 mm, but then there is no volume label probably anyway.
   # Also note that currently we cannot mask non-cortex regions here, should be done in mris_anatomical stats later
   # the smoothing helps
   #cmd="mris_sample_parc -ct $FREESURFER_HOME/average/colortable_desikan_killiany.txt -file ${binpath}$hemi.DKTatlaslookup.txt -projmm 0.6 -f 5  -surf white.preaparc $subject $hemi aparc.DKTatlas+aseg.orig.mgz aparc.DKTatlas.mapped.prefix.annot"
-  #RunIt "$cmd" $LF $CMDF
+  #RunIt "$cmd" "$LF" "$CMDF"
   #cmd="$python ${binpath}smooth_aparc.py --insurf $sdir/$hemi.white.preaparc --inaparc $ldir/$hemi.aparc.DKTatlas.mapped.prefix.annot --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot"
-  #RunIt "$cmd" $LF $CMDF
+  #RunIt "$cmd" "$LF" "$CMDF"
   cmd="$python ${binpath}sample_parc.py --inseg $mdir/aparc.DKTatlas+aseg.orig.mgz --insurf $sdir/$hemi.white.preaparc --incort $ldir/$hemi.cortex.label --outaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot --seglut ${binpath}$hemi.DKTatlaslookup.txt --surflut ${binpath}DKTatlaslookup.txt --projmm 0.6 --radius 2"
-  RunIt "$cmd" $LF $CMDF
+  RunIt "$cmd" "$LF" "$CMDF"
 
 
 # ============================= SPHERE - SURFREG (optional) ==============================================
 
   # if we segment with FS or if surface registration is requested do it here:
   if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
-    echo "echo \" \"" | tee -a $CMDF
-    echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" | tee -a $CMDF
-    echo "echo \" \"" | tee -a $CMDF
+    {
+      echo "echo \" \""
+      echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
 
     # Surface registration for cross-subject correspondence (registration to fsaverage)
     cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
-    RunIt "$cmd" $LF "$CMDF"
+    RunIt "$cmd" "$LF" "$CMDF"
   
     # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
     # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
@@ -752,18 +796,18 @@ for hemi in lh rh; do
     # (note the former fix, initializing with pre-central label, is not working in FS7.2
     # as they broke the label initialization in mris_register)
     cmd="$python ${binpath}/rotate_sphere.py \
-       --srcsphere $sdir/${hemi}.sphere \
-       --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
-       --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
-       --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
-       --out $sdir/${hemi}.angles.txt"
-    RunIt "$cmd" $LF "$CMDF"
+         --srcsphere $sdir/${hemi}.sphere \
+         --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
+         --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
+         --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
+         --out $sdir/${hemi}.angles.txt"
+    RunIt "$cmd" "$LF" "$CMDF"
     # 2. use global rotation as initialization to non-linear registration:
     cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
-       $sdir/${hemi}.sphere \
-       $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
-       $sdir/${hemi}.sphere.reg"
-    RunIt "$cmd" $LF "$CMDF"
+         $sdir/${hemi}.sphere \
+         $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+         $sdir/${hemi}.sphere.reg"
+    RunIt "$cmd" "$LF" "$CMDF"
     # command to generate new aparc to check if registration was OK
     # run only for debugging
     #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
@@ -775,52 +819,57 @@ for hemi in lh rh; do
 # ============================= WHITE & PIAL & (FSSURFSEG optional) ===============================================
 
   if [ "$fsaparc" == "1" ] ; then
-    echo "echo \" \"" | tee -a $CMDF
-    echo "echo \"============ Creating surfaces $hemi - FS asegdkt_segfile..pial ===============\"" | tee -a $CMDF
-    echo "echo \" \"" | tee -a $CMDF
+    {
+      echo "echo \" \""
+      echo "echo \"============ Creating surfaces $hemi - FS asegdkt_segfile..pial ===============\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
+
     # 20-25 min for traditional surface segmentation (each hemi)
     # this creates aparc and creates pial using aparc, also computes jacobian
     cmd="recon-all -subject $subject -hemi $hemi -jacobian_white -avgcurv -cortparc -white -pial -no-isrunning $hiresflag $fsthreads"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     # Here insert DoT2Pial  later!
   else
-    echo "echo \" \"" | tee -a $CMDF
-    echo "echo \"================ Creating surfaces $hemi - white and pial direct ===================\"" | tee -a $CMDF
-    echo "echo \" \"" | tee -a $CMDF
+    {
+      echo "echo \" \""
+      echo "echo \"================ Creating surfaces $hemi - white and pial direct ===================\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
 
     # 4 min compute white :
-    echo "pushd $mdir" >> $CMDF
+    echo "pushd $mdir" >> "$CMDF"
     cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white.preaparc --o ../surf/$hemi.white --white --nsmooth 0 --rip-label ../label/$hemi.cortex.label --rip-bg --rip-surf ../surf/$hemi.white.preaparc --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     # 4 min compute pial :
     cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white --o ../surf/$hemi.pial.T1 --pial --nsmooth 0 --rip-label ../label/$hemi.cortex+hipamyg.label --pin-medial-wall ../label/$hemi.cortex.label --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot --repulse-surf ../surf/$hemi.white --white-surf ../surf/$hemi.white"
-    RunIt "$cmd" $LF $CMDF
-    echo "popd" >> $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "popd" >> "$CMDF"
 
     # Here insert DoT2Pial  later --> if T2pial is not run, need to softlink pial.T1 to pial!
 
-    echo "pushd $sdir" >> $CMDF
-    softlink_or_copy "$hemi.pial.T1" "$hemi.pial" $LF $CMDF
-    echo "popd" >> $CMDF
+    echo "pushd $sdir" >> "$CMDF"
+    softlink_or_copy "$hemi.pial.T1" "$hemi.pial" "$LF" "$CMDF"
+    echo "popd" >> "$CMDF"
 
-    echo "pushd $mdir" >> $CMDF
+    echo "pushd $mdir" >> "$CMDF"
     # these are run automatically in fs7* recon-all and cannot be called directly without -pial flag (or other t2 flags)
     if [ "$fssurfreg" == "1" ] ; then
       # jacobian needs sphere reg which might be turned off by user (on by default)
       cmd="mris_jacobian ../surf/$hemi.white ../surf/$hemi.sphere.reg ../surf/$hemi.jacobian_white"
-      RunIt "$cmd" $LF $CMDF
+      RunIt "$cmd" "$LF" "$CMDF"
     fi
     cmd="mris_place_surface --curv-map ../surf/$hemi.white 2 10 ../surf/$hemi.curv"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     cmd="mris_place_surface --area-map ../surf/$hemi.white ../surf/$hemi.area"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     cmd="mris_place_surface --curv-map ../surf/$hemi.pial 2 10 ../surf/$hemi.curv.pial"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     cmd="mris_place_surface --area-map ../surf/$hemi.pial ../surf/$hemi.area.pial"
-    RunIt "$cmd" $LF $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
     cmd="mris_place_surface --thickness ../surf/$hemi.white ../surf/$hemi.pial 20 5 ../surf/$hemi.thickness"
-    RunIt "$cmd" $LF $CMDF
-    echo "popd" >> $CMDF
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "popd" >> "$CMDF"
   fi
 
 
@@ -828,15 +877,17 @@ for hemi in lh rh; do
 
   # in FS7 curvstats moves here
   cmd="recon-all -subject $subject -hemi $hemi -curvstats -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" $LF "$CMDF"
+  RunIt "$cmd" "$LF" "$CMDF"
 
 
 
 
   if [ "$DoParallel" == "0" ] ; then
-    echo " " | tee -a $LF
-    echo " RUNNING $hemi sequentially ... " | tee -a $LF
-    echo " " | tee -a $LF
+    {
+      echo " "
+      echo " RUNNING $hemi sequentially ... "
+      echo " "
+    } | tee -a "$LF"
     chmod u+x $CMDF
     RunIt "$CMDF" $LF
   fi
@@ -847,80 +898,90 @@ done  # hemi loop ----------------------------------
 
 
 if [ "$DoParallel" == 1 ] ; then
-    echo " " | tee -a $LF
-    echo " RUNNING HEMIs in PARALLEL !!! " | tee -a $LF
-    echo " " | tee -a $LF
-    RunBatchJobs $LF $CMDFS
+  {
+    echo ""
+    echo " RUNNING HEMIs in PARALLEL !!! "
+    echo ""
+  } |& tee -a "$LF"
+  RunBatchJobs "$LF" "${CMDFS[@]}"
 fi
-
 
 # ============================= RIBBON ===============================================
 
 
-  echo " " | tee -a $LF
-  echo "============================ Creating surfaces - ribbon ===========================" | tee -a $LF
-  echo " " | tee -a $LF
-  # -cortribbon 4 minutes, ribbon is used in mris_anatomical stats to remove voxels from surface-based volumes that should not be cortex
-  # anatomical stats can run without ribbon, but will omit some surface-based measures then
+{
+  echo ""
+  echo "============================ Creating surfaces - ribbon ==========================="
+  echo ""
+} | tee -a "$LF"
+  # -cortribbon 4 minutes, ribbon is used in mris_anatomical stats to remove voxels from surface based volumes that should not be cortex
+  # anatomical stats can run without ribbon, but will omit some surface based measures then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
   # So lets run it to have these measures below.
   cmd="recon-all -subject $subject -cortribbon $hiresflag $fsthreads"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
   if [ "$fsaparc" == "1" ] ; then
-    echo " " | tee -a $LF
-    echo "============= Creating surfaces - other FS asegdkt_segfile and stats =======================" | tee -a $LF
-    echo " " | tee -a $LF
+    {
+      echo ""
+      echo "============= Creating surfaces - other FS asegdkt_segfile and stats ======================="
+      echo ""
+    } | tee -a "$LF"
     cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
-    RunIt "$cmd" $LF
-    cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -segstats $hiresflag $fsthreads"
-    RunIt "$cmd" $LF
+    RunIt "$cmd" "$LF"
+
+    cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
+    RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
+    # removed -segstats here (now part of mri_segstats.py/segstats.py
   fi  # (FS-APARC)
 
 
 # ============================= MAPPED SURF-STATS =========================================
 
-  echo " " | tee -a $LF
-  echo "===================== Creating surfaces - mapped stats =========================" | tee -a $LF
-  echo " " | tee -a $LF
+{
+  echo ""
+  echo "===================== Creating surfaces - mapped stats ========================="
+  echo ""
+} | tee -a "$LF"
+
   # 2x18sec create stats from mapped aparc
   for hemi in lh rh; do
-    cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $sdir/../stats/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
-    RunIt "$cmd" $LF
+    cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $statsdir/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
+    RunIt "$cmd" "$LF"
   done
 
 
 # ============================= FASTSURFER - surfcon hypo stats =========================================
 
   if [ "$fsaparc" == "0" ] ; then
-
-    echo " " | tee -a $LF
-    echo "============= Creating surfaces - pctsurfcon, hypo, segstats ====================" | tee -a $LF
-    echo " " | tee -a $LF
-
+    {
+      echo ""
+      echo "============= Creating surfaces - pctsurfcon, hypo, segstats ===================="
+      echo ""
+    } | tee -a "$LF"
     # pctsurfcon (has no way to specify which annot to use, so we need to link ours as aparc is not available)
-    pushd $ldir
-      softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" $LF
-      softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" $LF
-    popd
+    pushd "$ldir" || (echo "Could not cd to $ldir" ; exit 1)
+      softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" "$LF"
+      softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" "$LF"
+    popd || (echo "Could not popd" ; exit 1)
     for hemi in lh rh; do
       cmd="pctsurfcon --s $subject --$hemi-only"
-      RunIt "$cmd" $LF
+      RunIt "$cmd" "$LF"
     done
-    pushd $ldir
+    pushd "$ldir" || (echo "Could not cd to $ldir" ; exit 1)
       cmd="rm *h.aparc.annot"
-      RunIt "$cmd" $LF
-    popd
+      RunIt "$cmd" "$LF"
+    popd || (echo "Could not popd" ; exit 1)
 
     # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
     # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz
     # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces
     cmd="recon-all -subject $subject -hyporelabel -apas2aseg $hiresflag $fsthreads"
-    RunIt "$cmd" $LF
+    RunIt "$cmd" "$LF"
   fi
 
 
@@ -929,59 +990,96 @@ fi
   # creating aparc.DKTatlas+aseg.mapped.mgz by mapping aparc.DKTatlas.mapped from surface to aseg.mgz
   # (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)
   cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
 
 # ============================= FASTSURFER - STATS =========================================
 
   if [ "$fsaparc" == "0" ] ; then
     # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
-    cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
-    RunIt "$cmd" $LF
+    # cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
+    if [[ "$segstats_legacy" == "true" ]] ; then
+      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py --subject $subject"
+      RunIt "$cmd" "$LF"
+
+      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
+      RunIt "$cmd" "$LF"
+    else
+      {
+        # calculate brainvol stats and aseg stats with segstats.py
+        cmd_=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+              measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
+              "SupraTentorial" "SupraTentorialNotVent" "SubCortGray"
+              "EstimatedTotalIntraCranialVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
+              "CerebralWhiteMatter" "rhCortex" "lhCortex" "Cortex" "TotalGray" "rhSurfaceHoles"
+              "lhSurfaceHoles" "SurfaceHoles" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
+        RunIt "${cmd_[*]}" "$LF"
+      }
+      {
+        echo "Extract the brainvol stats section from segstats output."
+        # ... so stats/brainvol.stats also exists (but it is slightly different
+        cmd_=("grep" "^# Measure " "$statsdir/aseg.stats")
+        echo "${cmd_[*]} > $statsdir/brainvol.stats"
+      } | tee -a "$LF"
+      cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
+      RunIt "$cmd" $LF
+    fi
+    #  "${cmd[@]}" > "$statsdir/brainvol.stats"
+    #  cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py --subject $subject"
+    #  RunIt "$cmd" "$LF"
   fi
 
-
 # ============================= MAPPED-WMPARC =========================================
+{
+  echo ""
+  echo "===================== Creating wmparc from mapped ======================="
+  echo ""
+} | tee -a "$LF"
 
-  echo " " | tee -a $LF
-  echo "===================== Creating wmparc from mapped =======================" | tee -a $LF
-  echo " " | tee -a $LF
-
-  # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and
-  # hypos) difference between this and the surface improved one above are probably tiny, so the surface improvement
-  # above can probably be skipped to save time
-  cmd="mri_segstats --seed 1234 --seg $mdir/aseg.presurf.hypos.mgz --sum $mdir/../stats/aseg.presurf.hypos.stats"
-  cmd="$cmd --pv $mdir/norm.mgz --empty --brainmask $mdir/brainmask.mgz --brain-vol-from-seg --excludeid 0"
-  cmd="$cmd --excl-ctxgmwm --supratent --subcortgray --in $mdir/norm.mgz --in-intensity-name norm"
-  cmd="$cmd --in-intensity-units MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler"
-  cmd="$cmd --ctab /$FREESURFER_HOME/ASegStatsLUT.txt --subject $subject"
-  # segstats.py version of the mri_segstats call
-  sdir=$(dirname "$mdir")/stats
-  cmd=($python "${binpath}/FastSurferCNN/segstats.py" --legacy_freesurfer --sd "$sd"
-       --segfile "$mdir/aseg.presurf.hypos.mgz" --normfile "$mdir/norm.mgz" --sid "$sid"
-       --pvfile "$mdir/norm.mgz" --segstatsfile "$sdir/aseg.presurf.hypos.stats"
-       --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads"
-       measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
-       "SupraTentorial" "SupraTentorialNotVent" "SubCortGray"
-       "EstimatedTotalIntraCranialVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
-       "CerebralWhiteMatter" "rhCortex" "lhCortex" "Cortex" "TotalGray" "rhSurfaceHoles"
-       "lhSurfaceHoles" "SurfaceHoles" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
-       )
-  RunIt "${cmd[*]@Q}" $LF
-
+  if [[ "$segstats_legacy" == "true" ]] ; then
+    # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and
+    # hypos) difference between this and the surface improved one above are probably tiny, so the surface improvement
+    # above can probably be skipped to save time
+    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py"
+         --seed 1234 --seg "$mdir/aseg.presurf.hypos.mgz" --sum "$statsdir/aseg.presurf.hypos.stats"
+         --pv "$mdir/norm.mgz" --empty --brainmask "$mdir/brainmask.mgz" --brain-vol-from-seg --excludeid 0
+         "--excl-ctxgmwm" --supratent --subcortgray --in "$mdir/norm.mgz" --in-intensity-name norm
+         "--in-intensity-units" MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler
+         "--ctab" "$FREESURFER_HOME/ASegStatsLUT.txt" --subject "$subject")
+    RunIt "${cmd[*]@Q}" "$LF"
+  else
+    # segstats.py version of the mri_segstats call
+    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sd "$sd"
+          --segfile "$mdir/aseg.presurf.hypos.mgz" --normfile "$mdir/norm.mgz" --sid "$sid"
+          --pvfile "$mdir/norm.mgz" --segstatsfile "$statsdir/aseg.presurf.hypos.stats"
+          --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads"
+          measures --file "$statsdir/aseg.stats" --import "all")
+    # --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
+    #           "SupraTentorial" "SupraTentorialNotVent" "SubCortGray"
+    #           "EstimatedTotalIntraCranialVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
+    #           "CerebralWhiteMatter" "rhCortex" "lhCortex" "Cortex" "TotalGray" "rhSurfaceHoles"
+    #           "lhSurfaceHoles" "SurfaceHoles" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
+    RunIt "${cmd[*]@Q}" "$LF"
+  fi
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
   # takes a few mins
-  cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
-  cmd=($python "${binpath}/FastSurferCNN/segstats.py" --legacy_freesurfer --sid "$sid"
-       --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
-       --pvfile "$mdir/norm.mgz" --segstatsfile "$sdir/wmparc.DKTatlas.mapped.stats"
-       --sd "$sd" --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
-       measures --compute "Mask($mdir/brainmask.mgz)" "VentricleChoroidVol"
-       "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter")
-  RunIt "${cmd[*]@Q}" $LF
+  #cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
+  if [[ "$segstats_legacy" == "true" ]] ; then
+    cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
+    RunIt "$cmd" "$LF"
+  else
+    #
+    cmd_=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --legacy_freesurfer --sid "$sid"
+          --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
+          --pvfile "$mdir/norm.mgz" --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats"
+          --sd "$sd" --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
+          measures --file "$statsdir/" --import "Mask" "VentricleChoroidVol"
+          "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter")
+    RunIt "${cmd_[*]@Q}" "$LF"
+  fi
 
 
 # ============================= FASTSURFER - SYMLINKS =========================================
@@ -989,20 +1087,19 @@ fi
   # Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
   if [ "$fsaparc" == "0" ] ; then
     # Symlink of aparc.DKTatlas+aseg.mapped.mgz
-    pushd $mdir
-    softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc.DKTatlas+aseg.mgz" $LF
-    softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc+aseg.mgz" $LF
-    popd
+    pushd "$mdir" || (echo "Could not cd to $mdir" ; exit 1)
+      softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc.DKTatlas+aseg.mgz" "$LF"
+      softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc+aseg.mgz" "$LF"
 
-    # Symlink of wmparc.mapped
-    pushd $mdir
-    softlink_or_copy "wmparc.DKTatlas.mapped.mgz" "wmparc.mgz" $LF
-    popd
+      # Symlink of wmparc.mapped
+      softlink_or_copy "wmparc.DKTatlas.mapped.mgz" "wmparc.mgz" "$LF"
+    popd || ( echo "Could not popd" ; exit 1 )
 
-    # Symbolic link for mapped surface parcellations
-    pushd $ldir
-    softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.DKTatlas.annot" $LF
-    softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.DKTatlas.annot" $LF
+      # Symbolic link for mapped surface parcellations
+    pushd "$ldir" || (echo "Could not cd to $ldir" ; exit 1)
+      softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.DKTatlas.annot" "$LF"
+      softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.DKTatlas.annot" "$LF"
+    popd || ( echo "Could not popd" ; exit 1 )
   fi
 
 
@@ -1012,45 +1109,54 @@ fi
   if [ "$fssurfreg" == "1" ] ; then
     # can be produced if surf registration exists
     #cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
-    #RunIt "$cmd" $LF
+    #RunIt "$cmd" "$LF"
     # here we run our version of balabels: mapping and annot creation is very fast
     # time is used in mris_anatomical_stats (called 4 times, BA and BA-thresh for each hemi)
     cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
-    RunIt "$cmd" $LF
+    RunIt "$cmd" "$LF"
   fi
 
 
-
-echo " " | tee -a $LF
-echo "================= DONE =========================================================" | tee -a $LF
-echo " " | tee -a $LF
-
 # Collect info
-EndTime=`date`
-tSecEnd=`date '+%s'`
-tRunHours=`echo \($tSecEnd - $tSecStart\)/3600|bc -l`
-tRunHours=`printf %6.3f $tRunHours`
+EndTime=$(date)
+tSecEnd=$(date '+%s')
+tRunHours=$(($((tSecEnd - tSecStart))/3600))
+tRunHours=$(printf %6.3f "$tRunHours")
 
-echo "Started at $StartTime " | tee -a $LF
-echo "Ended   at $EndTime" | tee -a $LF
-echo "#@#%# recon-surf-run-time-hours $tRunHours" | tee -a $LF
+{
+  echo ""
+  echo "================= DONE ========================================================="
+  echo ""
+
+  echo "Started at $StartTime"
+  echo "Ended   at $EndTime"
+  echo "#@#%# recon-surf-run-time-hours $tRunHours"
+} |& tee -a "$LF"
 
 # Create the Done File
-echo "------------------------------" > $DoneFile
-echo "SUBJECT $subject"           >> $DoneFile
-echo "START_TIME $StartTime"      >> $DoneFile
-echo "END_TIME $EndTime"          >> $DoneFile
-echo "RUNTIME_HOURS $tRunHours"   >> $DoneFile
-echo "USER `id -un`"              >> $DoneFile 2> /dev/null
-echo "HOST `hostname`"            >> $DoneFile
-echo "PROCESSOR `uname -m`"       >> $DoneFile
-echo "OS `uname -s`"              >> $DoneFile
-echo "UNAME `uname -a`"           >> $DoneFile
-echo "VERSION $VERSION"           >> $DoneFile
-echo "CMDPATH $0"                 >> $DoneFile
-echo "CMDARGS ${inputargs[*]}"    >> $DoneFile
-
-echo "recon-surf.sh $subject finished without error at `date`"  | tee -a $LF
+{
+  echo "------------------------------"
+  echo "SUBJECT $subject"
+  echo "START_TIME $StartTime"
+  echo "END_TIME $EndTime"
+  echo "RUNTIME_HOURS $tRunHours"
+  # id -n sends an error message in docker (no user name), fall back to the USER environment variable or
+  username=$(id -un 2>&1)
+  if echo "$username" | grep -q "^id: " ; then
+    if [[ -n "$USER" ]] ; then username="$USER"
+    else username="$(id -u)"
+    fi
+  fi
+  echo "USER $username"
+  echo "HOST $(hostname)"
+  echo "PROCESSOR $(uname -m)"
+  echo "OS $(uname -s)"
+  echo "UNAME $(uname -a)"
+  echo "VERSION $VERSION"
+  echo "CMDPATH $0"
+  echo "CMDARGS ${inputargs[*]}"
+} > "$DoneFile"
+echo "recon-surf.sh $subject finished without error at $(date)"  |& tee -a "$LF"
 
 cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surf_times.yaml"
 RunIt "$cmd" "/dev/null"

@@ -12,7 +12,7 @@ export binpath
 # also check for failure (e.g. on mac it fails)
 timecmd="${binpath}fs_time"
 $timecmd echo testing &> /dev/null
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then
+if [ "${PIPESTATUS[0]}" -ne 0 ] ; then
   echo "time command failing, not using time..."
   timecmd=""
 fi
@@ -59,31 +59,31 @@ function RunBatchJobs()
   shift
   local JOB
   local LOG
-  for cmdf in $*; do
+  for cmdf in "$@"; do
     echo "RunBatchJobs: CMDF: $cmdf"
-    chmod u+x $cmdf
+    chmod u+x "$cmdf"
     JOB="$cmdf"
     LOG=$cmdf.log
-    echo "" >& $LOG
-    echo " $JOB" >> $LOG
-    echo "" >> $LOG
-    bash "$JOB" >> $LOG 2>&1 &
-    PIDS=(${PIDS[@]} $!)
-    LOGS=(${LOGS[@]} $LOG)
+    echo "" >& "$LOG"
+    echo " $JOB" >> "$LOG"
+    echo "" >> "$LOG"
+    exec "$JOB" >> "$LOG" 2>&1 &
+    PIDS=("${PIDS[@]}" "$!")
+    LOGS=("${LOGS[@]}" "$LOG")
 
   done
   # wait till all processes have finished
   local PIDS_STATUS=()
   for pid in "${PIDS[@]}"; do
     echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
-    wait $pid
-    PIDS_STATUS=(${PIDS_STATUS[@]} $?)
+    wait "$pid"
+    PIDS_STATUS=("${PIDS_STATUS[@]}" "$?")
   done
   # now append their logs to the main log file
   for log in "${LOGS[@]}"
   do
-    cat $log >> $LOG_FILE
-    rm -f $log
+    cat "$log" >> "$LOG_FILE"
+    rm -f "$log"
   done
   echo "PIDs (${PIDS[*]}) completed and logs appended."
   # and check for failures
