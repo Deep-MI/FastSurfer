@@ -40,7 +40,7 @@ jobs:
                       -v $RUNNER_FS_OUTPUT:/output \
                       -v $RUNNER_FS_LICENSE:/fs_license \
                       --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
-                      --fs_license /fs_license/license.txt \
+                      --fs_license /fs_license/.license \
                       --t1 /data/subjectx/orig.mgz \
                       --sid subjectx --sd /output \
                       --parallel
