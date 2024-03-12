@@ -41,9 +41,9 @@ def get_plane_dict(filename : Path = YAML_DEFAULT) -> dict[str, Union[str, list[
     ----------
     filename : Path
         path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+
     Returns
     -------
-
     dict[str, Union[str, list[str]]]
         dictionary of the yaml file
 
@@ -55,22 +55,22 @@ def get_plane_dict(filename : Path = YAML_DEFAULT) -> dict[str, Union[str, list[
         dictionary = yaml.load(file, Loader=yaml.FullLoader)
     return dictionary
 
-def get_plane_default(type : str, plane : Optional[str] = None, filename : str | Path = YAML_DEFAULT) -> Union[str, list[str]]:
+def get_plane_default(type : Literal["URL", "CKPT", "CFG"], plane : Optional[str] = None, filename : str | Path = YAML_DEFAULT) -> str | list[str]:
     """
     Get the default value for a specific plane.
 
     Parameters
     ----------
-    type : str
-        Type of value. Can be URL, CKPT, CFG
+    type : "URL", "CKPT", "CFG"
+        Type of value.
     plane : str
         Plane to get the default value for. Can be "axial", "coronal" or "sagittal".
     filename : str | Path
-        path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+        The path to the yaml file. Either absolute or relative to the FastSurfer root directory.
 
     Returns
     -------
-    Union[str, list[str]]
+    str, list[str]
         Default value for the plane.
 
     """
