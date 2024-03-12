@@ -489,7 +489,7 @@ def read_version_from_project_file(project_file: TextIOWrapper) -> str:
         The version string.
     """
     project_pattern = re.compile(r"\[project]")
-    version_pattern = re.compile('version\\s*=\\s*(\\")?([^\\"]+)\\1')
+    version_pattern = re.compile('version\\s*=\\s*([\\"\']?)([^\\"]+)\\1')
     version = "unspecified"
 
     seek_to_project = True
@@ -540,7 +540,7 @@ def read_and_close_version(project_file: Optional[TextIOWrapper] = None) -> str:
 
     Parameters
     ----------
-    project_file : Optional[TextIOWrapper] = None
+    project_file : TextIOWrapper, optional
         Project file.
 
     Returns

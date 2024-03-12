@@ -10,7 +10,7 @@ readme = 'README.md'
 license = {file = 'LICENSE'}
 requires-python = '>=3.10'
 authors = [{name = 'Martin Reuter et al.'}]
-maintainers = [{name = 'FastSurfer Developers']
+maintainers = [{name = 'FastSurfer Developers'}]
 keywords = [
     'python',
     'Deep learning',

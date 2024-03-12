@@ -68,6 +68,10 @@ else
   echo "Using the default atlas (1.5T) for talairach registration."
   atlas=""
 fi
+if [[ ! -f /bin/tcsh ]] ; then
+  echo "ERROR: The talairach_avi script requires tcsh, but /bin/tcsh does not exist"
+  exit 1
+fi
 cmd="talairach_avi --i $mdir/orig_nu.mgz --xfm $mdir/transforms/talairach.auto.xfm $atlas"
 RunIt "$cmd" $LF
 # create copy

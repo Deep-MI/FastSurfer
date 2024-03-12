@@ -223,7 +223,7 @@ def load_maybe_conform(
                 f"Invalid file extension of conf_name: {file}, must be one of "
                 f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
             )
-        file_no_fileext = str(file[:-len(fileext[0]) - 1])
+        file_no_fileext = str(file)[:-len(fileext[0]) - 1]
         if vox_size == "min":
             vox_suffix = ".min"
         else:

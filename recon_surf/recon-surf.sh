@@ -519,6 +519,7 @@ fi
 ### ----------
 
 if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
+  echo "\"$binpath/talairach-reg.sh\" \"$mdir\" \"$atlas3T\" \"$LF\"" |& tee -a "$LF"
   "$binpath/talairach-reg.sh" "$mdir" "$atlas3T" "$LF"
 fi
 
