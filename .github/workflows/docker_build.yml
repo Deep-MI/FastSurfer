@@ -45,3 +45,11 @@ jobs:
                       --t1 /data/subjectx/orig.mgz \
                       --sid subjectx --sd /output \
                       --parallel
+  test-file-existence:
+    runs-on: dirac
+    needs: run-fastsurfer
+    
+    steps:    
+    - name: Test File Existence
+      run: |
+        python3 -m unittest test_file_existence.py
