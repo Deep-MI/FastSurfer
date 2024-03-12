@@ -32,9 +32,9 @@ jobs:
         
     - name: Run FastSurfer
       run: |
-        docker run --gpus all -v $RUNNER_FS_MRI_DATA:/data:ro \
+        docker run --gpus all -v $RUNNER_FS_MRI_DATA:/data \
                       -v $RUNNER_FS_OUTPUT:/output \
-                      -v $FREESURFER_HOME:/fs_license:ro \
+                      -v $FREESURFER_HOME:/fs_license \
                       --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectx/orig.mgz \
