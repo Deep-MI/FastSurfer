@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-gpu-image:
     runs-on: dirac
 
     steps:
@@ -29,7 +29,11 @@ jobs:
       run: |
         PYTHONPATH=$PYTHONPATH
         python3 Docker/build.py --device cuda --tag my_fastsurfer:cuda
-        
+
+  run-fastsurfer:
+    runs-on: dirac
+    
+    steps:    
     - name: Run FastSurfer
       run: |
         docker run --gpus all -v $RUNNER_FS_MRI_DATA:/data \
