@@ -166,7 +166,7 @@ do
     *)
       # must be at the start of the command to run
       # put item back into the list
-      cmd=("$(which "$flag")" "$@")
+      cmd=("$flag" "$@")
       break
       ;;
   esac
@@ -187,7 +187,18 @@ then
   exit 1
 fi
 
-nargs=$((${#cmd[@]} - 1))
+command="${cmd[0]}"
+npyargs=0
+if [[ "${cmd[0]}" =~ python(3(.[0-9])?)?$ ]]
+then
+  npyargs=1
+  for c in "${cmd[@]:1}" ; do
+    if [[ ! "$c" =~ "^-" ]] ; then command="$c" ; break ; fi
+    npyargs=$((npyargs + 1))
+  done
+fi
+
+nargs=$((${#cmd[@]} - 1 - npyargs))
 
 function make_string ()
 {
@@ -202,13 +213,13 @@ function make_string ()
 
 if [[ "$FSTIME_LOAD" == 1 ]]
 then
-  make_string "@#@FSLOADPRE" "${cmd[0]}" "$nargs"
+  make_string "@#@FSLOADPRE" "$command" "$nargs"
 else
   upt=""
 fi
 
 dt=$(date '+%Y:%m:%d:%H:%M:%S')
-fmt="$key $dt ${cmd[0]} N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O $upt"
+fmt="$key $dt $command N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O $upt"
 
 timecmd=("/usr/bin/time")
 if [[ -n "$outfile" ]] ; then timecmd=("${timecmd[@]}" -o "$outfile"); fi
@@ -218,7 +229,7 @@ if [[ -n "$outfile" ]] ; then cat $outfile; fi
 
 if [[ "$FSTIME_LOAD" == 1 ]]
 then
-  make_string "@#@FSLOADPOST" "${cmd[0]}" "$nargs"
+  make_string "@#@FSLOADPOST" "$command" "$nargs"
 fi
 
 exit $st

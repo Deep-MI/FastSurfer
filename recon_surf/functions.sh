@@ -99,13 +99,12 @@ function softlink_or_copy()
   # 2: target
   # 3: logfile
   # 4: cmdf
-  LF="$3"
-  CMDF="$4"
-  ln_cmd="ln -sf $1 $2"
-  cp_cmd="cp $1 $2"
+  local LF="$3"
+  local ln_cmd="ln -sf $1 $2"
+  local cp_cmd="cp $1 $2"
   if [[ $# -eq 4 ]]
   then
-    CMDF=$3
+    local CMDF=$4
     echo "echo \"$ln_cmd\" " |& tee -a $CMDF
     echo "$timecmd $ln_cmd " |& tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ]" |& tee -a $CMDF
