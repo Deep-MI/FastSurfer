@@ -358,14 +358,6 @@ if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mr
   exit 1
 fi
 
-# Check input segmentation quality
-echo "Checking Input Segmentation Quality ..."
-cmd="$python ${binpath}/../FastSurferCNN/quick_qc.py --asegdkt_segfile $asegdkt_segfile"
-echo $cmd
-$cmd
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-echo
-
 # collect info
 StartTime=`date`;
 tSecStart=`date '+%s'`;
@@ -420,6 +412,11 @@ echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " |& tee -a $LF
 echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " |& tee -a $LF
 echo " " |& tee -a $LF
 
+# Check input segmentation quality
+echo "Checking Input Segmentation Quality ..." |& tee -a "$LF"
+cmd="$python $FASTSURFER_HOME/FastSurferCNN/quick_qc.py --asegdkt_segfile $asegdkt_segfile"
+RunIt "$cmd" "$LF"
+echo "" |& tee -a "$LF"
 
 
 
