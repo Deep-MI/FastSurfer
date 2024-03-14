@@ -47,6 +47,7 @@ dependencies = [
     'torchio>=0.18.83',
     'tqdm>=4.64',
 ]
+[project.optional-dependencies]
 doc = [
     'furo!=2023.8.17',
     'matplotlib',
@@ -67,10 +68,13 @@ all = [
     'fastsurfer[doc]'
 ]
 full = [
-    'fastSurfer[all]',
+    'fastsurfer[all]',
 ]
 [project.urls]
 homepage = 'https://fastsurfer.org'
 documentation = 'https://fastsurfer.org'
 source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
+
+[tool.setuptools]
+packages = ['FastSurferCNN','CerebNet','recon_surf']
