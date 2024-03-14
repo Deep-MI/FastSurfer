@@ -15,7 +15,7 @@
 # IMPORTS
 import os
 from pathlib import Path
-from typing import MutableSequence, Optional, Union, Any
+from typing import MutableSequence, Optional, Union, Literal
 
 import requests
 import torch
