@@ -52,7 +52,7 @@ class TestErrorMessages(unittest.TestCase):
                 continue
 
             for error in self.errors:
-                self.assertIn(error, log_data)
+                self.assertNotIn(error, log_data)
 
 if __name__ == '__main__':
     unittest.main()
