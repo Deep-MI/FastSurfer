@@ -49,7 +49,7 @@ We recommended you use Singularity or Docker, especially if either is already in
 
 ## Usage
 
-All installation methods use the `run_fastsurfer.sh` call interface (replace `*fastsurfer-flags*` with  [FastSurfer Flag](FASTSURFER_FLAGS.md#required-arguments), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
+All installation methods use the `run_fastsurfer.sh` call interface (replace `*fastsurfer-flags*` with  [FastSurfer Flag](FLAGS.md#required-arguments), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
 
 1. For container installations, you need to define the hardware and mount the folders with the input (`/data`) and output data (`/output`):  
    (a) For __singularity__, the syntax is 
@@ -94,24 +94,24 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
    See also example 3 i.e. native fastsurfer on subjectx with-parallel processing of hemis for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
 
 ### FastSurfer_Flags
-Please refer to [FASTSURFER_FLAGS](FASTSURFER_FLAGS.md).
+Please refer to [FASTSURFER_FLAGS](FLAGS.md).
 
 
 ### Examples
-All the examples can be found here: [FASTSURFER_EXAMPLES](FASTSURFER_EXAMPLES.md)
-- [Example 1: FastSurfer Docker](FASTSURFER_EXAMPLES.md#example-1-fastsurfer-docker)
-- [Example 2: FastSurfer Singularity](FASTSURFER_EXAMPLES.md#example-2-fastsurfer-singularity)
-- [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](FASTSURFER_EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
-- [Example 4: FastSurfer on multiple subjects](FASTSURFER_EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)
-- [Example 5: Quick Segmentation](FASTSURFER_EXAMPLES.md#example-5-quick-segmentation)
-- [Example 6: Running FastSurfer on a SLURM cluster via Singularity](FASTSURFER_EXAMPLES.md#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity)
+All the examples can be found here: [FASTSURFER_EXAMPLES](EXAMPLES.md)
+- [Example 1: FastSurfer Docker](EXAMPLES.md#example-1-fastsurfer-docker)
+- [Example 2: FastSurfer Singularity](EXAMPLES.md#example-2-fastsurfer-singularity)
+- [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
+- [Example 4: FastSurfer on multiple subjects](EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)
+- [Example 5: Quick Segmentation](EXAMPLES.md#example-5-quick-segmentation)
+- [Example 6: Running FastSurfer on a SLURM cluster via Singularity](EXAMPLES.md#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity)
 
 ## Output files
 
-Modules output can be found here: [FastSurfer_Output_Files](FASTSURFER_OUTPUT_FILES.md)
-- [Segmentation module](FASTSURFER_OUTPUT_FILES.md#segmentation-module)
-- [Cerebnet module](FASTSURFER_OUTPUT_FILES.md#cerebnet-module)
-- [Surface module](FASTSURFER_OUTPUT_FILES.md#surface-module)
+Modules output can be found here: [FastSurfer_Output_Files](OUTPUT_FILES.md)
+- [Segmentation module](OUTPUT_FILES.md#segmentation-module)
+- [Cerebnet module](OUTPUT_FILES.md#cerebnet-module)
+- [Surface module](OUTPUT_FILES.md#surface-module)
 
 ## System Requirements
 

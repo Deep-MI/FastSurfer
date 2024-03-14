@@ -289,7 +289,6 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
         Parameters
         ----------
-        ----------
         x : tensor
             Feature map from previous block.
 

@@ -403,7 +403,8 @@ def get_default_version_info() -> VersionDict:
 
 
 def parse_build_file(build_file: Optional[TextIOWrapper]) -> VersionDict:
-    """Read and parse a build file (same as output of `main`).
+    """
+    Read and parse a build file (same as output of `main`).
 
     Read and parse a file with version information in the format that is also the
     output of the `main` function. The format is documented in `main`.
