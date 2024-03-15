@@ -106,7 +106,6 @@ If the env variable FSTIME_LOAD is set to 1, the output looks something like
 The 3 numbers are the system load averages for the past 1, 5, and 15
 minutes as given by uptime.
 EOF
-
 }
 
 function   arg1err()
@@ -173,6 +172,17 @@ do
 
 done
 
+if [[ "$verbose" == 1 ]]
+then
+  echo "Parameters to fs_time:"
+  if [[ -n "$outfile" ]] ; then echo "-o $outfile" ; fi
+  if [[ "$key" != "@#@FSTIME " ]] ; then echo "-k $key" ; fi
+  echo "FSTIME_LOAD=$FSTIME_LOAD"
+  echo "command:"
+  echo "${cmd[*]}"
+  echo ""
+fi
+
 # CHECK PARAMS
 if [[ ! -e /usr/bin/time ]]
 then
@@ -189,13 +199,21 @@ fi
 
 command="${cmd[0]}"
 npyargs=0
-if [[ "${cmd[0]}" =~ python(3(.[0-9])?)?$ ]]
+# remove python from command
+if [[ "$command" =~ python(3(.[0-9])?)?$ ]]
 then
   npyargs=1
   for c in "${cmd[@]:1}" ; do
     if [[ ! "$c" =~ "^-" ]] ; then command="$c" ; break ; fi
     npyargs=$((npyargs + 1))
   done
+fi
+# remove $FASTSURFER_HOME path from command
+command_short="${command:0:${#FASTSURFER_HOME}}"
+if [[ -n "$FASTSURFER_HOME" ]] && [[ "$command_short" == "$FASTSURFER_HOME" ]]
+then
+  command="$command_short"
+  while [[ "${command:0:1}" == "/" ]] ; do command="${command:1}" ; done
 fi
 
 nargs=$((${#cmd[@]} - 1 - npyargs))
