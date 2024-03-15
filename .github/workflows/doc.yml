@@ -30,7 +30,7 @@ jobs:
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
           python -m pip install --progress-bar off dev/.[doc]
       - name: Build doc
-        run: TZ=UTC sphinx-build ./dev/doc ./doc-build/dev -W --keep-going
+        run: PYTHONPATH=$PYTHONPATH:./dev TZ=UTC sphinx-build ./dev/doc ./doc-build/dev -W --keep-going
       - name: Upload documentation
         uses: actions/upload-artifact@v4
         with:
