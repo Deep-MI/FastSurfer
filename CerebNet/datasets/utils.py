@@ -697,7 +697,7 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
         Padding strategy to use when padding is required, if int, pad with that value (default: zero-pad).
         
     See Also
-    ---------
+    --------
     numpy.pad
         For additional information refer to numpy.pad function.
 
