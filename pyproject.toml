@@ -64,6 +64,9 @@ doc = [
     'nbsphinx',
     'IPython', # For syntax highlighting in notebooks
     'ipykernel',
+    'scikit-image',
+    'torchvision',
+    'sklearn',
 ]
 all = [
     'fastsurfer[doc]'
