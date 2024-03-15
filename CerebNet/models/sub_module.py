@@ -38,6 +38,7 @@ class CompetitiveDenseBlock(nn.Module):
               'input' : True
                }.
     """
+
     def __init__(self, params, outblock=False, discriminator_block=False):
         """
         Constructor to initialize the Competitive Dense Block.
