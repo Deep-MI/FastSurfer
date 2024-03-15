@@ -25,17 +25,17 @@ function RunIt()
   # $2 : LF   (log file)
   # $3 : CMDF (command file) optional
   # if CMDF is passed, then LF is ignored and cmd is echoed into CMDF and not run
-  cmd=$1
-  LF=$2
+  local cmd=$1
+  local LF=$2
   if [[ $# -eq 3 ]]
   then
-    CMDF=$3
+    local CMDF=$3
     echo "echo ${cmd@Q}" |& tee -a $CMDF
     echo "$timecmd $cmd" |& tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else
     echo $cmd |& tee -a $LF
-    $timecmd $cmd |& tee -a $LF
+    $timecmd -debug $cmd |& tee -a $LF
     if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   fi
 }
@@ -45,7 +45,7 @@ function RunBatchJobs()
 # parameters
 # $1 : LF
 # $2 ... : CMDFS
-  LOG_FILE=$1
+  local LOG_FILE=$1
   # launch jobs found in command files (shift past first logfile arg).
   # job output goes to a logfile named after the command file, which
   # later gets appended to LOG_FILE
@@ -53,9 +53,11 @@ function RunBatchJobs()
   echo
   echo "RunBatchJobs: Logfile: $LOG_FILE"
 
-  PIDS=()
-  LOGS=()
+  local PIDS=()
+  local LOGS=()
   shift
+  local JOB
+  local LOG
   for cmdf in $*; do
     echo "RunBatchJobs: CMDF: $cmdf"
     chmod u+x $cmdf
@@ -70,7 +72,7 @@ function RunBatchJobs()
 
   done
   # wait till all processes have finished
-  PIDS_STATUS=()
+  local PIDS_STATUS=()
   for pid in "${PIDS[@]}"; do
     echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
     wait $pid
