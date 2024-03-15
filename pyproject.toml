@@ -52,6 +52,7 @@ doc = [
     'furo!=2023.8.17',
     'matplotlib',
     'memory-profiler',
+    'myst-parser',
     'numpydoc',
     'sphinx!=7.2.*',
     'sphinxcontrib-bibtex',
