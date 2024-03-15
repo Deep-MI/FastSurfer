@@ -146,14 +146,14 @@ def int_gt_zero(value: Union[str, int]) -> int:
     return val
 
 
-def int_ge_zero(value) -> int:
+def int_ge_zero(value: str) -> int:
     """
     Convert to integers greater 0.
 
     Parameters
     ----------
     value : str
-        Integer to convert.
+        String to convert to int.
 
     Returns
     -------

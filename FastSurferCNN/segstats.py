@@ -26,20 +26,16 @@ from typing import (
     Any,
     Callable,
     cast,
-    Dict,
     Iterable,
     IO,
-    List,
     Literal,
     Optional,
     overload,
     Sequence,
     Sized,
-    Tuple,
     Type,
     TypedDict,
-    TypeVar,
-    Union,
+    TypeVar, Container,
 )
 from concurrent.futures import Executor, ThreadPoolExecutor
 
@@ -466,6 +462,15 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
              "relative, it is interpreted as relative to subjects_dir/subject_id from"
              "--sd and --subject_id.",
     )
+    measure_parser.add_argument(
+        "--from_seg",
+        type=Path,
+        dest="aseg_replace",
+        default=None,
+        help="Replace the default segfile to compute measures from by -i/--segfile. "
+             "This will default to 'mri/aseg.mgz' for --legacy_freesurfer and to the "
+             "value of -i/--segfile otherwise."
+    )
 
 
 def add_two_help_messages(parser: argparse.ArgumentParser) -> None:
@@ -739,7 +744,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     subjects_dir = getattr(args, "out_dir", None)
     if subjects_dir is not None:
         subjects_dir = Path(subjects_dir)
-    subject_id = getattr(args, "sid", None)
+    subject_id = str(getattr(args, "sid", None))
     legacy_freesurfer = bool(getattr(args, "legacy_freesurfer", False))
 
     # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
@@ -828,7 +833,14 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         except ValueError as e:
             return e.args[0]
 
-        merged_labels, measure_labels = infer_merged_labels(args, labels, manager)
+        if (_merged_labels := getattr(args, "merged_labels", None)) is None:
+            _merged_labels: Sequence[Sequence[int]] = ()
+        merged_labels, measure_labels = infer_merged_labels(
+            manager,
+            labels,
+            merged_labels=_merged_labels,
+            merge_labels_start=10000,
+        )
         vox_vol = np.prod(seg.header.get_zooms()).item()
         # more args to pass to pv_calc
         kwargs = {
@@ -898,7 +910,11 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     if lut is not None:
         update_structnames(table, lut, merged_labels)
 
-    dataframe = table_to_dataframe(table, bool(getattr(args, "empty", False)))
+    dataframe = table_to_dataframe(
+        table,
+        bool(getattr(args, "empty", False)),
+        must_keep_ids=merged_labels.keys(),
+    )
     lines = format_parameters(SUBJECT_DIR=subjects_dir, subjectname=subject_id)
 
     # wait for computation of measures and return an error message if errors occur
@@ -923,21 +939,49 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     return 0
 
 
-def infer_merged_labels(args, used_labels, manager):
-    if empty(_merged_labels := getattr(args, "merged_labels", None)):
-        merged_labels = {}
-    else:
-        merged_labels = {lab: vals for lab, *vals in _merged_labels}
-    all_labels = list(merged_labels.keys()) + list(used_labels)
+def infer_merged_labels(
+        manager: "Manager",
+        used_labels: Iterable[int],
+        merged_labels: Sequence[Sequence[int]] = (),
+        merge_labels_start: int = 0,
+) -> tuple[dict[int, Sequence[int]], dict[int, Sequence[int]]]:
+    """
+
+    Parameters
+    ----------
+    manager : Manager
+        The brainvolstats Manager object to get virtual labels.
+    used_labels : Iterable[int]
+        A list of labels at that are already in use.
+    merged_labels : Sequence[Sequence[int]], default=()
+        The list of merge labels (first value is SegId, then SegIds it sums across).
+    merge_labels_start : int, default=0
+        Start index to start at for finding multi-class merged label groups.
+
+    Returns
+    -------
+    all_merged_labels : dict[int, Sequence[int]]
+        The dictionary of all merged labels (via :class:`PVMeasure`s as well as
+        `merged_labels`).
+    """
+    _merged_labels = {}
+    if not empty(merged_labels):
+        _merged_labels = {lab: vals for lab, *vals in merged_labels}
+    all_labels = list(_merged_labels.keys()) + list(used_labels)
     _pv_merged_labels = manager.get_virtual_labels(
-        i for i in range(np.iinfo(int).max) if i not in all_labels
+        i for i in range(merge_labels_start, np.iinfo(int).max) if i not in all_labels
     )
-    _merged_labels = merged_labels.copy()
-    _merged_labels.update(_pv_merged_labels)
-    return _merged_labels, _pv_merged_labels
+
+    all_merged_labels = _merged_labels.copy()
+    all_merged_labels.update(_pv_merged_labels)
+    return all_merged_labels, _pv_merged_labels
 
 
-def table_to_dataframe(table: list[PVStats], report_empty: bool = True) -> pd.DataFrame:
+def table_to_dataframe(
+        table: list[PVStats],
+        report_empty: bool = True,
+        must_keep_ids: Optional[Container[int]] = None,
+) -> pd.DataFrame:
     """
     Convert the list of PVStats dictionaries into a dataframe.
 
@@ -947,24 +991,31 @@ def table_to_dataframe(table: list[PVStats], report_empty: bool = True) -> pd.Da
         List of partial volume stats dictionaries.
     report_empty : bool, default=True
         Whether empty regions should be part of the dataframe.
+    must_keep_ids : Container[int], optional
+        Specifies a list of segids to never remove from the table.
 
     Returns
     -------
     pandas.DataFrame
         The DataFrame object of all columns and rows in table.
     """
-    dataframe = pd.DataFrame(table, index=np.arange(len(table)))
+    has_must_keep_ids = must_keep_ids and isinstance(must_keep_ids, Container)
+
+    def must_keep_fn(x) -> bool:
+        return x in must_keep_ids if has_must_keep_ids else False
+
+    df = pd.DataFrame(table, index=np.arange(len(table)))
     if not report_empty:
-        dataframe = dataframe[dataframe["NVoxels"] != 0]
-    dataframe = dataframe.sort_values("SegId")
-    dataframe.index = np.arange(1, len(dataframe) + 1)
-    return dataframe
+        df = df[df["NVoxels"] != 0 | df["SegId"].map(must_keep_fn)]
+    df = df.sort_values("SegId")
+    df.index = np.arange(1, len(df) + 1)
+    return df
 
 
 def update_structnames(
     table: list[PVStats],
     lut: pd.DataFrame,
-    merged_labels: dict[_IntType, Sequence[_IntType]] = None
+    merged_labels: Optional[dict[_IntType, Sequence[_IntType]]] = None
 ) -> None:
     """
     Update StructNames from `lut` and `merged_labels` in `table`.
@@ -976,8 +1027,8 @@ def update_structnames(
     lut : pandas.DataFrame
         A pandas DataFrame object containing columns 'ID' and 'LabelName', which serves
         as a lookup table for the structure names.
-    merged_labels : dict[int, Sequence[int]]
-        The dictionary with
+    merged_labels : dict[int, Sequence[int]], optional
+        The dictionary with merged labels.
     """
     # table is a list of dicts, so we can add the StructName to the dict
     for i in range(len(table)):
@@ -1689,7 +1740,6 @@ def pv_calc(
         robust_percentage=robust_percentage,
     )
 
-    from math import ceil
     if threads == 0:
         raise ValueError("Zero is not a valid number of threads.")
     elif isinstance(threads, int) and threads > 0:
@@ -1698,77 +1748,78 @@ def pv_calc(
         nthreads: int = get_num_threads()
     else:
         raise TypeError("threads must be int or concurrent.futures.Executor object.")
+    from math import ceil
     executor = ThreadPoolExecutor(nthreads) if isinstance(threads, int) else threads
     map_kwargs = {"chunksize": 1 if nthreads < 0 else ceil(len(labels) / nthreads)}
 
-    with executor as pool:
-        global_stats_future = pool.map(global_stats_filled, all_labels, **map_kwargs)
+    global_stats_future = executor.map(global_stats_filled, all_labels, **map_kwargs)
 
-        if return_maps:
-            from concurrent.futures import ProcessPoolExecutor
-            if isinstance(pool, ProcessPoolExecutor):
-                raise NotImplementedError(
-                    "The ProcessPoolExecutor is not compatible with return_maps=True!"
-                )
-            full_nbr_label = np.zeros(seg.shape, dtype=seg.dtype)
-            full_nbr_mean = np.zeros(pv_guide.shape, dtype=float)
-            full_seg_mean = np.zeros(pv_guide.shape, dtype=float)
-            full_pv = np.ones(pv_guide.shape, dtype=float)
-            full_ipv = np.zeros(pv_guide.shape, dtype=float)
-        else:
-            full_nbr_label, full_seg_mean, full_nbr_mean, full_pv, full_ipv = [None] * 5
+    if return_maps:
+        from concurrent.futures import ProcessPoolExecutor
+        if isinstance(executor, ProcessPoolExecutor):
+            raise NotImplementedError(
+                "The ProcessPoolExecutor is not compatible with return_maps=True!"
+            )
+        full_nbr_label = np.zeros(seg.shape, dtype=seg.dtype)
+        full_nbr_mean = np.zeros(pv_guide.shape, dtype=float)
+        full_seg_mean = np.zeros(pv_guide.shape, dtype=float)
+        full_pv = np.ones(pv_guide.shape, dtype=float)
+        full_ipv = np.zeros(pv_guide.shape, dtype=float)
+    else:
+        full_nbr_label, full_seg_mean, full_nbr_mean, full_pv, full_ipv = [None] * 5
 
-        for lab, data in global_stats_future:
-            if data[0] != 0:
-                voxel_counts[lab], robust_voxel_counts[lab] = data[:2]
-                mins[lab], maxes[lab], sums[lab], sums_2[lab] = data[2:-2]
-                volumes[lab], borders[lab] = data[-2] * vox_vol, data[-1]
+    for lab, data in global_stats_future:
+        if data[0] != 0:
+            voxel_counts[lab], robust_voxel_counts[lab] = data[:2]
+            mins[lab], maxes[lab], sums[lab], sums_2[lab] = data[2:-2]
+            volumes[lab], borders[lab] = data[-2] * vox_vol, data[-1]
 
-        # un_global_crop border here
-        any_border = np.any(list(borders.values()), axis=0)
-        pad_width = np.asarray(
-            [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape)],
-            dtype=int)
-        any_border = np.pad(any_border, pad_width)
-        if not np.array_equal(any_border.shape, seg.shape):
-            raise RuntimeError("border and seg_array do not have same shape.")
+    # un_global_crop border here
+    any_border = np.any(list(borders.values()), axis=0)
+    pad_width = np.asarray(
+        [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape)],
+        dtype=int)
+    any_border = np.pad(any_border, pad_width)
+    if not np.array_equal(any_border.shape, seg.shape):
+        raise RuntimeError("border and seg_array do not have same shape.")
 
-        # iterate through patches of the image
-        patch_iters = [range(slc.start, slc.stop, patch_size) for slc in global_crop]
-        # 4 chunks per core
-        num_valid_labels = len(voxel_counts)
-        map_kwargs["chunksize"] = np.ceil(num_valid_labels / nthreads / 4).item()
-        patch_filter_func = partial(patch_filter, mask=any_border,
-                                    global_crop=global_crop, patch_size=patch_size)
-        _patches = pool.map(patch_filter_func, product(*patch_iters), **map_kwargs)
-        patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
+    # iterate through patches of the image
+    patch_iters = [range(slc.start, slc.stop, patch_size) for slc in global_crop]
+    # 4 chunks per core
+    num_valid_labels = len(voxel_counts)
+    map_kwargs["chunksize"] = np.ceil(num_valid_labels / nthreads / 4).item()
+    patch_filter_func = partial(patch_filter, mask=any_border,
+                                global_crop=global_crop, patch_size=patch_size)
+    _patches = executor.map(patch_filter_func, product(*patch_iters), **map_kwargs)
+    patches = (patch for has_pv_vox, patch in _patches if has_pv_vox)
 
-        patchwise_pv_calc_func = partial(
-            pv_calc_patch,
-            global_crop=global_crop,
-            borders=borders,
-            border=any_border,
-            seg=seg,
-            pv_guide=pv_guide,
-            full_nbr_label=full_nbr_label,
-            full_seg_mean=full_seg_mean,
-            full_pv=full_pv,
-            full_ipv=full_ipv,
-            full_nbr_mean=full_nbr_mean,
-            eps=eps,
-            legacy_freesurfer=legacy_freesurfer,
-        )
-        for vols in pool.map(patchwise_pv_calc_func, patches, **map_kwargs):
-            for lab in volumes.keys():
-                volumes[lab] += vols.get(lab, 0.0) * vox_vol
+    patchwise_pv_calc_func = partial(
+        pv_calc_patch,
+        global_crop=global_crop,
+        borders=borders,
+        border=any_border,
+        seg=seg,
+        pv_guide=pv_guide,
+        full_nbr_label=full_nbr_label,
+        full_seg_mean=full_seg_mean,
+        full_pv=full_pv,
+        full_ipv=full_ipv,
+        full_nbr_mean=full_nbr_mean,
+        eps=eps,
+        legacy_freesurfer=legacy_freesurfer,
+    )
+    for vols in executor.map(patchwise_pv_calc_func, patches, **map_kwargs):
+        for lab in volumes.keys():
+            volumes[lab] += vols.get(lab, 0.0) * vox_vol
 
     # ColHeaders: Index SegId NVoxels Volume_mm3 StructName Mean StdDev ...
     # Min Max Range
-    table = [
-        {"SegId": lab, "NVoxels": voxel_counts.get(lab, 0),
-         "Volume_mm3": volumes.get(lab, 0.)}
-        for lab in labels
-    ]
+    def prep_dict(lab: int):
+        nvox = voxel_counts.get(lab, 0)
+        vol = volumes.get(lab, 0.)
+        return {"SegId": lab, "NVoxels": nvox, "Volume_mm3": vol}
+
+    table = list(map(prep_dict, labels))
     if norm is not None:
         robust_vc_it = robust_voxel_counts.items()
         means = {lab: sums.get(lab, 0.) / cnt for lab, cnt in robust_vc_it if cnt > eps}
@@ -1788,8 +1839,18 @@ def pv_calc(
                 Range=maxes.get(lab, 0.0) - mins.get(lab, 0.0),
             )
     if merged_labels is not None:
-        append_merged_labels(table, merged_labels, voxel_counts, robust_voxel_counts,
-                             volumes, maxes, mins, sums, sums_2, eps)
+        append_merged_labels(
+            table,
+            merged_labels,
+            voxel_counts,
+            robust_voxel_counts,
+            volumes,
+            mins,
+            maxes,
+            sums,
+            sums_2,
+            eps,
+        )
 
     if return_maps:
         maps = {
@@ -1809,8 +1870,8 @@ def append_merged_labels(
         voxel_counts: dict[_IntType, float],
         robust_voxel_counts: dict[_IntType, float],
         volumes: dict[_IntType, float],
-        maxes: dict[_IntType, float] | None = None,
         mins: dict[_IntType, float] | None = None,
+        maxes: dict[_IntType, float] | None = None,
         sums: dict[_IntType, float] | None = None,
         sums_of_squares: dict[_IntType, float] | None = None,
         eps: float = 1e-6) -> None:
@@ -1833,33 +1894,38 @@ def append_merged_labels(
         return np.sqrt((aggregate(sums2, merge_labels) - np.sum(s2)) / nvox).item()
 
     for lab, group in merged_labels.items():
+        stats = {"SegId": lab}
         if all(l not in robust_voxel_counts for l in group):
             logging.getLogger(__name__).warning(
                 f"None of the labels {group} for merged label {lab} exist in the "
                 f"segmentation."
             )
-            continue
-
-        num_voxels = aggregate(voxel_counts, group)
-        stats = {
-            "SegId": lab, "NVoxels": num_voxels,
-            "Volume_mm3": aggregate(volumes, group),
-        }
-        if mins is not None:
-            stats["Min"] = aggregate(mins, group, np.min)
-        if maxes is not None:
-            stats["Max"] = aggregate(maxes, group, np.max)
-            if "Min" in stats:
-                stats["Range"] = stats["Max"] - stats["Min"]
-        if sums is not None:
-            stats["Mean"] = aggregate(sums, group) / num_voxels
-            if sums_of_squares is not None:
-                stats["StdDev"] = aggregate_std(
-                    sums,
-                    sums_of_squares,
-                    group,
-                    num_voxels - 1,
-                )
+            stats.update(NVoxels=0, Volume_mm3=0.0)
+            for k, v in {"Min": mins, "Max": maxes, "Mean": sums}.items():
+                if v is not None:
+                    stats[k] = 0.
+            if all(v is not None for v in (mins, maxes)):
+                stats["Range"] = 0.
+            if all(v is not None for v in (sums, sums_of_squares)):
+                stats["StdDev"] = 0.
+        else:
+            num_voxels = aggregate(voxel_counts, group)
+            stats.update(NVoxels=num_voxels, Volume_mm3=aggregate(volumes, group))
+            if mins is not None:
+                stats["Min"] = aggregate(mins, group, np.min)
+            if maxes is not None:
+                stats["Max"] = aggregate(maxes, group, np.max)
+                if "Min" in stats:
+                    stats["Range"] = stats["Max"] - stats["Min"]
+            if sums is not None:
+                stats["Mean"] = aggregate(sums, group) / num_voxels
+                if sums_of_squares is not None:
+                    stats["StdDev"] = aggregate_std(
+                        sums,
+                        sums_of_squares,
+                        group,
+                        num_voxels - 1,
+                    )
         table.append(stats)
 
 

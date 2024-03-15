@@ -360,6 +360,7 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
                 if k not in _pargs:
                     raise kwerror(i, args, f"keyword '{k}' not in {_pargs}")
                 _kwargs[k] = hit.group(2)
+        self.set_args(**_kwargs)
 
     def help(self) -> str:
         """
@@ -455,7 +456,11 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
             Whether there was an update to the data.
         """
         if super().read_subject(subject_dir):
-            self._data = self._callback(self._filename())
+            try:
+                self._data = self._callback(self._filename())
+            except Exception as e:
+                e.args[0] += f" ... during reading for measure {self}."
+                raise e
             return True
         return False
 
@@ -811,6 +816,8 @@ class MaskMeasure(VolumeMeasure):
     ) -> None:
         if threshold is not None:
             self._threshold = float(threshold)
+        if maskfile is not None:
+            kwargs["file"] = maskfile
         return super().set_args(**kwargs)
 
     def _parsable_args(self) -> list[str]:
@@ -1259,6 +1266,15 @@ class Manager(dict[str, AbstractMeasure]):
         self._cache: dict[Path, Future[AnyBufferType] | AnyBufferType] = {}
         # self._lut: Optional[pd.DataFrame] = None
         self._fs_compat: bool = compat
+        self._seg_from_file = Path("mri/aseg.mgz")
+        _args_seg = getattr(args, "segfile", self._seg_from_file)
+        if ((_segfile := getattr(args, "aseg_replace", None)) or
+                not self._fs_compat and (_segfile := _args_seg) != self._seg_from_file):
+            logging.getLogger(__name__).info(
+                f"Replacing segmentation volume to compute volume meaures from with "
+                f"{_segfile}."
+            )
+            self._seg_from_file = Path(_segfile)
 
         _imported_measures = list(imported_measures)
         if len(_imported_measures) != 0:
@@ -1361,7 +1377,10 @@ class Manager(dict[str, AbstractMeasure]):
                 f"{key} ({self[key]}) with an imported measure."
             )
 
-    def add_computed_measure(self, measure_string: str) -> None:
+    def add_computed_measure(
+            self,
+            measure_string: str,
+    ) -> None:
         """Add a computed measure from the measure_string definition."""
         # currently also extracts args, this maybe should be removed for simpler code
         key, args = self.extract_key_args(measure_string)
@@ -1413,7 +1432,7 @@ class Manager(dict[str, AbstractMeasure]):
     @contextmanager
     def with_subject(self, subjects_dir: Path | None, subject_id: str | None) -> None:
         """
-        Contextmanager for the `start_read_subject()` and the `wait_read_subject()` pair.
+        Contextmanager for the `start_read_subject` and the `wait_read_subject` pair.
 
         Raises
         ------
@@ -1505,15 +1524,17 @@ class Manager(dict[str, AbstractMeasure]):
 
         """
         hits_no_args = self._PATTERN_NO_ARGS.match(measure)
-        hits_args = self._PATTERN_ARGS.match(measure)
         if hits_no_args is not None:
             key = hits_no_args.group(1)
             args = []
-        elif hits_args is not None:
+        elif (hits_args := self._PATTERN_ARGS.match(measure)) is not None:
             key = hits_args.group(1)
             args = self._PATTERN_DELIM.split(hits_args.group(2))
         else:
-            raise ValueError(f"Invalid Format of Measure {measure}!")
+            extra = ""
+            if any(q in measure for q in "\"'"):
+                extra = ", watch out for quotes"
+            raise ValueError(f"Invalid Format of Measure \"{measure}\"{extra}!")
         return key, args
 
     def make_read_hook(
@@ -1627,7 +1648,7 @@ class Manager(dict[str, AbstractMeasure]):
         if self._fs_compat:
             return partial(
                 VolumeMeasure,
-                Path("mri/aseg.mgz"),
+                self._seg_from_file,
                 read_file=self.make_read_hook(VolumeMeasure.read_file),
             )
         else:  # FastSurfer compat == None
@@ -1733,7 +1754,7 @@ class Manager(dict[str, AbstractMeasure]):
                 return np.logical_and(mask, is_side)
 
             return VolumeMeasure(
-                Path("mri/aseg.mgz"),
+                self._seg_from_file,
                 mask_77_lat,
                 f"{side}WhiteMatterHypoIntensities",
                 f"Volume of {side} White matter hypointensities",
@@ -2001,7 +2022,7 @@ class Manager(dict[str, AbstractMeasure]):
 
     @staticmethod
     def __to_lookup(labels: Sequence[int]) -> str:
-        return str(set(sorted(map(int, labels))))
+        return str(list(sorted(set(map(int, labels)))))
 
     def update_pv_from_table(
             self,

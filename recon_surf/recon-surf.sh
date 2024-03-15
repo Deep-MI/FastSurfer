@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 # Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -456,7 +458,7 @@ echo "Log file for Conform test" > "$CONFORM_LF"
 
 # check for input conformance
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
-RunIt "$cmd" "$LF -a $CONFORM_LF"
+RunIt "$cmd" "$LF" |& tee -a "$CONFORM_LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
 vox_size=$(grep -E " - Voxel Size " "$CONFORM_LF" | cut -d' ' -f5 | cut -d'x' -f1)
