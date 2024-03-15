@@ -36,7 +36,7 @@ class CompetitiveDenseBlock(nn.Module):
               'num_classes' : 44,
               'kernel_c' : 1,
               'input' : True
-               }.
+             }.
     """
 
     def __init__(self, params, outblock=False, discriminator_block=False):
