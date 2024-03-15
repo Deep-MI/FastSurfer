@@ -40,12 +40,12 @@ def get_plane_dict(filename : Path = YAML_DEFAULT) -> dict[str, Union[str, list[
     Parameters
     ----------
     filename : Path
-        path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+        The path to the yaml file. Either absolute or relative to the FastSurfer root directory.
 
     Returns
     -------
     dict[str, Union[str, list[str]]]
-        dictionary of the yaml file
+        Dictionary of the yaml file.
 
     """
     if not filename.absolute():
@@ -302,7 +302,7 @@ def download_checkpoint(
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
     urls : list[str]
-        list of URLs of checkpoint hosting sites.
+        List of URLs of checkpoint hosting sites.
     """
     response = None
     for url in urls:
