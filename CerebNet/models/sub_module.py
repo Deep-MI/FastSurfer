@@ -21,8 +21,9 @@ import torch.nn as nn
 # Building Blocks
 class CompetitiveDenseBlock(nn.Module):
     """
-    Function to define a competitive dense block comprising
-    of 3 convolutional layers, with BN/ReLU.
+    Define a competitive dense block.
+    
+    A dense block consists of 3 convolutional layers, with BN/ReLU.
 
     Parameters
     ----------
@@ -36,7 +37,7 @@ class CompetitiveDenseBlock(nn.Module):
               'num_classes' : 44,
               'kernel_c' : 1,
               'input' : True
-             }.
+              }.
     """
 
     def __init__(self, params, outblock=False, discriminator_block=False):
