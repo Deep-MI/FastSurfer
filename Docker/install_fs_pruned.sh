@@ -234,6 +234,7 @@ copy_files="
   bin/mri_concat
   bin/mri_concatenate_lta
   bin/mri_convert
+  bin/mri_coreg
   bin/mri_diff
   bin/mri_edit_wm_with_aseg
   bin/mri_fill
@@ -256,6 +257,7 @@ copy_files="
   bin/mri_surf2volseg
   bin/mri_tessellate
   bin/mri_vol2surf
+  bin/mri_vol2vol
   bin/mris_anatomical_stats
   bin/mris_autodet_gwstats
   bin/mris_ca_label
@@ -436,7 +438,6 @@ link_files="
   bin/mri_stats2seg
   bin/mri_surf2vol
   bin/mri_surfcluster
-  bin/mri_vol2vol
   bin/mri_voldiff
   bin/mri_watershed
   bin/mris_divide_parcellation

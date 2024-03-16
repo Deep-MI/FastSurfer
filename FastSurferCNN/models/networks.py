@@ -384,7 +384,7 @@ _MODELS = {
 }
 
 
-def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN]:
+def build_model(cfg: 'yacs.config.CfgNode') -> Union[FastSurferCNN, FastSurferVINN]:
     """
     Build requested model.
 

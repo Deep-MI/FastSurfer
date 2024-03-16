@@ -402,6 +402,27 @@ The cerebellum module outputs the files in the table shown below. Unless switche
 | stats       | cerebellum.CerebNet.stats     | cerebnet  | table of cerebellum segmentation statistics|
 
 
+### HypVINN module
+
+The hypothalamus module outputs the files in the table shown below. Unless switched off by the `--no_hypvinn` argument, this module is automatically run whenever the segmentation module is run. It adds three files, an image with the sub-segmentation of the hypothalamus and a text file with summary statistics.
+
+
+| directory   | filename                         | module  | description                                   |
+|:------------|----------------------------------|---------|-----------------------------------------------|
+| mri         | hypothalamus.HypVINN.nii.gz      | hypvinn | hypothalamus sub-segmentation                 |
+| mri         | hypothalamus_mask.HypVINN.nii.gz | hypvinn | hypothalamus sub-segmentation mask            |
+| stats       | hypothalamus.HypVINN.stats        | hypvinn | table of hypothalamus segmentation statistics |
+
+If a T2 image is also passed, the following images are created.
+
+| directory | filename        | module  | description                    |
+|:----------|-----------------|---------|--------------------------------|
+| mri       | T2_orig.mgz     | hypvinn | conformed T2 image             |
+| mri       | T2_orig_nu.mgz  | hypvinn | biasfield-corrected T2 image   |
+| mri       | T2_nu_reg.mgz   | hypvinn | co-registered T2 to orig image |
+
+
+
 ### Surface module
 
 The surface module is run unless switched off by the `--seg_only` argument. It outputs a large number of files, which generally correspond to the FreeSurfer nomenclature and definition. A selection of important output files is shown in the table below, for the other files, we refer to the [FreeSurfer documentation](https://surfer.nmr.mgh.harvard.edu/fswiki). In general, the "mri" directory contains images, including segmentations, the "surf" folder contains surface files (geometries and vertex-wise overlay data), the "label" folder contains cortical parcellation labels, and the "stats" folder contains tabular summary statistics. Many files are available for the left ("lh") and right ("rh") hemisphere of the brain. Symbolic links are created to map FastSurfer files to their FreeSurfer equivalents, which may need to be present for further processing (e.g., with FreeSurfer downstream modules). 

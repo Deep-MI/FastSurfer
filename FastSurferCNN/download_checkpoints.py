@@ -30,6 +30,12 @@ from CerebNet.utils.checkpoint import (
     CEREBNET_SAG,
     URL as CEREBNET_URL,
 )
+from HypVINN.utils.checkpoint import (
+    HYPVINN_AXI,
+    HYPVINN_COR,
+    HYPVINN_SAG,
+    URL as HYPVINN_URL,
+)
 
 
 if __name__ == "__main__":
@@ -55,6 +61,12 @@ if __name__ == "__main__":
         help="Check and download CerebNet default checkpoints",
     )
     parser.add_argument(
+        "--hypvinn",
+        default=False,
+        action="store_true",
+        help="Check and download HypVINN default checkpoints",
+    )
+    parser.add_argument(
         "--url",
         type=str,
         default=None,
@@ -69,9 +81,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    if not args.vinn and not args.files and not args.cerebnet and not args.all:
+    if not args.vinn and not args.files and not args.cerebnet and not args.hypvinn and not args.all:
         print(
-            "Specify either files to download or --vinn, --cerebnet or --all, see help -h."
+            "Specify either files to download or --vinn, --cerebnet, --hypvinn or --all, see help -h."
         )
         exit(1)
 
@@ -89,6 +101,15 @@ if __name__ == "__main__":
             CEREBNET_COR,
             CEREBNET_SAG,
             url=CEREBNET_URL if args.url is None else args.url,
+        )
+
+    # HypVINN checkpoints
+    if args.hypvinn or args.all:
+        get_checkpoints(
+            HYPVINN_AXI,
+            HYPVINN_COR,
+            HYPVINN_SAG,
+            HYPVINN_URL if args.url is None else args.url,
         )
 
     # later we can add more defaults here (for other sub-segmentation networks, or old CNN)
