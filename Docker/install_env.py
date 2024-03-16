@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 arg_pattern = re.compile('^(\\s*-\\s*)(--[a-zA-Z0-9\\-]+)(\\s+\\S+)?(\\s*(#.*)?)$')
-package_pattern = re.compile('^(\\s*-\\s*)([a-zA-Z0-9\\-]+|pip:)(\\s*[<=>~]{1,2}\\s*\\S+)?(\\s*(#.*)?\\s*)$')
+package_pattern = re.compile('^(\\s*-\\s*)([a-zA-Z0-9\\.\\_\\-]+|pip:)(\\s*[<=>~]{1,2}\\s*\\S+)?(\\s*(#.*)?\\s*)$')
 dependencies_pattern = re.compile('^\\s*dependencies:\\s*$')
 
 
