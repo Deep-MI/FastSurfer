@@ -1,18 +1,26 @@
 import os
+import sys
 import yaml
 import unittest
+import argparse
 
 class TestFileExistence(unittest.TestCase):
+    
+    # yaml_file_path = ''
+    
+    # if len(sys.argv) > 2:
+    #     yaml_file_path = sys.argv.pop()
+    # else:
+    #     print("Please provide the path to the YAML file")
+    
     @classmethod
     def setUpClass(cls):
-        yaml_file_path = './test/files.yaml'  # './' refers to the current directory
-
         try:
             # Load the YAML file
-            with open(yaml_file_path, 'r') as file:
+            with open(cls.yaml_file_path, 'r') as file:
                 cls.data = yaml.safe_load(file)
         except FileNotFoundError:
-            raise Exception(f"YAML file not found at path: {yaml_file_path}")
+            raise Exception(f"YAML file not found at path: {cls.yaml_file_path}")
         except yaml.YAMLError as e:
             raise Exception(f"Error parsing YAML file: {e}")
 
@@ -21,7 +29,7 @@ class TestFileExistence(unittest.TestCase):
         if not cls.folder_path:
             raise Exception("The 'folder_path' key was not found in the YAML file")
 
-    def testFileExistence(self):
+    def test_file_existence(self):
         # Get a list of all files in the folder recursively
         filenames = []
         for root, dirs, files in os.walk(self.folder_path):
@@ -35,12 +43,19 @@ class TestFileExistence(unittest.TestCase):
         if not files:
             self.fail("The 'files' key was not found in the YAML file")
 
-        # for file_name in files:
-        #     # Flatten the list of files
-        #     file_names = [file for sublist in files for file in sublist]
-
         for file in files:
             self.assertIn(file, filenames, f"File '{file}' does not exist in the folder.")
 
 if __name__ == '__main__':
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("yaml_file_path", help="Path to the YAML file")
+    # args = parser.parse_args()
+    
+    # TestFileExistence.yaml_file_path = sys.argv[2]
+    
+    if len(sys.argv) > 1:
+        TestFileExistence.yaml_file_path = sys.argv.pop()
+    else:
+        print("Please provide the path to the YAML file")
+        
     unittest.main()

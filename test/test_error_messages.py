@@ -1,32 +1,34 @@
 import os
+import sys
 import unittest
 import yaml
 
 class TestErrorMessages(unittest.TestCase):
+    
+    
+    
     @classmethod
-    def setUpClass(self):
-        error_file_path = './test/error_file.yaml'  # './' refers to the current directory
-
+    def setUpClass(cls):
         try:
             # Load the YAML file
-            with open(error_file_path, 'r') as file:
+            with open(cls.error_file_path, 'r') as file:
                 data = yaml.safe_load(file)
         except FileNotFoundError:
-            print(f"YAML file not found at path: {error_file_path}")
+            print(f"YAML file not found at path: {cls.error_file_path}")
             return
         except yaml.YAMLError as e:
             print(f"Error parsing YAML file: {e}")
             return
 
         # Get the folder path from the YAML file
-        self.log_directory = data.get('log_path')
-        if not self.log_directory:
+        cls.log_directory = data.get('log_path')
+        if not cls.log_directory:
             print("The 'log_path' key was not found in the YAML file")
             return
 
         # Get the error messages from the YAML file
-        self.errors = data.get('error_messages')
-        if not self.errors:
+        cls.errors = data.get('error_messages')
+        if not cls.errors:
             print("The 'error_messages' key was not found in the YAML file")
             return
 
@@ -53,6 +55,13 @@ class TestErrorMessages(unittest.TestCase):
 
             for error in self.errors:
                 self.assertNotIn(error, log_data)
+                print(f"Error message '{error}' not found in {log_file}")
 
 if __name__ == '__main__':
+    
+    if len(sys.argv) > 1:
+        TestErrorMessages.error_file_path = sys.argv.pop()
+    else:
+        print("Please provide the path to the YAML file")
+    
     unittest.main()
