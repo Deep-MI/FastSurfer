@@ -1075,7 +1075,7 @@ class SubjectList:
             return all(pool.map(is_file, self._subjects))
 
 
-class SerialExecutor(Executor):
+class SerialExecutor:
     """
     Represent a serial executor.
     """
