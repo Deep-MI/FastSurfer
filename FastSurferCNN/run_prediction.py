@@ -29,14 +29,14 @@ import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
-from FastSurferCNN.utils import logging, parser_defaults
-from FastSurferCNN.utils.checkpoint import get_checkpoints, get_plane_default
+from FastSurferCNN.utils import logging, parser_defaults, Plane, PLANES
+from FastSurferCNN.utils.checkpoint import (
+    get_checkpoints,
+    load_checkpoint_config_defaults,
+)
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.common import (
     SerialExecutor,
-    SubjectDirectory,
-    SubjectList,
-    assert_no_root,
     find_device,
     assert_no_root,
     handle_cuda_memory_exception,
@@ -51,7 +51,8 @@ from FastSurferCNN.quick_qc import check_volume
 ##
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 LOGGER = logging.getLogger(__name__)
-FASTSURFERCNN_CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
+CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
+
 
 ##
 # Processing
@@ -322,7 +323,7 @@ class RunModelOnData:
 
         return orig, orig_data
 
-    def set_model(self, plane: "Plane"):
+    def set_model(self, plane: Plane):
         """
         Set the current model for the specified plane.
 
@@ -455,7 +456,7 @@ class RunModelOnData:
 
     def set_up_model_params(
             self,
-            plane: "Plane",
+            plane: Plane,
             cfg: "yacs.config.CfgNode",
             ckpt: "torch.Tensor",
     ) -> None:
@@ -526,19 +527,20 @@ if __name__ == "__main__":
     )
 
     # 3. Checkpoint to load
+    files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
     parser = parser_defaults.add_plane_flags(
         parser,
         "checkpoint",
-        {"coronal": "default", "axial": "default", "sagittal": "default"},
-        FASTSURFERCNN_CHECKPOINT_PATHS_FILE
+        files,
+        CHECKPOINT_PATHS_FILE
     )
 
     # 4. CFG-file with default options for network
     parser = parser_defaults.add_plane_flags(
         parser,
         "config",
-        {"coronal": "default", "axial": "default", "sagittal": "default"},
-        FASTSURFERCNN_CHECKPOINT_PATHS_FILE
+        files,
+        CHECKPOINT_PATHS_FILE
     )
 
     # 5. technical parameters
@@ -580,7 +582,7 @@ if __name__ == "__main__":
     # see utils/checkpoint.py for default paths
     LOGGER.info("Checking or downloading default checkpoints ...")
     
-    urls = get_plane_default("URL", filename=FASTSURFERCNN_CHECKPOINT_PATHS_FILE)
+    urls = load_checkpoint_config_defaults("url", filename=CHECKPOINT_PATHS_FILE)
 
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 
@@ -679,9 +681,8 @@ if __name__ == "__main__":
     # Batch case: report ratio of QC warnings
     if len(subjects) > 1:
         LOGGER.info(
-            "Segmentations from {} out of {} processed cases failed the volume-based QC check.".format(
-                qc_failed_subject_count, len(subjects)
-            )
+            f"Segmentations from {qc_failed_subject_count} out of {len(subjects)} "
+            f"processed cases failed the volume-based QC check."
         )
 
     # wait for async processes to finish

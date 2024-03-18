@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
+
 import dateutil.parser
 import argparse
 import yaml
@@ -31,8 +33,8 @@ def get_recon_all_stage_duration(line: str, previous_datetime_str: str) -> float
         previous_date_time = dateutil.parser.parse(previous_datetime_str)
     except: # strptime considers the computers time locale settings
         locale.setlocale(locale.LC_TIME,"")
-        current_date_time = datetime.datetime.strptime(current_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
-        previous_date_time = datetime.datetime.strptime(previous_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
+        current_date_time = datetime.strptime(current_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
+        previous_date_time = datetime.strptime(previous_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
     stage_duration = (current_date_time - previous_date_time).total_seconds()
 
     return stage_duration
@@ -43,26 +45,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "-i",
         "--input_file_path",
-        type=str,
+        type=Path,
         default="scripts/recon-surf.log",
         help="Path to recon-surf.log file",
     )
     parser.add_argument(
         "-o",
         "--output_file_path",
-        type=str,
-        default="",
+        type=Path,
+        default=None,
         help="Path to output recon-surf_time.log file",
     )
     parser.add_argument(
-        "--time_units", type=str, default="m", help="Units of time [s, m]"
+        "--time_units",
+        choices=["m", "s"],
+        default="m",
+        help="Units of time [s, m]",
     )
     args = parser.parse_args()
 
-    lines = []
     with open(args.input_file_path) as file:
-        for line in file:
-            lines.append(line.rstrip())
+        lines = [line.rstrip() for line in file.readlines()]
 
     timestamp_feature = "@#@FSTIME"
     recon_all_stage_feature = "#@# "
@@ -94,19 +97,15 @@ if __name__ == "__main__":
         "#",
         "This may cause",
     ]
-    filtered_cmds = ["ln ", "rm ", "cp "]
+    filtered_cmds = ["ln", "rm", "cp"]
 
-    if args.output_file_path == "":
-        output_file_path = (
-            args.input_file_path.rsplit("/", 1)[0] + "/" + "recon-surf_times.yaml"
-        )
+    if not args.output_file_path:
+        output_file_path = args.input_file_path.parent / "recon-surf_times.yaml"
     else:
         output_file_path = args.output_file_path
 
     print(
-        "[INFO] Parsing file for recon_surf time information: {}\n".format(
-            args.input_file_path
-        )
+        f"[INFO] Parsing file for recon_surf time information: {args.input_file_path}\n"
     )
     if args.time_units not in ["s", "m"]:
         print("[WARN] Invalid time_units! Must be in s or m. Defaulting to m...")
@@ -114,24 +113,24 @@ if __name__ == "__main__":
     else:
         time_units = args.time_units
 
-    yaml_dict = {}
-    yaml_dict["date"] = lines[1]
-    recon_surf_commands = []
+    yaml_dict = {"date": lines[1]}
+    pre_recon_surf_stage_name = "Starting up / no stage defined yet"
+    current_recon_surf_stage_name = pre_recon_surf_stage_name
+    recon_surf_commands = [{current_recon_surf_stage_name: []}]
 
     for i, line in enumerate(lines):
         ## Use recon_surf "stage" names as top level of recon-surf_commands entries:
         if "======" in line and "teration" not in line:
             stage_line = line
-            current_recon_surf_stage_name = stage_line.strip("=")[1:-1].replace(
-                " ", "-"
-            )
+            current_recon_surf_stage_name = stage_line.strip("= ").replace(" ", "-")
             if current_recon_surf_stage_name == "DONE":
                 continue
             recon_surf_commands.append({current_recon_surf_stage_name: []})
 
+        line_parts = line.split()
         if "recon-surf.sh" in line and "--sid" in line:
             try:
-                yaml_dict["subject_id"] = line.split()[line.split().index("--sid") + 1]
+                yaml_dict["subject_id"] = line_parts[line_parts.index("--sid") + 1]
             except ValueError:
                 print(
                     "[WARN] Could not extract subject ID from log file! It will not be added to the output."
@@ -143,19 +142,19 @@ if __name__ == "__main__":
             ## Parse out cmd name, start time, and duration:
             entry_dict = {}
 
-            cmd_name = line.split()[2] + " "
+            cmd_name = line_parts[2]
             if cmd_name in filtered_cmds:
                 continue
-            date_time_str = line.split()[1]
+            date_time_str = line_parts[1]
             start_time = date_time_str[11:]
 
-            start_date_time = datetime.datetime.strptime(
+            start_date_time = datetime.strptime(
                 date_time_str, "%Y:%m:%d:%H:%M:%S"
             )
-            assert line.split()[5] == "e"
-            cmd_duration = float(line.split()[6])
+            assert line_parts[5] == "e"
+            cmd_duration = float(line_parts[6])
 
-            end_date_time = start_date_time + datetime.timedelta(0, float(cmd_duration))
+            end_date_time = start_date_time + timedelta(0, float(cmd_duration))
             end_date_time_str = end_date_time.strftime("%Y:%m:%d:%H:%M:%S")
             end_time = end_date_time_str[11:]
 
@@ -164,7 +163,7 @@ if __name__ == "__main__":
             cmd_line = None
             for previous_line_index in range(i - 1, -1, -1):
                 temp_line = lines[previous_line_index]
-                if cmd_name in temp_line and all(
+                if cmd_name + " " in temp_line and all(
                     phrase not in temp_line for phrase in cmd_line_filter_phrases
                 ):
                     cmd_line = temp_line
@@ -172,9 +171,8 @@ if __name__ == "__main__":
                     break
             else:
                 print(
-                    "[WARN] Could not find the line containing the full command for {} in line {}! Skipping...\n".format(
-                        cmd_name[:-1], i
-                    )
+                    f"[WARN] Could not find the line containing the full command for "
+                    f"{cmd_name} in line {i+1}! Skipping...\n"
                 )
                 continue
 
@@ -187,7 +185,7 @@ if __name__ == "__main__":
                 entry_dict["duration_m"] = round(cmd_duration / 60.0, 2)
 
             ## Parse out the same details for each stage in recon-all
-            if cmd_name == "recon-all ":
+            if cmd_name == "recon-all":
                 entry_dict["stages"] = []
                 first_stage = True
 
@@ -245,6 +243,6 @@ if __name__ == "__main__":
 
     yaml_dict["recon-surf_commands"] = recon_surf_commands
 
-    print("[INFO] Writing output to file: {}".format(output_file_path))
+    print(f"[INFO] Writing output to file: {output_file_path}")
     with open(output_file_path, "w") as outfile:
         yaml.dump(yaml_dict, outfile, sort_keys=False)

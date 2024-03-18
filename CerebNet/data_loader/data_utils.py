@@ -15,13 +15,14 @@
 
 
 # IMPORTS
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import torch
 from numpy import typing as npt
 
-Plane = Literal['axial', 'coronal', 'sagittal']
+from FastSurferCNN.utils import Plane
+
 AT = TypeVar('AT', np.ndarray, torch.Tensor)
 
 # CLASSES for final evaluation
@@ -146,6 +147,8 @@ SAG2FULL_MAP = {
                               14, 15, 14,
                               16, 16
                               ])}
+
+
 # Transformation for mapping
 def transform_axial(vol, coronal2axial=True):
     """
