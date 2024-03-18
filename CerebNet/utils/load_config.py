@@ -15,11 +15,10 @@
 
 # IMPORTS
 import argparse
-import os.path
 import sys
-from os.path import join, split, splitext
-from FastSurferCNN.utils.checkpoint import get_plane_default
+
 from CerebNet.config import get_cfg_cerebnet
+from FastSurferCNN.utils import PLANES
 
 
 def get_config(args) -> "yacs.CfgNode":
@@ -42,12 +41,8 @@ def get_config(args) -> "yacs.CfgNode":
         getattr(args, name) for name in ["ckpt_ax", "ckpt_sag", "ckpt_cor"]
     ]
 
-    for plane, path in [
-        ("AXIAL", path_ax),
-        ("SAGITTAL", path_sag),
-        ("CORONAL", path_cor),
-    ]:
-        setattr(cfg.TEST, f"{plane}_CHECKPOINT_PATH", str(path))
+    for plane, path in zip(PLANES, (path_ax, path_cor, path_sag)):
+        setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", str(path))
 
     # overwrite the batch size if it is passed as a parameter
     batch_size = getattr(args, "batch_size", None)

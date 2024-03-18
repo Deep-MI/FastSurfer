@@ -5,6 +5,7 @@ VERSION='$Id: fs_time,v 1.0 2024/03/08 15:12:00 kueglerd Exp $'
 outfile=""
 key="@#@FSTIME "
 cmd=()
+verbose=0
 
 if [[ -z "$FSTIME_LOAD" ]]
 then
@@ -200,11 +201,11 @@ fi
 command="${cmd[0]}"
 npyargs=0
 # remove python from command
-if [[ "$command" =~ python(3(.[0-9])?)?$ ]]
+if [[ "$command" =~ python(3(.[0-9]+)?)?$ ]]
 then
   npyargs=1
   for c in "${cmd[@]:1}" ; do
-    if [[ ! "$c" =~ "^-" ]] ; then command="$c" ; break ; fi
+    if [[ ! "$c" =~ ^- ]] ; then command="$c" ; break ; fi
     npyargs=$((npyargs + 1))
   done
 fi
@@ -212,7 +213,7 @@ fi
 command_short="${command:0:${#FASTSURFER_HOME}}"
 if [[ -n "$FASTSURFER_HOME" ]] && [[ "$command_short" == "$FASTSURFER_HOME" ]]
 then
-  command="$command_short"
+  command="${command:${#command_short}}"
   while [[ "${command:0:1}" == "/" ]] ; do command="${command:1}" ; done
 fi
 

@@ -1,13 +1,13 @@
-URL:
-- https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59
-- https://zenodo.org/records/10390573/files
+url:
+- "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
+- "https://zenodo.org/records/10390573/files"
 
-CKPT:
-  AXIAL: FastSurferCNN/checkpoints/aparc_vinn_axial_v2.0.0.pkl
-  CORONAL: FastSurferCNN/checkpoints/aparc_vinn_coronal_v2.0.0.pkl
-  SAGITTAL: FastSurferCNN/checkpoints/aparc_vinn_sagittal_v2.0.0.pkl
+checkpoint:
+  axial: "checkpoints/aparc_vinn_axial_v2.0.0.pkl"
+  coronal: "checkpoints/aparc_vinn_coronal_v2.0.0.pkl"
+  sagittal: "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl"
 
-CFG:
-  AXIAL: FastSurferCNN/config/FastSurferVINN_axial.yaml
-  CORONAL: FastSurferCNN/config/FastSurferVINN_coronal.yaml
-  SAGITTAL: FastSurferCNN/config/FastSurferVINN_sagittal.yaml
+config:
+  axial: "FastSurferCNN/config/FastSurferVINN_axial.yaml"
+  coronal: "FastSurferCNN/config/FastSurferVINN_coronal.yaml"
+  sagittal: "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"

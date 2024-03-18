@@ -30,14 +30,13 @@ import argparse
 from pathlib import Path
 from typing import Dict, Iterable, Literal, Mapping, Protocol, Type, TypeVar, Union
 
-FASTSURFER_ROOT = Path(__file__).parents[2]
-
+from FastSurferCNN.utils import Plane, PLANES
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
 from FastSurferCNN.utils.arg_types import unquote_str
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.threads import get_num_threads
-from FastSurferCNN.utils.checkpoint import get_plane_default
 
+FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
 PLANE_HELP = {
     "checkpoint": "{} checkpoint to load",
@@ -339,9 +338,9 @@ def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
 
 def add_plane_flags(
     parser: argparse.ArgumentParser,
-    type: Literal["checkpoint", "config"],
-    files: Mapping[str, Path],
-    default_path: str,
+    configtype: Literal["checkpoint", "config"],
+    files: Mapping[Plane, Path | str],
+    defaults_path: Path | str,
 ) -> argparse.ArgumentParser:
     """
     Add plane arguments.
@@ -353,39 +352,42 @@ def add_plane_flags(
     ----------
     parser : argparse.ArgumentParser
         The parser to add flags to.
-    type : Literal["checkpoint", "config"]
+    configtype : Literal["checkpoint", "config"]
         The type of files (for help text and prefix from "checkpoint" and "config".
         "checkpoint" will lead to flags like "--ckpt_{plane}", "config" to
         "--cfg_{plane}".
-    files : Mapping[str, Path]
+    files : Mapping[Plane, Path | str]
         A dictionary of plane to filename. Relative files are assumed to be relative to
         the FastSurfer root directory.
+    defaults_path: Path, str
+        A path to the file to load defaults from.
 
     Returns
     -------
     argparse.ArgumentParser
         The parser object.
     """
-    if type not in PLANE_SHORT:
+    if configtype not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")
 
-    from os import path
+    from FastSurferCNN.utils.checkpoint import load_checkpoint_config_defaults
+    defaults = load_checkpoint_config_defaults(configtype, defaults_path)
 
-    for key, filepath in files.items():
-        path = Path(filepath)
-        if str(path) == "default":
-            path = Path(get_plane_default(PLANE_SHORT[type], key, default_path))
+    for plane, filepath in files.items():
+        path = defaults[plane] if str(filepath) == "default" else Path(filepath)
         if not path.is_absolute():
             path = FASTSURFER_ROOT / path
         # find the first vowel in the key
-        flag = key.strip().lower()
-        index = min(i for i in (flag.find(v) for v in "aeiou") if i >= 0)
-        flag = flag[: index + 2]
+        plane = plane.strip().lower()
+        if plane not in PLANES:
+            raise ValueError(f"Invalid key in files, no plane: {plane}")
+        index = min(i for i in (plane.find(v) for v in "aeiou") if i >= 0)
+        plane_short = plane[: index + 2]
         parser.add_argument(
-            f"--{PLANE_SHORT[type]}_{flag}",
+            f"--{PLANE_SHORT[configtype]}_{plane_short}",
             type=Path,
-            dest=f"{PLANE_SHORT[type]}_{flag}",
-            help=PLANE_HELP[type].format(key),
+            dest=f"{PLANE_SHORT[configtype]}_{plane_short}",
+            help=PLANE_HELP[configtype].format(plane),
             default=path,
         )
     return parser

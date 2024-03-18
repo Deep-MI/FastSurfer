@@ -399,6 +399,9 @@ cat $FREESURFER_HOME/build-stamp.txt |& tee -a $LF
 echo $VERSION |& tee -a $LF
 uname -a  |& tee -a $LF
 
+echo " " |& tee -a $LF
+echo "================== Checking validity of inputs =================================" |& tee -a $LF
+echo " " |& tee -a $LF
 
 # Print parallelization parameters
 echo " " |& tee -a $LF
