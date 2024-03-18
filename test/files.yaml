@@ -1,6 +1,3 @@
-
-folder_path: '/home/abdullaht/actions-runner/_work/fastsurfer_analysis/subjectx/'
-
 files:
   - "scripts/deep-seg.log"
   - "scripts/build.log"
