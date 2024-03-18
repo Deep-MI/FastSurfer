@@ -19,17 +19,12 @@ import argparse
 from FastSurferCNN.utils.checkpoint import (
     check_and_download_ckpts,
     get_checkpoints,
-    VINN_AXI,
-    VINN_COR,
-    VINN_SAG,
-    URL,
-)
+    get_plane_default,
+    YAML_DEFAULT as VINN_YAML,
+    )
+
 from CerebNet.utils.checkpoint import (
-    CEREBNET_AXI,
-    CEREBNET_COR,
-    CEREBNET_SAG,
-    URL as CEREBNET_URL,
-)
+    YAML_DEFAULT as CEREBNET_YAML)
 
 
 if __name__ == "__main__":
@@ -60,7 +55,7 @@ if __name__ == "__main__":
         default=None,
         help="Specify you own base URL. This is applied to all models. \n"
         "Default for VINN: {} \n"
-        "Default for CerebNet: {}".format(URL, CEREBNET_URL),
+        "Default for CerebNet: {}".format(get_plane_default('URL', None, filename=VINN_YAML), get_plane_default('URL', None, filename=CEREBNET_YAML)),
     )
     parser.add_argument(
         "files",
@@ -78,19 +73,21 @@ if __name__ == "__main__":
     # FastSurferVINN checkpoints
     if args.vinn or args.all:
         get_checkpoints(
-            VINN_AXI, VINN_COR, VINN_SAG,
-            url=URL if args.url is None else args.url
+            get_plane_default('CKPT', 'axial', filename=VINN_YAML),
+            get_plane_default('CKPT', 'coronal', filename=VINN_YAML),
+            get_plane_default('CKPT', 'sagittal', filename=VINN_YAML),
+            urls=get_plane_default('URL', None, filename=VINN_YAML) if args.url is None else [args.url]
         )
 
     # CerebNet checkpoints
     if args.cerebnet or args.all:
         get_checkpoints(
-            CEREBNET_AXI,
-            CEREBNET_COR,
-            CEREBNET_SAG,
-            url=CEREBNET_URL if args.url is None else args.url,
+            get_plane_default('CKPT', 'axial', filename=CEREBNET_YAML),
+            get_plane_default('CKPT', 'coronal', filename=CEREBNET_YAML),
+            get_plane_default('CKPT', 'sagittal', filename=CEREBNET_YAML),
+            urls=get_plane_default('URL', None, filename=CEREBNET_YAML) if args.url is None else [args.url],
         )
 
     # later we can add more defaults here (for other sub-segmentation networks, or old CNN)
     for fname in args.files:
-        check_and_download_ckpts(fname, URL if args.url is None else args.url)
+        check_and_download_ckpts(fname, get_plane_default('URL', None, filename=VINN_YAML) if args.url is None else [args.url])
