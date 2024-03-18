@@ -17,16 +17,19 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import yacs
-
+from pathlib import Path
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.checkpoint import (
-    FASTSURFER_ROOT,
     load_from_checkpoint,
     create_checkpoint_dir,
     get_checkpoint,
     get_checkpoint_path,
     save_checkpoint,
 )
+
+# DEFAULTS
+FASTSURFER_ROOT = Path(__file__).parents[2]
+YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
 
 logger = logging.get_logger(__name__)
 

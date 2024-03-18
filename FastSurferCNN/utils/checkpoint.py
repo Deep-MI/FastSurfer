@@ -29,7 +29,7 @@ Scheduler = "torch.optim.lr_scheduler"
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+FASTSURFER_ROOT = Path(__file__).parents[2]
 YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
 
