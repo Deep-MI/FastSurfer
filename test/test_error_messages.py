@@ -34,11 +34,22 @@ class TestErrorMessages(unittest.TestCase):
         # if not cls.log_directory:
         #     print("The 'log_path' key was not found in the YAML file")
         #     return
-        cls.log_directory = ''
+        
         # Get the error messages from the YAML file
         cls.errors = data.get('error_messages')
         if not cls.errors:
             print("The 'error_messages' key was not found in the YAML file")
+            return
+        
+        if not cls.log_directory or not cls.errors:
+            return
+
+        try:
+            # Retrieve the log files in given log directory
+            cls.log_files = [os.path.join(cls.log_directory, file) 
+                         for file in os.listdir(cls.log_directory) if file.endswith('.log')]
+        except FileNotFoundError:
+            print(f"Log directory not found at path: {cls.log_directory}")
             return
 
     def test_find_errors_in_logs(self):
@@ -48,29 +59,18 @@ class TestErrorMessages(unittest.TestCase):
         This method retrieves the log files in the log directory, reads each log file,
         and checks that each error message is not in the log file.
         """
-        if not self.log_directory or not self.errors:
-            return
-
-        try:
-            # Retrieve the log files in given log directory
-            log_files = [os.path.join(self.log_directory, file) 
-                         for file in os.listdir(self.log_directory) if file.endswith('.log')]
-        except FileNotFoundError:
-            print(f"Log directory not found at path: {self.log_directory}")
-            return
 
         # Check if each error message is in the log files
-        for log_file in log_files:
+        for log_file in self.log_files:
             try:
                 with open(log_file, 'r') as file:
                     log_data = file.read()
             except FileNotFoundError:
                 print(f"Log file not found at path: {log_file}")
                 continue
-
+            
             for error in self.errors:
                 self.assertNotIn(error, log_data)
-                print(f"Error message '{error}' not found in {log_file}")
 
 if __name__ == '__main__':
     """
@@ -83,11 +83,6 @@ if __name__ == '__main__':
         TestErrorMessages.log_directory = sys.argv.pop()
         TestErrorMessages.error_file_path = sys.argv.pop()
         
-        print('log directory: ' + TestErrorMessages.log_directory)
-        print('error file path: ' + TestErrorMessages.error_file_path)
-        
     else:
         print("Please provide error file and log directory")
-        test_args = sys.argv.pop()
-        print('test_args (else): ' + test_args)
     unittest.main()

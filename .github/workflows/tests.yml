@@ -27,20 +27,22 @@ jobs:
         pip install pyyaml
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+  # Test file existence
   test-file-existence:
     runs-on: dirac
     needs: build
     
-    steps:
+    steps:    
     - name: Test File Existence
       run: |
-        python3 -m unittest test.test_file_existence
+        python3 test/test_file_existence.py $RUNNER_TEST_FILE_PATHS $RUNNER_FS_OUTPUT_FILES
 
+  # Test for errors in log files
   test-error-messages:
     runs-on: dirac
-    needs: build
+    needs: test-file-existence
     
-    steps:
-    - name: Test Error Messages
+    steps:    
+    - name: Test Log Files For Error Messages
       run: |
-        python3 -m unittest test.test_error_messages
+        python3 test/test_error_messages.py $RUNNER_TEST_ERROR_MESSAGES $RUNNER_FS_OUTPUT_LOGS

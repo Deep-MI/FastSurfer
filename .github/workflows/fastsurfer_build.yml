@@ -57,7 +57,7 @@ jobs:
     steps:    
     - name: Test File Existence
       run: |
-        python3 -m unittest test/test_file_existence.py
+        python3 test/test_file_existence.py $RUNNER_TEST_FILE_PATHS $RUNNER_FS_OUTPUT_FILES
 
   # Test for errors in log files
   test-error-messages:
@@ -65,6 +65,6 @@ jobs:
     needs: [run-fastsurfer, test-file-existence]
     
     steps:    
-    - name: Test File Existence
+    - name: Test Log Files For Error Messages
       run: |
-        python3 -m unittest test/test_file_existence.py test/test_error_messages.py $RUNNER_FS_OUTPUT_LOGS
+        python3 test/test_error_messages.py $RUNNER_TEST_ERROR_MESSAGES $RUNNER_FS_OUTPUT_LOGS
