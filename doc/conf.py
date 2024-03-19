@@ -21,11 +21,8 @@ sys.path.append(os.path.dirname(__file__) + "/..")
 sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
 
 project = "FastSurfer"
-copyright = "2023, Martin Reuter"
-author = "Martin Reuter"
-copyright = f"{date.today().year}, {author}"
-# release = FastSurferCNN.__version__
-# package = fsqc.__name__
+author = "FastSurfer Developers"
+copyright = f"2020, {author}"
 gh_url = "https://github.com/deep-mi/FastSurfer"
 
 
@@ -179,6 +176,7 @@ error_ignores = {
     "SS03",  # Summary does not end with a period
     "YD01",  # No Yields section found
     "PR02",  # Unknown parameters {unknown_params}
+    "SS01",  # Short summary in a single should be present at the beginning of the docstring.
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {"all"} | set(error_ignores)

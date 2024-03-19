@@ -108,7 +108,6 @@ def load_checkpoint_config_defaults(
     -------
     dict[Plane, Path], list[str]
         Default value for the plane.
-
     """
     if not isinstance(filename, Path):
         filename = Path(filename)
@@ -334,7 +333,7 @@ def download_checkpoint(
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
     urls : list[str]
-        list of URLs of checkpoint hosting sites.
+        List of URLs of checkpoint hosting sites.
     """
     response = None
     for url in urls:

@@ -47,9 +47,38 @@ dependencies = [
     'torchio>=0.18.83',
     'tqdm>=4.64',
 ]
-
+[project.optional-dependencies]
+doc = [
+    'furo!=2023.8.17',
+    'matplotlib',
+    'memory-profiler',
+    'myst-parser',
+    'numpydoc',
+    'sphinx!=7.2.*',
+    'sphinxcontrib-bibtex',
+    'sphinx-copybutton',
+    'sphinx-design',
+    'sphinx-gallery',
+    'sphinx-issues',
+    'pypandoc',
+    'nbsphinx',
+    'IPython', # For syntax highlighting in notebooks
+    'ipykernel',
+    'scikit-image',
+    'torchvision',
+    'scikit-learn',
+]
+all = [
+    'fastsurfer[doc]'
+]
+full = [
+    'fastsurfer[all]',
+]
 [project.urls]
 homepage = 'https://fastsurfer.org'
 documentation = 'https://fastsurfer.org'
 source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
+
+[tool.setuptools]
+packages = ['FastSurferCNN','CerebNet','recon_surf']

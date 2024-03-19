@@ -6,6 +6,10 @@
 Welcome to FastSurfer's documentation!
 ======================================
 
+.. image:: ../images/teaser.png
+   :alt: FastSurfer Teaser Image
+   :align: center
+
 .. toctree::
    :hidden:
 

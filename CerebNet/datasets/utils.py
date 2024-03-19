@@ -695,11 +695,6 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
         Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
     pad :  int, str, default=0
         Padding strategy to use when padding is required, if int, pad with that value (default: zero-pad).
-        
-    See Also
-    ---------
-    numpy.pad
-        For additional information refer to numpy.pad function.
 
     Returns
     -------
@@ -717,6 +712,11 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
         If the type of image is not an np.ndarray or a torch.Tensor.
     RuntimeError 
         If the dimensionality of image, out, offset or target_shape is invalid or inconsistent.
+
+    See Also
+    --------
+    numpy.pad
+        For additional information refer to numpy.pad function.
 
     Notes
     -----

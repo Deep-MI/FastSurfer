@@ -34,7 +34,6 @@ from FastSurferCNN.utils import logging, parser_defaults
 
 __all__ = [
     "assert_no_root",
-    "Executor",
     "find_device",
     "handle_cuda_memory_exception",
     "iterate",
