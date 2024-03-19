@@ -33,7 +33,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 # Requirements to input images
 All pipeline parts and modules require good quality MRI images, preferably from a 3T MR scanner.
 FastSurfer expects a similar image quality as FreeSurfer, so what works with FreeSurfer should also work with FastSurfer. 
-Notwithstanding module-specific limitations, resolution should be between 1mm and 0.7mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. See `--vox_size` flag for high-res behaviour.s
+Notwithstanding module-specific limitations, resolution should be between 1mm and 0.7mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. See `--vox_size` flag for high-res behaviour.
 
 ![](../../images/teaser.png)
 
@@ -45,11 +45,11 @@ There are two ways to run FastSurfer (links are to installation instructions):
 1. In a container ([Singularity](INSTALL.md#singularity) or [Docker](INSTALL.md#docker)) (OS: [Linux](INSTALL.md#linux), [Windows](INSTALL.md#windows), [MacOS on Intel](INSTALL.md#docker--currently-only-supported-for-intel-cpus-)),
 2. As a [native install](INSTALL.md#native--ubuntu-2004-) (all OS for segmentation part). 
 
-We recommended you use Singularity or Docker, especially if either is already installed on your system, because the [images we provide](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer, expect a  [FreeSurfer license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License). We have detailed, per-OS Installation instructions in the [INSTALL.md file](INSTALL.md).
+We recommended you use Singularity or Docker, especially if either is already installed on your system, because the images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer, expect a [FreeSurfer license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License). We have detailed, per-OS Installation instructions in the [INSTALL.md file](INSTALL.md).
 
 ## Usage
 
-All installation methods use the `run_fastsurfer.sh` call interface (replace `*fastsurfer-flags*` with  [FastSurfer Flag](FLAGS.md#required-arguments), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
+All installation methods use the `run_fastsurfer.sh` call interface (replace `*fastsurfer-flags*` with [FastSurfer Flag](FLAGS.md#required-arguments), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
 
 1. For container installations, you need to define the hardware and mount the folders with the input (`/data`) and output data (`/output`):  
    (a) For __singularity__, the syntax is 
@@ -65,11 +65,11 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
    ```
    The `--nv` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).
 
-   The `--no-home` flag tells singularity to not mount the home directory (see [Singularity README](Singularity/README.md#mounting-home) for more info).
+   The `--no-home` flag tells singularity to not mount the home directory (see [Singularity README](../../Singularity/README.md#mounting-home) for more info).
 
    The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
  
-   See also example 2 fastSurfer singularity for a full singularity FastSurfer run command and [the Singularity README](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
+   See also Example 2 FastSurfer Singularity for a full singularity FastSurfer run command and [the Singularity README](../../Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
 
    (b) For __docker__, the syntax is
     ```
@@ -85,7 +85,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-v` flag is used to tell docker, which folders FastSurfer can read and write to.
  
-   See also example 1 fastSurfer-docker for a full FastSurfer run inside a Docker container and [the Docker README](Docker/README.md#docker-flags-) for more details on the docker flags including `--rm` and `--user`.
+   See also example 1 fastSurfer-docker for a full FastSurfer run inside a Docker container and [the Docker README](../../Docker/README.md#docker-flags-) for more details on the docker flags including `--rm` and `--user`.
 
 2. For a __native install__, you need to activate your FastSurfer environment (e.g. `conda activate fastsurfer_gpu`) and make sure you have added the FastSurfer path to your `PYTHONPATH` variable, e.g. `export PYTHONPATH=$(pwd)`. 
 
@@ -134,7 +134,7 @@ Minimum CPU-only: 8 GB system memory (much slower, not recommended) ``--device c
 
 ## Expert usage
 Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this README. 
-This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation (in progress)](CerebNet/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
+This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](../../FastSurferCNN/README.md), [cerebellum sub-segmentation (in progress)](../../CerebNet/README.md) and [surface pipeline only (recon-surf)](../../recon_surf/README.md).
 
 Specifically, the segmentation modules feature options for optimized parallelization of batch processing.
 
@@ -144,7 +144,7 @@ FreeSurfer provides several Add-on modules for downstream processing, such as su
 
 ## Intended Use
 
-This software can be used to compute statistics from an MR image for research purposes. Estimates can be used to aggregate population data, compare groups etc. The data should not be used for clinical decision support in individual cases and, therefore, does not benefit the individual patient. Be aware that for a single image, produced results may be unreliable (e.g. due to head motion, imaging artefacts, processing errors etc). We always recommend to perform visual quality checks on your data, as also your MR-sequence may differ from the ones that we tested. No contributor shall be liable to any damages, see also our software [LICENSE](LICENSE). 
+This software can be used to compute statistics from an MR image for research purposes. Estimates can be used to aggregate population data, compare groups etc. The data should not be used for clinical decision support in individual cases and, therefore, does not benefit the individual patient. Be aware that for a single image, produced results may be unreliable (e.g. due to head motion, imaging artefacts, processing errors etc). We always recommend to perform visual quality checks on your data, as also your MR-sequence may differ from the ones that we tested. No contributor shall be liable to any damages, see also our software [../../LICENSE](LICENSE). 
 
 ## References
 
