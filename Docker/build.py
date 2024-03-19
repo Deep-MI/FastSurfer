@@ -55,33 +55,6 @@ class DEFAULTS:
     CONDA_BUILD_IMAGE = "build_conda"
 
 
-def _import_calls(fasturfer_home: Path, token: str = "Popen") -> Callable:
-    # import call and call_async without importing FastSurferCNN fully
-    if token not in __import_cache:
-        def __import(file: Path, name: str, *tokens: str, **rename_tokens: str):
-            from importlib.util import spec_from_file_location, module_from_spec
-            spec = spec_from_file_location(name, file)
-            module = module_from_spec(spec)
-            spec.loader.exec_module(module)
-            for tok, name in chain(zip(tokens, tokens), rename_tokens.items()):
-                __import_cache[tok] = getattr(module, name)
-
-        if token in ("Popen", "PyPopen"):
-            # import Popen and PyPopen from FastSurferCNN.utils.run_tools
-            __import(fasturfer_home / "FastSurferCNN/utils/run_tools.py",
-                     "run_tools", "Popen", "PyPopen")
-        elif token in ("version", "parse_build_file", "has_git"):
-            # import main as version from FastSurferCNN.version
-            __import(fasturfer_home / "FastSurferCNN/version.py",
-                     "version", "parse_build_file", "has_git",
-                     version="main")
-
-    if token in __import_cache:
-        return __import_cache[token]
-    else:
-        raise ImportError(f"Invalid token {token}")
-
-
 def docker_image(arg) -> str:
     """
     Returns a str with the image.
@@ -221,11 +194,6 @@ def make_parser() -> argparse.ArgumentParser:
                  - build_conda: "finished" conda build image<br>
                  - build_freesurfer: "finished" freesurfer build image<br>
                  - runtime: final fastsurfer runtime image""",
-    )
-    parser.add_argument(
-        "--rm",
-        action="store_true",
-        help="disables caching, i.e. removes all intermediate images.",
     )
     cache_kwargs = {}
     if "FASTSURFER_BUILD_CACHE" in os.environ:
@@ -411,6 +379,8 @@ def docker_build_image(
     extra_env = {"DOCKER_BUILDKIT": "1"}
 
     from shutil import which
+    from FastSurferCNN.utils.run_tools import Popen
+
     docker_cmd = which("docker")
     if docker_cmd is None:
         raise FileNotFoundError("Could not locate the docker executable")
@@ -425,55 +395,69 @@ def docker_build_image(
         # concatenate the --key_dashed value pairs
         return list(chain(*zip(repeat(f"--{key_dashed}"), values)))
 
-    # needs buildx
-    args = ["buildx", "build"]
+    buildx_test = Popen(
+        [docker_cmd, "buildx", "version"],
+        stdout=PIPE,
+        stderr=PIPE,
+    ).finish()
+    has_buildx = "'buildx' is not a docker command" not in buildx_test.err_str("utf-8")
+
+    def is_inline_cache(cache_kw):
+        inline_cache = "type=inline"
+        all_inline_cache = (None, "", inline_cache)
+        return kwargs.get(cache_kw, inline_cache) not in all_inline_cache
 
     # always use/require buildx (required for sbom and provenance)
-    Popen = _import_calls(working_directory)  # from fastsurfer dir
-    if attestation or \
-            any(kwargs.get(f"cache_{c}", "inline") != "inline" for c in ("to", "from")):
-        buildx_test = Popen(
-            [docker_cmd, "buildx", "version"],
-            stdout=PIPE,
-            stderr=PIPE,
-        ).finish()
-        if "'buildx' is not a docker command" in buildx_test.err_str("utf-8").strip():
+    if attestation or any(is_inline_cache(f"cache_{c}") for c in ("to", "from")):
+        if not has_buildx:
             wget_cmd = (
                 "wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker"
                 "/buildx/releases/download/{0:s}/buildx-{0:s}.{1:s}"
             )
+            wget_cmd_unfilled = wget_cmd.format('<version>', '<platform>')
+            wget_cmd_filled = wget_cmd.format('v0.12.1', 'linux-amd64')
             raise RuntimeError(
                 f"Using --cache or attestation requires docker buildx, install with "
-                f"'{wget_cmd % ('<version>', '<platform>')}'\n"
-                f"e.g. '{wget_cmd % ('v0.12.1', 'linux-amd64')}\n"
+                f"'{wget_cmd_unfilled}'\ne.g. '{wget_cmd_filled}\n"
                 f"You may need to 'chmod +x ~/.docker/cli-plugins/docker-buildx'\n"
                 f"See also https://github.com/docker/buildx#manual-download"
             )
 
-    default_builder_is_container, alternative_builder = get_builder(
-        Popen,
-        "docker-container",
-    )
-    args.append("--output")
-    if not attestation:
-        # tag image_name in local registry (simple standard case)
-        if default_builder_is_container:
-            args.extend([f"type=docker,name={image_name}", "--" + action])
+    if has_buildx:
+        # buildx argument construction
+        args = ["buildx", "build"]
+        default_builder_is_container, alternative_builder = get_builder(
+            Popen,
+            "docker-container",
+        )
+        args.append("--output")
+        if not attestation:
+            # tag image_name in local registry (simple standard case)
+            if default_builder_is_container:
+                args.extend([f"type=docker,name={image_name}", "--" + action])
+            else:
+                args.append(f"type=image,name={image_name}")
         else:
-            args.append(f"type=image,name={image_name}")
-    else:
-        # want to create sbom and provenance manifests, so needs to use a
-        # docker-container builder
-        image_type = "registry" if action == "push" else "docker"
-        args.extend([f"type={image_type},name={image_name}", "--" + action])
+            # want to create sbom and provenance manifests, so needs to use a
+            # docker-container builder
+            image_type = "registry" if action == "push" else "docker"
+            args.extend([f"type={image_type},name={image_name}", "--" + action])
 
-        args.extend(["--attest", "type=sbom", "--provenance=true"])
-        if not default_builder_is_container:
-            args.extend(["--builder", alternative_builder])
+            args.extend(["--attest", "type=sbom", "--provenance=true"])
+            if not default_builder_is_container:
+                args.extend(["--builder", alternative_builder])
+        kwargs_to_exclude = []
+    else:
+        # standard build arguments
+        args = ["build"]
+        kwargs_to_exclude = [f"cache_{c}" for c in ("to", "from")]
+
+    # arguments for standard build and buildx
     args.extend(("-t", image_name))
-    params = [to_pair(*a) for a in kwargs.items()]
+    params = [to_pair(k, v) for k, v in kwargs.items() if k not in kwargs_to_exclude]
     args.extend(["-f", str(dockerfile)] + list(chain(*params)))
     args.append(str(context))
+
     if dry_run:
         extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
         print(" ".join(extra_environment + ["docker"] + args))
@@ -492,22 +476,15 @@ def docker_build_image(
 def main(
         device: DeviceType,
         cache: Optional[CacheSpec] = None,
-        rm: bool = False,
         target: Target = "runtime",
         debug: bool = False,
         image_tag: Optional[str] = None,
         dry_run: bool = False,
         tag_dev: bool = True,
+        fastsurfer_home: Optional[Path] = None,
         **keywords
         ) -> int | str:
-    this_script = Path(__file__)
-    if not this_script.is_absolute():
-        this_script = Path.cwd() / __file__
-    fastsurfer_home = this_script.parent.parent
-    version = _import_calls(fastsurfer_home, "version")
-    has_git = _import_calls(fastsurfer_home, "has_git")
-    parse_build_file = _import_calls(fastsurfer_home, "parse_build_file")
-
+    from FastSurferCNN.version import has_git, main as version
     kwargs: Dict[str, Union[str, List[str]]] = {}
     if cache is not None:
         if not isinstance(cache, CacheSpec):
@@ -515,8 +492,8 @@ def main(
         logger.info(f"cache: {cache}")
         kwargs["cache_from"] = cache.format_cache_from()
         kwargs["cache_to"] = cache.format_cache_from()
-    elif rm is True:
-        kwargs["no-cache"] = None
+
+    fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
@@ -562,6 +539,7 @@ def main(
         return f"Creating the version file failed with message: {ret_version}"
 
     with open(build_filename, "r") as build_file:
+        from FastSurferCNN.version import parse_build_file
         build_info = parse_build_file(build_file)
 
     version_tag = build_info["version_tag"]
@@ -574,9 +552,10 @@ def main(
 
     attestation = bool(keywords.get("attest"))
     if not attestation:
-        # only attestation requires and actively changes to a docker-container driver
+        # attestation and some caches require to actively change to a docker-container
+        # build driver (and buildx)
         if cache is not None and cache.type != "inline":
-            Popen = _import_calls(fastsurfer_home, "Popen")
+            from FastSurferCNN.utils.run_tools import Popen
             try:
                 can_default, _ = get_builder(Popen, "docker-container")
             except RuntimeError as e:
@@ -608,19 +587,22 @@ def main(
     return 0
 
 
+def default_home() -> Path:
+    if "FASTSURFER_HOME" in os.environ:
+        return Path(os.environ["FASTSURFER_HOME"])
+    else:
+        return Path(__file__).parent.parent
+
+
 if __name__ == "__main__":
     import sys
     logging.basicConfig(stream=sys.stdout)
     arguments = make_parser().parse_args()
 
     # make sure the code can run without FastSurfer being in PYTHONPATH
-    if "FASTSURFER_HOME" in os.environ:
-        fastsurfer_home = os.environ["FASTSURFER_HOME"]
-    else:
-        fastsurfer_home = str(Path(__file__).parent.parent)
-
-    if fastsurfer_home not in sys.path:
-        sys.path.append(fastsurfer_home)
+    fastsurfer_home = default_home()
+    if str(fastsurfer_home) not in sys.path:
+        sys.path.append(str(fastsurfer_home))
 
     logger.setLevel(logging.WARN if arguments.dry_run else logging.INFO)
-    sys.exit(main(**vars(arguments)))
+    sys.exit(main(**vars(arguments), fastsurfer_home=fastsurfer_home))

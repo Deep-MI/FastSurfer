@@ -110,6 +110,7 @@ function softlink_or_copy()
     echo "echo \"$ln_cmd\" " |& tee -a $CMDF
     echo "$timecmd $ln_cmd " |& tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ]" |& tee -a $CMDF
+    echo "then " |& tee -a $CMDF
     echo "  echo \"$cp_cmd\" " |& tee -a $CMDF
     echo "  $timecmd $cp_cmd " |& tee -a $CMDF
     echo "  if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF

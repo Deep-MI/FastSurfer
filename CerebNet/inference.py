@@ -24,7 +24,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import logging, Plane, PLANES
 from FastSurferCNN.utils.threads import get_num_threads
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable
 from FastSurferCNN.utils.common import (
@@ -34,7 +34,7 @@ from FastSurferCNN.utils.common import (
     SerialExecutor,
 )
 from CerebNet.data_loader.augmentation import ToTensorTest
-from CerebNet.data_loader.dataset import SubjectDataset, Plane, PLANES
+from CerebNet.data_loader.dataset import SubjectDataset
 from CerebNet.datasets.utils import crop_transform
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp

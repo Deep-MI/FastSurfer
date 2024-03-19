@@ -15,11 +15,14 @@
 # limitations under the License.
 
 import argparse
+from functools import lru_cache
+from typing import Optional
 
+from FastSurferCNN.utils import PLANES
 from FastSurferCNN.utils.checkpoint import (
     check_and_download_ckpts,
     get_checkpoints,
-    get_plane_default,
+    load_checkpoint_config_defaults,
     YAML_DEFAULT as VINN_YAML,
     )
 
@@ -27,7 +30,23 @@ from CerebNet.utils.checkpoint import (
     YAML_DEFAULT as CEREBNET_YAML)
 
 
-if __name__ == "__main__":
+class ConfigCache:
+    @lru_cache
+    def vinn_url(self):
+        return load_checkpoint_config_defaults("url", filename=VINN_YAML)
+
+    @lru_cache
+    def cerebnet_url(self):
+        return load_checkpoint_config_defaults("url", filename=CEREBNET_YAML)
+
+    def all_urls(self):
+        return self.vinn_url() + self.cerebnet_url()
+
+
+defaults = ConfigCache()
+
+
+def make_arguments():
     parser = argparse.ArgumentParser(
         description="Check and Download Network Checkpoints"
     )
@@ -53,41 +72,67 @@ if __name__ == "__main__":
         "--url",
         type=str,
         default=None,
-        help="Specify you own base URL. This is applied to all models. \n"
-        "Default for VINN: {} \n"
-        "Default for CerebNet: {}".format(get_plane_default('URL', None, filename=VINN_YAML), get_plane_default('URL', None, filename=CEREBNET_YAML)),
+        help=f"Specify you own base URL. This is applied to all models. \n"
+             f"Default for VINN: {defaults.vinn_url()} \n"
+             f"Default for CerebNet: {defaults.cerebnet_url()}",
     )
     parser.add_argument(
         "files",
         nargs="*",
-        help="Checkpoint file paths to download, e.g. checkpoints/aparc_vinn_axial_v2.0.0.pkl ...",
+        help="Checkpoint file paths to download, e.g. "
+             "checkpoints/aparc_vinn_axial_v2.0.0.pkl ...",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    if not args.vinn and not args.files and not args.cerebnet and not args.all:
-        print(
-            "Specify either files to download or --vinn, --cerebnet or --all, see help -h."
-        )
-        exit(1)
 
-    # FastSurferVINN checkpoints
-    if args.vinn or args.all:
-        get_checkpoints(
-            get_plane_default('CKPT', 'axial', filename=VINN_YAML),
-            get_plane_default('CKPT', 'coronal', filename=VINN_YAML),
-            get_plane_default('CKPT', 'sagittal', filename=VINN_YAML),
-            urls=get_plane_default('URL', None, filename=VINN_YAML) if args.url is None else [args.url]
-        )
+def main(
+        vinn: bool,
+        cerebnet: bool,
+        all: bool,
+        files: list[str],
+        url: Optional[str] = None,
+) -> int | str:
+    if not vinn and not files and not cerebnet and not all:
+        return ("Specify either files to download or --vinn, --cerebnet or --all, "
+                "see help -h.")
 
-    # CerebNet checkpoints
-    if args.cerebnet or args.all:
-        get_checkpoints(
-            get_plane_default('CKPT', 'axial', filename=CEREBNET_YAML),
-            get_plane_default('CKPT', 'coronal', filename=CEREBNET_YAML),
-            get_plane_default('CKPT', 'sagittal', filename=CEREBNET_YAML),
-            urls=get_plane_default('URL', None, filename=CEREBNET_YAML) if args.url is None else [args.url],
-        )
+    try:
+        # FastSurferVINN checkpoints
+        if vinn or all:
+            vinn_config = load_checkpoint_config_defaults(
+                "checkpoint",
+                filename=VINN_YAML,
+            )
+            get_checkpoints(
+                *(vinn_config[plane] for plane in PLANES),
+                urls=defaults.vinn_url() if url is None else [url]
+            )
+        # CerebNet checkpoints
+        if cerebnet or all:
+            cerebnet_config = load_checkpoint_config_defaults(
+                "checkpoint",
+                filename=CEREBNET_YAML,
+            )
+            get_checkpoints(
+                *(cerebnet_config[plane] for plane in PLANES),
+                urls=defaults.cerebnet_url() if url is None else [url],
+            )
+        for fname in files:
+            check_and_download_ckpts(
+                fname,
+                urls=defaults.all_urls() if url is None else [url],
+            )
+    except Exception as e:
+        from traceback import print_exception
+        print_exception(e)
+        return e.args[0]
+    return 0
 
-    # later we can add more defaults here (for other sub-segmentation networks, or old CNN)
-    for fname in args.files:
-        check_and_download_ckpts(fname, get_plane_default('URL', None, filename=VINN_YAML) if args.url is None else [args.url])
+
+if __name__ == "__main__":
+    import sys
+    from logging import basicConfig, INFO
+
+    basicConfig(stream=sys.stdout, level=INFO)
+    args = make_arguments()
+    sys.exit(main(**vars(args)))

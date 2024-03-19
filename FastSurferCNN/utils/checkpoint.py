@@ -15,78 +15,108 @@
 # IMPORTS
 import os
 from pathlib import Path
-from typing import MutableSequence, Optional, Union, Literal
+from typing import MutableSequence, Optional, Union, Literal, TypedDict, overload
 
 import requests
 import torch
 import yacs.config
 import yaml
 
-from FastSurferCNN.utils import logging
-
+from FastSurferCNN.utils import logging, Plane
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 Scheduler = "torch.optim.lr_scheduler"
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
-FASTSURFER_ROOT = Path(__file__).parents[2]
 YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
 
-def get_plane_dict(filename : Path = YAML_DEFAULT) -> dict[str, Union[str, list[str]]]:
+class CheckpointConfigDict(TypedDict, total=False):
+    URL: list[str]
+    CKPT: dict[Plane, Path]
+    CFG: dict[Plane, Path]
+
+
+def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointConfigDict:
     """
     Load the plane dictionary from the yaml file.
 
     Parameters
     ----------
-    filename : Path
-        The path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+    filename : Path, str
+        Path to the yaml file. Either absolute or relative to the FastSurfer root
+        directory.
 
     Returns
     -------
-    dict[str, Union[str, list[str]]]
-        Dictionary of the yaml file.
-
+    CheckpointConfigDict
+        A dictionary representing the contents of the yaml file.
     """
     if not filename.absolute():
         filename = FASTSURFER_ROOT / filename
 
-    with (open(filename, "r")) as file:
-        dictionary = yaml.load(file, Loader=yaml.FullLoader)
-    return dictionary
+    with open(filename, "r") as file:
+        data = yaml.load(file, Loader=yaml.FullLoader)
 
-def get_plane_default(type : Literal["URL", "CKPT", "CFG"], plane : Optional[str] = None, filename : str | Path = YAML_DEFAULT) -> str | list[str]:
+    required_fields = ("url", "checkpoint")
+    checks = [k not in data for k in required_fields]
+    if any(checks):
+        missing = tuple(k for k, c in zip(required_fields, checks) if c)
+        message = f"The file {filename} is not valid, missing key(s): {missing}"
+        raise IOError(message)
+    if isinstance(data["url"], str):
+        data["url"] = [data["url"]]
+    else:
+        data["url"] = list(data["url"])
+    for key in ("config", "checkpoint"):
+        if key in data:
+            data[key] = {k: Path(v) for k, v in data[key].items()}
+    return data
+
+
+@overload
+def load_checkpoint_config_defaults(
+        filetype: Literal["checkpoint", "config"],
+        filename: str | Path = YAML_DEFAULT,
+) -> dict[Plane, Path]: ...
+
+
+@overload
+def load_checkpoint_config_defaults(
+        configtype: Literal["url"],
+        filename: str | Path = YAML_DEFAULT,
+) -> list[str]: ...
+
+
+def load_checkpoint_config_defaults(
+        configtype: Literal["checkpoint", "config", "url"],
+        filename: str | Path = YAML_DEFAULT,
+) -> dict[Plane, Path] | list[str]:
     """
-    Get the default value for a specific plane.
+    Get the default value for a specific plane or the url.
 
     Parameters
     ----------
-    type : "URL", "CKPT", "CFG"
+    configtype : "checkpoint", "config", "url
         Type of value.
-    plane : str
-        Plane to get the default value for. Can be "axial", "coronal" or "sagittal".
-    filename : str | Path
-        The path to the yaml file. Either absolute or relative to the FastSurfer root directory.
+    filename : str, Path
+        The path to the yaml file. Either absolute or relative to the FastSurfer root
+        directory.
 
     Returns
     -------
-    str, list[str]
+    dict[Plane, Path], list[str]
         Default value for the plane.
-
     """
     if not isinstance(filename, Path):
         filename = Path(filename)
 
-    type = type.upper()
-    if type not in ["URL", "CKPT", "CFG"]:
-        raise ValueError("Type must be URL, CKPT or CFG")
-    
-    if type == "URL":
-        return get_plane_dict(filename)[type.upper()]
-    
-    if plane is None:
-        raise ValueError("Plane must be specified for type CKPT or CFG")
-    return get_plane_dict(filename)[type.upper()][plane.upper()]
+    configtype = configtype.lower()
+    if configtype not in ("url", "checkpoint", "config"):
+        raise ValueError("Type must be 'url', 'checkpoint' or 'config'")
+
+    return load_checkpoint_config(filename)[configtype]
 
 
 def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
@@ -112,7 +142,8 @@ def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
 
 def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
     """
-    Find the standardizes checkpoint name for the checkpoint in the directory ckpt_dir for the given epoch.
+    Find the standardizes checkpoint name for the checkpoint in the directory
+    ckpt_dir for the given epoch.
 
     Parameters
     ----------
@@ -133,7 +164,7 @@ def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
 
 
 def get_checkpoint_path(
-    log_dir: Path | str, resume_experiment: Union[str, int, None] = None
+        log_dir: Path | str, resume_experiment: Union[str, int, None] = None
 ) -> MutableSequence[Path]:
     """
     Find the paths to checkpoints from the experiment directory.
@@ -162,12 +193,12 @@ def get_checkpoint_path(
 
 
 def load_from_checkpoint(
-    checkpoint_path: str | Path,
-    model: torch.nn.Module,
-    optimizer: Optional[torch.optim.Optimizer] = None,
-    scheduler: Optional[Scheduler] = None,
-    fine_tune: bool = False,
-    drop_classifier: bool = False,
+        checkpoint_path: str | Path,
+        model: torch.nn.Module,
+        optimizer: Optional[torch.optim.Optimizer] = None,
+        scheduler: Optional[Scheduler] = None,
+        fine_tune: bool = False,
+        drop_classifier: bool = False,
 ):
     """
     Load the model from the given experiment number.
@@ -214,15 +245,15 @@ def load_from_checkpoint(
 
 
 def save_checkpoint(
-    checkpoint_dir: str | Path,
-    epoch: int,
-    best_metric,
-    num_gpus: int,
-    cfg: yacs.config.CfgNode,
-    model: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
-    scheduler: Optional[Scheduler] = None,
-    best: bool = False,
+        checkpoint_dir: str | Path,
+        epoch: int,
+        best_metric,
+        num_gpus: int,
+        cfg: yacs.config.CfgNode,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        scheduler: Optional[Scheduler] = None,
+        best: bool = False,
 ) -> None:
     """
     Save the state of training for resume or fine-tune.
@@ -288,7 +319,7 @@ def remove_ckpt(ckpt: str | Path):
 def download_checkpoint(
         checkpoint_name: str,
         checkpoint_path: str | Path,
-        urls : list[str],
+        urls: list[str],
 ) -> None:
     """
     Download a checkpoint file.
@@ -307,22 +338,22 @@ def download_checkpoint(
     response = None
     for url in urls:
         try:
-            LOGGER.info(f"Downloading checkpoint from {url}")
+            LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
             response = requests.get(url + "/" + checkpoint_name, verify=True)
             # Raise error if file does not exist:
             response.raise_for_status()
             break
-            
+
         except requests.exceptions.HTTPError as e:
             LOGGER.info(f"Server {url} not reachable.")
             LOGGER.warn(f"Response code: {e.response.status_code}")
         except requests.exceptions.RequestException as e:
             LOGGER.warn(f"Server {url} not reachable.")
-    
+
     if response is None:
         raise requests.exceptions.RequestException("No server reachable.")
     else:
-        response.raise_for_status() # Raise error if no server is reachable
+        response.raise_for_status()  # Raise error if no server is reachable
 
     with open(checkpoint_path, "wb") as f:
         f.write(response.content)
@@ -336,8 +367,8 @@ def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> No
     ----------
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
-    url : str
-        URL of checkpoint hosting site.
+    urls : list[str]
+        URLs of checkpoint hosting site.
     """
     if not isinstance(checkpoint_path, Path):
         checkpoint_path = Path(checkpoint_path)
@@ -347,7 +378,8 @@ def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> No
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         download_checkpoint(checkpoint_path.name, checkpoint_path, urls)
 
-def get_checkpoints(*checkpoints: Path | str, urls : list[str]) -> None:
+
+def get_checkpoints(*checkpoints: Path | str, urls: list[str]) -> None:
     """
     Check and download checkpoint files if not exist.
 
@@ -359,9 +391,10 @@ def get_checkpoints(*checkpoints: Path | str, urls : list[str]) -> None:
         URLs of checkpoint hosting sites.
     """
     try:
-        for file in checkpoints:
+        for file in map(Path, checkpoints):
+            if not file.is_absolute() and file.parts[0] != ".":
+                file = FASTSURFER_ROOT / file
             check_and_download_ckpts(file, urls)
     except requests.exceptions.HTTPError:
         LOGGER.error(f"Could not find nor download checkpoints from {urls}")
         raise
-

@@ -19,16 +19,20 @@ import sys
 import argparse
 from pathlib import Path
 
-from FastSurferCNN.utils import logging, parser_defaults
+from FastSurferCNN.utils import logging, parser_defaults, Plane, PLANES
 from CerebNet.utils.load_config import get_config
 from CerebNet.inference import Inference
-from FastSurferCNN.utils.checkpoint import get_checkpoints, get_plane_default
+from FastSurferCNN.utils.checkpoint import (
+    get_checkpoints,
+    load_checkpoint_config_defaults,
+)
 from FastSurferCNN.utils.common import assert_no_root, SubjectList
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 logger = logging.get_logger(__name__)
 DEFAULT_CEREBELLUM_STATSFILE = Path("stats/cerebellum.CerebNet.stats")
-CEREBNET_CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
+CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
+
 
 def setup_options():
     """
@@ -81,12 +85,12 @@ def setup_options():
         ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
     )
 
-
+    files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
     parser_defaults.add_plane_flags(
         advanced,
         "checkpoint",
-        {"coronal": "default", "axial": "default", "sagittal": "default"},
-        CEREBNET_CHECKPOINT_PATHS_FILE
+        files,
+        CHECKPOINT_PATHS_FILE
     )
 
     parser.add_argument(
@@ -104,7 +108,8 @@ def setup_options():
 def main(args: argparse.Namespace) -> int | str:
     """
     Main function to run the inference based on the given command line arguments.
-    This implementation is inspired by methods described in CerebNet for cerebellum sub-segmentation.
+    This implementation is inspired by methods described in CerebNet for cerebellum
+    sub-segmentation.
 
     Parameters
     ----------
@@ -152,7 +157,7 @@ def main(args: argparse.Namespace) -> int | str:
 
     logger.info("Checking or downloading default checkpoints ...")
     
-    urls = get_plane_default("URL", filename=CEREBNET_CHECKPOINT_PATHS_FILE)
+    urls = load_checkpoint_config_defaults("url", filename=CHECKPOINT_PATHS_FILE)
 
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 

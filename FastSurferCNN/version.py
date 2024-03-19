@@ -4,9 +4,8 @@ import argparse
 import re
 import shutil
 import subprocess
-from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, cast, get_args, Literal, Optional, TypedDict, Sequence
+from typing import Any, cast, get_args, Literal, Optional, TypedDict, Sequence, TextIO
 from concurrent.futures import ThreadPoolExecutor, Future
 
 
@@ -155,7 +154,7 @@ def print_build_file(
     git_status: str = "",
     checkpoints: str = "",
     pypackages: str = "",
-    file: Optional[TextIOWrapper] = None,
+    file: Optional[TextIO] = None,
 ) -> None:
     """
     Format and print the build file.
@@ -174,7 +173,7 @@ def print_build_file(
         The md5sums of the checkpoint files, leave empty to skip.
     pypackages : str, optional
         The md5sums of the checkpoint files, leave empty to skip.
-    file : TextIOWrapper, optional
+    file : TextIO, optional
         A file-like object to write the build file to, default: stdout.
 
     Notes
@@ -208,9 +207,9 @@ def print_build_file(
 
 def main(
     sections: str = "",
-    project_file: Optional[TextIOWrapper] = None,
-    build_cache: Optional[TextIOWrapper | bool] = None,
-    file: Optional[TextIOWrapper] = None,
+    project_file: Optional[TextIO] = None,
+    build_cache: Optional[TextIO | bool] = None,
+    file: Optional[TextIO] = None,
     prefer_cache: bool = False,
 ) -> str | int:
     """
@@ -247,14 +246,14 @@ def main(
         '+git+checkpoints'.
         The order does not matter, '+checkpoints', '+git' or '+pip' also implicitly
         activate '+branch'.
-    project_file : TextIOWrapper, optional
+    project_file : TextIO, optional
         A file-like object to read the projects toml file, with the '[project]' section
         with a 'version' attribute. Defaults to $PROJECT_ROOT/pyproject.toml.
-    build_cache : False, TextIOWrapper, optional
+    build_cache : False, TextIO, optional
         A file-like object to read cached version information, the format should be
         formatted like the output of `main`. Defaults to $PROJECT_ROOT/BUILD.info.
         If build_cache is False, it is ignored.
-    file : TextIOWrapper, optional
+    file : TextIO, optional
         A file-like object to write the output to, defaults to stdout if None or not
         passed.
     prefer_cache : bool, default=False
@@ -402,16 +401,15 @@ def get_default_version_info() -> VersionDict:
     }
 
 
-def parse_build_file(build_file: Optional[TextIOWrapper]) -> VersionDict:
-    """
-    Read and parse a build file (same as output of `main`).
+def parse_build_file(build_file: Optional[TextIO]) -> VersionDict:
+    """Read and parse a build file (same as output of `main`).
 
     Read and parse a file with version information in the format that is also the
     output of the `main` function. The format is documented in `main`.
 
     Parameters
     ----------
-    build_file : TextIOWrapper, optional
+    build_file : TextIO, optional
         File-like object, will be closed.
 
     Returns
@@ -471,7 +469,7 @@ def parse_build_file(build_file: Optional[TextIOWrapper]) -> VersionDict:
     return file_cache
 
 
-def read_version_from_project_file(project_file: TextIOWrapper) -> str:
+def read_version_from_project_file(project_file: TextIO) -> str:
     """
     Read the version entry from the pyproject file.
 
@@ -481,7 +479,7 @@ def read_version_from_project_file(project_file: TextIOWrapper) -> str:
 
     Parameters
     ----------
-    project_file : TextIOWrapper
+    project_file : TextIO
         File pointer to the project file to read from.
 
     Returns
@@ -533,7 +531,7 @@ def filter_git_status(git_process: "FastSurferCNN.utils.run_tools.Popen") -> str
     )
 
 
-def read_and_close_version(project_file: Optional[TextIOWrapper] = None) -> str:
+def read_and_close_version(project_file: Optional[TextIO] = None) -> str:
     """
     Read and close the version from the pyproject file. Also fill default.
 
@@ -541,7 +539,7 @@ def read_and_close_version(project_file: Optional[TextIOWrapper] = None) -> str:
 
     Parameters
     ----------
-    project_file : TextIOWrapper, optional
+    project_file : TextIO, optional
         Project file.
 
     Returns

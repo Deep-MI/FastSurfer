@@ -17,7 +17,8 @@
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import yacs
-from pathlib import Path
+
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.checkpoint import (
     load_from_checkpoint,
@@ -28,11 +29,9 @@ from FastSurferCNN.utils.checkpoint import (
 )
 
 # DEFAULTS
-FASTSURFER_ROOT = Path(__file__).parents[2]
 YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
 
 logger = logging.get_logger(__name__)
-
 
 
 def is_checkpoint_epoch(cfg: "yacs.config.CfgNode", cur_epoch: int) -> bool:
