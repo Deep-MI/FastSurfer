@@ -359,7 +359,7 @@ def add_plane_flags(
     files : Mapping[Plane, Path | str]
         A dictionary of plane to filename. Relative files are assumed to be relative to
         the FastSurfer root directory.
-    defaults_path: Path, str
+    defaults_path : Path, str
         A path to the file to load defaults from.
 
     Returns
