@@ -13,7 +13,7 @@ jobs:
 
   # Build the FastSurfer GPU image
   build-gpu-image:
-    runs-on: dirac
+    runs-on: ci-gpu
 
     steps:
     # Checkout repo
@@ -33,7 +33,7 @@ jobs:
 
   # Run FastSurfer on MRI data
   run-fastsurfer:
-    runs-on: dirac
+    runs-on: ci-gpu
     needs: build-gpu-image
     
     steps:    
@@ -50,21 +50,21 @@ jobs:
 
   # Test file existence
   test-file-existence:
-    runs-on: dirac
+    runs-on: ci-gpu
     if: ${{ always() }}
     needs: run-fastsurfer
     
     steps:    
     - name: Test File Existence
       run: |
-        python3 test/test_file_existence.py $RUNNER_TEST_FILE_PATHS $RUNNER_FS_OUTPUT_FILES
+        python3 test/test_file_existence.py $RUNNER_FS_OUTPUT_FILES
 
   # Test for errors in log files
   test-error-messages:
-    runs-on: dirac
+    runs-on: ci-gpu
     needs: [run-fastsurfer, test-file-existence]
     
     steps:    
     - name: Test Log Files For Error Messages
       run: |
-        python3 test/test_error_messages.py $RUNNER_TEST_ERROR_MESSAGES $RUNNER_FS_OUTPUT_LOGS
+        python3 test/test_error_messages.py $RUNNER_FS_OUTPUT_LOGS

@@ -1,2 +1,6 @@
 /BUILD.info
 /.idea/**
+/.github/workflows/deploy.yml
+/.github/workflows/dirac-docker.yml
+/.github/workflows/dirac-test.yml
+/rough_work/**

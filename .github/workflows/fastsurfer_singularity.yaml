@@ -1,0 +1,68 @@
+name: FastSurfer Docker Image Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  # Checkout repo
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+  # Prepare job: build.py --device cuda --dry_only
+  prepare-job:
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Run build.py --device cuda --dry_only
+      run: |
+        PYTHONPATH=$PYTHONPATH
+        python3 Docker/build.py --device cuda --dry_only
+
+  # Run FastSurfer on MRI data
+  run-fastsurfer:
+    runs-on: ubuntu-latest
+    needs: prepare-job
+    steps:
+    - uses: eWaterCycle/setup-singularity@v7
+      with:
+        singularity-version: 3.8.3
+    - name: Run FastSurfer
+      run: |
+        singularity exec --nv \
+                      --no-home \
+                      --bind $GITHUB_WORKSPACE:/fastsurfer-dev:ro \
+                      --env FASTSURFER_HOME=/fastsurfer-dev \
+                      -B $RUNNER_FS_MRI_DATA:/data \
+                      -B $RUNNER_FS_OUTPUT:/output \
+                      -B $RUNNER_FS_LICENSE:/fs_license \
+                      ./fastsurfer-gpu.sif \
+                      /fastsurfer/run_fastsurfer.sh \
+                      --fs_license /fs_license/.license \
+                      --t1 /data/subjectx/orig.gz \
+                      --sid subjectX --sd /output \
+                      --parallel --3T
+
+  # Test file existence
+  test-file-existence:
+    runs-on: ubuntu-latest
+    needs: run-fastsurfer
+    steps:
+    - name: Test File Existence
+      run: |
+        singularity exec --bind $GITHUB_WORKSPACE:/fastsurfer-dev --env FASTSURFER_HOME=/fastsurfer-dev my_fastsurfer.sif python3 test/test_file_existence.py $RUNNER_FS_OUTPUT_FILES
+
+  # Test for errors in log files
+  test-error-messages:
+    runs-on: ubuntu-latest
+    needs: [run-fastsurfer, test-file-existence]
+    steps:
+    - name: Test Log Files For Error Messages
+      run: |
+        singularity exec --bind $GITHUB_WORKSPACE:/fastsurfer-dev --env FASTSURFER_HOME=/fastsurfer-dev my_fastsurfer.sif python3 test/test_error_messages.py $RUNNER_FS_OUTPUT_LOGS
