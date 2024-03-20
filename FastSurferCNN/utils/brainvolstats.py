@@ -5,7 +5,7 @@ from concurrent.futures import Executor
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (TYPE_CHECKING, Sequence, cast, Literal, Iterable, Callable, Union,
-                    Optional, overload, TextIO, Protocol, TypeVar, Generic)
+                    Optional, overload, TextIO, Protocol, TypeVar, Generic, Type)
 from concurrent.futures import Future
 
 import numpy as np
@@ -105,7 +105,19 @@ def read_volume_file(path: Path) -> ImageTuple:
 
 
 def read_mesh_file(path: Path) -> "lapy.TriaMesh":
-    """Read a mesh from disk."""
+    """
+    Read a mesh from disk.
+
+    Parameters
+    ----------
+    path : Path
+        The path to the file.
+
+    Returns
+    -------
+    lapy.TriaMesh
+        The mesh object read from the file.
+    """
     try:
         import lapy
         mesh = lapy.TriaMesh.read_fssurf(str(path))
@@ -117,40 +129,41 @@ def read_mesh_file(path: Path) -> "lapy.TriaMesh":
 
 
 def read_lta_transform_file(path: Path) -> "npt.NDArray[float]":
-    """Read and extract the first lta transform from an LTA file.
+    """
+    Read and extract the first lta transform from an LTA file.
 
     Parameters
     ----------
     path : Path
-        Path of the LTA file
+        The path of the LTA file.
 
     Returns
     -------
     matrix : npt.NDArray[float]
-        Matrix of shape (4, 4)
+        Matrix of shape (4, 4).
     """
     from CerebNet.datasets.utils import read_lta
     return read_lta(path)["lta"][0, 0]
 
 
 def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
-    """Read Talairach transform.
+    """
+    Read XFM talairach transform.
 
     Parameters
     ----------
     path : str | Path
-        Filename to transform
+        The filename/path of the transform file.
 
     Returns
     -------
     tal
-        Talairach transform matrix
+        The talairach transform matrix.
 
     Raises
     ------
     ValueError
-        if the file is of an invalid format.
-
+        If the file is of an invalid format.
     """
     with open(path) as f:
         lines = f.readlines()
@@ -168,7 +181,19 @@ def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
 
 
 def read_transform_file(path: Path) -> "npt.NDArray[float]":
-    """Read any transform file."""
+    """
+    Read xfm or lta transform file.
+
+    Parameters
+    ----------
+    path : Path
+        The path to the file.
+
+    Returns
+    -------
+    tal
+        The talairach transform matrix.
+    """
     if path.suffix == ".lta":
         return read_lta_transform_file(path)
     elif path.suffix == ".xfm":
@@ -179,20 +204,24 @@ def read_transform_file(path: Path) -> "npt.NDArray[float]":
 
 
 def mask_in_array(arr: "npt.NDArray", items: "npt.ArrayLike") -> "npt.NDArray[bool]":
-    """Efficient function to generate a mask of elements in `arr`, which are also in
-    items.
+    """
+    Efficient function to generate a mask of elements in `arr`, which are also in items.
 
     Parameters
     ----------
     arr : npt.NDArray
-        array with data, most likely int
+        An array with data, most likely int.
     items : npt.ArrayLike
-        which items in arr should yield True
+        Which elements of `arr` in arr should yield True.
 
     Returns
     -------
     mask : npt.NDArray[bool]
-        an array, true, where elements in arr are in items
+        A binary array, true, where elements in `arr` are in `items`.
+
+    See Also
+    --------
+    mask_not_in_array
     """
     _items = np.asarray(items)
     if _items.size == 0:
@@ -220,14 +249,18 @@ def mask_not_in_array(
     Parameters
     ----------
     arr : npt.NDArray
-        array with data, most likely int
+        An array with data, most likely int.
     items : npt.ArrayLike
-        which items in arr should yield True
+        Which elements of `arr` in arr should yield False.
 
     Returns
     -------
     mask : npt.NDArray[bool]
-        an array, false, where elements in arr are in items
+        A binary array, true, where elements in `arr` are not in `items`.
+
+    See Also
+    --------
+    mask_in_array
     """
     _items = np.asarray(items)
     if _items.size == 0:
@@ -1395,7 +1428,20 @@ class Manager(dict[str, AbstractMeasure]):
         self[key].parse_args(*args)
 
     def __getitem__(self, key: str) -> AbstractMeasure:
-        """Get the value of the key"""
+        """
+        Get the value of the key.
+
+        Parameters
+        ----------
+        key : str
+            A string naming the Measure, may also include extra parameters as format
+            '<name>(<parameter list>)', e.g. 'Mask(maskfile=/path/to/mask.mgz)'.
+
+        Returns
+        -------
+        AbstractMeasure
+            The measure associated with the '<name>'
+        """
         if "(" in key:
             key, args = key.split("(", 1)
             args = list(map(str.strip, args.rstrip(") ").split(",")))
@@ -1414,8 +1460,15 @@ class Manager(dict[str, AbstractMeasure]):
         return out
 
     def start_read_subject(self, subject_dir: Path) -> None:
-        """Start the threads to read the subject in subject_dir, pairs with
-        `wait_read_subject()`."""
+        """
+        Start the threads to read the subject in subject_dir, pairs with
+        `wait_read_subject`.
+
+        Parameters
+        ----------
+        subject_dir : Path
+            The path to the directory of the subject (with folders 'mri', 'stats', ...).
+        """
         if len(self._io_futures) != 0:
             raise RuntimeError("Did not process/wait on finishing the processing for "
                                "the previous start_read_subject run. Needs call to "
@@ -1434,10 +1487,20 @@ class Manager(dict[str, AbstractMeasure]):
         """
         Contextmanager for the `start_read_subject` and the `wait_read_subject` pair.
 
+        If one value is None, it is assumed the subject_dir and subject_id are not
+        needed, for example because all file names are given by absolute paths.
+
+        Parameters
+        ----------
+        subjects_dir : Path, None
+            The path to the directory of the subject (with folders 'mri', 'stats', ...).
+        subject_id : str, None
+            The subject_id identifying folder of the subjects_dir.
+
         Raises
         ------
         AssertionError
-            If subjects_dir and or subject_id are needed
+            If subjects_dir and or subject_id are needed.
         """
         if subjects_dir is None or subject_id is None:
             yield self.assert_measure_need_subject()
@@ -1449,7 +1512,14 @@ class Manager(dict[str, AbstractMeasure]):
             return self.wait_read_subject()
 
     def wait_read_subject(self) -> None:
-        """Wait for all threads to finish reading the 'current' subject."""
+        """
+        Wait for all threads to finish reading the 'current' subject.
+
+        Raises
+        ------
+        Exception
+            The first exception encountered during the read operation.
+        """
         for f in self._io_futures:
             exception = f.exception()
             if exception is not None:
@@ -1507,13 +1577,22 @@ class Manager(dict[str, AbstractMeasure]):
 
     def extract_key_args(self, measure: str) -> tuple[str, list[str]]:
         """
-        Extract the name and options from a string like '<name>' or
-        '<name>(<option_list>)'.
+        Extract the name and options from a string like '<name>(<options_list>)'.
+
+        The '<option_list>' is optional and is similar to python parameters. It starts
+        with numbered parameters, followed by key-value pairs.
+        Examples are:
+        - 'Mask(mri/aseg.mgz)'
+          returns: ('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])
+        - 'TotalGray(mri/aseg.mgz, classes=[2, 4])'
+          returns: ('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])
+        - 'BrainSeg(segfile=mri/aseg.mgz, classes=[2, 4])'
+          returns: ('BrainSeg', ['segfile=mri/aseg.mgz', 'classes=[2, 4]'])
 
         Parameters
         ----------
         measure : str
-            The measure string
+            The measure string of the format '<name>' or '<name>(<list of parameters>)'.
 
         Returns
         -------
@@ -1522,6 +1601,10 @@ class Manager(dict[str, AbstractMeasure]):
         args : list[str]
             a list of options
 
+        Raises
+        ------
+        ValueError
+            If the string `measure` does not conform to the format requirements.
         """
         hits_no_args = self._PATTERN_NO_ARGS.match(measure)
         if hits_no_args is not None:
@@ -1579,23 +1662,46 @@ class Manager(dict[str, AbstractMeasure]):
         return read_wrapper
 
     def clear(self):
-        """Clear the file buffers."""
+        """
+        Clear the file buffers.
+        """
         self._cache = {}
 
     def update_measures(self) -> dict[str, float | int]:
-        """Get the values to alll measures (including imported via 'all')."""
+        """
+        Get the values to all measures (including imported via 'all').
+
+        Returns
+        -------
+        dict[str, Union[float, int]]
+            A dictionary of '<key>' (the Measure key) and the associated value.
+        """
         m = {key: v[2] for key, v in self.get_imported_all_measures().items()}
         m.update({key: self[key]() for key in self._exported_measures})
         return m
 
     def print_measures(self, file: Optional[TextIO] = None) -> None:
-        """Print the measures to stdout or file."""
+        """
+        Print the measures to stdout or file.
+
+        Parameters
+        ----------
+        file: TextIO, optional
+            The file object to write to. If None, writes to stdout.
+        """
         kwargs = {} if file is None else {"file": file}
         for line in self.format_measures():
             print(line, **kwargs)
 
     def get_imported_all_measures(self) -> dict[str, MeasureTuple]:
-        """Get the measures imported through the 'all' keyword."""
+        """
+        Get the measures imported through the 'all' keyword.
+
+        Returns
+        -------
+        dict[str, MeasureTuple]
+            A dictionary of Measure keys and tuples of name, description, value, unit.
+        """
         if len(self._subject_all_imported) == 0:
             return {}
         measures = {}
@@ -1635,15 +1741,36 @@ class Manager(dict[str, AbstractMeasure]):
     def default_measures(self) -> Iterable[str]:
         """
         Iterable over measures typically included stats files in correct order.
+
+        Returns
+        -------
+        Iterable[str]
+            An ordered iterable of the default Measure keys.
         """
         return self._default_measures
 
     @default_measures.setter
     def default_measures(self, values: Iterable[str]):
+        """
+        Sets the iterable over measure keys in correct order.
+
+        Parameters
+        ----------
+        values : Iterable[str]
+            An ordered iterable of the default Measure keys.
+        """
         self._default_measures = values
 
     @property
-    def voxel_class(self):
+    def voxel_class(self) -> type[AbstractMeasure]:
+        """
+        A callable initializing a Volume-based Measure object with the legacy mode.
+
+        Returns
+        -------
+        type[AbstractMeasure]
+            A callable to create an object to perform a Volume-based Measure.
+        """
         from functools import partial
         if self._fs_compat:
             return partial(
@@ -1655,7 +1782,67 @@ class Manager(dict[str, AbstractMeasure]):
             return PVMeasure
 
     def default(self, key: str) -> AbstractMeasure:
-        """Returns the default Measure object for the measure with key `key`."""
+        """
+        Returns the default Measure object for the measure with key `key`.
+
+        Parameters
+        ----------
+        key : str
+            The key name of the Measure.
+
+        Returns
+        -------
+        AbstractMeasure
+            The Measure object initialized with default values.
+
+        Supported keys are:
+        - `lhSurfaceHoles`, `rhSurfaceHoles`, and `SurfaceHoles`
+           The number of holes in the surfaces.
+        - `lhPialTotal`, and `rhPialTotal`
+          The volume enclosed in the pial surfaces.
+        - `lhWhiteMatterVol`, and `rhWhiteMatterVol`
+          The Volume of the white matter in the segmentation (incl. lateralized WM-hypo).
+        - `lhWhiteMatterTotal`, and `rhWhiteMatterTotal`
+          The volume enclosed in the white matter surfaces.
+        - `lhCortex`, `rhCortex`, and `Cortex`
+          The volume between the pial and the white matter surfaces.
+        - `CorpusCallosumVol`
+          The volume of the corpus callosum in the segmentation.
+        - `lhWM-hypointensities`, and `rhWM-hypointensities`
+          The volume of unlateralized the white matter hypointensities in the
+          segmentation, but lateralized by neigboring voxels
+          (FreeSurfer uses talairach coordinates to re-lateralize).
+        - `lhCerebralWhiteMatter`, `rhCerebralWhiteMatter`, and `CerebralWhiteMatter`
+          The volume of the cerebral white matter in the segmentation (including corpus
+          callosum split evenly into left and right and white matter and WM-hypo).
+        - `CerebellarGM`
+          The volume of the cerbellar gray matter in the segmentation.
+        - `CerebellarWM`
+          The volume of the cerbellar white matter in the segmentation.
+        - `SubCortGray`
+          The volume of the subcortical gray matter in the segmentation.
+        - `TotalGray`
+          The total gray matter volume in the segmentation.
+        - `TFFC`
+          The volume of the 3rd-5th ventricles and CSF in the segmentation.
+        - `VentricleChoroidVol`
+          The volume of the choroid plexus and inferiar and lateral ventricles and CSF.
+        - `BrainSeg`
+          The volume of all brains structres in the segmentation.
+        - `BrainSegNotVent`, and `BrainSegNotVentSurf`
+          The brain segmentation volume without ventricles.
+        - `Cerebellum`
+          The total cerebellar volume.
+        - `SupraTentorial`, `SupraTentorialNotVent`, and `SupraTentorialNotVentVox`
+          The supratentorial brain volume/voxel count (without centricles and CSF).
+        - `Mask`
+          The volume of the brain mask.
+        - `EstimatedTotalIntraCranialVol`
+          The eTIV estimate (via talairach registration).
+        - `BrainSegVol-to-eTIV`, and `MaskVol-to-eTIV`
+          The ratios of the brain segmentation volume and the mask volume with respect
+          to the eTIV estimate.
+        """
 
         hemi = key[:2]
         side = "Left" if hemi != "rh" else "Right"
@@ -1969,7 +2156,9 @@ class Manager(dict[str, AbstractMeasure]):
             )
 
     def __iter__(self) -> list[AbstractMeasure]:
-        """Iterate through all measures that are exported directly or indirectly."""
+        """
+        Iterate through all measures that are exported directly or indirectly.
+        """
 
         out = [self[name] for name in self._exported_measures]
         i = 0
@@ -2015,7 +2204,20 @@ class Manager(dict[str, AbstractMeasure]):
         return self._compute_futures
 
     def get_virtual_labels(self, label_pool: Iterable[int]) -> dict[int, list[int]]:
-        """Get the virtual substitute labels that are required."""
+        """
+        Get the virtual substitute labels that are required.
+
+        Parameters
+        ----------
+        label_pool : Iterable[int]
+            An iterable over available labels.
+
+        Returns
+        -------
+        dict[int, list[int]]
+            A dictionary of key-value pairs of new label and a list of labels this
+            represents.
+        """
         lbls = (this.labels() for this in self.values() if isinstance(this, PVMeasure))
         no_duplicate_dict = {self.__to_lookup(labs): labs for labs in lbls}
         return dict(zip(label_pool, no_duplicate_dict.values()))
@@ -2039,6 +2241,12 @@ class Manager(dict[str, AbstractMeasure]):
             The dataframe object with the PV values.
         merged_labels : dict[int, list[int]]
             Mapping from PVMeasure proxy label to list of labels it merges.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe object, where label 'groups' used for updates and in
+            `merged_labels` are removed, i.e. those labels added for PVMeasure objects.
 
         Raises
         ------
