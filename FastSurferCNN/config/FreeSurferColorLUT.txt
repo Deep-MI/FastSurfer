@@ -532,7 +532,7 @@
 967  R-Chiasma-Opticum                      220 248 164 0
 968  L-Chiasma-Opticum                      230 148 34  0
 969  Ant-Commisure                          10  180 225 0
-970  3rd-Ventricle                          118 0   100 0
+970  Third-Ventricle                        118 0   100 0
 971  R-Fornix                               122 200 120 0
 972  L-Fornix                               236 13  176 0
 973  Epiphysis                              204 182 142 0
