@@ -29,7 +29,7 @@ HYPVINN_CLASS_NAMES = {
     8: "L-Chiasma-Opticum",
 
     9: "Ant-Commisure",
-    10: "3rd-Ventricle",
+    10: "Third-Ventricle",
 
     11: "R-Fornix",
     12: "L-Fornix",
@@ -68,7 +68,7 @@ FS_CLASS_NAMES = {
     "R-Chiasma-Opticum": 967,
     "L-Chiasma-Opticum": 968,
     "Ant-Commisure": 969,
-    "3rd-Ventricle": 970,
+    "Third-Ventricle": 970,
     "R-Fornix": 971,
     "L-Fornix": 972,
     "Epiphysis": 973,
