@@ -1,4 +1,4 @@
-# Introduction
+# Installation
 
 FastSurfer is a pipeline for the segmentation of human brain MRI data. It consists of two main components: the networks for the fast segmentation of an MRI (FastSurferVINN, CerebNet) and the recon_surf script for the efficient creation of surfaces and most files and statistics that also FreeSurfer provides. 
 
@@ -6,8 +6,6 @@ The preferred way of installing and running FastSurfer is via Singularity or Doc
 
 We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 20.04 via our provided Docker images.
 
-
-# Installation
 
 ## Linux
 
