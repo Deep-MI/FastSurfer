@@ -273,7 +273,7 @@ case $key in
   --fs_license)
     if [[ -f "$1" ]]
     then
-      export FS_LICENSE="$2"
+      export FS_LICENSE="$1"
     else
       echo "ERROR: Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name. Exiting..."
       exit 1
@@ -281,12 +281,9 @@ case $key in
     shift # past value
     ;;
   --seg|--asegdkt_segfile|--aparc_aseg_segfile)
-    if [[ "$key" == "--seg" ]]
+    if [[ "$key" != "--asegdkt_segfile" ]]
     then
-      echo "WARNING: --seg <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
-    elif [[ "$key" == "--aparc_aseg_segfile" ]]
-    then
-      echo "WARNING: --aparc_aseg_segfile <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>"
+      echo "WARNING: --$key <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
     fi
     asegdkt_segfile="$1"
     shift # past value
@@ -314,7 +311,7 @@ case $key in
         viewagg="auto"
       ;;
       gpu) viewagg="cuda" ;;
-      *) viewagg="$2"
+      *) viewagg="$1"
         ;;
     esac
     shift # past value
@@ -355,13 +352,13 @@ case $key in
     exit
     ;;
   --version)
-    if [[ "$#" -lt 2 ]] || [[ "$2" =~ ^-- ]]; then
+    if [[ "$#" -lt 2 ]] || [[ "$1" =~ ^-- ]]; then
       version_and_quit="1"
     else
-      case "$2" in
+      case "$1" in
         all) version_and_quit="+checkpoints+git+pip" ;;
-        +*) version_and_quit="$2" ;;
-        *) echo "ERROR: Invalid option for --version: '$2', must be 'all' or [+checkpoints][+git][+pip]"
+        +*) version_and_quit="$1" ;;
+        *) echo "ERROR: Invalid option for --version: '$1', must be 'all' or [+checkpoints][+git][+pip]"
           exit 1
           ;;
       esac
@@ -732,7 +729,7 @@ then
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
        "${surf_flags[@]}" "${allow_root[@]}")
-  echo "${cmd[@]}" |& tee -a "$seg_log"
+  echo "${cmd[@]@Q}" |& tee -a "$seg_log"
   "${cmd[@]}"
   if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
   popd || return
