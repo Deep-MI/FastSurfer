@@ -145,8 +145,8 @@ class Popen(subprocess.Popen):
             if i > 0:
                 self.kill()
                 raise RuntimeError(
-                    "The process {} did not stop properly in Popen.finish, "
-                    "abandoning.".format(self)
+                    f"The process {self} did not stop properly in Popen.finish, "
+                    "abandoning."
                 )
             i += 1
         if i == 0:

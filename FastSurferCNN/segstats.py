@@ -470,22 +470,28 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
 def add_two_help_messages(parser: argparse.ArgumentParser) -> None:
     """
     Adds separate help flags -h and --help to the parser for simple and detailed help.
-    Both trigger the help action.
+
+    Both trigger the help action. The respective help texts will have "(this message)"
+    added to the help message associated with the currently shown help message.
 
     Parameters
     ----------
-    parser: argparse.ArgumentParser
-        parser to add the flags to
+    parser : argparse.ArgumentParser
+        The parser object to add the two help flags to.
     """
     def this_msg(msg: str, flag: str) -> str:
         import sys
         return f"{msg} (this message)" if flag in sys.argv else msg
     parser.add_argument(
-        "-h", action="help",
-        help=this_msg("show a short help message and exit", "-h"))
+        "-h",
+        action="help",
+        help=this_msg("show a short help message and exit", "-h"),
+    )
     parser.add_argument(
-        "--help", action="help",
-        help=this_msg("show a long, detailed help message and exit", "--help"))
+        "--help",
+        action="help",
+        help=this_msg("show a long, detailed help message and exit", "--help"),
+    )
 
 
 def _check_arg_path(
@@ -557,33 +563,29 @@ def _check_arg_defined(attr: str, /, args: argparse.Namespace) -> bool:
     return not (value is None or empty(value))
 
 
-def check_shape_affine(
+def assert_same_shape_affine(
     img1: "nib.analyze.SpatialImage",
     img2: "nib.analyze.SpatialImage",
-    name1: str,
-    name2: str,
+    name1: str = "image1",
+    name2: str = "image2",
 ) -> None:
     """
-    Check whether the shape and affine of
+    Check whether the shape and affine of `img1` and `img2` are the same.
 
     Parameters
     ----------
-    img1 : nibabel.SpatialImage
-        Image 1.
-    img2 : nibabel.SpatialImage
-        Image 2.
-    name1 : str
-        Name of image 1.
-    name2 : str
-        Name of image 2.
+    img1, img2 : nibabel.SpatialImage
+        The image whose shape and affine must be the same.
+    name1, name2 : str, default="image1"/"image2"
+        The name of the image for use in error messages.
 
     Raises
-    -------
-    RuntimeError
+    ------
+    AssertionError
         If shapes or affines are not the same.
     """
     if img1.shape != img2.shape or not np.allclose(img1.affine, img2.affine):
-        raise RuntimeError(
+        raise AssertionError(
             f"The shapes or affines of the {name1} and the {name2} image are not "
             f"similar, both must be the same!"
         )
@@ -606,21 +608,22 @@ def parse_files(
         Path to SUBJECTS_DIR, where subject directories are.
     subject_id : str, optional
         The subject_id string.
-    require_measurefile: bool, default=False
-        require the measurefile to exist.
+    require_measurefile : bool, default=False
+        Whether to require the measurefile to exist.
 
     Returns
     -------
     segfile : Path
-        Path to the segmentation file, most likely an absolute path.
+        The path to the segmentation file, most likely an absolute path.
     pvfile : Path, None
-        Path to the pvfile file, most likely an absolute path.
+        The path to the pvfile file, most likely an absolute path.
     normfile : Path, None
-        Path to the norm file, most likely an absolute path, or None if not passed.
+        The path to the norm file, most likely an absolute path, or None if not passed.
     segstatsfile : Path
-        Path to the output segstats file, most likely an absolute path.
+        The path to the output segstats file, most likely an absolute path.
     measurefile : Path, None
-        Path to the measure file, most likely an absolute path, not None is not passed.
+        The path to the measure file, most likely an absolute path, not None is not
+        passed.
 
     Raises
     ------
@@ -721,12 +724,12 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     Parameters
     ----------
     args : object
-        Parameter object as defined by `make_arguments().parse_args()`
+        Parameter object as defined by `make_arguments().parse_args()`.
 
     Returns
     -------
     Literal[0], str
-        Either as a successful return code or a string with an error message
+        Either 0 (successful return code) or a string with an error message.
     """
     from time import perf_counter_ns
     from FastSurferCNN.utils.common import assert_no_root
@@ -800,13 +803,13 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
                         preproc_image, pvfile_preproc, pv_data
                     )
 
-                check_shape_affine(seg, pv_img, "segmentation", "pv_guide")
+                assert_same_shape_affine(seg, pv_img, "segmentation", "pv_guide")
             if normfile is not None:
                 _norm: ImageTuple = load_image(normfile, blocking=True)
                 norm, norm_data = _norm
-                check_shape_affine(seg, norm, "segmentation", "norm")
+                assert_same_shape_affine(seg, norm, "segmentation", "norm")
 
-        except (IOError, RuntimeError, FileNotFoundError) as e:
+        except (IOError, RuntimeError, FileNotFoundError, AssertionError) as e:
             return e.args[0]
 
         lut: Optional[pd.DataFrame] = None
@@ -1340,6 +1343,7 @@ def preproc_image(
         data = np.sqrt(data)
     return data
 
+
 def seg_borders(
     _array: _ArrayType,
     label: np.integer | bool,
@@ -1351,13 +1355,13 @@ def seg_borders(
 
     Parameters
     ----------
-    _array: numpy.ndarray
+    _array : numpy.ndarray
         Image to compute borders from, typically either a label image or a binary mask.
-    label: int, bool
+    label : int, bool
         Which classes to consider for border computation (True/False for binary mask).
-    out: nt.NDArray[bool], optional
+    out : nt.NDArray[bool], optional
         The array for inplace computation.
-    cmp_dtype: npt.DTypeLike, default=int8
+    cmp_dtype : npt.DTypeLike, default=int8
         The data type to use for border laplace computation.
 
     Returns
@@ -1401,10 +1405,10 @@ def borders(
     ----------
     _array : _ArrayType
         Label array to compute borders from (can also be a binary mask).
-    labels : Iterable[np.integer], bool
+    labels : Iterable[int], bool
         List/array of labels to consider for borders, may also be bool, if _array is
         already a binary mask.
-    max_label : np.integer, optional
+    max_label : int, optional
         Maximum label number in the lookup table.
     six_connected : bool, optional
         Whether to use 6-connected (face-neighbor) or 27-connected (vertex-neighbor) to
@@ -1559,7 +1563,6 @@ def uniform_filter(
     -------
     _ArrayType
         The filtered data.
-
     """
     _patch = (slice(None),) if slicer_patch is None else slicer_patch
     data = data.astype(float)
@@ -1666,16 +1669,16 @@ def pv_calc(
         Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, Mean, StdDev, Min,
         Max, and Range.
     maps : dict[str, np.ndarray], optional
-        Only returned, if return_maps is True:
-        A dictionary with the 5 meta-information pv-maps:
-        nbr: An image of alternative labels that were considered instead of the voxel's
-            label.
-        nbr_means: The local mean intensity of the label nbr at the specific voxel.
-        seg_means: The local mean intensity of the primary label at the specific voxel.
-        mixing_coeff: The partial volume of the primary label at the location.
-        nbr_mixing_coeff: The partial volume of the alternative (nbr) label at the
-            location.
+        Only returned, if return_maps is True, see Notes for details.
 
+    Notes
+    -----
+    The dictionary `maps` contains 5 meta-information pv-maps:
+    - `nbr`: The alternative labels that were considered instead of the voxel's label.
+    - `nbr_means`: The local mean intensity of the label nbr at the specific voxel.
+    - `seg_means`: The local mean intensity of the primary label at the specific voxel.
+    - `mixing_coeff`: The partial volume of the primary label at the location.
+    - `nbr_mixing_coeff`: The partial volume of the alternative (nbr) label.
     """
     input_checker = {
         "seg": (seg, np.integer),
@@ -1693,9 +1696,10 @@ def pv_calc(
         raise TypeError("The labels list is not an arraylike of ints.")
 
     if seg.shape != pv_guide.shape:
-        raise RuntimeError(f"The shapes of the segmentation and the pv_guide must "
-                           f"be identical, but shapes are {seg.shape} and "
-                           f"{pv_guide.shape}!")
+        raise RuntimeError(
+            f"The shapes of the segmentation and the pv_guide must be identical, but "
+            f"shapes are {seg.shape} and {pv_guide.shape}!"
+        )
     if seg.shape != norm.shape:
         raise RuntimeError(
             f"The shape of the segmentation and the norm must be identical, but shapes "
@@ -1937,7 +1941,7 @@ def global_stats(
     Parameters
     ----------
     lab : _IntType
-        The label to get the stats for
+        The label to get the stats for.
     norm : np.ndarray, optional
         The intensity image (default: None, do not compute intensity stats such as
         normMin, normMax, etc.).
@@ -2126,7 +2130,7 @@ def pv_calc_patch(
         the image.
     borders : dict[int, npt.NDArray[bool]]
         Dictionary containing the borders for each label.
-    seg : numpy.typing.NDArray[numpy.integer]
+    seg : numpy.typing.NDArray[int]
         The segmentation (full image) defining the labels.
     pv_guide : numpy.ndarray
         The (full) image with intensities to guide the PV calculation.
@@ -2153,7 +2157,6 @@ def pv_calc_patch(
     -------
     dict[int, float]
         Dictionary of per-label PV-corrected volume of affected voxels in the patch.
-
     """
 
     # Variable conventions:
@@ -2328,7 +2331,7 @@ def patch_neighbors(
         A sequence of all labels that we want to compute the PV for.
     pv_guide : numpy.ndarray
         The (full) image with intensities to guide the PV calculation.
-    seg : numpy.typing.NDArray[numpy.integer]
+    seg : numpy.typing.NDArray[int]
         The segmentation (full image) defining the labels.
     border_patch : npt.NDArray[bool]
         Binary mask for the current patch, True, where a voxel is considered to be a
