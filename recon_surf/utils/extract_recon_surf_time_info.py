@@ -31,7 +31,7 @@ def get_recon_all_stage_duration(line: str, previous_datetime_str: str) -> float
     try:
         current_date_time = dateutil.parser.parse(current_datetime_str)
         previous_date_time = dateutil.parser.parse(previous_datetime_str)
-    except ParserError: # strptime considers the computers time locale settings
+    except dateutil.parser.ParserError: # strptime considers the computers time locale settings
         locale.setlocale(locale.LC_TIME,"")
         current_date_time = datetime.strptime(current_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
         previous_date_time = datetime.strptime(previous_datetime_str, "%a %d. %b %H:%M:%S %Z %Y")
