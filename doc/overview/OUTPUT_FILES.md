@@ -25,6 +25,24 @@ The cerebellum module outputs the files in the table shown below. Unless switche
 | mri       | cerebellum.CerebNet.nii.gz | cerebnet | cerebellum sub-segmentation                 |
 | stats     | cerebellum.CerebNet.stats  | cerebnet | table of cerebellum segmentation statistics |
 
+## HypVINN module
+
+The hypothalamus module outputs the files in the table shown below. Unless switched off by the `--no_hypvinn` argument, this module is automatically run whenever the segmentation module is run. It adds three files, an image with the sub-segmentation of the hypothalamus and a text file with summary statistics.
+
+
+| directory   | filename                         | module  | description                                   |
+|:------------|----------------------------------|---------|-----------------------------------------------|
+| mri         | hypothalamus.HypVINN.nii.gz      | hypvinn | hypothalamus sub-segmentation                 |
+| mri         | hypothalamus_mask.HypVINN.nii.gz | hypvinn | hypothalamus sub-segmentation mask            |
+| stats       | hypothalamus.HypVINN.stats       | hypvinn | table of hypothalamus segmentation statistics |
+
+If a T2 image is also passed, the following images are created.
+
+| directory | filename        | module  | description                    |
+|:----------|-----------------|---------|--------------------------------|
+| mri       | T2_orig.mgz     | hypvinn | conformed T2 image             |
+| mri       | T2_orig_nu.mgz  | hypvinn | biasfield-corrected T2 image   |
+| mri       | T2_nu_reg.mgz   | hypvinn | co-registered T2 to orig image |
 
 ## Surface module
 
