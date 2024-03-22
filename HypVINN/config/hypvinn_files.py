@@ -13,18 +13,15 @@
 # limitations under the License.
 
 # IMPORTS
-import os
-
-from FastSurferCNN.utils.checkpoint import (
-    FASTSURFER_ROOT)
+from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT
 
 
-HYPVINN_LUT = os.path.join(FASTSURFER_ROOT,'HypVINN','config','HypVINN_ColorLUT.txt')
+HYPVINN_LUT = FASTSURFER_ROOT / "HypVINN/config/HypVINN_ColorLUT.txt"
 
-HYPVINN_STATS_NAME = 'hypothalamus.HypVINN.stats'
+HYPVINN_STATS_NAME = "hypothalamus.HypVINN.stats"
 
-HYPVINN_MASK_NAME = 'hypothalamus_mask.HypVINN.nii.gz'
+HYPVINN_MASK_NAME = "hypothalamus_mask.HypVINN.nii.gz"
 
-HYPVINN_SEG_NAME = 'hypothalamus.HypVINN.nii.gz'
+HYPVINN_SEG_NAME = "hypothalamus.HypVINN.nii.gz"
 
-HYPVINN_QC_IMAGE_NAME = 'hypothalamus.HypVINN_qc_screenshoot.png'
+HYPVINN_QC_IMAGE_NAME = "hypothalamus.HypVINN_qc_screenshoot.png"

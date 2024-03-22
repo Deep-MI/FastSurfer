@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Literal
+
 import numpy as np
+
+Plane = Literal["axial", "coronal", "sagittal"]
+
+
 HYPVINN_CLASS_NAMES = {
     0: "Background",
 
@@ -57,7 +63,7 @@ HYPVINN_CLASS_NAMES = {
 }
 
 FS_CLASS_NAMES = {
-   "Background" : 0,
+    "Background": 0,
 
     "R-N.opticus": 961,
     "L-N.opticus": 962,
@@ -88,12 +94,12 @@ FS_CLASS_NAMES = {
     "L-Globus-pallidus": 986,
 }
 
+planes = ("axial", "coronal", "sagittal")
 
-
-hyposubseg_labels =  (np.array(list(HYPVINN_CLASS_NAMES.keys())),
-                    np.array([0, 1, 3, 4, 7, 9, 10,
-                              11, 14, 16, 17, 13, 122,
-                              226, 227, 228, 229]))
+hyposubseg_labels = (
+    np.array(list(HYPVINN_CLASS_NAMES.keys())),
+    np.array([0, 1, 3, 4, 7, 9, 10, 11, 14, 16, 17, 13, 122, 226, 227, 228, 229]),
+)
 
 SAG2FULL_MAP = {
         # lbl: sag_lbl_index
@@ -125,4 +131,3 @@ SAG2FULL_MAP = {
         129: 16,
         229: 16
     }
-

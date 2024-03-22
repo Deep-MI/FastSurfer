@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+import argparse
+from pathlib import Path
+from typing import Optional
+import time
+
 from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import get_checkpoints
 from FastSurferCNN.utils.common import assert_no_root
@@ -20,16 +24,23 @@ from HypVINN.run_prediction import run_hypo_seg
 from HypVINN.utils.preproc import hyvinn_preproc
 from HypVINN.utils.mode_config import get_hypinn_mode_config
 from HypVINN.utils.misc import create_expand_output_directory
-import time
 ##
 # Global Variables
 ##
 LOGGER = logging.get_logger(__name__)
 
-def option_parse():
-    import argparse
 
-    parser = argparse.ArgumentParser(description='Hypothalamus Segmentation')
+def optional_path(a: str) -> Optional[Path]:
+    if a.lower() in ["none", ""]:
+        return None
+    return Path(a)
+
+
+def option_parse() -> argparse.Namespace:
+    from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
+    parser = argparse.ArgumentParser(
+        description='Hypothalamus Segmentation',
+    )
 
     # 1. Directory information (where to read from, where to write from and to incl. search-tag)
     parser = parser_defaults.add_arguments(
@@ -44,7 +55,7 @@ def option_parse():
     )
     parser.add_argument(
         '--t2',
-        type=lambda x : None if x == 'None' else str(x),
+        type=optional_path,
         default=None,
         required=False,
         help="Path to the T2 image to process.",
@@ -55,7 +66,7 @@ def option_parse():
         "--qc_snap",
         action='store_true',
         dest="qc_snapshots",
-        help="Create qc snapshots",
+        help="Create qc snapshots in <sd>/<sid>/qc_snapshots.",
     )
     parser.add_argument(
         "--reg_mode",
@@ -67,8 +78,13 @@ def option_parse():
              "registration of T2 to T1, if both images are passed, "
              "images need to be register properly externally.",
     )
-
-
+    parser.add_argument(
+        "--hypo_segfile",
+        type=Path,
+        default=Path("mri") / HYPVINN_SEG_NAME,
+        dest="hypo_segfile",
+        help=""
+    )
 
     # 4. Options for advanced, technical parameters
     advanced = parser.add_argument_group(title="Advanced options")
@@ -76,7 +92,6 @@ def option_parse():
         advanced,
         ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
     )
-
 
     from HypVINN.utils.checkpoint import HYPVINN_AXI, HYPVINN_COR, HYPVINN_SAG
 
@@ -87,37 +102,33 @@ def option_parse():
         {"coronal": HYPVINN_COR, "axial": HYPVINN_AXI, "sagittal": HYPVINN_SAG},
     )
 
-    parser = parser_defaults.add_plane_flags(
-        parser,
+    parser_defaults.add_plane_flags(
+        advanced,
         "config",
         {
-            "coronal": "HypVINN/config/HypVINN_coronal_v1.0.0.yaml",
-            "axial": "HypVINN/config/HypVINN_axial_v1.0.0.yaml",
-            "sagittal": "HypVINN/config/HypVINN_sagittal_v1.0.0.yaml",
+            "coronal": Path("HypVINN/config/HypVINN_coronal_v1.0.0.yaml"),
+            "axial": Path("HypVINN/config/HypVINN_axial_v1.0.0.yaml"),
+            "sagittal": Path("HypVINN/config/HypVINN_sagittal_v1.0.0.yaml"),
         },
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    return args
-if __name__ == "__main__":
 
-    #arguments
-    args = option_parse()
-    #mapped freesurfer orig input name to the hypvinn t1 name
-    check_path = lambda x : None if x == 'None' else str(x)
-    args.t1 = check_path(args.orig_name)
-    #set output dir
-    args.out_dir = os.path.join(args.out_dir, args.sid)
+def main(args: argparse.Namespace) -> int | str:
+    
+    # mapped freesurfer orig input name to the hypvinn t1 name
+    args.t1 = optional_path(args.orig_name)
+    # set output dir
+    args.out_dir = args.out_dir / args.sid
     # Warning if run as root user
     args.allow_root or assert_no_root()
+    start = time.time()
     try:
-        start = time.time()
         # Set up logging
         from FastSurferCNN.utils.logging import setup_logging
-        if args.log_name:
-            setup_logging(args.log_name)
-        else:
-            setup_logging(os.path.join(args.out_dir,'scripts','hypvinn_seg.log'))
+        if not args.log_name:
+            args.log_name = args.out_dir / "scripts" / "hypvinn_seg.log"
+        setup_logging(args.log_name)
 
         LOGGER.info("Checking or downloading default checkpoints ...")
         from HypVINN.utils.checkpoint import URL as HYPVINN_URL
@@ -128,23 +139,46 @@ if __name__ == "__main__":
 
         if args.mode:
             # Create output directory if it does not already exist.
-            create_expand_output_directory(args)
-            LOGGER.info("Analyzing HypVINN segmenation pipeline on Subject: {}".format(args.sid))
-            LOGGER.info("Output will be stored in: {}".format(args.out_dir))
-            LOGGER.info('T1 image input {}'.format(args.t1))
-            LOGGER.info('T2 image input {}'.format(args.t2))
+            create_expand_output_directory(args.out_dir, args.qc_snapshots)
+            LOGGER.info(
+                f"Running HypVINN segmentation pipeline on subject {args.sid}"
+            )
+            LOGGER.info(f"Output will be stored in: {args.out_dir}")
+            LOGGER.info(f"T1 image input {args.t1}")
+            LOGGER.info(f"T2 image input {args.t2}")
 
             # Pre-processing -- T1 and T2 registration
             args = hyvinn_preproc(args)
             # Segmentation pipeline
-            run_hypo_seg(args)
+            run_hypo_seg(
+                args,
+                subject_name=args.sid,
+                out_dir=args.out_dir,
+                t1_path=Path(args.t1),
+                t2_path=Path(args.t2),
+                mode=args.mode,
+                threads=args.threads,
+                seg_file=args.hypo_segfile,
+            )
         else:
-            LOGGER.info("Failed Evaluation on {} couldn't determine the processing mode.\n "
-                        "Please check that T1 or T2 images are available.\n"
-                        "T1 image path: {} \n"
-                        "T2 image path {} )".format(args.sid,args.t1,args.t2))
-            raise RuntimeError("No T1 or T2 image available.")
-    except FileNotFoundError as e:
-        LOGGER.info("Failed Evaluation on {} with exception:\n{} )".format(args.sid, e))
+            return (
+                f"Failed Evaluation on {args.sid} couldn't determine the "
+                f"processing mode. Please check that T1 or T2 images are "
+                f"available.\nT1 image path: {args.t1}\nT2 image path "
+                f"{args.t2}.\nNo T1 or T2 image available."
+            )
+    except (FileNotFoundError, RuntimeError) as e:
+        LOGGER.info(f"Failed Evaluation on {args.sid}:")
+        LOGGER.exception(e)
+    else:
+        LOGGER.info(
+            f"Processing whole pipeline finished in {time.time() - start:.4f} "
+            f"seconds"
+        )
 
-    LOGGER.info("Processing whole pipeline finished in {:0.4f} seconds".format(time.time() - start))
+
+if __name__ == "__main__":
+    # arguments
+    args = option_parse()
+    import sys
+    sys.exit(main(args))

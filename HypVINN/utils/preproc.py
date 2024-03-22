@@ -12,32 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from FastSurferCNN.utils import logging
+import argparse
+
 import time
 import nibabel as nib
 import os
 import numpy as np
-from HypVINN.data_loader.data_utils import rescale_image
+
+from FastSurferCNN.utils import logging
 
 LOGGER = logging.get_logger(__name__)
 
 
-def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type='coreg'):
+def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type="coreg"):
     from FastSurferCNN.utils.run_tools import Popen
     import shutil
 
-    lta_path = os.path.join(out_dir, 'mri', 'transforms', 't2tot1.lta')
+    lta_path = os.path.join(out_dir, "mri", "transforms", "t2tot1.lta")
 
-    t2_reg_path = os.path.join(out_dir, 'mri', 'T2_nu_reg.mgz')
+    t2_reg_path = os.path.join(out_dir, "mri", "T2_nu_reg.mgz")
 
-    if registration_type == 'coreg':
+    if registration_type == "coreg":
         exe = shutil.which("mri_coreg")
         if not bool(exe):
             if os.environ.get("FREESURFER_HOME", ""):
                 exe = os.environ["FREESURFER_HOME"] + "/bin/mri_coreg"
             else:
                 raise RuntimeError(
-                    "Could not find mri_coreg, source FreeSurfer or set the  FREESURFER_HOME environment variable")
+                    "Could not find mri_coreg, source FreeSurfer or set the "
+                    "FREESURFER_HOME environment variable"
+                )
         args = [exe, "--mov", t2_path, "--targ", t1_path, "--reg", lta_path]
         LOGGER.info("Running " + " ".join(args))
         retval = Popen(args).finish()
@@ -46,19 +50,29 @@ def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type='coreg'):
             raise RuntimeError("mri_coreg failed registration")
 
         else:
-            exe = shutil.which('mri_vol2vol')
+            exe = shutil.which("mri_vol2vol")
             if not bool(exe):
                 if os.environ.get("FREESURFER_HOME", ""):
                     exe = os.environ["FREESURFER_HOME"] + "/bin/mri_vol2vol"
                 else:
                     raise RuntimeError(
-                        "Could not find mri_vol2vol, source FreeSurfer or set the  FREESURFER_HOME environment variable")
-            args = [exe, "--mov", t2_path, "--targ", t1_path, "--reg", lta_path, "--o", t2_reg_path, "--cubic",
-                    "--keep-precision"]
+                        "Could not find mri_vol2vol, source FreeSurfer or set "
+                        "the  FREESURFER_HOME environment variable"
+                    )
+            args = [exe,
+                    "--mov", t2_path,
+                    "--targ", t1_path,
+                    "--reg", lta_path,
+                    "--o", t2_reg_path,
+                    "--cubic",
+                    "--keep-precision",
+                    ]
             LOGGER.info("Running " + " ".join(args))
             retval = Popen(args).finish()
             if retval.retcode != 0:
-                LOGGER.error(f"mri_vol2vol failed with error code {retval.retcode}. ")
+                LOGGER.error(
+                    f"mri_vol2vol failed with error code {retval.retcode}."
+                )
                 raise RuntimeError("mri_vol2vol failed applying registration")
     else:
         exe = shutil.which("mri_robust_register")
@@ -67,39 +81,62 @@ def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type='coreg'):
                 exe = os.environ["FREESURFER_HOME"] + "/bin/mri_robust_register"
             else:
                 raise RuntimeError(
-                    "Could not find mri_robust_register, source FreeSurfer or set the  FREESURFER_HOME environment variable")
-        args = [exe, "--mov", t2_path, "--dst", t1_path, "--lta", lta_path, "--mapmov", t2_reg_path, "--cost NMI"]
+                    "Could not find mri_robust_register, source FreeSurfer or "
+                    "set the  FREESURFER_HOME environment variable"
+                )
+        args = [exe,
+                "--mov", t2_path,
+                "--dst", t1_path,
+                "--lta", lta_path,
+                "--mapmov", t2_reg_path,
+                "--cost NMI",
+                ]
         LOGGER.info("Running " + " ".join(args))
         retval = Popen(args).finish()
         if retval.retcode != 0:
-            LOGGER.error(f"mri_robust_register failed with error code {retval.retcode}. ")
+            LOGGER.error(
+                f"mri_robust_register failed with error code {retval.retcode}."
+            )
             raise RuntimeError("mri_robust_register failed registration")
 
     return t2_reg_path
 
 
-def hyvinn_preproc(args):
+def hyvinn_preproc(args: argparse.Namespace) -> argparse.Namespace:
 
-    if args.mode == 'multi':
-        if args.registration:
+    if args.mode == "multi":
+        if args.reg_mode != "none":
             load_res = time.time()
-            #Print Warning if Resolution from both images is different
+            # Print Warning if Resolution from both images is different
             t1_zoom = nib.load(args.t1).header.get_zooms()
             t2_zoom = nib.load(args.t2).header.get_zooms()
 
             if not np.allclose(np.array(t1_zoom), np.array(t2_zoom),rtol=0.05):
-                LOGGER.info('Warning: Resolution from T1 ({}) and T2 ({}) image are different.\n '
-                            'Resolution of the T2 image will be interpolated to the one of the T1 image.')
+                LOGGER.info(
+                    f"Warning: Resolution from T1 ({t1_zoom}) and T2 "
+                    f"({t2_zoom}) image are different.\n "
+                    "Resolution of the T2 image will be interpolated "
+                    "to the one of the T1 image."
+                )
 
             LOGGER.info("Registering T1 to T2 ...")
-            args.t2 = t1_to_t2_registration(t1_path=args.t1, t2_path=args.t2, out_dir=args.out_dir,
-                                               registration_type=args.reg_mode)
-            LOGGER.info("Registration finish in {:0.4f} seconds".format(time.time() - load_res))
+            args.t2 = t1_to_t2_registration(
+                t1_path=args.t1,
+                t2_path=args.t2,
+                out_dir=args.out_dir,
+                registration_type=args.reg_mode,
+            )
+            LOGGER.info(
+                f"Registration finish in {time.time() - load_res:0.4f} seconds!"
+            )
         else:
             LOGGER.info(
-                "Warning: No registration step, registering T1w and T2w is required when running the multi-modal input mode.\n "
-                "No register images can generate wrong predictions. Omit this message if input images are already registered.")
+                "Warning: No registration step, registering T1w and T2w is "
+                "required when running the multi-modal input mode.\n "
+                "No register images can generate wrong predictions. Omit this "
+                "message if input images are already registered."
+            )
 
-        LOGGER.info('----' * 30)
+        LOGGER.info("---" * 30)
 
     return args

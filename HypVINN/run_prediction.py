@@ -11,14 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
+from pathlib import Path
+from typing import Any, Literal, Optional
 
 # IMPORTS
 import numpy as np
 import torch
 import os
 import nibabel as nib
-import time
+from time import time
 from collections import defaultdict
+
+import FastSurferCNN.utils.logging as logging
+from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
+
+from HypVINN.config.hypvinn_global_var import Plane, planes
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, hypo_map_subseg_2_fsseg
 from HypVINN.inference import Inference
 from HypVINN.utils.load_config import load_config
@@ -26,7 +34,8 @@ from HypVINN.data_loader.data_utils import rescale_image
 from HypVINN.utils.stats_utils import compute_stats
 from HypVINN.utils.img_processing_utils import save_segmentation
 from HypVINN.utils.visualization_utils import plot_qc_images
-import FastSurferCNN.utils.logging as logging
+
+ViewOperations = dict[Plane, Optional[dict[Literal["cfg", "ckpt"], Any]]]
 
 logger = logging.get_logger(__name__)
 
@@ -34,34 +43,47 @@ logger = logging.get_logger(__name__)
 # Input array preparation
 ##
 
-def load_volumes(mode,t1_path,t2_path):
-    modalities = defaultdict(lambda: defaultdict(list))
+ModalityMode = Literal["t1", "t2", "t1t2"]
+ModalityDict = dict[Literal["t1", "t2"], np.ndarray]
 
-    if mode == 't1':
-        t1_mode = True
-        t2_mode = False
-    elif mode == 't2':
-        t1_mode = False
-        t2_mode = True
-    else:
-        t1_mode = True
-        t2_mode = True
 
-    if t1_mode:
-        logger.info('Loading T1 image from : {}'.format(t1_path))
+def load_volumes(
+        mode: ModalityMode,
+        t1_path: Path,
+        t2_path: Path,
+) -> tuple[
+    ModalityDict,
+    np.ndarray,
+    nib.FilebasedHeader,
+    np.ndarray,
+    tuple[int, ...],
+]:
+    modalities: ModalityDict = {}
+
+    t1_size = ()
+    t2_size = ()
+    t1_zoom = ()
+    t2_zoom = ()
+    affine = np.ndarray([0])
+    header = None
+    zoom = ()
+    size = ()
+
+    if "t1" in mode:
+        logger.info(f'Loading T1 image from : {t1_path}')
         t1 = nib.load(t1_path)
         t1 = nib.as_closest_canonical(t1)
-        if mode == 'multi' or mode == 't1':
+        if mode in ('t1t2', 't1'):
             affine = t1.affine
             header = t1.header
         t1_zoom = t1.header.get_zooms()
         zoom = np.round(t1_zoom, 3)
         # Conform Intensities
-        modalities['t1'] = np.asarray(rescale_image(t1.get_fdata()), dtype=np.uint8)
+        modalities['t1'] = rescale_image(np.asarray(t1.dataobj))
         t1_size = modalities['t1'].shape
         size = t1_size
-    if t2_mode:
-        logger.info('Loading T2 image from : {}'.format(t2_path))
+    if "t2" in mode:
+        logger.info(f'Loading T2 image from : {t2_path}')
         t2 = nib.load(t2_path)
         t2 = nib.as_closest_canonical(t2)
         if mode == 't2':
@@ -74,25 +96,32 @@ def load_volumes(mode,t1_path,t2_path):
         t2_size = modalities['t2'].shape
         size = t2_size
 
-    if t1_mode and t2_mode:
-        assert np.allclose(np.array(t1_zoom), np.array(t2_zoom),
-                           rtol=0.05), "T1 : {} and T2 : {} images have different resolutions".format(t1_zoom,
-                                                                                                      t2_zoom)
-        assert np.allclose(np.array(t1_size), np.array(t2_size),
-                           rtol=0.05), "T1 : {} and T2 : {} images have different size".format(t1_size, t2_size)
+    if mode == "t1t2":
+        if not np.allclose(np.array(t1_zoom), np.array(t2_zoom), rtol=0.05):
+            raise AssertionError(
+                f"T1 : {t1_zoom} and T2 : {t2_zoom} images have different "
+                f"resolutions"
+            )
+        if not np.allclose(np.array(t1_size), np.array(t2_size), rtol=0.05):
+            raise AssertionError(
+                f"T1 : {t1_size} and T2 : {t2_size} images have different size"
+            )
+    elif mode not in ("t1", "t2"):
+        raise ValueError(f"Invalid Mode in for modality {mode}")
 
-    return modalities,affine,header,zoom,size
+    return modalities, affine, header, zoom, size
 
 
-def run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale,mode='multi'):
+def run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode='multi'):
     # get prediction
-    pred_prob = model.run(subject_name, modalities, orig_zoom, pred_prob, out_res=out_scale,mode=mode)
+    pred_prob = model.run(subject_name, modalities, orig_zoom, pred_prob, out_res=out_scale, mode=mode)
 
     return pred_prob
 
-def get_prediction(subject_name, modalities, orig_zoom, model, gt_shape, view_opts, logger, out_scale=None,mode='multi'):
-    from scipy.special import softmax
-    device,viewagg_device = model.get_device()
+
+def get_prediction(subject_name, modalities, orig_zoom, model, gt_shape, view_opts, logger, out_scale=None,
+                   mode='multi'):
+    device, viewagg_device = model.get_device()
     dim = model.get_max_size()
 
     # Coronal model
@@ -103,19 +132,19 @@ def get_prediction(subject_name, modalities, orig_zoom, model, gt_shape, view_op
     pred_prob = torch.zeros((dim, dim, dim, model.get_num_classes()), dtype=torch.float).to(viewagg_device)
 
     # Set up tensor to hold probabilities and run inference (coronal model by default)
-    pred_prob = run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale,mode=mode)
+    pred_prob = run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
 
     # Axial model
     logger.info(f'Evaluating Axial model, cpkt :{view_opts["axial"]["ckpt"]}')
     model.set_cfg(view_opts["axial"]["cfg"])
     model.load_checkpoint(view_opts["axial"]["ckpt"])
-    pred_prob += run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale,mode=mode)
+    pred_prob += run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
 
     # Sagittal model
     logger.info(f'Evaluating Sagittal model, cpkt :{view_opts["sagittal"]["ckpt"]}')
     model.set_model(view_opts["sagittal"]["cfg"])
     model.load_checkpoint(view_opts["sagittal"]["ckpt"])
-    pred_prob += run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale,mode=mode)
+    pred_prob += run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
 
     # Post processing
     h, w, d = gt_shape  # final prediction shape equivalent to input ground truth shape
@@ -130,7 +159,6 @@ def get_prediction(subject_name, modalities, orig_zoom, model, gt_shape, view_op
     del pred_prob
     pred_classes = pred_classes.cpu().numpy()
     pred_classes = hypo_map_label2subseg(pred_classes)
-
 
     return pred_classes
 
@@ -148,71 +176,110 @@ def set_up_cfgs(cfg, args):
     cfg.MODEL.OUT_TENSOR_HEIGHT = out_dims if out_dims > cfg.DATA.PADDED_SIZE else cfg.DATA.PADDED_SIZE
     return cfg
 
-def run_hypo_seg(args):
 
-    start = time.time()
+def run_hypo_seg(
+        args: argparse.Namespace,
+        subject_name: str,
+        mode: ModalityMode,
+        t1_path: Path,
+        t2_path: Path,
+        out_dir: Path,
+        threads: int,
+        seg_file: Path = Path("mri") / HYPVINN_SEG_NAME,
+):
+    start = time()
 
-    view_ops = {a: None for a in ["coronal", "axial", "sagittal"]}
+    view_ops: ViewOperations = {a: None for a in planes}
     logger.info('Setting up HypVINN run')
     cfg_ax = set_up_cfgs(args.cfg_ax, args)
     logger.info(f'Axial model configuration from : {args.cfg_ax}')
     view_ops["axial"] = {"cfg": cfg_ax, "ckpt": args.ckpt_ax}
-    assert args.mode == cfg_ax.MODEL.MODE or 'HypVinn' in cfg_ax.MODEL.MODEL_NAME  , 'Modalitie mode different between input arg : {} and axial train cfg:  {}'.format(args.mode,cfg_ax.MODEL.MODE)
 
     cfg_sag = set_up_cfgs(args.cfg_sag, args)
     logger.info(f'Sagittal model configuration from : {args.cfg_sag}')
     view_ops["sagittal"] = {"cfg": cfg_sag, "ckpt": args.ckpt_sag}
-    assert args.mode == cfg_sag.MODEL.MODE or 'HypVinn' in cfg_sag.MODEL.MODEL_NAME, 'Modalitie mode different between input arg : {} and sagittal train cfg:  {}'.format(args.mode,cfg_sag.MODEL.MODE)
 
     cfg_cor = set_up_cfgs(args.cfg_cor, args)
     logger.info(f'Coronal model configuration from : {args.cfg_cor}')
     view_ops["coronal"] = {"cfg": cfg_cor, "ckpt": args.ckpt_cor}
-    assert args.mode == cfg_cor.MODEL.MODE or 'HypVinn' in cfg_cor.MODEL.MODEL_NAME, 'Modalitie mode different between input arg : {} and coronal train cfg:  {}'.format(args.mode,cfg_cor.MODEL.MODE)
+
+    for plane, pcfg in zip(planes, (cfg_ax, cfg_cor, cfg_sag)):
+        model = pcfg.MODEL
+        if mode != model.MODE and 'HypVinn' not in model.MODEL_NAME:
+            raise AssertionError(
+                f"Modality mode different between input arg: "
+                f"{mode} and axial train cfg:  {model.MODE}"
+            )
 
     cfg_fin, ckpt_fin = cfg_cor, args.ckpt_cor
 
     # Set up model
-    model = Inference(cfg=cfg_fin,args=args)
+    model = Inference(cfg=cfg_fin, args=args)
 
-    try:
-        logger.info('----'*30)
-        logger.info(f"Evaluating hypothalamus model on {args.sid}")
-        load = time.time()
+    logger.info('----' * 30)
+    logger.info(f"Evaluating hypothalamus model on {subject_name}")
+    load = time()
 
-        # Load  Images
-        modalities, ras_affine, ras_header, orig_zoom, orig_size = load_volumes(mode=args.mode, t1_path=args.t1, t2_path=args.t2)
-        logger.info("Scale factor in: {}".format(orig_zoom))
+    # Load  Images
+    modalities, ras_affine, ras_header, orig_zoom, orig_size = load_volumes(
+        mode=mode,
+        t1_path=t1_path,
+        t2_path=t2_path,
+    )
+    logger.info(f"Scale factor: {orig_zoom}")
+    logger.info(f"images loaded in {time() - load:0.4f} seconds")
 
-        logger.info("images loaded in {:0.4f} seconds".format(time.time() - load))
+    load = time()
+    pred_classes = get_prediction(
+        subject_name,
+        modalities,
+        orig_zoom,
+        model,
+        gt_shape=orig_size,
+        view_opts=view_ops,
+        out_scale=None,
+        mode=mode,
+        logger=logger,
+    )
+    logger.info(f"Model prediction finished in {time() - load:0.4f} seconds")
+    logger.info(f"Saving prediction at {out_dir}")
 
+    save = time()
+    if mode == 't1t2' or mode == 't1':
+        orig_path = t1_path
+    else:
+        orig_path = t2_path
 
-        load = time.time()
-        pred_classes = get_prediction(args.sid,modalities, orig_zoom, model, gt_shape=orig_size,
-                              view_opts=view_ops, out_scale=None,mode=args.mode,logger=logger)
-        logger.info("Model prediction finished in {:0.4f} seconds".format(time.time()-load))
+    pred_path = save_segmentation(
+        pred_classes,
+        orig_path=orig_path,
+        ras_affine=ras_affine,
+        ras_header=ras_header,
+        save_dir=out_dir,
+        seg_file=seg_file,
+        save_mask=True,
+    )
+    logger.info(
+        f"Prediction successfully saved as {pred_path} in "
+        f"{time() - save:0.4f} seconds"
+    )
+    if getattr(args, "qc_snapshots", False):
+        plot_qc_images(
+            save_dir=out_dir / "qc_snapshots",
+            orig_path=orig_path,
+            prediction_path=pred_path,
+        )
 
+    logger.info("Computing stats")
+    return_value = compute_stats(
+        orig_path=orig_path,
+        prediction_path=pred_path,
+        save_dir=out_dir / "stats",
+        threads=threads,
+    )
+    if return_value != 0:
+        logger.error(return_value)
 
-        logger.info(f"Saving prediction at {args.out_dir}")
-
-        save = time.time()
-        if args.mode == 'multi' or args.mode == 't1':
-            orig_path = args.t1
-        else:
-            orig_path = args.t2
-
-        pred_path = save_segmentation(pred_classes, orig_path= orig_path, ras_affine=ras_affine, ras_header=ras_header, save_dir=os.path.join(args.out_dir,'mri'))
-        logger.info("Prediction successfully saved as {} in {:0.4f} seconds".format(pred_path, time.time()-save))
-        if args.qc_snapshots:
-            plot_qc_images(save_dir=os.path.join(args.out_dir,'qc_snapshots'),orig_path=orig_path,prediction_path=pred_path)
-
-        logger.info('Computing stats')
-        flag = compute_stats(orig_path=orig_path, prediction_path=pred_path, save_dir=os.path.join(args.out_dir,'stats'),threads=args.threads)
-        if flag != 0:
-            logger.info(flag)
-
-    except FileNotFoundError as e:
-        logger.info("Failed Evaluation on {} with exception:\n{} )".format(args.sid, e))
-
-    logger.info("Processing segmentation finished in {:0.4f} seconds".format(time.time() - start))
-
-
+    logger.info(
+        f"Processing segmentation finished in {time() - start:0.4f} seconds"
+    )
