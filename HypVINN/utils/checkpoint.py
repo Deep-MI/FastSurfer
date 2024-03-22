@@ -12,24 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# IMPORTS
-import os
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
-from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.checkpoint import (
-    FASTSURFER_ROOT,
-    load_from_checkpoint,
-    create_checkpoint_dir,
-    get_checkpoint,
-    get_checkpoint_path,
-    save_checkpoint,
-)
-
-logger = logging.get_logger(__name__)
-
-# Defaults
-URL = "https://b2share.fz-juelich.de/api/files/7133b542-733b-4cc6-a284-5c333ff25f78"
-HYPVINN_AXI = os.path.join(FASTSURFER_ROOT, "checkpoints/HypVINN_axial_v1.0.0.pkl")
-HYPVINN_COR = os.path.join(FASTSURFER_ROOT, "checkpoints/HypVINN_coronal_v1.0.0.pkl")
-HYPVINN_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/HypVINN_sagittal_v1.0.0.pkl")
-
+YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"

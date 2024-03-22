@@ -1,0 +1,7 @@
+url:
+- "https://b2share.fz-juelich.de/api/files/7133b542-733b-4cc6-a284-5c333ff25f78"
+
+checkpoint:
+  axial: "checkpoints/HypVINN_axial_v1.0.0.pkl"
+  coronal: "checkpoints/HypVINN_coronal_v1.0.0.pkl"
+  sagittal: "checkpoints/HypVINN_sagittal_v1.0.0.pkl"
