@@ -20,17 +20,29 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: ./dev
+
       - name: Setup Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           architecture: 'x64'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('dev/doc-requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install package
         run: |
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
           python -m pip install --progress-bar off dev/.[doc]
+          
       - name: Build doc
         run: PYTHONPATH=$PYTHONPATH:./dev TZ=UTC sphinx-build ./dev/doc ./doc-build/dev -W --keep-going
+      
       - name: Upload documentation
         uses: actions/upload-artifact@v4
         with:
