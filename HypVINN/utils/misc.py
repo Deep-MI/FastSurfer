@@ -1,13 +1,27 @@
+from pathlib import Path
 
-def create_expand_output_directory(args):
-    import os
-    root_path = args.out_dir
-    paths = [root_path,
-             os.path.join(root_path, 'mri', 'transforms'),
-             os.path.join(root_path, 'stats')]
-    if args.qc_snapshots:
-        paths.append(os.path.join(root_path, 'qc_snapshots'))
+
+def create_expand_output_directory(
+        subject_dir: Path,
+        qc_snapshots: bool = False,
+) -> None:
+    """
+    Create the output directories for HypVINN.
+
+    Parameters
+    ----------
+    subject_dir : Path
+        The path to the subject directory.
+    qc_snapshots : bool, default=False
+        Whether the qc_snapshots directory should be created.
+    """
+    paths = [
+        subject_dir,
+        subject_dir / "mri" / "transforms",
+        subject_dir / "stats",
+    ]
+    if qc_snapshots:
+        paths.append(subject_dir / "qc_snapshots")
 
     for path in paths:
-        if path is not None and not os.path.exists(path):
-            os.makedirs(path)
+        path.mkdir(parents=True, exist_ok=True)

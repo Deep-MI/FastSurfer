@@ -107,11 +107,6 @@ class HypVINN(FastSurferCNNBase):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x, scale_factor, weight_factor, scale_factor_out=None):
-        """
-        Computational graph
-        :param tensor x: input image
-        :return tensor: prediction logits
-        """
         # Weight factor [wT1,wT2] has 3 stages [1,0],[0.5,0.5],[0,1],
         #if the weight factor is [0.5,0.5] the automatically weights (s_weights) are passed
         #If there is a 1 in the comparison the automatically weights will be replace by the first weight_factors pass
@@ -161,13 +156,12 @@ class HypVINN(FastSurferCNNBase):
         return logits
 
 
-
 _MODELS = {
     "HypVinn": HypVINN,
 }
 
 
-def build_model(cfg):
+def build_model(cfg) -> HypVINN:
     """
     Build requested model.
 
@@ -181,9 +175,8 @@ def build_model(cfg):
     model
         Object of the initialized model.
     """
-    assert (
-        cfg.MODEL.MODEL_NAME in _MODELS.keys()
-    ), f"Model {cfg.MODEL.MODEL_NAME} not supported"
+    if cfg.MODEL.MODEL_NAME not in _MODELS:
+        raise AssertionError(f"Model {cfg.MODEL.MODEL_NAME} not supported")
     params = {k.lower(): v for k, v in dict(cfg.MODEL).items()}
-    model = _MODELS[cfg.MODEL.MODEL_NAME](params, padded_size=cfg.DATA.PADDED_SIZE)
-    return model
+    model_type = _MODELS[cfg.MODEL.MODEL_NAME]
+    return model_type(params, padded_size=cfg.DATA.PADDED_SIZE)

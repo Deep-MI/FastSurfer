@@ -12,30 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from HypVINN.config.hypvinn_files import HYPVINN_LUT
+from pathlib import Path
 
 
-def compute_stats(orig_path,prediction_path,save_dir,threads):
+def compute_stats(
+        orig_path: Path,
+        prediction_path: Path,
+        save_dir: Path,
+        threads: int,
+) -> int | str:
     from collections import namedtuple
+
     from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT
     from FastSurferCNN.segstats import main
     from HypVINN.config.hypvinn_files import HYPVINN_STATS_NAME
     from HypVINN.config.hypvinn_global_var import FS_CLASS_NAMES
 
-    args = namedtuple('ArgNamespace', ['normfile', 'i', 'o', 'excludedid',
-                                        'ids', 'merged_labels','robust',
-                                        'threads','patch_size','device','lut','allow_root'])
+    args = namedtuple(
+        "ArgNamespace",
+        ["normfile", "i", "o", "excludedid", "ids", "merged_labels",
+         "robust", "threads", "patch_size", "device", "lut", "allow_root"])
 
-    labels = list()
-
-    for key,value in FS_CLASS_NAMES.items():
-        if value !=0:
-            labels.append(value)
+    labels = [v for v in FS_CLASS_NAMES.values() if v != 0]
 
     args.normfile = orig_path
     args.segfile = prediction_path
-    args.segstatsfile = os.path.join(save_dir, HYPVINN_STATS_NAME)
+    args.segstatsfile = save_dir / HYPVINN_STATS_NAME
     args.excludeid = [0]
     args.ids = labels
     args.merged_labels = []
@@ -43,12 +45,6 @@ def compute_stats(orig_path,prediction_path,save_dir,threads):
     args.threads = threads
     args.patch_size = 32
     args.device = "auto"
-    args.lut = os.path.join(FASTSURFER_ROOT,"FastSurferCNN", "config", "FreeSurferColorLUT.txt")
+    args.lut = FASTSURFER_ROOT / "FastSurferCNN/config/FreeSurferColorLUT.txt"
     args.allow_root = False
-    flag = main(args)
-
-    return flag
-
-
-
-
+    return main(args)

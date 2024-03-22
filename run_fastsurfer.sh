@@ -647,7 +647,6 @@ if [[ -z "$asegdkt_statsfile" ]]
     asegdkt_statsfile="${sd}/${subject}/stats/aseg+DKT.stats"
 fi
 
-
 if [[ -z "$cereb_segfile" ]]
   then
     cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"

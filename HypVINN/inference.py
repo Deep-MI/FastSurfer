@@ -12,24 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from time import time
+from typing import Optional
+
 import torch
 import numpy as np
-import time
 from tqdm import tqdm
-
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from HypVINN.models.networks import build_model
-from FastSurferCNN.data_loader.augmentation import ToTensorTest, ZeroPad2DTest
-from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
-from HypVINN.data_loader.dataset import HypoVINN_dataset
+
 import FastSurferCNN.utils.logging as logging
 from FastSurferCNN.utils.common import find_device
+from FastSurferCNN.data_loader.augmentation import ToTensorTest, ZeroPad2DTest
+from HypVINN.models.networks import build_model
+from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
+from HypVINN.data_loader.dataset import HypoVINN_dataset
+from HypVINN.run_prediction import ModalityMode
 
 logger = logging.get_logger(__name__)
 
+
 class Inference:
-    def __init__(self, cfg,args):
+    def __init__(self, cfg, args):
 
         self._threads = getattr(args, "threads", 1)
         torch.set_num_threads(self._threads)
@@ -66,9 +70,10 @@ class Inference:
         self.model = self.setup_model(cfg)
         self.model_name = self.cfg.MODEL.MODEL_NAME
 
-
-
-    def setup_model(self, cfg=None):
+    def setup_model(
+            self,
+            cfg: Optional["yacs.config.CfgNode"] = None,
+    ) -> torch.nn.Module:
         if cfg is not None:
             self.cfg = cfg
 
@@ -124,16 +129,15 @@ class Inference:
 
     #TODO check is possible to modify to CerebNet inference mode from RAS directly to LIA (CerebNet.Inference._predict_single_subject)
     @torch.no_grad()
-    def eval(self, val_loader, pred_prob, out_scale=None):
+    def eval(self, val_loader: DataLoader, pred_prob: torch.Tensor, out_scale=None):
         self.model.eval()
 
         start_index = 0
-        for batch_idx, batch in tqdm(enumerate(val_loader),total=len(val_loader)):
+        for batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
 
-            images, scale_factors,weight_factors = (batch['image'].to(self.device),
-                                                    batch['scale_factor'].to(self.device),
-                                                    batch['weight_factor'].to(self.device))
-
+            images = batch["image"].to(self.device)
+            scale_factors = batch["scale_factor"].to(self.device)
+            weight_factors = batch["weight_factor"].to(self.device)
 
             pred = self.model(images, scale_factors, weight_factors, out_scale)
 
@@ -156,18 +160,44 @@ class Inference:
 
         return pred_prob
 
-    def run(self, subject_name, modalities, orig_zoom, pred_prob, out_res=None,mode='multi'):
+    def run(
+            self,
+            subject_name: str,
+            modalities,
+            orig_zoom,
+            pred_prob,
+            out_res=None,
+            mode: ModalityMode = "t1t2",
+    ):
         # Set up DataLoader
-        test_dataset = HypoVINN_dataset(subject_name, modalities, orig_zoom, self.cfg, mode = mode,
-                                                     transforms=transforms.Compose([ZeroPad2DTest((self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE)), ToTensorTest()]))
+        test_dataset = HypoVINN_dataset(
+            subject_name,
+            modalities,
+            orig_zoom,
+            self.cfg,
+            mode=mode,
+            transforms=transforms.Compose(
+                [
+                    ZeroPad2DTest(
+                        (self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE),
+                    ),
+                    ToTensorTest(),
+                ],
+            ),
+        )
 
-        test_data_loader = DataLoader(dataset=test_dataset, shuffle=False,
-                                      batch_size=self.cfg.TEST.BATCH_SIZE)
+        test_data_loader = DataLoader(
+            dataset=test_dataset,
+            shuffle=False,
+            batch_size=self.cfg.TEST.BATCH_SIZE,
+        )
 
         # Run evaluation
-        start = time.time()
+        start = time()
         pred_prob = self.eval(test_data_loader, pred_prob, out_scale=out_res)
-        logger.info("{} Inference on {} finished in {:0.4f} seconds".format(self.cfg.DATA.PLANE,subject_name, time.time()-start))
+        logger.info(
+            f"{self.cfg.DATA.PLANE} Inference on {subject_name} finished in "
+            f"{time()-start:0.4f} seconds"
+        )
 
         return pred_prob
-
