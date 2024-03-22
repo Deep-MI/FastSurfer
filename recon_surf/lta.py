@@ -56,11 +56,11 @@ def writeLTA(
 
     fields = ("dims", "delta", "Mdc", "Pxyz_c")
     for field in fields:
-        if not field in src_header:
+        if field not in src_header:
             raise ValueError(
                 "writeLTA Error: src_header format missing field: {}".format(field)
             )
-        if not field in dst_header:
+        if field not in dst_header:
             raise ValueError(
                 "writeLTA Error: dst_header format missing field: {}".format(field)
             )

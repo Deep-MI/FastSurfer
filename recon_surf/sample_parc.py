@@ -23,7 +23,6 @@ import sys
 import numpy as np
 import nibabel.freesurfer.io as fs
 import nibabel as nib
-from numpy import typing as npt
 from scipy import sparse
 from scipy.sparse.csgraph import connected_components
 from lapy import TriaMesh
@@ -208,8 +207,8 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     # create box with 2*rvox+1 side length to fully contain ball
     # and get coordiante offsets with zero at center
     ri = np.floor(rvox).astype(int)
-    l = np.arange(-ri,ri+1)
-    xv, yv, zv = np.meshgrid(l, l, l)
+    ll = np.arange(-ri,ri+1)
+    xv, yv, zv = np.meshgrid(ll, ll, ll)
     # modify distances slightly, to avoid randomness when
     # sorting with different radius values for voxels that otherwise
     # have the same distance to center

@@ -23,7 +23,6 @@ import os
 from typing import Tuple, List
 import numpy as np
 import sys
-import nibabel.freesurfer.io as fs
 from create_annotation import (
     map_multiple_labels,
     read_colortable,

@@ -95,12 +95,12 @@ def get_adjM(trias: npt.NDArray[int], n: int):
     adjM : np.ndarray (bool) shape (n,n)
         Symmetric sparse CSR adjacency matrix, true corresponds to an edge.
     """
-    I = trias
-    J = I[:, [1, 2, 0]]
+    T = trias
+    J = T[:, [1, 2, 0]]
     # flatten
-    I = I.flatten()
+    T = T.flatten()
     J = J.flatten()
-    adj = sparse.csr_matrix((np.ones(I.shape, dtype=bool), (I, J)), shape=(n, n))
+    adj = sparse.csr_matrix((np.ones(T.shape, dtype=bool), (T, J)), shape=(n, n))
     # if max adj is > 1 we have non manifold or mesh trias are not oriented
     # if matrix is not symmetric, we have a boundary
     # in case we have boundary, make sure this is a symmetric matrix
@@ -195,14 +195,14 @@ def mode_filter(
     # of all ids to fill, find neighbors
     nbrs = adjM[ids, :]
     # get vertex ids (I, J ) of each edge in nbrs
-    [I, J, V] = sparse.find(nbrs)
+    [II, JJ, VV] = sparse.find(nbrs)
     # check if we have neighbors with -1 or 0
     # this could produce problems in the loop below, so lets stop for now:
-    nlabels = labels[J]
+    nlabels = labels[JJ]
     if any(nlabels == -1) or any(nlabels == 0):
         sys.exit("there are -1 or 0 labels in neighbors!")
     # create sparse matrix with labels at neighbors
-    nlabels = sparse.csr_matrix((labels[J], (I, J)))
+    nlabels = sparse.csr_matrix((labels[JJ], (II, JJ)))
     # print("nlabels: {}".format(nlabels))
     from scipy.stats import mode
 
