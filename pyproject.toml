@@ -47,6 +47,7 @@ dependencies = [
     'torchio>=0.18.83',
     'tqdm>=4.64',
 ]
+
 [project.optional-dependencies]
 doc = [
     'furo!=2023.8.17',
@@ -68,12 +69,22 @@ doc = [
     'torchvision',
     'scikit-learn',
 ]
+style = [
+    'bibclean',
+    'black',
+    'codespell',
+    'isort',
+    'pydocstyle[toml]',
+    'ruff',
+]
 all = [
-    'fastsurfer[doc]'
+    'fastsurfer[doc]',
+    'fastsurfer[style]',
 ]
 full = [
     'fastsurfer[all]',
 ]
+
 [project.urls]
 homepage = 'https://fastsurfer.org'
 documentation = 'https://fastsurfer.org'
@@ -82,3 +93,72 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 
 [tool.setuptools]
 packages = ['FastSurferCNN','CerebNet','recon_surf']
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+(
+      __pycache__
+    | .github
+    | setup.py
+    | Tutorial/
+    | checkpoints/
+    | doc/
+    | env/
+    | images/
+)
+'''
+
+[tool.isort]
+profile = 'black'
+multi_line_output = 3
+line_length = 88
+py_version = 310
+extend_skip_glob = [
+    'setup.py',
+    'Tutorial/*',
+    'checkpoints/*',
+    'doc/*',
+    'env/*',
+    'images/*',
+]
+
+[tool.pydocstyle]
+convention = 'numpy'
+ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
+match = '^(?!setup|__init__|test_).*\.py'
+match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*'
+add_ignore = 'D100,D104,D107'
+
+[tool.ruff]
+line-length = 88
+extend-exclude = [
+    "doc",
+    "build",
+    "setup.py",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.pytest.ini_options]
+minversion = '6.0'
+addopts = '--durations 20 --junit-xml=junit-results.xml --verbose'
+filterwarnings = []
+
+[tool.coverage.run]
+branch = true
+cover_pylib = false
+omit = [
+    '**/__init__.py',
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    'pragma: no cover',
+    'if __name__ == .__main__.:',
+]
+precision = 2
+
