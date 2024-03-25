@@ -33,7 +33,7 @@ jobs:
     runs-on: ci-gpu
     needs: prepare-job
     steps:
-    - name: Build Docker Image and conver to Singularity
+    - name: Build Docker Image and convert to Singularity
       run: |
         cd $RUNNER_SINGULARITY_IMGS
         FILE="fastsurfer-gpu.sif"
@@ -87,4 +87,4 @@ jobs:
     steps:
     - name: Test Log Files For Error Messages
       run: |
-        python3 test/quick_test/test_error_messages.py $RUNNER_FS_OUTPUT_LOGS
+        python3 test/quick_test/test_errors.py $RUNNER_FS_OUTPUT_LOGS

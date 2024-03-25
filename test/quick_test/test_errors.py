@@ -1,8 +1,8 @@
-import os
 import sys
 import yaml
 import unittest
 import argparse
+from pathlib import Path
 
 
 class TestErrors(unittest.TestCase):
@@ -10,7 +10,9 @@ class TestErrors(unittest.TestCase):
     A test case class to check for the word "error" in the given log files.
     """
 
-    error_file_path = "./test/quick_test/data/errors.yaml"
+    error_file_path: Path = Path("./test/quick_test/data/errors.yaml")
+
+    error_flag = False
 
     @classmethod
     def setUpClass(cls):
@@ -26,10 +28,11 @@ class TestErrors(unittest.TestCase):
             cls.errors = data.get('errors', [])
             cls.whitelist = data.get('whitelist', [])
 
+        # Retrieve the log files in given log directory
         try:
-            # Retrieve the log files in given log directory
-            cls.log_files = [os.path.join(cls.log_directory, file)
-                             for file in os.listdir(cls.log_directory) if file.endswith('.log')]
+            # cls.log_directory = Path(cls.log_directory)
+            print(cls.log_directory)
+            cls.log_files = [file for file in cls.log_directory.iterdir() if file.suffix == '.log']
         except FileNotFoundError:
             raise FileNotFoundError(f"Log directory not found at path: {cls.log_directory}")
 
@@ -41,34 +44,41 @@ class TestErrors(unittest.TestCase):
         and checks that none of the keywords are in any line.
         """
 
-        files_with_keywords = {}
-        # errors = ["error", "exception", "traceback"]
-        # white_list = ["without error", "correcting", "distance error", ]
+        files_with_errors = {}
 
         # Check if any of the keywords are in the log files
         for log_file in self.log_files:
-            lines_with_keywords = []
+            rel_path = log_file.relative_to(self.log_directory)
+            print(f"Checking file: {rel_path}")
             try:
-                with open(log_file, 'r') as file:
-                    for line_number, line in enumerate(file, start=1):
-                        if any(keyword in line.lower() for keyword in self.errors):
+                with log_file.open('r') as file:
+                    lines = file.readlines()
+                    lines_with_errors = []
+                    for line_number, line in enumerate(lines, start=1):
+                        if any(error in line.lower() for error in self.errors):
                             if not any(white in line.lower() for white in self.whitelist):
-                                lines_with_keywords.append((line_number, line.strip()))
+                                # Get two lines before and after the current line
+                                context = []
+                                for i in range(-3, 2):
+                                    if 0 <= line_number + i < len(lines):
+                                        context.append(lines[line_number + i])
+                                lines_with_errors.append((line_number, context))
+                                print(lines_with_errors)
+                                files_with_errors[rel_path] = lines_with_errors
+                                self.error_flag = True
             except FileNotFoundError:
                 raise FileNotFoundError(f"Log file not found at path: {log_file}")
                 continue
 
-        if lines_with_keywords:
-            files_with_keywords[log_file] = lines_with_keywords
-
-        # Print the lines with keywords for each file
-        for file, lines in files_with_keywords.items():
-            print(f"\nIn file {file}, found errors in the following lines:")
+        # Print the lines and context with errors for each file
+        for file, lines in files_with_errors.items():
+            print(f"\nFile {file}, in line {files_with_errors[file][0][0]}:")
             for line_number, line in lines:
-                print(f"Line {line_number}: {line}")
+                print(*line, sep = "")
 
         # Assert that there are no lines with any of the keywords
-        self.assertEqual(files_with_keywords, {}, f"Found errors in the following files: {files_with_keywords}")
+        self.assertEqual(self.error_flag, False, f"Found errors in the following files: {files_with_errors}")
+        print("No errors found in any log files.")
 
 
 if __name__ == '__main__':
@@ -80,7 +90,7 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser(description="Test for errors in log files.")
-    parser.add_argument('log_directory', type=str, help="The directory containing the log files.")
+    parser.add_argument('log_directory', type=Path, help="The directory containing the log files.")
 
     args = parser.parse_args()
 

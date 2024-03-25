@@ -1,9 +1,11 @@
 errors:
  - "error"
+ - "error:"
  - "exception"
  - "traceback"
 
 whitelist:
-    - "error"
-    - "exception"
-    - "traceback"
+    - "without error"
+    - "not included"
+    - "distance"
+    - "correcting"

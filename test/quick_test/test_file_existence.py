@@ -1,8 +1,8 @@
-import os
 import sys
 import yaml
 import unittest
 import argparse
+from pathlib import Path
 
 
 class TestFileExistence(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestFileExistence(unittest.TestCase):
     This class defines test methods to verify if each file specified in the YAML file exists in the given folder.
     """
 
-    file_path = "./test/quick_test/data/files.yaml"
+    file_path: Path = Path("./test/quick_test/data/files.yaml")
 
     @classmethod
     def setUpClass(cls):
@@ -23,18 +23,17 @@ class TestFileExistence(unittest.TestCase):
         """
 
         # Open the file_path and read the files into an array
-        with open(cls.file_path, 'r') as file:
+        with cls.file_path.open('r') as file:
             data = yaml.safe_load(file)
             cls.files = data.get('files', [])
 
         # Get a list of all files in the folder recursively
         cls.filenames = []
-        for root, dirs, files in os.walk(cls.folder_path):
-
-            for file in files:
+        for file in cls.folder_path.glob('**/*'):
+            if file.is_file():
                 # Get the relative path from the current directory to the file
-                rel_path = os.path.relpath(os.path.join(root, file), TestFileExistence.folder_path)
-                cls.filenames.append(rel_path)
+                rel_path = file.relative_to(cls.folder_path)
+                cls.filenames.append(str(rel_path))
 
     def test_file_existence(self):
         """
@@ -51,6 +50,8 @@ class TestFileExistence(unittest.TestCase):
             print(f"Checking for file: {file}")
             self.assertIn(file, self.filenames, f"File '{file}' does not exist in the folder.")
 
+        print("All files present")
+
 
 if __name__ == '__main__':
     """
@@ -61,7 +62,7 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser(description="Test for file existence based on a YAML file.")
-    parser.add_argument('folder_path', type=str, help="The path to the folder to check.")
+    parser.add_argument('folder_path', type=Path, help="The path to the folder to check.")
 
     args = parser.parse_args()
 
