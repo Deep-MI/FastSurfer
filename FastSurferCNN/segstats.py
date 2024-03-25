@@ -1839,8 +1839,7 @@ def pv_calc(
                 Range=maxes.get(lab, 0.0) - mins.get(lab, 0.0),
             )
     if merged_labels is not None:
-        append_merged_labels(
-            table,
+        table.extend(calculate_merged_labels(
             merged_labels,
             voxel_counts,
             robust_voxel_counts,
@@ -1850,7 +1849,7 @@ def pv_calc(
             sums,
             sums_2,
             eps,
-        )
+        ))
 
     if return_maps:
         maps = {
@@ -1864,20 +1863,46 @@ def pv_calc(
     return table
 
 
-def append_merged_labels(
-        table: list[PVStats],
+def calculate_merged_labels(
         merged_labels: VirtualLabel,
-        voxel_counts: dict[_IntType, float],
-        robust_voxel_counts: dict[_IntType, float],
+        voxel_counts: dict[_IntType, int],
+        robust_voxel_counts: dict[_IntType, int],
         volumes: dict[_IntType, float],
         mins: dict[_IntType, float] | None = None,
         maxes: dict[_IntType, float] | None = None,
         sums: dict[_IntType, float] | None = None,
         sums_of_squares: dict[_IntType, float] | None = None,
-        eps: float = 1e-6) -> None:
+        eps: float = 1e-6,
+) -> list[PVStats]:
     """
     Calculate the statistics for meta-labels, i.e. labels based on other labels
     (`merge_labels`). Add respective items to `table`.
+
+    Parameters
+    ----------
+    merged_labels : VirtualLabel
+        A dictionary of key 'merged id' to value list of ids it references.
+    voxel_counts : dict[int, int]
+        A dict of voxel counts for labels in the image/referenced in `merged_labels`.
+    robust_voxel_counts : dict[int, int]
+        A dict of the robust number of voxels referenced in `merged_labels`.
+    volumes : dict[int, float]
+        A dict of the volumes associated with each label.
+    mins : dict[int, float], optional
+        A dict of the minimum intensity associated with each label.
+    maxes : dict[int, float], optional
+        A dict of the minimum intensity associated with each label.
+    sums : dict[int, float], optional
+        A dict of the sums of voxel intensities associated with each label.
+    sums_of_squares : dict[int, float], optional
+        A dict of the sums of squares of voxel intensities associated with each label.
+    eps : float, default=1e-6
+        An epsilon value for numeric stability.
+
+    Yields
+    ------
+    PVStats
+        A dictionary per entry in `merged_labels`.
     """
     def num_robust_voxels(lab):
         return robust_voxel_counts.get(lab, 0)
@@ -1926,7 +1951,7 @@ def append_merged_labels(
                         group,
                         num_voxels - 1,
                     )
-        table.append(stats)
+        yield stats
 
 
 def global_stats(

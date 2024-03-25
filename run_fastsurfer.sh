@@ -325,18 +325,15 @@ case $key in
   --sid) subject="$1" ; shift ;;
   --sd) sd="$1" ; shift ;;
   --t1) t1="$1" ; shift ;;
-  --t2) t2="$2" ; shift ;;
+  --t2) t2="$1" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
   --conformed_name) conformed_name="$1" ; shift ;;
   --norm_name) norm_name="$1" ; shift ;;
   --norm_name_t2) norm_name_t2="$1" ; shift ;;
   --seg|--asegdkt_segfile|--aparc_aseg_segfile)
-    if [[ "$key" == "--seg" ]]
+    if [[ "$key" != "--asegdkt_segfile" ]]
     then
-      echo "WARNING: --seg <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
-    elif [[ "$key" == "--aparc_aseg_segfile" ]]
-    then
-      echo "WARNING: --aparc_aseg_segfile <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>"
+      echo "WARNING: --$key <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
     fi
     asegdkt_segfile="$1"
     shift # past value
@@ -418,8 +415,8 @@ case $key in
   #=============================================================
   --no_hypothal) run_hypvinn_module="0" ;;
   # several options that set a variable
-  --hypo_segfile) hypo_segfile="$2" ; shift ;;
-  --hypo_statsfile) hypo_statsfile="$2" ; shift ;;
+  --hypo_segfile) hypo_segfile="$1" ; shift ;;
+  --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
   --reg_mode)
     mode=$(echo "$1" | tr "[:upper:]" "[:lower:]")
     if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then
@@ -690,9 +687,25 @@ then
   exit 1;
 fi
 
+if [[ "$run_surf_pipeline" == "1" ]] || [[ "$run_talairach_registration" == "true" ]]
+then
+  msg="The surface pipeline and the talairach-registration in the segmentation pipeline require a FreeSurfer License"
+  if [[ -z "$FS_LICENSE" ]]
+  then
+    echo "ERROR: $msg, but no license was provided via --fs_license or the FS_LICENSE environment variable."
+    exit 1;
+  elif [[ ! -f "$FS_LICENSE" ]]
+  then
+    echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."
+    exit 1;
+  fi
+fi
+
 
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
+
+source "${reconsurfdir}/functions.sh"
 
 if [[ -f "$seg_log" ]]; then log_existed="true"
 else log_existed="false"
@@ -730,7 +743,7 @@ then
          --viewagg_device "$viewagg" --device "$device" "${allow_root[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
-    echo "${cmd[@]@Q}" | tee -a "$seg_log"
+    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"
     exit_code="${PIPESTATUS[0]}"
     if [[ "${exit_code}" == 2 ]]
@@ -744,18 +757,20 @@ then
     fi
   fi
   if [[ -n "$t2" ]]
-    then
-      {
-        printf "INFO: Copying T2 file to %s..." "${copy_name_T2}"
-        cmd=("nib-convert" "$t2" "$copy_name_T2")
-        "${cmd[@]}" 2>&1
+  then
+    {
+      echo "INFO: Copying T2 file to ${copy_name_T2}..."
+      cmd=("nib-convert" "$t2" "$copy_name_T2")
+      echo_quoted "${cmd[@]}"
+      "${cmd[@]}" 2>&1
 
-        echo "INFO: Robust scaling (partial conforming) of T2 image..."
-        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-             --no_vox_size --no_img_size "$t2" "$conformed_name_t2")
-        "${cmd[@]}" 2>&1
-        echo "Done."
-      } | tee -a "$seg_log"
+      echo "INFO: Robust scaling (partial conforming) of T2 image..."
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
+           --no_vox_size --no_img_size "$t2" "$conformed_name_t2")
+      echo_quoted "${cmd[@]}"
+      "${cmd[@]}" 2>&1
+      echo "Done."
+    } | tee -a "$seg_log"
   fi
 
   if [[ "$run_biasfield" == "1" ]]
@@ -765,7 +780,7 @@ then
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
            --rescale "$norm_name" --aseg "$asegdkt_segfile" --threads "$threads")
       echo "INFO: Running N4 bias-field correction"
-      echo "${cmd[@]@Q}"
+      echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
     } | tee -a "$seg_log"
     if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -779,7 +794,7 @@ then
       cmd=("$reconsurfdir/talairach-reg.sh" "$sd/$subject/mri" "$atlas3T" "$seg_log")
       {
         echo "INFO: Running talairach registration"
-        echo "${cmd[@]@Q}"
+        echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
       "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -815,7 +830,7 @@ then
              "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
       fi
       {
-        echo "${cmd[@]@Q}"
+        echo_quoted "${cmd[@]}"
         "${cmd[@]}" 2>&1
       } | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -835,7 +850,7 @@ then
            --out "$norm_name_t2" --threads "$threads" --uchar)
       {
         echo "INFO: Running N4 bias-field correction of the t2"
-        echo "${cmd[@]@Q}"
+        echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
       "${cmd[@]}" 2>&1 | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -874,7 +889,7 @@ then
          --threads "$threads" "${cereb_flags[@]}" "${allow_root[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
-    echo "${cmd[@]@Q}" | tee -a "$seg_log"
+    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"  # no tee, directly logging to $seg_log
     if [[ "${PIPESTATUS[0]}" -ne 0 ]]
     then
@@ -899,7 +914,7 @@ then
       cmd+=("$t1")
       if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
     fi
-    echo "${cmd[@]@Q}" | tee -a "$seg_log"
+    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"
     if [[ "${PIPESTATUS[0]}" -ne 0 ]]
     then
@@ -922,7 +937,7 @@ then
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
        "${surf_flags[@]}" "${allow_root[@]}")
-  echo "${cmd[@]@Q}" | tee -a "$seg_log"
+  echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${cmd[@]}"
   if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
   popd || return

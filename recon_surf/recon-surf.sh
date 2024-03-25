@@ -156,101 +156,63 @@ while [[ $# -gt 0 ]]
 do
 # make key lowercase
 key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+shift # past argument
 
 case $key in
-    --sid)
-    subject="$2"
-    shift # past argument
+  --sid)
+    subject="$1"
     shift # past value
     ;;
-    --sd)
-    export SUBJECTS_DIR="$2"
-    shift # past argument
+  --sd)
+    export SUBJECTS_DIR="$1"
     shift # past value
     ;;
-    --t1)
-    t1="$2"
-    shift # past argument
+  --t1)
+    t1="$1"
     shift # past value
     ;;
-    --asegdkt_segfile | --aparc_aseg_segfile | --seg)
+  --asegdkt_segfile | --aparc_aseg_segfile | --seg)
     if [ "$key" == "--seg" ] || [ "$key" == "--aparc_aseg_segfile" ]; then
-      echo "WARNING: $1 <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
+      echo "WARNING: $key <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
     fi
-    asegdkt_segfile="$2"
-    shift # past argument
+    asegdkt_segfile="$1"
     shift # past value
     ;;
-    --vol_segstats)
+  --vol_segstats)
     echo "WARNING: the --vol_segstats flag is obsolete and will be removed, --vol_segstats ignored."
-    shift # past argument
     ;;
-    --segstats_legacy)
-    # Dev Option, maybe remove
-    segstats_legacy="true"
-    shift
-    ;;
-    --fstess)
-    fstess=1
-    shift # past argument
-    ;;
-    --fsqsphere)
-    fsqsphere=1
-    shift # past argument
-    ;;
-    --fsaparc)
-    fsaparc=1
-    shift # past argument
-    ;;
-    --no_surfreg)
-    fssurfreg=0
-    shift # past argument
-    ;;
-    --3t)
-    atlas3T="true"
-    shift
-    ;;
-    --parallel)
-    DoParallel=1
-    shift # past argument
-    ;;
-    --threads)
-    threads="$2"
-    shift # past argument
+  --segstats_legacy) segstats_legacy="true" ;;
+  --fstess) fstess=1 ;;
+  --fsqsphere) fsqsphere=1 ;;
+  --fsaparc) fsaparc=1 ;;
+  --no_surfreg) fssurfreg=0 ;;
+  --3t) atlas3T="true" ;;
+  --parallel) DoParallel=1 ;;
+  --threads)
+    threads="$1"
     shift # past value
     ;;
-    --py)
-    python="$2"
-    shift # past argument
+  --py)
+    python="$1"
     shift # past value
     ;;
-    --fs_license)
-    if [ -f "$2" ]; then
-        export FS_LICENSE="$2"
+  --fs_license)
+    if [ -f "$1" ]; then
+      export FS_LICENSE="$1"
     else
-        echo "Provided FreeSurfer license file $2 could not be found. Make sure to provide the full path and name. Exiting..."
-        exit 1;
+      echo "Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name. Exiting..."
+      exit 1;
     fi
-    shift # past argument
     shift # past value
     ;;
-    --ignore_fs_version)
-    check_version=0
-    shift # past argument
-    ;;
-    --no_fs_t1 )
-    get_t1=0
-    shift # past argument
-    ;;
-    --allow_root)
-    allow_root="--allow_root"
-    shift # past argument
-    ;;
-    -h|--help)
+  --ignore_fs_version) check_version=0 ;;
+  --no_fs_t1 ) get_t1=0 ;;
+  --allow_root) allow_root="--allow_root" ;;
+  -h|--help)
     usage
     exit
     ;;
-    *)    # unknown option
+  *)    # unknown option
     echo "ERROR: Flag $key unrecognized."
     exit 1
     ;;
@@ -411,7 +373,7 @@ echo "Log file for recon-surf.sh" >> "$LF"
   echo " "
   echo "export SUBJECTS_DIR=$SUBJECTS_DIR"
   echo "cd $(pwd)"
-  echo "$0 ${inputargs[*]}"
+  echo_quoted "$0" "${inputargs[@]}"
   echo " "
   cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
   echo "$VERSION"
@@ -1010,6 +972,7 @@ fi
       {
         # calculate brainvol stats and aseg stats with segstats.py
         cmd_=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+              --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
               measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
               "SupraTentorial" "SupraTentorialNotVent" "SubCortGray"
               "EstimatedTotalIntraCranialVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
@@ -1048,7 +1011,7 @@ fi
          "--excl-ctxgmwm" --supratent --subcortgray --in "$mdir/norm.mgz" --in-intensity-name norm
          "--in-intensity-units" MR --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler
          "--ctab" "$FREESURFER_HOME/ASegStatsLUT.txt" --subject "$subject")
-    RunIt "${cmd[*]@Q}" "$LF"
+    RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
   else
     # segstats.py version of the mri_segstats call
     cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sd "$sd"
@@ -1061,7 +1024,7 @@ fi
     #           "EstimatedTotalIntraCranialVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
     #           "CerebralWhiteMatter" "rhCortex" "lhCortex" "Cortex" "TotalGray" "rhSurfaceHoles"
     #           "lhSurfaceHoles" "SurfaceHoles" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
-    RunIt "${cmd[*]@Q}" "$LF"
+    RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
   fi
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
@@ -1070,7 +1033,7 @@ fi
   # takes a few mins
   #cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   if [[ "$segstats_legacy" == "true" ]] ; then
-    cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
+    cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $statsdir/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
     RunIt "$cmd" "$LF"
   else
     #
@@ -1080,7 +1043,7 @@ fi
           --sd "$sd" --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
           measures --file "$statsdir/" --import "Mask" "VentricleChoroidVol"
           "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter")
-    RunIt "${cmd_[*]@Q}" "$LF"
+    RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
   fi
 
 
