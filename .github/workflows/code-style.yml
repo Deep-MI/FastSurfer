@@ -3,9 +3,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
 on:
-  pull_request:
-  push:
-    branches: [dev]
+#  pull_request:
+#  push:
+#    branches: [dev]
   workflow_dispatch:
 
 jobs:
