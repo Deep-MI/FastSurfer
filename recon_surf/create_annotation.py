@@ -214,7 +214,7 @@ def map_multiple_labels(
         # map label from src to target
         if os.path.exists(src_label_name):
             # print("Mapping label {}.{} ...".format(hemi,l_name))
-            l, v = mapSurfLabel(
+            ll, vv = mapSurfLabel(
                 src_label_name, out_label_name, trg_white, trg_sid, rev_mapping
             )
         else:
@@ -224,10 +224,10 @@ def map_multiple_labels(
                 )
             else:
                 print("\nWARNING: Label file missing {}\n".format(src_label_name))
-                l = []
-                v = []
-        all_labels.append(l)
-        all_values.append(v)
+                ll = []
+                vv = []
+        all_labels.append(ll)
+        all_values.append(vv)
     return all_labels, all_values
 
 
@@ -260,13 +260,13 @@ def read_multiple_labels(
     for l_name in label_names:
         label_file = os.path.join(input_dir, hemi + "." + l_name + ".label")
         if os.path.exists(label_file):
-            l, v = fs.read_label(label_file, read_scalars=True)
+            ll, vv = fs.read_label(label_file, read_scalars=True)
         else:
             print("\nWARNING: Label file missing {}\n".format(label_file))
-            l = []
-            v = []
-        all_labels.append(l)
-        all_values.append(v)
+            ll = []
+            vv = []
+        all_labels.append(ll)
+        all_values.append(vv)
     return all_labels, all_values
 
 

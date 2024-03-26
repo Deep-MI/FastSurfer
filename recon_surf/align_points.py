@@ -197,8 +197,6 @@ def find_affine(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     ValueError
         Shape of points should be identical.
     """
-    from scipy.linalg import pinv
-
     if p_mov.shape != p_dst.shape:
         raise ValueError(
             "Shape of points should be identical, but mov = {}, dst = {} expecting Nx3".format(

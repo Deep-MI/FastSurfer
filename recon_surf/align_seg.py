@@ -308,7 +308,7 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
             2035,
         ]
     )
-    l = lhids.size
+    ls = lhids.size
     label_stats = sitk.LabelShapeStatisticsImageFilter()
     label_stats.Execute(seg)
     centroids = np.empty([2 * lhids.size, 3])
@@ -342,7 +342,7 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
 
     # now right is left and left is right (re-order)
     centroids_flipped = np.concatenate(
-        (centroids_flipped[l::, :], centroids_flipped[0:l, :])
+        (centroids_flipped[ls::, :], centroids_flipped[0:ls, :])
     )
     # register centroids to LR-flipped versions
     T = align.find_rigid(centroids, centroids_flipped)

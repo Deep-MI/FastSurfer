@@ -254,11 +254,8 @@ def mapSurfLabel(
     inside[src_label] = True
     values = np.zeros(smax)
     values[src_label] = src_values
-    inside_trg = inside[rev_mapping]
     trg_label = np.nonzero(inside[rev_mapping])[0]
     trg_values = values[rev_mapping[trg_label]]
-    # print(trg_values)
-    # print(trg_label.size)
     if out_label_name is not None:
         writeSurfLabel(out_label_name, trg_sid, trg_label, trg_values, trg_surf)
     return trg_label, trg_values
