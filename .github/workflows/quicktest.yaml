@@ -42,7 +42,7 @@ jobs:
           echo "SIF File does not exist. Building file."
           PYTHONPATH=$PYTHONPATH
           cd $PYTHONPATH
-          python3 Docker/build.py --device cuda --dry_run --tag fastsurfer_gpu:cuda | bash
+          python3 Docker/build.py --device cuda --tag fastsurfer_gpu:cuda
           cd $RUNNER_SINGULARITY_IMGS
           singularity build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
         else

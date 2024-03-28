@@ -58,10 +58,7 @@ class TestErrors(unittest.TestCase):
                         if any(error in line.lower() for error in self.errors):
                             if not any(white in line.lower() for white in self.whitelist):
                                 # Get two lines before and after the current line
-                                context = []
-                                for i in range(-3, 2):
-                                    if 0 <= line_number + i < len(lines):
-                                        context.append(lines[line_number + i])
+                                context = lines[max(0, line_number-2):min(len(lines), line_number+3)]
                                 lines_with_errors.append((line_number, context))
                                 print(lines_with_errors)
                                 files_with_errors[rel_path] = lines_with_errors

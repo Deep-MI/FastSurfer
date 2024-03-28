@@ -22,7 +22,7 @@ This job sets up the necessary environments for the workflow. It depends on the 
 
 ### Build Singularity Image
 
-This job builds a Docker image and converts it to a Singularity image. It depends on the successful completion of the `prepare-job`. The Docker image is built using a Python script `Docker/build.py` with the `--device cuda --dry_run --tag fastsurfer_gpu:cuda` flags. The Docker image is then converted to a Singularity image.
+This job builds a Docker image and converts it to a Singularity image. It depends on the successful completion of the `prepare-job`. The Docker image is built using a Python script `Docker/build.py` with the `--device cuda --tag fastsurfer_gpu:cuda` flags. The Docker image is then converted to a Singularity image.
 
 ### Run FastSurfer
 
@@ -41,17 +41,18 @@ This job tests for errors in log files after running FastSurfer. It runs on a se
 To use this workflow, you need to have a self-hosted runner labeled `ci-gpu` set up on your machine. You also need to update the environment variables of the runner, by going to `/home/your_runner/.env` file and adding the following environment variables with the actual paths you want to use.
 
 
-RUNNER_FS_MRI_DATA: Path to MRI Data
+### Environment variables
+`RUNNER_FS_MRI_DATA`: Path to MRI Data
 
-RUNNER_FS_OUTPUT: Path to Output directory
+`RUNNER_FS_OUTPUT`: Path to Output directory
 
-RUNNER_FS_LICENSE: Path to License directory
+`RUNNER_FS_LICENSE`: Path to License directory
 
-RUNNER_SINGULARITY_IMGS: Path to where Singularity images should be stored
+`RUNNER_SINGULARITY_IMGS`: Path to where Singularity images should be stored
 
-RUNNER_FS_OUTPUT_FILES: Path to output files to be tested
+`RUNNER_FS_OUTPUT_FILES`: Path to output files to be tested
 
-RUNNER_FS_OUTPUT_LOGS: Path to output log files to check for errors
+`RUNNER_FS_OUTPUT_LOGS`: Path to output log files to check for errors
 
 
 Once everything is set up, you can trigger the workflow manually from the GitHub Actions tab in your repository, as well as by pushing code to the repository.
