@@ -14,7 +14,6 @@ from typing import Dict, Optional
 
 import sys
 import os
-import subprocess
 
 # here i added the relative path because sphinx was not able
 # to locate FastSurferCNN module directly for autosummary
@@ -216,7 +215,5 @@ def linkcode_resolve(domain, info):
         anchor = "#:~:text=" + quote(anchor.split(".")[-1])
     else:
         anchor = ""
-    # Get the current branch name
-    current_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).strip().decode("utf-8")
-    result = f"{gh_url}/blob/{current_branch}/{filename}.py{anchor}"
+    result = f"{gh_url}/blob/stable/{filename}.py{anchor}"
     return result
