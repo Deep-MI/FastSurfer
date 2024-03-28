@@ -1,0 +1,11 @@
+errors:
+ - "error"
+ - "error:"
+ - "exception"
+ - "traceback"
+
+whitelist:
+    - "without error"
+    - "not included"
+    - "distance"
+    - "correcting"
