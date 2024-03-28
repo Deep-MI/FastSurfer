@@ -1,3 +1,20 @@
+#!/bin/python
+
+# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from concurrent.futures import Executor, Future
 import subprocess
 from concurrent.futures import Executor, Future
 from dataclasses import dataclass
@@ -23,7 +40,9 @@ class MessageBuffer:
             raise ValueError("Can only append another MessageBuffer!")
 
         return MessageBuffer(
-            out=self.out + other.out, err=self.err + other.err, retcode=other.retcode
+            out=self.out + other.out,
+            err=self.err + other.err,
+            retcode=other.retcode,
         )
 
     def __iadd__(self, other: "MessageBuffer"):
@@ -126,8 +145,8 @@ class Popen(subprocess.Popen):
             if i > 0:
                 self.kill()
                 raise RuntimeError(
-                    "The process {} did not stop properly in Popen.finish, "
-                    "abandoning.".format(self)
+                    f"The process {self} did not stop properly in Popen.finish, "
+                    "abandoning."
                 )
             i += 1
         if i == 0:
