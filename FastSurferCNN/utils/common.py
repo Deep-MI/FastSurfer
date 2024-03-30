@@ -102,7 +102,7 @@ def find_device(
             giga = 1024**3
             logger.info(
                 f"Found {total_gpu_memory/giga:.1f} GB GPU memory, but "
-                f"{min_memory/giga:.f} GB was required."
+                f"{min_memory/giga:.1f} GB was required."
             )
             device = torch.device("cpu")
 
