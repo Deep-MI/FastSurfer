@@ -480,8 +480,8 @@ def add_two_help_messages(parser: argparse.ArgumentParser) -> None:
 
     Parameters
     ----------
-    parser: argparse.ArgumentParser
-        parser to add the flags to
+    parser : argparse.ArgumentParser
+        Parser to add the flags to.
     """
     def this_msg(msg: str, flag: str) -> str:
         import sys
@@ -584,7 +584,7 @@ def check_shape_affine(
         Name of image 2.
 
     Raises
-    -------
+    ------
     RuntimeError
         If shapes or affines are not the same.
     """
@@ -612,8 +612,8 @@ def parse_files(
         Path to SUBJECTS_DIR, where subject directories are.
     subject_id : str, optional
         The subject_id string.
-    require_measurefile: bool, default=False
-        require the measurefile to exist.
+    require_measurefile : bool, default=False
+        Require the measurefile to exist.
 
     Returns
     -------
@@ -727,12 +727,12 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     Parameters
     ----------
     args : object
-        Parameter object as defined by `make_arguments().parse_args()`
+        Parameter object as defined by `make_arguments().parse_args()`.
 
     Returns
     -------
     Literal[0], str
-        Either as a successful return code or a string with an error message
+        Either as a successful return code or a string with an error message.
     """
     from time import perf_counter_ns
     from FastSurferCNN.utils.common import assert_no_root
@@ -1356,6 +1356,7 @@ def preproc_image(
         data = np.sqrt(data)
     return data
 
+
 def seg_borders(
     _array: _ArrayType,
     label: np.integer | bool,
@@ -1367,13 +1368,13 @@ def seg_borders(
 
     Parameters
     ----------
-    _array: numpy.ndarray
+    _array : numpy.ndarray
         Image to compute borders from, typically either a label image or a binary mask.
-    label: int, bool
+    label : int, bool
         Which classes to consider for border computation (True/False for binary mask).
-    out: nt.NDArray[bool], optional
+    out : nt.NDArray[bool], optional
         The array for inplace computation.
-    cmp_dtype: npt.DTypeLike, default=int8
+    cmp_dtype : npt.DTypeLike, default=int8
         The data type to use for border laplace computation.
 
     Returns
@@ -1417,10 +1418,10 @@ def borders(
     ----------
     _array : _ArrayType
         Input labeled image or binary image.
-    labels : Iterable[np.int], bool
+    labels : Iterable[int], bool
         List of labels for which borders will be computed.
         If labels is True, _array is treated as a binary mask.
-    max_label : np.int, optional
+    max_label : int, optional
         The maximum label ot consider. If None, the maximum label in the array is used.
     six_connected : bool, default=True
         If True, 6-connected borders (must share a face) are computed,
@@ -1684,14 +1685,11 @@ def pv_calc(
     maps : dict[str, np.ndarray], optional
         Only returned, if return_maps is True:
         A dictionary with the 5 meta-information pv-maps:
-        nbr: An image of alternative labels that were considered instead of the voxel's
-            label.
+        nbr: The alternative labels that were considered instead of the voxel's label.
         nbr_means: The local mean intensity of the label nbr at the specific voxel.
         seg_means: The local mean intensity of the primary label at the specific voxel.
         mixing_coeff: The partial volume of the primary label at the location.
-        nbr_mixing_coeff: The partial volume of the alternative (nbr) label at the
-            location.
-
+        nbr_mixing_coeff: The partial volume of the alternative (nbr) label.
     """
     input_checker = {
         "seg": (seg, np.integer),
@@ -2167,7 +2165,7 @@ def pv_calc_patch(
         the image.
     borders : dict[int, npt.NDArray[bool]]
         Dictionary containing the borders for each label.
-    seg : numpy.typing.NDArray[numpy.integer]
+    seg : numpy.typing.NDArray[int]
         The segmentation (full image) defining the labels.
     pv_guide : numpy.ndarray
         The (full) image with intensities to guide the PV calculation.
@@ -2360,8 +2358,10 @@ def patch_neighbors(
     "npt.NDArray[float]",
 ]:
     """
-    Calculate the neighbor statistics of labels for a specific patch. The patch is
-    defined by patch_padded_large, patch_in_gc, patch_shrink6,
+    Calculate the neighbor statistics of labels for a specific patch.
+
+    The patch is defined by `slicer_large_patch`, `slicer_large_to_small`,
+    `slicer_small_to_patch`, and `slicer_large_to_patch`.
 
     Parameters
     ----------
@@ -2369,7 +2369,7 @@ def patch_neighbors(
         A sequence of all labels that we want to compute the PV for.
     pv_guide : numpy.ndarray
         The (full) image with intensities to guide the PV calculation.
-    seg : numpy.typing.NDArray[numpy.integer]
+    seg : numpy.typing.NDArray[int]
         The segmentation (full image) defining the labels.
     border_patch : npt.NDArray[bool]
         Binary mask for the current patch, True, where a voxel is considered to be a
