@@ -35,9 +35,9 @@ function RunIt()
     echo "$timecmd $cmd" | tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else
-    echo $cmd | tee -a $LF
-    $timecmd $cmd 2>&1 | tee -a $LF
-    if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
+    echo "$cmd" | tee -a "$LF"
+    $timecmd $cmd 2>&1 | tee -a "$LF"
+    if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
   fi
 }
 
@@ -121,14 +121,14 @@ function softlink_or_copy()
   else
     {
       echo_quoted "${ln_cmd[@]}"
-      $timecmd "${ln_cmd[@]}"
+      $timecmd "${ln_cmd[@]}" 2>&1
       if [ "${PIPESTATUS[0]}" -ne 0 ]
       then
         echo_quoted "${cp_cmd[@]}"
-        $timecmd "${cp_cmd[@]}"
+        $timecmd "${cp_cmd[@]}" 2>&1
         if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
       fi
-    } 2>&1 | tee -a "$LF"
+    } | tee -a "$LF"
   fi
 }
 
@@ -140,7 +140,7 @@ function echo_quoted()
   do
     if [[ "${i/ /}" != "$i" ]] ; then j="%q" ; else j="%s" ; fi
     printf "%s$j" "$sep" "$i"
-    sep=$IFS
+    sep=" "
   done
   echo ""
 }

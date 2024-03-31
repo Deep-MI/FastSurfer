@@ -346,35 +346,35 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     # a comparison between double and single-precision evaluations.
     advanced.add_argument(
         "--mixing_coeff",
-        type=str,
+        type=Path,
         dest="mix_coeff",
         default="",
         help="Save the mixing coefficients (default: off).",
     )
     advanced.add_argument(
         "--alternate_labels",
-        type=str,
+        type=Path,
         dest="nbr",
         default="",
         help="Save the alternate labels (default: off).",
     )
     advanced.add_argument(
         "--alternate_mixing_coeff",
-        type=str,
+        type=Path,
         dest="nbr_mix_coeff",
         default="",
         help="Save the alternate labels' mixing coefficients (default: off).",
     )
     advanced.add_argument(
         "--seg_means",
-        type=str,
+        type=Path,
         dest="seg_means",
         default="",
         help="Save the segmentation labels' means (default: off).",
     )
     advanced.add_argument(
         "--alternate_means",
-        type=str,
+        type=Path,
         dest="nbr_means",
         default="",
         help="Save the alternate labels' means (default: off).",
@@ -746,6 +746,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         subjects_dir = Path(subjects_dir)
     subject_id = str(getattr(args, "sid", None))
     legacy_freesurfer = bool(getattr(args, "legacy_freesurfer", False))
+    manager_kwargs = {}
 
     # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
     # measurefile
@@ -759,9 +760,8 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         brainvolstats_only = pvfile is None
         if brainvolstats_only:
             print("No files are defined via -pv/--pvfile or -norm/--normfile:")
-            if not legacy_freesurfer:
-                return "But legacy mode is not enabled, so those are required."
             print("Only computing brainvol stats in legacy mode.")
+            manager_kwargs["compat"] = True
     except ValueError as e:
         return e.args[0]
 
@@ -773,7 +773,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
 
     # the manager object supports preloading of files (see below) for io parallelization
     # and calculates the measure
-    manager = Manager(args)
+    manager = Manager(args, **manager_kwargs)
     from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
     read_lut = manager.make_read_hook(read_classes_from_lut)
     if lut_file := getattr(args, "lut", None):
@@ -867,7 +867,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     manager.compute_non_derived_pv(compute_threads)
 
     if brainvolstats_only:
-        # if we are
+        # if we are not computing partial volume effects, do not perform pv_calc
         try:
             manager.wait_write_brainvolstats(segstatsfile)
         except RuntimeError as e:
@@ -885,24 +885,29 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     save_maps = any(getattr(args, n, "") for n in names)
     out = pv_calc(seg_data, pv_data, norm_data, labels, return_maps=save_maps, **kwargs)
 
+    _io_futures = []
     if save_maps:
         table, maps = out
         dtypes = [np.int16] + [np.float32] * 4
         for name, dtype in zip(names, dtypes):
-            if not bool(file := getattr(args, name, "")):
+            if not bool(file := getattr(args, name, "")) or file == Path():
                 # skip "fullview"-files that are not defined
                 continue
-            try:
-                print(f"Saving {name} to {file}...")
-                from FastSurferCNN.data_loader.data_utils import save_image
+            print(f"Saving {name} to {file}...")
+            from FastSurferCNN.data_loader.data_utils import save_image
 
-                _header = seg.header.copy()
-                _header.set_data_dtype(dtype)
-                save_image(_header, seg.affine, maps[name], file, dtype)
-            except Exception:
-                from traceback import print_exc
-
-                print_exc()
+            _header = seg.header.copy()
+            _header.set_data_dtype(dtype)
+            _io_futures.append(
+                manager.executor.submit(
+                    save_image,
+                    _header,
+                    seg.affine,
+                    maps[name],
+                    file,
+                    dtype,
+                ),
+            )
         print("Done.")
     else:
         table: list[PVStats] = out
@@ -936,6 +941,11 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
           f"{segstatsfile}.")
     duration = (perf_counter_ns() - start) / 1e9
     print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
+
+    for _io_fut in _io_futures:
+        if (e := _io_fut.exception()) is not None:
+            logging.getLogger(__name__).exception(e)
+
     return 0
 
 
@@ -2458,4 +2468,10 @@ if __name__ == "__main__":
     import sys
 
     args = make_arguments(helpformatter=True)
-    sys.exit(main(args.parse_args()))
+    opts = args.parse_args()
+    if getattr(opts, "out_dir", None) is None:
+        from os import environ as env
+
+        if (sd := env.get("SUBJECTS_DIR")) is not None:
+            setattr(opts, "out_dir", sd)
+    sys.exit(main(opts))

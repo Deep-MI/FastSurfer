@@ -20,12 +20,24 @@ if TYPE_CHECKING:
 
 MeasureTuple = tuple[str, str, int | float, str]
 ImageTuple = tuple["nib.analyze.SpatialImage", "np.ndarray"]
+UnitString = Literal["unitless", "mm^3"]
 MeasureString = Union[str, "Measure"]
-AnyBufferType = Union[dict[str, MeasureTuple], ImageTuple, "lapy.TriaMesh",
-                      "npt.NDArray[float]", "pd.DataFrame"]
-T_BufferType = TypeVar("T_BufferType",
-                       bound=(ImageTuple | dict[str, MeasureTuple] |
-                              Union["lapy.TriaMesh", "np.ndarray", "pd.DataFrame"]))
+AnyBufferType = Union[
+    dict[str, MeasureTuple],
+    ImageTuple,
+    "lapy.TriaMesh",
+    "npt.NDArray[float]",
+    "pd.DataFrame",
+]
+T_BufferType = TypeVar(
+    "T_BufferType",
+    bound=Union[
+        ImageTuple,
+        dict[str, MeasureTuple],
+        "lapy.TriaMesh",
+        "np.ndarray",
+        "pd.DataFrame",
+    ])
 DerivedAggOperation = Literal["sum", "ratio", "by_vox_vol"]
 AnyMeasure = Union["AbstractMeasure", str]
 PVMode = Literal["vox", "pv"]
@@ -44,6 +56,10 @@ class ReadFileHook(Protocol[T_BufferType]):
     def __call__(self, file: Path, blocking: False) -> None: ...
 
     def __call__(self, file: Path, b: bool = True) -> Optional[T_BufferType]: ...
+
+
+class _DefaultFloat(float):
+    pass
 
 
 def read_measure_file(path: Path) -> dict[str, MeasureTuple]:
@@ -65,16 +81,22 @@ def read_measure_file(path: Path) -> dict[str, MeasureTuple]:
                       f"the file does not exist.")
     with open(path, "r") as fp:
         lines = list(fp.readlines())
+    vox_line = list(filter(lambda l: l.startswith("# VoxelVolume_mm3 "), lines))
     lines = filter(lambda l: l.startswith("# Measure "), lines)
 
     def to_measure(line: str) -> tuple[str, MeasureTuple]:
-        data = line.removeprefix("# Measure ").strip()
+        data_tup = line.removeprefix("# Measure ").strip()
         import re
-        key, name, desc, sval, unit = re.split("\\s*,\\s*", data)
+        key, name, desc, sval, unit = re.split("\\s*,\\s*", data_tup)
         value = float(sval) if "." in sval else int(sval)
         return key, (name, desc, value, unit)
 
-    return dict(map(to_measure, lines))
+    data = dict(map(to_measure, lines))
+    if len(vox_line) > 0:
+        vox_vol = float(vox_line[-1].split(" ")[2].strip())
+        data["vox_vol"] = ("Voxel volume", "The volume of a voxel", vox_vol, "mm^3")
+
+    return data
 
 
 def read_volume_file(path: Path) -> ImageTuple:
@@ -336,7 +358,8 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
         return updated
 
     @abc.abstractmethod
-    def _parsable_args(self) -> list[str]: ...
+    def _parsable_args(self) -> list[str]:
+        ...
 
     def set_args(self, **kwargs: str) -> None:
         """
@@ -368,8 +391,10 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
             If an arg-style follows a keyword-arg-style argument, or if a keyword value
             is redefined, or a keyword is not valid.
         """
+
         def kwerror(i, args, msg) -> RuntimeError:
             return RuntimeError(f"Error parsing arg {i} in {args}: {msg}")
+
         _pargs = self._parsable_args()
         if len(args) > len(_pargs):
             raise ValueError(
@@ -451,12 +476,12 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
         ...
 
     def __init__(
-        self,
-        file: Path,
-        name: str,
-        description: str,
-        unit: str,
-        read_hook: ReadFileHook[T_BufferType],
+            self,
+            file: Path,
+            name: str,
+            description: str,
+            unit: str,
+            read_hook: ReadFileHook[T_BufferType],
     ):
         self._file = file
         self._callback = read_hook
@@ -517,17 +542,24 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
     read_file = staticmethod(read_measure_file)
 
     def __init__(
-        self,
-        key: str,
-        measurefile: Path,
-        name: str = "N/A",
-        description: str = "N/A",
-        unit: str = "unitless",
-        read_file: Optional[ReadFileHook[dict[str, MeasureTuple]]] = None,
+            self,
+            key: str,
+            measurefile: Path,
+            name: str = "N/A",
+            description: str = "N/A",
+            unit: UnitString = "unitless",
+            read_file: Optional[ReadFileHook[dict[str, MeasureTuple]]] = None,
+            vox_vol: Optional[float] = None,
     ):
         self._key: str = key
-        super().__init__(measurefile, name, description, unit,
-                         self.read_file if read_file is None else read_file)
+        super().__init__(
+            measurefile,
+            name,
+            description,
+            unit,
+            self.read_file if read_file is None else read_file,
+        )
+        self._vox_vol: Optional[float] = vox_vol
 
     def _compute(self) -> int | float:
         """
@@ -548,10 +580,10 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         return ["key", "measurefile"]
 
     def set_args(
-        self,
-        key: str | None = None,
-        measurefile: str | None = None,
-        **kwargs: str,
+            self,
+            key: str | None = None,
+            measurefile: str | None = None,
+            **kwargs: str,
     ) -> None:
         if measurefile is not None:
             kwargs["file"] = measurefile
@@ -580,6 +612,35 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
                 f"does not exist and no subjects dir or subject id are defined."
             )
 
+    def get_vox_vol(self) -> float:
+        """
+        Returns the voxel volume.
+
+        Returns
+        -------
+        float
+            The voxel volume associated with the imported measure.
+
+        Raises
+        ------
+        RuntimeError
+            If the voxel volume was not defined.
+        """
+        if self._vox_vol is None:
+            raise RuntimeError(f"The voxel volume of {self} has never been specified.")
+        return self._vox_vol
+
+    def set_vox_vol(self, value: float):
+        self._vox_vol = value
+
+    def read_subject(self, subject_dir: Path) -> bool:
+        if super().read_subject(subject_dir):
+            vox_vol_tup = self._data.get("vox_vol", None)
+            if isinstance(vox_vol_tup, tuple) and len(vox_vol_tup) > 2:
+                self._vox_vol = vox_vol_tup[2]
+            return True
+        return False
+
 
 class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
     """
@@ -589,12 +650,12 @@ class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
     read_file = staticmethod(read_mesh_file)
 
     def __init__(
-        self,
-        surface_file: Path,
-        name: str,
-        description: str,
-        unit: str,
-        read_mesh: Optional[ReadFileHook["lapy.TriaMesh"]] = None,
+            self,
+            surface_file: Path,
+            name: str,
+            description: str,
+            unit: UnitString,
+            read_mesh: Optional[ReadFileHook["lapy.TriaMesh"]] = None,
     ):
         super().__init__(
             surface_file,
@@ -642,11 +703,11 @@ class PVMeasure(AbstractMeasure):
     read_file = None
 
     def __init__(
-        self,
-        classes: ClassesType,
-        name: str,
-        description: str,
-        unit: Literal["mm^3"] = "mm^3",
+            self,
+            classes: ClassesType,
+            name: str,
+            description: str,
+            unit: Literal["mm^3"] = "mm^3",
     ):
         if unit != "mm^3":
             raise ValueError("unit must be mm^3 for PVMeasure!")
@@ -743,9 +804,15 @@ class VolumeMeasure(Measure[ImageTuple]):
 
     read_file = staticmethod(read_volume_file)
 
-    def __init__(self, segfile: Path, classes_or_cond: ClassesOrCondType, name: str,
-                 description: str, unit: Literal["unitless", "mm^3"] = "unitless",
-                 read_file: Optional[ReadFileHook[ImageTuple]] = None):
+    def __init__(
+            self,
+            segfile: Path,
+            classes_or_cond: ClassesOrCondType,
+            name: str,
+            description: str,
+            unit: UnitString = "unitless",
+            read_file: Optional[ReadFileHook[ImageTuple]] = None,
+    ):
         if callable(classes_or_cond):
             self._classes: Optional[ClassesType] = None
             self._cond: _ToBoolCallback = classes_or_cond
@@ -814,12 +881,17 @@ class VolumeMeasure(Measure[ImageTuple]):
 
 class MaskMeasure(VolumeMeasure):
 
-    def __init__(self, maskfile: Path, name: str, description: str,
-                 unit: Literal["unitless", "mm^3"] = "unitless",
-                 threshold: float = 0.5,
-                 # sign: MaskSign = "abs", frame: int = 0,
-                 # erode: int = 0, invert: bool = False,
-                 read_file: Optional[ReadFileHook[ImageTuple]] = None):
+    def __init__(
+            self,
+            maskfile: Path,
+            name: str,
+            description: str,
+            unit: UnitString = "unitless",
+            threshold: float = 0.5,
+            # sign: MaskSign = "abs", frame: int = 0,
+            # erode: int = 0, invert: bool = False,
+            read_file: Optional[ReadFileHook[ImageTuple]] = None,
+    ):
         self._threshold: float = threshold
         # self._sign: MaskSign = sign
         # self._invert: bool = invert
@@ -870,16 +942,15 @@ ParentsTuple = tuple[float, AnyMeasure]
 
 
 class TransformMeasure(Measure, metaclass=abc.ABCMeta):
-
     read_file = staticmethod(read_transform_file)
 
     def __init__(
-        self,
-        lta_file: Path,
-        name: str,
-        description: str,
-        unit: str,
-        read_lta: Optional[ReadFileHook["npt.NDArray[float]"]] = None,
+            self,
+            lta_file: Path,
+            name: str,
+            description: str,
+            unit: str,
+            read_lta: Optional[ReadFileHook["npt.NDArray[float]"]] = None,
     ):
         super().__init__(
             lta_file,
@@ -1111,8 +1182,9 @@ class DerivedMeasure(AbstractMeasure):
         return False
 
     def __call__(self) -> int | float:
-        """Compute dependent measures and accumulate them according to the
-        operation."""
+        """
+        Compute dependent measures and accumulate them according to the operation.
+        """
         factor_value = [(s, m()) for s, m in self.parents_items()]
         isint = all(isinstance(v, int) for _, v in factor_value)
         isint &= all(np.isclose(s, np.round(s)) for s, _ in factor_value)
@@ -1126,8 +1198,14 @@ class DerivedMeasure(AbstractMeasure):
         elif self._operation == "by_vox_vol":
             if len(self._parents) != 1:
                 raise self.invalid_len_vox_vol()
+            vox_vol = self.get_vox_vol()
+            if isinstance(vox_vol, _DefaultFloat):
+                logging.getLogger(__name__).warning(
+                    f"The vox_vol in {self} was unexpectedly not initialized; using "
+                    f"{vox_vol}!"
+                )
             # ratio should always be float / could be partial voxels
-            return float(values[0]) / self.get_vox_vol()
+            return float(values[0]) / vox_vol
         else:  # operation == "ratio"
             if len(self._parents) != 2:
                 raise self.invalid_len_ratio()
@@ -1144,10 +1222,17 @@ class DerivedMeasure(AbstractMeasure):
             voxel volume of the first parent
         """
         _types = (VolumeMeasure, DerivedMeasure)
+        _type = ImportedMeasure
+        fallback = None
         for p in self.parents:
-            if isinstance(p, _types) and (_vox_vol := p.get_vox_vol()) is not None:
-                return _vox_vol
-        return None
+            if isinstance(p, _types) and (_vvol := p.get_vox_vol()) is not None:
+                return _vvol
+            if isinstance(p, _type) and (_vvol := p.get_vox_vol()) is not None:
+                if isinstance(_vvol, _DefaultFloat):
+                    fallback = _vvol
+                else:
+                    return _vvol
+        return fallback
 
     def _parsable_args(self) -> list[str]:
         return ["parents", "operation"]
@@ -1167,6 +1252,7 @@ class DerivedMeasure(AbstractMeasure):
                 if hit is None:
                     return 1., p
                 return 1. if hit.group(1).strip() else float(hit.group(1)), hit.group(2)
+
             self._parents = list(map(parse, re.split("\\s+", stripped)))
         if operation is not None:
             from typing import get_args as args
@@ -1189,6 +1275,7 @@ class DerivedMeasure(AbstractMeasure):
             if isinstance(measure, str):
                 measure = self._measure_host[measure]
             return measure if isinstance(measure, str) else measure.help()
+
         if self._operation == "sum":
             par = "".join(f" {format_factor(f)}({format_parent(p)})"
                           for f, p in self._parents)
@@ -1202,6 +1289,21 @@ class DerivedMeasure(AbstractMeasure):
                     ") / (".join(format_parent(p[1]) for p in self._parents) + ")")
         else:
             return f"invalid operation {self._operation}"
+
+
+class VoxelClassGenerator(Protocol):
+    """
+    Generator for voxel-based metric Measures.
+    """
+
+    def __call__(
+            self,
+            classes: Sequence[int],
+            name: str,
+            description: str,
+            unit: str,
+    ) -> PVMeasure | VolumeMeasure:
+        ...
 
 
 def format_measure(key: str, data: MeasureTuple) -> str:
@@ -1238,6 +1340,8 @@ class Manager(dict[str, AbstractMeasure]):
         compat : bool, optional
             FreeSurfer compatibility mode (default: legacy_freesurfer in args).
         """
+        from itertools import chain
+        from concurrent.futures import ThreadPoolExecutor, Future
 
         super().__init__()
         self._default_measures = (
@@ -1265,22 +1369,17 @@ class Manager(dict[str, AbstractMeasure]):
         computed_measures = getattr(args, "computed_measures", [])
         imported_measures = getattr(args, "imported_measures", [])
         all_measures = (computed_measures, imported_measures)
-        from itertools import chain
+        msg = "computed measures and imported measures must be sequences"
         if not all(isinstance(i, Sequence) for i in all_measures):
-            raise ValueError(
-                "computed measures and imported measures must be sequences."
-            )
+            raise ValueError(f"{msg}.")
         elif not all(isinstance(i, str) for i in chain(*all_measures)):
-            raise ValueError(
-                "computed measures and imported measures must be sequences of str."
-            )
+            raise ValueError(f"{msg} of str.")
         if measurefile is None:
             measurefile = getattr(args, "measurefile", None)
         if measurefile is not None:
             measurefile = Path(measurefile)
         if compat is None:
             compat = getattr(args, "legacy_freesurfer", False)
-        from concurrent.futures import ThreadPoolExecutor, Future
         if executor is None:
             self._executor = ThreadPoolExecutor(8)
         elif isinstance(executor, ThreadPoolExecutor):
@@ -1304,7 +1403,7 @@ class Manager(dict[str, AbstractMeasure]):
         if ((_segfile := getattr(args, "aseg_replace", None)) or
                 not self._fs_compat and (_segfile := _args_seg) != self._seg_from_file):
             logging.getLogger(__name__).info(
-                f"Replacing segmentation volume to compute volume meaures from with "
+                f"Replacing segmentation volume to compute volume measures from with "
                 f"{_segfile}."
             )
             self._seg_from_file = Path(_segfile)
@@ -1322,7 +1421,8 @@ class Manager(dict[str, AbstractMeasure]):
                 self.add_imported_measure(
                     measure_string,
                     measurefile=measurefile,
-                    read_file=_read_measurefile
+                    read_file=_read_measurefile,
+                    vox_vol=_DefaultFloat(1.0),
                 )
 
         _computed_measures = list(computed_measures)
@@ -1387,6 +1487,8 @@ class Manager(dict[str, AbstractMeasure]):
             Path to the default measurefile to import from (ImportedMeasure argument).
         read_file : ReadFileHook[dict[str, MeasureTuple]]
             Function handle to read and parse the file (argument to ImportedMeasure).
+        vox_vol: float, optional
+            The voxel volume to associate the measure with.
 
         Raises
         ------
@@ -1525,6 +1627,23 @@ class Manager(dict[str, AbstractMeasure]):
             if exception is not None:
                 raise exception
         self._io_futures.clear()
+        vox_vol = None
+
+        def check_needs_init(m: AbstractMeasure) -> bool:
+            return isinstance(m, ImportedMeasure) and isinstance(m.get_vox_vol(),
+                                                                 _DefaultFloat)
+
+        # and an ImportedMeasure is present, but not initialized
+        for m in filter(check_needs_init, self.values()):
+            # lazily load a value for vox_vol
+            if vox_vol is None:
+                # if the _seg_from_file file is loaded into the cache (should be)
+                if self._seg_from_file in self._cache:
+                    read_func = self.make_read_hook(read_volume_file)
+                    img, _ = read_func(self._seg_from_file, blocking=True)
+                    vox_vol = np.prod(img.header.get_zooms())
+            if vox_vol is not None:
+                m.set_vox_vol(vox_vol)
 
     def read_subject_parents(
             self,
@@ -1762,7 +1881,7 @@ class Manager(dict[str, AbstractMeasure]):
         self._default_measures = values
 
     @property
-    def voxel_class(self) -> type[AbstractMeasure]:
+    def voxel_class(self) -> VoxelClassGenerator:
         """
         A callable initializing a Volume-based Measure object with the legacy mode.
 
@@ -1779,7 +1898,7 @@ class Manager(dict[str, AbstractMeasure]):
                 read_file=self.make_read_hook(VolumeMeasure.read_file),
             )
         else:  # FastSurfer compat == None
-            return PVMeasure
+            return partial(PVMeasure)
 
     def default(self, key: str) -> AbstractMeasure:
         """
@@ -1801,7 +1920,8 @@ class Manager(dict[str, AbstractMeasure]):
         - `lhPialTotal`, and `rhPialTotal`
           The volume enclosed in the pial surfaces.
         - `lhWhiteMatterVol`, and `rhWhiteMatterVol`
-          The Volume of the white matter in the segmentation (incl. lateralized WM-hypo).
+          The Volume of the white matter in the segmentation (incl. lateralized
+          WM-hypo).
         - `lhWhiteMatterTotal`, and `rhWhiteMatterTotal`
           The volume enclosed in the white matter surfaces.
         - `lhCortex`, `rhCortex`, and `Cortex`
@@ -2189,6 +2309,7 @@ class Manager(dict[str, AbstractMeasure]):
             For each non-derived and non-PV measure, a future object that is associated
             with the call to the measure.
         """
+
         def run(f: Callable[[], int | float]) -> Future[int | float]:
             out = Future()
             out.set_result(f())
@@ -2298,7 +2419,7 @@ class Manager(dict[str, AbstractMeasure]):
         Raises
         ------
         RuntimeError
-            If errors occured during measure computation.
+            If errors occurred during measure computation.
         """
         errors = list(self.wait_compute())
         if len(errors) != 0:
