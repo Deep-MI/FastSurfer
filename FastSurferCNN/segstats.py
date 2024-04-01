@@ -882,7 +882,8 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         pv_data = pv_preproc_future.result()
 
     names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
-    save_maps = any(getattr(args, n, "") for n in names)
+    save_maps_paths = (getattr(args, n, "") for n in names)
+    save_maps = any(bool(path) and path != Path() for path in save_maps_paths)
     out = pv_calc(seg_data, pv_data, norm_data, labels, return_maps=save_maps, **kwargs)
 
     _io_futures = []

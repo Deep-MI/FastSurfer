@@ -714,7 +714,6 @@ class PVMeasure(AbstractMeasure):
         self._classes = classes
         super().__init__(name, description, unit)
         self._pv_value = None
-        self._vox_vol = 0.
 
     @property
     def vox_vol(self) -> float:
@@ -736,12 +735,8 @@ class PVMeasure(AbstractMeasure):
                 f"The partial volume of {self._name} has not been updated in the "
                 f"PVMeasure object yet!"
             )
-        if self.unit == "unitless":
-            vox_vol, col = 1, "NVoxels"
-        else:
-            vox_vol, col = self._vox_vol, "Volume_mm3"
-        out = self._pv_value[col].item() * vox_vol
-        return out
+        col = "NVoxels" if self.unit == "unitless" else "Volume_mm3"
+        return self._pv_value[col].item()
 
     def _parsable_args(self) -> list[str]:
         return ["classes"]
@@ -2191,8 +2186,7 @@ class Manager(dict[str, AbstractMeasure]):
                 brain_seg_classes.extend(range(2002, 2032))
                 brain_seg_classes.remove(2004)
                 brain_seg_classes.extend((2034, 2035))
-            brainseg_class = self.voxel_class
-            return brainseg_class(
+            return self.voxel_class(
                 brain_seg_classes,
                 "BrainSegVol",
                 "Brain Segmentation Volume",
