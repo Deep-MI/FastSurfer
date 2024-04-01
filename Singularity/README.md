@@ -1,29 +1,29 @@
-# FastSurfer Singularity Image Creation
+# FastSurfer Singularity Support
 
-We host our releases as docker images on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags)
-For use on HPCs or in other cases where Docker is not preferred you can easily create a Singularity image from the Docker images. 
+For use on HPCs (or in other cases where Docker is not available or preferred) you can easily create a Singularity image from the Docker image. 
+Singularity uses its own image format, so the Docker images must be converted (we publish our releases as docker images available on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags)). 
 
-# FastSurfer Singularity Image Creation
-For creating a singularity image from the Dockerhub just run: 
+## Singularity with the official FastSurfer Image
+To create a Singularity image from the official FastSurfer image hosted on Dockerhub just run:
+```bash
+singularity build /home/user/my_singlarity_images/fastsurfer-latest.sif docker://deepmi/fastsurfer:latest
+```
+Singularity images are files - usually with the extension `.sif`. Here, we save the image in `/homer/user/my_singlarity_images`.
+If you want to pick a specific FastSurfer version, you can also change the tag (`latest`) in `deepmi/fastsurfer:latest` to any tag. For example to use the cpu image hosted on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) use the tag `cpu-latest`.
+
+## Building your own FastSurfer Singularity Image
+To build a custom FastSurfer Singularity image, the `Docker/build.py` script supports a flag for direct conversion.
+Simply add `--singularity /home/user/my_singlarity_images/fastsurfer-myimage.sif` to the call, which first builds the image with Docker and then converts the image to Singularity.
+
+If you want to manually convert the local Docker image `fastsurfer:myimage`, run:
 
 ```bash
-cd /home/user/my_singlarity_images
-singularity build fastsurfer-latest.sif docker://deepmi/fastsurfer:latest
+singularity build /home/user/my_singlarity_images/fastsurfer-myimage.sif docker-daemon://fastsurfer:myimage
 ```
 
-Singularity Images are saved as files. Here the _/homer/user/my_singlarity_images_ is the path where you want your file saved.
-You can change _deepmi/fastsurfer:latest_ with any tag provided in our [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags)
+For more information on how to create your own Docker images, see our [Docker guide](../Docker/README.md).
 
-If you want to use a locally available image that you created yourself, instead run:
-
-```bash
-cd /home/user/my_singlarity_images
-singularity build fastsurfer-myimage.sif docker-daemon://fastsurfer:myimage
-```
-
-For how to create your own Docker images see our [Docker guide](../Docker/README.md)
-
-# FastSurfer Singularity Image Usage
+## FastSurfer Singularity Image Usage
 
 After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
 
@@ -59,6 +59,7 @@ Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
+### Singularity without a GPU
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image (replace # with the current version number) and excluding the `--nv` argument in your Singularity exec command as following:
 
 ```bash
@@ -77,7 +78,7 @@ singularity exec --no-home \
                   --parallel --3T
 ```
 
-# Singularity Best Practice
+## Singularity Best Practice
 
 ### Mounting Home
 Do not mount the user home directory into the singularity container as the home directory.
