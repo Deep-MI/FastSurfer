@@ -7,6 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
+import inspect
+from importlib import import_module
 import sys
 import os
 
@@ -201,22 +203,51 @@ bibtex_bibfiles = ["./references.bib"]
 from urllib.parse import quote
 
 
+
+# https://github.com/python-websockets/websockets/blob/e217458ef8b692e45ca6f66c5aeb7fad0aee97ee/docs/conf.py#L102-L134
 def linkcode_resolve(domain, info):
+    # Check if the domain is Python, if not return None
     if domain != "py":
         return None
     if not info["module"]:
         return None
+
+    # Import the module using the module information
+    mod = import_module(info["module"])
+
+    # Check if the fullname contains a ".", indicating it's a method or attribute of
+    # a class
+    if "." in info["fullname"]:
+        objname, attrname = info["fullname"].split(".")
+        # Get the object from the module
+        obj = getattr(mod, objname)
+        try:
+            # Try to get the attribute from the object
+            obj = getattr(obj, attrname)
+        except AttributeError:
+            # If the attribute doesn't exist, return None
+            return None
+    else:
+        # If the fullname doesn't contain a ".", get the object directly from the module
+        obj = getattr(mod, info["fullname"])
+
+    try:
+        # Try to get the source file and line numbers of the object
+        lines, first_line = inspect.getsourcelines(obj)
+    except TypeError:
+        # If the object is not a Python object that has a source file, return None
+        return None
+
+    # Replace "." with "/" in the module name to construct the file path
     filename = quote(info["module"].replace(".", "/"))
+    # If the filename doesn't start with "tests", add a "/" at the beginning
     if not filename.startswith("tests"):
         filename = "/" + filename
-    if "fullname" in info:
-        anchor = info["fullname"]
-        anchor = "#:~:text=" + quote(anchor.split(".")[-1])
-    else:
-        anchor = ""
-    result = f"{gh_url}/blob/stable/{filename}.py{anchor}"
-    return result
 
+    # Construct the URL that points to the source code of the object on GitHub
+    return f"{gh_url}/blob/dev{filename}.py#L{first_line}-L{first_line + len(lines) - 1}"
+
+# Which domains to search in to create links in markdown texts
 myst_ref_domains = ["myst", "std", "py"]
 
 
@@ -228,5 +259,3 @@ re_reference = {
     "re-refid=^README.md#requirements-": "/index.rst#requirements-",
     "re-refid=^../README.md": "/index.rst",
 }
-
-
