@@ -82,9 +82,13 @@ style = [
     'pydocstyle[toml]',
     'ruff',
 ]
+quicktest = [
+    'pandas'
+]
 all = [
     'fastsurfer[doc]',
     'fastsurfer[style]',
+    'fastsurfer[quicktest]',
 ]
 full = [
     'fastsurfer[all]',

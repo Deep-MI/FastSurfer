@@ -1,18 +1,19 @@
-name: FastSurfer Singularity
+name: quicktest
 
 on:
+  pull_request:
   workflow_dispatch:
 
 jobs:
   # Checkout repo
   checkout:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
 
   # Prepare job: Set up Python, Go, Singularity
   prepare-job:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     needs: checkout
     steps:
     - name: Set up Python 3.10
@@ -23,6 +24,10 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '^1.13.1' # The Go version to download (if necessary) and use.
+    - name: Install package
+      run: |
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off .[quicktest]
     - name: Set up Singularity
       uses: eWaterCycle/setup-singularity@v7
       with:
@@ -30,7 +35,7 @@ jobs:
         
   # Build Docker Image and convert it to Singularity
   build-singularity-image:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     needs: prepare-job
     steps:
     - name: Build Docker Image and convert to Singularity
@@ -52,11 +57,19 @@ jobs:
 
   # Run FastSurfer on MRI data
   run-fastsurfer:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     needs: build-singularity-image
     steps:
     - name: Run FastSurfer
       run: |
+        cd $RUNNER_FS_OUTPUT
+        DIRECTORY="subjectX"
+        echo "pwd: $(pwd)"
+        if [ -d "$DIRECTORY" ]; then
+          # if output already exists, delete it and run again
+          echo "Output already exists. Deleting output directory and running FastSurfer again."
+          rm -rf $DIRECTORY
+        fi
         singularity exec --nv \
                       --no-home \
                       --bind $GITHUB_WORKSPACE:/fastsurfer-dev \
@@ -73,7 +86,7 @@ jobs:
 
   # Test file existence
   test-file-existence:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     needs: run-fastsurfer
     steps:
     - name: Test File Existence
@@ -82,9 +95,18 @@ jobs:
 
   # Test for errors in log files
   test-error-messages:
-    runs-on: ci-gpu
-    needs: [run-fastsurfer, test-file-existence]
+    runs-on: self-hosted
+    needs: [test-file-existence]
     steps:
     - name: Test Log Files For Error Messages
       run: |
         python3 test/quick_test/test_errors.py $RUNNER_FS_OUTPUT_LOGS
+
+  # Test seg_stats
+  test-seg-stats:
+    runs-on: self-hosted
+    needs: [test-error-messages]
+    steps:
+    - name: Test seg_stats
+      run: |
+        python3 test/quick_test/test_stats.py $RUNNER_FS_REF_STATS $RUNNER_FS_OUTPUT_STATS

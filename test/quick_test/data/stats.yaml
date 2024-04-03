@@ -1,0 +1,23 @@
+default_threshold: 0.01
+
+thresholds:
+ BrainSegVol: 10
+ BrainSegVolNotVent: 10
+ VentricleChoroidVol: 10
+ lhCortexVol: 10
+ rhCortexVol: 10
+ CortexVol: 10
+ lhCerebralWhiteMatterVol: 10
+ rhCerebralWhiteMatterVol: 10
+ CerebralWhiteMatterVol: 10
+ SubCortGrayVol: 10
+ TotalGrayVol: 10
+ SupraTentorialVol: 10
+ SupraTentorialVolNotVent: 10
+ MaskVol: 10
+ BrainSegVol-to-eTIV: 10
+ MaskVol-to-eTIV: 10
+ lhSurfaceHoles: 10
+ rhSurfaceHoles: 10
+ SurfaceHoles: 10
+ eTIV: 10
