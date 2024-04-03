@@ -1,90 +1,111 @@
-name: FastSurfer Singularity
+name: quicktest
+
+# File: quicktest.yaml
+# Author: Taha Abdullah
+# Created on: 2023-03-04
+# Functionality: This workflow runs some quick integration tests on FastSurfer commits. It checks out the new
+#                FastSurfer repo, sets up Python, builds a Singularity image, runs FastSurfer on sample MRI data, and
+#                runs pytest to check if the results are acceptable
+# Usage: This workflow is triggered on a push or pull-request to the dev and main branch of DeepMI/FastSurfer.
+#        It can also be triggered manually with workflow-dispatch
+
 
 on:
+#  pull_request:
   workflow_dispatch:
 
 jobs:
   # Checkout repo
   checkout:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
 
-  # Prepare job: Set up Python, Go, Singularity
+  # Prepare job: Set up Python, Go, Apptainer
   prepare-job:
-    runs-on: ci-gpu
+    runs-on: self-hosted
     needs: checkout
     steps:
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-    - name: Set up Go 
-      uses: actions/setup-go@v5
-      with:
-        go-version: '^1.13.1' # The Go version to download (if necessary) and use.
+    - name: Install package
+      run: |
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off .[test]
+#    - name: Set up Go
+#      uses: actions/setup-go@v5
+#      with:
+#        go-version: '^1.13.1' # The Go version to download (if necessary) and use.
     - name: Set up Singularity
       uses: eWaterCycle/setup-singularity@v7
       with:
-        singularity-version: 3.8.3
-        
-  # Build Docker Image and convert it to Singularity
-  build-singularity-image:
-    runs-on: ci-gpu
+        singularity-version: 3.8.7
+
+  # Build Docker Image and convert it to Apptainer
+  build-apptainer-image:
+    runs-on: self-hosted
     needs: prepare-job
     steps:
-    - name: Build Docker Image and convert to Singularity
+    - name: Build Docker Image and convert to Apptainer
       run: |
-        cd $RUNNER_SINGULARITY_IMGS
+        cd $RUNNER_FASTSURFER_IMGS
         FILE="fastsurfer-gpu.sif"
         if [ ! -f "$FILE" ]; then
         # If the file does not exist, build the file
           echo "SIF File does not exist. Building file."
-          PYTHONPATH=$PYTHONPATH
-          cd $PYTHONPATH
+          cd $FASTSURFER_HOME
           python3 Docker/build.py --device cuda --tag fastsurfer_gpu:cuda
-          cd $RUNNER_SINGULARITY_IMGS
-          singularity build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
+          cd $RUNNER_FASTSURFER_IMGS
+          apptainer build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
         else
           echo "File already exists"
-          cd $PYTHONPATH
+          cd $FASTSURFER_HOME
         fi
 
   # Run FastSurfer on MRI data
   run-fastsurfer:
-    runs-on: ci-gpu
-    needs: build-singularity-image
+    runs-on: self-hosted
+    needs: build-apptainer-image
     steps:
     - name: Run FastSurfer
       run: |
-        singularity exec --nv \
+        cd $RUNNER_FS_OUTPUT
+        # DIRECTORY="subjectX"
+        echo "pwd: $(pwd)"
+        # if [ -d "$DIRECTORY" ]; then
+        #   # if output already exists, delete it and run again
+        #   echo "Output already exists. Deleting output directory and running FastSurfer again."
+        #   rm -rf $DIRECTORY
+        # fi
+        apptainer exec --nv \
                       --no-home \
                       --bind $GITHUB_WORKSPACE:/fastsurfer-dev \
                       --env FASTSURFER_HOME=/fastsurfer-dev \
                       -B $RUNNER_FS_MRI_DATA:/data \
                       -B $RUNNER_FS_OUTPUT:/output \
                       -B $RUNNER_FS_LICENSE:/fs_license \
-                      $RUNNER_SINGULARITY_IMGS/fastsurfer-gpu.sif \
-                      /fastsurfer/run_fastsurfer.sh \
+                      $RUNNER_FASTSURFER_IMGS/fastsurfer-gpu.sif \
+                      /fastsurfer/brun_fastsurfer.sh \
                       --fs_license /fs_license/.license \
-                      --t1 /data/subjectx/orig.mgz \
-                      --sid subjectX --sd /output \
-                      --parallel --3T
+                      --subject_list /data/subject_list.txt \
+                      --sd /output \
+                      --parallel --3T \
+                      --parallel_subjects surf
 
-  # Test file existence
-  test-file-existence:
-    runs-on: ci-gpu
-    needs: run-fastsurfer
-    steps:
-    - name: Test File Existence
-      run: |
-        python3 test/quick_test/test_file_existence.py $RUNNER_FS_OUTPUT_FILES
-
-  # Test for errors in log files
-  test-error-messages:
-    runs-on: ci-gpu
-    needs: [run-fastsurfer, test-file-existence]
-    steps:
-    - name: Test Log Files For Error Messages
-      run: |
-        python3 test/quick_test/test_errors.py $RUNNER_FS_OUTPUT_LOGS
+  # Run pytest
+  run-pytest:
+      runs-on: self-hosted
+      needs: run-fastsurfer
+      steps:
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install package
+        run: |
+          python -m pip install --progress-bar off --upgrade pip setuptools wheel
+          python -m pip install --progress-bar off .[test]
+      - name : Run pytest
+        run: pytest test/quick_test

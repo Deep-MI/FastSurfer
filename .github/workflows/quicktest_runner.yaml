@@ -1,0 +1,137 @@
+name: quicktest-runner
+
+# File: quicktest_runner.yaml
+# Author: Taha Abdullah
+# Created on: 2023-07-10
+# Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
+#  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
+# Usage: This workflow is triggered on a pull request to the dev and main branch. It can also be triggered manually
+#  with workflow-dispatch.
+# Expected/Used Environment Variables:
+#  - MAMBAPATH: Path to the micromamba binary.
+#  - MAMBAROOT: Root path for micromamba.
+#  - RUNNER_FS_OUTPUT: Path to the directory where FastSurfer output is stored.
+#  - RUNNER_FS_MRI_DATA: Path to the directory where MRI data is stored.
+#  - FREESURFER_HOME: Path to the freesurfer directory.
+#  - FS_LICENSE: Path to the FreeSurfer license file.
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - stable
+  workflow_dispatch:
+
+jobs:
+  # Checkout repo
+  checkout:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+
+  # Create conda environment, install packages, and run Fastsurfer
+  run-fastsurfer:
+    runs-on: self-hosted
+    needs: checkout
+    steps:
+      # Check if the Environment Variables used in further steps are present
+    - name: Check Environment Variables
+      run: |
+        REQUIRED_ENV_VARS=(
+          "MAMBAPATH"
+          "MAMBAROOT"
+          "RUNNER_FS_OUTPUT"
+          "RUNNER_FS_MRI_DATA"
+          "FREESURFER_HOME"
+          "FS_LICENSE"
+        )
+        
+        for VAR_NAME in "${REQUIRED_ENV_VARS[@]}"; do
+          if [ -z "${!VAR_NAME}" ]; then
+            echo "Error: Required environment variable $VAR_NAME is not set"
+            exit 1
+          fi
+        done
+        
+        if [ ! -f "$FS_LICENSE" ]; then
+          echo "Error: FreeSurfer license file does not exist at $FS_LICENSE"
+          exit 1
+        fi
+        
+        if [ ! -d "$FREESURFER_HOME" ]; then
+          echo "Error: FreeSurfer installation directory does not exist at $FREESURFER_HOME"
+          exit 1
+        fi
+      # Set up Python using setup-python@v3 action
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+      # Check if FastSurfer environment already exists
+    - name: Check Environment
+      run: |
+        if [ ! -f "$MAMBAPATH" ]; then
+          echo "FastSurfer environment does not exist. Creating FastSurfer Environment..."
+          echo "HAS_MAMBA=true" >> $GITHUB_OUTPUT
+        else
+          echo "FastSurfer environment exists. Skipping FastSurfer Environment creation..."
+          echo "HAS_MAMBA=false" >> $GITHUB_OUTPUT
+        fi
+      id: check-environment
+      # Create FastSurfer environment if it does not exist
+    - name: Create FastSurfer Environment
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        environment-file: env/fastsurfer.yml
+        micromamba-root-path: $MAMBAROOT
+        micromamba-binary-path: $MAMBAPATH
+        cache-downloads: true
+        cache-environment: true
+        init-shell: none
+      if: steps.check-environment.outputs.HAS_MAMBA == 'true'
+      # Set up cache for python packages
+    - name: Cache Python packages
+      uses: actions/cache@v3
+      with:
+        path: /home/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+      # Install required python packages
+    - name: Install package
+      run: |
+        python -m pip install --progress-bar off --upgrade pip \
+        setuptools wheel
+        python -m pip install --progress-bar off .[test]
+      # Run fastsurfer on list of subjects
+    - name: Run FastSurfer
+      run: |
+        echo "Running FastSurfer..."
+        export FREESURFER_HOME=/freesurfer
+        source $FREESURFER_HOME/SetUpFreeSurfer.sh
+        export FASTSURFER_HOME=$(pwd)
+        export THIS_RUN_OUTDIR=${GITHUB_SHA:0:7}
+        mkdir -p $SUBJECTS_DIR/$THIS_RUN_OUTDIR
+        ./brun_fastsurfer.sh --subject_list $RUNNER_FS_MRI_DATA/subjects_list.txt \
+                             --sd $SUBJECTS_DIR/$THIS_RUN_OUTDIR \
+                             --parallel --threads 4 --3T --parallel_subjects surf
+        export TEST_DIR=$THIS_RUN_OUTDIR
+
+  # Test fastsurfer output
+  run-pytest:
+    runs-on: self-hosted
+    needs: run-fastsurfer
+    steps:
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Cache Python packages
+      uses: actions/cache@v3
+      with:
+        path: /home/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Run pytest
+      run: python -m pytest test/quick_test
