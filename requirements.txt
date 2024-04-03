@@ -103,7 +103,7 @@ packaging==23.2
     #   scikit-image
 pandas==1.5.3
     # via -r requirements.in
-pillow==10.0.1
+pillow==10.3.0
     # via
     #   -r requirements.in
     #   imageio
