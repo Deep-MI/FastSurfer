@@ -1,5 +1,5 @@
-API CerebNet_datasets References
-================================
+CerebNet.datasets
+=================
 
 
 .. currentmodule:: CerebNet.datasets

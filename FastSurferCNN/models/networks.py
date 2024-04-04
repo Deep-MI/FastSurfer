@@ -14,12 +14,13 @@
 
 # IMPORTS
 import numpy as np
-import yacs
+import yacs.config
 import FastSurferCNN.models.interpolation_layer as il
 import FastSurferCNN.models.sub_module as sm
 
 from typing import Dict, Optional, Union
 from torch import Tensor, nn
+
 
 class FastSurferCNNBase(nn.Module):
     """

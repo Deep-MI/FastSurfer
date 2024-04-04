@@ -1,5 +1,5 @@
-API models References
-=====================
+FastSurferCNN.models
+====================
 
 
 .. currentmodule:: FastSurferCNN.models

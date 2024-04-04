@@ -1,5 +1,5 @@
-API CerebNet_models References
-==============================
+CerebNet_models
+===============
 
 
 .. currentmodule:: CerebNet.models

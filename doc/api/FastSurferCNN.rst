@@ -1,5 +1,5 @@
-API References
-==============
+FastSurferCNN
+=============
 
 
 .. currentmodule:: FastSurferCNN

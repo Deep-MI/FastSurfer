@@ -1,5 +1,5 @@
-API CerebNet References
-=======================
+CerebNet
+========
 
 
 .. currentmodule:: CerebNet

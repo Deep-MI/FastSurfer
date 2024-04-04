@@ -7,11 +7,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
-import inspect
-from datetime import date
-from importlib import import_module
-from typing import Dict, Optional
-
 import sys
 import os
 
@@ -19,6 +14,7 @@ import os
 # to locate FastSurferCNN module directly for autosummary
 sys.path.append(os.path.dirname(__file__) + "/..")
 sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
+sys.path.append(os.path.dirname(__file__) + "/sphinx_ext")
 
 project = "FastSurfer"
 author = "FastSurfer Developers"
@@ -54,13 +50,16 @@ extensions = [
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
+    "re_reference",
 ]
 
 # Suppress myst.xref_missing warning and  i.e A target was
 # not found for a cross-reference
 # Reference: https://myst-parser.readthedocs.io/en/latest/configuration.html#build-warnings
-suppress_warnings = ["myst.xref_missing",
-                     "myst.duplicate_def",]
+suppress_warnings = [
+    # "myst.xref_missing",
+    "myst.duplicate_def",
+]
 
 templates_path = ["_templates"]
 exclude_patterns = [
@@ -217,3 +216,17 @@ def linkcode_resolve(domain, info):
         anchor = ""
     result = f"{gh_url}/blob/stable/{filename}.py{anchor}"
     return result
+
+myst_ref_domains = ["myst", "std", "py"]
+
+
+# re-reftarget=(regex) => used in missing-reference
+# re-refuri/refid=(regex) => used in doctree-
+re_reference = {
+    "re-refid=^((../)*)(Singularity|Docker)\\/README\\.md#": "/overview/\\3.md#",
+    "re-reftarget=^\\/overview\\/intro\\.md#": "/index.rst#",
+    "re-refid=^README.md#requirements-": "/index.rst#requirements-",
+    "re-refid=^../README.md": "/index.rst",
+}
+
+

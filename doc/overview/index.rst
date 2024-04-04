@@ -1,14 +1,16 @@
-Overview
-========
+User Guide
+==========
 
 .. toctree::
     :maxdepth: 2
-    
-    README.md
-    FLAGS.md
-    EXAMPLES.md
-    OUTPUT_FILES.md
+
+    INTRO.md
     INSTALL.md
+    EXAMPLES.md
+    FLAGS.md
+    OUTPUT_FILES.md
+    DOCKER.md
+    SINGULARITY.md
     EDITING.md
     SECURITY.md
     CODE_OF_CONDUCT.md

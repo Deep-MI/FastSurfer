@@ -1,5 +1,5 @@
-API utils References
-====================
+FastSurferCNN.utils
+===================
 
 
 .. currentmodule:: FastSurferCNN.utils
