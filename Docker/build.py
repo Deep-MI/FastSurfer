@@ -20,7 +20,6 @@
 import argparse
 import os
 import subprocess
-from itertools import chain
 from pathlib import Path
 from typing import Tuple, Literal, Sequence, Optional, Dict, get_args, cast, List, Callable, Union
 import logging
@@ -229,6 +228,12 @@ def make_parser() -> argparse.ArgumentParser:
         "--tag_dev",
         action="store_true",
         help="Also tag the resulting image as 'fastsurfer:dev'.",
+    )
+    parser.add_argument(
+        "--singularity",
+        type=Path,
+        default=None,
+        help="Specify a singularity file name to build a singularity image into.",
     )
 
     expert = parser.add_argument_group('Expert options')
@@ -460,12 +465,56 @@ def docker_build_image(
 
     if dry_run:
         extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
-        print(" ".join(extra_environment + ["docker"] + args))
+        print(" ".join(extra_environment + ["docker"] + args), sep="")
     else:
         env = dict(os.environ)
         env.update(extra_env)
         with Popen([docker_cmd] + args + ["--progress=plain"],
                    cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
+            for msg in proc:
+                if msg.out:
+                    logger.info("stdout: " + msg.out.decode("utf-8"))
+                if msg.err:
+                    logger.info("stderr: " + red(msg.err.decode("utf-8")))
+
+
+def singularity_build_image(
+        image_name: str,
+        singularity_image: Path,
+        working_directory: Optional[Path] = None,
+        dry_run: bool = False,
+):
+    """
+    Build the singularity image from the docker image.
+
+    Parameters
+    ----------
+    image_name : str
+        The name of the docker image to build the singularity image from.
+    singularity_image : Path
+        The path and file of the singularity image to build.
+    working_directory : Path, str, optional
+        Path o the working directory to perform the build operation (default: inherit).
+    dry_run : bool, default=False
+        Whether to build from python or to print the command to stdout.
+    """
+    from shutil import which
+
+    # Create the folder for the singularity image
+    singularity_image.parent.mkdir(exist_ok=True)
+    args = [
+        which("singularity"),
+        "build",
+        "--force",
+        str(singularity_image),
+        f"docker-daemon://{image_name}",
+    ]
+    if dry_run:
+        print(" ".join([" &&"] + args), sep="")
+    else:
+        from FastSurferCNN.utils.run_tools import Popen
+        with Popen(args,
+                   cwd=working_directory, stdout=subprocess.PIPE) as proc:
             for msg in proc:
                 if msg.out:
                     logger.info("stdout: " + msg.out.decode("utf-8"))
@@ -482,7 +531,7 @@ def main(
         dry_run: bool = False,
         tag_dev: bool = True,
         fastsurfer_home: Optional[Path] = None,
-        **keywords
+        **keywords,
         ) -> int | str:
     from FastSurferCNN.version import has_git, main as version
     kwargs: Dict[str, Union[str, List[str]]] = {}
@@ -508,8 +557,13 @@ def main(
     kwargs["build_arg"] = [f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}"]
     if debug:
         kwargs["build_arg"].append(f"DEBUG=true")
-    for key in ["build_base_image", "runtime_base_image", "freesurfer_build_image",
-                "conda_build_image"]:
+    build_arg_list = [
+        "build_base_image",
+        "runtime_base_image",
+        "freesurfer_build_image",
+        "conda_build_image",
+    ]
+    for key in build_arg_list:
         upper_key = key.upper()
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
@@ -543,12 +597,13 @@ def main(
         build_info = parse_build_file(build_file)
 
     version_tag = build_info["version_tag"]
-    image_suffix = ""
+    image_prefix = ""
     if device != "cuda":
-        image_suffix = f"-{device}"
+        image_prefix = f"{device}-"
     # image_tag is None or ""
     if not bool(image_tag):
-        image_tag = f"fastsurfer:{version_tag}{image_suffix}".replace("+", "_")
+        image_tag = f"fastsurfer:{image_prefix}{version_tag}".replace("+", "_")
+        logger.info(f"No image name/tag provided, auto-generated tag: {image_tag}")
 
     attestation = bool(keywords.get("attest"))
     if not attestation:
@@ -565,7 +620,7 @@ def main(
                         "--cache type=inline.")
 
     if tag_dev:
-        kwargs["tag"] = f"fastsurfer:dev{image_suffix}"
+        kwargs["tag"] = f"fastsurfer:dev{image_prefix}"
 
     if not dry_run:
         logger.info("Version info added to the docker image:")
@@ -582,12 +637,27 @@ def main(
             attestation=attestation,
             **kwargs,
         )
+        if singularity := keywords.get("singularity", None):
+            singularity_build_image(
+                image_tag,
+                Path(singularity),
+                dry_run=dry_run,
+            )
+        print("")
     except RuntimeError as e:
         return e.args[0]
     return 0
 
 
 def default_home() -> Path:
+    """
+    Find the fastsurfer path.
+
+    Returns
+    -------
+    Path
+        The FASTSURFER_HOME-path.
+    """
     if "FASTSURFER_HOME" in os.environ:
         return Path(os.environ["FASTSURFER_HOME"])
     else:
