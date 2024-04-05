@@ -7,8 +7,14 @@
    :alt: FastSurfer Teaser Image
    :align: center
 
-.. include:: START.md
-   :parser: myst_parser.sphinx_
+.. include:: ../README.md
+   :parser: fix_links.parser
+   :start-after: <!-- start of content -->
+   :end-before: <!-- start of image requirements -->
+
+.. include:: ../README.md
+   :parser: fix_links.parser
+   :start-after: <!-- start of references -->
 
 .. toctree::
    :hidden:

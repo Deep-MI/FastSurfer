@@ -4,7 +4,7 @@ User Guide
 .. toctree::
     :maxdepth: 2
 
-    INTRO.md
+    intro
     INSTALL.md
     EXAMPLES.md
     FLAGS.md
@@ -15,3 +15,4 @@ User Guide
     SECURITY.md
     CODE_OF_CONDUCT.md
     CONTRIBUTING.md
+    license

@@ -27,13 +27,17 @@ Values can also be extracted by
 """
 
 import argparse
+import types
+from dataclasses import dataclass, Field, fields
 from pathlib import Path
-from typing import Dict, Iterable, Literal, Mapping, Protocol, Type, TypeVar, Union
+from typing import (Dict, Iterable, Literal, Mapping, Protocol, Type, TypeVar, Union,
+                    Optional, get_origin, get_args)
 
 from FastSurferCNN.utils import Plane, PLANES
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
 from FastSurferCNN.utils.arg_types import unquote_str
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
+from FastSurferCNN.utils.dataclasses import field, get_field
 from FastSurferCNN.utils.threads import get_num_threads
 
 FASTSURFER_ROOT = Path(__file__).parents[2]
@@ -57,7 +61,13 @@ class CanAddArguments(Protocol):
         ...
 
 
-def __arg(*default_flags, **default_kwargs):
+def __arg(
+        *default_flags: str,
+        dcf: Optional[Field] = None,
+        dc=None,
+        fieldname: str = "",
+        **default_kwargs,
+):
     """
     Create stub function, which sets default settings for argparse arguments.
 
@@ -72,17 +82,46 @@ def __arg(*default_flags, **default_kwargs):
 
     This function is private for this module.
     """
+    # TODO Update the Parameters section of this function.
+    if dcf is None and dc is not None:
+        if not bool(fieldname) and default_flags[0].startswith("--"):
+            fieldname = default_flags[0].removeprefix("--")
+        if fieldname:
+            dcf = get_field(dc, fieldname)
+
+    if dcf is not None:
+        for kw, name in (("dest", "name"), ("default",) * 2):
+            default_kwargs.setdefault(kw, getattr(dcf, name))
+        if "type" not in default_kwargs:
+            if str(get_origin(dcf.type)) == "typing.Union":
+                _types = list(t for t in get_args(dcf.type) if t is not types.NoneType)
+                if len(_types) == 0:
+                    default_kwargs["type"] = None
+                elif len(_types) == 1:
+                    default_kwargs["type"] = _types[0]
+                else:
+                    raise TypeError(
+                        "A Union Type cannot be used to generate a argparse command "
+                        "from a dataclasses.Field, must pass a type to __arg!"
+                    )
+            else:
+                default_kwargs["type"] = dcf.type
+        for kw, default in dcf.metadata.items():
+            if kw == "flags":
+                if isinstance(default, tuple) and len(default_flags) == 0:
+                    default_flags = default
+            else:
+                default_kwargs.setdefault(kw, default)
 
     def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
-            if callable(arg) and kw in default_kwargs.keys():
+            if callable(arg) and kw in default_kwargs:
                 kwargs[kw] = arg(default_kwargs[kw])
         # if no new value is provided to _stub (which is the callable in ALL_FLAGS), use
         # the default value (stored in the callable/passed to the default below)
         for kw, default in default_kwargs.items():
-            if kw not in kwargs.keys():
-                kwargs[kw] = default
+            kwargs.setdefault(kw, default)
 
         _flags = flags if len(flags) != 0 else default_flags
         if hasattr(parser, "add_argument"):
@@ -98,55 +137,94 @@ def __arg(*default_flags, **default_kwargs):
     return _stub
 
 
-ALL_FLAGS = {
-    "t1": __arg(
-        "--t1",
-        type=str,
-        dest="orig_name",
+# TODO add Attributes section to SubjectDirectoryConfig. SubjectDirectoryConfig should
+#  probably be moved to a different file (as part of the refactoring effort).
+
+
+@dataclass
+class SubjectDirectoryConfig:
+    """
+    This class describes the 'minimal' parameters used by SubjectList.
+    """
+    orig_name: str = field(
+        help="Name of T1 full head MRI. Absolute path if single image else common "
+             "image name. Default: `mri/orig.mgz`.",
         default="mri/orig.mgz",
-        help="Name of T1 full head MRI. Absolute path if single image else "
-             "common image name. Default: mri/orig.mgz",
-    ),
-    "remove_suffix": __arg(
-        "--remove_suffix",
-        type=str,
-        dest="remove_suffix",
-        default="",
-        help="Optional: remove suffix from path definition of input file to yield "
-             "correct subject name (e.g. /ses-x/anat/ for BIDS or /mri/ for FreeSurfer "
-             "input). Default: do not remove anything.",
-    ),
-    "sid": __arg(
-        "--sid",
-        type=str,
-        dest="sid",
-        default=None,
-        help="Optional: directly set the subject id to use. Can be used for single "
-             "subject input. For multi-subject processing, use remove suffix if sid is "
-             "not second to last element of input file passed to --t1",
-    ),
-    "asegdkt_segfile": __arg(
-        "--asegdkt_segfile",
-        "--aparc_aseg_segfile",
-        type=str,
-        dest="pred_name",
+        flags=("--t1",),
+    )
+    pred_name: str = field(
         default="mri/aparc.DKTatlas+aseg.deep.mgz",
         help="Name of intermediate DL-based segmentation file (similar to aparc+aseg). "
              "When using FastSurfer, this segmentation is already conformed, since "
              "inference is always based on a conformed image. Absolute path if single "
              "image else common image name. Default: mri/aparc.DKTatlas+aseg.deep.mgz",
-    ),
-    "conformed_name": __arg(
-        "--conformed_name",
-        type=str,
-        dest="conf_name",
+    )
+    conf_name: str = field(
         default="mri/orig.mgz",
         help="Name under which the conformed input image will be saved, in the same "
              "directory as the segmentation (the input image is always conformed "
              "first, if it is not already conformed). The original input image is "
              "saved in the output directory as $id/mri/orig/001.mgz. Default: "
              "mri/orig.mgz.",
+        flags=("--conformed_name",),
+    )
+    in_dir: Optional[Path] = field(
+        flags=("--in_dir",),
+        default=None,
+        help="Directory in which input volume(s) are located. Optional, if full path "
+             "is defined for --t1.",
+    )
+    csv_file: Optional[Path] = field(
+        flags=("--csv_file",),
+        default=None,
+        help="Csv-file with subjects to analyze (alternative to --tag)",
     ),
+    sid: Optional[str] = field(
+        flags=("--sid",),
+        default=None,
+        help="Optional: directly set the subject id to use. Can be used for single "
+             "subject input. For multi-subject processing, use remove suffix if sid is "
+             "not second to last element of input file passed to --t1",
+    )
+    search_tag: str = field(
+        flags=("--tag",),
+        default="*",
+        help="Search tag to process only certain subjects. If a single image should be "
+             "analyzed, set the tag with its id. Default: processes all.",
+    ),
+    brainmask_name: str = field(
+        default="mri/mask.mgz",
+        help="Name under which the brainmask image will be saved, in the same "
+             "directory as the segmentation. The brainmask is created from the "
+             "aparc_aseg segmentation (dilate 5, erode 4, largest component). Default: "
+             "`mri/mask.mgz`.",
+        flags=("--brainmask_name",),
+    )
+    remove_suffix: str = field(
+        flags=("--remove_suffix",),
+        default="",
+        help="Optional: remove suffix from path definition of input file to yield "
+             "correct subject name (e.g. /ses-x/anat/ for BIDS or /mri/ for FreeSurfer "
+             "input). Default: do not remove anything.",
+    )
+    out_dir: Optional[Path] = field(
+        default=None,
+        help="Directory in which evaluation results should be written. Will be created "
+             "if it does not exist. Optional if full path is defined for --pred_name.",
+    )
+
+
+ALL_FLAGS = {
+    "t1": __arg("--t1", dc=SubjectDirectoryConfig, fieldname="orig_name"),
+    "remove_suffix": __arg("--remove_suffix", dc=SubjectDirectoryConfig),
+    "sid": __arg("--sid", dc=SubjectDirectoryConfig),
+    "asegdkt_segfile": __arg(
+        "--asegdkt_segfile",
+        "--aparc_aseg_segfile",
+        dc=SubjectDirectoryConfig,
+        fieldname="pred_name",
+    ),
+    "conformed_name": __arg("--conformed_name", dc=SubjectDirectoryConfig, fieldname="conf_name"),
     "norm_name": __arg(
         "--norm_name",
         type=str,
@@ -155,16 +233,7 @@ ALL_FLAGS = {
         help="Name under which the bias field corrected image is stored. Default: "
              "mri/norm.mgz.",
     ),
-    "brainmask_name": __arg(
-        "--brainmask_name",
-        type=str,
-        dest="brainmask_name",
-        default="mri/mask.mgz",
-        help="Name under which the brainmask image will be saved, in the same "
-             "directory as the segmentation. The brainmask is created from the "
-             "aparc_aseg segmentation (dilate 5, erode 4, largest component). Default: "
-             "mri/mask.mgz.",
-    ),
+    "brainmask_name": __arg("--brainmask_name", dc=SubjectDirectoryConfig),
     "aseg_name": __arg(
         "--aseg_name",
         type=str,
@@ -201,41 +270,16 @@ ALL_FLAGS = {
              "you define > --viewagg_device cuda <, view agg will be run on the gpu "
              "(no memory check will be done).",
     ),
-    "in_dir": __arg(
-        "--in_dir",
-        type=str,
-        default=None,
-        help="Directory in which input volume(s) are located. Optional, if full path "
-             "is defined for --t1.",
-    ),
-    "tag": __arg(
-        "--tag",
-        type=unquote_str,
-        dest="search_tag",
-        default="*",
-        help="Search tag to process only certain subjects. If a single image should be "
-             "analyzed, set the tag with its id. Default: processes all.",
-    ),
-    "csv_file": __arg(
-        "--csv_file",
-        type=str,
-        help="Csv-file with subjects to analyze (alternative to --tag)",
-        default=None,
-    ),
+    "in_dir": __arg("--in_dir", dc=SubjectDirectoryConfig, fieldname="in_dir"),
+    "tag": __arg("--tag", type=unquote_str, dc=SubjectDirectoryConfig, fieldname="search_tag"),
+    "csv_file": __arg("--csv_file", dc=SubjectDirectoryConfig),
     "batch_size": __arg(
         "--batch_size",
         type=int,
         default=1,
         help="Batch size for inference. Default=1"
     ),
-    "sd": __arg(
-        "--sd",
-        type=str,
-        default=None,
-        dest="out_dir",
-        help="Directory in which evaluation results should be written. Will be created "
-             "if it does not exist. Optional if full path is defined for --pred_name.",
-    ),
+    "sd": __arg("--sd", dc=SubjectDirectoryConfig, fieldname="out_dir"),
     "qc_log": __arg(
         "--qc_log",
         type=str,
@@ -264,7 +308,7 @@ ALL_FLAGS = {
         help="The voxelsize threshold, above which images will be conformed to 1mm "
              "isotropic, if the --vox_size argument is also 'min' (the --vox_size "
              "default setting). Contrary to conform.py, the default behavior of "
-             "%(prog)s is to resample all images _above 0.95mm_ to 1mm.",
+             "%(prog)s is to resample all images above 0.95mm to 1mm.",
     ),
     "lut": __arg(
         "--lut",

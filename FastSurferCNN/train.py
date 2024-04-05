@@ -95,8 +95,8 @@ class Trainer:
     def train(
         self,
         train_loader: loader.DataLoader,
-        optimizer: torch.optim.optimizer.Optimizer,
-        scheduler: Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts],
+        optimizer: torch.optim.Optimizer,
+        scheduler: None | scheduler.StepLR | scheduler.CosineAnnealingWarmRestarts,
         train_meter: Meter,
         epoch,
     ) -> None:
@@ -106,10 +106,10 @@ class Trainer:
         Parameters
         ----------
         train_loader : loader.DataLoader
-            Data loader for the training
-        optimizer : torch.optim.optimizer.Optimizer
-            Optimizer for the training
-        scheduler : Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]
+            Data loader for the training.
+        optimizer : torch.optim.Optimizer
+            Optimizer for the training.
+        scheduler : None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts
             LR scheduler for the training.
         train_meter : Meter
             [MISSING].

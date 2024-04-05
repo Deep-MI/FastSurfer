@@ -1,22 +1,28 @@
 SLURM: srun_fastsurfer.sh
 =========================
 
+Usage
+-----
+
+```{command-output} ./srun_fastsurfer.sh --help
+:cwd: /../
+```
 
 Debugging SLURM runs
 --------------------
 
 1. Did the run succeed?
 
-  1. Check whether all jobs are done (specifically the copy job).
-     ```bash
-     $ squeue -u $USER --Format JobArrayID,Name,State,Dependency
-     1750814_3           FastSurfer-Seg-kueglRUNNING             (null)
-     1750815_3           FastSurfer-Surf-kuegPENDING             aftercorr:1750814_*(
-     1750816             FastSurfer-Cleanup-kPENDING             afterany:1750815_*(u
-     1750815_1           FastSurfer-Surf-kuegRUNNING             (null)
-     1750815_2           FastSurfer-Surf-kuegRUNNING             (null)
-     ```
-     Here, jobs are not finished yet. The FastSurfer-Cleanup-$USER Job moves data to the subject directory (--sd).
+   1. Check whether all jobs are done (specifically the copy job).
+      ```bash
+      $ squeue -u $USER --Format JobArrayID,Name,State,Dependency
+      1750814_3           FastSurfer-Seg-kueglRUNNING             (null)
+      1750815_3           FastSurfer-Surf-kuegPENDING             aftercorr:1750814_*(
+      1750816             FastSurfer-Cleanup-kPENDING             afterany:1750815_*(u
+      1750815_1           FastSurfer-Surf-kuegRUNNING             (null)
+      1750815_2           FastSurfer-Surf-kuegRUNNING             (null)
+      ```
+      Here, jobs are not finished yet. The FastSurfer-Cleanup-$USER Job moves data to the subject directory (--sd).
 
    2. Check whether there are subject folders and log files in the subject directory, <subject directory>/slurm/logs for the latter.
 

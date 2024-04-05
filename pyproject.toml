@@ -57,6 +57,8 @@ doc = [
     'numpydoc',
     'sphinx!=7.2.*',
     'sphinxcontrib-bibtex',
+    'sphinxcontrib-programoutput',
+    'sphinx-argparse',
     'sphinx-copybutton',
     'sphinx-design',
     'sphinx-gallery',

@@ -12,25 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# IMPORTS
 from typing import Union
 
-# IMPORTS
 import torch
 import yacs
-from networks import FastSurferCNN, FastSurferVINN
+
+from FastSurferCNN.models.networks import FastSurferCNN, FastSurferVINN
 
 
 def get_optimizer(
-    model: Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParallel],
+    model: FastSurferCNN | FastSurferVINN | torch.nn.DataParallel,
     cfg: yacs.config.CfgNode,
-) -> torch.optim.optimizer.Optimizer:
+) -> torch.optim.Optimizer:
     """
     Get an instance of requested optimizer.
 
     Parameters
     ----------
-    model : Union[FastSurferCNN, FastSurferVINN, torch.nn.DataParallel]
-        The model for which an optimizer schould be chosen.
+    model : FastSurferCNN, FastSurferVINN, torch.nn.DataParallel
+        The model for which an optimizer should be chosen.
     cfg : yacs.config.CfgNode
         Configuration Node.
 

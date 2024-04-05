@@ -1,0 +1,19 @@
+FastSurferCNN: run_prediction.py
+================================
+
+.. note::
+   We recommend to run the surface pipeline with the standard `run_fastsurfer.sh` interfaces!
+
+.. include:: ../../FastSurferCNN/README.md
+   :parser: fix_links.parser
+   :relative-docs: doc/
+   :relative-images:
+   :start-after: <!-- after inference heading -->
+   :end-before: <!-- before generate_hdf5 -->
+
+Full commandline interface of FastSurferCNN/run_prediction.py
+-------------------------------------------------------------
+.. argparse::
+    :filename: FastSurferCNN/run_prediction.py
+    :func: make_parser
+    :prog: FastSurferCNN/run_prediction.py

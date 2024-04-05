@@ -22,11 +22,11 @@ List them by running the following command:
 ./recon-surf.sh --help
 ```
 
-### Required arguments
+## Required arguments
 * `--sd`: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * `--sid`: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
 
-### Optional arguments
+## Optional arguments
 * `--t1`: T1 full head input (not bias corrected). This must be conformed (dimensions: same along each axis, voxel size: isotropic, LIA orientation, and data type UCHAR). Images can be conformed using FastSurferCNN's [conform.py](https://github.com/Deep-MI/FastSurfer/blob/stable/FastSurferCNN/data_loader/conform.py) script (usage example: python3 FastSurferCNN/data_loader/conform.py -i <T1_input> -o <conformed_T1_output>). If not passed we use the orig.mgz in the output subject mri directory if available. 
 * `--asegdkt_segfile`: Global path with filename of segmentation (where and under which name to find it, must already exist). This must be conformed (dimensions: same along each axis, voxel size: isotropic, and LIA orientation). FastSurferCNN's segmentations are conformed by default. Please ensure that segmentations produced otherwise are also conformed and equivalent in dimension and voxel size to the --t1 image. Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz 
 * `--3T`: for Talairach registration, use the 3T atlas instead of the 1.5T atlas (which is used if the flag is not provided). This gives better (more consistent with FreeSurfer) ICV estimates (eTIV) for 3T and better Talairach registration matrices, but has little impact on standard volume or surface stats.
@@ -36,7 +36,7 @@ List them by running the following command:
 * `--parallel`: Run both hemispheres in parallel
 * `--threads`: Set openMP and ITK threads to <int>
 
-### Other
+## Other
 * `--py`: Command for python, used in both pipelines. Default: python3.10
 * `--no_surfreg`: Skip surface registration with FreeSurfer (if only stats are needed)
 * `--fs_license`: Path to FreeSurfer license key file. Register at https://surfer.nmr.mgh.harvard.edu/registration.html for free to obtain it if you do not have FreeSurfer installed already
@@ -68,7 +68,7 @@ mask and segmentations (as output by our FastSurfer segmentation networks, i.e. 
 and labels file (equivalent to a FreeSurfer recon-all run). 
 
 
-### Example 2: recon-surf inside Singularity
+## Example 2: recon-surf inside Singularity
 Singularity can be used as for the full pipeline. Given you already ran the segmentation pipeline, and want to just run 
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:
 ```bash
@@ -85,7 +85,7 @@ singularity exec --no-home \
                   --sid subjectX --sd /output --3T
 ```
 
-#### Singularity Flags: 
+### Singularity Flags: 
 * The `-B` commands mount your output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 
 * The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../Singularity/README.md#mounting-home))
@@ -94,7 +94,7 @@ As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the targe
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, and orig.mgz)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
 
-### Example 3: Native installation - recon-surf on a single subject (subjectX)
+## Example 3: Native installation - recon-surf on a single subject (subjectX)
 
 Given you want to analyze data for subjectX which is stored on your computer under /home/user/my_mri_data/subjectX/orig.mgz, 
 run the following command from the console (do not forget to source FreeSurfer!):
@@ -123,7 +123,7 @@ The script will also generate a bias-field corrected image at `/home/user/my_fas
 
 ### Example 4: recon-surf on multiple subjects
 
-Most of the recon_surf functionality can also be achieved by running `run_fastsurfer.sh` with the `--surf_only` flag. This means we can also use the `brun_fastsurfer.sh` command with `--surf_only` to achieve similar results (see also [Example 4 in the main README](../README.md#example-4-fastsurfer-on-multiple-subjects).
+Most of the recon_surf functionality can also be achieved by running `run_fastsurfer.sh` with the `--surf_only` flag. This means we can also use the `brun_fastsurfer.sh` command with `--surf_only` to achieve similar results (see also [Example 4](../doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects).
 
 There are however some small differences to be aware of:
 1. the path to and the filename of the t1 image in the subject_list file is optional.
@@ -156,46 +156,46 @@ The logs of individual subject's processing can be found in `$subjects_dir/$subj
 
 # Manual Edits
 
-### Brainmask Edits
+## Brainmask Edits
 
 Currently, FastSurfer has only very limited functionality for manual edits due to missing entrypoints into the recon-surf script. Starting with FastSurfer v2.0.0 one frequently requested edit type (brainmask editing) is now possible, as the initial mask is created in the first segmentation stage. By running segmentation and surface processing in two steps, the mask can be edited in-between.
 
 For a **Docker setup** one can:
 
 1. Run segmentation only:
-```bash
-docker run --gpus=all --rm --name $CONTAINER_NAME \
-                      -v $PATH_TO_IMAGE_DIR:$IMAGE_DIR \
-                      -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
-                      --user $UID:$GID deepmi/fastsurfer:gpu-v2.0.0 \
-                      --t1 $IMAGE_DIR/input.mgz \
-                      --sd $OUTPUT_DIR \
-                      --sid $SUBJECT_ID \
-                      --seg_only
-```
+    ```bash
+    docker run --gpus=all --rm --name $CONTAINER_NAME \
+                          -v $PATH_TO_IMAGE_DIR:$IMAGE_DIR \
+                          -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
+                          --user $UID:$GID deepmi/fastsurfer:gpu-v2.0.0 \
+                          --t1 $IMAGE_DIR/input.mgz \
+                          --sd $OUTPUT_DIR \
+                          --sid $SUBJECT_ID \
+                          --seg_only
+    ```
 2. Modify the ```$PATH_TO_OUTPUT_DIR/$SUBJECT_ID/mri/mask.mgz``` file as required.
 3. Run the following Docker command to run the surface processing pipeline (remove `--3T` if you are working with 1.5T data):
-```bash
-docker run --rm --name $CONTAINER_NAME \
-           -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
-           -v $PATH_TO_FS_LICENSE_DIR:$FS_LICENSE_DIR \
-           --user $UID:$GID deepmi/fastsurfer:gpu-v2.0.0 \
-           --sid $SUBJECT_ID  \
-           --sd $OUTPUT_DIR/$SUBJECT_ID \
-           --surf_only --3T \
-           --fs_license $FS_LICENSE_DIR/license_file
-```
+    ```bash
+    docker run --rm --name $CONTAINER_NAME \
+               -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
+               -v $PATH_TO_FS_LICENSE_DIR:$FS_LICENSE_DIR \
+               --user $UID:$GID deepmi/fastsurfer:gpu-v2.0.0 \
+               --sid $SUBJECT_ID  \
+               --sd $OUTPUT_DIR/$SUBJECT_ID \
+               --surf_only --3T \
+               --fs_license $FS_LICENSE_DIR/license_file
+    ```
 
 For a **local install** you can similarly:
 
 1. Go to the FastSurfer directory, source FreeSurfer 7.3.2 and run the segmentation step:
-```bash
-cd $FASTSURFER_HOME
-source $FREESURFER_HOME/SetUpFreeSurfer.sh
-./run_fastsurfer.sh --t1 $IMAGE_DIR/input.mgz --sd $OUTPUT_DIR --sid $SUBJECT_ID --seg_only
-```
+    ```bash
+    cd $FASTSURFER_HOME
+    source $FREESURFER_HOME/SetUpFreeSurfer.sh
+    ./run_fastsurfer.sh --t1 $IMAGE_DIR/input.mgz --sd $OUTPUT_DIR --sid $SUBJECT_ID --seg_only
+    ```
 2. Modify the ```$OUTPUT_DIR/$SUBJECT_ID/mri/mask.mgz``` file.
 3. Run the surface pipeline (remove `--3T` if you are working with 1.5T data):
-```bash
-./run_fastsurfer.sh --sd $OUTPUT_DIR --sid $SUBJECT_ID --fs_license $FS_LICENSE_DIR/license_file --surf_only --3T
-```
+    ```bash
+    ./run_fastsurfer.sh --sd $OUTPUT_DIR --sid $SUBJECT_ID --fs_license $FS_LICENSE_DIR/license_file --surf_only --3T
+    ```

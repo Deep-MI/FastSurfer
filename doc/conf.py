@@ -46,13 +46,15 @@ extensions = [
     "sphinx.ext.linkcode",
     "numpydoc",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.programoutput",
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_issues",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
-    "re_reference",
+    "sphinxarg.ext",
+    "fix_links",
 ]
 
 # Suppress myst.xref_missing warning and  i.e A target was
@@ -204,8 +206,6 @@ bibtex_bibfiles = ["./references.bib"]
 #  Alternative method for linking to code by Osama, not sure which one is better
 from urllib.parse import quote
 
-
-
 # https://github.com/python-websockets/websockets/blob/e217458ef8b692e45ca6f66c5aeb7fad0aee97ee/docs/conf.py#L102-L134
 def linkcode_resolve(domain, info):
     # Check if the domain is Python, if not return None
@@ -250,14 +250,26 @@ def linkcode_resolve(domain, info):
     return f"{gh_url}/blob/dev{filename}.py#L{first_line}-L{first_line + len(lines) - 1}"
 
 # Which domains to search in to create links in markdown texts
-myst_ref_domains = ["myst", "std", "py"]
+# myst_ref_domains = ["myst", "std", "py"]
 
 
-# re-reftarget=(regex) => used in missing-reference
-# re-refuri/refid=(regex) => used in doctree-
-re_reference = {
-    "re-refid=^((../)*)(Singularity|Docker)\\/README\\.md#": "/overview/\\3.md#",
-    "re-reftarget=^\\/overview\\/intro\\.md#": "/index.rst#",
-    "re-refid=^README.md#requirements-": "/index.rst#requirements-",
-    "re-refid=^../README.md": "/index.rst",
+_script_dirs = "fastsurfercnn", "cerebnet", "recon_surf"
+
+# re_reference_target=(regex) => used in missing-reference
+fix_links_target = {
+    # all regexpr are ignorecase, individual replacements are applied until no further
+    # change occurs, but different (different repl str) replacements are not combined
+    # "^\\/overview\\/intro\\.md#": "/overview/index.rst#",
+    "^((\\.\\./)+doc/|/?doc/|/)?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\3#\\4ubuntu-\\5-\\6",),
+    "^((\\.\\./)*)readme\\.md(#.*)?$": ("/index.rst\\3", "/overview/intro.rst\\3"),
+    "^(\\/?doc)?(/overview/)?intro(\\.rst)?(#.*)?$": ("/overview/index.rst\\4",),
+    "^\\/?(\\.\\./)*(singularity|docker)/readme\\.md(#.*)?$": ("/overview/\\2.md\\3",),
+    f"^\\/?(\\.\\./)*({'|'.join(_script_dirs)})/readme\\.md(#.*)?$": ("/scripts/\\2.rst\\3",),
+    "^((\\.\\./)+|/)?doc/": ("/",),
+    "^license": ("/overview/license.rst",),
 }
+fix_links_alternative_targets = {
+    "overview/intro": ("/index.rst", "/overview/index.rst"),
+}
+
+
