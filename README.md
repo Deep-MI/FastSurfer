@@ -75,7 +75,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
  
-   See also __[Example 2](doc/overview/EXAMPLES.md#example-2--fastSurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity README](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
+   See also __[Example 2](doc/overview/EXAMPLES.md#example-2--fastSurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity README](https://github.com/Deep-MI/FastSurfer/blob/dev/Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
 
    (b) For __docker__, the syntax is
     ```
@@ -91,13 +91,13 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-v` flag is used to tell docker, which folders FastSurfer can read and write to.
  
-   See also __[Example 1](doc/overview/EXAMPLES.md#example-1--fastSurfer-docker)__ for a full FastSurfer run inside a Docker container and [the Docker README](Docker/README.md#docker-flags) for more details on the docker flags including `--rm` and `--user`.
+   See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-docker)__ for a full FastSurfer run inside a Docker container and [the Docker README](https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md#docker-flags) for more details on the docker flags including `--rm` and `--user`.
 
 2. For a __native install__, you need to activate your FastSurfer environment (e.g. `conda activate fastsurfer_gpu`) and make sure you have added the FastSurfer path to your `PYTHONPATH` variable, e.g. `export PYTHONPATH=$(pwd)`. 
 
    You will then be able to run fastsurfer with `./run_fastsurfer.sh *fastsurfer-flags*`.
 
-   See also [Example 3](doc/overview/EXAMPLES.md#example-3--native-fastsurfer-on-subjectx--with-parallel-processing-of-hemis-) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
+   See also [Example 3](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
 
 <!-- start of flags -->
 ### FastSurfer_Flags

@@ -63,6 +63,8 @@ suppress_warnings = [
     "myst.duplicate_def",
 ]
 
+myst_heading_anchors = 1
+
 templates_path = ["_templates"]
 exclude_patterns = [
     "_build",
