@@ -260,13 +260,13 @@ fix_links_target = {
     # all regexpr are ignorecase, individual replacements are applied until no further
     # change occurs, but different (different repl str) replacements are not combined
     # "^\\/overview\\/intro\\.md#": "/overview/index.rst#",
-    "^((\\.\\./)+doc/|/?doc/|/)?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\3#\\4ubuntu-\\5-\\6",),
-    "^((\\.\\./)*)readme\\.md(#.*)?$": ("/index.rst\\3", "/overview/intro.rst\\3"),
-    "^(\\/?doc)?(/overview/)?intro(\\.rst)?(#.*)?$": ("/overview/index.rst\\4",),
-    "^\\/?(\\.\\./)*(singularity|docker)/readme\\.md(#.*)?$": ("/overview/\\2.md\\3",),
-    f"^\\/?(\\.\\./)*({'|'.join(_script_dirs)})/readme\\.md(#.*)?$": ("/scripts/\\2.rst\\3",),
-    "^((\\.\\./)+|/)?doc/": ("/",),
-    "^license": ("/overview/license.rst",),
+    "^/?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\1#\\2ubuntu-\\3-\\4",),
+    "^/readme\\.md(#.*)?$": ("/index.rst\\1", "/overview/intro.rst\\1"),
+    "^/?(overview/)?intro(\\.rst)?(#.*)?$": ("/overview/index.rst\\3",),
+    "^/?(singularity|docker)/readme\\.md(#.*)?$": ("/overview/\\1.md\\2",),
+    f"^/?({'|'.join(_script_dirs)})/readme\\.md(#.*)?$": ("/scripts/\\1.rst\\2",),
+    "^/?doc/": ("/",),
+    "^/?license": ("/overview/license.rst",),
 }
 fix_links_alternative_targets = {
     "overview/intro": ("/index.rst", "/overview/index.rst"),

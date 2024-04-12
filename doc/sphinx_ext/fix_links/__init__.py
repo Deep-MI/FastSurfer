@@ -11,3 +11,4 @@ def setup(app: Sphinx):
     app.add_config_value("fix_links_alternative_targets", {}, "env", dict)
     app.add_domain(MySTReplaceDomain)
     app.connect("missing-reference", resolve_xref)
+    return {"parallel_read_safe": True, "parallel_write_safe": True, "version": "0.1"}
