@@ -9,6 +9,6 @@ situations, it will be called from `run_fastsurfer.sh` a direct call to
 `CerebNet/run_prediction.py` is not needed.
 
 .. argparse::
-    :filename: CerebNet/run_prediction.py
+    :module: CerebNet.run_prediction
     :func: setup_options
     :prog: CerebNet/run_prediction.py

@@ -152,7 +152,7 @@ def int_ge_zero(value) -> int:
 
     Parameters
     ----------
-    value : int
+    value : str
         Integer to convert.
 
     Returns

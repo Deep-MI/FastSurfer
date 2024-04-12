@@ -10,6 +10,6 @@ FastSurferCNN: run_model.py
 Full commandline interface of FastSurferCNN/run_model.py
 --------------------------------------------------------
 .. argparse::
-    :filename: FastSurferCNN/run_model.py
+    :module: FastSurferCNN.run_model
     :func: make_parser
     :prog: FastSurferCNN/run_model.py

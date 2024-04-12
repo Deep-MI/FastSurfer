@@ -7,6 +7,6 @@ FastSurferCNN: segstats.py
 Full commandline interface of FastSurferCNN/segstats.py
 -------------------------------------------------------
 .. argparse::
-    :filename: FastSurferCNN/segstats.py
+    :module: FastSurferCNN.segstats
     :func: make_arguments
     :prog: FastSurferCNN/segstats.py

@@ -11,6 +11,6 @@ FastSurferCNN: generate_hdf5.py
 Full commandline interface of FastSurferCNN/generate_hdf5.py
 ------------------------------------------------------------
 .. argparse::
-    :filename: FastSurferCNN/generate_hdf5.py
+    :module: FastSurferCNN.generate_hdf5
     :func: make_parser
     :prog: FastSurferCNN/generate_hdf5.py

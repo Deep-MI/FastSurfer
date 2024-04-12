@@ -162,7 +162,7 @@ class HelpFormatter(argparse.HelpFormatter):
         )
 
 
-def make_arguments() -> argparse.ArgumentParser:
+def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     """
     Create and configure the argparse.ArgumentParser.
 
@@ -171,11 +171,17 @@ def make_arguments() -> argparse.ArgumentParser:
     argparse.ArgumentParser
         The configured argument parser.
     """
+    if helpformatter:
+        kwargs = {
+            "epilog": HELPTEXT.replace("\n", "<br>"),
+            "formatter_class": HelpFormatter,
+        }
+    else:
+        kwargs = {"epilog": HELPTEXT}
     parser = argparse.ArgumentParser(
         usage=USAGE,
-        epilog=HELPTEXT.replace("\n", "<br>"),
         description=DESCRIPTION,
-        formatter_class=HelpFormatter,
+        **kwargs
     )
     parser.add_argument(
         "-norm",
@@ -1768,5 +1774,5 @@ if __name__ == "__main__":
     # -o $TSUB/stats/wmparc.DKTatlas.mapped.pyvstats --lut $FREESURFER/WMParcStatsLUT.txt'.split(' ')))"
     import sys
 
-    args = make_arguments()
+    args = make_arguments(helpformatter=True)
     sys.exit(main(args.parse_args()))

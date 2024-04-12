@@ -14,6 +14,6 @@ FastSurferCNN: run_prediction.py
 Full commandline interface of FastSurferCNN/run_prediction.py
 -------------------------------------------------------------
 .. argparse::
-    :filename: FastSurferCNN/run_prediction.py
+    :module: FastSurferCNN.run_prediction
     :func: make_parser
     :prog: FastSurferCNN/run_prediction.py
