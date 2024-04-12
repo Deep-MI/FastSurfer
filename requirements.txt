@@ -42,7 +42,7 @@ h5py==3.7.0
     # via -r requirements.in
 humanize==4.8.0
     # via torchio
-idna==3.4
+idna==3.7
     # via requests
 imageio==2.32.0
     # via scikit-image
