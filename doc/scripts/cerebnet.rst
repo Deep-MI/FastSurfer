@@ -12,3 +12,8 @@ situations, it will be called from `run_fastsurfer.sh` a direct call to
     :module: CerebNet.run_prediction
     :func: setup_options
     :prog: CerebNet/run_prediction.py
+
+
+.. include:: ../../CerebNet/README.md
+    :parser: fix_links.parser
+    :start-line: 1

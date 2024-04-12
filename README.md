@@ -20,17 +20,17 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - approximately 5 minutes (GPU), `--seg_only` only runs this part. 
  
 Modules (all run by default):
-1. `asegdkt:` FastSurferVINN for whole brain segmentation (deactivate with `--no_asegdkt`)
+1. `asegdkt:` [FastSurferVINN](FastSurferCNN/README.md) for whole brain segmentation (deactivate with `--no_asegdkt`)
    - the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, experimental beyond that).
    - performs bias-field correction and calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
-2. `cereb:` CerebNet for cerebellum sub-segmentation (deactivate with `--no_cereb`)
+2. `cereb:` [CerebNet](CerebNet/README.md) for cerebellum sub-segmentation (deactivate with `--no_cereb`)
    - requires `asegdkt_segfile`, outputs cerebellar sub-segmentation with detailed WM/GM delineation.
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), which will be resampled to 1mm isotropic images (no native high-res support).
    - calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
-- approximately 60-90 minutes, `--surf_only` runs only the surface part.
+- approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
 - supports high-resolution images (up to 0.7mm, experimental beyond that).
 
 <!-- start of image requirements -->
@@ -75,7 +75,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
  
-   See also __[Example 2](doc/overview/EXAMPLES.md#example-2-fastSurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
+   See also __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
 
    (b) For __docker__, the syntax is
     ```
@@ -144,7 +144,7 @@ Minimum CPU-only: 8 GB system memory (much slower, not recommended) ``--device c
 
 ## Expert usage
 Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation. 
-This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation (in progress)](CerebNet/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
+This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation](CerebNet/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
 
 Specifically, the segmentation modules feature options for optimized parallelization of batch processing.
 

@@ -38,10 +38,10 @@ Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory if it does not exist. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-If you do not have a GPU, you can also run our CPU-Docker by dropping the `--gpus all` flag and specifying `--device cpu` at the end as a FastSurfer flag. See [Docker/README.md](Docker/README.md) for more details.
+If you do not have a GPU, you can also run our CPU-Docker by dropping the `--gpus all` flag and specifying `--device cpu` at the end as a FastSurfer flag, see also [FastSurfer's docker documentation](../../Docker/README.md) for more details.
 
 ## Example 2: FastSurfer Singularity
-After building the Singularity image (see below or instructions in ./Singularity/README.md), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - same as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
+After building the Singularity image (see below or [these instructions](../../Singularity/README.md)), you also need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - same as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
 
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following commands from a directory where you want to store singularity images. This will create a singularity image from our Dockerhub image and execute it:
 
@@ -91,7 +91,7 @@ For a native install you may want to make sure that you are on our stable branch
 git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 ```
 
-More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [INSTALL.md file](INSTALL.md).
+More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [Installation guide](INSTALL.md).
 Given you want to analyze data for subject which is stored on your computer under /home/user/my_mri_data/subjectX/t1-weighted.nii.gz, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash

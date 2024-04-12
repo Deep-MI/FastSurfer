@@ -2,7 +2,9 @@
 import re
 from functools import lru_cache, partial
 from pathlib import Path
+from typing import Generator, Any
 
+import sphinx.domains
 from docutils import nodes
 from sphinx.domains import Domain
 from sphinx.application import Sphinx
@@ -17,6 +19,45 @@ logger = getLogger(__name__)
 @lru_cache
 def make_pattern(s: str) -> re.Pattern:
     return re.compile(s, re.IGNORECASE)
+
+
+def loc(node) -> str:
+    return node["refdoc"] if "refdoc" in node.attributes else node.source
+
+
+def resolve_included(
+        included: dict[str, set[str]],
+        found_docs: set[str],
+        uri_path: str,
+) -> str:
+    """
+    Iterate through including files resolved via inclusion links.
+
+    Parameters
+    ----------
+    included : dict[str, set[str]]
+        The dictionary mapping a file to the files it includes.
+    found_docs : set[str]
+        A set of doc files that are part of the documentation.
+    uri_path : str
+        The path to the included file
+
+    Returns
+    -------
+    str
+        The resolved path.
+    """
+    def __resolve_all(path, include_tree=()):
+        for src, inc in included.items():
+            if path in inc:
+                if src in found_docs:
+                    yield src
+                elif src in include_tree:
+                    logger.warning(f"Recursive inclusion in {path} -> {src}!")
+                else:
+                    yield from __resolve_all(src, include_tree + (path,))
+
+    yield from __resolve_all(uri_path)
 
 
 def resolve_xref(
@@ -54,19 +95,59 @@ def resolve_xref(
         _resolve_xref_with_ = partial(_resolve_xref_with, app, env, node, contnode)
 
         if attr not in node.attributes:
-            logger.debug(f"Skipping replacement of {node.attibutes} (no {attr})")
+            logger.debug(
+                f"[fix_links] Skipping replacement of {node.attibutes} (no {attr})",
+                location=loc(node),
+            )
             return
-        logger.debug(f"Searching for replacement of {node[attr]}:")
-        orig_source = node.attributes[attr]
-        source = node.attributes[attr]
-        relpath = str(Path(env.srcdir).relative_to(Path.cwd()))
-        # TODO fix hardcoded doc here
-        for prefix in (str(env.srcdir), relpath, "../", "../doc"):
-            if orig_source.startswith(prefix):
-                source = orig_source.removeprefix(prefix)
-                # maybe this already fixed the path?
-                ref = _resolve_xref_with_(source.lower(), orig_source)
+        logger.debug(
+            f"[fix_links] Searching for replacement of {node[attr]}:",
+            location=loc(node),
+        )
 
+        from os.path import relpath
+        # project_root: how absolute paths are interpreted w.r.t. the doc root
+        doc_root = Path(env.srcdir)
+        project_root = env.config.fix_links_project_root
+        uri = node[attr]
+        if node["refdomain"] == "doc":
+            _uri_path, _uri_id = f"/{uri}", node.attributes.get("refid", None) or ""
+            _uri_sep = "#" if _uri_id else ""
+            project_root = "."
+        else:
+            _uri_path, _uri_sep, _uri_id = uri.partition("#")
+            if not _uri_id and getattr(node, "reftargetid", None) is not None:
+                _uri_sep, _uri_id = "#", node["reftargetid"]
+        # resolve the target Path in the link w.r.t. the source it came from
+        if _uri_path.startswith("/"):
+            # absolute with respect to documentation root
+            target_path = (doc_root / project_root / _uri_path[1:]).resolve()
+        else:
+            sourcefile_path = Path(env.srcdir) / node["refdoc"]
+            target_path = (sourcefile_path.parent / _uri_path).resolve()
+        _uri_path = relpath(target_path, env.srcdir)
+        _uri_hash = _uri_sep + _uri_id
+
+        if not _uri_path.startswith("../"):
+            # maybe this already fixed the path?
+            ref = _resolve_xref_with_(f"/{_uri_path}{_uri_hash}".lower(), uri)
+            if ref is not None:
+                return ref
+
+        # trace back the include path and check if this resolves the ref
+        if env.included:
+            potential_targets = resolve_included(
+                env.included,
+                env.found_docs,
+                _uri_path,
+            )
+            for potential_doc in potential_targets:
+                potential_path = env.doc2path(potential_doc, False)
+                ref = _resolve_xref_with_(f"/{potential_path}{_uri_hash}".lower(), uri)
+                if ref is not None:
+                    return ref
+
+        source = f"/{relpath(target_path, env.srcdir)}{_uri_sep}{_uri_id}"
         for key, (pat, repls) in subs.items():
             # if this search string does not match, try next
             if not pat.match(source):
@@ -80,13 +161,14 @@ def resolve_xref(
                     _replaced = pat.sub(repl, replaced)
                     if replaced == _replaced:
                         logger.warning(
-                            f"Infinite replacement loop with string '{source}', "
-                            f"pattern '{key}' and replacement '{repl}'!",
+                            f"[fix_links] Infinite replacement loop with string "
+                            f"'{source}', pattern '{key}' and replacement '{repl}'!",
+                            location=loc(node),
                         )
                         break
                     replaced = _replaced
                 # search for a reference associated with the replaced link in std
-                ref = _resolve_xref_with_(str(replaced).lower(), orig_source)
+                ref = _resolve_xref_with_(str(replaced).lower(), uri)
 
                 # check and return the reference, if it is valid
                 if ref is not None:
@@ -94,10 +176,11 @@ def resolve_xref(
             # if the pattern matched, but none of the replacements lead to a valid
             # reference
             logger.warning(
-                f"Could not find reference {node['reftarget']} in {node['refdoc']}!"
+                f"[fix_links] Could not find reference {node['reftarget']}!",
+                location=node.source,
             )
         # restore the reftarget attribute
-        node[attr] = source
+        node[attr] = uri
     # node["reftype"] = prev_type
 
 
@@ -125,8 +208,8 @@ def _resolve_xref_with(
         attrs = ("reftarget", "refuri", "refid")
         target = next((a, ref[a]) for a in attrs if a in ref.attributes)
         logger.debug(
-            f"<{node.source}> replacing {source} with {'='.join(target)}",
-            location=node['refdoc'],
+            f"[fix_links] <{node.source}> replacing {source} with {'='.join(target)}",
+            location=loc(node),
         )
     return ref
 

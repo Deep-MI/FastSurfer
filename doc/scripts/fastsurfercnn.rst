@@ -6,7 +6,7 @@ FastSurferCNN: run_prediction.py
 
 .. include:: ../../FastSurferCNN/README.md
    :parser: fix_links.parser
-   :relative-docs: doc/
+   :relative-docs: .
    :relative-images:
    :start-after: <!-- after inference heading -->
    :end-before: <!-- before generate_hdf5 -->

@@ -2,8 +2,8 @@ Surface pipeline: recon-surf.sh
 ===============================
 
 .. include:: ../../recon_surf/README.md
-   :parser: myst_parser.sphinx_
-   :relative-docs: doc/
+   :parser: fix_links.parser
+   :relative-docs: .
    :relative-images:
    :heading-offset: 1
 

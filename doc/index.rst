@@ -9,11 +9,13 @@
 
 .. include:: ../README.md
    :parser: fix_links.parser
+   :relative-docs: .
    :start-after: <!-- start of content -->
    :end-before: <!-- start of image requirements -->
 
 .. include:: ../README.md
    :parser: fix_links.parser
+   :relative-docs: .
    :start-after: <!-- start of references -->
 
 .. toctree::

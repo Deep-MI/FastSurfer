@@ -11,6 +11,7 @@ import inspect
 from importlib import import_module
 import sys
 import os
+from pathlib import Path
 
 # here i added the relative path because sphinx was not able
 # to locate FastSurferCNN module directly for autosummary
@@ -65,7 +66,8 @@ suppress_warnings = [
     "myst.duplicate_def",
 ]
 
-myst_heading_anchors = 1
+# create anchors for which headings?
+myst_heading_anchors = 7
 
 templates_path = ["_templates"]
 exclude_patterns = [
@@ -253,7 +255,9 @@ def linkcode_resolve(domain, info):
 # myst_ref_domains = ["myst", "std", "py"]
 
 
-_script_dirs = "fastsurfercnn", "cerebnet", "recon_surf"
+_re_script_dirs = "fastsurfercnn|cerebnet|recon_surf"
+_up = "^/\\.\\./"
+_end = "(\\.md)?(#.*)?$"
 
 # re_reference_target=(regex) => used in missing-reference
 fix_links_target = {
@@ -261,15 +265,14 @@ fix_links_target = {
     # change occurs, but different (different repl str) replacements are not combined
     # "^\\/overview\\/intro\\.md#": "/overview/index.rst#",
     "^/?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\1#\\2ubuntu-\\3-\\4",),
-    "^/readme\\.md(#.*)?$": ("/index.rst\\1", "/overview/intro.rst\\1"),
-    "^/?(overview/)?intro(\\.rst)?(#.*)?$": ("/overview/index.rst\\3",),
-    "^/?(singularity|docker)/readme\\.md(#.*)?$": ("/overview/\\1.md\\2",),
-    f"^/?({'|'.join(_script_dirs)})/readme\\.md(#.*)?$": ("/scripts/\\1.rst\\2",),
-    "^/?doc/": ("/",),
-    "^/?license": ("/overview/license.rst",),
+    f"{_up}readme{_end}": ("/index.rst\\1", "/overview/intro.rst\\1"),
+    "^/overview/intro(#.*)?$": ("/overview/index.rst\\2",),
+    f"{_up}(singularity|docker)/readme{_end}": ("/overview/\\1.rst\\2",),
+    f"{_up}({_re_script_dirs})/readme{_end}": ("/scripts/\\1.rst\\2",),
+    f"{_up}license": ("/overview/license.rst",),
 }
 fix_links_alternative_targets = {
-    "overview/intro": ("/index.rst", "/overview/index.rst"),
+    "/overview/intro": ("/index.rst", "/overview/index.rst"),
 }
-
+fix_links_project_root = Path("..")
 

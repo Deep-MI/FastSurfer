@@ -9,8 +9,8 @@ User Guide
     EXAMPLES.md
     FLAGS.md
     OUTPUT_FILES.md
-    DOCKER.md
-    SINGULARITY.md
+    docker
+    singularity
     EDITING.md
     SECURITY.md
     CODE_OF_CONDUCT.md
