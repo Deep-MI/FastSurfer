@@ -288,7 +288,8 @@ then
   done
   echo ""
   echo ""
-  echo "Running in shell$(ls -l "/proc/$$/exe" | cut -d">" -f2)"
+  shell=$(ls -l "/proc/$$/exe" | cut -d">" -f2)
+  echo "Running in shell $shell: $($shell --version 2>/dev/null | head -n 1)"
   echo ""
   echo "---END DEBUG  ---"
 fi
