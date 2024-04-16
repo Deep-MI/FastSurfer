@@ -489,7 +489,8 @@ do
   else debugf " %s" "$p";
   fi
 done
-debug "Running in$(ls -l /proc/$$/exe | cut -d">" -f2)"
+shell=$(ls -l "/proc/$$/exe" | cut -d">" -f2)
+debug "Running in shell $shell: $($shell --version 2>/dev/null | head -n 1)"
 debug ""
 
 if [[ "${pattern/#\/}" != "$pattern" ]]

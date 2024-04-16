@@ -288,7 +288,8 @@ then
   done
   echo ""
   echo ""
-  echo "Running in shell$(ls -l "/proc/$$/exe" | cut -d">" -f2)"
+  shell=$(ls -l "/proc/$$/exe" | cut -d">" -f2)
+  echo "Running in shell $shell: $($shell --version 2>/dev/null | head -n 1)"
   echo ""
   echo "---END DEBUG  ---"
 fi
@@ -318,18 +319,19 @@ then
   fi
 fi
 
+num_subjects=${#subjects[@]}
 if [[ -z "$task_id" ]] && [[ -z "$task_count" ]]
 then
   subject_start=0
-  subject_end="${#subjects[@]}"
+  subject_end=$num_subjects
 elif [[ -z "$task_id" ]] || [[ -z "$task_count" ]]
 then
   echo "Both task_id and task_count have to be defined, invalid --batch argument?"
   exit 1
 else
-  subject_start=$(((task_id - 1) * "${#subjects[@]}" / task_count))
-  subject_end=$((task_id * "${#subjects[@]}" / task_count))
-  subject_end=$((subject_end < "${#subjects[@]}" ? subject_end : "${#subjects[@]}"))
+  subject_start=$(((task_id - 1) * num_subjects / task_count))
+  subject_end=$((task_id * num_subjects / task_count))
+  subject_end=$((subject_end < num_subjects ? subject_end : num_subjects))
   echo "Processing subjects $subject_start to $subject_end"
 fi
 subject_len=$((subject_end - subject_start))
