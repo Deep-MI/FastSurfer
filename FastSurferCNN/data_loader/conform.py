@@ -246,69 +246,77 @@ def getscale(
     float
         Scale factor.
     """
+
+    if f_low < 0. or f_high > 1. or f_low > f_high:
+        raise ValueError(
+            "Invalid values for f_low or f_high, must be within 0 and 1."
+        )
+
     # get min and max from source
-    src_min = np.min(data)
-    src_max = np.max(data)
+    data_min = np.min(data)
+    data_max = np.max(data)
 
-    if src_min < 0.0:
+    if data_min < 0.0:
+        # logger. warning
         print("WARNING: Input image has value(s) below 0.0 !")
-
-    print("Input:    min: " + format(src_min) + "  max: " + format(src_max))
+    # logger.info
+    print(f"Input:    min: {data_min}  max: {data_max}")
 
     if f_low == 0.0 and f_high == 1.0:
-        return src_min, 1.0
+        return data_min, 1.0
 
     # compute non-zeros and total vox num
-    nz = (np.abs(data) >= 1e-15).sum()
-    voxnum = data.shape[0] * data.shape[1] * data.shape[2]
+    num_nonzero_voxels = (np.abs(data) >= 1e-15).sum()
+    num_total_voxels = data.shape[0] * data.shape[1] * data.shape[2]
 
-    # compute histogram
-    histosize = 1000
-    bin_size = (src_max - src_min) / histosize
-    hist, bin_edges = np.histogram(data, histosize)
+    # compute histogram (number of samples)
+    bins = 1000
+    hist, bin_edges = np.histogram(data, bins=bins, range=(data_min, data_max))
 
-    # compute cumulative sum
-    cs = np.concatenate(([0], np.cumsum(hist)))
+    # compute cumulative histogram
+    cum_hist = np.concatenate(([0], np.cumsum(hist)))
 
-    # get lower limit
-    nth = int(f_low * voxnum)
-    idx = np.where(cs < nth)
+    # get lower limit: f_low fraction of total voxels
+    lower_cutoff = int(f_low * num_total_voxels)
+    binindex_lt_low_cutoff = np.flatnonzero(cum_hist < lower_cutoff)
 
-    if len(idx[0]) > 0:
-        idx = idx[0][-1] + 1
+    lower_binedge_index = 0
+    # if we find any voxels
+    if len(binindex_lt_low_cutoff) > 0:
+        lower_binedge_index = binindex_lt_low_cutoff[-1] + 1
 
+    src_min: float = bin_edges[lower_binedge_index].item()
+
+    # get upper limit (cutoff only based on non-zero voxels, i.e. how many
+    # non-zero voxels to ignore)
+    upper_cutoff = num_total_voxels - int((1.0 - f_high) * num_nonzero_voxels)
+    binindex_ge_up_cutoff = np.flatnonzero(cum_hist >= upper_cutoff)
+
+    if len(binindex_ge_up_cutoff) > 0:
+        upper_binedge_index = binindex_ge_up_cutoff[0] - 2
+    elif np.isclose(cum_hist[-1], 1.0, atol=1e-6) or num_nonzero_voxels < 10:
+        # if we cannot find a cutoff, check, if we are running into numerical
+        # issues such that cum_hist does not properly account for the full hist
+        # index -1 should always yield the last element, which is data_max
+        upper_binedge_index = -1
     else:
-        idx = 0
+        # If no upper bound can be found, this is probably a bug somewhere
+        raise RuntimeError(
+            f"ERROR: rescale upper bound not found: f_high={f_high}"
+        )
 
-    src_min = idx * bin_size + src_min
-
-    # get upper limit
-    nth = voxnum - int((1.0 - f_high) * nz)
-    idx = np.where(cs >= nth)
-
-    if len(idx[0]) > 0:
-        idx = idx[0][0] - 2
-
-    else:
-        print("ERROR: rescale upper bound not found")
-
-    src_max = idx * bin_size + src_min
+    src_max: float = bin_edges[upper_binedge_index].item()
 
     # scale
     if src_min == src_max:
+        # logger.warning
+        print("WARNING: Scaling between src_min and src_max. The input image "
+              "is likely corrupted!")
         scale = 1.0
-
     else:
         scale = (dst_max - dst_min) / (src_max - src_min)
-
-    print(
-        "rescale:  min: "
-        + format(src_min)
-        + "  max: "
-        + format(src_max)
-        + "  scale: "
-        + format(scale)
-    )
+    # logger.info
+    print(f"rescale:  min: {src_min}  max: {src_max}  scale: {scale}")
 
     return src_min, scale
 
