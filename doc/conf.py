@@ -8,17 +8,16 @@
 
 
 import inspect
-from datetime import date
 from importlib import import_module
-from typing import Dict, Optional
-
 import sys
 import os
+from pathlib import Path
 
 # here i added the relative path because sphinx was not able
 # to locate FastSurferCNN module directly for autosummary
 sys.path.append(os.path.dirname(__file__) + "/..")
 sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
+sys.path.append(os.path.dirname(__file__) + "/sphinx_ext")
 
 project = "FastSurfer"
 author = "FastSurfer Developers"
@@ -48,19 +47,27 @@ extensions = [
     "sphinx.ext.linkcode",
     "numpydoc",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.programoutput",
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_issues",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
+    "sphinxarg.ext",
+    "fix_links",
 ]
 
 # Suppress myst.xref_missing warning and  i.e A target was
 # not found for a cross-reference
 # Reference: https://myst-parser.readthedocs.io/en/latest/configuration.html#build-warnings
-suppress_warnings = ["myst.xref_missing",
-                     "myst.duplicate_def",]
+suppress_warnings = [
+    # "myst.xref_missing",
+    "myst.duplicate_def",
+]
+
+# create anchors for which headings?
+myst_heading_anchors = 7
 
 templates_path = ["_templates"]
 exclude_patterns = [
@@ -201,19 +208,71 @@ bibtex_bibfiles = ["./references.bib"]
 #  Alternative method for linking to code by Osama, not sure which one is better
 from urllib.parse import quote
 
-
+# https://github.com/python-websockets/websockets/blob/e217458ef8b692e45ca6f66c5aeb7fad0aee97ee/docs/conf.py#L102-L134
 def linkcode_resolve(domain, info):
+    # Check if the domain is Python, if not return None
     if domain != "py":
         return None
     if not info["module"]:
         return None
+
+    # Import the module using the module information
+    mod = import_module(info["module"])
+
+    # Check if the fullname contains a ".", indicating it's a method or attribute of
+    # a class
+    if "." in info["fullname"]:
+        objname, attrname = info["fullname"].split(".")
+        # Get the object from the module
+        obj = getattr(mod, objname)
+        try:
+            # Try to get the attribute from the object
+            obj = getattr(obj, attrname)
+        except AttributeError:
+            # If the attribute doesn't exist, return None
+            return None
+    else:
+        # If the fullname doesn't contain a ".", get the object directly from the module
+        obj = getattr(mod, info["fullname"])
+
+    try:
+        # Try to get the source file and line numbers of the object
+        lines, first_line = inspect.getsourcelines(obj)
+    except TypeError:
+        # If the object is not a Python object that has a source file, return None
+        return None
+
+    # Replace "." with "/" in the module name to construct the file path
     filename = quote(info["module"].replace(".", "/"))
+    # If the filename doesn't start with "tests", add a "/" at the beginning
     if not filename.startswith("tests"):
         filename = "/" + filename
-    if "fullname" in info:
-        anchor = info["fullname"]
-        anchor = "#:~:text=" + quote(anchor.split(".")[-1])
-    else:
-        anchor = ""
-    result = f"{gh_url}/blob/stable/{filename}.py{anchor}"
-    return result
+
+    # Construct the URL that points to the source code of the object on GitHub
+    return f"{gh_url}/blob/dev{filename}.py#L{first_line}-L{first_line + len(lines) - 1}"
+
+# Which domains to search in to create links in markdown texts
+# myst_ref_domains = ["myst", "std", "py"]
+
+
+_re_script_dirs = "fastsurfercnn|cerebnet|recon_surf"
+_up = "^/\\.\\./"
+_end = "(\\.md)?(#.*)?$"
+
+# re_reference_target=(regex) => used in missing-reference
+fix_links_target = {
+    # all regexpr are ignorecase, individual replacements are applied until no further
+    # change occurs, but different (different repl str) replacements are not combined
+    # "^\\/overview\\/intro\\.md#": "/overview/index.rst#",
+    "^/?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\1#\\2ubuntu-\\3-\\4",),
+    f"{_up}readme{_end}": ("/index.rst\\1", "/overview/intro.rst\\1"),
+    "^/overview/intro(#.*)?$": ("/overview/index.rst\\2",),
+    f"{_up}(singularity|docker)/readme{_end}": ("/overview/\\1.rst\\2",),
+    f"{_up}({_re_script_dirs})/readme{_end}": ("/scripts/\\1.rst\\2",),
+    f"{_up}license": ("/overview/license.rst",),
+}
+fix_links_alternative_targets = {
+    "/overview/intro": ("/index.rst", "/overview/index.rst"),
+}
+fix_links_project_root = Path("..")
+

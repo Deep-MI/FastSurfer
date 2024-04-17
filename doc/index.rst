@@ -3,12 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to FastSurfer's documentation!
-======================================
-
-.. image:: ../images/teaser.png
+.. image:: images/teaser.png
    :alt: FastSurfer Teaser Image
    :align: center
+
+.. include:: ../README.md
+   :parser: fix_links.parser
+   :relative-docs: .
+   :start-after: <!-- start of content -->
+   :end-before: <!-- start of image requirements -->
+
+.. include:: ../README.md
+   :parser: fix_links.parser
+   :relative-docs: .
+   :start-after: <!-- start of references -->
 
 .. toctree::
    :hidden:

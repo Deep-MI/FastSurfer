@@ -1,5 +1,5 @@
-API CerebNet_utils References
-=============================
+CerebNet.utils
+==============
 
 
 .. currentmodule:: CerebNet.utils

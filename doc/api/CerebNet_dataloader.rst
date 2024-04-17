@@ -1,5 +1,5 @@
-API CerebNet_dataloader References
-==================================
+CerebNet.dataloader
+===================
 
 
 .. currentmodule:: CerebNet.data_loader

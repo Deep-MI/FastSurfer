@@ -1,5 +1,5 @@
-API data_loader References
-==========================
+FastSurferCNN.data_loader
+=========================
 
 
 .. currentmodule:: FastSurferCNN.data_loader

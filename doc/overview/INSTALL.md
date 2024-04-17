@@ -22,9 +22,9 @@ Assuming you have singularity installed already (by a system admin), you can bui
 ```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 ```
-Additionally, [the Singularity README](Singularity/README.md) contains detailed directions for building your own Singularity images from Docker.
+Additionally, [the Singularity README](../../Singularity/README.md) contains detailed directions for building your own Singularity images from Docker.
 
-Our [README](README.md#example-2--fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](Docker/README.md) and [Singularity](Singularity/README.md). 
+[Example 2](EXAMPLES.md#example-2-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../Docker/README.md) and [Singularity](../../Singularity/README.md). 
 
 
 ### Docker
@@ -35,7 +35,7 @@ This is very similar to Singularity. Assuming you have Docker installed (by a sy
 docker pull deepmi/fastsurfer:latest
 ```
 
-Our [README](README.md#example-1--fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](Docker/README.md). 
+[Example 1](EXAMPLES.md#example-1-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md). 
 
 
 ### Native (Ubuntu 20.04 or Ubuntu 22.04)
@@ -113,7 +113,7 @@ You can also download all network checkpoint files (this should be done if you a
 python3 FastSurferCNN/download_checkpoints.py --all
 ```
 
-Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```./run_fastsurfer.sh --seg_only ....``` , see the [README](README.md#example-3--native-fastsurfer-on-subjectx--with-parallel-processing-of-hemis-) for command line flags.
+Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```./run_fastsurfer.sh --seg_only ....``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
 
 #### 5. FreeSurfer
 To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.3.2) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
@@ -130,7 +130,7 @@ Build the Docker container with ROCm support.
 python Docker/build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
-You will need to add a couple of flags to your docker run command for AMD, see [the Readme](README.md#example-1--fastsurfer-docker) for `**other-docker-flags**` or `**fastsurfer-flags**`:
+You will need to add a couple of flags to your docker run command for AMD, see [Example 1](EXAMPLES.md#example-1-fastsurfer-docker) for `**other-docker-flags**` or `**fastsurfer-flags**`:
 ```bash
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/kfd \
         --device=/dev/dri --group-add video --ipc=host --shm-size 8G \
@@ -160,7 +160,7 @@ Second, pull one of our Docker containers. Open a terminal window and run:
 docker pull deepmi/fastsurfer:latest
 ```
 
-Continue with the example in our [README](README.md#example-1--fastsurfer-docker). 
+Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker). 
 
 
 ### Native
@@ -215,7 +215,7 @@ You can also download all network checkpoint files (this should be done if you a
 python3 FastSurferCNN/download_checkpoints.py --all
 ```
 
-Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [README](README.md#usage). 
+Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
 
 Note: You may always need to prepend the command with `bash` (i.e. `bash run_fastsurfer.sh <...>`) to ensure that bash 4.0 is used instead of the system default.
 
@@ -247,7 +247,7 @@ After everything is installed, start Windows PowerShell and run the following co
 docker pull deepmi/fastsurfer:cpu-latest
 ```
 
-Now you can run Fastsurfer the same way as described in our [README](README.md#example-1--fastsurfer-docker) for the CPU build, for example:
+Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker) for the CPU build, for example:
 ```bash
 docker run -v C:/Users/user/my_mri_data:/data \
            -v C:/Users/user/my_fastsurfer_analysis:/output \
@@ -279,7 +279,7 @@ After everything is installed, start Windows PowerShell and run the following co
 docker pull deepmi/fastsurfer:latest
 ```
 
-Now you can run Fastsurfer the same way as described in our [README](README.md#example-1--fastsurfer-docker), for example:
+Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker), for example:
 ```bash
 docker run --gpus all
            -v C:/Users/user/my_mri_data:/data \

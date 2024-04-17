@@ -12,6 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This is the FastSurfer/run_prediction.py script, the backbone for whole brain
+segmentation.
+
+Usage:
+
+See Also
+--------
+:ref:`/scripts/fastsurfercnn.rst`
+`run_prediction.py --help`
+"""
+
+
 # IMPORTS
 import argparse
 import copy
@@ -30,6 +43,7 @@ from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.utils import logging, parser_defaults, Plane, PLANES
+from FastSurferCNN.utils.arg_types import VoxSizeOption
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
@@ -44,6 +58,7 @@ from FastSurferCNN.utils.common import (
     SubjectDirectory,
     pipeline,
 )
+from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
 from FastSurferCNN.quick_qc import check_volume
 
 ##
@@ -57,7 +72,10 @@ CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths
 ##
 # Processing
 ##
-def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
+def set_up_cfgs(
+        cfg_file: str | Path,
+        batch_size: int = 1,
+) -> yacs.config.CfgNode:
     """
     Set up configuration.
 
@@ -65,20 +83,19 @@ def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
 
     Parameters
     ----------
-    cfg : str
+    cfg_file : Path, str
         Path to yaml file of configurations.
-    args : argparse.Namespace
-        {out_dir, batch_size} arguments.
+    batch_size : int, default=1
+        The batch size to use.
 
     Returns
     -------
     yacs.config.CfgNode
         Node of configurations.
     """
-    cfg = load_config(cfg)
-    cfg.OUT_LOG_DIR = args.out_dir if args.out_dir is not None else cfg.LOG_DIR
+    cfg = load_config(str(cfg_file))
     cfg.OUT_LOG_NAME = "fastsurfer"
-    cfg.TEST.BATCH_SIZE = args.batch_size
+    cfg.TEST.BATCH_SIZE = batch_size
 
     cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
     cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
@@ -86,7 +103,10 @@ def set_up_cfgs(cfg: str, args: argparse.Namespace) -> yacs.config.CfgNode:
 
 
 def args2cfg(
-    args: argparse.Namespace,
+    cfg_ax: Optional[str] = None,
+    cfg_cor: Optional[str] = None,
+    cfg_sag: Optional[str] = None,
+    batch_size: int = 1,
 ) -> tuple[
     yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode
 ]:
@@ -95,21 +115,33 @@ def args2cfg(
 
     Parameters
     ----------
-    args : argparse.Namespace
-        Arguments.
+    cfg_ax : str, optional
+        The path to the axial network YAML config file.
+    cfg_cor : str, optional
+        The path to the coronal network YAML config file.
+    cfg_sag : str, optional
+        The path to the sagittal network YAML config file.
+    batch_size : int, default=1
+        The batch size for the network.
 
     Returns
     -------
      yacs.config.CfgNode
         Configurations for all planes.
     """
-    cfg_cor = set_up_cfgs(args.cfg_cor, args) if args.cfg_cor is not None else None
-    cfg_sag = set_up_cfgs(args.cfg_sag, args) if args.cfg_sag is not None else None
-    cfg_ax = set_up_cfgs(args.cfg_ax, args) if args.cfg_ax is not None else None
-    cfg_fin = (
-        cfg_cor if cfg_cor is not None else cfg_sag if cfg_sag is not None else cfg_ax
-    )
-    return cfg_fin, cfg_cor, cfg_sag, cfg_ax
+    if cfg_cor is not None:
+        cfg_cor = set_up_cfgs(cfg_cor, batch_size)
+    if cfg_sag is not None:
+        cfg_sag = set_up_cfgs(cfg_sag, batch_size)
+    if cfg_ax is not None:
+        cfg_ax = set_up_cfgs(cfg_ax, batch_size)
+    cfgs = (cfg_cor, cfg_sag, cfg_ax)
+    # returns the first non-None cfg
+    try:
+        cfg_fin = next(filter(None, cfgs))
+    except StopIteration:
+        raise RuntimeError("No valid configuration passed!")
+    return (cfg_fin,) + cfgs
 
 
 ##
@@ -123,9 +155,6 @@ class RunModelOnData:
 
     Attributes
     ----------
-    pred_name : str
-    conf_name : str
-    orig_name : str
     vox_size : float, 'min'
     current_plane : str
     models : Dict[str, Inference]
@@ -159,88 +188,91 @@ class RunModelOnData:
         Getter.
     """
 
-    pred_name: str
-    conf_name: str
-    orig_name: str
     vox_size: float | Literal["min"]
-    current_plane: str
-    models: dict[str, Inference]
-    view_ops: dict[str, dict[str, Any]]
+    current_plane: Plane
+    models: dict[Plane, Inference]
+    view_ops: dict[Plane, dict[str, Any]]
     conform_to_1mm_threshold: Optional[float]
+    device: torch.device
+    viewagg_device: torch.device
     _pool: Executor
 
-    def __init__(self, args: argparse.Namespace):
+    def __init__(
+            self,
+            lut: Path,
+            ckpt_ax: Optional[Path] = None,
+            ckpt_sag: Optional[Path] = None,
+            ckpt_cor: Optional[Path] = None,
+            cfg_ax: Optional[Path] = None,
+            cfg_sag: Optional[Path] = None,
+            cfg_cor: Optional[Path] = None,
+            device: str = "auto",
+            viewagg_device: str = "auto",
+            threads: int = 1,
+            batch_size: int = 1,
+            vox_size: VoxSizeOption = "min",
+            async_io: bool = False,
+            conform_to_1mm_threshold: float = 0.95,
+    ):
         """
         Construct RunModelOnData object.
 
         Parameters
         ----------
-        args : argparse.Namespace
-            pred_name : str
-            conf_name : str
-            orig_name : str
-            remove_suffix : [MISSING]
-            sf : float
-                Defaults to 1.0.
-            out_dir : str
-                Directory of output.
-            viewagg_device : str
-                Device to run viewagg on. Can be auto, cuda or cpu.
+        viewagg_device : str, default="auto"
+            Device to run viewagg on. Can be auto, cuda or cpu.
         """
-        self.pred_name = args.pred_name
-        self.conf_name = args.conf_name
-        self.orig_name = args.orig_name
-        self._threads = getattr(args, "threads", 1)
+        # TODO Fix docstring of RunModelOnData.__init__
+        self._threads = threads
         torch.set_num_threads(self._threads)
-        self._async_io = getattr(args, "async_io", False)
+        self._async_io = async_io
 
         self.sf = 1.0
 
-        device = find_device(args.device)
+        self.device = find_device(device)
 
-        if device.type == "cpu" and args.viewagg_device == "auto":
-            self.viewagg_device = device
+        if self.device.type == "cpu" and viewagg_device in ("auto", "cpu"):
+            self.viewagg_device = self.device
         else:
             # check, if GPU is big enough to run view agg on it
             # (this currently takes the memory of the passed device)
-            self.viewagg_device = torch.device(
-                find_device(
-                    args.viewagg_device,
-                    flag_name="viewagg_device",
-                    min_memory=4 * (2**30),
-                )
+            self.viewagg_device = find_device(
+                viewagg_device,
+                flag_name="viewagg_device",
+                min_memory=4 * (2**30),
             )
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
 
         try:
-            self.lut = du.read_classes_from_lut(args.lut)
+            self.lut = du.read_classes_from_lut(lut)
         except FileNotFoundError:
             raise ValueError(
-                f"Could not find the ColorLUT in {args.lut}, please make sure the "
+                f"Could not find the ColorLUT in {lut}, please make sure the "
                 f"--lut argument is valid."
             )
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
-        self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(args)
+        self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(
+            cfg_ax, cfg_cor, cfg_sag, batch_size=batch_size,
+        )
         # the order in this dictionary dictates the order in the view aggregation
         self.view_ops = {
-            "coronal": {"cfg": cfg_cor, "ckpt": args.ckpt_cor},
-            "sagittal": {"cfg": cfg_sag, "ckpt": args.ckpt_sag},
-            "axial": {"cfg": cfg_ax, "ckpt": args.ckpt_ax},
+            "coronal": {"cfg": cfg_cor, "ckpt": ckpt_cor},
+            "sagittal": {"cfg": cfg_sag, "ckpt": ckpt_sag},
+            "axial": {"cfg": cfg_ax, "ckpt": ckpt_ax},
         }
         self.num_classes = max(
             view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values()
         )
         self.models = {}
         for plane, view in self.view_ops.items():
-            if view["cfg"] is not None and view["ckpt"] is not None:
+            if all(view[key] is not None for key in ("cfg", "ckpt")):
                 self.models[plane] = Inference(
-                    view["cfg"], ckpt=view["ckpt"], device=device, lut=self.lut,
+                    view["cfg"], ckpt=view["ckpt"], device=self.device, lut=self.lut,
                 )
 
-        vox_size = args.vox_size
         if vox_size == "min":
             self.vox_size = "min"
         elif 0.0 < float(vox_size) <= 1.0:
@@ -250,7 +282,7 @@ class RunModelOnData:
                 f"Invalid value for vox_size, must be between 0 and 1 or 'min', was "
                 f"{vox_size}."
             )
-        self.conform_to_1mm_threshold = args.conform_to_1mm_threshold
+        self.conform_to_1mm_threshold = conform_to_1mm_threshold
 
     @property
     def pool(self) -> Executor:
@@ -504,7 +536,15 @@ class RunModelOnData:
                 yield data
 
 
-if __name__ == "__main__":
+def make_parser():
+    """
+    Create the argparse object.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        The parser object.
+    """
     parser = argparse.ArgumentParser(description="Evaluation metrics")
 
     # 1. Options for input directories and filenames
@@ -557,26 +597,56 @@ if __name__ == "__main__":
             "allow_root",
         ],
     )
+    return parser
 
-    args = parser.parse_args()
-
+def main(
+        *,
+        orig_name: Path | str,
+        out_dir: Path,
+        segfile: str,
+        ckpt_ax: Path,
+        ckpt_sag: Path,
+        ckpt_cor: Path,
+        cfg_ax: Path,
+        cfg_sag: Path,
+        cfg_cor: Path,
+        seg_log: Path,
+        qc_log: str = "",
+        log_name: str = "",
+        allow_root: bool = False,
+        conf_name: str = "mri/orig.mgz",
+        in_dir: Optional[Path] = None,
+        sid: Optional[str] = None,
+        search_tag: Optional[str] = None,
+        csv_file: Optional[str | Path] = None,
+        lut: Optional[Path | str] = None,
+        remove_suffix: str = "",
+        brainmask_name: str = "mri/mask.mgz",
+        aseg_name: str = "mri/aseg.auto_noCC.mgz",
+        vox_size: VoxSizeOption = "min",
+        device: str = "auto",
+        viewagg_device: str = "auto",
+        batch_size: int = 1,
+        async_io: bool = True,
+        threads: int = -1,
+        conform_to_1mm_threshold: float = 0.95,
+        **kwargs,
+):
     # Warning if run as root user
-    args.allow_root or assert_no_root()
+    allow_root or assert_no_root()
+
+    if len(kwargs) > 0:
+        LOGGER.warning(f"Unknown arguments {list(kwargs.keys())} in {__file__}:main.")
 
     qc_file_handle = None
-    if args.qc_log != "":
+    if qc_log != "":
         try:
-            qc_file_handle = open(args.qc_log, "w")
+            qc_file_handle = open(qc_log, "w")
         except NotADirectoryError:
             LOGGER.warning(
                 "The directory in the provided QC log file path does not exist!"
             )
             LOGGER.warning("The QC log file will not be saved.")
-
-    # Set up logging
-    from FastSurferCNN.utils.logging import setup_logging
-
-    setup_logging(args.log_name)
 
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
@@ -584,15 +654,43 @@ if __name__ == "__main__":
     
     urls = load_checkpoint_config_defaults("url", filename=CHECKPOINT_PATHS_FILE)
 
-    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
+    get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
+
+    config = SubjectDirectoryConfig(
+        orig_name=orig_name,
+        pred_name=segfile,
+        conf_name=conf_name,
+        in_dir=in_dir,
+        csv_file=csv_file,
+        sid=sid,
+        search_tag=search_tag,
+        brainmask_name=brainmask_name,
+        remove_suffix=remove_suffix,
+        out_dir=out_dir,
+    )
+    config.copy_org_name = "mri/orig/001.mgz"
+
+    # Get all subjects of interest
+    subjects = SubjectList(config, segfile="pred_name", copy_orig_name="copy_orig_name")
+    subjects.make_subjects_dir()
 
     # Set Up Model
-    eval = RunModelOnData(args)
-
-    args.copy_orig_name = "mri/orig/001.mgz"
-    # Get all subjects of interest
-    subjects = SubjectList(args, segfile="pred_name", copy_orig_name="copy_orig_name")
-    subjects.make_subjects_dir()
+    eval = RunModelOnData(
+        lut=lut,
+        ckpt_ax=ckpt_ax,
+        ckpt_sag=ckpt_sag,
+        ckpt_cor=ckpt_cor,
+        cfg_ax=cfg_ax,
+        cfg_sag=cfg_sag,
+        cfg_cor=cfg_cor,
+        device=device,
+        viewagg_device=viewagg_device,
+        threads=threads,
+        batch_size=batch_size,
+        vox_size=vox_size,
+        async_io=async_io,
+        conform_to_1mm_threshold=conform_to_1mm_threshold,
+    )
 
     qc_failed_subject_count = 0
 
@@ -619,14 +717,14 @@ if __name__ == "__main__":
             # the subject_id (passed by --sid or extracted from the orig_name) and use
             # that as the subject folder.
             bm = None
-            store_brainmask = subject.can_resolve_filename(args.brainmask_name)
-            store_aseg = subject.can_resolve_filename(args.aseg_name)
+            store_brainmask = subject.can_resolve_filename(brainmask_name)
+            store_aseg = subject.can_resolve_filename(aseg_name)
             if store_brainmask or store_aseg:
                 LOGGER.info("Creating brainmask based on segmentation...")
                 bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
             if store_brainmask:
                 # get mask
-                mask_name = subject.filename_in_subject_folder(args.brainmask_name)
+                mask_name = subject.filename_in_subject_folder(brainmask_name)
                 futures.append(
                     eval.async_save_img(mask_name, bm, orig_img, dtype=np.uint8)
                 )
@@ -645,7 +743,7 @@ if __name__ == "__main__":
                 aseg = rta.reduce_to_aseg(pred_data)
                 aseg[bm == 0] = 0
                 aseg = rta.flip_wm_islands(aseg)
-                aseg_name = subject.filename_in_subject_folder(args.aseg_name)
+                aseg_name = subject.filename_in_subject_folder(aseg_name)
                 # Change datatype to np.uint8, else mri_cc will fail!
                 futures.append(
                     eval.async_save_img(aseg_name, aseg, orig_img, dtype=np.uint8)
@@ -673,7 +771,7 @@ if __name__ == "__main__":
                 qc_failed_subject_count += 1
         except RuntimeError as e:
             if not handle_cuda_memory_exception(e):
-                raise e
+                return e.args[0]
 
     if qc_file_handle is not None:
         qc_file_handle.close()
@@ -688,5 +786,15 @@ if __name__ == "__main__":
     # wait for async processes to finish
     for f in futures:
         _ = f.result()
+    return 0
 
-    sys.exit(0)
+
+if __name__ == "__main__":
+    parser = make_parser()
+    _args = parser.parse_args()
+
+    # Set up logging
+    from FastSurferCNN.utils.logging import setup_logging
+    setup_logging(_args.log_name)
+
+    sys.exit(main(**vars(_args)))

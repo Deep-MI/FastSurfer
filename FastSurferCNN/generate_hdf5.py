@@ -18,6 +18,7 @@ import glob
 import time
 from collections import defaultdict
 from os.path import dirname, join
+from pathlib import Path
 from typing import Dict, Tuple
 
 import h5py
@@ -38,6 +39,7 @@ from FastSurferCNN.data_loader.data_utils import (
     unify_lateralized_labels,
 )
 from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 LOGGER = logging.getLogger(__name__)
 
@@ -392,7 +394,7 @@ class H5pyDataset:
         )
 
 
-if __name__ == "__main__":
+def make_parser():
     import argparse
 
     # Training settings
@@ -454,8 +456,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--lut",
-        type=str,
-        default=join(dirname(__file__), "/config/FastSurfer_ColorLUT.tsv"),
+        type=Path,
+        default=FASTSURFER_ROOT / "/config/FastSurfer_ColorLUT.tsv",
         help="FreeSurfer-style Color Lookup Table with labels to use in final prediction. "
         "Has to have columns: ID	LabelName	R	G	B	A"
         "Default: FASTSURFERDIR/FastSurferCNN/config/FastSurfer_ColorLUT.tsv.",
@@ -522,9 +524,10 @@ if __name__ == "__main__":
         default=256,
         help="Sizes of images in the dataset. Default: 256",
     )
+    return parser
 
-    args = parser.parse_args()
 
+def main(args):
     dataset_params = {
         "dataset_name": args.hdf5_name,
         "data_path": args.data_dir,
@@ -538,7 +541,7 @@ if __name__ == "__main__":
         "max_weight": args.max_w,
         "edge_weight": args.edge_w,
         "plane": args.plane,
-        "lut": args.lut,
+        "lut": str(args.lut),
         "combi": args.combi,
         "sag_mask": args.sag_mask,
         "hires_weight": args.hires_w,
@@ -548,3 +551,9 @@ if __name__ == "__main__":
 
     dataset_generator = H5pyDataset(params=dataset_params, processing=args.processing)
     dataset_generator.create_hdf5_dataset(args.blank_slice_thresh)
+
+
+if __name__ == "__main__":
+    parser = make_parser()
+    args = parser.parse_args()
+    main(args)

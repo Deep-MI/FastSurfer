@@ -1,3 +1,4 @@
+import argparse
 
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
@@ -90,8 +91,7 @@ def main(img_path, lbl_path, warp_path, result_path, patch_size):
                    affine=lbl_file.affine)
 
 
-if __name__ == '__main__':
-    import argparse
+def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--img_path",
                         help="path to T1 image",
@@ -107,11 +107,17 @@ if __name__ == '__main__':
                         help="Warp field file",
                         default='1Warp.nii.gz',
                         type=str)
+    return parser
 
+
+if __name__ == '__main__':
+    parser = make_parser()
     args = parser.parse_args()
-    warp_path = join(args.result_path, args.warp_filename)
-    main(args.img_path,
-                      args.lbl_path,
-                      warp_path=warp_path,
-                      result_path=args.result_path,
-                      patch_size=(128, 128, 128))
+    warp_path = str(join(args.result_path, args.warp_filename))
+    main(
+        args.img_path,
+        args.lbl_path,
+        warp_path=warp_path,
+        result_path=args.result_path,
+        patch_size=(128, 128, 128),
+    )

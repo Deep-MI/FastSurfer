@@ -3,5 +3,10 @@ Scripts
 
 .. toctree::
     :maxdepth: 2
-    
-    slurm.md
+
+    fastsurfercnn
+    cerebnet
+    recon_surf
+    SLURM.md
+    segstats
+    util

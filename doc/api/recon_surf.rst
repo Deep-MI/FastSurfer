@@ -1,5 +1,5 @@
-API recon_surf References
-=========================
+recon_surf
+==========
 
 
 .. currentmodule:: recon_surf

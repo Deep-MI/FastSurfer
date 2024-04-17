@@ -14,7 +14,9 @@
 
 # IMPORTS
 import os
+from collections import namedtuple
 from concurrent.futures import Executor, Future
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
@@ -42,6 +44,8 @@ __all__ = [
     "SubjectList",
     "SubjectDirectory",
 ]
+
+from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
 
 LOGGER = logging.getLogger(__name__)
 _T = TypeVar("_T")
@@ -682,7 +686,12 @@ class SubjectList:
 
     DEFAULT_FLAGS = {k: v(dict) for k, v in parser_defaults.ALL_FLAGS.items()}
 
-    def __init__(self, args, flags: Optional[dict[str, dict]] = None, **assign):
+    def __init__(
+            self,
+            args: SubjectDirectoryConfig,
+            flags: Optional[dict[str, dict]] = None,
+            **assign,
+    ):
         """
         Create an iterate-able list of subjects from the arguments passed.
 
@@ -710,13 +719,13 @@ class SubjectList:
 
         Parameters
         ----------
-        args :
-            The Namespace object (object with attributes to define parameters) with the
-            following 'required' definitions.
-            orig_name (str): the path to the input t1 file.
-            conf_name (str): the path to the conformed t1 file.
-            segfile (str): the path to the main output file.
-            in_dir (str) or csv_file (str), if orig_name is not an absolute path.
+        args : SubjectDirectoryConfig
+            The namedtuple/Namespace object (object with attributes to define
+            parameters) with the following 'required' definitions.
+            - orig_name (str): the path to the input t1 file.
+            - conf_name (str): the path to the conformed t1 file.
+            - segfile (str): the path to the main output file.
+            - in_dir (str) or csv_file (str), if orig_name is not an absolute path.
             If args is passed without a sid attribute (cf. {sid[flag]}), subject ids are
             extracted from the subject details (excluding potentially added relative
             paths). Suffixes can be removed from this by use of the remove_suffix
