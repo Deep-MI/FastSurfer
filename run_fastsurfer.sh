@@ -32,6 +32,7 @@ fi
 
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
+hypvinndir="$FASTSURFER_HOME/HypVINN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 # Regular flags defaults
@@ -49,6 +50,8 @@ hypo_segfile=""
 hypo_statsfile=""
 hypvinn_flags=()
 conformed_name=""
+norm_name=""
+norm_name_t2=""
 seg_log=""
 run_talairach_registration="false"
 atlas3T="false"
@@ -374,7 +377,7 @@ case $key in
     --reg_mode)
     mode=$(echo "$2" | tr "[:upper:]" "[:lower:]")
     if [[ "$mode" =~ /^(none|coreg|robust)$/ ]] ; then
-      hypvinn_flags=("${hypvinn_flags[@]}" --regmode "$mode")
+      hypvinn_flags+=(--regmode "$mode")
     else
       echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'."
     fi
@@ -388,6 +391,11 @@ case $key in
     ;;
     --norm_name)
     norm_name="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --norm_name_t2)
+    norm_name_t2="$2"
     shift # past argument
     shift # past value
     ;;
@@ -682,6 +690,11 @@ if [[ -z "$norm_name" ]]
     norm_name="${sd}/${subject}/mri/orig_nu.mgz"
 fi
 
+if [[ -z "$norm_name_t2" ]]
+  then
+    norm_name_t2="${sd}/${subject}/mri/T2_nu.mgz"
+fi
+
 if [[ -z "$seg_log" ]]
  then
     seg_log="${sd}/${subject}/scripts/deep-seg.log"
@@ -825,8 +838,6 @@ if [[ "$run_seg_pipeline" == "1" ]]
             exit 1
         fi
     fi
-    # TODO Bias field correct also the the t2 input
-    # compute the bias-field corrected image
     if [[ "$run_biasfield" == "1" ]]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
@@ -875,6 +886,23 @@ if [[ "$run_seg_pipeline" == "1" ]]
                 exit 1
             fi
         fi
+
+        if [[ -n "$t2" ]]
+        then
+          # ... we have a t2 image, bias field-correct it
+        echo "INFO: Running N4 bias-field correction of the t2" | tee -a "$seg_log"
+        cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$t2"
+             --out "$norm_name_t2" --threads "$threads")
+        echo "${cmd[@]}" |& tee -a "$seg_log"
+        "${cmd[@]}"
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+          then
+            echo "ERROR: T2 Biasfield correction failed" | tee -a "$seg_log"
+            exit 1
+        fi
+
+
+        fi
     fi
 
     if [[ "$run_cereb_module" == "1" ]]
@@ -899,6 +927,30 @@ if [[ "$run_seg_pipeline" == "1" ]]
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
             echo "ERROR: Cerebellum Segmentation failed" 2>&1 | tee -a "$seg_log"
+            exit 1
+        fi
+    fi
+
+    if [[ "$run_hypvinn_module" == "1" ]]
+      then
+        cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
+             "${hypvinn_flags[@]}" "${allow_root[@]}" --threads "$threads" --async_io
+             --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
+             --viewagg_device "$viewagg_device" --t1)
+        if [[ "$run_biasfield" == "1" ]]
+          then
+            cmd+=("$norm_name")
+            if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2"); fi
+        else
+          echo "WARNING: We strongly recommended to run the hypvinn module is not run with --no_biasfield!"
+          cmd+=("$t1")
+          if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
+        fi
+        echo "${cmd[@]}" |& tee -a "$seg_log"
+        "${cmd[@]}"
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+          then
+            echo "ERROR: Hypothalamus Segmentation failed" |& tee -a "$seg_log"
             exit 1
         fi
     fi

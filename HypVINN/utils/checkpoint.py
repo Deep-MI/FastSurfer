@@ -14,4 +14,4 @@
 
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
-YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
+YAML_DEFAULT = FASTSURFER_ROOT / "HypVINN/config/checkpoint_paths.yaml"

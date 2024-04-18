@@ -23,8 +23,8 @@ LOGGER = logging.get_logger(__name__)
 
 
 def get_hypinn_mode(
-        t1_path: Optional[Path],
-        t2_path: Optional[Path],
+        t1_path: Optional[Path] = None,
+        t2_path: Optional[Path] = None,
 ) -> ModalityMode:
 
     LOGGER.info("Setting up input mode...")

@@ -13,26 +13,37 @@
 # limitations under the License.
 
 # IMPORTS
+from typing import TYPE_CHECKING, Optional, cast, Literal
 import argparse
 from pathlib import Path
 from time import time
 
 import numpy as np
+from numpy import typing as npt
 import torch
-import nibabel as nib
 
-import FastSurferCNN.utils.logging as logging
+if TYPE_CHECKING:
+    import yacs.config
+    from nibabel.filebasedimages import FileBasedHeader
+
+from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
+from FastSurferCNN.utils.checkpoint import (
+    get_checkpoints,
+    load_checkpoint_config_defaults,
+)
+from FastSurferCNN.utils.common import assert_no_root, SerialExecutor
 
 from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
-from HypVINN.config.hypvinn_global_var import Plane, planes
-from HypVINN.data_loader.data_utils import hypo_map_label2subseg
+from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
-from HypVINN.models.networks import HypVINN
 from HypVINN.utils import ModalityDict, ModalityMode, ViewOperations
-from HypVINN.utils.load_config import load_config
-from HypVINN.data_loader.data_utils import rescale_image
-from HypVINN.utils.stats_utils import compute_stats
+from HypVINN.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
 from HypVINN.utils.img_processing_utils import save_segmentation
+from HypVINN.utils.load_config import load_config
+from HypVINN.utils.misc import create_expand_output_directory
+from HypVINN.utils.mode_config import get_hypinn_mode
+from HypVINN.utils.preproc import hyvinn_preproc
+from HypVINN.utils.stats_utils import compute_stats
 from HypVINN.utils.visualization_utils import plot_qc_images
 
 logger = logging.get_logger(__name__)
@@ -42,81 +53,413 @@ logger = logging.get_logger(__name__)
 ##
 
 
+def optional_path(a: Path | str) -> Optional[Path]:
+    """
+    Convert a string to a Path object or None.
+
+    Parameters
+    ----------
+    a : str
+        The string to convert.
+
+    Returns
+    -------
+    Optional[Path]
+        The Path object or None.
+    """
+    if isinstance(a, Path):
+        return a
+    if a.lower() in ("none", ""):
+        return None
+    return Path(a)
+
+
+def option_parse() -> argparse.ArgumentParser:
+    """
+    A function to create an ArgumentParser object and parse the command line arguments.
+
+    Returns
+    -------
+    argparse.Ar
+        The parser object to parse arguments from the command line.
+    """
+    parser = argparse.ArgumentParser(
+        description="Script for Hypothalamus Segmentation.",
+    )
+
+    # 1. Directory information (where to read from, where to write from and to incl. search-tag)
+    parser = parser_defaults.add_arguments(
+        parser, ["in_dir", "sd", "sid"],
+    )
+
+    parser = parser_defaults.add_arguments(parser, ["seg_log"])
+
+    # 2. Options for the MRI volumes
+    parser = parser_defaults.add_arguments(
+        parser, ["t1"]
+    )
+    parser.add_argument(
+        '--t2',
+        type=optional_path,
+        default=None,
+        required=False,
+        help="Path to the T2 image to process.",
+    )
+
+    # 3. Image processing options
+    parser.add_argument(
+        "--qc_snap",
+        action='store_true',
+        dest="qc_snapshots",
+        help="Create qc snapshots in <sd>/<sid>/qc_snapshots.",
+    )
+    parser.add_argument(
+        "--reg_mode",
+        type=str,
+        default="coreg",
+        choices=["none", "coreg", "robust"],
+        help="Freesurfer Registration type to run. coreg: mri_coreg, "
+             "robust : mri_robust_register, none: entirely deactivates "
+             "registration of T2 to T1, if both images are passed, "
+             "images need to be register properly externally.",
+    )
+    default_hypo_segfile = Path("mri") / HYPVINN_SEG_NAME
+    parser.add_argument(
+        "--hypo_segfile",
+        type=Path,
+        default=default_hypo_segfile,
+        dest="hypo_segfile",
+        help=f"File pattern on where to save the hypothalamus segmentation file "
+             f"(default: {default_hypo_segfile})."
+    )
+
+    # 4. Options for advanced, technical parameters
+    advanced = parser.add_argument_group(title="Advanced options")
+    parser_defaults.add_arguments(
+        advanced,
+        ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
+    )
+
+    files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
+    # 5. Checkpoint to load
+    parser_defaults.add_plane_flags(
+        advanced,
+        "checkpoint",
+        files,
+        CHECKPOINT_PATHS_FILE,
+    )
+
+    parser_defaults.add_plane_flags(
+        advanced,
+        "config",
+        {
+            "coronal": Path("HypVINN/config/HypVINN_coronal_v1.0.0.yaml"),
+            "axial": Path("HypVINN/config/HypVINN_axial_v1.0.0.yaml"),
+            "sagittal": Path("HypVINN/config/HypVINN_sagittal_v1.0.0.yaml"),
+        },
+        CHECKPOINT_PATHS_FILE,
+    )
+    return parser
+
+
+def main(
+        out_dir: Path,
+        t2: Optional[Path],
+        orig_name: Optional[Path],
+        sid: str,
+        ckpt_ax: Path,
+        ckpt_cor: Path,
+        ckpt_sag: Path,
+        cfg_ax: Path,
+        cfg_cor: Path,
+        cfg_sag: Path,
+        seg_file: str = HYPVINN_SEG_NAME,
+        allow_root: bool = False,
+        qc_snapshots: bool = False,
+        reg_mode: Literal["coreg", "robust", "none"] = "coreg",
+        threads: int = -1,
+        batch_size: int = 1,
+        async_io: bool = False,
+        device: str = "auto",
+        viewagg_device: str = "auto",
+) -> int | str:
+    """
+    Main function of the hypothalamus segmentation module.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    int, str
+        0, if successful, an error message describing the cause for the
+        failure otherwise.
+    """
+    from concurrent.futures import ProcessPoolExecutor, Future
+    if threads != 1:
+        pool = ProcessPoolExecutor(threads)
+    else:
+        pool = SerialExecutor()
+    prep_tasks: dict[str, Future] = {}
+
+    # mapped freesurfer orig input name to the hypvinn t1 name
+    t1_path = orig_name
+    t2_path = t2
+    subject_name = sid
+    subject_dir = out_dir / sid
+    # Warning if run as root user
+    allow_root or assert_no_root()
+    start = time()
+    try:
+        # Set up logging
+        prep_tasks["cp"] = pool.submit(prepare_checkpoints, ckpt_ax, ckpt_cor, ckpt_sag)
+
+        kwargs = {}
+        if t1_path is not None:
+            kwargs["t1_path"] = Path(t1_path)
+        if t2_path:
+            kwargs["t2_path"] = Path(t2_path)
+        # Get configuration to run multi-modal or uni-modal
+        mode = get_hypinn_mode(**kwargs)
+
+        if not mode:
+            return (
+                f"Failed Evaluation on {subject_name} couldn't determine the "
+                f"processing mode. Please check that T1 or T2 images are "
+                f"available.\nT1 image path: {t1_path}\nT2 image path "
+                f"{t2_path}.\nNo T1 or T2 image available."
+            )
+
+        # Create output directory if it does not already exist.
+        create_expand_output_directory(out_dir, qc_snapshots)
+        logger.info(
+            f"Running HypVINN segmentation pipeline on subject {sid}"
+        )
+        logger.info(f"Output will be stored in: {subject_dir}")
+        logger.info(f"T1 image input {t1_path}")
+        logger.info(f"T2 image input {t2_path}")
+
+        # Pre-processing -- T1 and T2 registration
+        if mode == "t1t2":
+            # Note, that t1_path and t2_path are guaranteed to be not None
+            # via get_hypvinn_mode, which only returns t1t2, if t1 and t2
+            # exist.
+            # hypvinn_preproc returns the path to the t2 that is registered
+            # to the t1
+            prep_tasks["reg"] = pool.submit(
+                hyvinn_preproc,
+                mode,
+                reg_mode,
+                out_dir=Path(out_dir),
+                **kwargs,
+            )
+
+        # Segmentation pipeline
+        seg = time()
+        view_ops: ViewOperations = {a: None for a in PLANES}
+        logger.info("Setting up HypVINN run")
+
+        cfgs = (cfg_ax, cfg_cor, cfg_sag)
+        ckpts = (ckpt_ax, ckpt_cor, ckpt_sag)
+        for plane, _cfg_file, _ckpt_file in zip(PLANES, cfgs, ckpts):
+            logger.info(f"{plane} model configuration from {_cfg_file}")
+            view_ops[plane] = {
+                "cfg": set_up_cfgs(_cfg_file, out_dir, batch_size),
+                "ckpt": _ckpt_file,
+            }
+
+            model = view_ops[plane]["cfg"].MODEL
+            if mode != model.MODE and "HypVinn" not in model.MODEL_NAME:
+                raise AssertionError(
+                    f"Modality mode different between input arg: "
+                    f"{mode} and axial train cfg: {model.MODE}"
+                )
+
+        cfg_fin, ckpt_fin = view_ops["coronal"].values()
+
+        if "reg" in prep_tasks:
+            t2_path = prep_tasks["reg"].result()
+            kwargs["t2_path"] = t2_path
+        prep_tasks["load"] = pool.submit(load_volumes, mode=mode, **kwargs)
+
+        # Set up model
+        model = Inference(
+            cfg=cfg_fin,
+            async_io=async_io,
+            threads=threads,
+            viewagg_device=viewagg_device,
+            device=device,
+        )
+
+        logger.info('----' * 30)
+        logger.info(f"Evaluating hypothalamus model on {subject_name}")
+
+        # wait for all prep tasks to finish
+        for ptask in prep_tasks.values():
+            if e := ptask.exception():
+                raise e
+
+        # Load  Images
+        image_data, affine, header, orig_zoom, orig_size = prep_tasks["load"].result()
+        logger.info(f"Scale factor: {orig_zoom}")
+
+        pred = time()
+        pred_classes = get_prediction(
+            subject_name,
+            image_data,
+            orig_zoom,
+            model,
+            target_shape=orig_size,
+            view_opts=view_ops,
+            out_scale=None,
+            mode=mode,
+        )
+        logger.info(f"Model prediction finished in {time() - pred:0.4f} seconds")
+        logger.info(f"Saving prediction at {out_dir}")
+
+        save = time()
+        if mode == 't1t2' or mode == 't1':
+            orig_path = t1_path
+        else:
+            orig_path = t2_path
+
+        save_future: Future = pool.submit(
+            save_segmentation,
+            pred_classes,
+            orig_path=orig_path,
+            ras_affine=affine,
+            ras_header=header,
+            save_dir=out_dir,
+            seg_file=seg_file,
+            save_mask=True,
+        )
+        save_future.add_done_callback(lambda x: logger.info(f"Prediction successfully saved as {x}"))
+        if qc_snapshots:
+            plot_qc_images(
+                save_dir=out_dir / "qc_snapshots",
+                orig_path=orig_path,
+                prediction_path=pred_path,
+            )
+
+        logger.info("Computing stats")
+        return_value = compute_stats(
+            orig_path=orig_path,
+            prediction_path=pred_path,
+            save_dir=out_dir / "stats",
+            threads=threads,
+        )
+        if return_value != 0:
+            logger.error(return_value)
+
+        logger.info(
+            f"Processing segmentation finished in {time() - seg:0.4f} seconds"
+        )
+    except (FileNotFoundError, RuntimeError) as e:
+        logger.info(f"Failed Evaluation on {subject_name}:")
+        logger.exception(e)
+    else:
+        logger.info(
+            f"Processing whole pipeline finished in {time() - start:.4f} "
+            f"seconds"
+        )
+
+
+def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
+    logger.info("Checking or downloading default checkpoints ...")
+    urls = load_checkpoint_config_defaults(
+        "url",
+        filename=CHECKPOINT_PATHS_FILE,
+    )
+    get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
+
+
 def load_volumes(
         mode: ModalityMode,
-        t1_path: Path,
-        t2_path: Path,
+        t1_path: Optional[Path] = None,
+        t2_path: Optional[Path] = None,
 ) -> tuple[
     ModalityDict,
-    np.ndarray,
-    nib.FilebasedHeader,
-    np.ndarray,
-    tuple[int, ...],
+    npt.NDArray[float],
+    "FileBasedHeader",
+    tuple[float, float, float],
+    tuple[int, int, int],
 ]:
+    import nibabel as nib
     modalities: ModalityDict = {}
 
     t1_size = ()
     t2_size = ()
     t1_zoom = ()
     t2_zoom = ()
-    affine = np.ndarray([0])
-    header = None
-    zoom = ()
-    size = ()
+    affine: npt.NDArray[float] = np.ndarray([0])
+    header: Optional["FileBasedHeader"] = None
+    zoom: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    size: tuple[int, ...] = (0, 0, 0)
 
-    if "t1" in mode:
+    if t1_path:
         logger.info(f'Loading T1 image from : {t1_path}')
         t1 = nib.load(t1_path)
         t1 = nib.as_closest_canonical(t1)
         if mode in ('t1t2', 't1'):
             affine = t1.affine
             header = t1.header
+        else:
+            raise RuntimeError(f"Invalid mode {mode}, or inconsistent with t1_path!")
         t1_zoom = t1.header.get_zooms()
-        zoom = np.round(t1_zoom, 3)
+        zoom = cast(tuple[float, float, float], tuple(np.round(t1_zoom, 3)))
         # Conform Intensities
-        modalities['t1'] = rescale_image(np.asarray(t1.dataobj))
-        t1_size = modalities['t1'].shape
+        modalities["t1"] = rescale_image(np.asarray(t1.dataobj))
+        t1_size: tuple[int, ...] = modalities["t1"].shape
         size = t1_size
-    if "t2" in mode:
-        logger.info(f'Loading T2 image from : {t2_path}')
+    if t2_path:
+        logger.info(f"Loading T2 image from {t2_path}")
         t2 = nib.load(t2_path)
         t2 = nib.as_closest_canonical(t2)
-        if mode == 't2':
+        t2_zoom = t2.header.get_zooms()
+        if mode == "t2":
             affine = t2.affine
             header = t2.header
-        t2_zoom = t2.header.get_zooms()
-        zoom = np.round(t2_zoom, 3)
+            zoom = cast(tuple[float, float, float], tuple(np.round(t2_zoom, 3)))
+        elif mode == "t1t2":
+            pass
+        else:
+            raise RuntimeError(f"Invalid mode {mode}, or inconsistent with t2_path!")
         # Conform Intensities
-        modalities['t2'] = np.asarray(rescale_image(t2.get_fdata()), dtype=np.uint8)
-        t2_size = modalities['t2'].shape
+        modalities["t2"] = np.asarray(rescale_image(t2.get_fdata()), dtype=np.uint8)
+        t2_size = modalities["t2"].shape
         size = t2_size
 
     if mode == "t1t2":
         if not np.allclose(np.array(t1_zoom), np.array(t2_zoom), rtol=0.05):
             raise AssertionError(
-                f"T1 : {t1_zoom} and T2 : {t2_zoom} images have different "
-                f"resolutions"
+                f"T1 {t1_zoom} and T2 {t2_zoom} images have different resolutions!"
             )
         if not np.allclose(np.array(t1_size), np.array(t2_size), rtol=0.05):
             raise AssertionError(
-                f"T1 : {t1_size} and T2 : {t2_size} images have different size"
+                f"T1 {t1_size} and T2 {t2_size} images have different size!"
             )
     elif mode not in ("t1", "t2"):
-        raise ValueError(f"Invalid Mode in for modality {mode}")
+        raise ValueError(f"Invalid mode {mode}, vs. 't1', 't2', 't1t2'")
 
-    return modalities, affine, header, zoom, size
+    if header is None:
+        raise ValueError("Missing a header!")
+    if len(size) != 3:
+        raise RuntimeError("Invalid ndims of data!")
+    _size = cast(tuple[int, int, int], size)
+
+    return modalities, affine, header, zoom, _size
 
 
 def get_prediction(
         subject_name: str,
         modalities: ModalityDict,
         orig_zoom,
-        model: HypVINN,
+        model: Inference,
         target_shape: tuple[int, int, int],
         view_opts: ViewOperations,
         out_scale=None,
         mode: ModalityMode = "t1t2",
-) -> torch.Tensor:
+) -> npt.NDArray[int]:
     device, viewagg_device = model.get_device()
     dim = model.get_max_size()
 
@@ -153,120 +496,33 @@ def get_prediction(
 ##
 # Processing
 ##
-def set_up_cfgs(cfg, args):
+def set_up_cfgs(
+        cfg: "yacs.config.CfgNode",
+        out_dir: Path,
+        batch_size: int = 1,
+) -> "yacs.config.CfgNode":
     cfg = load_config(cfg)
-    cfg.OUT_LOG_DIR = args.out_dir if args.out_dir is not None else cfg.LOG_DIR
-    cfg.TEST.BATCH_SIZE = args.batch_size
+    cfg.OUT_LOG_DIR = out_dir or cfg.LOG_DIR
+    cfg.TEST.BATCH_SIZE = batch_size
 
     out_dims = cfg.DATA.PADDED_SIZE
-    cfg.MODEL.OUT_TENSOR_WIDTH = out_dims if out_dims > cfg.DATA.PADDED_SIZE else cfg.DATA.PADDED_SIZE
-    cfg.MODEL.OUT_TENSOR_HEIGHT = out_dims if out_dims > cfg.DATA.PADDED_SIZE else cfg.DATA.PADDED_SIZE
+    if out_dims > cfg.DATA.PADDED_SIZE:
+        cfg.MODEL.OUT_TENSOR_WIDTH = out_dims
+        cfg.MODEL.OUT_TENSOR_HEIGHT = out_dims
+    else:
+        cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
+        cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
     return cfg
 
 
-def run_hypo_seg(
-        args: argparse.Namespace,
-        subject_name: str,
-        mode: ModalityMode,
-        t1_path: Path,
-        t2_path: Path,
-        out_dir: Path,
-        threads: int,
-        seg_file: Path = Path("mri") / HYPVINN_SEG_NAME,
-):
-    start = time()
+if __name__ == "__main__":
+    # arguments
+    parser = option_parse()
+    args = vars(parser.parse_args())
+    log_name = args["log_name"] or args["out_dir"] / "scripts" / "hypvinn_seg.log"
 
-    view_ops: ViewOperations = {a: None for a in planes}
-    logger.info('Setting up HypVINN run')
-    cfg_ax = set_up_cfgs(args.cfg_ax, args)
-    logger.info(f'Axial model configuration from : {args.cfg_ax}')
-    view_ops["axial"] = {"cfg": cfg_ax, "ckpt": args.ckpt_ax}
+    from FastSurferCNN.utils.logging import setup_logging
+    setup_logging(log_name)
 
-    cfg_sag = set_up_cfgs(args.cfg_sag, args)
-    logger.info(f'Sagittal model configuration from : {args.cfg_sag}')
-    view_ops["sagittal"] = {"cfg": cfg_sag, "ckpt": args.ckpt_sag}
-
-    cfg_cor = set_up_cfgs(args.cfg_cor, args)
-    logger.info(f'Coronal model configuration from : {args.cfg_cor}')
-    view_ops["coronal"] = {"cfg": cfg_cor, "ckpt": args.ckpt_cor}
-
-    for plane, pcfg in zip(planes, (cfg_ax, cfg_cor, cfg_sag)):
-        model = pcfg.MODEL
-        if mode != model.MODE and 'HypVinn' not in model.MODEL_NAME:
-            raise AssertionError(
-                f"Modality mode different between input arg: "
-                f"{mode} and axial train cfg:  {model.MODE}"
-            )
-
-    cfg_fin, ckpt_fin = cfg_cor, args.ckpt_cor
-
-    # Set up model
-    model = Inference(cfg=cfg_fin, args=args)
-
-    logger.info('----' * 30)
-    logger.info(f"Evaluating hypothalamus model on {subject_name}")
-    load = time()
-
-    # Load  Images
-    modalities, ras_affine, ras_header, orig_zoom, orig_size = load_volumes(
-        mode=mode,
-        t1_path=t1_path,
-        t2_path=t2_path,
-    )
-    logger.info(f"Scale factor: {orig_zoom}")
-    logger.info(f"images loaded in {time() - load:0.4f} seconds")
-
-    load = time()
-    pred_classes = get_prediction(
-        subject_name,
-        modalities,
-        orig_zoom,
-        model,
-        target_shape=orig_size,
-        view_opts=view_ops,
-        out_scale=None,
-        mode=mode,
-        logger=logger,
-    )
-    logger.info(f"Model prediction finished in {time() - load:0.4f} seconds")
-    logger.info(f"Saving prediction at {out_dir}")
-
-    save = time()
-    if mode == 't1t2' or mode == 't1':
-        orig_path = t1_path
-    else:
-        orig_path = t2_path
-
-    pred_path = save_segmentation(
-        pred_classes,
-        orig_path=orig_path,
-        ras_affine=ras_affine,
-        ras_header=ras_header,
-        save_dir=out_dir,
-        seg_file=seg_file,
-        save_mask=True,
-    )
-    logger.info(
-        f"Prediction successfully saved as {pred_path} in "
-        f"{time() - save:0.4f} seconds"
-    )
-    if getattr(args, "qc_snapshots", False):
-        plot_qc_images(
-            save_dir=out_dir / "qc_snapshots",
-            orig_path=orig_path,
-            prediction_path=pred_path,
-        )
-
-    logger.info("Computing stats")
-    return_value = compute_stats(
-        orig_path=orig_path,
-        prediction_path=pred_path,
-        save_dir=out_dir / "stats",
-        threads=threads,
-    )
-    if return_value != 0:
-        logger.error(return_value)
-
-    logger.info(
-        f"Processing segmentation finished in {time() - start:0.4f} seconds"
-    )
+    import sys
+    sys.exit(main(**args))

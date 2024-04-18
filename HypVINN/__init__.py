@@ -19,5 +19,4 @@ __all__ = [
     "utils",
     "inference",
     "run_prediction",
-    "run_pipeline",
 ]

@@ -5,3 +5,8 @@ checkpoint:
   axial: "checkpoints/HypVINN_axial_v1.0.0.pkl"
   coronal: "checkpoints/HypVINN_coronal_v1.0.0.pkl"
   sagittal: "checkpoints/HypVINN_sagittal_v1.0.0.pkl"
+
+config:
+  axial: "HypVINN/config/HypVINN_axial_v1.0.0.yaml"
+  coronal: "HypVINN/config/HypVINN_coronal_v1.0.0.yaml"
+  sagittal: "HypVINN/config/HypVINN_sagittal_v1.0.0.yaml"

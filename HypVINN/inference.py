@@ -27,17 +27,24 @@ from FastSurferCNN.data_loader.augmentation import ToTensorTest, ZeroPad2DTest
 from HypVINN.models.networks import build_model
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypoVINN_dataset
-from HypVINN.run_prediction import ModalityMode
+from HypVINN.utils import ModalityMode
 
 logger = logging.get_logger(__name__)
 
 
 class Inference:
-    def __init__(self, cfg, args):
+    def __init__(
+            self,
+            cfg,
+            threads: int = -1,
+            async_io: bool = False,
+            device: str = "auto",
+            viewagg_device: str = "auto",
+    ):
 
-        self._threads = getattr(args, "threads", 1)
+        self._threads = threads
         torch.set_num_threads(self._threads)
-        self._async_io = getattr(args, "async_io", False)
+        self._async_io = async_io
 
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -49,16 +56,16 @@ class Inference:
         torch.set_flush_denormal(True)
 
         # Define device and transfer model
-        self.device = find_device(args.device)
+        self.device = find_device(device)
 
-        if self.device.type == "cpu" and args.viewagg_device == "auto":
+        if self.device.type == "cpu" and viewagg_device == "auto":
             self.viewagg_device = self.device
         else:
             # check, if GPU is big enough to run view agg on it
             # (this currently takes the memory of the passed device)
             self.viewagg_device = torch.device(
                 find_device(
-                    args.viewagg_device,
+                    viewagg_device,
                     flag_name="viewagg_device",
                     min_memory=4 * (2 ** 30),
                 )
