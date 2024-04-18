@@ -13,19 +13,25 @@
 # limitations under the License.
 
 # IMPORTS
-import numpy as np
-from FastSurferCNN.data_loader.conform import getscale, scalecrop
 import nibabel as nib
-import sys
+import numpy as np
+from numpy import typing as npt
+
+from FastSurferCNN.data_loader.conform import getscale, scalecrop
 from HypVINN.config.hypvinn_global_var import hyposubseg_labels, SAG2FULL_MAP, HYPVINN_CLASS_NAMES, FS_CLASS_NAMES
+
+
 ##
 # Helper Functions
 ##
-def calculate_flip_orientation(iornt,base_ornt):
+
+
+def calculate_flip_orientation(iornt, base_ornt):
     """
     Compute the flip orientation transform.
 
     ornt[N, 1] is flip of axis N, where 1 means no flip and -1 means flip.
+
     Parameters
     ----------
     iornt
@@ -47,9 +53,9 @@ def calculate_flip_orientation(iornt,base_ornt):
 
     return new_iornt
 
-# reorient image based on base image
-def reorient_img(img,ref_img):
-    '''
+
+def reorient_img(img, ref_img):
+    """
     Function to reorient a Nibabel image based on the orientation of a reference nibabel image
     The orientation transform. ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and -1 means flip.
     For example, if ``N==0 and ornt[0,1] == -1, and there’s an array arr of shape shape, the flip would correspond to the effect of
@@ -63,7 +69,7 @@ def reorient_img(img,ref_img):
     Returns
     -------
 
-    '''
+    """
 
     ref_ornt =nib.io_orientation(ref_img.affine)
     iornt=nib.io_orientation(img.affine)
@@ -79,8 +85,7 @@ def reorient_img(img,ref_img):
 
     return img
 
-# Transformation for mapping
-#TODO check compatibility with axis transform from CerebNet
+
 def transform_axial2coronal(vol, axial2coronal=True):
     """
     Function to transform volume into coronal axis and back
@@ -89,11 +94,13 @@ def transform_axial2coronal(vol, axial2coronal=True):
                                 transform from coronal to axial = False
     :return:
     """
+    # TODO check compatibility with axis transform from CerebNet
     if axial2coronal:
         return np.moveaxis(vol, [0, 1, 2], [0, 2, 1])
     else:
         return np.moveaxis(vol, [0, 1, 2], [0, 2, 1])
-#TODO check compatibility with axis transform from CerebNet
+
+
 def transform_axial2sagittal(vol, axial2sagittal=True):
     """
     Function to transform volume into Sagittal axis and back
@@ -102,15 +109,16 @@ def transform_axial2sagittal(vol, axial2sagittal=True):
                                 transform from sagittal to coronal = False
     :return:
     """
+    # TODO check compatibility with axis transform from CerebNet
     if axial2sagittal:
         return np.moveaxis(vol, [0, 1, 2], [2, 0, 1])
     else:
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
 
 
-# Same as CerebNet.datasets.utils.rescale_image
 def rescale_image(img_data):
     # Conform intensities
+    # TODO move function into FastSurferCNN, same: CerebNet.datasets.utils.rescale_image
     src_min, scale = getscale(img_data, 0, 255)
     mapped_data = img_data
     if not img_data.dtype == np.dtype(np.uint8):
@@ -121,59 +129,11 @@ def rescale_image(img_data):
     return new_data
 
 
-
-def hypo_map_subseg2label(subseg):
-    '''
-          Function to perform look-up table mapping from subseg space to label space
-
-
-    Parameters
-    ----------
-    subseg
-
-    Returns
-    -------
-
-    '''
-
-    h, w, d = subseg.shape
-    lbls, lbls_sag = hyposubseg_labels
-
-    lut_subseg = np.zeros(max(lbls) + 1, dtype='int')
-    for idx, value in enumerate(lbls):
-        lut_subseg[value] = idx
-
-    mapped_subseg = lut_subseg.ravel()[subseg.ravel()]
-    mapped_subseg = mapped_subseg.reshape((h, w, d))
-
-
-    # mapping left labels to right labels for sagittal view
-    subseg[subseg == 2] = 1
-    subseg[subseg == 5] = 4
-    subseg[subseg == 6] = 3
-    subseg[subseg == 8] = 7
-    subseg[subseg == 12] = 11
-    subseg[subseg == 20] = 13
-    subseg[subseg == 24] = 23
-
-    subseg[subseg == 126] = 226
-    subseg[subseg == 127] = 227
-    subseg[subseg == 128] = 228
-    subseg[subseg == 129] = 229
-
-    lut_subseg_sag = np.zeros(max(lbls_sag) + 1, dtype='int')
-    for idx, value in enumerate(lbls_sag):
-        lut_subseg_sag[value] = idx
-
-    mapped_subseg_sag = lut_subseg_sag.ravel()[subseg.ravel()]
-
-    mapped_subseg_sag = mapped_subseg_sag.reshape((h, w, d))
-
-    return mapped_subseg,mapped_subseg_sag
-def hypo_map_label2subseg(mapped_subseg):
-    '''
-       Function to perform look-up table mapping from label space to subseg space
-    '''
+def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
+    """
+    Function to perform look-up table mapping from label space to subseg space
+    """
+    # TODO can this function be replaced by a Mapper and a mapping file?
     labels, _ = hyposubseg_labels
     subseg = np.zeros_like(mapped_subseg)
     h, w, d = subseg.shape
@@ -181,20 +141,27 @@ def hypo_map_label2subseg(mapped_subseg):
 
     return subseg.reshape((h, w, d))
 
-def hypo_map_prediction_sagittal2full(prediction_sag):
+
+def hypo_map_prediction_sagittal2full(
+        prediction_sag: npt.NDArray[int],
+) -> npt.NDArray[int]:
     """
     Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
     :param prediction_sag: sagittal prediction (labels)
     :param lbl_type: type of label
     :return: Remapped prediction
     """
+    # TODO can this function be replaced by a Mapper and a mapping file?
 
     idx_list = list(SAG2FULL_MAP.values())
     prediction_full = prediction_sag[:, idx_list, :, :]
     return prediction_full
 
 
-def hypo_map_subseg_2_fsseg(subseg,reverse=False):
+def hypo_map_subseg_2_fsseg(
+        subseg: npt.NDArray[int],
+        reverse: bool = False,
+) -> npt.NDArray[int]:
     """
     Function to remap HypVINN internal labels to FastSurfer Labels and viceversa
     Parameters
@@ -206,7 +173,9 @@ def hypo_map_subseg_2_fsseg(subseg,reverse=False):
     -------
 
     """
-    fsseg = np.zeros_like(subseg,dtype=np.int16)
+    # TODO can this function be replaced by a Mapper and a mapping file?
+
+    fsseg = np.zeros_like(subseg, dtype=np.int16)
 
     if not reverse:
         for value, name in HYPVINN_CLASS_NAMES.items():

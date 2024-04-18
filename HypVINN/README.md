@@ -18,7 +18,7 @@ Hypothalamic subfields segmentation pipeline
 2. Hypothalamus Segmentation
 
 ### Running the tool
-Run the HypVINN/run_pipeline.py which has the following arguments:
+Run the HypVINN/run_prediction.py which has the following arguments:
 ### Input and output arguments
  * `--sid <name>` :  Subject ID, the subject data upon which to operate
  * `--sd <name>` : Directory in which evaluation results should be written.
@@ -54,7 +54,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
 
 1. Run full pipeline
     ```
-    python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
+    python HypVINN/run_prediction.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
                                      --reg_mode coreg \
@@ -63,7 +63,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
    ```
 2. Run full pipeline only using a t1 
     ```
-    python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
+    python HypVINN/run_prediction.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --reg_mode coreg \
                                      --seg_log /outdir/test_subject.log \
@@ -72,7 +72,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
 
 3. Run pipeline without the registration step
     ```
-    python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
+    python HypVINN/run_prediction.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
                                      --reg_mode coreg \
@@ -82,7 +82,7 @@ The pipeline can do all pre-processing by itself (step 1). This step can be skip
 
 4. Run pipeline with creation of qc snapshots
     ```
-    python HypVINN/run_pipeline.py  --sid test_subject --sd /output \
+    python HypVINN/run_prediction.py  --sid test_subject --sd /output \
                                      --t1 /data/test_subject_t1.nii.gz \
                                      --t2 /data/test_subject_t2.nii.gz \
                                      --reg_mode coreg \
