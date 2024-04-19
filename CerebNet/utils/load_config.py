@@ -14,14 +14,16 @@
 
 
 # IMPORTS
-import argparse
-import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import yacs.config
 
 from CerebNet.config import get_cfg_cerebnet
 from FastSurferCNN.utils import PLANES
 
 
-def get_config(args) -> "yacs.CfgNode":
+def get_config(args) -> "yacs.config.CfgNode":
     """
     Given the arguments, load and initialize the config_files.
     """
@@ -35,8 +37,8 @@ def get_config(args) -> "yacs.CfgNode":
     if hasattr(args, "rng_seed"):
         cfg.RNG_SEED = args.rng_seed
     if hasattr(args, "out_dir"):
+        cfg.LOG_DIR = str(args.out_dir)
 
-        cfg.LOG_DIR = args.out_dir    
     path_ax, path_sag, path_cor = [
         getattr(args, name) for name in ["ckpt_ax", "ckpt_sag", "ckpt_cor"]
     ]
@@ -50,32 +52,3 @@ def get_config(args) -> "yacs.CfgNode":
         cfg.TEST.BATCH_SIZE = batch_size
 
     return cfg
-
-
-def setup_options():
-    """
-    Set up the command-line options for the segmentation.
-
-    Returns
-    -------
-    argparse.Namespace
-        The configured argument parser.
-    """
-    parser = argparse.ArgumentParser(description="Segmentation")
-    parser.add_argument(
-        "--cfg",
-        dest="cfg_file",
-        help="Path to the config file",
-        default="config_files/CerebNet.yaml",
-        type=str,
-    )
-    parser.add_argument(
-        "opts",
-        help="See CerebNet/config/cerebnet.py for all options",
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
-
-    if len(sys.argv) == 1:
-        parser.print_help()
-    return parser.parse_args()

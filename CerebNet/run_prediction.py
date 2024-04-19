@@ -20,18 +20,17 @@ import argparse
 from pathlib import Path
 
 from FastSurferCNN.utils import logging, parser_defaults, Plane, PLANES
-from CerebNet.utils.load_config import get_config
-from CerebNet.inference import Inference
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
 from FastSurferCNN.utils.common import assert_no_root, SubjectList
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+from CerebNet.inference import Inference
+from CerebNet.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
+from CerebNet.utils.load_config import get_config
 
 logger = logging.get_logger(__name__)
 DEFAULT_CEREBELLUM_STATSFILE = Path("stats/cerebellum.CerebNet.stats")
-CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
 
 
 def setup_options():
