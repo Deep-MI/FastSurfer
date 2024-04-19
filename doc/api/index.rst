@@ -16,5 +16,9 @@ FastSurfer API
     CerebNet_datasets.rst
     CerebNet_models.rst
     CerebNet_utils.rst
+    HypVINN.rst
+    HypVINN_dataloader.rst
+    HypVINN_models.rst
+    HypVINN_utils.rst
     recon_surf.rst
 
