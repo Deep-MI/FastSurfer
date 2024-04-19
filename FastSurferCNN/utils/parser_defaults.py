@@ -178,7 +178,7 @@ class SubjectDirectoryConfig:
         flags=("--csv_file",),
         default=None,
         help="Csv-file with subjects to analyze (alternative to --tag)",
-    ),
+    )
     sid: Optional[str] = field(
         flags=("--sid",),
         default=None,
@@ -191,7 +191,7 @@ class SubjectDirectoryConfig:
         default="*",
         help="Search tag to process only certain subjects. If a single image should be "
              "analyzed, set the tag with its id. Default: processes all.",
-    ),
+    )
     brainmask_name: str = field(
         default="mri/mask.mgz",
         help="Name under which the brainmask image will be saved, in the same "
@@ -271,7 +271,12 @@ ALL_FLAGS = {
              "(no memory check will be done).",
     ),
     "in_dir": __arg("--in_dir", dc=SubjectDirectoryConfig, fieldname="in_dir"),
-    "tag": __arg("--tag", type=unquote_str, dc=SubjectDirectoryConfig, fieldname="search_tag"),
+    "tag": __arg(
+        "--tag",
+        type=unquote_str,
+        dc=SubjectDirectoryConfig,
+        fieldname="search_tag",
+    ),
     "csv_file": __arg("--csv_file", dc=SubjectDirectoryConfig),
     "batch_size": __arg(
         "--batch_size",

@@ -603,14 +603,13 @@ def main(
         *,
         orig_name: Path | str,
         out_dir: Path,
-        segfile: str,
+        pred_name: str,
         ckpt_ax: Path,
         ckpt_sag: Path,
         ckpt_cor: Path,
         cfg_ax: Path,
         cfg_sag: Path,
         cfg_cor: Path,
-        seg_log: Path,
         qc_log: str = "",
         log_name: str = "",
         allow_root: bool = False,
@@ -631,7 +630,7 @@ def main(
         threads: int = -1,
         conform_to_1mm_threshold: float = 0.95,
         **kwargs,
-):
+) -> Literal[0] | str:
     # Warning if run as root user
     allow_root or assert_no_root()
 
@@ -658,7 +657,7 @@ def main(
 
     config = SubjectDirectoryConfig(
         orig_name=orig_name,
-        pred_name=segfile,
+        pred_name=pred_name,
         conf_name=conf_name,
         in_dir=in_dir,
         csv_file=csv_file,
@@ -668,29 +667,36 @@ def main(
         remove_suffix=remove_suffix,
         out_dir=out_dir,
     )
-    config.copy_org_name = "mri/orig/001.mgz"
+    config.copy_orig_name = "mri/orig/001.mgz"
 
-    # Get all subjects of interest
-    subjects = SubjectList(config, segfile="pred_name", copy_orig_name="copy_orig_name")
-    subjects.make_subjects_dir()
+    try:
+        # Get all subjects of interest
+        subjects = SubjectList(
+            config,
+            segfile="pred_name",
+            copy_orig_name="copy_orig_name",
+        )
+        subjects.make_subjects_dir()
 
-    # Set Up Model
-    eval = RunModelOnData(
-        lut=lut,
-        ckpt_ax=ckpt_ax,
-        ckpt_sag=ckpt_sag,
-        ckpt_cor=ckpt_cor,
-        cfg_ax=cfg_ax,
-        cfg_sag=cfg_sag,
-        cfg_cor=cfg_cor,
-        device=device,
-        viewagg_device=viewagg_device,
-        threads=threads,
-        batch_size=batch_size,
-        vox_size=vox_size,
-        async_io=async_io,
-        conform_to_1mm_threshold=conform_to_1mm_threshold,
-    )
+        # Set Up Model
+        eval = RunModelOnData(
+            lut=lut,
+            ckpt_ax=ckpt_ax,
+            ckpt_sag=ckpt_sag,
+            ckpt_cor=ckpt_cor,
+            cfg_ax=cfg_ax,
+            cfg_sag=cfg_sag,
+            cfg_cor=cfg_cor,
+            device=device,
+            viewagg_device=viewagg_device,
+            threads=threads,
+            batch_size=batch_size,
+            vox_size=vox_size,
+            async_io=async_io,
+            conform_to_1mm_threshold=conform_to_1mm_threshold,
+        )
+    except RuntimeError as e:
+        return e.args[0]
 
     qc_failed_subject_count = 0
 
