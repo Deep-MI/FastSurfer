@@ -89,7 +89,7 @@ def option_parse() -> argparse.ArgumentParser:
 
     # 1. Directory information (where to read from, where to write from and to incl. search-tag)
     parser = parser_defaults.add_arguments(
-        parser, ["in_dir", "sd", "sid"],
+        parser, ["sd", "sid"],
     )
 
     parser = parser_defaults.add_arguments(parser, ["seg_log"])
@@ -173,7 +173,7 @@ def main(
         cfg_ax: Path,
         cfg_cor: Path,
         cfg_sag: Path,
-        seg_file: str = HYPVINN_SEG_NAME,
+        hypo_segfile: str = HYPVINN_SEG_NAME,
         allow_root: bool = False,
         qc_snapshots: bool = False,
         reg_mode: Literal["coreg", "robust", "none"] = "coreg",
@@ -231,7 +231,7 @@ def main(
             )
 
         # Create output directory if it does not already exist.
-        create_expand_output_directory(out_dir, qc_snapshots)
+        create_expand_output_directory(subject_dir, qc_snapshots)
         logger.info(
             f"Running HypVINN segmentation pipeline on subject {sid}"
         )
@@ -250,7 +250,8 @@ def main(
                 hyvinn_preproc,
                 mode,
                 reg_mode,
-                out_dir=Path(out_dir),
+                subject_dir=Path(subject_dir),
+                threads=threads,
                 **kwargs,
             )
 
@@ -264,7 +265,7 @@ def main(
         for plane, _cfg_file, _ckpt_file in zip(PLANES, cfgs, ckpts):
             logger.info(f"{plane} model configuration from {_cfg_file}")
             view_ops[plane] = {
-                "cfg": set_up_cfgs(_cfg_file, out_dir, batch_size),
+                "cfg": set_up_cfgs(_cfg_file, subject_dir, batch_size),
                 "ckpt": _ckpt_file,
             }
 
@@ -315,9 +316,8 @@ def main(
             mode=mode,
         )
         logger.info(f"Model prediction finished in {time() - pred:0.4f} seconds")
-        logger.info(f"Saving prediction at {out_dir}")
+        logger.info(f"Saving results in {subject_dir}")
 
-        save = time()
         if mode == 't1t2' or mode == 't1':
             orig_path = t1_path
         else:
@@ -329,38 +329,52 @@ def main(
             orig_path=orig_path,
             ras_affine=affine,
             ras_header=header,
-            save_dir=out_dir,
-            seg_file=seg_file,
+            subject_dir=subject_dir,
+            seg_file=hypo_segfile,
             save_mask=True,
         )
-        save_future.add_done_callback(lambda x: logger.info(f"Prediction successfully saved as {x}"))
+        save_future.add_done_callback(
+            lambda x: logger.info(
+                f"Prediction successfully saved in {x.result()} seconds."
+            ),
+        )
         if qc_snapshots:
-            plot_qc_images(
-                save_dir=out_dir / "qc_snapshots",
+            qc_future: Optional[Future] = pool.submit(
+                plot_qc_images,
+                subject_qc_dir=subject_dir / "qc_snapshots",
                 orig_path=orig_path,
-                prediction_path=pred_path,
+                prediction_path=Path(hypo_segfile),
             )
+            qc_future.add_done_callback(
+                lambda x: logger.info(f"QC snapshots saved in {x.result()} seconds."),
+            )
+        else:
+            qc_future = None
 
         logger.info("Computing stats")
         return_value = compute_stats(
             orig_path=orig_path,
-            prediction_path=pred_path,
-            save_dir=out_dir / "stats",
+            prediction_path=Path(hypo_segfile),
+            stats_dir=subject_dir / "stats",
             threads=threads,
         )
         if return_value != 0:
             logger.error(return_value)
 
         logger.info(
-            f"Processing segmentation finished in {time() - seg:0.4f} seconds"
+            f"Processing segmentation finished in {time() - seg:0.4f} seconds."
         )
     except (FileNotFoundError, RuntimeError) as e:
         logger.info(f"Failed Evaluation on {subject_name}:")
         logger.exception(e)
     else:
+        if qc_future:
+            # finish qc
+            qc_future.result()
+        save_future.result()
+
         logger.info(
-            f"Processing whole pipeline finished in {time() - start:.4f} "
-            f"seconds"
+            f"Processing whole pipeline finished in {time() - start:.4f} seconds."
         )
 
 
@@ -460,18 +474,19 @@ def get_prediction(
         out_scale=None,
         mode: ModalityMode = "t1t2",
 ) -> npt.NDArray[int]:
+
+    # TODO There are probably several possibilities to accelerate this script.
+    #  FastSurferVINN takes 7-8s vs. HypVINN 10+s per slicing direction.
+    #  Solution: make this script/function more similar to the optimized FastSurferVINN
     device, viewagg_device = model.get_device()
     dim = model.get_max_size()
-
-    model.set_model(view_opts["coronal"]["cfg"])
-    model.load_checkpoint(view_opts["coronal"]["ckpt"])
 
     pred_shape = (dim, dim, dim, model.get_num_classes())
     # Set up tensor to hold probabilities and run inference
     pred_prob = torch.zeros(pred_shape, dtype=torch.float, device=viewagg_device)
     for plane, opts in view_opts.items():
         logger.info(f"Evaluating {plane} model, cpkt :{opts['ckpt']}")
-        model.set_cfg(opts["cfg"])
+        model.set_model(opts["cfg"])
         model.load_checkpoint(opts["ckpt"])
         pred_prob += model.run(subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
 
@@ -502,7 +517,7 @@ def set_up_cfgs(
         batch_size: int = 1,
 ) -> "yacs.config.CfgNode":
     cfg = load_config(cfg)
-    cfg.OUT_LOG_DIR = out_dir or cfg.LOG_DIR
+    cfg.OUT_LOG_DIR = str(out_dir or cfg.LOG_DIR)
     cfg.TEST.BATCH_SIZE = batch_size
 
     out_dims = cfg.DATA.PADDED_SIZE
@@ -519,7 +534,9 @@ if __name__ == "__main__":
     # arguments
     parser = option_parse()
     args = vars(parser.parse_args())
-    log_name = args["log_name"] or args["out_dir"] / "scripts" / "hypvinn_seg.log"
+    log_name = (args["log_name"] or
+                args["out_dir"] / args["sid"] / "scripts/hypvinn_seg.log")
+    del args["log_name"]
 
     from FastSurferCNN.utils.logging import setup_logging
     setup_logging(log_name)

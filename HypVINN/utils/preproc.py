@@ -30,15 +30,19 @@ LOGGER = logging.get_logger(__name__)
 def t1_to_t2_registration(
         t1_path: Path,
         t2_path: Path,
-        out_dir: Path,
+        subject_dir: Path,
         registration_type: RegistrationMode = "coreg",
+        threads: int = -1,
 ) -> Path:
     from FastSurferCNN.utils.run_tools import Popen
+    from FastSurferCNN.utils.threads import get_num_threads
     import shutil
 
-    lta_path = out_dir / "mri/transforms/t2tot1.lta"
+    if threads <= 0:
+        threads = get_num_threads()
 
-    t2_reg_path = out_dir / "mri/T2_nu_reg.mgz"
+    lta_path = subject_dir / "mri/transforms/t2tot1.lta"
+    t2_reg_path = subject_dir / "mri/T2_nu_reg.mgz"
 
     if registration_type == "coreg":
         exe = shutil.which("mri_coreg")
@@ -51,6 +55,7 @@ def t1_to_t2_registration(
                     "FREESURFER_HOME environment variable"
                 )
         args = [exe, "--mov", t2_path, "--targ", t1_path, "--reg", lta_path]
+        args = list(map(str, args)) + ["--threads", str(threads)]
         LOGGER.info("Running " + " ".join(args))
         retval = Popen(args).finish()
         if retval.retcode != 0:
@@ -58,6 +63,7 @@ def t1_to_t2_registration(
             raise RuntimeError("mri_coreg failed registration")
 
         else:
+            LOGGER.info(f"{exe} finished in {retval.runtime}!")
             exe = shutil.which("mri_vol2vol")
             if not bool(exe):
                 if os.environ.get("FREESURFER_HOME", ""):
@@ -76,6 +82,7 @@ def t1_to_t2_registration(
                 "--cubic",
                 "--keep-precision",
             ]
+            args = list(map(str, args))
             LOGGER.info("Running " + " ".join(args))
             retval = Popen(args).finish()
             if retval.retcode != 0:
@@ -83,6 +90,7 @@ def t1_to_t2_registration(
                     f"mri_vol2vol failed with error code {retval.retcode}."
                 )
                 raise RuntimeError("mri_vol2vol failed applying registration")
+            LOGGER.info(f"{exe} finished in {retval.runtime}!")
     else:
         exe = shutil.which("mri_robust_register")
         if not bool(exe):
@@ -101,6 +109,7 @@ def t1_to_t2_registration(
             "--mapmov", t2_reg_path,
             "--cost NMI",
         ]
+        args = list(map(str, args))
         LOGGER.info("Running " + " ".join(args))
         retval = Popen(args).finish()
         if retval.retcode != 0:
@@ -108,6 +117,7 @@ def t1_to_t2_registration(
                 f"mri_robust_register failed with error code {retval.retcode}."
             )
             raise RuntimeError("mri_robust_register failed registration")
+        LOGGER.info(f"{exe} finished in {retval.runtime}!")
 
     return t2_reg_path
 
@@ -117,7 +127,8 @@ def hyvinn_preproc(
         reg_mode: RegistrationMode,
         t1_path: Path,
         t2_path: Path,
-        out_dir: Path,
+        subject_dir: Path,
+        threads: int = -1,
 ) -> Path:
 
     if mode != "t1t2":
@@ -142,8 +153,9 @@ def hyvinn_preproc(
         t2_path = t1_to_t2_registration(
             t1_path=t1_path,
             t2_path=t2_path,
-            out_dir=out_dir,
+            subject_dir=subject_dir,
             registration_type=reg_mode,
+            threads=threads,
         )
         LOGGER.info(
             f"Registration finish in {time.time() - load_res:0.4f} seconds!"

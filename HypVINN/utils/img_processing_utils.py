@@ -35,10 +35,12 @@ def save_segmentation(
         orig_path: Path,
         ras_affine: npt.NDArray[float],
         ras_header,
-        save_dir: Path,
+        subject_dir: Path,
         seg_file: Path,
         save_mask: bool = False,
-):
+) -> float:
+    from time import time
+    starttime = time()
     from HypVINN.data_loader.data_utils import reorient_img
     from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 
@@ -55,7 +57,7 @@ def save_segmentation(
         LOGGER.info(
             f"HypoVINN Mask after re-orientation: {img2axcodes(mask_img)}"
         )
-        nib.save(mask_img, save_dir / "mri" / HYPVINN_MASK_NAME)
+        nib.save(mask_img, subject_dir / "mri" / HYPVINN_MASK_NAME)
 
     pred_img = nib.Nifti1Image(pred_arr, affine=ras_affine, header=ras_header)
     LOGGER.info(f"HypoVINN Prediction orientation: {img2axcodes(pred_img)}")
@@ -64,7 +66,8 @@ def save_segmentation(
         f"HypoVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
     )
     pred_img.set_data_dtype(np.int16)  # Maximum value 939
-    nib.save(pred_img, save_dir / seg_file)
+    nib.save(pred_img, subject_dir / seg_file)
+    return time() - starttime
 
 
 def save_logits(
