@@ -8,5 +8,4 @@ HypVINN
     :toctree: generated/
 
     inference
-    run_pipeline
     run_prediction
