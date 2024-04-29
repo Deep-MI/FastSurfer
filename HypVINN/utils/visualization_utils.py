@@ -156,7 +156,7 @@ def select_index_to_plot(hyposeg, slice_step=2):
 
 
 def plot_qc_images(
-        save_dir: Path,
+        subject_qc_dir: Path,
         orig_path: Path,
         prediction_path: Path,
         padd: int = 45,
@@ -167,7 +167,7 @@ def plot_qc_images(
     from HypVINN.data_loader.data_utils import transform_axial2coronal, hypo_map_subseg_2_fsseg
     from HypVINN.config.hypvinn_files import HYPVINN_QC_IMAGE_NAME
 
-    save_dir.mkdir(exist_ok=True, parents=True)
+    subject_qc_dir.mkdir(exist_ok=True, parents=True)
 
     image = nib.as_closest_canonical(nib.load(orig_path))
     pred = nib.as_closest_canonical(nib.load(prediction_path))
@@ -216,6 +216,6 @@ def plot_qc_images(
         img_per_row=crop_image.shape[0],
     )
 
-    fig.savefig(save_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)
+    fig.savefig(subject_qc_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)
 
     plt.close(fig)

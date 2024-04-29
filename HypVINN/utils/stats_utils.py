@@ -18,7 +18,7 @@ from pathlib import Path
 def compute_stats(
         orig_path: Path,
         prediction_path: Path,
-        save_dir: Path,
+        stats_dir: Path,
         threads: int,
 ) -> int | str:
     from collections import namedtuple
@@ -37,7 +37,7 @@ def compute_stats(
 
     args.normfile = orig_path
     args.segfile = prediction_path
-    args.segstatsfile = save_dir / HYPVINN_STATS_NAME
+    args.segstatsfile = stats_dir / HYPVINN_STATS_NAME
     args.excludeid = [0]
     args.ids = labels
     args.merged_labels = []

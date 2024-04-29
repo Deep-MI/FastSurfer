@@ -141,7 +141,8 @@ FLAGS:
 SEGMENTATION PIPELINE:
   --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN, CerebNet)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN, CerebNet,
+                            HypVINN)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
   --conformed_name <conf.mgz>
                           Name of the file in which the conformed input
@@ -376,11 +377,17 @@ case $key in
     ;;
     --reg_mode)
     mode=$(echo "$2" | tr "[:upper:]" "[:lower:]")
-    if [[ "$mode" =~ /^(none|coreg|robust)$/ ]] ; then
+    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then
       hypvinn_flags+=(--regmode "$mode")
     else
       echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'."
+      exit 1
     fi
+    shift # past argument
+    shift # past value
+    ;;
+    --qc_snaps)
+    hypvinn_flags+=(--qc_snapshots "$2")
     shift # past argument
     shift # past value
     ;;
@@ -667,12 +674,12 @@ fi
 
 if [[ -z "$hypo_segfile" ]]
   then
-    hypo_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
+    hypo_segfile="${sd}/${subject}/mri/hypothalamus.HypVINN.nii.gz"
 fi
 
 if [[ -z "$hypo_statsfile" ]]
   then
-    hypo_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats"
+    hypo_statsfile="${sd}/${subject}/stats/hypothalamus.HypVINN.stats"
 fi
 
 if [[ -z "$mask_name" ]]
@@ -936,7 +943,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
         cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
              "${hypvinn_flags[@]}" "${allow_root[@]}" --threads "$threads" --async_io
              --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
-             --viewagg_device "$viewagg_device" --t1)
+             --viewagg_device "$viewagg" --t1)
         if [[ "$run_biasfield" == "1" ]]
           then
             cmd+=("$norm_name")
