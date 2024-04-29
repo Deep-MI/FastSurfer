@@ -964,7 +964,8 @@ fi
       cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py --subject $subject"
       RunIt "$cmd" "$LF"
 
-      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
+      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/aseg.mgz --sum $statsdir/aseg.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/ASegStatsLUT.txt --etiv"
+#     cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
       RunIt "$cmd" "$LF"
     else
       # calculate brainvol stats and aseg stats with segstats.py

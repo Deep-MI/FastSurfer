@@ -67,6 +67,7 @@ extensions = [
 suppress_warnings = [
     # "myst.xref_missing",
     "myst.duplicate_def",
+    "autosectionlabel",
 ]
 
 # create anchors for which headings?

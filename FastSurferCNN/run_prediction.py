@@ -20,7 +20,7 @@ Usage:
 
 See Also
 --------
-:ref:`/scripts/fastsurfercnn.rst`
+:doc:`/scripts/fastsurfercnn`
 `run_prediction.py --help`
 """
 
