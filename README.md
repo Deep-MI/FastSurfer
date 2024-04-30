@@ -144,7 +144,7 @@ Minimum CPU-only: 8 GB system memory (much slower, not recommended) ``--device c
 
 ## Expert usage
 Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation. 
-This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation](CerebNet/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
+This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation](CerebNet/README.md), [hypothalamic sub-segmentation](HypVINN/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
 
 Specifically, the segmentation modules feature options for optimized parallelization of batch processing.
 
@@ -168,6 +168,8 @@ _Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A f
 _Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building Resolution-Independence into Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. http://dx.doi.org/10.1016/j.neuroimage.2022.118933_
 
 _Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reliable deep-learning pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. https://doi.org/10.1016/j.neuroimage.2022.119703_
+
+_Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M. FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32. https://doi.org/10.1162/imag_a_00034_
 
 Stay tuned for updates and follow us on [X/Twitter](https://twitter.com/deepmilab).
 
