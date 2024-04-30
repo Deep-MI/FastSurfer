@@ -10,25 +10,26 @@ Hypothalamic subfields segmentation pipeline
 * If the T1w and T2w images are available and not co-registered, FreeSurfer should be sourced to run the registration code, and the mri_coreg and mri_vol2vol binaries should also be available.
 
 ### Model weights
-* EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7
-* Zenodo data repository: https://zenodo.org/records/10623893
+* EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/2af6da63d5c1414b832c1f606bbd068a
+* Zenodo data repository: https://zenodo.org/records/11184216
 
 ### Pipeline Steps
 1. Registration (optional, only required for multi-modal input)
 2. Hypothalamus Segmentation
 
 ### Running the tool
-Run the HypVINN/run_prediction.py which has the following arguments:
+- The HypVINN output can be obtained by running the default  `run_fastsurfer.sh` script (for more information see [Fastsurfer documentation](../README.md)).
+- HypVINN can also be run independently by running `HypVINN/run_prediction.py`, however we recommend running the whole FastSurfer pipeline as it includes all the required pre-processing steps.
+- HypVINN has the following arguments:
 ### Input and output arguments
  * `--sid <name>` :  Subject ID, the subject data upon which to operate
  * `--sd <name>` : Directory in which evaluation results should be written.
  *  `--t1 </dir/T1**.nii.gz>` : T1 image path
  *  `--t2 </dir/T2**.nii.gz>` : T2 image path
- * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in /sd/sid/logs/hypvinn_seg.log 
+ * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in `/sd/sid/scripts/hypvinn_seg.log` 
 ### Image processing options
- * `--no_reg` : Deactivate registration of T2 to T1. If multi-modal input is used; images need to be registered externally,
- * `--reg_mode` : Freesurfer Registration type to run. coreg : mri_coreg (Default) or robust : mri_robust_register.
- * `--qc_snap`: Activate the creation of QC snapshots of the predicted HypVINN segmentation.
+ * `--reg_mode` :  Ignored, if no T2 image is passed. Specifies the registration method used to register T1 and T2 images. Options are 'coreg' (default) for mri_coreg, 'robust' for mri_robust_register, and 'none' to skip registration (this requires T1 and T2 are externally co-registered).
+ * `--qc_snap`: Activate the creation of QC snapshots of the predicted HypVINN segmentation in `/sd/sid/qc_snapshots`. The created QC snapshots are created to simplify the visual quality control process.
 ###  FastSurfer Technical parameters (see FastSurfer documentation)
  * `--device`
  * `--viewgg_device`
@@ -38,55 +39,57 @@ Run the HypVINN/run_prediction.py which has the following arguments:
  * `--allow_root`
 
 ### Checkpoint to load
- * `--ckpt_cor </dir/to/coronal/ckpt>` : Coronal checkpoint to load, default =  $FASTSURFER_ROOT/checkpoints/HypVINN_axial_v1.0.0.pkl
- * `--ckpt_ax </dir/to/axial/ckpt>` : Axial checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_coronal_v1.0.0.pkl
- * `--ckpt_sag </dir/to/sagittal/ckpt>` : Sagittal checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_sagittal_v1.0.0.pkl
+ * `--ckpt_cor </dir/to/coronal/ckpt>` : Coronal checkpoint to load, default =  $FASTSURFER_ROOT/checkpoints/HypVINN_axial_v1.1.0.pkl
+ * `--ckpt_ax </dir/to/axial/ckpt>` : Axial checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_coronal_v1.1.0.pkl
+ * `--ckpt_sag </dir/to/sagittal/ckpt>` : Sagittal checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_sagittal_v1.1.0.pkl
 
 ### CFG-file with default options for network
- * `--cfg_cor </dir/to/coronal/cfg>` : Coronal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_coronal_v1.0.0.yaml
- * `--cfg_ax </dir/to/axial/cfg>` : Axial config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_axial_v1.0.0.yaml
- * `--cfg_sag </dir/to/sagittal/cfg>` : Sagittal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_sagittal_v1.0.0.yaml
+ * `--cfg_cor </dir/to/coronal/cfg>` : Coronal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_coronal_v1.1.0.yaml
+ * `--cfg_ax </dir/to/axial/cfg>` : Axial config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_axial_v1.1.0.yaml
+ * `--cfg_sag </dir/to/sagittal/cfg>` : Sagittal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_sagittal_v1.1.0.yaml
 
 ### Usage
-The Hypothalamus pipeline can be run by using a T1 a T2 or both images. 
-Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-registered.
-The pipeline can do all pre-processing by itself (step 1). This step can be skipped if images are already registered externally. Note, that images are conformed as a first step, which can lead to additional interpolation reducing quality.
-
-1. Run full pipeline
+- The Hypothalamus pipeline can be run by using a T1 a T2 or both images. 
+- Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-registered. 
+- The Hypvinn pipeline can do the registration by itself (step 1). This step can be skipped if images are already registered externally.
+- Bias field-corrected images are generated by default by the FastSurfer pipeline; therefore, we recommend running the entire FastSurfer pipeline. If you already have a subject's FastSurfer output without Hypvinn output, check example 5.
+1. Run HypVINN pipeline 
     ```
     python HypVINN/run_prediction.py  --sid test_subject --sd /output \
-                                     --t1 /data/test_subject_t1.nii.gz \
-                                     --t2 /data/test_subject_t2.nii.gz \
+                                     --t1 /data/test_subject_t1_bias_field_corrected.nii.gz \
+                                     --t2 /data/test_subject_t2_bias_field_corrected.nii.gz \
                                      --reg_mode coreg \
-                                     --seg_log /outdir/test_subject.log \
                                      --batch_size 6
    ```
-2. Run full pipeline only using a t1 
+2. Run HypVINN pipeline only using a t1 
     ```
     python HypVINN/run_prediction.py  --sid test_subject --sd /output \
-                                     --t1 /data/test_subject_t1.nii.gz \
-                                     --reg_mode coreg \
-                                     --seg_log /outdir/test_subject.log \
+                                     --t1 /data/test_subject_t1_bias_field_corrected.nii.gz \
                                      --batch_size 6
    ```
 
-3. Run pipeline without the registration step
+3. Run HypVINN pipeline without the registration step
     ```
     python HypVINN/run_prediction.py  --sid test_subject --sd /output \
-                                     --t1 /data/test_subject_t1.nii.gz \
-                                     --t2 /data/test_subject_t2.nii.gz \
-                                     --reg_mode coreg \
-                                     --seg_log /outdir/test_subject.log \
-                                     --batch_size 6 --no_reg
+                                     --t1 /data/test_subject_t1_bias_field_corrected.nii.gz \
+                                     --t2 /data/test_subject_t2_bias_field_corrected_and_coregistered_to_t1.nii.gz \
+                                     --reg_mode none \
+                                     --batch_size 6 
    ```
 
-4. Run pipeline with creation of qc snapshots
+4. Run HypVINN pipeline with creation of qc snapshots
     ```
     python HypVINN/run_prediction.py  --sid test_subject --sd /output \
-                                     --t1 /data/test_subject_t1.nii.gz \
-                                     --t2 /data/test_subject_t2.nii.gz \
+                                     --t1 /data/test_subject_t1_bias_field_corrected.nii.gz \
+                                     --t2 /data/test_subject_t2_bias_field_corrected.nii.gz \
                                      --reg_mode coreg \
-                                     --seg_log /outdir/test_subject.log \
+                                     --batch_size 6 --qc_snap
+   ```
+5. Run HypVINN pipeline from an existing FastSurfer subject output -- recommended when FastSurfer output is there without the Hypothalamus module
+    ```
+    python HypVINN/run_prediction.py  --sid test_subject --sd /output \
+                                     --t1 /output/test_subject/mri/orig_nu.mgz \
+                                     --seg_log /output/test_subject/scripts/deep-seg.log \
                                      --batch_size 6 --qc_snap
    ```
 
