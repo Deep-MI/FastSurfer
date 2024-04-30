@@ -153,9 +153,9 @@ def option_parse() -> argparse.ArgumentParser:
         advanced,
         "config",
         {
-            "coronal": Path("HypVINN/config/HypVINN_coronal_v1.0.0.yaml"),
-            "axial": Path("HypVINN/config/HypVINN_axial_v1.0.0.yaml"),
-            "sagittal": Path("HypVINN/config/HypVINN_sagittal_v1.0.0.yaml"),
+            "coronal": Path("HypVINN/config/HypVINN_coronal_v1.1.0.yaml"),
+            "axial": Path("HypVINN/config/HypVINN_axial_v1.1.0.yaml"),
+            "sagittal": Path("HypVINN/config/HypVINN_sagittal_v1.1.0.yaml"),
         },
         CHECKPOINT_PATHS_FILE,
     )
