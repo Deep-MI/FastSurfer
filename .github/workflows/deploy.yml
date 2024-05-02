@@ -1,9 +1,10 @@
 name: deploy-docker
 
 on:
-  release:
-    types:
-      - published
+#  release:
+#    types:
+#      - published
+  workflow_dispatch:
 
 jobs:
   deploy-gpu:
