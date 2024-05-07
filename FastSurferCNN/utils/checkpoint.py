@@ -346,8 +346,10 @@ def download_checkpoint(
 
         except requests.exceptions.HTTPError as e:
             LOGGER.info(f"Server {url} not reachable.")
+            LOGGER.exception(e)
             LOGGER.warn(f"Response code: {e.response.status_code}")
         except requests.exceptions.RequestException as e:
+            LOGGER.exception(e)
             LOGGER.warn(f"Server {url} not reachable.")
 
     if response is None:
