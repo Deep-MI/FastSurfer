@@ -48,7 +48,7 @@ class ConfigCache:
         return load_checkpoint_config_defaults("url", filename=HYPVINN_YAML)
 
     def all_urls(self):
-        return self.vinn_url() + self.cerebnet_url()
+        return self.vinn_url() + self.cerebnet_url() + self.hypvinn_url()
 
 
 defaults = ConfigCache()
@@ -76,13 +76,22 @@ def make_arguments():
         action="store_true",
         help="Check and download CerebNet default checkpoints",
     )
+
+    parser.add_argument(
+        "--hypvinn",
+        default=False,
+        action="store_true",
+        help="Check and download HypVinn default checkpoints",
+    )
+
     parser.add_argument(
         "--url",
         type=str,
         default=None,
         help=f"Specify you own base URL. This is applied to all models. \n"
              f"Default for VINN: {defaults.vinn_url()} \n"
-             f"Default for CerebNet: {defaults.cerebnet_url()}",
+             f"Default for CerebNet: {defaults.cerebnet_url()} \n"
+             f"Default for HypVINN: {defaults.hypvinn_url()}",
     )
     parser.add_argument(
         "files",
@@ -101,7 +110,7 @@ def main(
         files: list[str],
         url: Optional[str] = None,
 ) -> int | str:
-    if not vinn and not files and not cerebnet and not all:
+    if not vinn and not files and not cerebnet and not hypvinn and not all:
         return ("Specify either files to download or --vinn, --cerebnet, "
                 "--hypvinn, or --all, see help -h.")
 
