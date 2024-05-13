@@ -42,7 +42,7 @@ from HypVINN.utils.img_processing_utils import save_segmentation
 from HypVINN.utils.load_config import load_config
 from HypVINN.utils.misc import create_expand_output_directory
 from HypVINN.utils.mode_config import get_hypinn_mode
-from HypVINN.utils.preproc import hyvinn_preproc
+from HypVINN.utils.preproc import hypvinn_preproc
 from HypVINN.utils.stats_utils import compute_stats
 from HypVINN.utils.visualization_utils import plot_qc_images
 
@@ -247,7 +247,7 @@ def main(
             # hypvinn_preproc returns the path to the t2 that is registered
             # to the t1
             prep_tasks["reg"] = pool.submit(
-                hyvinn_preproc,
+                hypvinn_preproc,
                 mode,
                 reg_mode,
                 subject_dir=Path(subject_dir),

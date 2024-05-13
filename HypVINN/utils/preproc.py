@@ -20,7 +20,8 @@ from pathlib import Path
 import nibabel as nib
 import os
 import numpy as np
-
+from HypVINN.data_loader.data_utils import rescale_image
+from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.utils import logging
 from HypVINN.utils import ModalityMode, RegistrationMode
 
@@ -122,7 +123,7 @@ def t1_to_t2_registration(
     return t2_reg_path
 
 
-def hyvinn_preproc(
+def hypvinn_preproc(
         mode: ModalityMode,
         reg_mode: RegistrationMode,
         t1_path: Path,
@@ -143,9 +144,8 @@ def hyvinn_preproc(
 
         if not np.allclose(np.array(t1_zoom), np.array(t2_zoom), rtol=0.05):
             LOGGER.info(
-                f"Warning: Resolution from T1 ({t1_zoom}) and T2 "
-                f"({t2_zoom}) image are different.\n "
-                "Resolution of the T2 image will be interpolated "
+                f"Warning: Resolution from T1 ({t1_zoom}) and T2 ({t2_zoom}) image "
+                f"are different.\nResolution of the T2 image will be interpolated "
                 "to the one of the T1 image."
             )
 

@@ -712,6 +712,16 @@ if [[ -z "$build_log" ]]
     build_log="${sd}/${subject}/scripts/build.log"
 fi
 
+if [[ -n "$t2" ]]
+  then
+    if [[ ! -f "$t2" ]]
+      then
+        echo "ERROR: T2 file $t2 does not exist!"
+        exit 1;
+    fi
+    t2_copy_file="${sd}/${subject}/mri/orig/T2.001.mgz"
+fi
+
 if [[ -z "$PYTHONUNBUFFERED" ]]
 then
   export PYTHONUNBUFFERED=0
@@ -845,6 +855,14 @@ if [[ "$run_seg_pipeline" == "1" ]]
             exit 1
         fi
     fi
+    if [[ -n "$t2" ]]
+      then
+        printf "INFO: Copying T2 file to %s..." "${t2_copy_file}" | tee -a "$seg_log"
+        cmd=("nib-convert" "$t2" "$t2_copy_file")
+        "${cmd[@]}" |& tee -a "$seg_log"
+        echo "Done." | tee -a "$seg_log"
+    fi
+
     if [[ "$run_biasfield" == "1" ]]
       then
         # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
@@ -896,20 +914,27 @@ if [[ "$run_seg_pipeline" == "1" ]]
 
         if [[ -n "$t2" ]]
         then
-          # ... we have a t2 image, bias field-correct it
-        echo "INFO: Running N4 bias-field correction of the t2" | tee -a "$seg_log"
-        cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$t2"
-             --out "$norm_name_t2" --threads "$threads")
-        echo "${cmd[@]}" |& tee -a "$seg_log"
-        "${cmd[@]}"
-        if [[ "${PIPESTATUS[0]}" -ne 0 ]]
-          then
-            echo "ERROR: T2 Biasfield correction failed" | tee -a "$seg_log"
-            exit 1
+          # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
+          echo "INFO: Running N4 bias-field correction of the t2" | tee -a "$seg_log"
+          cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$t2"
+               --out "$norm_name_t2" --threads "$threads" --uchar)
+          echo "${cmd[@]}" |& tee -a "$seg_log"
+          "${cmd[@]}"
+          if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+            then
+              echo "ERROR: T2 Biasfield correction failed" | tee -a "$seg_log"
+              exit 1
+          fi
         fi
-
-
-        fi
+    else
+      if [[ -n "$t2" ]]
+      then
+        # no biasfield, but a t2 is passed; presumably, this is biasfield corrected
+        echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is assumed to already be biasfield corrected." | tee -a "$seg_log"
+        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_force_lia
+             --no_force_vox_size --no_force_img_size "$t2" "$norm_name_t2")
+        "${cmd[@]}" |& tee -a "$seg_log"
+      fi
     fi
 
     if [[ "$run_cereb_module" == "1" ]]
