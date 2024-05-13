@@ -1,12 +1,13 @@
 url:
-- "https://b2share.fz-juelich.de/api/files/7133b542-733b-4cc6-a284-5c333ff25f78"
+- "https://b2share.fz-juelich.de/api/files/d9e37247-5455-4c83-853d-21e31fb5bea5"
+- "https://zenodo.org/records/11184216/files"
 
 checkpoint:
-  axial: "checkpoints/HypVINN_axial_v1.0.0.pkl"
-  coronal: "checkpoints/HypVINN_coronal_v1.0.0.pkl"
-  sagittal: "checkpoints/HypVINN_sagittal_v1.0.0.pkl"
+  axial: "checkpoints/HypVINN_axial_v1.1.0.pkl"
+  coronal: "checkpoints/HypVINN_coronal_v1.1.0.pkl"
+  sagittal: "checkpoints/HypVINN_sagittal_v1.1.0.pkl"
 
 config:
-  axial: "HypVINN/config/HypVINN_axial_v1.0.0.yaml"
-  coronal: "HypVINN/config/HypVINN_coronal_v1.0.0.yaml"
-  sagittal: "HypVINN/config/HypVINN_sagittal_v1.0.0.yaml"
+  axial: "HypVINN/config/HypVINN_axial_v1.1.0.yaml"
+  coronal: "HypVINN/config/HypVINN_coronal_v1.1.0.yaml"
+  sagittal: "HypVINN/config/HypVINN_sagittal_v1.1.0.yaml"
