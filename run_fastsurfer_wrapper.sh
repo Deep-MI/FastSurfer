@@ -13,7 +13,7 @@ check_input_dirs() {
 }
 
 check_installation() {
-    if command -v singulardity &> /dev/null; then
+    if command -v singularity &> /dev/null; then
         echo "singularity"
     elif command -v docker &> /dev/null; then
         echo "docker"
@@ -41,7 +41,6 @@ output_message() {
 
 check_output_folder() {
     if [[ -d "$output_dir" ]]; then
-        echo "####Ouptu dir is present $output_dir "
         if ls "$output_dir"/subjectX/stats/*.stats 1> /dev/null 2>&1; then
             echo "Warning: Output directory already contains FastSurfer files. Overwriting..."
         fi
@@ -50,8 +49,6 @@ check_output_folder() {
 
 run_in_background() {
     local log_file="$output_dir/fastsurfer.log"
-    echo inside run_in_background
-    echo $@
     eval $@ > "$log_file" 2>&1 &
     echo "FastSurfer is running in the background. Logs are being written to $log_file."
     echo "To cancel FastSurfer, use 'kill $!'"
@@ -97,7 +94,7 @@ container_tool=$(check_installation)
 
 # Command to run FastSurfer
 fastsurfer_cmd=""
-if [[ "$container_tool" == "singulardity" ]]; then
+if [[ "$container_tool" == "singularity" ]]; then
     echo "singularity branch"
     fastsurfer_cmd="singularity exec --nv --no-home -B \"$subject_dir\":/data -B \"$FS_LICENSE\":/fs -B \"$output_dir\":/output $home_dir/fastsurfer-gpu.sif fastsurfer/run_fastsurfer.sh --fs_license /fs/license.txt --t1 /data/subjectX/orig.mgz --sid subjectX --sd /output --seg_only --parallel --3T"
 elif [[ "$container_tool" == "docker" ]]; then
