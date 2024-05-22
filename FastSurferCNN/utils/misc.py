@@ -107,7 +107,7 @@ def plot_confusion_matrix(
     Returns
     -------
     fig : matplotlib.figure.Figure
-        [MISSING].
+        matplotlib Figure object with the confusion matrix plot.
     """
     n_classes = len(classes)
 
@@ -195,8 +195,8 @@ def update_num_steps(
     Parameters
     ----------
     dataloader : FastSurferCNN.data_loader.loader.DataLoader
-        [MISSING].
+        The dataloader object that contains the training data.
     cfg : yacs.config.CfgNode
-        [MISSING].
+        The configuration object that contains the training configuration.
     """
     cfg.TRAIN.NUM_STEPS = len(dataloader)

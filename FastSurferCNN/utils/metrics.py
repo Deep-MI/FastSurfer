@@ -80,9 +80,11 @@ def precision_recall(
     Returns
     -------
     np.ndarray
-        [MISSING].
+        An array containing the number of true positives for each class.
     np.ndarray
-        [MISSING].
+        An array containing the sum of true positives and false negatives for each class.
+    np.ndarray
+        An array containing the sum of true positives and false positives for each class.
     """
     tpos_fneg = []
     tpos_fpos = []
@@ -137,7 +139,7 @@ class DiceScore:
 
     def reset(self):
         """
-        [MISSING].
+        Reset the union and intersection matrices to zero.
         """
         self.union = torch.zeros(self.n_classes, self.n_classes, device=self._device)
         self.intersection = torch.zeros(
@@ -239,7 +241,14 @@ class DiceScore:
 
     def _dice_calculation(self):
         """
-        [MISSING].
+        Calculate the Dice Score.
+
+        The Dice Score is calculated as 2 * (intersection / union).
+
+        Returns
+        -------
+        dsc : torch.Tensor
+            The Dice Score for each class.
         """
         intersection = self.intersection.diagonal()
         union = self.union.diagonal()
@@ -248,7 +257,12 @@ class DiceScore:
 
     def _dice_confusion_matrix(self):
         """
-        [MISSING].
+        Calculate the Dice confusion matrix.
+
+        Returns
+        -------
+        dice_cnf_matrix : numpy.ndarray
+            The Dice confusion matrix for each class.
         """
         dice_intersection = self.intersection.cpu().numpy()
         dice_union = self.union.cpu().numpy()

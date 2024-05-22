@@ -92,17 +92,18 @@ def options_parse():
 
 def reduce_to_aseg(data_inseg):
     """
-    [MISSING].
+    Reduce the input segmentation to a simpler segmentation.
 
     Parameters
     ----------
     data_inseg : -
-        [MISSING].
+        The input segmentation. This should be a 3D array where the value at each position represents the segmentation
+        label for that position.
 
     Returns
     -------
-    [MISSING]
-        Returns reduced_aseg.
+    data_inseg : -
+        The reduced segmentation.
     """
     print("Reducing to aseg ...")
     # replace 2000... with 42
@@ -119,11 +120,11 @@ def create_mask(aseg_data, dnum, enum):
     Parameters
     ----------
     aseg_data : -
-        [MISSING].
+        The input segmentation data.
     dnum : -
-        [MISSING].
+        The number of iterations for the dilation operation.
     enum : -
-        [MISSING].
+        The number of iterations for the erosion operation.
 
     Returns
     -------
@@ -169,17 +170,17 @@ def create_mask(aseg_data, dnum, enum):
 
 def flip_wm_islands(aseg_data):
     """
-    [MISSING].
+    Flip labels of disconnected white matter islands to the other hemisphere.
 
     Parameters
     ----------
-    aseg_data : -
-        [MISSING].
+    aseg_data : numpy.ndarray
+        The input segmentation data.
 
     Returns
     -------
-    flip_data
-        [MISSING].
+    flip_data : numpy.ndarray
+        The segmentation data with flipped WM labels.
     """
     # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
     # These are usually islands, not connected to the main hemi WM component

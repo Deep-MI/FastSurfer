@@ -46,7 +46,18 @@ class TestMeter:
 
     def _compute_hd(self, pred_bin, gt_bin):
         """
-        [MISSING].
+        Compute the Hausdorff Distance (HD) between the predicted binary segmentation map
+        and the ground truth binary segmentation map.
+
+        Parameters:
+        pred_bin (np.array): Predicted binary segmentation map.
+        gt_bin (np.array): Ground truth binary segmentation map.
+
+        Returns:
+        dict: A dictionary containing the maximum Hausdorff Distance (HD_Max)
+        and the 95th percentile Hausdorff Distance (HD95).
+        If the predicted binary map is empty, both values are set to NaN.
+
         """
         hd_dict = {}
         if np.count_nonzero(pred_bin) == 0:
@@ -61,14 +72,28 @@ class TestMeter:
 
     def _get_binray_map(self, lbl_map, class_names):
         """
-        [MISSING].
+        Generate binary map based on the label map and class names.
+
+        Parameters:
+        lbl_map (np.array): Label map where each pixel/voxel is assigned a class label.
+        class_names (list): List of class names to be considered in the binary map.
+
+        Returns:
+        np.array: Binary map where True represents class and False represents its absence.
         """
         bin_map = np.logical_or.reduce(list(map(lambda l: lbl_map == l, class_names)))
         return bin_map
 
     def metrics_per_class(self, pred, gt):
         """
-        [MISSING].
+        Compute metrics for each class in the predicted and ground truth segmentation maps.
+
+        Parameters:
+        pred (np.array): Predicted segmentation map.
+        gt (np.array): Ground truth segmentation map.
+
+        Returns:
+        dict: Dict containing metrics for each class.
         """
         metrics = {"Label": [], "Dice": [], "HD95": [], "HD_Max": [], "VS": []}
         for lbl_name, lbl_id in self.classname_to_ids.items():
@@ -161,11 +186,19 @@ class Meter:
             self.writer.add_scalar(f"{self.mode}/{name}", loss.item(), self.global_iter)
         self.global_iter += 1
 
-    def prediction_visualize(
-        self, cur_iter, cur_epoch, img_batch, label_batch, pred_batch
-    ):
+    def prediction_visualize(self, cur_iter, cur_epoch, img_batch, label_batch, pred_batch):
         """
-        [MISSING].
+        Visualize prediction results for current iteration and epoch.
+
+        Parameters:
+        cur_iter (int): Current iteration number.
+        cur_epoch (int): Current epoch number.
+        img_batch (torch.Tensor): Input image batch.
+        label_batch (torch.Tensor): Ground truth label batch.
+        pred_batch (torch.Tensor): Predicted label batch.
+
+        Returns:
+        None
         """
         if self.writer is None:
             return
@@ -179,7 +212,14 @@ class Meter:
 
     def log_iter(self, cur_iter, cur_epoch):
         """
-        [MISSING].
+        Log training or validation progress at each iteration.
+
+        Parameters:
+        cur_iter (int): The current iteration number.
+        cur_epoch (int): The current epoch number.
+
+        Returns:
+        None
         """
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
             out_losses = {}
@@ -201,17 +241,36 @@ class Meter:
                 )
             )
 
+    ```python
+
     def log_lr(self, lr, step=None):
         """
-        [MISSING].
+        Log learning rate at each step.
+
+        Parameters:
+        lr (list): Learning rate at the current step. Expected to be a list where the first
+        element is the learning rate.
+        step (int, optional, default=None): Current step number. If not provided, the global iteration
+        number is used.
+
+        Returns:
+        None
         """
         if step is None:
             step = self.global_iter
         self.writer.add_scalar("Train/lr", lr[0], step)
 
+    ```
+
     def log_epoch(self, cur_epoch):
         """
-        [MISSING].
+        Log mean Dice score and confusion matrix at the end of each epoch.
+
+        Parameters:
+        cur_epoch (int): Current epoch number.
+
+        Returns:
+        float: The mean Dice score for the non-background classes.
         """
         dice_score_per_class, confusion_mat = self.dice_score.compute(per_class=True)
         dice_score = dice_score_per_class[1:].mean()

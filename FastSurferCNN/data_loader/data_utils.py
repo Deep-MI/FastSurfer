@@ -413,11 +413,11 @@ def filter_blank_slices_thick(
     Returns
     -------
     filtered img_vol : np.ndarray
-        [MISSING].
+        Image volume with blank slices removed.
     label_vol : np.ndarray
-        [MISSING].
+        Label volume with blank slices removed.
     weight_vol : np.ndarray
-        [MISSING].
+        Weight volume with blank slices removed.
     """
     # Get indices of all slices with more than threshold labels/pixels
     select_slices = np.sum(label_vol, axis=(0, 1)) > threshold

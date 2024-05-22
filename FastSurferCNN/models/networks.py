@@ -105,7 +105,7 @@ class FastSurferCNNBase(nn.Module):
         scale_factor : Tensor, optional
             [N, 1] Defaults to None.
         scale_factor_out : Tensor, optional
-            [Missing].
+            Tensor representing the scale factor for the output. Defaults to None.
 
         Returns
         -------
@@ -195,7 +195,7 @@ class FastSurferCNN(FastSurferCNNBase):
         scale_factor : Tensor, optional
             [N, 1] Defaults to None.
         scale_factor_out : Tensor, optional
-            [Missing].
+            Tensor representing the scale factor for the output. Defaults to None.
 
         Returns
         -------
@@ -337,9 +337,9 @@ class FastSurferVINN(FastSurferCNNBase):
         x : Tensor
             Input image [N, C, H, W].
         scale_factor : Tensor
-            [MISSING] [N, 1].
+            Tensor of shape [N, 1] representing the scale factor for each image in the batch.
         scale_factor_out : Tensor, Optional
-            [MISSING].
+            Tensor representing the scale factor for the output. Defaults to None.
 
         Returns
         -------

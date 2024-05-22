@@ -179,8 +179,8 @@ def set_summary_path(cfg):
     
     Parameters
     ----------
-    cfg : [MISSING TYPE]
-        [MISSING].
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     summary_path = check_path(os.path.join(cfg.LOG_DIR, "summary"))
     cfg.EXPR_NUM = str(find_latest_experiment(os.path.join(cfg.LOG_DIR, "summary")) + 1)
@@ -209,8 +209,8 @@ def update_results_dir(cfg):
 
     Parameters
     ----------
-    cfg : [MISSING TYPE]
-        [MISSING].
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     cfg.EXPR_NUM = str(find_latest_experiment(cfg.TEST.RESULTS_DIR) + 1)
     cfg.TEST.RESULTS_DIR = check_path(
@@ -224,8 +224,8 @@ def update_split_path(cfg):
     
     Parameters
     ----------
-    cfg : [MISSING TYPE]
-        [MISSING].
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     from os.path import split, join
 

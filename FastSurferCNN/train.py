@@ -112,9 +112,9 @@ class Trainer:
         scheduler : None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts
             LR scheduler for the training.
         train_meter : Meter
-            [MISSING].
+            Meter to keep track of the training stats.
         epoch : int
-            [MISSING].
+            Current epoch.
 
         """
         self.model.train()

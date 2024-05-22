@@ -350,10 +350,12 @@ class AugmentationPadImage(object):
 
     Attributes
     ----------
-    pad_size_imag
-        [missing].
-    pad_size_mask
-        [missing].
+    pad_size_image : tuple
+        The padding size for the image.
+    pad_size_mask : tuple
+        The padding size for the mask.
+    pad_type : str
+        The type of padding to be applied.
 
     Methods
     -------
@@ -369,12 +371,12 @@ class AugmentationPadImage(object):
         """
         Construct object.
 
-        Attributes
+        Parameters
         ----------
-        pad_size
-            [MISSING].
-        pad_type
-            [MISSING].
+        pad_size : tuple
+            The padding size.
+        pad_type : str
+            The type of padding to be applied.
         """
         assert isinstance(pad_size, (int, tuple))
 
@@ -425,7 +427,7 @@ class AugmentationRandomCrop(object):
         output_size
             Size of the output image either an integer or a tuple.
         crop_type
-            [MISSING].
+        The type of crop to be performed.
         """
         assert isinstance(output_size, (int, tuple))
 

@@ -132,7 +132,7 @@ def find_rotation(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
 
 def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     """
-    [MISSING].
+    Find rigid transformation matrix between two point sets.
 
     Parameters
     ----------
