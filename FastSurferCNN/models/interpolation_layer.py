@@ -286,18 +286,18 @@ class _ZoomNd(nn.Module):
         alignment: str,
     ) -> _T.Tuple[slice, T_Scale, _T.Tuple[int, int], int]:
         """
-        Return start- and end- coordinate given sizes, the updated scale factor [MISSING].
+        Return start- and end- coordinate given sizes, the updated scale factor.
 
         Parameters
         ----------
         in_shape : _T.Sequence[int]
-            [MISSING].
+            Input shape.
         scale_factor : T_Scale
-            [MISSING].
+            Scale factor.
         dim : int
             Dimension to be cropped.
         alignment : str
-            [MISSING].
+            Alignment of the cropping.
 
         Returns
         -------

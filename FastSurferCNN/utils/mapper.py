@@ -226,15 +226,15 @@ class Mapper(Generic[KT, VT]):
 
         Parameters
         ----------
-        other : "Mapper[KT, VT]"
-            [MISSING].
+        other : Mapper[KT, VT]
+            The other Mapper object whose key-value pairs are to be added to this Mapper object.
         overwrite : bool
-            [MISSING] (Default value = True).
+            Flag to overwrite value if key already exists in Mapper object (Default value = True).
 
         Returns
         -------
-        "Mapper[KT, VT]"
-            [MISSING].
+        Mapper[KT, VT]
+            Mapper after merge.
         """
         for key, value in iter(other):
             if overwrite or key not in self._map_dict:
@@ -264,7 +264,7 @@ class Mapper(Generic[KT, VT]):
         Returns
         -------
         AT
-            [MISSING].
+            Data after being mapped to the internal space.
         """
         # torch sparse tensors can't index with images
         # self._map = _b.torch.sparse_coo_tensor(src_labels, labels, (self._max_label,) + self._label_shape)
@@ -351,7 +351,7 @@ class Mapper(Generic[KT, VT]):
         Returns
         -------
         AT
-            [MISSING].
+            Image data after being mapped.
         """
         out_type = image if out is None else out
         if out is None:
@@ -434,7 +434,7 @@ class Mapper(Generic[KT, VT]):
 
     def __iter__(self) -> Iterator[Tuple[KT, VT]]:
         """
-        [MISSING].
+        Create an iterator for the Mapper object.
         """
         return iter(self._map_dict.items())
 
@@ -518,7 +518,7 @@ class Mapper(Generic[KT, VT]):
         Returns
         -------
         "Mapper[int, int]"
-            [MISSING].
+        A Mapper object that provides a mapping from one label space to another.
 
         Raises
         ------
@@ -756,7 +756,7 @@ class ColorLookupTable(Generic[KT]):
         Parameters
         ----------
         key : KT
-            [MISSING].
+        The key for which the information is to be retrieved.
 
         Raises
         -------
@@ -797,7 +797,7 @@ class ColorLookupTable(Generic[KT]):
 
     def colormap(self) -> Mapper[KT, ColorTuple]:
         """
-        [MISSING].
+        Generate a Mapper object that maps classes to their corresponding colors.
         """
         if self._color_palette is None:
             raise RuntimeError("No color_palette set")
@@ -833,7 +833,7 @@ class ColorLookupTable(Generic[KT]):
 
 class JsonColorLookupTable(ColorLookupTable[KT]):
     """
-    [MISSING].
+    This class extends the ColorLookupTable to handle JSON data.
     """
 
     _data: Any
@@ -913,7 +913,7 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
 
     def dataframe(self) -> pandas.DataFrame:
         """
-        [MISSING].
+        Converts the labels from the internal data dictionary to a pandas DataFrame.
         """
         if isinstance(self._data, dict) and "labels" in self._data:
             return pandas.DataFrame.from_dict(self._data["labels"])
@@ -952,7 +952,7 @@ class JsonColorLookupTable(ColorLookupTable[KT]):
 
 class TSVLookupTable(ColorLookupTable[str]):
     """
-    [MISSING].
+    This class extends the ColorLookupTable to handle TSV (Tab Separated Values) data.
     """
 
     _data: pandas.DataFrame
@@ -1036,13 +1036,13 @@ class TSVLookupTable(ColorLookupTable[str]):
         Returns
         -------
         index : int
-            [MISSING].
+            The index of the entry.
         key : str
-            [MISSING].
+            The label name associated with the entry.
         color : Tuple[int, int, int, int]
-            [MISSING].
+            The RGBA color label associated with the entry.
         int
-            [MISSING].
+            The data index associated with the entry.
         """
         index, key, color, _ = super(TSVLookupTable, self).getitem_by_index(index)
         return index, key, color, self._data.iloc[index].name

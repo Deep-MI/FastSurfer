@@ -128,7 +128,7 @@ def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
     expr_dir : Union[os.PathLike]
         Directory to create.
     expr_num : int
-        Number of expr [MISSING].
+        Experiment number.
 
     Returns
     -------
@@ -277,7 +277,7 @@ def save_checkpoint(
     scheduler : Optional[Scheduler]
         Used network scheduler. Optional (Default value = None).
     best : bool
-        Whether this was the best checkpoint so far [MISSING] (Default value = False).
+        Whether this was the best checkpoint so far (Default value = False).
     """
     save_name = f"Epoch_{epoch:05d}_training_state.pkl"
     saving_model = model.module if num_gpus > 1 else model

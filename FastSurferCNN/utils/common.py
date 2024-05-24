@@ -467,7 +467,7 @@ class SubjectDirectory:
         Parameters
         ----------
         _copy_orig_name : str
-            [MISSING].
+            The copy of the orig name.
 
         Returns
         -------
@@ -487,7 +487,7 @@ class SubjectDirectory:
         Returns
         -------
         Path
-            [MISSING].
+            The path to the conformed image file.
         """
         assert (
             hasattr(self, "_conf_name") or "The conf_name attribute has not been set!"
@@ -497,17 +497,13 @@ class SubjectDirectory:
     @conf_name.setter
     def conf_name(self, _conf_name: str):
         """
-        [MISSING].
+        Set the path to the conformed image.
 
         Parameters
         ----------
         _conf_name : str
-            [MISSING].
+            Path to the conformed image.
 
-        Returns
-        -------
-        str
-            [MISSING].
         """
         self._conf_name = _conf_name
 
@@ -534,7 +530,7 @@ class SubjectDirectory:
         Parameters
         ----------
         _segfile : str
-            [MISSING].
+            Path to the segmentation file.
         """
         self._segfile = _segfile
 
@@ -1001,12 +997,14 @@ class SubjectList:
         Parameters
         ----------
         item : int, str
-            [MISSING].
+            The index or name of the subject.
+            If integer, it is treated as an index and corresponding subject is returned.
+            If string, it is treated as the subject.
 
         Returns
         -------
         SubjectDirectory
-            [MISSING].
+            A SubjectDirectory object corresponding to the provided index or name.
         """
         if isinstance(item, int):
             if item < 0 or item >= self._num_subjects:

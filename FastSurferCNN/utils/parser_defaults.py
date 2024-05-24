@@ -51,12 +51,12 @@ VoxSize = Union[Literal["min"], float]
 
 class CanAddArguments(Protocol):
     """
-    [MISSING].
+
     """
 
     def add_argument(self, *args, **kwargs):
         """
-        [MISSING].
+        Add an argument to the object.
         """
         ...
 

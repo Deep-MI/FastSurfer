@@ -65,7 +65,26 @@ class SubjectLoader:
 
     def _load_volumes(self, subject_path, store_talairach=False):
         """
-        [MISSING].
+        Loads the original image and cerebellum sub-segmentation from the given subject path.
+        Also loads the Talairach coordinates if store_talairach is set to True.
+
+        Parameters
+        ----------
+        subject_path : str
+            The path to the subject's data directory.
+        store_talairach : bool, optional
+            If True, the method will attempt to load the Talairach coordinates. Defaults to False.
+
+        Returns
+        -------
+        orig : np.ndarray
+            The original image.
+        cereb_subseg : np.ndarray
+            The cerebellum sub-segmentation loaded from the subject's data directory.
+        img_meta_data : dict
+            Dictionary containing the affine transformation and header from cereb_subseg file.
+            If store_talairach is True and Talairach coordinates file exists, also contains the
+            Talairach coordinates.
         """
         orig_path = join(subject_path, self.cfg.IMAGE_NAME)
         subseg_path = join(subject_path, self.cfg.CEREB_SUBSEG_NAME)
@@ -181,7 +200,7 @@ class SubjectLoader:
 
         Parameters
         ----------
-        current_subject : [MISSING]
+        current_subject : str
             Subject ID.
         store_talairach : bool, optional
             Whether to store Talairach coordinates. Defaults to False.
