@@ -49,7 +49,7 @@ from typing import (
 import numpy as np
 import pandas
 import torch
-from matplotlib.cm import get_cmap
+from matplotlib.pyplot import get_cmap
 from matplotlib.colors import Colormap
 from numpy import typing as npt
 
