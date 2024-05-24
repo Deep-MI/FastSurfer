@@ -634,15 +634,15 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
 
     Parameters
     ----------
-    image : [MISSING]
-        [MISSING].
-    pad_tuples : [MISSING]
-        [MISSING].
+    image : np.ndarray, torch.Tensor
+        Input image.
+    pad_tuples : List[Tuple[int, int]]
+        List of padding tuples for each axis.
 
     Returns
     -------
-    [MISSING TYPE]
-        [MISSING Discription].
+    partial
+        A partial function to pad the image.
     """
     if all(p1 == 0 and p2 == 0 for p1, p2 in pad_tuples):
         return None

@@ -68,7 +68,7 @@ class DiceScore:
 
     def reset(self):
         """
-        [MISSING].
+        Reset the state of the object.
         """
         self.union = torch.zeros(self.n_classes, self.n_classes)
         self.intersection = torch.zeros(self.n_classes, self.n_classes)
@@ -84,7 +84,7 @@ class DiceScore:
         """
         if not (isinstance(output, tuple)):
             raise TypeError(
-                "Output should a tuple consist of of torch.Tensors, but given {}".format(
+                "Output should be a tuple consisting of torch.Tensors, but given {}".format(
                     type(output)
                 )
             )
@@ -93,15 +93,13 @@ class DiceScore:
         """
         Update the union and intersection matrices based on batch predictions and labels.
 
-        [MISSING DESCRIPTION]
-
         Parameters:
         -----------
-        batch_output : [MISSING TYPE]
-            [MISSING DESCRIPTION]
+        batch_output : torch.Tensor
+            Batch predictions from the model.
 
-        labels_batch : [MISSING TYPE]
-            [MISSING DESCRIPTION]
+        labels_batch : np.ndarray or torch.Tensor
+            Batch labels from the dataset.
         """
         # self.union.to(batch_output.device)
         # self.intersection.to(batch_output.device)
@@ -120,8 +118,8 @@ class DiceScore:
 
         Parameters
         ----------
-        output : [MISSING]
-            [MISSING DESCRIPTION].
+        output : tuple of torch.Tensor
+            Tuple of predictions and labels.
         """
         self._check_output_type(output)
 
@@ -144,7 +142,7 @@ class DiceScore:
 
     def compute(self, per_class=False, class_idxs=None):
         """
-        [MISSING].
+        Compute the Dice score.
         """
         dice_cm_mat = self._dice_confusion_matrix(class_idxs)
         dice_score_per_class = dice_cm_mat.diagonal()
@@ -156,7 +154,7 @@ class DiceScore:
 
     def _dice_confusion_matrix(self, class_idxs):
         """
-        [MISSING].
+        Compute the Dice score confusion matrix.
         """
         dice_intersection = self.intersection.cpu().numpy()
         dice_union = self.union.cpu().numpy()

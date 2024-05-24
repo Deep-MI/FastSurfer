@@ -318,7 +318,7 @@ def normalize_wm_mask_ball(
     itk_mask : sitk.Image, optional
         Image mask.
     radius : float | int
-        Defaults to 50 [MISSING].
+        Radius of ball around centroid. Defaults to 50.
     centroid : np.ndarray
         Brain centroid.
     target_wm : float | int
@@ -389,6 +389,10 @@ def normalize_wm_aseg(
         Image mask.
     itk_aseg : sitk.Image
         Aseg-like segmentation image to find WM.
+    radius : float | int
+        Radius of ball around centroid. Defaults to 50.
+    centroid : Optional[np.ndarray]
+        Image centroid. Defaults to None.
     target_wm : float | int
         Target white matter intensity. Defaults to 110.
     target_bg : float | int

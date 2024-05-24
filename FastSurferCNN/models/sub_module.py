@@ -119,7 +119,7 @@ class InputDenseBlock(nn.Module):
         Returns
         -------
         out : Tensor
-            [MISSING].
+            Output image (processed feature map).
         """
         # Input batch normalization
         x0_bn = self.bn0(x)
@@ -448,9 +448,9 @@ class GaussianNoise(nn.Module):
         Parameters
         ----------
         sigma : float
-             [MISSING] (Default value = 0.1).
+             Standard deviation of the GaussianNoise (Default value = 0.1).
         device : str
-             [MISSING] (Default value = "cuda").
+            Device to run the model on (Default value = "cuda").
         """
         super().__init__()
         self.sigma = sigma

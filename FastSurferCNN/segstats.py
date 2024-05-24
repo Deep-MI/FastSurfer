@@ -767,17 +767,18 @@ def seg_borders(
 
     def _laplace(data):
         """
-        [MISSING].
+        Helper function to compute the Laplacian of the data, and return a
+        boolean array where the Laplacian is not zero.
 
         Parameters
         ----------
         data :
-            [MISSING].
+            Input data.
 
         Returns
         -------
         bool
-            [MISSING].
+            Boolean array where Laplacian is not zero.
         """
         return laplace(data.astype(cmp_dtype)) != np.asarray(0.0, dtype=cmp_dtype)
 
@@ -802,20 +803,22 @@ def borders(
     Parameters
     ----------
     _array : _ArrayType
-        [MISSING].
+        Input labeled array or binary image.
     labels : Union[Iterable[np.int], bool]
-        [MISSING].
+        List of labels for which borders will be computed.
+        If labels is True, _array is treated as a binary mask.
     max_label : Optional[np.int], Optional
-        [MISSING].
+        The maximum label ot consider. If None, the maximum label in the array is used.
     six_connected : bool
-        [MISSING].
+        If True, 6-connected borders are computed,
+        otherwise 26-connected borders are computed.
     out : Optional[_ArrayType]
-        [MISSING].
+        Output array to store the computed borders (Optional).
 
     Returns
     -------
     _ArrayType
-        [MISSING].
+        A binary image where borders are marked as True.
     """
     dim = _array.ndim
     array_alloc = partial(np.full, dtype=_array.dtype)
@@ -910,16 +913,16 @@ def grow_patch(
     Parameters
     ----------
     patch : Sequence[slice]
-        [MISSING].
+        A sequence of slices.
     whalf : int
-        [MISSING].
+        Integer that specifies the amount to grow/ungrow the patch.
     img_size : Union[np.ndarray, Sequence[float]]
-        [MISSING].
+        Size of the image.
 
     Returns
     -------
     Tuple[Tuple[slice, ...], Tuple[slice, ...]]
-        [MISSING].
+        A tuple containing the grown patch and the ungrown patch.
     """
     # patch start/stop
     _patch = np.asarray([(s.start, s.stop) for s in patch])
@@ -952,20 +955,20 @@ def uniform_filter(
     Parameters
     ----------
     arr : _ArrayType
-        [MISSING].
+        Input array.
     filter_size : int
-        [MISSING].
+        Size of the uniform filter.
     fillval : float
-        [MISSING].
+        Fill value when the filter is outside the array.
     patch : Optional[Tuple[slice, ...]]
-        [MISSING].
+        Sub-region of the array to apply filter to (Default: None).
     out : Optional[_ArrayType]
-        [MISSING].
+        Output array to store the result (Default: None).
 
     Returns
     -------
     _ArrayType
-        [MISSING].
+        The filtered array.
     """
     _patch = (slice(None),) if patch is None else patch
     arr = arr.astype(float)
@@ -1313,27 +1316,29 @@ def global_stats(
     ],
 ]:
     """
-    Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum, sum of squares and 6-connected border of label lab (out references the border).
+    Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum, sum,
+    sum of squares and 6-connected border of label lab (out references the border).
 
     Parameters
     ----------
     lab : _IntType
-        [MISSING].
+        Label to compute statistics for.
     norm : pt.NDArray[_NumberType]
-        [MISSING].
+        Normalized image.
     seg : npt.NDArray[_IntType]
-        [MISSING].
+        Segmentation image.
     out : npt.NDArray[bool], Optional
-        [MISSING].
+        Output array to store the computed borders (Optional).
     robust_percentage : float, Optional
-        [MISSING].
+        Percentage of values to keep for robust statistics (Default: None).
 
     Returns
     -------
     _IntType and int
-        [MISSING].
+        Label and number of voxels.
     or _IntType, int, int, _NumberType, _NumberType, float, float, float and npt.NDArray[bool]
-        [MISSING].
+        Label, number of voxels, 'robust' number of voxels, norm minimum, maximum, sum,
+        sum of squares, volume and border.
     """
     bin_array = cast(npt.NDArray[bool], seg == lab)
     data = norm[bin_array].astype(
@@ -1381,20 +1386,20 @@ def patch_filter(
     Parameters
     ----------
     pos : Tuple[int, int, int]
-        [MISSING].
+        Starting position of the patch.
     mask : npt.NDArray[bool]
-        [MISSING].
+        Mask to crop to.
     global_crop : Tuple[slice, ...]
-        [MISSING].
+        Global cropping context.
     patch_size : int
-        [MISSING]. Defaults to 32.
+        Size of patch. Defaults to 32.
 
     Returns
     -------
     bool
-        [MISSING].
+        Whether there are mask-True voxels in the patch.
     Sequence[slice]
-        [MISSING].
+        Cropped patch.
     """
     # create slices for current patch context (constrained by the global_crop)
     patch = [
@@ -1425,9 +1430,9 @@ def crop_patch_to_mask(
     Returns
     -------
     bool
-        [MISSING].
+        Whether there are mask-True voxels in the patch.
     Sequence[slice]
-        [MISSING].
+        Cropped patch.
 
     Notes
     -----
@@ -1492,36 +1497,39 @@ def pv_calc_patch(
     Parameters
     ----------
     patch : Tuple[slice, ...]
-        [MISSING].
+        Patch to calculate PV for.
     global_crop : Tuple[slice, ...]
-        [MISSING].
+        Global cropping context.
     loc_border : Dict[_IntType, npt.NDArray[bool]]
-        [MISSING].
+        Dictionary mapping labels to their borders.
     seg : npt.NDArray[_IntType]
-        [MISSING].
+        Segmentation image.
     norm : np.ndarray
-        [MISSING].
+        Normalized image.
     border : npt.NDArray[bool]
-        [MISSING].
+        Border of the patch.
     full_pv : npt.NDArray[float], Optional
-        [MISSING].
+        Array to store the partial volume for each voxel in the patch (Optional).
     full_ipv : npt.NDArray[float], Optional
-        [MISSING].
+        Array to store the inverse partial volume for each voxel in the patch (Optional).
     full_nbr_label : npt.NDArray[_IntType], Optional
-        [MISSING].
+        Array to store the label for each neighboring voxel that contributes to the
+        partial volume calculation. (Optional).
     full_seg_mean : npt.NDArray[float], Optional
-        [MISSING].
+        Array to store the mean intensity of the segmentation label for each voxel in
+        the patch (Optional).
     full_nbr_mean : npt.NDArray[float], Optional
-        [MISSING].
+        Array to store the mean intensity of the neighboring voxels that contribute to
+        the partial volume calculation for each voxel in the patch (Optional).
     eps : float
-        [MISSING]. Defaults to 1e-6.
+        Epsilon. Defaults to 1e-6.
     legacy_freesurfer : bool
-        [MISSING].
+        Whether to use a freesurfer legacy compatibility mode to exactly replicate freesurfer.
 
     Returns
     -------
     Dict[_IntType, float]
-        [MISSING].
+        Partial and inverse partial volumes for each label in the patch.
     """
     log_eps = -int(np.log10(eps))
 

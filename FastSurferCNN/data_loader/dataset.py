@@ -256,7 +256,7 @@ class MultiScaleDataset(Dataset):
         img_zoom : torch.Tensor
             Image zoom factor.
         scale_aug : torch.Tensor
-            [MISSING].
+            Scale augmentation factor.
 
         Returns
         -------

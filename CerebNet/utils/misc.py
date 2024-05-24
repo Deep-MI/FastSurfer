@@ -79,6 +79,29 @@ def plot_confusion_matrix(
     figsize=(20, 20),
     file_save_name=None,
 ):
+    """
+    This function prints and plots the confusion matrix.
+
+    Parameters
+    ----------
+    cm : np.ndarray
+        Confusion matrix.
+    classes : list
+        List of classes.
+    title : str
+        Title of the confusion matrix (Default value = "Confusion matrix").
+    cmap : plt.cm
+        Color map (Default value = plt.cm.Blues).
+    figsize : tuple
+        Figure size (Default value = (20, 20)).
+    file_save_name : str
+        File save name (Default value = None).
+
+    Returns
+    -------
+    fig : plt.Figure
+        Figure object.
+    """
     n_classes = len(classes)
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -179,8 +202,8 @@ def set_summary_path(cfg):
     
     Parameters
     ----------
-    cfg : [MISSING TYPE]
-        [MISSING].
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     summary_path = check_path(os.path.join(cfg.LOG_DIR, "summary"))
     cfg.EXPR_NUM = str(find_latest_experiment(os.path.join(cfg.LOG_DIR, "summary")) + 1)
@@ -209,8 +232,8 @@ def update_results_dir(cfg):
 
     Parameters
     ----------
-    cfg : [MISSING TYPE]
-        [MISSING].
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     cfg.EXPR_NUM = str(find_latest_experiment(cfg.TEST.RESULTS_DIR) + 1)
     cfg.TEST.RESULTS_DIR = check_path(
@@ -224,8 +247,8 @@ def update_split_path(cfg):
     
     Parameters
     ----------
-    cfg : [MISSING TYPE]
-        [MISSING].
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     from os.path import split, join
 

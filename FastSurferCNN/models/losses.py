@@ -169,7 +169,7 @@ class CombinedLoss(nn.Module):
         self, inputx: Tensor, target: Tensor, weight: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        [MISSING].
+        Calculate the total loss, dice loss and cross entropy value for the given input.
 
         Parameters
         ----------

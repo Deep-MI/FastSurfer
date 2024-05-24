@@ -55,9 +55,9 @@ class Inference:
     model_name : str
         Name of the model
     alpha : Dict[str, float]
-        [MISSING]
+        Alpha values for different planes
     post_prediction_mapping_hook
-        [MISSING]
+        Hook for post prediction mapping
 
     Methods
     -------
@@ -98,7 +98,7 @@ class Inference:
         ckpt : str
             String or os.PathLike object containing the name to the checkpoint file (Default value = "").
         lut : Union[None, str, np.ndarray, DataFrame]
-             [MISSING] (Default value = None).
+             Lookup table for mapping (Default value = None).
         """
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -162,7 +162,7 @@ class Inference:
 
     def set_cfg(self, cfg: yacs.config.CfgNode):
         """
-        [MISSING].
+        Set the configuration node.
 
         Parameters
         ----------
@@ -332,7 +332,7 @@ class Inference:
         val_loader : DataLoader
             Validation loader.
         out_scale : Optional
-            [MISSING] (Default value = None).
+            Output scale (Default value = None).
         out : Optional[torch.Tensor]
             Previous prediction tensor (Default value = None).
 

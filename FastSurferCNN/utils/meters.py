@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 class Meter:
-    """[MISSING]."""
+    """
+    Meter class to keep track of the losses and scores during training and validation.
+    """
 
     def __init__(
         self,
@@ -47,21 +49,21 @@ class Meter:
         Parameters
         ----------
         cfg
-            [MISSING]
+            Configuration Node.
         mode
-            [MISSING]
+            Meter mode (Train or Val).
         global_step
-            [MISSING]
+            Global step.
         total_iter
-            [MISSING]
+            Total iterations (Default value = None).
         total_epoch
-            [MISSING]
+            Total epochs (Default value = None).
         class_names
-            [MISSING]
+            Class names (Default value = None).
         device
-            [MISSING]
+            Device (Default value = None).
         writer
-            [MISSING]
+            Writer (Default value = None).
 
         """
         self._cfg = cfg
@@ -87,19 +89,19 @@ class Meter:
 
     def enable_confusion_mat(self):
         """
-        [MISSING].
+        Enable confusion matrix.
         """
         self.confusion_mat = True
 
     def disable_confusion_mat(self):
         """
-        [MISSING].
+        Disable confusion matrix.
         """
         self.confusion_mat = False
 
     def update_stats(self, pred, labels, batch_loss):
         """
-        [MISSING].
+        Update the statistics.
         """
         self.dice_score.update((pred, labels), self.confusion_mat)
         self.batch_losses.append(batch_loss.item())
@@ -110,14 +112,14 @@ class Meter:
 
         Parameters
         ----------
-        loss_total : [MISSING]
-            [MISSING].
+        loss_total : torch.Tensor
+            Total loss.
         lr : default = None
-            [MISSING] (Default value = None).
+             Learning rate (Default value = None).
         loss_ce : default = None
-            [MISSING] (Default value = None).
+            Cross entropy loss (Default value = None).
         loss_dice : default = None
-            [MISSING] (Default value = None).
+            Dice loss (Default value = None).
         """
         self.writer.add_scalar(
             f"{self.mode}/total_loss", loss_total.item(), self.global_iter
