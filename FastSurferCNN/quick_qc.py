@@ -79,7 +79,7 @@ def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70)
         The segmentation file.
     voxvol : float
         The volume of a voxel.
-    thres : float
+    thres : float, default=0.7
         The threshold for the total volume (Default value = 0.70).
 
     Returns

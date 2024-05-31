@@ -447,9 +447,9 @@ class GaussianNoise(nn.Module):
 
         Parameters
         ----------
-        sigma : float
+        sigma : float, default=0.1
              Standard deviation of the GaussianNoise (Default value = 0.1).
-        device : str
+        device : str, default="cuda"
             Device to run the model on (Default value = "cuda").
         """
         super().__init__()
