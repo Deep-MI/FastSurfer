@@ -168,7 +168,7 @@ def create_mask(aseg_data, dnum, enum):
     return aseg_data
 
 
-def flip_wm_islands(aseg_datanp.ndarray) -> np.ndarray:
+def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
     """
     Flip labels of disconnected white matter islands to the other hemisphere.
 
