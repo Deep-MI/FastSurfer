@@ -370,7 +370,7 @@ class Inference:
             The tensor to update with the prediction probabilities.
         out_res : float, optional
             The resolution of the output. Default is None.
-        mode : ModalityMode, optional
+        mode : ModalityMode, default="t1t2"
             The mode of the modalities. Default is 't1t2'.
 
         Returns

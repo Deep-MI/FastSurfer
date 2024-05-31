@@ -74,7 +74,7 @@ def save_segmentation(
         The directory where the subject's data is stored.
     seg_file : Path
         The file where the segmentation results will be saved.
-    save_mask : bool, optional
+    save_mask : bool, default=False
         Whether to save the mask or not. Default is False.
 
     Returns
@@ -181,7 +181,7 @@ def get_clean_mask(segmentation: np.ndarray, optic=False) \
     ----------
     segmentation : np.ndarray
         The input segmentation mask.
-    optic : bool, optional
+    optic : bool, default=False
         A flag indicating whether to consider optic labels. Default is False.
 
     Returns

@@ -74,7 +74,7 @@ class HypoVINN_dataset(Dataset):
             The original zoom of the subject.
         cfg : CfgNode
             The configuration object.
-        mode : ModalityMode, optional
+        mode : ModalityMode, default="t1t2"
             The running mode of the HypVINN model. (Default: "t1t2").
         transforms : Callable, optional
             The transformations to apply to the images. (Default: None).

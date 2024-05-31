@@ -129,7 +129,7 @@ def transform_axial2sagittal(vol: np.ndarray, axial2sagittal: bool = True) -> np
     ----------
     vol : np.ndarray
         The image volume to transform.
-    axial2sagittal : bool, optional
+    axial2sagittal : bool, default=True
         A flag to determine the direction of the transformation. If True, transform from axial to sagittal. If False,
         transform from sagittal to axial. (Default: True).
 

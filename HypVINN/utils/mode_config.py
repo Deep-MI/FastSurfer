@@ -33,9 +33,9 @@ def get_hypinn_mode(
 
     Parameters
     ----------
-    t1_path : Optional[Path], default=None
+    t1_path : Path, optional
         The path to the T1 file.
-    t2_path : Optional[Path], default=None
+    t2_path : Path, optional
         The path to the T2 file.
 
     Returns

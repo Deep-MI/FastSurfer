@@ -37,7 +37,7 @@ def compute_stats(
 
     Returns
     -------
-    int | str
+    int, str
         The return value of the main function from FastSurferCNN.segstats.
         Exit code. Returns 0 upon successful execution.
 

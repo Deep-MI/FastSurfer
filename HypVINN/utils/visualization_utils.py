@@ -41,14 +41,14 @@ def remove_values_from_list(the_list, val):
 
 
 def get_lut(lookup_table_path: Path = HYPVINN_LUT):
-    """
+    f"""
     Retrieve a lookup table (LUT) from a file.
 
     This function reads a file and constructs a lookup table (LUT) from it.
 
     Parameters
     ----------
-    lookup_table_path: Path, default=HYPVINN_LUT
+    lookup_table_path: Path, default="{HYPVINN_LUT}"
         The path to the file from which the LUT will be constructed.
 
     Returns
@@ -70,14 +70,14 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
 
 
 def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
-    """
+    f"""
     Map a HypVINN segmentation to a continuous label space using a lookup table.
 
     Parameters
     ----------
     hyposeg : np.ndarray
         The original segmentation map.
-    lut_file : Path, default=HYPVINN_LUT
+    lut_file : Path, default="{HYPVINN_LUT}"
         The path to the lookup table file.
 
     Returns
@@ -242,7 +242,7 @@ def plot_qc_images(
         padd: int = 45,
         lut_file: Path = HYPVINN_LUT,
         slice_step: int = 2):
-    """
+    f"""
     Plot the quality control images for the subject.
 
     Parameters
@@ -255,7 +255,7 @@ def plot_qc_images(
         The path to the predicted image.
     padd : int, default=45
         The padding value for cropping the images and segmentations.
-    lut_file : Path, default=HYPVINN_LUT
+    lut_file : Path, default="{HYPVINN_LUT}"
         The path to the lookup table file.
     slice_step : int, default=2
         The step size for selecting indices from the predicted segmentation.
