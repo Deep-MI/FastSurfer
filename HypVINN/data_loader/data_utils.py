@@ -34,14 +34,14 @@ def calculate_flip_orientation(iornt: np.ndarray, base_ornt: np.ndarray) -> np.n
 
     Parameters
     ----------
-    iornt: np.ndarray
+    iornt : np.ndarray
         Initial orientation.
-    base_ornt: np.ndarray
+    base_ornt : np.ndarray
         Base orientation.
 
     Returns
     -------
-    new_iornt: np.ndarray
+    new_iornt : np.ndarray
         New orientation.
     """
     new_iornt=iornt.copy()
@@ -61,12 +61,6 @@ def calculate_flip_orientation(iornt: np.ndarray, base_ornt: np.ndarray) -> np.n
 def reorient_img(img, ref_img):
     """
     Reorient a Nibabel image based on the orientation of a reference nibabel image.
-
-    Function to reorient a Nibabel image based on the orientation of a reference nibabel image
-    The orientation transform. ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and
-    -1 means flip. For example, if ``N==0 and ornt[0,1] == -1, and there’s an array arr of shape shape, the flip would
-    correspond to the effect of np.flipud(arr). ornt[:,0] is the transpose that needs to be done to the implied array,
-    as in arr.transpose(ornt[:,0]).
 
     Parameters
     ----------
