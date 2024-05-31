@@ -26,7 +26,22 @@ from HypVINN.data_loader.data_utils import hypo_map_subseg_2_fsseg
 LOGGER = logging.get_logger(__name__)
 
 
-def img2axcodes(img):
+def img2axcodes(img: nib.Nifti1Image) -> tuple:
+    """
+    Convert the affine matrix of an image to axis codes.
+
+    This function takes an image as input and returns the axis codes corresponding to the affine matrix of the image.
+
+    Parameters
+    ----------
+    img : nibabel image object
+        The input image.
+
+    Returns
+    -------
+    tuple
+        The axis codes corresponding to the affine matrix of the image.
+    """
     return nib.aff2axcodes(img.affine)
 
 
@@ -34,11 +49,40 @@ def save_segmentation(
         prediction: np.ndarray,
         orig_path: Path,
         ras_affine: npt.NDArray[float],
-        ras_header,
+        ras_header: nib.nifti1.Nifti1Header,
         subject_dir: Path,
         seg_file: Path,
         save_mask: bool = False,
 ) -> float:
+    """
+    Save the segmentation results.
+
+    This function takes the prediction results, cleans the labels, maps them to FreeSurfer Hypvinn Labels, and saves
+    the results. It also reorients the mask and prediction images to match the original image's orientation.
+
+    Parameters
+    ----------
+    prediction : np.ndarray
+        The prediction results.
+    orig_path : Path
+        The path to the original image.
+    ras_affine : npt.NDArray[float]
+        The affine transformation of the RAS orientation.
+    ras_header : nibabel header object
+        The header of the RAS orientation.
+    subject_dir : Path
+        The directory where the subject's data is stored.
+    seg_file : Path
+        The file where the segmentation results will be saved.
+    save_mask : bool, optional
+        Whether to save the mask or not. Default is False.
+
+    Returns
+    -------
+    float
+        The time taken to save the segmentation.
+
+    """
     from time import time
     starttime = time()
     from HypVINN.data_loader.data_utils import reorient_img
@@ -74,10 +118,37 @@ def save_logits(
         logits: npt.NDArray[float],
         orig_path: Path,
         ras_affine: npt.NDArray[float],
-        ras_header,
+        ras_header: nib.nifti1.Nifti1Header,
         save_dir: Path,
         mode: str,
 ) -> Path:
+    """
+    Save the logits (raw model outputs) as a NIfTI image.
+
+    This function takes the logits, reorients the image to match the original image's orientation, and saves the
+    results.
+
+    Parameters
+    ----------
+    logits : npt.NDArray[float]
+        The raw model outputs.
+    orig_path : Path
+        The path to the original image.
+    ras_affine : npt.NDArray[float]
+        The affine transformation of the RAS orientation.
+    ras_header : nib.nifti1.Nifti1Header
+        The header of the RAS orientation.
+    save_dir : Path
+        The directory where the logits will be saved.
+    mode : str
+        The mode of operation.
+
+    Returns
+    -------
+    save_as: Path
+        The path where the logits were saved.
+
+    """
     from HypVINN.data_loader.data_utils import reorient_img
     orig_img = nib.load(orig_path)
     LOGGER.info(f"Orig data orientation: {img2axcodes(orig_img)}")
@@ -97,7 +168,32 @@ def save_logits(
     return save_as
 
 
-def get_clean_mask(segmentation, optic=False):
+def get_clean_mask(segmentation: np.ndarray, optic=False) \
+        -> tuple[np.ndarray, np.ndarray, bool]:
+    """
+    Get a clean mask by removing not connected components.
+
+    This function takes a segmentation mask and an optional boolean flag indicating whether to consider optic labels.
+    It removes not connected components from the segmentation mask and returns the cleaned segmentation mask, the
+    labels of the connected components, and a flag indicating whether to save the mask.
+
+    Parameters
+    ----------
+    segmentation : np.ndarray
+        The input segmentation mask.
+    optic : bool, optional
+        A flag indicating whether to consider optic labels. Default is False.
+
+    Returns
+    -------
+    clean_seg : np.ndarray
+        The cleaned segmentation mask.
+    labels_cc : np.ndarray
+        The labels of the connected components in the segmentation mask.
+    savemask : bool
+        A flag indicating whether to save the mask.
+
+    """
     savemask = False
 
     # Remove not connected components
@@ -146,7 +242,7 @@ def get_clean_mask(segmentation, optic=False):
     return clean_seg, labels_cc, savemask
 
 
-def get_clean_labels(segmentation):
+def get_clean_labels(segmentation: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Function to find the largest connected component of the segmentation.
 
@@ -154,6 +250,13 @@ def get_clean_labels(segmentation):
     ----------
     segmentation: np.ndarray
         The segmentation mask.
+
+    Returns
+    -------
+    clean_seg: np.ndarray
+        The cleaned segmentation mask.
+    labels_cc: np.ndarray
+        The labels of the connected components in the segmentation mask.
     """
 
     # Mask largest CC without optic labels

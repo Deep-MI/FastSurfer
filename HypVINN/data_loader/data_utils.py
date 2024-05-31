@@ -26,7 +26,7 @@ from HypVINN.config.hypvinn_global_var import hyposubseg_labels, SAG2FULL_MAP, H
 ##
 
 
-def calculate_flip_orientation(iornt, base_ornt):
+def calculate_flip_orientation(iornt: np.ndarray, base_ornt: np.ndarray) -> np.ndarray:
     """
     Compute the flip orientation transform.
 
@@ -34,11 +34,15 @@ def calculate_flip_orientation(iornt, base_ornt):
 
     Parameters
     ----------
-    iornt
-    base_ornt
+    iornt: np.ndarray
+        Initial orientation.
+    base_ornt: np.ndarray
+        Base orientation.
 
     Returns
     -------
+    new_iornt: np.ndarray
+        New orientation.
     """
     new_iornt=iornt.copy()
 
@@ -56,21 +60,26 @@ def calculate_flip_orientation(iornt, base_ornt):
 
 def reorient_img(img, ref_img):
     """
+    Reorient a Nibabel image based on the orientation of a reference nibabel image.
+
     Function to reorient a Nibabel image based on the orientation of a reference nibabel image
-    The orientation transform. ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and -1 means flip.
-    For example, if ``N==0 and ornt[0,1] == -1, and there’s an array arr of shape shape, the flip would correspond to the effect of
-    np.flipud(arr). ornt[:,0] is the transpose that needs to be done to the implied array, as in arr.transpose(ornt[:,0])
+    The orientation transform. ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and
+    -1 means flip. For example, if ``N==0 and ornt[0,1] == -1, and there’s an array arr of shape shape, the flip would
+    correspond to the effect of np.flipud(arr). ornt[:,0] is the transpose that needs to be done to the implied array,
+    as in arr.transpose(ornt[:,0]).
 
     Parameters
     ----------
-    img: nibabel Image to reorient
-    base_img: referece orientation nibabel image
+    img : nibabel.Nifti1Image
+        Nibabel Image to reorient.
+    ref_img : nibabel.Nifti1Image
+        Reference orientation nibabel image.
 
     Returns
     -------
-
+    img : nibabel.Nifti1Image
+        Reoriented image.
     """
-
     ref_ornt =nib.io_orientation(ref_img.affine)
     iornt=nib.io_orientation(img.affine)
 
@@ -86,13 +95,26 @@ def reorient_img(img, ref_img):
     return img
 
 
-def transform_axial2coronal(vol, axial2coronal=True):
+def transform_axial2coronal(vol: np.ndarray, axial2coronal: bool = True) -> np.ndarray:
     """
-    Function to transform volume into coronal axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool axial2coronal: transform from axial to coronal = True (default),
-                                transform from coronal to axial = False
-    :return:
+    Transforms a volume into the coronal axis and back.
+
+    This function is used to transform a volume into the coronal axis and back. The transformation is done by moving
+    the axes of the volume. If the `axial2coronal` parameter is set to True, the function will transform from axial to
+    coronal. If it is set to False, the function will transform from coronal to axial.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        The image volume to transform.
+    axial2coronal : bool, optional
+        A flag to determine the direction of the transformation. If True, transform from axial to coronal. If False,
+        transform from coronal to axial. (Default: True).
+
+    Returns
+    -------
+    np.ndarray
+        The transformed volume.
     """
     # TODO check compatibility with axis transform from CerebNet
     if axial2coronal:
@@ -101,13 +123,26 @@ def transform_axial2coronal(vol, axial2coronal=True):
         return np.moveaxis(vol, [0, 1, 2], [0, 2, 1])
 
 
-def transform_axial2sagittal(vol, axial2sagittal=True):
+def transform_axial2sagittal(vol: np.ndarray, axial2sagittal: bool = True) -> np.ndarray:
     """
-    Function to transform volume into Sagittal axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool coronal2sagittal: transform from coronal to sagittal = True (default),
-                                transform from sagittal to coronal = False
-    :return:
+    Transforms a volume into the sagittal axis and back.
+
+    This function is used to transform a volume into the sagittal axis and back. The transformation is done by moving
+    the axes of the volume. If the `axial2sagittal` parameter is set to True, the function will transform from axial to
+    sagittal. If it is set to False, the function will transform from sagittal to axial.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        The image volume to transform.
+    axial2sagittal : bool, optional
+        A flag to determine the direction of the transformation. If True, transform from axial to sagittal. If False,
+        transform from sagittal to axial. (Default: True).
+
+    Returns
+    -------
+    np.ndarray
+        The transformed volume.
     """
     # TODO check compatibility with axis transform from CerebNet
     if axial2sagittal:
@@ -116,7 +151,22 @@ def transform_axial2sagittal(vol, axial2sagittal=True):
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
 
 
-def rescale_image(img_data):
+def rescale_image(img_data: np.ndarray) -> np.ndarray:
+    """
+    Rescale the image data to the range [0, 255].
+
+    This function rescales the input image data to the range [0, 255].
+
+    Parameters
+    ----------
+    img_data : np.ndarray
+        The image data to rescale.
+
+    Returns
+    -------
+    np.ndarray
+        The rescaled image data.
+    """
     # Conform intensities
     # TODO move function into FastSurferCNN, same: CerebNet.datasets.utils.rescale_image
     src_min, scale = getscale(img_data, 0, 255)
@@ -131,7 +181,19 @@ def rescale_image(img_data):
 
 def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
     """
-    Function to perform look-up table mapping from label space to subseg space
+    Perform look-up table mapping from label space to subseg space.
+
+    This function is used to perform a look-up table mapping from label space to subseg space.
+
+    Parameters
+    ----------
+    mapped_subseg : npt.NDArray[int]
+        The input array in label space to be mapped to subseg space.
+
+    Returns
+    -------
+    npt.NDArray[int]
+        The mapped array in subseg space.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
     labels, _ = hyposubseg_labels
@@ -143,13 +205,23 @@ def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
 
 
 def hypo_map_prediction_sagittal2full(
-        prediction_sag: npt.NDArray[int],
+prediction_sag: npt.NDArray[int],
 ) -> npt.NDArray[int]:
     """
-    Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
-    :param prediction_sag: sagittal prediction (labels)
-    :param lbl_type: type of label
-    :return: Remapped prediction
+    Remap the prediction on the sagittal network to full label space.
+
+    This function is used to remap the prediction on the sagittal network to the full label space used by the coronal
+    and axial networks.
+
+    Parameters
+    ----------
+    prediction_sag : npt.NDArray[int]
+        The sagittal prediction in label space to be remapped to full label space.
+
+    Returns
+    -------
+    npt.NDArray[int]
+        The remapped prediction in full label space.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
 
@@ -163,15 +235,24 @@ def hypo_map_subseg_2_fsseg(
         reverse: bool = False,
 ) -> npt.NDArray[int]:
     """
-    Function to remap HypVINN internal labels to FastSurfer Labels and viceversa
+    Remap HypVINN internal labels to FastSurfer Labels and vice versa.
+
+    This function is used to remap HypVINN internal labels to FastSurfer Labels and vice versa. If the `reverse`
+    parameter is set to False, the function will map HypVINN labels to FastSurfer labels. If it is set to True,
+    the function will map FastSurfer labels to HypVINN labels.
+
     Parameters
     ----------
-    subseg
-    reverse
+    subseg : npt.NDArray[int]
+        The input array with HypVINN or FastSurfer labels to be remapped.
+    reverse : bool, optional
+        A flag to determine the direction of the remapping. If False, remap HypVINN labels to FastSurfer labels.
+        If True, remap FastSurfer labels to HypVINN labels. (Default: False).
 
     Returns
     -------
-
+    npt.NDArray[int]
+        The remapped array with FastSurfer or HypVINN labels.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
 

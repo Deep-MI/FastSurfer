@@ -17,6 +17,7 @@ from typing import Optional
 
 import torch
 import numpy as np
+import yacs.config
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -33,6 +34,21 @@ logger = logging.get_logger(__name__)
 
 
 class Inference:
+    """
+    Class for running inference on a single subject.
+
+    Attributes
+    ----------
+    model : torch.nn.Module
+        The model to use for inference.
+    model_name : str
+        The name of the model.
+
+    Methods
+    -------
+    setup_model(cfg)
+        Set up the model.
+    """
     def __init__(
             self,
             cfg,
@@ -41,7 +57,26 @@ class Inference:
             device: str = "auto",
             viewagg_device: str = "auto",
     ):
+        """
+        Initialize the Inference class.
 
+        This method initializes the Inference class with the provided configuration, number of threads, async IO flag,
+        device, and view aggregation device. It sets the random seed, switches on denormal flushing, defines the device,
+        and sets up the initial model.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            The configuration node containing the parameters for the model.
+        threads : int, optional
+            The number of threads to use. Default is -1, which uses all available threads.
+        async_io : bool, optional
+            Whether to use asynchronous IO. Default is False.
+        device : str, optional
+            The device to use for computations. Can be 'auto', 'cpu', or 'cuda'. Default is 'auto'.
+        viewagg_device : str, optional
+            The device to use for view aggregation. Can be 'auto', 'cpu', or 'cuda'. Default is 'auto'.
+        """
         self._threads = threads
         torch.set_num_threads(self._threads)
         self._async_io = async_io
@@ -81,6 +116,21 @@ class Inference:
             self,
             cfg: Optional["yacs.config.CfgNode"] = None,
     ) -> torch.nn.Module:
+        """
+        Set up the model.
+
+        This method sets up the model for inference.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode, optional
+            The configuration node containing the parameters for the model.
+
+        Returns
+        -------
+        model : torch.nn.Module
+            The model set up for inference.
+        """
         if cfg is not None:
             self.cfg = cfg
 
@@ -91,9 +141,25 @@ class Inference:
         return model
 
     def set_cfg(self, cfg):
+        """
+        Set the configuration node.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            The configuration node containing the parameters for the model.
+        """
         self.cfg = cfg
 
-    def set_model(self, cfg=None):
+    def set_model(self, cfg: yacs.config.CfgNode = None):
+        """
+        Set the model for the Inference instance.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode, optional
+            The configuration node containing the parameters for the model. (Default = None).
+        """
         if cfg is not None:
             self.cfg = cfg
 
@@ -102,41 +168,151 @@ class Inference:
         model.to(self.device)
         self.model = model
 
-    def load_checkpoint(self, ckpt):
+    def load_checkpoint(self, ckpt: str):
+        """
+        Load a model checkpoint.
+
+        This method loads a model checkpoint from a .pth file containing a state dictionary of a model.
+
+        Parameters
+        ----------
+        ckpt : str
+            The path to the checkpoint file. The checkpoint file should be a .pth file containing a state dictionary
+            of a model.
+        """
         logger.info("Loading checkpoint {}".format(ckpt))
         model_state = torch.load(ckpt, map_location=self.device)
         self.model.load_state_dict(model_state["model_state"])
 
     def get_modelname(self):
+        """
+        Get the name of the model.
+
+        This method returns the name of the model used in the Inference instance.
+
+        Returns
+        -------
+        str
+            The name of the model.
+        """
         return self.model_name
 
     def get_cfg(self):
+        """
+        Get the configuration node.
+
+        This method returns the configuration node used in the Inference instance.
+
+        Returns
+        -------
+        yacs.config.CfgNode
+            The configuration node containing the parameters for the model.
+        """
         return self.cfg
 
     def get_num_classes(self):
+        """
+        Get the number of classes.
+
+        This method returns the number of classes defined in the model configuration.
+
+        Returns
+        -------
+        int
+            The number of classes.
+        """
         return self.cfg.MODEL.NUM_CLASSES
 
     def get_plane(self):
+        """
+        Get the plane.
+
+        This method returns the plane defined in the data configuration.
+
+        Returns
+        -------
+        str
+            The plane.
+        """
         return self.cfg.DATA.PLANE
 
     def get_model_height(self):
+        """
+        Get the model height.
+
+        This method returns the height of the model defined in the model configuration.
+
+        Returns
+        -------
+        int
+            The height of the model.
+        """
         return self.cfg.MODEL.HEIGHT
 
     def get_model_width(self):
+        """
+        Get the model width.
+
+        This method returns the width of the model defined in the model configuration.
+
+        Returns
+        -------
+        int
+            The width of the model.
+        """
         return self.cfg.MODEL.WIDTH
 
     def get_max_size(self):
+        """
+        Get the maximum size of the output tensor.
+
+        Returns
+        -------
+        int or tuple
+            The maximum size. If the width and height of the output tensor are equal, it returns the width. Otherwise, it
+            returns both the width and height.
+        """
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH
         else:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
 
     def get_device(self):
+        """
+        Get the device.
+
+        This method returns the device and view aggregation device used in the Inference instance.
+
+        Returns
+        -------
+        tuple
+            The device and view aggregation device.
+        """
         return self.device,self.viewagg_device
 
     #TODO check is possible to modify to CerebNet inference mode from RAS directly to LIA (CerebNet.Inference._predict_single_subject)
     @torch.no_grad()
-    def eval(self, val_loader: DataLoader, pred_prob: torch.Tensor, out_scale=None):
+    def eval(self, val_loader: DataLoader, pred_prob: torch.Tensor, out_scale: float = None) -> torch.Tensor:
+        """
+        Evaluate the model on a validation set.
+
+        This method runs the model in evaluation mode on a validation set. It iterates over the validation set,
+        computes the model's predictions, and updates the prediction probabilities based on the plane of the data.
+
+        Parameters
+        ----------
+        val_loader : DataLoader
+            The DataLoader for the validation set.
+        pred_prob : torch.Tensor
+            The tensor to update with the prediction probabilities.
+        out_scale : float, optional
+            The scale factor for the output. Default is None.
+
+        Returns
+        -------
+        pred_prob: torch.Tensor
+            The updated prediction probabilities.
+        """
         self.model.eval()
 
         start_index = 0
@@ -176,6 +352,32 @@ class Inference:
             out_res=None,
             mode: ModalityMode = "t1t2",
     ):
+        """
+        Run the inference process on a single subject.
+
+        This method sets up a DataLoader for the subject, runs the model in evaluation mode on the subject's data,
+        and returns the updated prediction probabilities.
+
+        Parameters
+        ----------
+        subject_name : str
+            The name of the subject.
+        modalities : ModalityDict
+            The modalities of the subject.
+        orig_zoom : npt.NDArray[float]
+            The original zoom of the subject.
+        pred_prob : torch.Tensor
+            The tensor to update with the prediction probabilities.
+        out_res : float, optional
+            The resolution of the output. Default is None.
+        mode : ModalityMode, optional
+            The mode of the modalities. Default is 't1t2'.
+
+        Returns
+        -------
+        pred_prob: torch.Tensor
+            The updated prediction probabilities.
+        """
         # Set up DataLoader
         test_dataset = HypoVINN_dataset(
             subject_name,

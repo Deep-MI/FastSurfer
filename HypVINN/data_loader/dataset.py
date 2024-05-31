@@ -30,12 +30,27 @@ logger = logging.get_logger(__name__)
 # Operator to load imaged for inference
 class HypoVINN_dataset(Dataset):
     """
-    Class to load MRI-Image and process it to correct format for HypVINN network inference
-    The HypVINN Dataset passed during Inference the input images,the scale factor for the VINN layer and a weight factor (wT1,wT2)
-    The Weight factor determines the running mode of the HypVINN model
-    if wT1 =1 and wT2 =0. The HypVINN model will only allow the flow of the T1 information (mode = t1)
-    if wT1 =0 and wT2 =1. The HypVINN model will only allow the flow of the T2 information (mode = t2)
-    if wT1 !=1 and wT2 !=1. The HypVINN model will automatically weigh the T1 information and the T2 information based on the learned modality weights (mode = t1t2)
+    Class to load MRI-Image and process it to correct format for HypVINN network inference.
+
+    The HypVINN Dataset passed during Inference the input images,the scale factor for the VINN layer and a weight factor
+    (wT1,wT2).
+    The Weight factor determines the running mode of the HypVINN model.
+    if wT1 =1 and wT2 =0. The HypVINN model will only allow the flow of the T1 information (mode = t1).
+    if wT1 =0 and wT2 =1. The HypVINN model will only allow the flow of the T2 information (mode = t2).
+    if wT1 !=1 and wT2 !=1. The HypVINN model will automatically weigh the T1 information and the T2 information based
+    on the learned modality weights (mode = t1t2).
+
+    Methods
+    -------
+    _standarized_img(orig_data: np.ndarray, orig_zoom: npt.NDArray[float], modality: np.ndarray) -> np.ndarray
+        Standardize the image based on the original data, original zoom, and modality.
+    _get_scale_factor() -> npt.NDArray[float]
+        Get the scaling factor to match the original resolution of the input image to the final resolution of the
+        FastSurfer base network.
+    __getitem__(index: int) -> dict[str, torch.Tensor | np.ndarray]
+        Retrieve the image, scale factor, and weight factor for a given index.
+    __len__()
+        Return the number of images in the dataset.
     """
     def __init__(
             self,
@@ -46,6 +61,25 @@ class HypoVINN_dataset(Dataset):
             mode: ModalityMode = "t1t2",
             transforms=None,
     ):
+        """
+        Initialize the HypoVINN Dataset.
+
+        Parameters
+        ----------
+        subject_name : str
+            The name of the subject.
+        modalities : ModalityDict
+            The modalities of the subject.
+        orig_zoom : npt.NDArray[float]
+            The original zoom of the subject.
+        cfg : CfgNode
+            The configuration object.
+        mode : ModalityMode, optional
+            The running mode of the HypVINN model. (Default: "t1t2").
+        transforms : Callable, optional
+            The transformations to apply to the images. (Default: None).
+
+        """
         self.subject_name = subject_name
         self.plane = cfg.DATA.PLANE
         #Inference Mode
@@ -84,7 +118,8 @@ class HypoVINN_dataset(Dataset):
             f"model"
         )
 
-        if (cfg.MODEL.MULTI_AUTO_W or cfg.MODEL.MULTI_AUTO_W_CHANNELS) and (self.mode == 't1t2' or cfg.MODEL.DUPLICATE_INPUT) :
+        if ((cfg.MODEL.MULTI_AUTO_W or cfg.MODEL.MULTI_AUTO_W_CHANNELS) and
+                (self.mode == 't1t2' or cfg.MODEL.DUPLICATE_INPUT)) :
             logger.info(
                 f"For inference T1 block weight and the T2 block are set to "
                 f"the weights learn during training"
@@ -95,7 +130,25 @@ class HypoVINN_dataset(Dataset):
                 f"{self.weight_factor.numpy()[0]} and the T2 block was set to: "
                 f"{self.weight_factor.numpy()[1]}")
 
-    def _standarized_img(self, orig_data, orig_zoom, modality):
+    def _standarized_img(self, orig_data: np.ndarray, orig_zoom: npt.NDArray[float],
+                         modality: np.ndarray) -> np.ndarray:
+        """
+        Standardize the image based on the original data, original zoom, and modality.
+
+        Parameters
+        ----------
+        orig_data : np.ndarray
+            The original data of the image.
+        orig_zoom : npt.NDArray[float]
+            The original zoom of the image.
+        modality : np.ndarray
+            The modality of the image.
+
+        Returns
+        -------
+        orig_thick : np.ndarray
+            The standardized image.
+        """
         if self.plane == "sagittal":
             orig_data = transform_axial2sagittal(orig_data)
             self.zoom = orig_zoom[::-1][:2]
@@ -123,19 +176,40 @@ class HypoVINN_dataset(Dataset):
 
     def _get_scale_factor(self) -> npt.NDArray[float]:
         """
-        Get scaling factor to match original resolution of input image to
-        final resolution of FastSurfer base network. Input resolution is
-        taken from voxel size in image header.
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
-        :param img_zoom:
-        :return np.ndarray(float32): scale factor along x and y dimension
+        Get the scaling factor to match the original resolution of the input image to
+        the final resolution of the FastSurfer base network. The input resolution is
+        taken from the voxel size in the image header.
+
+        Returns
+        -------
+        scale : npt.NDArray[float]
+            The scaling factor along the x and y dimensions. This is a numpy array of float values.
         """
+        # TODO: This needs to be updated based on the plane we are looking at in case we
+        #  are dealing with non-isotropic images as inputs.
+
         scale = self.base_res / np.asarray(self.zoom)
 
         return scale
 
     def __getitem__(self, index: int) -> dict[str, torch.Tensor | np.ndarray]:
+        """
+        Retrieve the image, scale factor, and weight factor for a given index.
+
+        This method retrieves the image at the given index from the images attribute, calculates the scale factor,
+        applies any transformations to the image if they are defined, and returns a dictionary containing the image,
+        scale factor, and weight factor.
+
+        Parameters
+        ----------
+        index : int
+            The index of the image to retrieve.
+
+        Returns
+        -------
+        dict[str, torch.Tensor | np.ndarray]
+            A dictionary containing the image, scale factor, and weight factor.
+        """
         img = self.images[index]
 
         scale_factor = self._get_scale_factor()

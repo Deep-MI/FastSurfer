@@ -59,13 +59,13 @@ def optional_path(a: Path | str) -> Optional[Path]:
 
     Parameters
     ----------
-    a : str
-        The string to convert.
+    a : Path | str
+        The input to convert.
 
     Returns
     -------
     Optional[Path]
-        The Path object or None.
+        The converted Path object.
     """
     if isinstance(a, Path):
         return a
@@ -80,7 +80,7 @@ def option_parse() -> argparse.ArgumentParser:
 
     Returns
     -------
-    argparse.Ar
+    argparse.ArgumentParser
         The parser object to parse arguments from the command line.
     """
     parser = argparse.ArgumentParser(
@@ -188,6 +188,44 @@ def main(
 
     Parameters
     ----------
+    out_dir : Path
+        The output directory where the results will be stored.
+    t2 : Optional[Path]
+        The path to the T2 image to process.
+    orig_name : Optional[Path]
+        The original name of the input image.
+    sid : str
+        The subject ID.
+    ckpt_ax : Path
+        The path to the axial checkpoint file.
+    ckpt_cor : Path
+        The path to the coronal checkpoint file.
+    ckpt_sag : Path
+        The path to the sagittal checkpoint file.
+    cfg_ax : Path
+        The path to the axial configuration file.
+    cfg_cor : Path
+        The path to the coronal configuration file.
+    cfg_sag : Path
+        The path to the sagittal configuration file.
+    hypo_segfile : str, optional
+        The name of the hypothalamus segmentation file. Default is HYPVINN_SEG_NAME.
+    allow_root : bool, optional
+        Whether to allow running as root user. Default is False.
+    qc_snapshots : bool, optional
+        Whether to create QC snapshots. Default is False.
+    reg_mode : Literal["coreg", "robust", "none"], optional
+        The registration mode to use. Default is "coreg".
+    threads : int, optional
+        The number of threads to use. Default is -1, which uses all available threads.
+    batch_size : int, optional
+        The batch size to use. Default is 1.
+    async_io : bool, optional
+        Whether to use asynchronous I/O. Default is False.
+    device : str, optional
+        The device to use. Default is "auto", which automatically selects the device.
+    viewagg_device : str, optional
+        The view aggregation device to use. Default is "auto", which automatically selects the device.
 
     Returns
     -------
@@ -379,6 +417,21 @@ def main(
 
 
 def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
+    """
+    Prepare the checkpoints for the Hypothalamus Segmentation model.
+
+    This function checks if the checkpoint files for the axial, coronal, and sagittal planes exist.
+    If they do not exist, it downloads them from the default URLs specified in the configuration file.
+
+    Parameters
+    ----------
+    ckpt_ax : str
+        The path to the axial checkpoint file.
+    ckpt_cor : str
+        The path to the coronal checkpoint file.
+    ckpt_sag : str
+        The path to the sagittal checkpoint file.
+    """
     logger.info("Checking or downloading default checkpoints ...")
     urls = load_checkpoint_config_defaults(
         "url",
@@ -398,6 +451,40 @@ def load_volumes(
     tuple[float, float, float],
     tuple[int, int, int],
 ]:
+    """
+    Load the volumes of T1 and T2 images.
+
+    This function loads the T1 and T2 images, checks their compatibility based on the mode, and returns the loaded
+    volumes along with their affine transformations, headers, zoom levels, and sizes.
+
+    Parameters
+    ----------
+    mode : ModalityMode
+        The mode of operation. Can be 't1', 't2', or 't1t2'.
+    t1_path : Optional[Path], optional
+        The path to the T1 image. Default is None.
+    t2_path : Optional[Path], optional
+        The path to the T2 image. Default is None.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the following elements:
+        - modalities: A dictionary with keys 't1' and/or 't2' and values being the corresponding loaded and rescaled images.
+        - affine: The affine transformation of the loaded image(s).
+        - header: The header of the loaded image(s).
+        - zoom: The zoom level of the loaded image(s).
+        - size: The size of the loaded image(s).
+
+    Raises
+    ------
+    RuntimeError
+        If the mode is inconsistent with the provided image paths, or if the number of dimensions of the data is invalid.
+    ValueError
+        If the mode is invalid, or if a header is missing.
+    AssertionError
+        If the mode is 't1t2' but the T1 and T2 images have different resolutions or sizes.
+    """
     import nibabel as nib
     modalities: ModalityDict = {}
 
@@ -474,7 +561,36 @@ def get_prediction(
         out_scale=None,
         mode: ModalityMode = "t1t2",
 ) -> npt.NDArray[int]:
+    """
+    Run the prediction for the Hypothalamus Segmentation model.
 
+    This function sets up the prediction process for the Hypothalamus Segmentation model. It runs the model for each
+    plane (axial, coronal, sagittal), accumulates the prediction probabilities, and then generates the final prediction.
+
+    Parameters
+    ----------
+    subject_name : str
+        The name of the subject.
+    modalities : ModalityDict
+        A dictionary containing the modalities (T1 and/or T2) and their corresponding images.
+    orig_zoom : npt.NDArray[float]
+        The original zoom of the subject.
+    model : Inference
+        The Inference object of the model.
+    target_shape : tuple[int, int, int]
+        The target shape of the output prediction.
+    view_opts : ViewOperations
+        A dictionary containing the configurations for each plane.
+    out_scale : optional
+        The output scale. Default is None.
+    mode : ModalityMode, optional
+        The mode of operation. Can be 't1', 't2', or 't1t2'. Default is 't1t2'.
+
+    Returns
+    -------
+    pred_classes: npt.NDArray[int]
+        The final prediction of the model.
+    """
     # TODO There are probably several possibilities to accelerate this script.
     #  FastSurferVINN takes 7-8s vs. HypVINN 10+s per slicing direction.
     #  Solution: make this script/function more similar to the optimized FastSurferVINN
@@ -516,6 +632,27 @@ def set_up_cfgs(
         out_dir: Path,
         batch_size: int = 1,
 ) -> "yacs.config.CfgNode":
+    """
+    Set up the configuration for the Hypothalamus Segmentation model.
+
+    This function loads the configuration, sets the output directory and batch size, and adjusts the output tensor
+    dimensions based on the padded size specified in the configuration.
+
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        The configuration node to load.
+    out_dir : Path
+        The output directory where the results will be stored.
+    batch_size : int, optional
+        The batch size to use. Default is 1.
+
+    Returns
+    -------
+    yacs.config.CfgNode
+        The loaded and adjusted configuration node.
+
+    """
     cfg = load_config(cfg)
     cfg.OUT_LOG_DIR = str(out_dir or cfg.LOG_DIR)
     cfg.TEST.BATCH_SIZE = batch_size

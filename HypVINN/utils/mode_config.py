@@ -26,7 +26,28 @@ def get_hypinn_mode(
         t1_path: Optional[Path] = None,
         t2_path: Optional[Path] = None,
 ) -> ModalityMode:
+    """
+    Determine the input mode for HypVINN based on the existence of T1 and T2 files.
 
+    This function checks the existence of T1 and T2 files based on the provided paths.
+
+    Parameters
+    ----------
+    t1_path : Optional[Path], default=None
+        The path to the T1 file.
+    t2_path : Optional[Path], default=None
+        The path to the T2 file.
+
+    Returns
+    -------
+    ModalityMode
+        The input mode for HypVINN, which can be "t1t2", "t1", or "t2".
+
+    Raises
+    ------
+    RuntimeError
+        If neither T1 nor T2 files exist, or if the corresponding flags were passed but the files do not exist.
+    """
     LOGGER.info("Setting up input mode...")
     if t1_path is not None and t2_path is not None:
         if t1_path.is_file() and t2_path.is_file():

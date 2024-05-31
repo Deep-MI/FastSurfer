@@ -21,6 +21,31 @@ def compute_stats(
         stats_dir: Path,
         threads: int,
 ) -> int | str:
+    """
+    Compute statistics for the segmentation results.
+
+    Parameters
+    ----------
+    orig_path : Path
+        The path to the original image.
+    prediction_path : Path
+        The path to the predicted segmentation.
+    stats_dir : Path
+        The directory for storing the statistics.
+    threads : int
+        The number of threads to be used.
+
+    Returns
+    -------
+    int | str
+        The return value of the main function from FastSurferCNN.segstats.
+        Exit code. Returns 0 upon successful execution.
+
+    Raises
+    ------
+    RuntimeError
+        If the main function from FastSurferCNN.segstats fails to run.
+    """
     from collections import namedtuple
 
     from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT

@@ -16,6 +16,8 @@
 
 # IMPORTS
 from typing import Dict
+
+import yacs.config
 from torch import Tensor, nn
 import torch
 import FastSurferCNN.models.sub_module as sm
@@ -26,16 +28,63 @@ import numpy as np
 
 class HypVINN(FastSurferCNNBase):
     """
-          Construct HypVINN object.
+    HypVINN class that extends the FastSurferCNNBase class.
 
-          Parameters
-          ----------
-          params : Dict
-              Dictionary of configurations.
-          padded_size : int
-              Size of image when padded (Default value = 256).
-          """
+    This class represents a HypVINN model. It includes methods for initializing the model, setting up the layers,
+    and performing forward propagation.
+
+    Attributes
+    ----------
+    height : int
+        The height of the output tensor.
+    width : int
+        The width of the output tensor.
+    out_tensor_shape : tuple
+        The shape of the output tensor.
+    interpolation_mode : str
+        The interpolation mode to use when resizing the images. This can be 'nearest', 'bilinear', 'bicubic', or 'area'.
+    crop_position : str
+        The position to crop the images from. This can be 'center', 'top_left', 'top_right', 'bottom_left', or 'bottom_right'.
+    m1_inp_block : InputDenseBlock
+        The input block for the first modality.
+    m2_inp_block : InputDenseBlock
+        The input block for the second modality.
+    mod_weights : nn.Parameter
+        The weights for the two modalities.
+    normalize_weights : nn.Softmax
+        A softmax function to normalize the modality weights.
+    outp_block : OutputDenseBlock
+        The output block of the model.
+    interpol1 : Zoom2d
+        The first interpolation layer.
+    interpol2 : Zoom2d
+        The second interpolation layer.
+    classifier : ClassifierBlock
+        The final classifier block of the model.
+
+    Methods
+    -------
+    forward(x, scale_factor, weight_factor, scale_factor_out=None)
+        Perform forward propagation through the model.
+    """
     def __init__(self, params, padded_size=256):
+        """
+        Initialize the HypVINN model.
+
+        This method initializes the HypVINN model by calling the super class constructor and setting up the layers.
+
+        Parameters
+        ----------
+        params : Dict
+            A dictionary containing the configuration parameters for the model.
+        padded_size : int, optional
+            The size of the image when padded. (Default = 256).
+
+        Raises
+        ------
+        ValueError
+            If the interpolation mode or crop position is invalid.
+        """
         num_c = params["num_channels"]
 
         params["num_channels"] = params["num_filters_interpol"]
@@ -104,10 +153,40 @@ class HypVINN(FastSurferCNNBase):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, scale_factor, weight_factor, scale_factor_out=None):
+    def forward(self, x: torch.Tensor, scale_factor: torch.Tensor, weight_factor: torch.Tensor,
+                scale_factor_out: torch.Tensor = None) -> torch.Tensor:
+        """
+        Forward propagation method for the HypVINN model.
+
+        This method takes an input tensor, a scale factor, a weight factor, and an optional output scale factor.
+        It performs forward propagation through the model, applying the input blocks, interpolation layers, output
+        block, and classifier block. It also handles the weighting of the two modalities and the rescaling of the
+        output.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input tensor. It should have a shape of (batch_size, num_channels, height, width).
+        scale_factor : torch.Tensor
+            The scale factor for the input images. It should have a shape of (batch_size, 2).
+        weight_factor : torch.Tensor
+            The weight factor for the two modalities. It should have a shape of (batch_size, 2).
+        scale_factor_out : torch.Tensor, optional
+            The scale factor for the output images. If not provided, it defaults to the scale factor of the input images.
+
+        Returns
+        -------
+        logits : torch.Tensor
+            The output logits from the classifier block. It has a shape of (batch_size, num_classes, height, width).
+
+        Raises
+        ------
+        ValueError
+            If the interpolation mode or crop position is invalid.
+        """
         # Weight factor [wT1,wT2] has 3 stages [1,0],[0.5,0.5],[0,1],
-        #if the weight factor is [0.5,0.5] the automatically weights (s_weights) are passed
-        #If there is a 1 in the comparison the automatically weights will be replace by the first weight_factors pass
+        # if the weight factor is [0.5,0.5] the automatically weights (s_weights) are passed
+        # If there is a 1 in the comparison the automatically weights will be replace by the first weight_factors pass
         comparison = weight_factor[0]
 
         x = torch.tensor_split(x, 2, dim=1)
@@ -159,19 +238,24 @@ _MODELS = {
 }
 
 
-def build_model(cfg) -> HypVINN:
+def build_model(cfg: yacs.config.CfgNode) -> HypVINN:
     """
-    Build requested model.
+    Build and return the requested model.
 
     Parameters
     ----------
     cfg : yacs.config.CfgNode
-        Node of configs to be used.
+        The configuration node containing the parameters for the model.
 
     Returns
     -------
-    model
-        Object of the initialized model.
+    HypVINN
+        An instance of the requested model.
+
+    Raises
+    ------
+    AssertionError
+        If the model specified in the configuration is not supported.
     """
     if cfg.MODEL.MODEL_NAME not in _MODELS:
         raise AssertionError(f"Model {cfg.MODEL.MODEL_NAME} not supported")
