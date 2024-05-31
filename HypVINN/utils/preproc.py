@@ -35,6 +35,33 @@ def t1_to_t2_registration(
         registration_type: RegistrationMode = "coreg",
         threads: int = -1,
 ) -> Path:
+    """
+    Register T1 to T2 images using either mri_coreg or mri_robust_register.
+
+    Parameters
+    ----------
+    t1_path : Path
+        The path to the T1 image.
+    t2_path : Path
+        The path to the T2 image.
+    subject_dir : Path
+        The directory of the subject.
+    registration_type : RegistrationMode, default="coreg"
+        The type of registration to be used. It can be either "coreg" or "robust".
+    threads : int, default=-1
+        The number of threads to be used. If it is less than or equal to 0, the number of threads will be automatically
+        determined.
+
+    Returns
+    -------
+    Path
+        The path to the registered T2 image.
+
+    Raises
+    ------
+    RuntimeError
+        If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot be found.
+    """
     from FastSurferCNN.utils.run_tools import Popen
     from FastSurferCNN.utils.threads import get_num_threads
     import shutil
@@ -131,7 +158,35 @@ def hypvinn_preproc(
         subject_dir: Path,
         threads: int = -1,
 ) -> Path:
+    """
+    Preprocess the input images for HypVINN.
 
+    Parameters
+    ----------
+    mode : ModalityMode
+        The mode for HypVINN. It should be "t1t2".
+    reg_mode : RegistrationMode
+        The registration mode. If it is not "none", the function will register T1 to T2 images.
+    t1_path : Path
+        The path to the T1 image.
+    t2_path : Path
+        The path to the T2 image.
+    subject_dir : Path
+        The directory of the subject.
+    threads : int, default=-1
+        The number of threads to be used. If it is less than or equal to 0, the number of threads will be automatically
+        determined.
+
+    Returns
+    -------
+    Path
+        The path to the preprocessed T2 image.
+
+    Raises
+    ------
+    RuntimeError
+        If the mode is not "t1t2", or if the registration mode is not "none" and the registration fails.
+    """
     if mode != "t1t2":
         raise RuntimeError(
             "hypvinn_preproc should only be called for t1t2 mode."

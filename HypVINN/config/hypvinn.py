@@ -258,7 +258,14 @@ _C.RNG_SEED = 1
 
 
 def get_cfg_hypvinn():
-    """Get a yacs CfgNode object with default values for my_project."""
+    """
+    Get a yacs CfgNode object with default values for HypVINN project.
+
+    Returns
+    -------
+    _C : yacs.config.CfgNode
+        A clone of the default configuration node for the HypVINN project.
+    """
     # Return a clone so that the defaults will not be altered
     # This is for the "local variable" use pattern
     return _C.clone()

@@ -22,10 +22,40 @@ from HypVINN.config.hypvinn_files import HYPVINN_LUT
 
 
 def remove_values_from_list(the_list, val):
+    """
+    Removes values from a list.
+
+    Parameters
+    ----------
+    the_list : list
+        The original list from which values will be removed.
+    val : any
+        The value to be removed from the list.
+
+    Returns
+    -------
+    list
+        A new list with the specified value removed.
+    """
     return [value for value in the_list if value != val]
 
 
 def get_lut(lookup_table_path: Path = HYPVINN_LUT):
+    """
+    Retrieve a lookup table (LUT) from a file.
+
+    This function reads a file and constructs a lookup table (LUT) from it.
+
+    Parameters
+    ----------
+    lookup_table_path: Path, default=HYPVINN_LUT
+        The path to the file from which the LUT will be constructed.
+
+    Returns
+    -------
+    lut: OrderedDict
+        The constructed LUT as an ordered dictionary.
+    """
     from collections import OrderedDict
     lut = OrderedDict()
     with open(lookup_table_path, "r") as f:
@@ -39,11 +69,26 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     return lut
 
 
-def map_hyposeg2label(hyposeg, lut_file: Path = HYPVINN_LUT):
+def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
+    """
+    Map a HypVINN segmentation to a continuous label space using a lookup table.
+
+    Parameters
+    ----------
+    hyposeg : np.ndarray
+        The original segmentation map.
+    lut_file : Path, default=HYPVINN_LUT
+        The path to the lookup table file.
+
+    Returns
+    -------
+    mapped_hyposeg : ndarray
+        The mapped segmentation.
+    cmap : ListedColormap
+        The colormap for the mapped segmentation.
+    """
     import matplotlib.colors
-    """
-    Function to perform look-up table mapping of aseg.mgz data to label space (continue labels)
-    """
+
     labels = np.unique(hyposeg)
 
     labels = np.int16(labels)
@@ -65,6 +110,26 @@ def map_hyposeg2label(hyposeg, lut_file: Path = HYPVINN_LUT):
 
 
 def plot_coronal_predictions(cmap, images_batch=None, pred_batch=None, img_per_row=8):
+    """
+    Plot the predicted segmentations on a grid layout.
+
+    Parameters
+    ----------
+    cmap : matplotlib.colors.Colormap
+        The colormap to be used for the predicted segmentations.
+    images_batch : np.ndarray, optional
+        The batch of input images. If not provided, the function will not plot anything.
+    pred_batch : np.ndarray, optional
+        The batch of predicted segmentations. If not provided, the function will not plot anything.
+    img_per_row : int, default=8
+        The number of images to be plotted per row in the grid layout.
+
+    Returns
+    -------
+    fig: matplotlib.figure.Figure
+        The figure containing the plotted images and predictions.
+
+    """
     import matplotlib.pyplot as plt
     import torch
     from torchvision import utils
@@ -121,6 +186,21 @@ def plot_coronal_predictions(cmap, images_batch=None, pred_batch=None, img_per_r
 
 
 def select_index_to_plot(hyposeg, slice_step=2):
+    """
+    Select indices to plot based on the given segmentation map.
+
+    Parameters
+    ----------
+    hyposeg : np.ndarray
+        The segmentation map from which indices will be selected.
+    slice_step : int, default=2
+        The step size for selecting indices from the remaining indices after removing certain indices.
+
+    Returns
+    -------
+    list
+        The selected indices, sorted in ascending order.
+    """
     # slices with labels
     idx = np.where(hyposeg > 0)
     idx = np.unique(idx[0])
@@ -162,6 +242,24 @@ def plot_qc_images(
         padd: int = 45,
         lut_file: Path = HYPVINN_LUT,
         slice_step: int = 2):
+    """
+    Plot the quality control images for the subject.
+
+    Parameters
+    ----------
+    subject_qc_dir : Path
+        The directory for the subject.
+    orig_path : Path
+        The path to the original image.
+    prediction_path : Path
+        The path to the predicted image.
+    padd : int, default=45
+        The padding value for cropping the images and segmentations.
+    lut_file : Path, default=HYPVINN_LUT
+        The path to the lookup table file.
+    slice_step : int, default=2
+        The step size for selecting indices from the predicted segmentation.
+    """
     from scipy import ndimage
 
     from HypVINN.data_loader.data_utils import transform_axial2coronal, hypo_map_subseg_2_fsseg

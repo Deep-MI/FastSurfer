@@ -19,7 +19,16 @@ from HypVINN.config.hypvinn import get_cfg_hypvinn
 
 def get_config(args):
     """
-    Given the arguemnts, load and initialize the configs.
+    Given the arguments, load and initialize the configs.
+
+    Parameters
+    ----------
+    args : object
+        The arguments object.
+    Returns
+    -------
+    cfg : yacs.config.CfgNode
+        The configuration node.
     """
     # Setup cfg.
     cfg = get_cfg_hypvinn()
@@ -41,6 +50,19 @@ def get_config(args):
     return cfg
 
 def load_config(cfg_file):
+    """
+    Load and initialize the configuration from a given file.
+
+    Parameters
+    ----------
+    cfg_file : str
+        The path to the configuration file. The function will load configurations from this file.
+
+    Returns
+    -------
+    cfg : yacs.config.CfgNode
+        The configuration node, loaded and initialized with the given file.
+    """
     # setup base
     cfg = get_cfg_hypvinn()
     cfg.EXPR_NUM = None
