@@ -72,7 +72,7 @@ class SubjectLoader:
         ----------
         subject_path : str
             The path to the subject's data directory.
-        store_talairach : bool, optional
+        store_talairach : bool, default=False
             If True, the method will attempt to load the Talairach coordinates. Defaults to False.
 
         Returns

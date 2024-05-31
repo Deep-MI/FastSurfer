@@ -90,19 +90,19 @@ def options_parse():
     return options
 
 
-def reduce_to_aseg(data_inseg):
+def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
     """
     Reduce the input segmentation to a simpler segmentation.
 
     Parameters
     ----------
-    data_inseg : -
+    data_inseg : np.ndarray, torch.Tensor
         The input segmentation. This should be a 3D array where the value at each position represents the segmentation
         label for that position.
 
     Returns
     -------
-    data_inseg : -
+    data_inseg : np.ndarray, torch.Tensor
         The reduced segmentation.
     """
     print("Reducing to aseg ...")
@@ -119,11 +119,11 @@ def create_mask(aseg_data, dnum, enum):
 
     Parameters
     ----------
-    aseg_data : -
+    aseg_data : npt.NDArray[int]
         The input segmentation data.
-    dnum : -
+    dnum : int
         The number of iterations for the dilation operation.
-    enum : -
+    enum : int
         The number of iterations for the erosion operation.
 
     Returns
@@ -168,7 +168,7 @@ def create_mask(aseg_data, dnum, enum):
     return aseg_data
 
 
-def flip_wm_islands(aseg_data):
+def flip_wm_islands(aseg_datanp.ndarray) -> np.ndarray:
     """
     Flip labels of disconnected white matter islands to the other hemisphere.
 

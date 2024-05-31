@@ -88,14 +88,14 @@ def plot_confusion_matrix(
         Confusion matrix.
     classes : list
         List of classes.
-    title : str
-        Title of the confusion matrix (Default value = "Confusion matrix").
-    cmap : plt.cm
-        Color map (Default value = plt.cm.Blues).
-    figsize : tuple
-        Figure size (Default value = (20, 20)).
-    file_save_name : str
-        File save name (Default value = None).
+    title : str, default="Confusion matrix"
+        Title of the confusion matrix.
+    cmap : plt.cm, default=matplotlib.pyplot.cm.Blues
+        Color map.
+    figsize : tuple, default=(20, 20)
+        Figure size.
+    file_save_name : str, optional
+        File save name.
 
     Returns
     -------

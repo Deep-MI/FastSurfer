@@ -55,9 +55,9 @@ class Inference:
     model_name : str
         Name of the model
     alpha : Dict[str, float]
-        Alpha values for different planes
+        Alpha values for different planes.
     post_prediction_mapping_hook
-        Hook for post prediction mapping
+        Hook for post prediction mapping.
 
     Methods
     -------
@@ -97,7 +97,7 @@ class Inference:
             Device specification for distributed computation usage.
         ckpt : str
             String or os.PathLike object containing the name to the checkpoint file (Default value = "").
-        lut : Union[None, str, np.ndarray, DataFrame]
+        lut : str, np.ndarray, DataFrame, optional
              Lookup table for mapping (Default value = None).
         """
         # Set random seed from configs.

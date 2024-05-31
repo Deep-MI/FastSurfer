@@ -772,12 +772,12 @@ def seg_borders(
 
         Parameters
         ----------
-        data :
+        data : np.ndarray
             Input data.
 
         Returns
         -------
-        bool
+        npt.NDArray[bool]
             Boolean array where Laplacian is not zero.
         """
         return laplace(data.astype(cmp_dtype)) != np.asarray(0.0, dtype=cmp_dtype)
@@ -804,15 +804,15 @@ def borders(
     ----------
     _array : _ArrayType
         Input labeled array or binary image.
-    labels : Union[Iterable[np.int], bool]
+    labels : Iterable[np.int], bool
         List of labels for which borders will be computed.
         If labels is True, _array is treated as a binary mask.
-    max_label : Optional[np.int], Optional
+    max_label : np.int, optional
         The maximum label ot consider. If None, the maximum label in the array is used.
-    six_connected : bool
+    six_connected : bool, default=True
         If True, 6-connected borders are computed,
         otherwise 26-connected borders are computed.
-    out : Optional[_ArrayType]
+    out : _ArrayType, optional
         Output array to store the computed borders (Optional).
 
     Returns
@@ -916,12 +916,12 @@ def grow_patch(
         A sequence of slices.
     whalf : int
         Integer that specifies the amount to grow/ungrow the patch.
-    img_size : Union[np.ndarray, Sequence[float]]
+    img_size : np.ndarray, Sequence[float]
         Size of the image.
 
     Returns
     -------
-    Tuple[Tuple[slice, ...], Tuple[slice, ...]]
+    tuple[tuple[slice, ...], tuple[slice, ...]]
         A tuple containing the grown patch and the ungrown patch.
     """
     # patch start/stop
@@ -960,9 +960,9 @@ def uniform_filter(
         Size of the uniform filter.
     fillval : float
         Fill value when the filter is outside the array.
-    patch : Optional[Tuple[slice, ...]]
+    patch : tuple[slice, ...], optional
         Sub-region of the array to apply filter to (Default: None).
-    out : Optional[_ArrayType]
+    out : _ArrayType, optional
         Output array to store the result (Default: None).
 
     Returns
@@ -1391,7 +1391,7 @@ def patch_filter(
         Mask to crop to.
     global_crop : Tuple[slice, ...]
         Global cropping context.
-    patch_size : int
+    patch_size : int, default=32
         Size of patch. Defaults to 32.
 
     Returns
@@ -1521,9 +1521,9 @@ def pv_calc_patch(
     full_nbr_mean : npt.NDArray[float], Optional
         Array to store the mean intensity of the neighboring voxels that contribute to
         the partial volume calculation for each voxel in the patch (Optional).
-    eps : float
+    eps : float, default=1e-6
         Epsilon. Defaults to 1e-6.
-    legacy_freesurfer : bool
+    legacy_freesurfer : bool, default=False
         Whether to use a freesurfer legacy compatibility mode to exactly replicate freesurfer.
 
     Returns

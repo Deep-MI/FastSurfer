@@ -228,7 +228,7 @@ class Mapper(Generic[KT, VT]):
         ----------
         other : Mapper[KT, VT]
             The other Mapper object whose key-value pairs are to be added to this Mapper object.
-        overwrite : bool
+        overwrite : bool, default=True
             Flag to overwrite value if key already exists in Mapper object (Default value = True).
 
         Returns

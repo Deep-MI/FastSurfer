@@ -276,7 +276,7 @@ def save_checkpoint(
         Used network optimizer.
     scheduler : Optional[Scheduler]
         Used network scheduler. Optional (Default value = None).
-    best : bool
+    best : bool, default=False
         Whether this was the best checkpoint so far (Default value = False).
     """
     save_name = f"Epoch_{epoch:05d}_training_state.pkl"
