@@ -59,14 +59,14 @@ def optional_path(a: Path | str) -> Optional[Path]:
 
     Parameters
     ----------
-    a : Path | str
+    a : Path, str
         The input to convert.
 
     Returns
     -------
-    Optional[Path]
+    Path, optional
         The converted Path object.
-    """
+    f"""
     if isinstance(a, Path):
         return a
     if a.lower() in ("none", ""):
@@ -190,9 +190,9 @@ def main(
     ----------
     out_dir : Path
         The output directory where the results will be stored.
-    t2 : Optional[Path]
+    t2 : Path, optional
         The path to the T2 image to process.
-    orig_name : Optional[Path]
+    orig_name : Path, optional
         The original name of the input image.
     sid : str
         The subject ID.
@@ -208,23 +208,23 @@ def main(
         The path to the coronal configuration file.
     cfg_sag : Path
         The path to the sagittal configuration file.
-    hypo_segfile : str, optional
+    hypo_segfile : str, default="{HYPVINN_SEG_NAME}"
         The name of the hypothalamus segmentation file. Default is HYPVINN_SEG_NAME.
-    allow_root : bool, optional
+    allow_root : bool, default=False
         Whether to allow running as root user. Default is False.
     qc_snapshots : bool, optional
         Whether to create QC snapshots. Default is False.
-    reg_mode : Literal["coreg", "robust", "none"], optional
+    reg_mode : "coreg", "robust", "none", default="coreg"
         The registration mode to use. Default is "coreg".
-    threads : int, optional
+    threads : int, default=-1
         The number of threads to use. Default is -1, which uses all available threads.
-    batch_size : int, optional
+    batch_size : int, default=1
         The batch size to use. Default is 1.
-    async_io : bool, optional
+    async_io : bool, default=False
         Whether to use asynchronous I/O. Default is False.
-    device : str, optional
+    device : str, default="auto"
         The device to use. Default is "auto", which automatically selects the device.
-    viewagg_device : str, optional
+    viewagg_device : str, default="auto"
         The view aggregation device to use. Default is "auto", which automatically selects the device.
 
     Returns
@@ -461,9 +461,9 @@ def load_volumes(
     ----------
     mode : ModalityMode
         The mode of operation. Can be 't1', 't2', or 't1t2'.
-    t1_path : Optional[Path], optional
+    t1_path : Path, optional
         The path to the T1 image. Default is None.
-    t2_path : Optional[Path], optional
+    t2_path : Path, optional
         The path to the T2 image. Default is None.
 
     Returns
@@ -583,7 +583,7 @@ def get_prediction(
         A dictionary containing the configurations for each plane.
     out_scale : optional
         The output scale. Default is None.
-    mode : ModalityMode, optional
+    mode : ModalityMode, default="t1t2"
         The mode of operation. Can be 't1', 't2', or 't1t2'. Default is 't1t2'.
 
     Returns
@@ -644,7 +644,7 @@ def set_up_cfgs(
         The configuration node to load.
     out_dir : Path
         The output directory where the results will be stored.
-    batch_size : int, optional
+    batch_size : int, default=1
         The batch size to use. Default is 1.
 
     Returns
