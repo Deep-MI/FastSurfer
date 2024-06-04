@@ -294,10 +294,10 @@ class Inference:
     @torch.no_grad()
     def eval(self, val_loader: DataLoader, pred_prob: torch.Tensor, out_scale: float = None) -> torch.Tensor:
         """
-        Evaluate the model on a validation set.
+        Evaluate the model on a HypVINN dataset.
 
-        This method runs the model in evaluation mode on a validation set. It iterates over the validation set,
-        computes the model's predictions, and updates the prediction probabilities based on the plane of the data.
+        This method runs the model in evaluation mode on a HypVINN Dataset. It iterates over the given dataset and
+        computes the model's predictions.
 
         Parameters
         ----------
@@ -355,7 +355,8 @@ class Inference:
         """
         Run the inference process on a single subject.
 
-        This method sets up a DataLoader for the subject, runs the model in evaluation mode on the subject's data,
+        This method sets up the HypVINN DataLoader for the subject, runs the model in evaluation mode on the subject's
+        data,
         and returns the updated prediction probabilities.
 
         Parameters

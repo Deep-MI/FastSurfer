@@ -49,7 +49,7 @@ def save_segmentation(
         prediction: np.ndarray,
         orig_path: Path,
         ras_affine: npt.NDArray[float],
-        ras_header: nib.nifti1.Nifti1Header,
+        ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         subject_dir: Path,
         seg_file: Path,
         save_mask: bool = False,
@@ -118,7 +118,7 @@ def save_logits(
         logits: npt.NDArray[float],
         orig_path: Path,
         ras_affine: npt.NDArray[float],
-        ras_header: nib.nifti1.Nifti1Header,
+        ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         save_dir: Path,
         mode: str,
 ) -> Path:
@@ -171,7 +171,7 @@ def save_logits(
 def get_clean_mask(segmentation: np.ndarray, optic=False) \
         -> tuple[np.ndarray, np.ndarray, bool]:
     """
-    Get a clean mask by removing not connected components.
+    Get a clean mask by removing non-connected components from a dilated mask.
 
     This function takes a segmentation mask and an optional boolean flag indicating whether to consider optic labels.
     It removes not connected components from the segmentation mask and returns the cleaned segmentation mask, the
@@ -244,7 +244,8 @@ def get_clean_mask(segmentation: np.ndarray, optic=False) \
 
 def get_clean_labels(segmentation: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
-    Function to find the largest connected component of the segmentation.
+    Get clean labels by removing non-connected components from a dilated mask and any connected component with size
+    less than 3.
 
     Parameters
     ----------
