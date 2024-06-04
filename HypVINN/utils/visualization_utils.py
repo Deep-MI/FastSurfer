@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os.path
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +19,9 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 
 from HypVINN.config.hypvinn_files import HYPVINN_LUT
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+
+_doc_HYPVINN_LUT = os.path.relpath(HYPVINN_LUT, FASTSURFER_ROOT)
 
 
 def remove_values_from_list(the_list, val):
@@ -42,13 +45,13 @@ def remove_values_from_list(the_list, val):
 
 def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     f"""
-    Retrieve a lookup table (LUT) from a file.
+    Retrieve a color lookup table (LUT) from a file.
 
     This function reads a file and constructs a lookup table (LUT) from it.
 
     Parameters
     ----------
-    lookup_table_path: Path, default="{HYPVINN_LUT}"
+    lookup_table_path: Path, default="{_doc_HYPVINN_LUT}"
         The path to the file from which the LUT will be constructed.
 
     Returns
@@ -77,7 +80,7 @@ def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
     ----------
     hyposeg : np.ndarray
         The original segmentation map.
-    lut_file : Path, default="{HYPVINN_LUT}"
+    lut_file : Path, default="{_doc_HYPVINN_LUT}"
         The path to the lookup table file.
 
     Returns
@@ -255,7 +258,7 @@ def plot_qc_images(
         The path to the predicted image.
     padd : int, default=45
         The padding value for cropping the images and segmentations.
-    lut_file : Path, default="{HYPVINN_LUT}"
+    lut_file : Path, default="{_doc_HYPVINN_LUT}"
         The path to the lookup table file.
     slice_step : int, default=2
         The step size for selecting indices from the predicted segmentation.

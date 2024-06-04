@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 # IMPORTS
 from typing import TYPE_CHECKING, Optional, cast, Literal
 import argparse
@@ -183,7 +182,7 @@ def main(
         device: str = "auto",
         viewagg_device: str = "auto",
 ) -> int | str:
-    """
+    f"""
     Main function of the hypothalamus segmentation module.
 
     Parameters
@@ -193,7 +192,7 @@ def main(
     t2 : Path, optional
         The path to the T2 image to process.
     orig_name : Path, optional
-        The original name of the input image.
+        The path to the T1 image to process or FastSurfer orig image.
     sid : str
         The subject ID.
     ckpt_ax : Path
@@ -209,7 +208,7 @@ def main(
     cfg_sag : Path
         The path to the sagittal configuration file.
     hypo_segfile : str, default="{HYPVINN_SEG_NAME}"
-        The name of the hypothalamus segmentation file. Default is HYPVINN_SEG_NAME.
+        The name of the hypothalamus segmentation file. Default is {HYPVINN_SEG_NAME}.
     allow_root : bool, default=False
         Whether to allow running as root user. Default is False.
     qc_snapshots : bool, optional
