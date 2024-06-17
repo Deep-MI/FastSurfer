@@ -35,7 +35,7 @@ function RunIt()
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else
     echo $cmd |& tee -a $LF
-    $timecmd -debug $cmd |& tee -a $LF
+    $timecmd $cmd |& tee -a $LF
     if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   fi
 }
