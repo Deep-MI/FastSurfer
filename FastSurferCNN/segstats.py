@@ -725,7 +725,7 @@ def read_classes_from_lut(lut_file: str | Path):
     }
     return pd.read_csv(
         lut_file,
-        delim_whitespace=True,
+        sep='\s+',
         index_col=False,
         skip_blank_lines=True,
         comment="#",

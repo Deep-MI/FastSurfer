@@ -999,7 +999,7 @@ class TSVLookupTable(ColorLookupTable[str]):
 
         self._data = pandas.read_csv(
             file_or_buffer,
-            delim_whitespace=True,
+            sep='\s+',
             index_col=0,
             skip_blank_lines=True,
             comment="#",
