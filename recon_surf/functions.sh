@@ -30,12 +30,12 @@ function RunIt()
   if [[ $# -eq 3 ]]
   then
     local CMDF=$3
-    echo "echo ${cmd@Q}" |& tee -a $CMDF
-    echo "$timecmd $cmd" |& tee -a $CMDF
+    echo "echo ${cmd@Q}" 2>&1 | tee -a $CMDF
+    echo "$timecmd $cmd" 2>&1 | tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else
-    echo $cmd |& tee -a $LF
-    $timecmd $cmd |& tee -a $LF
+    echo $cmd 2>&1 | tee -a $LF
+    $timecmd $cmd 2>&1 | tee -a $LF
     if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   fi
 }
@@ -107,21 +107,21 @@ function softlink_or_copy()
   if [[ $# -eq 4 ]]
   then
     local CMDF=$4
-    echo "echo \"$ln_cmd\" " |& tee -a $CMDF
-    echo "$timecmd $ln_cmd " |& tee -a $CMDF
-    echo "if [ \${PIPESTATUS[0]} -ne 0 ]" |& tee -a $CMDF
-    echo "then " |& tee -a $CMDF
-    echo "  echo \"$cp_cmd\" " |& tee -a $CMDF
-    echo "  $timecmd $cp_cmd " |& tee -a $CMDF
+    echo "echo \"$ln_cmd\" " 2>&1 | tee -a $CMDF
+    echo "$timecmd $ln_cmd " 2>&1 | tee -a $CMDF
+    echo "if [ \${PIPESTATUS[0]} -ne 0 ]" 2>&1 | tee -a $CMDF
+    echo "then " 2>&1 | tee -a $CMDF
+    echo "  echo \"$cp_cmd\" " 2>&1 | tee -a $CMDF
+    echo "  $timecmd $cp_cmd " 2>&1 | tee -a $CMDF
     echo "  if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
-    echo "fi" |& tee -a $CMDF
+    echo "fi" 2>&1 | tee -a $CMDF
   else
-    echo $ln_cmd |& tee -a $LF
-    $timecmd $ln_cmd |& tee -a $LF
+    echo $ln_cmd 2>&1 | tee -a $LF
+    $timecmd $ln_cmd 2>&1 | tee -a $LF
     if [ ${PIPESTATUS[0]} -ne 0 ]
     then
-      echo $cp_cmd |& tee -a $LF
-      $timecmd $cp_cmd |& tee -a $LF
+      echo $cp_cmd 2>&1 | tee -a $LF
+      $timecmd $cp_cmd 2>&1 | tee -a $LF
       if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
     fi
   fi
