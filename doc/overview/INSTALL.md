@@ -165,18 +165,16 @@ Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker
 
 ### Native
 
-On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. The experimental support for the built-in AI Accelerator is also only available on native installations. Native installation also supports older Intel chips.
+On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. The experimental support for the built-in AI accelerator (MPS) is also only available on native installations. Native installation also supports older Intel chips.
 
 #### 1. Git and Bash
-If you do not have git and a recent bash (version > 4.0 required!) installed, install them via the packet manager, e.g. brew.
+If you do not have git you can install it via the packet manager, e.g. brew.
 This installs brew and then bash:
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install bash
+brew install git
 ```
-
-Make sure you use this bash and not the older one provided with MacOS!
 
 #### 2. Python
 Create a python environment, activate it, and upgrade pip. Here we use pip, but you should also be able to use conda for python: 
@@ -194,7 +192,6 @@ git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
-
 
 Install the FastSurfer requirements
 ```sh
@@ -215,14 +212,12 @@ You can also download all network checkpoint files (this should be done if you a
 python3 FastSurferCNN/download_checkpoints.py --all
 ```
 
-Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
+Once all dependencies are installed, you can run the FastSurfer segmentation only by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
 
-Note: You may always need to prepend the command with `bash` (i.e. `bash run_fastsurfer.sh <...>`) to ensure that bash 4.0 is used instead of the system default.
-
-To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step.
+To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it might be slow due to the emulation.
 
 #### 4. Apple AI Accelerator support
-You can also try the experimental support for the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps`:
+You can also try the experimental support for the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
 
 ```sh
 export PYTORCH_ENABLE_MPS_FALLBACK=1
