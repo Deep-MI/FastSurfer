@@ -30,7 +30,8 @@ function RunIt()
   if [[ $# -eq 3 ]]
   then
     local CMDF=$3
-    echo "echo ${cmd@Q}" 2>&1 | tee -a $CMDF
+    printf -v tmp %q "$cmd"
+    echo "echo $tmp" 2>&1 | tee -a $CMDF
     echo "$timecmd $cmd" 2>&1 | tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else

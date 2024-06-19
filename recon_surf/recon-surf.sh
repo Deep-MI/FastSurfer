@@ -44,10 +44,10 @@ else
 fi
 
 
-# check bash version > 4
+# check bash version > 3.1 (needed for printf %q)
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
-if [ $(version ${BASH_VERSION}) -lt $(version "4.0.0") ]; then
-    echo "bash ${BASH_VERSION} is too old. Should be newer than 4.0, please upgrade!"
+if [ $(version ${BASH_VERSION}) -lt $(version "3.1.0") ]; then
+    echo "bash ${BASH_VERSION} is too old. Should be newer than 3.1, please upgrade!"
     exit 1
 fi
 
@@ -91,7 +91,7 @@ FLAGS:
                             etiv estimates for 3T MR images, default: 1.5T atlas).
   --parallel              Run both hemispheres in parallel
   --threads <int>         Set openMP and ITK threads to <int>
-  --py <python_cmd>       Command for python, default ${python@Q}
+  --py <python_cmd>       Command for python, default ${python}
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
@@ -658,7 +658,8 @@ else
     # equivalent to -qsphere
     # (23sec)
     cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
-    cmd="$cmd --subject $subject --threads=$threads --py ${python@Q} --binpath ${binpath}"
+    printf -v tmp %q "$python"
+    cmd="$cmd --subject $subject --threads=$threads --py ${tmp} --binpath ${binpath}"
 
     RunIt "$cmd" $LF $CMDF
 
