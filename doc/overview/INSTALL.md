@@ -61,9 +61,9 @@ sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt install -y g++-11
 ```
 
-You also need to have bash-4.0 or higher (check with `bash --version`). 
+You also need to have bash-3.2 or higher (check with `bash --version`). 
 
-You also need a working version of python3 (we recommend python 3.10 -- we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies).
+You also need a working version of python3.10 (we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies).
 
 If you are using pip, make sure pip is updated as older versions will fail.
 
@@ -165,26 +165,24 @@ Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker
 
 ### Native
 
-On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. The experimental support for the built-in AI Accelerator is also only available on native installations. Native installation also supports older Intel chips.
+On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. The experimental support for the built-in AI accelerator (MPS) is also only available on native installations. Native installation also supports older Intel chips.
 
-#### 1. Git and Bash
-If you do not have git and a recent bash (version > 4.0 required!) installed, install them via the packet manager, e.g. brew.
-This installs brew and then bash:
+#### 1. Dependency packages
+If you do not have git, python3.10 or bash (at least 3.2) you can install these via the packet manager brew.
+This installs brew and then git and python3.10:
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install bash
+brew install git python@3.10
 ```
-
-Make sure you use this bash and not the older one provided with MacOS!
 
 #### 2. Python
 Create a python environment, activate it, and upgrade pip. Here we use pip, but you should also be able to use conda for python: 
 
 ```sh
-python3 -m venv $HOME/python-envs/fastsurfer 
+python3.10 -m venv $HOME/python-envs/fastsurfer 
 source $HOME/python-envs/fastsurfer/bin/activate
-python3 -m pip install --upgrade pip
+python3.10 -m pip install --upgrade pip
 ```
 
 #### 3. FastSurfer and Requirements
@@ -195,10 +193,9 @@ cd FastSurfer
 export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
 
-
 Install the FastSurfer requirements
 ```sh
-python3 -m pip install -r requirements.mac.txt
+python3.10 -m pip install -r requirements.mac.txt
 ```
 
 If this step fails, you may need to edit ```requirements.mac.txt``` and adjust version number to what is available. 
@@ -212,24 +209,22 @@ pip3 install --no-binary=h5py h5py
 
 You can also download all network checkpoint files (this should be done if you are installing for multiple users):
 ```sh
-python3 FastSurferCNN/download_checkpoints.py --all
+python3.10 FastSurferCNN/download_checkpoints.py --all
 ```
 
-Once all dependencies are installed, run the FastSurfer segmentation only (!!) by calling ```bash ./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
+Once all dependencies are installed, you can run the FastSurfer segmentation only by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
 
-Note: You may always need to prepend the command with `bash` (i.e. `bash run_fastsurfer.sh <...>`) to ensure that bash 4.0 is used instead of the system default.
-
-To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step.
+To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it might be slow due to the emulation.
 
 #### 4. Apple AI Accelerator support
-You can also try the experimental support for the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps`:
+You can also try the experimental support for the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
 
 ```sh
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 ./run_fastsurfer.sh --seg_only --device mps ....
 ```
 
-This will be at least twice as fast as `--device cpu`. The fallback environment variable is necessary as one function is not yet implemented for the GPU and will fall back to CPU.
+This will be at least twice as fast as `--device cpu`. The fallback environment variable is necessary as `aten::max_unpool2d` is not yet implemented for MPS and will fall back to CPU.
 
 ## Windows
 

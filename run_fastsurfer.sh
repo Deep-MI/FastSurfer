@@ -713,7 +713,7 @@ else log_existed="false"
 fi
 
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
-echo "Version: $VERSION" |& tee -a "$seg_log"
+echo "Version: $VERSION" 2>&1 | tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" ; }" SIGINT SIGTERM
@@ -733,8 +733,8 @@ if [[ "$run_seg_pipeline" == "1" ]]
     # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
     # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
     echo "Log file for segmentation FastSurferCNN/run_prediction.py" >> "$seg_log"
-    date  |& tee -a "$seg_log"
-    echo "" |& tee -a "$seg_log"
+    date  2>&1 | tee -a "$seg_log"
+    echo "" 2>&1 | tee -a "$seg_log"
 
     if [[ "$run_asegdkt_module" == "1" ]]
       then
@@ -745,7 +745,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
              --viewagg_device "$viewagg" --device "$device" "${allow_root[@]}")
         # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
         if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
-        echo "${cmd[@]}" |& tee -a "$seg_log"
+        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         "${cmd[@]}"
         exit_code="${PIPESTATUS[0]}"
         if [[ "${exit_code}" == 2 ]]
@@ -766,7 +766,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
         cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
              --rescale "$norm_name" --aseg "$asegdkt_segfile" --threads "$threads")
-        echo "${cmd[@]}" |& tee -a "$seg_log"
+        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
@@ -778,7 +778,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
           then
             echo "INFO: Running talairach registration" | tee -a "$seg_log"
             cmd=("$reconsurfdir/talairach-reg.sh" "$sd/$subject/mri" "$atlas3T" "$seg_log")
-            echo "${cmd[@]}" |& tee -a "$seg_log"
+            echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
             "${cmd[@]}"
             if [[ "${PIPESTATUS[0]}" -ne 0 ]]
               then
@@ -800,8 +800,8 @@ if [[ "$run_seg_pipeline" == "1" ]]
                        2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
                        2027 2028 2029 2030 2031 2034 2035
                  --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt")
-            echo "${cmd[@]}" |& tee -a "$seg_log"
-            "${cmd[@]}" |& tee -a "$seg_log"
+            echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+            "${cmd[@]}" 2>&1 | tee -a "$seg_log"
             if [[ "${PIPESTATUS[0]}" -ne 0 ]]
               then
                 echo "ERROR: asegdkt statsfile generation failed" | tee -a "$seg_log"
@@ -817,7 +817,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
             cereb_flags=("${cereb_flags[@]}" --norm_name "$norm_name"
                          --cereb_statsfile "$cereb_statsfile")
         else
-            echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." |& tee -a $seg_log
+            echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." 2>&1 | tee -a $seg_log
         fi
 
         cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1"
@@ -827,11 +827,11 @@ if [[ "$run_seg_pipeline" == "1" ]]
              --threads "$threads" "${cereb_flags[@]}" "${allow_root[@]}")
         # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
         if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
-        echo "${cmd[@]}" |& tee -a "$seg_log"
+        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
-            echo "ERROR: Cerebellum Segmentation failed" |& tee -a "$seg_log"
+            echo "ERROR: Cerebellum Segmentation failed" 2>&1 | tee -a "$seg_log"
             exit 1
         fi
     fi
@@ -850,7 +850,7 @@ if [[ "$run_surf_pipeline" == "1" ]]
     cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
          --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
          "${surf_flags[@]}" "${allow_root[@]}")
-    echo "${cmd[@]}" |& tee -a "$seg_log"
+    echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
     "${cmd[@]}"
     if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
     popd || return

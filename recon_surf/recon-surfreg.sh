@@ -109,12 +109,12 @@ function RunIt()
   if [[ $# -eq 3 ]]
   then
     CMDF=$3
-    echo "echo \"$cmd\" " |& tee -a $CMDF
-    echo "$timecmd $cmd " |& tee -a $CMDF
+    echo "echo \"$cmd\" " 2>&1 | tee -a $CMDF
+    echo "$timecmd $cmd " 2>&1 | tee -a $CMDF
     echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
   else
-    echo $cmd |& tee -a $LF
-    $timecmd $cmd |& tee -a $LF
+    echo $cmd 2>&1 | tee -a $LF
+    $timecmd $cmd 2>&1 | tee -a $LF
     #if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
   fi
 }
@@ -356,28 +356,28 @@ if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
 LF=$SUBJECTS_DIR/$subject/scripts/recon-surfreg.log
 if [ $LF != /dev/null ] ; then  rm -f $LF ; fi
 echo "Log file for recon-surfreg.sh" >> $LF
-date  |& tee -a $LF
-echo "" |& tee -a $LF
-echo "export SUBJECTS_DIR=$SUBJECTS_DIR" |& tee -a $LF
-echo "cd `pwd`"  |& tee -a $LF
-echo $0 ${inputargs[*]} |& tee -a $LF
-echo "" |& tee -a $LF
-cat $FREESURFER_HOME/build-stamp.txt |& tee -a $LF
-echo $VERSION |& tee -a $LF
-uname -a  |& tee -a $LF
+date  2>&1 | tee -a $LF
+echo "" 2>&1 | tee -a $LF
+echo "export SUBJECTS_DIR=$SUBJECTS_DIR" 2>&1 | tee -a $LF
+echo "cd `pwd`"  2>&1 | tee -a $LF
+echo $0 ${inputargs[*]} 2>&1 | tee -a $LF
+echo "" 2>&1 | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a $LF
+echo $VERSION 2>&1 | tee -a $LF
+uname -a  2>&1 | tee -a $LF
 
 
 # Print parallelization parameters
-echo " " |& tee -a $LF
+echo " " 2>&1 | tee -a $LF
 if [ "$DoParallel" == "1" ]
 then
-  echo " RUNNING both hemis in PARALLEL " |& tee -a $LF
+  echo " RUNNING both hemis in PARALLEL " 2>&1 | tee -a $LF
 else
-  echo " RUNNING both hemis SEQUENTIALLY " |& tee -a $LF
+  echo " RUNNING both hemis SEQUENTIALLY " 2>&1 | tee -a $LF
 fi
-echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " |& tee -a $LF
-echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " |& tee -a $LF
-echo " " |& tee -a $LF
+echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " 2>&1 | tee -a $LF
+echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " 2>&1 | tee -a $LF
+echo " " 2>&1 | tee -a $LF
 
 
 #if false; then
@@ -396,9 +396,9 @@ for hemi in lh rh; do
   CMDFS="$CMDFS $CMDF"
   rm -rf $CMDF
 
-  echo "echo \" \"" |& tee -a $CMDF
-  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
-  echo "echo \" \"" |& tee -a $CMDF
+  echo "echo \" \"" 2>&1 | tee -a $CMDF
+  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" 2>&1 | tee -a $CMDF
+  echo "echo \" \"" 2>&1 | tee -a $CMDF
 
   # Surface registration for cross-subject correspondence (registration to fsaverage)
   cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning $fsthreads"
@@ -432,9 +432,9 @@ for hemi in lh rh; do
   #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
 
   if [ "$DoParallel" == "0" ] ; then
-      echo " " |& tee -a $LF
-      echo " RUNNING $hemi sequentially ... " |& tee -a $LF
-      echo " " |& tee -a $LF
+      echo " " 2>&1 | tee -a $LF
+      echo " RUNNING $hemi sequentially ... " 2>&1 | tee -a $LF
+      echo " " 2>&1 | tee -a $LF
     chmod u+x $CMDF
     RunIt "$CMDF" $LF
   fi
@@ -444,16 +444,16 @@ done  # hemi loop ----------------------------------
 
 
 if [ "$DoParallel" == 1 ] ; then
-    echo " " |& tee -a $LF
-    echo " RUNNING HEMIs in PARALLEL !!! " |& tee -a $LF
-    echo " " |& tee -a $LF
+    echo " " 2>&1 | tee -a $LF
+    echo " RUNNING HEMIs in PARALLEL !!! " 2>&1 | tee -a $LF
+    echo " " 2>&1 | tee -a $LF
     RunBatchJobs $LF $CMDFS
 fi
 
 
-echo " " |& tee -a $LF
-echo "================= DONE =========================================================" |& tee -a $LF
-echo " " |& tee -a $LF
+echo " " 2>&1 | tee -a $LF
+echo "================= DONE =========================================================" 2>&1 | tee -a $LF
+echo " " 2>&1 | tee -a $LF
 
 # Collect info
 EndTime=`date`
@@ -461,9 +461,9 @@ tSecEnd=`date '+%s'`
 tRunHours=`echo \($tSecEnd - $tSecStart\)/3600|bc -l`
 tRunHours=`printf %6.3f $tRunHours`
 
-echo "Started at $StartTime " |& tee -a $LF
-echo "Ended   at $EndTime" |& tee -a $LF
-echo "#@#%# recon-surfreg-run-time-hours $tRunHours" |& tee -a $LF
+echo "Started at $StartTime " 2>&1 | tee -a $LF
+echo "Ended   at $EndTime" 2>&1 | tee -a $LF
+echo "#@#%# recon-surfreg-run-time-hours $tRunHours" 2>&1 | tee -a $LF
 
 # Create the Done File
 echo "------------------------------" > $DoneFile
@@ -480,7 +480,7 @@ echo "VERSION $VERSION"           >> $DoneFile
 echo "CMDPATH $0"                 >> $DoneFile
 echo "CMDARGS ${inputargs[*]}"    >> $DoneFile
 
-echo "recon-surfreg.sh $subject finished without error at `date`"  |& tee -a $LF
+echo "recon-surfreg.sh $subject finished without error at `date`"  2>&1 | tee -a $LF
 
 cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surfreg_times.yaml"
 RunIt "$cmd" "/dev/null"
