@@ -27,7 +27,7 @@ The cerebellum module outputs the files in the table shown below. Unless switche
 
 ## HypVINN module
 
-The hypothalamus module outputs the files in the table shown below. Unless switched off by the `--no_hypvinn` argument, this module is automatically run whenever the segmentation module is run. It adds three files, an image with the sub-segmentation of the hypothalamus and a text file with summary statistics.
+The hypothalamus module outputs the files in the table shown below. Unless switched off by the `--no_hypothal` argument, this module is automatically run whenever the segmentation module is run. It adds three files, an image with the sub-segmentation of the hypothalamus and a text file with summary statistics.
 
 
 | directory | filename                         | module  | description                                   |
