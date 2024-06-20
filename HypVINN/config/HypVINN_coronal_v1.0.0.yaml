@@ -12,7 +12,7 @@ MODEL:
   OUT_TENSOR_HEIGHT: 320
   HEIGHT: 256
   WIDTH: 256
-  MODE : 'multi'
+  MODE : 't1t2'
   MULTI_AUTO_W : True
   HETERO_INPUT : True
 

@@ -24,8 +24,6 @@ from FastSurferCNN.models.networks import FastSurferCNNBase
 import numpy as np
 
 
-
-
 class HypVINN(FastSurferCNNBase):
     """
           Construct HypVINN object.

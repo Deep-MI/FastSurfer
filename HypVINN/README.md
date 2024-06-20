@@ -26,7 +26,7 @@ Run the HypVINN/run_pipeline.py which has the following arguments:
  *  `--t2 </dir/T2**.nii.gz>` : T2 image path
  * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in /sd/sid/logs/hypvinn_seg.log 
 ### Image processing options
- * `--no_reg` : Deactivate registration of T2 to T1. If multi modal input is used; images need to be registered externally,
+ * `--no_reg` : Deactivate registration of T2 to T1. If multi-modal input is used; images need to be registered externally,
  * `--reg_mode` : Freesurfer Registration type to run. coreg : mri_coreg (Default) or robust : mri_robust_register.
  * `--qc_snap`: Activate the creation of QC snapshots of the predicted HypVINN segmentation.
 ###  FastSurfer Technical parameters (see FastSurfer documentation)

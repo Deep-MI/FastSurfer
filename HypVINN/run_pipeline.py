@@ -17,13 +17,14 @@ from pathlib import Path
 from typing import Optional
 import time
 
-from FastSurferCNN.utils import logging, parser_defaults
-from FastSurferCNN.utils.checkpoint import get_checkpoints
+from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
+from FastSurferCNN.utils.checkpoint import get_checkpoints, load_checkpoint_config_defaults
 from FastSurferCNN.utils.common import assert_no_root
 from HypVINN.run_prediction import run_hypo_seg
 from HypVINN.utils.preproc import hyvinn_preproc
-from HypVINN.utils.mode_config import get_hypinn_mode_config
+from HypVINN.utils.mode_config import get_hypinn_mode
 from HypVINN.utils.misc import create_expand_output_directory
+from HypVINN.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
 ##
 # Global Variables
 ##
@@ -31,20 +32,41 @@ LOGGER = logging.get_logger(__name__)
 
 
 def optional_path(a: str) -> Optional[Path]:
-    if a.lower() in ["none", ""]:
+    """
+    Convert a string to a Path object or None.
+
+    Parameters
+    ----------
+    a : str
+        The string to convert.
+
+    Returns
+    -------
+    Optional[Path]
+        The Path object or None.
+    """
+    if a.lower() in ("none", ""):
         return None
     return Path(a)
 
 
-def option_parse() -> argparse.Namespace:
+def option_parse() -> argparse.ArgumentParser:
+    """
+    A function to create an ArgumentParser object and parse the command line arguments.
+
+    Returns
+    -------
+    argparse.Ar
+        The parser object to parse arguments from the command line.
+    """
     from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
     parser = argparse.ArgumentParser(
-        description='Hypothalamus Segmentation',
+        description="Script for Hypothalamus Segmentation.",
     )
 
     # 1. Directory information (where to read from, where to write from and to incl. search-tag)
     parser = parser_defaults.add_arguments(
-        parser, ["in_dir", "sd", "sid"]
+        parser, ["in_dir", "sd", "sid"],
     )
 
     parser = parser_defaults.add_arguments(parser, ["seg_log"])
@@ -93,13 +115,13 @@ def option_parse() -> argparse.Namespace:
         ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
     )
 
-    from HypVINN.utils.checkpoint import HYPVINN_AXI, HYPVINN_COR, HYPVINN_SAG
-
+    files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
     # 5. Checkpoint to load
     parser_defaults.add_plane_flags(
         advanced,
         "checkpoint",
-        {"coronal": HYPVINN_COR, "axial": HYPVINN_AXI, "sagittal": HYPVINN_SAG},
+        files,
+        CHECKPOINT_PATHS_FILE,
     )
 
     parser_defaults.add_plane_flags(
@@ -110,11 +132,26 @@ def option_parse() -> argparse.Namespace:
             "axial": Path("HypVINN/config/HypVINN_axial_v1.0.0.yaml"),
             "sagittal": Path("HypVINN/config/HypVINN_sagittal_v1.0.0.yaml"),
         },
+        CHECKPOINT_PATHS_FILE,
     )
-    return parser.parse_args()
+    return parser
 
 
 def main(args: argparse.Namespace) -> int | str:
+    """
+    Main function of the hypothalamus segmentation module.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+        The arguments to the script as created by `options_parse`.
+
+    Returns
+    -------
+    int, str
+        0, if successful, an error message describing the cause for the
+        failure otherwise.
+    """
     
     # mapped freesurfer orig input name to the hypvinn t1 name
     args.t1 = optional_path(args.orig_name)
@@ -131,13 +168,20 @@ def main(args: argparse.Namespace) -> int | str:
         setup_logging(args.log_name)
 
         LOGGER.info("Checking or downloading default checkpoints ...")
-        from HypVINN.utils.checkpoint import URL as HYPVINN_URL
-        get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, url=HYPVINN_URL)
+        urls = load_checkpoint_config_defaults(
+            "url",
+            filename=CHECKPOINT_PATHS_FILE,
+        )
+        get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 
         # Get configuration to run multi-modal or uni-modal
-        args = get_hypinn_mode_config(args)
+        mode = get_hypinn_mode(
+            getattr(args, "t1", None),
+            getattr(args, "t2", None),
+        )
+        args.mode = mode
 
-        if args.mode:
+        if mode:
             # Create output directory if it does not already exist.
             create_expand_output_directory(args.out_dir, args.qc_snapshots)
             LOGGER.info(
@@ -148,12 +192,24 @@ def main(args: argparse.Namespace) -> int | str:
             LOGGER.info(f"T2 image input {args.t2}")
 
             # Pre-processing -- T1 and T2 registration
-            args = hyvinn_preproc(args)
+            if mode == "t1t2":
+                # Note, that args.t1 and args.t2 are guaranteed to be not None
+                # via get_hypvinn_mode, which only returns t1t2, if t1 and t2
+                # exist.
+                # hypvinn_preproc returns the path to the t2 that is registered
+                # to the t1
+                args.t2 = hyvinn_preproc(
+                    mode,
+                    getattr(args, "reg_mode", "coreg"),
+                    Path(args.t1),
+                    Path(args.t2),
+                    Path(args.out_dir),
+                )
             # Segmentation pipeline
             run_hypo_seg(
                 args,
                 subject_name=args.sid,
-                out_dir=args.out_dir,
+                out_dir=Path(args.out_dir),
                 t1_path=Path(args.t1),
                 t2_path=Path(args.t2),
                 mode=args.mode,
@@ -179,6 +235,7 @@ def main(args: argparse.Namespace) -> int | str:
 
 if __name__ == "__main__":
     # arguments
-    args = option_parse()
+    parser = option_parse()
+    args = parser.parse_args()
     import sys
     sys.exit(main(args))

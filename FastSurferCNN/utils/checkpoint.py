@@ -14,8 +14,9 @@
 
 # IMPORTS
 import os
+from functools import lru_cache
 from pathlib import Path
-from typing import MutableSequence, Optional, Union, Literal, TypedDict, overload
+from typing import MutableSequence, Optional, Union, Literal, TypedDict, cast, overload
 
 import requests
 import torch
@@ -33,11 +34,15 @@ YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
 
 class CheckpointConfigDict(TypedDict, total=False):
-    URL: list[str]
-    CKPT: dict[Plane, Path]
-    CFG: dict[Plane, Path]
+    url: list[str]
+    checkpoint: dict[Plane, Path]
+    config: dict[Plane, Path]
 
 
+CheckpointConfigFields = Literal["checkpoint", "config", "url"]
+
+
+@lru_cache
 def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointConfigDict:
     """
     Load the plane dictionary from the yaml file.
@@ -90,7 +95,7 @@ def load_checkpoint_config_defaults(
 
 
 def load_checkpoint_config_defaults(
-        configtype: Literal["checkpoint", "config", "url"],
+        configtype: CheckpointConfigFields,
         filename: str | Path = YAML_DEFAULT,
 ) -> dict[Plane, Path] | list[str]:
     """
@@ -98,7 +103,7 @@ def load_checkpoint_config_defaults(
 
     Parameters
     ----------
-    configtype : "checkpoint", "config", "url
+    configtype : "checkpoint", "config", "url"
         Type of value.
     filename : str, Path
         The path to the yaml file. Either absolute or relative to the FastSurfer root
@@ -112,7 +117,7 @@ def load_checkpoint_config_defaults(
     if not isinstance(filename, Path):
         filename = Path(filename)
 
-    configtype = configtype.lower()
+    configtype = cast(CheckpointConfigFields, configtype.lower())
     if configtype not in ("url", "checkpoint", "config"):
         raise ValueError("Type must be 'url', 'checkpoint' or 'config'")
 

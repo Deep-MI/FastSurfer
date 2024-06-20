@@ -386,11 +386,11 @@ def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
 
 
 def add_plane_flags(
-    parser: argparse.ArgumentParser,
+    parser: T_AddArgs,
     configtype: Literal["checkpoint", "config"],
     files: Mapping[Plane, Path | str],
     defaults_path: Path | str,
-) -> argparse.ArgumentParser:
+) -> T_AddArgs:
     """
     Add plane arguments.
 

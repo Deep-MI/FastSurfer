@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+from numpy import typing as npt
 import torch
 from torch.utils.data import Dataset
 
@@ -21,8 +22,10 @@ from HypVINN.data_loader.data_utils import transform_axial2sagittal,transform_ax
 from FastSurferCNN.data_loader.data_utils import get_thick_slices
 
 import FastSurferCNN.utils.logging as logging
+from HypVINN.utils import ModalityDict, ModalityMode
 
 logger = logging.get_logger(__name__)
+
 
 # Operator to load imaged for inference
 class HypoVINN_dataset(Dataset):
@@ -32,33 +35,41 @@ class HypoVINN_dataset(Dataset):
     The Weight factor determines the running mode of the HypVINN model
     if wT1 =1 and wT2 =0. The HypVINN model will only allow the flow of the T1 information (mode = t1)
     if wT1 =0 and wT2 =1. The HypVINN model will only allow the flow of the T2 information (mode = t2)
-    if wT1 !=1 and wT2 !=1. The HypVINN model will automatically weigh the T1 information and the T2 information based on the learned modality weights (mode = multi)
+    if wT1 !=1 and wT2 !=1. The HypVINN model will automatically weigh the T1 information and the T2 information based on the learned modality weights (mode = t1t2)
     """
-    def __init__(self, subject_name, modalities, orig_zoom, cfg, mode='multi', transforms=None):
+    def __init__(
+            self,
+            subject_name: str,
+            modalities: ModalityDict,
+            orig_zoom: npt.NDArray[float],
+            cfg,
+            mode: ModalityMode = "t1t2",
+            transforms=None,
+    ):
         self.subject_name = subject_name
         self.plane = cfg.DATA.PLANE
         #Inference Mode
         self.mode = mode
         #set thickness base on train paramters
-        if cfg.MODEL.MODE in ['t1','t2']:
+        if cfg.MODEL.MODE in ["t1", "t2"]:
             self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
         else:
             self.slice_thickness = cfg.MODEL.NUM_CHANNELS//4
 
         self.base_res = cfg.MODEL.BASE_RES
 
-        if self.mode == 't1':
-            orig_thick = self._standarized_img(modalities['t1'],orig_zoom, modalitie='t1')
+        if self.mode == "t1":
+            orig_thick = self._standarized_img(modalities["t1"], orig_zoom, modality="t1")
             orig_thick = np.concatenate((orig_thick, orig_thick), axis=-1)
             self.weight_factor = torch.from_numpy(np.asarray([1.0, 0.0]))
 
-        elif self.mode == 't2':
-            orig_thick = self._standarized_img(modalities['t2'],orig_zoom, modalitie='t2')
+        elif self.mode == "t2":
+            orig_thick = self._standarized_img(modalities["t2"], orig_zoom, modality="t2")
             orig_thick = np.concatenate((orig_thick, orig_thick), axis=-1)
             self.weight_factor = torch.from_numpy(np.asarray([0.0, 1.0]))
         else:
-            t1_orig_thick = self._standarized_img(modalities['t1'], orig_zoom, modalitie='t1')
-            t2_orig_thick = self._standarized_img(modalities['t2'],orig_zoom, modalitie='t2')
+            t1_orig_thick = self._standarized_img(modalities["t1"], orig_zoom, modality="t1")
+            t2_orig_thick = self._standarized_img(modalities["t2"], orig_zoom, modality="t2")
             orig_thick = np.concatenate((t1_orig_thick, t2_orig_thick), axis=-1)
             self.weight_factor = torch.from_numpy(np.asarray([0.5, 0.5]))
         
@@ -68,33 +79,49 @@ class HypoVINN_dataset(Dataset):
         self.count = self.images.shape[0]
         self.transforms = transforms
 
-        logger.info(f"Successfully loaded Image from {subject_name} for {self.plane} model")
+        logger.info(
+            f"Successfully loaded Image from {subject_name} for {self.plane} "
+            f"model"
+        )
 
-        if (cfg.MODEL.MULTI_AUTO_W or cfg.MODEL.MULTI_AUTO_W_CHANNELS) and (self.mode == 'multi' or cfg.MODEL.DUPLICATE_INPUT) :
-            logger.info(f"For inference T1 block weight and the T2 block are set to the weights learn during training")
+        if (cfg.MODEL.MULTI_AUTO_W or cfg.MODEL.MULTI_AUTO_W_CHANNELS) and (self.mode == 't1t2' or cfg.MODEL.DUPLICATE_INPUT) :
+            logger.info(
+                f"For inference T1 block weight and the T2 block are set to "
+                f"the weights learn during training"
+            )
         else:
-            logger.info(f"For inference T1 block weight was set to : {self.weight_factor.numpy()[0]} and the T2 block was set to: {self.weight_factor.numpy()[1]}")
+            logger.info(
+                f"For inference T1 block weight was set to: "
+                f"{self.weight_factor.numpy()[0]} and the T2 block was set to: "
+                f"{self.weight_factor.numpy()[1]}")
 
-    def _standarized_img(self,orig_data,orig_zoom,modalitie):
+    def _standarized_img(self, orig_data, orig_zoom, modality):
         if self.plane == "sagittal":
             orig_data = transform_axial2sagittal(orig_data)
             self.zoom = orig_zoom[::-1][:2]
-            logger.info("Loading {} sagittal with input voxelsize {}".format(modalitie,self.zoom))
+            logger.info(
+                f"Loading {modality} sagittal with input voxelsize {self.zoom}"
+            )
 
         elif self.plane == "coronal":
             orig_data = transform_axial2coronal(orig_data)
             self.zoom = orig_zoom[1:]
-            logger.info("Loading {} coronal with input voxelsize {}".format(modalitie,self.zoom))
+            logger.info(
+                f"Loading {modality} coronal with input voxelsize {self.zoom}"
+            )
 
         else:
             self.zoom = orig_zoom[:2]
-            logger.info("Loading {} axial with input voxelsize {}".format(modalitie,self.zoom))
+            logger.info(
+                f"Loading {modality} axial with input voxelsize {self.zoom}"
+            )
 
         # Create thick slices
         orig_thick = get_thick_slices(orig_data, self.slice_thickness)
 
         return orig_thick
-    def _get_scale_factor(self):
+
+    def _get_scale_factor(self) -> npt.NDArray[float]:
         """
         Get scaling factor to match original resolution of input image to
         final resolution of FastSurfer base network. Input resolution is
@@ -108,14 +135,18 @@ class HypoVINN_dataset(Dataset):
 
         return scale
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> dict[str, torch.Tensor | np.ndarray]:
         img = self.images[index]
 
         scale_factor = self._get_scale_factor()
         if self.transforms is not None:
             img = self.transforms(img)
 
-        return {'image': img, 'scale_factor': scale_factor,'weight_factor' : self.weight_factor}
+        return {
+            "image": img,
+            "scale_factor": scale_factor,
+            "weight_factor": self.weight_factor,
+        }
 
     def __len__(self):
         return self.count
