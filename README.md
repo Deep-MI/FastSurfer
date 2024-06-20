@@ -51,7 +51,7 @@ There are two ways to run FastSurfer (links are to installation instructions):
 1. In a container ([Singularity](doc/overview/INSTALL.md#singularity) or [Docker](doc/overview/INSTALL.md#docker)) (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [MacOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
 2. As a [native install](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204) (all OS for segmentation part). 
 
-We recommended you use Singularity or Docker, especially if either is already installed on your system, because the images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License) for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md file](doc/overview/INSTALL.md).
+We recommended you use Singularity or Docker on a Linux host system with a GPU. The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License) for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md file](doc/overview/INSTALL.md).
 
 ### Usage
 
