@@ -1,0 +1,7 @@
+url:
+- ""
+
+checkpoint:
+  axial:  "checkpoints/CCNet_axial_v0.1.0.pkl"
+  coronal: "checkpoints/CCNet_coronal_v0.1.0.pkl"
+  sagittal: "checkpoints/CCNet_sagittal_v0.1.0.pkl"
