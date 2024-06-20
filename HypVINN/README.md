@@ -13,12 +13,14 @@ Hypothalamic subfields segmentation pipeline
 * EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/2af6da63d5c1414b832c1f606bbd068a
 * Zenodo data repository: https://zenodo.org/records/11184216
 
+Note: These weights (version 1.1) are retrained compared to paper ([version 1.0](https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7)) for better rotation generalization, performance is equivalent.
+
 ### Pipeline Steps
 1. Registration (optional, only required for multi-modal input)
 2. Hypothalamus Segmentation
 
 ### Running the tool
-- The HypVINN output can be obtained by running the default  `run_fastsurfer.sh` script (for more information see [Fastsurfer documentation](../README.md)).
+- The HypVINN output can be obtained by running the default  `run_fastsurfer.sh` script (for more information see [FastSurfer documentation](../README.md)).
 - HypVINN can also be run independently by running `HypVINN/run_prediction.py`, however we recommend running the whole FastSurfer pipeline as it includes all the required pre-processing steps.
 - HypVINN has the following arguments:
 ### Input and output arguments

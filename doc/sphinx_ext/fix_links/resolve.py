@@ -147,12 +147,13 @@ def resolve_xref(
                 if ref is not None:
                     return ref
 
-        source = f"/{relpath(target_path, env.srcdir)}{_uri_sep}{_uri_id}"
+        source = f"/{_uri_path}{_uri_sep}{_uri_id}"
         for key, (pat, repls) in subs.items():
             # if this search string does not match, try next
             if not pat.match(source):
                 continue
 
+            tries = []
             # iterate over different replacement options
             for repl in repls:
                 # repeatedly replace until no more changes are occur
@@ -173,12 +174,24 @@ def resolve_xref(
                 # check and return the reference, if it is valid
                 if ref is not None:
                     return ref
+
+                tries.append(str(replaced).lower())
             # if the pattern matched, but none of the replacements lead to a valid
             # reference
             logger.warning(
-                f"[fix_links] Could not find reference {node['reftarget']}!",
-                location=node.source,
+                f"[fix_links] Target '{source}' matched the pattern '{pat.pattern}', "
+                f"but could not be resolved by any of the replacements {tuple(tries)} "
+                f": {node['reftarget']}!",
+                location=loc(node),
             )
+
+        if env.included and _uri_path.startswith("../"):
+            logger.warning(
+                f"[fix_links] Could not find the external target {_uri_path} in "
+                f"included files, it is likely not included.",
+                location=loc(node),
+            )
+
         # restore the reftarget attribute
         node[attr] = uri
     # node["reftype"] = prev_type
