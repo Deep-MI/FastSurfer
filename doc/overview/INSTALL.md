@@ -1,10 +1,10 @@
 # Installation
 
-FastSurfer is a pipeline for the segmentation of human brain MRI data. It consists of two main components: the networks for the fast segmentation of an MRI (FastSurferVINN, CerebNet) and the recon_surf script for the efficient creation of surfaces and most files and statistics that also FreeSurfer provides. 
+FastSurfer is a pipeline for the segmentation of human brain MRI data. It consists of two main components: the networks for the fast segmentation of an MRI (FastSurferVINN, CerebNet, ...) and the recon_surf script for the efficient creation of surfaces and most files and statistics that also FreeSurfer provides. 
 
-The preferred way of installing and running FastSurfer is via Singularity or Docker containers. We provide pre-build images at Dockerhub for various application cases: i) for only the segmentation (both GPU and CPU), ii) for only the CPU-based recon-surf pipeline, and iii) for the full pipeline (GPU or CPU). 
+The preferred way of installing and running FastSurfer is via Singularity or Docker containers on a Linux host system (with a GPU). We provide pre-build images at Dockerhub for various application cases: i) for only the segmentation (both GPU and CPU), ii) for only the CPU-based recon-surf pipeline, and iii) for the full pipeline (GPU or CPU). 
 
-We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 20.04 via our provided Docker images.
+We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 22.04 via our provided Docker images.
 
 
 ## Linux
@@ -13,11 +13,11 @@ Recommended System Spec: 8 GB system memory, NVIDIA GPU with 8 GB graphics memor
 
 Minimum System Spec: 8 GB system memory (this requires running FastSurfer on the CPU only, which is much slower) 
 
-Non-NVIDIA GPU architectures (Apple M1, AMD) are not officially supported, but experimental. 
+Non-NVIDIA GPU architectures (AMD) are experimental and not officially supported, but seem to work well also. 
 
 ### Singularity
 
-Assuming you have singularity installed already (by a system admin), you can build an image easily from our Dockerhub images. Run this command from a directory where you want to store singularity images:
+Assuming you have singularity installed already (by a system admin), you can build a Singularity image easily from our Dockerhub images. Run this command from a directory where you want to store singularity images:
 
 ```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
@@ -63,7 +63,7 @@ sudo apt install -y g++-11
 
 You also need to have bash-3.2 or higher (check with `bash --version`). 
 
-You also need a working version of python3.10 (we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies).
+You also need a working version of python3.10 (we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies and a license file).
 
 If you are using pip, make sure pip is updated as older versions will fail.
 
@@ -116,7 +116,7 @@ python3 FastSurferCNN/download_checkpoints.py --all
 Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```./run_fastsurfer.sh --seg_only ....``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
 
 #### 5. FreeSurfer
-To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.3.2) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
+To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.4.1) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. 
 
 Make sure, the `${FREESURFER_HOME}` environment variable is set, so FastSurfer finds the FreeSurfer binaries.
 
@@ -141,7 +141,7 @@ Note, that this docker image is experimental, uses a different Python version an
 
 ## MacOS 
 
-Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU (experimental) by passing ```--device mps```.
+Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU by passing ```--device mps```.
 
 Recommended System Spec: Mac with Apple Silicon M-Chip and 16 GB system memory.
 
@@ -165,7 +165,7 @@ Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker
 
 ### Native
 
-On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. The experimental support for the built-in AI accelerator (MPS) is also only available on native installations. Native installation also supports older Intel chips.
+On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. Access to the built-in AI accelerator (MPS) is also only available on native installations. A native installation also works on older Intel chips.
 
 #### 1. Dependency packages
 If you do not have git, python3.10 or bash (at least 3.2) you can install these via the packet manager brew.
@@ -177,7 +177,7 @@ brew install git python@3.10
 ```
 
 #### 2. Python
-Create a python environment, activate it, and upgrade pip. Here we use pip, but you should also be able to use conda for python: 
+Create a python environment, activate it, and upgrade pip: 
 
 ```sh
 python3.10 -m venv $HOME/python-envs/fastsurfer 
@@ -198,7 +198,7 @@ Install the FastSurfer requirements
 python3.10 -m pip install -r requirements.mac.txt
 ```
 
-If this step fails, you may need to edit ```requirements.mac.txt``` and adjust version number to what is available. 
+If this step fails, you may need to edit ```requirements.mac.txt``` and exclude version numbers that produce conflicts or break our code. 
 On newer M1 Macs, we also had issues with the h5py package, which could be solved by using brew for help (not sure this is needed any longer):
 
 ```sh
@@ -207,24 +207,24 @@ export HDF5_DIR="$(brew --prefix hdf5)"
 pip3 install --no-binary=h5py h5py
 ```
 
-You can also download all network checkpoint files (this should be done if you are installing for multiple users):
+You can also download all network checkpoint files at this point already:
 ```sh
 python3.10 FastSurferCNN/download_checkpoints.py --all
 ```
 
 Once all dependencies are installed, you can run the FastSurfer segmentation only by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
 
-To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it might be slow due to the emulation.
+To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it will be slow due to the emulation. This is why we recommend using a Linux host system to run FastSurfer on larger datasets.
 
 #### 4. Apple AI Accelerator support
-You can also try the experimental support for the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
+On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
 
 ```sh
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 ./run_fastsurfer.sh --seg_only --device mps ....
 ```
 
-This will be at least twice as fast as `--device cpu`. The fallback environment variable is necessary as `aten::max_unpool2d` is not yet implemented for MPS and will fall back to CPU.
+This will be at least twice as fast as `--device cpu`. Currently setting the fallback environment variable is necessary as `aten::max_unpool2d` is not yet implemented for MPS and will fall back to CPU.
 
 ## Windows
 
