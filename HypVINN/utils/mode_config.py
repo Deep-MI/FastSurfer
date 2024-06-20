@@ -13,59 +13,54 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
+from typing import Optional
+
 from FastSurferCNN.utils import logging
+from HypVINN.utils import ModalityMode
 
 LOGGER = logging.get_logger(__name__)
 
 
-def get_hypinn_mode_config(args):
+def get_hypinn_mode(
+        t1_path: Optional[Path],
+        t2_path: Optional[Path],
+) -> ModalityMode:
 
-    LOGGER.info('Setting up input mode...')
-    if hasattr(args, 't1') and hasattr(args, 't2'):
-        if os.path.isfile(str(args.t1)) and os.path.isfile(str(args.t2)):
-            args.mode = 'multi'
-        elif os.path.isfile(str(args.t1)):
-            args.mode ='t1'
-            args.t2 = None
-        elif os.path.isfile(str(args.t2)):
-            args.mode ='t2'
-            args.t1 = None
-            LOGGER.info('Warning: T2 mode selected. Only passing a T2 image can generate not so accurate results.\n '
-                        'Best results are obtained when a T2 image is accompanied with a T1 image.')
-        else:
-            args.mode= None
+    LOGGER.info("Setting up input mode...")
+    if t1_path is not None and t2_path is not None:
+        if t1_path.is_file() and t2_path.is_file():
+            return "t1t2"
+        msg = []
+        if not t1_path.is_file():
+            msg.append(f"the t1 file does not exist ({t1_path})")
+        if not t2_path.is_file():
+            msg.append(f"the t2 file does not exist ({t2_path})")
+        raise RuntimeError(
+            f"ERROR: Both the t1 and the t2 flags were passed, but "
+            f"{' and '.join(msg)}."
+        )
 
-    elif hasattr(args, 't1'):
-        if os.path.isfile(str(args.t1)):
-            args.mode = 't1'
-            args.t2 = None
-        else:
-            if hasattr(args,'t2'):
-                if os.path.isfile(str(args.t2)):
-                    args.mode = 't2'
-                    args.t1 = None
-                    LOGGER.info(
-                        'Warning: T2 mode selected. Only passing a T2 image can generate not so accurate results.\n '
-                        'Best results are obtained when a T2 image is accompanied with a T1 image.')
-                else:
-                    args.mode = None
-            else:
-                args.mode = None
-    elif hasattr(args,'t2'):
-        if os.path.isfile(str(args.t2)):
-            args.mode = 't2'
-            args.t1 = None
-            LOGGER.info('Warning: T2 mode selected. Only passing a T2 image can generate not so accurate results.\n '
-                    'Best results are obtained when a T2 image is accompanied with a T1 image.')
-        else:
-            args.mode = None
+    elif t1_path:
+        if t1_path.is_file():
+            return "t1"
+        raise RuntimeError(
+            f"ERROR: The t1 flag was passed, but the t1 file does not exist "
+            f"({t1_path})."
+        )
+    elif t2_path:
+        if t2_path.is_file():
+            LOGGER.info(
+                "Warning: T2 mode selected. The quality of segmentations based "
+                "on only a T2 image is significantly worse than when T1 images "
+                "are included."
+            )
+            return "t2"
+        raise RuntimeError(
+            f"ERROR: The t2 flag was passed, but the t1 file does not exist "
+            f"({t1_path})."
+        )
     else:
-        args.mode = None
-
-    if args.mode:
-        LOGGER.info('HypVINN mode is setup to {} input mode'.format(args.mode))
-
-    return args
-
-
-
+        raise RuntimeError(
+            "No t1 or t2 flags were passed, invalid configuration."
+        )

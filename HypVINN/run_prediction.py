@@ -11,40 +11,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import argparse
-from pathlib import Path
-from typing import Any, Literal, Optional
 
 # IMPORTS
+import argparse
+from pathlib import Path
+from time import time
+
 import numpy as np
 import torch
-import os
 import nibabel as nib
-from time import time
-from collections import defaultdict
 
 import FastSurferCNN.utils.logging as logging
-from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
 
+from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
 from HypVINN.config.hypvinn_global_var import Plane, planes
-from HypVINN.data_loader.data_utils import hypo_map_label2subseg, hypo_map_subseg_2_fsseg
+from HypVINN.data_loader.data_utils import hypo_map_label2subseg
 from HypVINN.inference import Inference
+from HypVINN.models.networks import HypVINN
+from HypVINN.utils import ModalityDict, ModalityMode, ViewOperations
 from HypVINN.utils.load_config import load_config
 from HypVINN.data_loader.data_utils import rescale_image
 from HypVINN.utils.stats_utils import compute_stats
 from HypVINN.utils.img_processing_utils import save_segmentation
 from HypVINN.utils.visualization_utils import plot_qc_images
 
-ViewOperations = dict[Plane, Optional[dict[Literal["cfg", "ckpt"], Any]]]
-
 logger = logging.get_logger(__name__)
 
 ##
 # Input array preparation
 ##
-
-ModalityMode = Literal["t1", "t2", "t1t2"]
-ModalityDict = dict[Literal["t1", "t2"], np.ndarray]
 
 
 def load_volumes(
@@ -112,46 +107,38 @@ def load_volumes(
     return modalities, affine, header, zoom, size
 
 
-def run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode='multi'):
-    # get prediction
-    pred_prob = model.run(subject_name, modalities, orig_zoom, pred_prob, out_res=out_scale, mode=mode)
-
-    return pred_prob
-
-
-def get_prediction(subject_name, modalities, orig_zoom, model, gt_shape, view_opts, logger, out_scale=None,
-                   mode='multi'):
+def get_prediction(
+        subject_name: str,
+        modalities: ModalityDict,
+        orig_zoom,
+        model: HypVINN,
+        target_shape: tuple[int, int, int],
+        view_opts: ViewOperations,
+        out_scale=None,
+        mode: ModalityMode = "t1t2",
+) -> torch.Tensor:
     device, viewagg_device = model.get_device()
     dim = model.get_max_size()
 
-    # Coronal model
-    logger.info(f'Evaluating Coronal model, cpkt :{view_opts["coronal"]["ckpt"]}')
     model.set_model(view_opts["coronal"]["cfg"])
     model.load_checkpoint(view_opts["coronal"]["ckpt"])
 
-    pred_prob = torch.zeros((dim, dim, dim, model.get_num_classes()), dtype=torch.float).to(viewagg_device)
-
-    # Set up tensor to hold probabilities and run inference (coronal model by default)
-    pred_prob = run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
-
-    # Axial model
-    logger.info(f'Evaluating Axial model, cpkt :{view_opts["axial"]["ckpt"]}')
-    model.set_cfg(view_opts["axial"]["cfg"])
-    model.load_checkpoint(view_opts["axial"]["ckpt"])
-    pred_prob += run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
-
-    # Sagittal model
-    logger.info(f'Evaluating Sagittal model, cpkt :{view_opts["sagittal"]["ckpt"]}')
-    model.set_model(view_opts["sagittal"]["cfg"])
-    model.load_checkpoint(view_opts["sagittal"]["ckpt"])
-    pred_prob += run_model(model, subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
+    pred_shape = (dim, dim, dim, model.get_num_classes())
+    # Set up tensor to hold probabilities and run inference
+    pred_prob = torch.zeros(pred_shape, dtype=torch.float, device=viewagg_device)
+    for plane, opts in view_opts.items():
+        logger.info(f"Evaluating {plane} model, cpkt :{opts['ckpt']}")
+        model.set_cfg(opts["cfg"])
+        model.load_checkpoint(opts["ckpt"])
+        pred_prob += model.run(subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
 
     # Post processing
-    h, w, d = gt_shape  # final prediction shape equivalent to input ground truth shape
+    h, w, d = target_shape  # final prediction shape equivalent to input ground truth shape
 
-    if np.any(gt_shape < pred_prob.shape[:3]):
-        # if orig was padded before running through model (difference in aseg_size and pred_shape), select
-        # slices of interest only. This currently works only for "top_left" padding (see augmentation)
+    if np.any(target_shape < pred_prob.shape[:3]):
+        # if orig was padded before running through model (difference in
+        # aseg_size and pred_shape), select slices of interest only.
+        # This currently works only for "top_left" padding (see augmentation)
         pred_prob = pred_prob[0:h, 0:w, 0:d, :]
 
     # Get hard predictions and map to freesurfer label space
@@ -235,7 +222,7 @@ def run_hypo_seg(
         modalities,
         orig_zoom,
         model,
-        gt_shape=orig_size,
+        target_shape=orig_size,
         view_opts=view_ops,
         out_scale=None,
         mode=mode,

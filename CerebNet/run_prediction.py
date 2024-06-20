@@ -89,7 +89,7 @@ def setup_options():
         advanced,
         "checkpoint",
         files,
-        CHECKPOINT_PATHS_FILE
+        CHECKPOINT_PATHS_FILE,
     )
 
     parser.add_argument(

@@ -24,8 +24,8 @@ _C.MODEL = CN()
 # Name of model
 _C.MODEL.MODEL_NAME = ""
 
-#modalities 't1', 't2' or multi
-_C.MODEL.MODE ='t1'
+#modalities 't1', 't2' or 't1t2'
+_C.MODEL.MODE = "t1"
 
 # Number of classes to predict, including background
 _C.MODEL.NUM_CLASSES = 79

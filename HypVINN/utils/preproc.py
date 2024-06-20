@@ -15,22 +15,30 @@
 import argparse
 
 import time
+from pathlib import Path
+
 import nibabel as nib
 import os
 import numpy as np
 
 from FastSurferCNN.utils import logging
+from HypVINN.utils import ModalityMode, RegistrationMode
 
 LOGGER = logging.get_logger(__name__)
 
 
-def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type="coreg"):
+def t1_to_t2_registration(
+        t1_path: Path,
+        t2_path: Path,
+        out_dir: Path,
+        registration_type: RegistrationMode = "coreg",
+) -> Path:
     from FastSurferCNN.utils.run_tools import Popen
     import shutil
 
-    lta_path = os.path.join(out_dir, "mri", "transforms", "t2tot1.lta")
+    lta_path = out_dir / "mri/transforms/t2tot1.lta"
 
-    t2_reg_path = os.path.join(out_dir, "mri", "T2_nu_reg.mgz")
+    t2_reg_path = out_dir / "mri/T2_nu_reg.mgz"
 
     if registration_type == "coreg":
         exe = shutil.which("mri_coreg")
@@ -57,16 +65,17 @@ def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type="coreg"):
                 else:
                     raise RuntimeError(
                         "Could not find mri_vol2vol, source FreeSurfer or set "
-                        "the  FREESURFER_HOME environment variable"
+                        "the FREESURFER_HOME environment variable"
                     )
-            args = [exe,
-                    "--mov", t2_path,
-                    "--targ", t1_path,
-                    "--reg", lta_path,
-                    "--o", t2_reg_path,
-                    "--cubic",
-                    "--keep-precision",
-                    ]
+            args = [
+                exe,
+                "--mov", t2_path,
+                "--targ", t1_path,
+                "--reg", lta_path,
+                "--o", t2_reg_path,
+                "--cubic",
+                "--keep-precision",
+            ]
             LOGGER.info("Running " + " ".join(args))
             retval = Popen(args).finish()
             if retval.retcode != 0:
@@ -82,15 +91,16 @@ def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type="coreg"):
             else:
                 raise RuntimeError(
                     "Could not find mri_robust_register, source FreeSurfer or "
-                    "set the  FREESURFER_HOME environment variable"
+                    "set the FREESURFER_HOME environment variable"
                 )
-        args = [exe,
-                "--mov", t2_path,
-                "--dst", t1_path,
-                "--lta", lta_path,
-                "--mapmov", t2_reg_path,
-                "--cost NMI",
-                ]
+        args = [
+            exe,
+            "--mov", t2_path,
+            "--dst", t1_path,
+            "--lta", lta_path,
+            "--mapmov", t2_reg_path,
+            "--cost NMI",
+        ]
         LOGGER.info("Running " + " ".join(args))
         retval = Popen(args).finish()
         if retval.retcode != 0:
@@ -102,41 +112,50 @@ def t1_to_t2_registration(t1_path, t2_path, out_dir, registration_type="coreg"):
     return t2_reg_path
 
 
-def hyvinn_preproc(args: argparse.Namespace) -> argparse.Namespace:
+def hyvinn_preproc(
+        mode: ModalityMode,
+        reg_mode: RegistrationMode,
+        t1_path: Path,
+        t2_path: Path,
+        out_dir: Path,
+) -> Path:
 
-    if args.mode == "multi":
-        if args.reg_mode != "none":
-            load_res = time.time()
-            # Print Warning if Resolution from both images is different
-            t1_zoom = nib.load(args.t1).header.get_zooms()
-            t2_zoom = nib.load(args.t2).header.get_zooms()
+    if mode != "t1t2":
+        raise RuntimeError(
+            "hypvinn_preproc should only be called for t1t2 mode."
+        )
+    if reg_mode != "none":
+        load_res = time.time()
+        # Print Warning if Resolution from both images is different
+        t1_zoom = nib.load(t1_path).header.get_zooms()
+        t2_zoom = nib.load(t2_path).header.get_zooms()
 
-            if not np.allclose(np.array(t1_zoom), np.array(t2_zoom),rtol=0.05):
-                LOGGER.info(
-                    f"Warning: Resolution from T1 ({t1_zoom}) and T2 "
-                    f"({t2_zoom}) image are different.\n "
-                    "Resolution of the T2 image will be interpolated "
-                    "to the one of the T1 image."
-                )
-
-            LOGGER.info("Registering T1 to T2 ...")
-            args.t2 = t1_to_t2_registration(
-                t1_path=args.t1,
-                t2_path=args.t2,
-                out_dir=args.out_dir,
-                registration_type=args.reg_mode,
-            )
+        if not np.allclose(np.array(t1_zoom), np.array(t2_zoom), rtol=0.05):
             LOGGER.info(
-                f"Registration finish in {time.time() - load_res:0.4f} seconds!"
-            )
-        else:
-            LOGGER.info(
-                "Warning: No registration step, registering T1w and T2w is "
-                "required when running the multi-modal input mode.\n "
-                "No register images can generate wrong predictions. Omit this "
-                "message if input images are already registered."
+                f"Warning: Resolution from T1 ({t1_zoom}) and T2 "
+                f"({t2_zoom}) image are different.\n "
+                "Resolution of the T2 image will be interpolated "
+                "to the one of the T1 image."
             )
 
-        LOGGER.info("---" * 30)
+        LOGGER.info("Registering T1 to T2 ...")
+        t2_path = t1_to_t2_registration(
+            t1_path=t1_path,
+            t2_path=t2_path,
+            out_dir=out_dir,
+            registration_type=reg_mode,
+        )
+        LOGGER.info(
+            f"Registration finish in {time.time() - load_res:0.4f} seconds!"
+        )
+    else:
+        LOGGER.info(
+            "Warning: No registration step, registering T1w and T2w is "
+            "required when running the multi-modal input mode.\n "
+            "No register images can generate wrong predictions. Omit this "
+            "message if input images are already registered."
+        )
 
-    return args
+    LOGGER.info("---" * 30)
+
+    return t2_path
