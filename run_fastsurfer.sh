@@ -33,12 +33,14 @@ fi
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
+ccnetdir="$FASTSURFER_HOME/CCNet"
 
 # Regular flags defaults
 subject=""
 t1=""
 merged_segfile=""
 cereb_segfile=""
+cc_segfile=""
 asegdkt_segfile=""
 asegdkt_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
 asegdkt_statsfile=""
@@ -58,6 +60,7 @@ surf_flags=()
 vox_size="min"
 run_asegdkt_module="1"
 run_cereb_module="1"
+run_cc_module="1"
 threads="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
@@ -322,6 +325,11 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --cc_segfile)
+    cc_segfile="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --cereb_statsfile)
     cereb_statsfile="$2"
     shift # past argument
@@ -391,6 +399,10 @@ case $key in
     ;;
     --no_cereb)
     run_cereb_module="0"
+    shift  # past argument
+    ;;
+    --no_cc)
+    run_cc_module="0"
     shift  # past argument
     ;;
     --tal_reg)
@@ -593,6 +605,11 @@ fi
 if [[ -z "$cereb_segfile" ]]
   then
     cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz"
+fi
+
+if [[ -z "$cc_segfile" ]]
+  then
+    cc_segfile="${sd}/${subject}/mri/cc_aseg.deep.mgz"
 fi
 
 if [[ -z "$cereb_statsfile" ]]
@@ -834,6 +851,35 @@ if [[ "$run_seg_pipeline" == "1" ]]
             echo "ERROR: Cerebellum Segmentation failed" 2>&1 | tee -a "$seg_log"
             exit 1
         fi
+    fi
+    
+    if [[ "$run_cc_module" == "1" ]]
+      then
+
+        cmd=($python "$ccnetdir/run_prediction.py" --t1 "$t1"
+              --sid "$subject"
+             --aparc_aseg_segfile  "$cc_segfile"
+             --seg_log "$seg_log"
+             --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
+              "${allow_root[@]}" --crop
+             --lut "$ccnetdir/config/CC_ColorLUT.tsv"
+              --ckpt_sag "$FASTSURFER_HOME/checkpoints/CCNet_sagittal_v0.1.0.pkl"
+              --ckpt_cor "$FASTSURFER_HOME/checkpoints/CCNet_coronal_v0.1.0.pkl" 
+              --ckpt_ax "$FASTSURFER_HOME/checkpoints/CCNet_axial_v0.1.0.pkl"
+              --cfg_sag "$ccnetdir/config/CCNet_sagittal.yaml" 
+              --cfg_cor "$ccnetdir/config/CCNet_coronal.yaml" 
+              --cfg_ax "$ccnetdir/config/CCNet_axial.yaml")
+        # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
+        if [[ "$sd" == "${cc_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
+        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+        "${cmd[@]}"
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+          then
+            echo "ERROR: CC Segmentation failed" 2>&1 | tee -a "$seg_log"
+            exit 1
+        fi
+    
+    
     fi
 
 #    if [[ ! -f "$merged_segfile" ]]

@@ -1,0 +1,74 @@
+MODEL:
+  MODEL_NAME: "FastSurferLocalisation"
+  LOSS_FUNC: "localisation"
+  NUM_FILTERS: 71
+  NUM_FILTERS_INTERPOL: 32
+  NUM_CHANNELS: 7
+  NUM_CLASSES: 3
+  KERNEL_H: 3
+  KERNEL_W: 3
+  KERNEL_C: 1
+  STRIDE_CONV: 1
+  STRIDE_POOL: 2
+  POOL: 2
+  HEIGHT: 256
+  WIDTH: 256
+  BASE_RES: 1.0
+  INTERPOLATION_MODE: "bilinear"
+  CROP_POSITION: "top_left"
+  OUT_TENSOR_WIDTH: 429
+  OUT_TENSOR_HEIGHT: 429
+  WEIGHT_SEG: 1e-5
+  WEIGHT_LOC: 1.0
+  WEIGHT_DIST: 1e-3
+
+TRAIN:
+  LOG_INTERVAL: 50
+  RESUME: false
+  RESUME_EXPR_NUM: "Default"
+  NUM_STEPS: 10
+  FINE_TUNE: false
+  CHECKPOINT_PERIOD: 4
+  NUM_EPOCHS: 20
+  BATCH_SIZE: 4
+  DEBUG: True
+
+TEST:
+  BATCH_SIZE: 4
+
+DATA:
+  SIZES: [256, 320, 311, 429]
+  PADDED_SIZE: [429, 429, 7] # [axis1, axis2, thickness]
+  PLANE: "sagittal"
+  PATH_HDF5_TRAIN: "../data/sagittal_train.hdf5"
+  PATH_HDF5_VAL: "../data/sagittal_val.hdf5"
+  AUG: [] # "Hemisphere" "Flip"
+  LUT: "../CCNet/config/CC_ColorLUT_nocom.tsv"
+  #AUG_LIKELYHOOD: [0.8, 0.4] # Gaussian does not support probability
+
+DATA_LOADER:
+  NUM_WORKERS: 0
+  PIN_MEMORY: true
+  #PREFETCH_FACTOR: 3
+
+OPTIMIZER:
+  BASE_LR: 0.01
+  LR_SCHEDULER: "NoScheduler"
+  GAMMA: 0.3
+  STEP_SIZE: 5
+  ETA_MIN: 0.0001
+  T_ZERO: 10
+  T_MULT: 2
+  MOMENTUM: 0.9
+  DAMPENING: 0.0
+  NESTEROV: true
+  WEIGHT_DECAY: 0.0001
+  OPTIMIZING_METHOD: "adamW"
+
+NUM_GPUS: 4
+#INPAINT_LOSS_WEIGHT: 0.5  # Weight of intensity image in loss function
+RNG_SEED: 1
+LOG_DIR: "/home/experiments/cc_com_sagittal_pad"
+#LOG_LEVEL: 10
+EXPR_NUM: "cc_com_sagittal_pad_02"
+
