@@ -32,7 +32,7 @@ from FastSurferCNN.utils.checkpoint import (
 )
 from FastSurferCNN.utils.common import assert_no_root, SerialExecutor
 
-from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME
+from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME, HYPVINN_MASK_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
 from HypVINN.utils import ModalityDict, ModalityMode, ViewOperations
@@ -173,6 +173,7 @@ def main(
         cfg_cor: Path,
         cfg_sag: Path,
         hypo_segfile: str = HYPVINN_SEG_NAME,
+        hypo_maskfile: str = HYPVINN_MASK_NAME,
         allow_root: bool = False,
         qc_snapshots: bool = False,
         reg_mode: Literal["coreg", "robust", "none"] = "coreg",
@@ -209,6 +210,8 @@ def main(
         The path to the sagittal configuration file.
     hypo_segfile : str, default="{HYPVINN_SEG_NAME}"
         The name of the hypothalamus segmentation file. Default is {HYPVINN_SEG_NAME}.
+    hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
+        The name of the hypothalamus mask file. Default is {HYPVINN_MASK_NAME}.
     allow_root : bool, default=False
         Whether to allow running as root user. Default is False.
     qc_snapshots : bool, optional
@@ -224,7 +227,8 @@ def main(
     device : str, default="auto"
         The device to use. Default is "auto", which automatically selects the device.
     viewagg_device : str, default="auto"
-        The view aggregation device to use. Default is "auto", which automatically selects the device.
+        The view aggregation device to use. Default is "auto", which automatically 
+        selects the device.
 
     Returns
     -------
@@ -360,21 +364,17 @@ def main(
         else:
             orig_path = t2_path
 
-        save_future: Future = pool.submit(
-            save_segmentation,
+        time_needed = save_segmentation(
             pred_classes,
             orig_path=orig_path,
             ras_affine=affine,
             ras_header=header,
             subject_dir=subject_dir,
             seg_file=hypo_segfile,
+            mask_file=hypo_maskfile,
             save_mask=True,
         )
-        save_future.add_done_callback(
-            lambda x: logger.info(
-                f"Prediction successfully saved in {x.result()} seconds."
-            ),
-        )
+        logger.info(f"Prediction successfully saved in {time_needed} seconds.")
         if qc_snapshots:
             qc_future: Optional[Future] = pool.submit(
                 plot_qc_images,
@@ -408,7 +408,6 @@ def main(
         if qc_future:
             # finish qc
             qc_future.result()
-        save_future.result()
 
         logger.info(
             f"Processing whole pipeline finished in {time() - start:.4f} seconds."

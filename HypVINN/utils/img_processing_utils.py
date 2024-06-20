@@ -51,7 +51,8 @@ def save_segmentation(
         ras_affine: npt.NDArray[float],
         ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         subject_dir: Path,
-        seg_file: Path,
+        seg_file: str,
+        mask_file: str,
         save_mask: bool = False,
 ) -> float:
     """
@@ -73,7 +74,9 @@ def save_segmentation(
     subject_dir : Path
         The directory where the subject's data is stored.
     seg_file : Path
-        The file where the segmentation results will be saved.
+        The file where the segmentation will be saved (relative to subject_dir/mri).
+    mask_file : str
+        The file where the mask will be saved (relative to subject_dir/mri).
     save_mask : bool, default=False
         Whether to save the mask or not. Default is False.
 
@@ -86,7 +89,6 @@ def save_segmentation(
     from time import time
     starttime = time()
     from HypVINN.data_loader.data_utils import reorient_img
-    from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 
     pred_arr, labels_cc = get_clean_labels(np.array(prediction, dtype=np.uint8))
     # Mapped HypVINN labelst to FreeSurfer Hypvinn Labels
@@ -101,7 +103,7 @@ def save_segmentation(
         LOGGER.info(
             f"HypoVINN Mask after re-orientation: {img2axcodes(mask_img)}"
         )
-        nib.save(mask_img, subject_dir / "mri" / HYPVINN_MASK_NAME)
+        nib.save(mask_img, subject_dir / "mri" / mask_file)
 
     pred_img = nib.Nifti1Image(pred_arr, affine=ras_affine, header=ras_header)
     LOGGER.info(f"HypoVINN Prediction orientation: {img2axcodes(pred_img)}")
@@ -110,7 +112,7 @@ def save_segmentation(
         f"HypoVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
     )
     pred_img.set_data_dtype(np.int16)  # Maximum value 939
-    nib.save(pred_img, subject_dir / seg_file)
+    nib.save(pred_img, subject_dir / "mri" / seg_file)
     return time() - starttime
 
 
