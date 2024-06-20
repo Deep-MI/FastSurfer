@@ -9,4 +9,3 @@ Advanced scripts
     hypvinn
     recon_surf
     segstats
-    util
