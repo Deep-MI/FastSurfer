@@ -63,9 +63,9 @@ def optional_path(a: Path | str) -> Optional[Path]:
 
     Returns
     -------
-    Path, optional
+    Path, None
         The converted Path object.
-    f"""
+    """
     if isinstance(a, Path):
         return a
     if a.lower() in ("none", ""):
