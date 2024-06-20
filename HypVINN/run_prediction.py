@@ -108,7 +108,7 @@ def option_parse() -> argparse.ArgumentParser:
     # 3. Image processing options
     parser.add_argument(
         "--qc_snap",
-        action='store_true',
+        default='store_true',
         dest="qc_snapshots",
         help="Create qc snapshots in <sd>/<sid>/qc_snapshots.",
     )

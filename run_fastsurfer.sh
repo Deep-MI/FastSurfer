@@ -193,8 +193,8 @@ SEGMENTATION PIPELINE:
                             statistics.
 
   HYPOTHALAMUS MODULE (HypVINN):
-  --no_hypvinn            Skip the hypothalamus segmentation.
-  --no_biasfield          This option implies --no_hypvinn, as the hypothalamus
+  --no_hypothal           Skip the hypothalamus segmentation.
+  --no_biasfield          This option implies --no_hypothal, as the hypothalamus
                             sub-segmentation requires biasfield-corrected images.
   --t2 <T2_input>         *Optional* T2 full head input (does not have to be bias
                             corrected, a mandatory biasfield correction step is
@@ -386,10 +386,9 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    --qc_snaps)
-    hypvinn_flags+=(--qc_snapshots "$2")
+    --qc_snap)
+    hypvinn_flags+=(--qc_snap)
     shift # past argument
-    shift # past value
     ;;
     --mask_name)
     mask_name="$2"
@@ -462,7 +461,7 @@ case $key in
     run_cereb_module="0"
     shift  # past argument
     ;;
-    --no_hypvinn)
+    --no_hypothal)
     run_hypvinn_module="0"
     shift  # past argument
     ;;
@@ -859,7 +858,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
       then
         printf "INFO: Copying T2 file to %s..." "${t2_copy_file}" | tee -a "$seg_log"
         cmd=("nib-convert" "$t2" "$t2_copy_file")
-        "${cmd[@]}" |& tee -a "$seg_log"
+        "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         echo "Done." | tee -a "$seg_log"
     fi
 
@@ -918,7 +917,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
           echo "INFO: Running N4 bias-field correction of the t2" | tee -a "$seg_log"
           cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$t2"
                --out "$norm_name_t2" --threads "$threads" --uchar)
-          echo "${cmd[@]}" |& tee -a "$seg_log"
+          echo "${cmd[@]}" | tee -a "$seg_log"
           "${cmd[@]}"
           if [[ "${PIPESTATUS[0]}" -ne 0 ]]
             then
@@ -933,7 +932,11 @@ if [[ "$run_seg_pipeline" == "1" ]]
         echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is assumed to already be biasfield corrected." | tee -a "$seg_log"
         cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_force_lia
              --no_force_vox_size --no_force_img_size "$t2" "$norm_name_t2")
-        "${cmd[@]}" |& tee -a "$seg_log"
+        echo "WARNING: --no_biasfield is activated, but FastSurfer does not check, if "
+        echo "  passed T2 image is properly scaled and typed. T2 needs to be uchar and"
+        echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
+        # TODO implement/validate no changes to affine parameters for conform
+        # "${cmd[@]}" 2>&1 | tee -a "$seg_log"
       fi
     fi
 
@@ -978,11 +981,11 @@ if [[ "$run_seg_pipeline" == "1" ]]
           cmd+=("$t1")
           if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
         fi
-        echo "${cmd[@]}" |& tee -a "$seg_log"
+        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
-            echo "ERROR: Hypothalamus Segmentation failed" |& tee -a "$seg_log"
+            echo "ERROR: Hypothalamus Segmentation failed" | tee -a "$seg_log"
             exit 1
         fi
     fi
