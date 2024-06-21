@@ -282,11 +282,9 @@ def main(
 
         # Pre-processing -- T1 and T2 registration
         if mode == "t1t2":
-            # Note, that t1_path and t2_path are guaranteed to be not None
-            # via get_hypvinn_mode, which only returns t1t2, if t1 and t2
-            # exist.
-            # hypvinn_preproc returns the path to the t2 that is registered
-            # to the t1
+            # Note, that t1_path and t2_path are guaranteed to be not None via
+            # get_hypvinn_mode, which only returns t1t2, if t1 and t2 exist.
+            # hypvinn_preproc returns the path to the t2 that is registered to the t1
             prep_tasks["reg"] = pool.submit(
                 hypvinn_preproc,
                 mode,
