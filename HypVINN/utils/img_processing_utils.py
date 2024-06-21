@@ -111,7 +111,7 @@ def save_segmentation(
     LOGGER.info(
         f"HypoVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
     )
-    pred_img.set_data_dtype(np.int16)  # Maximum value 939
+    pred_img.set_data_dtype(np.int16)  # Maximum value 984
     nib.save(pred_img, subject_dir / "mri" / seg_file)
     return time() - starttime
 

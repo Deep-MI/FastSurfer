@@ -108,7 +108,7 @@ def option_parse() -> argparse.ArgumentParser:
     # 3. Image processing options
     parser.add_argument(
         "--qc_snap",
-        default='store_true',
+        action='store_true',
         dest="qc_snapshots",
         help="Create qc snapshots in <sd>/<sid>/qc_snapshots.",
     )
@@ -122,14 +122,14 @@ def option_parse() -> argparse.ArgumentParser:
              "registration of T2 to T1, if both images are passed, "
              "images need to be register properly externally.",
     )
-    default_hypo_segfile = Path("mri") / HYPVINN_SEG_NAME
+
     parser.add_argument(
         "--hypo_segfile",
-        type=Path,
-        default=default_hypo_segfile,
+        type=str,
+        default=HYPVINN_SEG_NAME,
         dest="hypo_segfile",
         help=f"File pattern on where to save the hypothalamus segmentation file "
-             f"(default: {default_hypo_segfile})."
+             f"(default: {HYPVINN_SEG_NAME})."
     )
 
     # 4. Options for advanced, technical parameters
@@ -380,7 +380,7 @@ def main(
                 plot_qc_images,
                 subject_qc_dir=subject_dir / "qc_snapshots",
                 orig_path=orig_path,
-                prediction_path=Path(hypo_segfile),
+                prediction_path=Path(subject_dir / "mri" /hypo_segfile),
             )
             qc_future.add_done_callback(
                 lambda x: logger.info(f"QC snapshots saved in {x.result()} seconds."),
@@ -391,7 +391,7 @@ def main(
         logger.info("Computing stats")
         return_value = compute_stats(
             orig_path=orig_path,
-            prediction_path=Path(hypo_segfile),
+            prediction_path=Path(subject_dir / "mri" /hypo_segfile),
             stats_dir=subject_dir / "stats",
             threads=threads,
         )
