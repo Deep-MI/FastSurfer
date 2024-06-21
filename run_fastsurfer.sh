@@ -50,6 +50,7 @@ hypo_segfile=""
 hypo_statsfile=""
 hypvinn_flags=()
 conformed_name=""
+conformed_name_t2=""
 norm_name=""
 norm_name_t2=""
 seg_log=""
@@ -415,6 +416,11 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --conformed_name_t2)
+    conformed_name_t2="$2"
+    shift # past argument
+    shift # past value
+    ;;
     --seg_log)
     seg_log="$2"
     shift # past argument
@@ -691,6 +697,11 @@ if [[ -z "$conformed_name" ]]
     conformed_name="${sd}/${subject}/mri/orig.mgz"
 fi
 
+if [[ -z "$conformed_name_t2" ]]
+  then
+    conformed_name_t2="${sd}/${subject}/mri/T2orig.mgz"
+fi
+
 if [[ -z "$norm_name" ]]
   then
     norm_name="${sd}/${subject}/mri/orig_nu.mgz"
@@ -718,7 +729,7 @@ if [[ -n "$t2" ]]
         echo "ERROR: T2 file $t2 does not exist!"
         exit 1;
     fi
-    t2_copy_file="${sd}/${subject}/mri/orig/T2.001.mgz"
+    copy_name_T2="${sd}/${subject}/mri/orig/T2.001.mgz"
 fi
 
 if [[ -z "$PYTHONUNBUFFERED" ]]
@@ -809,7 +820,7 @@ else log_existed="false"
 fi
 
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
-echo "Version: $VERSION" 2>&1 | tee -a "$seg_log"
+echo "Version: $VERSION" | tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" ; }" SIGINT SIGTERM
@@ -830,7 +841,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
     # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
     echo "Log file for segmentation FastSurferCNN/run_prediction.py" >> "$seg_log"
     date  2>&1 | tee -a "$seg_log"
-    echo "" 2>&1 | tee -a "$seg_log"
+    echo "" | tee -a "$seg_log"
 
     if [[ "$run_asegdkt_module" == "1" ]]
       then
@@ -841,7 +852,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
              --viewagg_device "$viewagg" --device "$device" "${allow_root[@]}")
         # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
         if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
-        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+        echo "${cmd[@]}" | tee -a "$seg_log"
         "${cmd[@]}"
         exit_code="${PIPESTATUS[0]}"
         if [[ "${exit_code}" == 2 ]]
@@ -856,8 +867,13 @@ if [[ "$run_seg_pipeline" == "1" ]]
     fi
     if [[ -n "$t2" ]]
       then
-        printf "INFO: Copying T2 file to %s..." "${t2_copy_file}" | tee -a "$seg_log"
-        cmd=("nib-convert" "$t2" "$t2_copy_file")
+        printf "INFO: Copying T2 file to %s..." "${copy_name_T2}" | tee -a "$seg_log"
+        cmd=("nib-convert" "$t2" "$copy_name_T2")
+        "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+
+        echo "INFO: Robust scaling (partial conforming) of T2 image..." | tee -a "$seg_log"
+        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_force_lia
+             --no_force_vox_size --no_force_img_size "$t2" "$conformed_name_t2")
         "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         echo "Done." | tee -a "$seg_log"
     fi
@@ -868,8 +884,8 @@ if [[ "$run_seg_pipeline" == "1" ]]
         echo "INFO: Running N4 bias-field correction" | tee -a "$seg_log"
         cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
              --rescale "$norm_name" --aseg "$asegdkt_segfile" --threads "$threads")
-        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
-        "${cmd[@]}"
+        echo "${cmd[@]}" | tee -a "$seg_log"
+        "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
             echo "ERROR: Biasfield correction failed" | tee -a "$seg_log"
@@ -880,7 +896,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
           then
             echo "INFO: Running talairach registration" | tee -a "$seg_log"
             cmd=("$reconsurfdir/talairach-reg.sh" "$sd/$subject/mri" "$atlas3T" "$seg_log")
-            echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+            echo "${cmd[@]}" | tee -a "$seg_log"
             "${cmd[@]}"
             if [[ "${PIPESTATUS[0]}" -ne 0 ]]
               then
@@ -902,7 +918,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
                        2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
                        2027 2028 2029 2030 2031 2034 2035
                  --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt")
-            echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+            echo "${cmd[@]}" | tee -a "$seg_log"
             "${cmd[@]}" 2>&1 | tee -a "$seg_log"
             if [[ "${PIPESTATUS[0]}" -ne 0 ]]
               then
@@ -913,9 +929,10 @@ if [[ "$run_seg_pipeline" == "1" ]]
 
         if [[ -n "$t2" ]]
         then
-          # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
+          # ... we have a t2 image, bias field-correct it
+          # (use the T2 image, not the conformed save  and robustly scaled uchar)
           echo "INFO: Running N4 bias-field correction of the t2" | tee -a "$seg_log"
-          cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$t2"
+          cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2"
                --out "$norm_name_t2" --threads "$threads" --uchar)
           echo "${cmd[@]}" | tee -a "$seg_log"
           "${cmd[@]}"
@@ -929,14 +946,9 @@ if [[ "$run_seg_pipeline" == "1" ]]
       if [[ -n "$t2" ]]
       then
         # no biasfield, but a t2 is passed; presumably, this is biasfield corrected
-        echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is assumed to already be biasfield corrected." | tee -a "$seg_log"
-        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_force_lia
-             --no_force_vox_size --no_force_img_size "$t2" "$norm_name_t2")
-        echo "WARNING: --no_biasfield is activated, but FastSurfer does not check, if "
-        echo "  passed T2 image is properly scaled and typed. T2 needs to be uchar and"
-        echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
-        # TODO implement/validate no changes to affine parameters for conform
-        # "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+        echo "INFO: Linking $norm_name_t2 to $t2, which is assumed to already be biasfield corrected." | tee -a "$seg_log"
+        source "${reconsurfdir}/functions.sh"
+        softlink_or_copy "$norm_name_t2" "$t2" "$seg_log"
       fi
     fi
 
@@ -947,7 +959,7 @@ if [[ "$run_seg_pipeline" == "1" ]]
             cereb_flags=("${cereb_flags[@]}" --norm_name "$norm_name"
                          --cereb_statsfile "$cereb_statsfile")
         else
-            echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." 2>&1 | tee -a $seg_log
+            echo "INFO: Running CerebNet without generating a statsfile, since biasfield correction deactivated '--no_biasfield'." | tee -a $seg_log
         fi
 
         cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1"
@@ -957,17 +969,18 @@ if [[ "$run_seg_pipeline" == "1" ]]
              --threads "$threads" "${cereb_flags[@]}" "${allow_root[@]}")
         # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
         if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
-        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+        echo "${cmd[@]}" | tee -a "$seg_log"
         "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
-            echo "ERROR: Cerebellum Segmentation failed" 2>&1 | tee -a "$seg_log"
+            echo "ERROR: Cerebellum Segmentation failed" | tee -a "$seg_log"
             exit 1
         fi
     fi
 
     if [[ "$run_hypvinn_module" == "1" ]]
       then
+        # currently, the order of the T2 preprocessing only is registration to T1w
         cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
              "${hypvinn_flags[@]}" "${allow_root[@]}" --threads "$threads" --async_io
              --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
@@ -977,11 +990,11 @@ if [[ "$run_seg_pipeline" == "1" ]]
             cmd+=("$norm_name")
             if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2"); fi
         else
-          echo "WARNING: We strongly recommended to run the hypvinn module is not run with --no_biasfield!"
+          echo "WARNING: We strongly recommend to *not* exclude the biasfield (--no_biasfield) with the hypothal module!"
           cmd+=("$t1")
           if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
         fi
-        echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+        echo "${cmd[@]}" | tee -a "$seg_log"
         "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]
           then
@@ -1004,7 +1017,7 @@ if [[ "$run_surf_pipeline" == "1" ]]
     cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
          --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
          "${surf_flags[@]}" "${allow_root[@]}")
-    echo "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+    echo "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"
     if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
     popd || return

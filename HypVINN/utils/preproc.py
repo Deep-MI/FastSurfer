@@ -1,4 +1,5 @@
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2024
+# AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-
 import time
 from pathlib import Path
+import os
+from typing import cast
 
 import nibabel as nib
-import os
 import numpy as np
-from HypVINN.data_loader.data_utils import rescale_image
-from FastSurferCNN.data_loader import data_utils as du
+
 from FastSurferCNN.utils import logging
 from HypVINN.utils import ModalityMode, RegistrationMode
 
@@ -31,7 +30,8 @@ LOGGER = logging.get_logger(__name__)
 def t1_to_t2_registration(
         t1_path: Path,
         t2_path: Path,
-        subject_dir: Path,
+        output_path: Path,
+        lta_path: Path,
         registration_type: RegistrationMode = "coreg",
         threads: int = -1,
 ) -> Path:
@@ -44,13 +44,15 @@ def t1_to_t2_registration(
         The path to the T1 image.
     t2_path : Path
         The path to the T2 image.
-    subject_dir : Path
-        The directory of the subject.
+    output_path : Path
+        The path to the output/registered image.
+    lta_path : Path
+        The path to the lta transform.
     registration_type : RegistrationMode, default="coreg"
         The type of registration to be used. It can be either "coreg" or "robust".
     threads : int, default=-1
-        The number of threads to be used. If it is less than or equal to 0, the number of threads will be automatically
-        determined.
+        The number of threads to be used. If it is less than or equal to 0, the number
+        of threads will be automatically determined.
 
     Returns
     -------
@@ -60,7 +62,8 @@ def t1_to_t2_registration(
     Raises
     ------
     RuntimeError
-        If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot be found.
+        If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot
+        be found.
     """
     from FastSurferCNN.utils.run_tools import Popen
     from FastSurferCNN.utils.threads import get_num_threads
@@ -68,9 +71,6 @@ def t1_to_t2_registration(
 
     if threads <= 0:
         threads = get_num_threads()
-
-    lta_path = subject_dir / "mri/transforms/t2tot1.lta"
-    t2_reg_path = subject_dir / "mri/T2_nu_reg.mgz"
 
     if registration_type == "coreg":
         exe = shutil.which("mri_coreg")
@@ -106,7 +106,7 @@ def t1_to_t2_registration(
                 "--mov", t2_path,
                 "--targ", t1_path,
                 "--reg", lta_path,
-                "--o", t2_reg_path,
+                "--o", output_path,
                 "--cubic",
                 "--keep-precision",
             ]
@@ -134,7 +134,7 @@ def t1_to_t2_registration(
             "--mov", t2_path,
             "--dst", t1_path,
             "--lta", lta_path,
-            "--mapmov", t2_reg_path,
+            "--mapmov", output_path,
             "--cost NMI",
         ]
         args = list(map(str, args))
@@ -147,7 +147,7 @@ def t1_to_t2_registration(
             raise RuntimeError("mri_robust_register failed registration")
         LOGGER.info(f"{exe} finished in {retval.runtime}!")
 
-    return t2_reg_path
+    return output_path
 
 
 def hypvinn_preproc(
@@ -166,7 +166,8 @@ def hypvinn_preproc(
     mode : ModalityMode
         The mode for HypVINN. It should be "t1t2".
     reg_mode : RegistrationMode
-        The registration mode. If it is not "none", the function will register T1 to T2 images.
+        The registration mode. If it is not "none", the function will register T1 to T2
+        images.
     t1_path : Path
         The path to the T1 image.
     t2_path : Path
@@ -174,8 +175,8 @@ def hypvinn_preproc(
     subject_dir : Path
         The directory of the subject.
     threads : int, default=-1
-        The number of threads to be used. If it is less than or equal to 0, the number of threads will be automatically
-        determined.
+        The number of threads to be used. If it is less than or equal to 0, the number
+        of threads will be automatically determined.
 
     Returns
     -------
@@ -185,30 +186,33 @@ def hypvinn_preproc(
     Raises
     ------
     RuntimeError
-        If the mode is not "t1t2", or if the registration mode is not "none" and the registration fails.
+        If the mode is not "t1t2", or if the registration mode is not "none" and the
+        registration fails.
     """
     if mode != "t1t2":
         raise RuntimeError(
             "hypvinn_preproc should only be called for t1t2 mode."
         )
+    registered_t2_path = subject_dir / "mri/T2_nu_reg.mgz"
     if reg_mode != "none":
+        from nibabel.analyze import AnalyzeImage
         load_res = time.time()
         # Print Warning if Resolution from both images is different
-        t1_zoom = nib.load(t1_path).header.get_zooms()
-        t2_zoom = nib.load(t2_path).header.get_zooms()
+        t1_zoom = cast(AnalyzeImage, nib.load(t1_path)).header.get_zooms()
+        t2_zoom = cast(AnalyzeImage, nib.load(t2_path)).header.get_zooms()
 
         if not np.allclose(np.array(t1_zoom), np.array(t2_zoom), rtol=0.05):
-            LOGGER.info(
-                f"Warning: Resolution from T1 ({t1_zoom}) and T2 ({t2_zoom}) image "
-                f"are different.\nResolution of the T2 image will be interpolated "
-                "to the one of the T1 image."
+            LOGGER.warning(
+                f"Resolution from T1 {t1_zoom} and T2 {t2_zoom} image are different.\n"
+                f"T2 image will be interpolated to the resolution of the T1 image."
             )
 
         LOGGER.info("Registering T1 to T2 ...")
-        t2_path = t1_to_t2_registration(
+        t1_to_t2_registration(
             t1_path=t1_path,
             t2_path=t2_path,
-            subject_dir=subject_dir,
+            output_path=registered_t2_path,
+            lta_path=subject_dir / "mri/transforms/t2tot1.lta",
             registration_type=reg_mode,
             threads=threads,
         )
@@ -217,12 +221,22 @@ def hypvinn_preproc(
         )
     else:
         LOGGER.info(
-            "Warning: No registration step, registering T1w and T2w is "
-            "required when running the multi-modal input mode.\n "
-            "No register images can generate wrong predictions. Omit this "
-            "message if input images are already registered."
+            "No registration step, registering T1w and T2w is required when running "
+            "the multi-modal input mode.\nUnregistered images can generate wrong "
+            "predictions. Ignore this message, if input images are already registered."
         )
+        try:
+            registered_t2_path.symlink_to(os.path.relpath(t2_path, registered_t2_path))
+        except FileNotFoundError as e:
+            msg = (f"Could not create symlink. "
+                   f"Does the folder {registered_t2_path.parent} exist?")
+            LOGGER.error(msg)
+            raise FileNotFoundError(msg) from e
+        except (RuntimeError, OSError):
+            LOGGER.info(f"Could not create symlink for {registered_t2_path}, copying.")
+            from shutil import copy
+            copy(t2_path, registered_t2_path)
 
     LOGGER.info("---" * 30)
 
-    return t2_path
+    return registered_t2_path
