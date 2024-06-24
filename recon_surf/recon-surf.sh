@@ -31,6 +31,9 @@ threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
 segstats_legacy="false" # flag to enable segstats legacy mode
+base=0                # flag for longitudinal template (base) run
+long=0                # flag for longitudinal time point run
+baseid=""             # baseid for logitudinal time point run
 
 # Dev flags default
 check_version=1       # Check for supported FreeSurfer version (terminate if not detected)
@@ -104,6 +107,10 @@ FLAGS:
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
                             installed already.
+  --base                  For longitudinal template (base) creation.
+  --long <basid>          For longitudinal time point creation, pass the ID of
+                            the base (template) which needs to exist already in
+                            the same subjects_dir.
   -h --help               Print Help
 
 Dev Flags:
@@ -191,6 +198,8 @@ case $key in
   --ignore_fs_version) check_version=0 ;;
   --no_fs_t1 ) get_t1=0 ;;
   --allow_root) allow_root="--allow_root" ;;
+  --base) base=1 ;;
+  --long) long=1 ; baseid="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   # unknown option
   *) echo "ERROR: Flag $key unrecognized." ; exit 1 ;;
@@ -250,6 +259,23 @@ fi
 if [ -z "$PYTHONUNBUFFERED" ]
 then
   export PYTHONUNBUFFERED=0
+fi
+
+basedir=""
+if [ "$long" == "1" ]
+then
+  basedir="$SUBJECTS_DIR/$baseid"
+  if [ ! -f "$basedir/base-tps.fastsurfer" ]
+    echo "$baseid is either not found in SUBJECTS_DIR or it is not a longitudinal template"
+    echo "directory, which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "the base (template) has been created when running with --long flag."
+    exit 1;
+  fi
+  if [ ! grep -Fxq $basedir/base-tps.fastsurfer $subject ]
+    echo "$subject id not found in base-tps.fastsurfer. Please ensure that this time point"
+    echo "was included during creation of the base (template)."
+    exit 1;
+  fi
 fi
 
 if [ -z "$t1" ] || [ ! -f "$t1" ]
@@ -348,11 +374,17 @@ echo "Log file for recon-surf.sh" >> "$LF"
   echo "$VERSION"
   uname -a 2>&1
   echo " "
-  echo " "
-  echo "==================== Checking validity of inputs ================================="
-  echo " "
-
-# Print parallelization parameters
+  if [ "$base" == "1" ] ; then
+    echo " "
+    echo "================== BASE - Longitudinal Template Creation ========================="
+    echo " "
+  fi
+  if [ "$long" == "1" ] ; then
+    echo " "
+    echo "================== LONG - Longitudinal Timpe Point Creation ======================"
+    echo "long: using template directory (base) $baseid"
+    echo " "
+  fi
   # Print parallelization parameters
   if [ "$DoParallel" == "1" ]
   then
@@ -436,6 +468,27 @@ popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 
 # ============================= MASK & ASEG_noCC ========================================
 
+
+outmask="--outmask $mask"
+
+if [ "$base" == "1" ] ; then
+  # for base we build union of mapped masks beforehand so it should be available
+  if [ ! -f "$mask" ] ; then
+    echo "ERROR: file missing, base run requires $mask !" | tee -a $LF
+    exit 1
+  fi
+  # for base stream, don't overwrite mask in reduce_to_aseg.py below
+  outmask=""
+fi
+
+if [ "$long" == "1" ] ; then
+  # for long we copy mask from base
+  cmd="cp $basedir/mri/mask.mgz $mask"
+  RunIt "$cmd" $LF
+  # for base stream, don't overwrite mask in reduce_to_aseg.py below
+  outmask=""
+fi
+
 if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   {
     # Mask or aseg.auto_noCCseg not found; create them from aparc.DKTatlas+aseg
@@ -446,8 +499,8 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
 
   # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
   # output will be uchar (else mri_cc will fail below)
-  cmd="$python $FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz --outmask $mask --fixwm"
-  RunIt "$cmd" "$LF"
+  cmd="$python $FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz $outmask --fixwm"
+  RunIt "$cmd" $LF
 fi
 
 
@@ -480,14 +533,43 @@ fi
 
 # ============================= TALAIRACH ==============================================
 
-if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
-  {
-    echo " "
-    echo "============= Computing Talairach Transform ============"
-    echo " "
-    echo "\"$binpath/talairach-reg.sh\" \"$mdir\" \"$atlas3T\" \"$LF\""
-  } | tee -a "$LF"
-  "$binpath/talairach-reg.sh" "$mdir" "$atlas3T" "$LF"
+if [ "$long" == "1" ] ; then
+  # copy all talairach transforms from base (as we are in same space)
+  # this also fixes eTIV across time (if FreeSurfer scaling method is used)
+  cmd="cp $basedir/mri/transforms/talairach.auto.xfm $mdir/transforms/talairach.auto.xfm"
+  RunIt "$cmd" $LF
+  cmd="cp $mdir/transforms/talairach.auto.xfm $mdir/transforms/talairach.xfm"
+  RunIt "$cmd" $LF
+  cmd="cp $basedir/mri/transforms/talairach.xfm.lta $mdir/transforms/talairach.xfm.lta"
+  RunIt "$cmd" $LF
+  # Since we do not run mri_em_register we sym-link other talairach transform files here
+  pushd "$mdir/transforms" > /dev/null || ( echo "ERROR: Could not change to the transforms directory $mdir/transforms!" | tee -a "$LF" ; exit 1 )
+    cmd="ln -sf talairach.xfm.lta talairach_with_skull.lta"
+    RunIt "$cmd" $LF
+    cmd="ln -sf talairach.xfm.lta talairach.lta"
+    RunIt "$cmd" $LF
+  popd > /dev/null || (echo "Could not popd" ; exit 1)
+  # Add xfm to nu header
+  # (use orig_nu, if nu.mgz does not exist already); by default, it should exist
+  if [[ -e "$mdir/nu.mgz" ]]; then src_nu_file="$mdir/nu.mgz"
+  else src_nu_file="$mdir/orig_nu.mgz"
+  fi
+  cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
+  RunIt "$cmd" $LF
+
+else #regular processing (cross and base)
+  if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
+    # if talairach registration is missing, compute it here
+    # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta 
+    # all transforms (also ltas) are the same
+    {
+      echo " "
+      echo "============= Computing Talairach Transform ============"
+      echo " "
+      echo "\"$binpath/talairach-reg.sh\" \"$mdir\" \"$atlas3T\" \"$LF\""
+    } | tee -a "$LF"
+    "$binpath/talairach-reg.sh" "$mdir" "$atlas3T" "$LF"
+  fi
 fi
 
 
@@ -504,6 +586,19 @@ RunIt "$cmd" "$LF"
 if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
+  # T1.mgz was needed by some 3rd party downstream tools such as fmriprep, so we provide it
+
+  # if base template run, write ctrl and bias vol files (maybe switch on later)
+  # this has mainly an effect in FreeSurfer on the segmentation, but if images come
+  # from different scanners it could hurt more than help. Here in FastSurfer
+  # it is unclear what effect it would even have, given that segmentations come
+  # from the FastSurferVINN. It could affect surface placement or partial volumes.
+  #base_flags=""
+  #if [ "$base" == "1" ]
+  #then
+  #  base_flags="-w $mdir/ctrl_vol.mgz $mdir/bias_vol.mgz"
+  #fi
+  # cmd="mri_normalize -g 1 -seed 1234 -mprage $base_flags $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
   cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
   RunIt "$cmd" "$LF"
   # create brainmask by masking T1
@@ -542,10 +637,20 @@ RunIt "$cmd" "$LF"
   echo " "
 } | tee -a $LF
 
-# filled is needed to generate initial WM surfaces
-cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill $hiresflag $fsthreads"
-RunIt "$cmd" "$LF"
-
+if [ "$long" == "1" ] ; then
+  # in long we can skip fill as surfaces come from base
+  # it would be great to also skip WM, but it is needed in place_surface to clip bright 
+  # maybe later add code to copy edits from base in maskbfs and wm segmentation
+  cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation $hiresflag $fsthreads"
+  RunIt "$cmd" $LF  
+  # copy over filled from base for stop edits
+  cmd="cp $basedir/mri/filled.mgz $mdir/filled.mgz"
+  RunIt "$cmd" $LF
+else # cross and base
+  # filled is needed to generate initial WM surfaces
+  cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill $hiresflag $fsthreads"
+  RunIt "$cmd" $LF
+fi
 
 
 # =======
@@ -564,11 +669,15 @@ for hemi in lh rh; do
 
 # ============================= TESSELLATE - SMOOTH =====================================================
 
+  # In Long stream we skip these
+  if [ "$long" == "0" ] ; then
+
   {
     echo "echo \" \""
     echo "echo \"================== Creating surfaces $hemi - orig.nofix ==================\""
     echo "echo \" \""
   } | tee -a "$CMDF"
+
   if [ "$fstess" == "1" ]
   then
     cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning $hiresflag $fsthreads"
@@ -622,8 +731,14 @@ for hemi in lh rh; do
     RunIt "$cmd" "$LF" "$CMDF"
   fi
 
+  fi # not long
+
+
 # ============================= INFLATE1 - QSPHERE =====================================================
 
+  # In Long stream we skip these
+  if [ "$long" == "0" ] ; then
+  
   {
     echo "echo \"\""
     echo "echo \"=================== Creating surfaces $hemi - qsphere ====================\""
@@ -648,6 +763,8 @@ for hemi in lh rh; do
     cmd="$cmd --subject $subject --threads=$threads --py ${tmp} --binpath ${binpath}"
     RunIt "$cmd" "$LF" "$CMDF"
   fi
+
+  fi # not long
 
 # ============================= FIX - WHITEPREAPARC - CORTEXLABEL ============================================
 
@@ -838,6 +955,10 @@ if [ "$DoParallel" == 1 ] ; then
   } | tee -a "$LF"
   RunBatchJobs "$LF" "${CMDFS[@]}"
 fi
+
+# Skip rest in case we have a base run, we are done here (probably we can skip stuff already in surface creation above)
+if [ "$base" != "1" ] ; then
+
 
 # ============================= RIBBON ===============================================
 
@@ -1072,6 +1193,8 @@ fi
     cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
     RunIt "$cmd" "$LF"
   fi
+
+fi # not base run
 
 
 # Collect info
