@@ -344,21 +344,25 @@ def download_checkpoint(
     for url in urls:
         try:
             LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
-            response = requests.get(url + "/" + checkpoint_name, verify=True)
+            response = requests.get(
+                url + "/" + checkpoint_name,
+                verify=True,
+                timeout=(5, None),  # (connect timeout: 5 sec, read timeout: None)
+            )
             # Raise error if file does not exist:
             response.raise_for_status()
             break
 
-        except requests.exceptions.HTTPError as e:
-            LOGGER.info(f"Server {url} not reachable.")
-            LOGGER.exception(e)
-            LOGGER.warn(f"Response code: {e.response.status_code}")
         except requests.exceptions.RequestException as e:
-            LOGGER.exception(e)
-            LOGGER.warn(f"Server {url} not reachable.")
+            LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
+            if isinstance(e, requests.exceptions.HTTPError):
+                LOGGER.warning(f"Response code: {e.response.status_code}")
 
     if response is None:
-        raise requests.exceptions.RequestException("No server reachable.")
+        links = ', '.join(u.removeprefix('https://')[:22] + "..." for u in urls)
+        raise requests.exceptions.RequestException(
+            f"Failed downloading the checkpoint {checkpoint_name} from {links}."
+        )
     else:
         response.raise_for_status()  # Raise error if no server is reachable
 
