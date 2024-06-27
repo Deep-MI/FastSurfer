@@ -872,8 +872,8 @@ if [[ "$run_seg_pipeline" == "1" ]]
         "${cmd[@]}" 2>&1 | tee -a "$seg_log"
 
         echo "INFO: Robust scaling (partial conforming) of T2 image..." | tee -a "$seg_log"
-        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_force_lia
-             --no_force_vox_size --no_force_img_size "$t2" "$conformed_name_t2")
+        cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
+             --no_vox_size --no_img_size "$t2" "$conformed_name_t2")
         "${cmd[@]}" 2>&1 | tee -a "$seg_log"
         echo "Done." | tee -a "$seg_log"
     fi
