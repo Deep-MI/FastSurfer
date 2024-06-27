@@ -27,7 +27,7 @@ from FastSurferCNN.utils.common import find_device
 from FastSurferCNN.data_loader.augmentation import ToTensorTest, ZeroPad2DTest
 from HypVINN.models.networks import build_model
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
-from HypVINN.data_loader.dataset import HypoVINN_dataset
+from HypVINN.data_loader.dataset import HypVINNDataset
 from HypVINN.utils import ModalityMode
 
 logger = logging.get_logger(__name__)
@@ -380,7 +380,7 @@ class Inference:
             The updated prediction probabilities.
         """
         # Set up DataLoader
-        test_dataset = HypoVINN_dataset(
+        test_dataset = HypVINNDataset(
             subject_name,
             modalities,
             orig_zoom,

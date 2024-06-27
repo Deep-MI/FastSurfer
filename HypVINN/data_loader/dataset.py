@@ -28,7 +28,7 @@ logger = logging.get_logger(__name__)
 
 
 # Operator to load imaged for inference
-class HypoVINN_dataset(Dataset):
+class HypVINNDataset(Dataset):
     """
     Class to load MRI-Image and process it to correct format for HypVINN network inference.
 
@@ -62,7 +62,7 @@ class HypoVINN_dataset(Dataset):
             transforms=None,
     ):
         """
-        Initialize the HypoVINN Dataset.
+        Initialize the HypVINN Dataset.
 
         Parameters
         ----------
