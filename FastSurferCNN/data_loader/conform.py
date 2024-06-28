@@ -61,13 +61,13 @@ class Criteria(Enum):
     FORCE_LIA_STRICT = "lia strict"
     FORCE_LIA = "lia"
     FORCE_IMG_SIZE = "img size"
-    FORCE_VOX_SIZE = "vox size"
+    FORCE_ISO_VOX = "iso vox"
 
 
 DEFAULT_CRITERIA_DICT = {
     "lia": Criteria.FORCE_LIA,
     "strict_lia": Criteria.FORCE_LIA_STRICT,
-    "vox_size": Criteria.FORCE_VOX_SIZE,
+    "iso_vox": Criteria.FORCE_ISO_VOX,
     "img_size": Criteria.FORCE_IMG_SIZE,
 }
 DEFAULT_CRITERIA = frozenset(DEFAULT_CRITERIA_DICT.values())
@@ -145,18 +145,18 @@ def options_parse():
         "--no_strict_lia",
         dest="force_strict_lia",
         action="store_false",
-        help="Ignore the forced lia reorientation.",
+        help="Ignore the forced LIA reorientation.",
     )
     advanced.add_argument(
         "--no_lia",
         dest="force_lia",
         action="store_false",
-        help="Ignore the reordering of data into lia (without interpolation). "
+        help="Ignore the reordering of data into LIA (without interpolation). "
              "Superceeds --no_strict_lia",
     )
     advanced.add_argument(
-        "--no_vox_size",
-        dest="force_vox_size",
+        "--no_iso_vox",
+        dest="force_iso_vox",
         action="store_false",
         help="Ignore the forced isometric voxel size (depends on --conform_min).",
     )
@@ -548,7 +548,7 @@ def conform(
         The threshold above which the image is conformed to 1mm
         (default: ignore).
     criteria : set[Criteria], default={DEFAULT_CRITERIA}
-        Whether to force the conforming to include a lia data layout, an image size
+        Whether to force the conforming to include a LIA data layout, an image size
         requirement and/or a voxel size requirement.
 
     Returns
@@ -584,7 +584,7 @@ def conform(
         h1.set_data_shape([conformed_img_size] * 3 + [1])
     else:
         h1.set_data_shape([img_shape[i] for i in re_order_axes] + [1])
-    if Criteria.FORCE_VOX_SIZE in criteria:
+    if Criteria.FORCE_ISO_VOX in criteria:
         h1.set_zooms([conformed_vox_size] * 3)  # --> h1['delta']
         do_interp |= not np.allclose(vox_size, conformed_vox_size)
     else:
@@ -773,7 +773,7 @@ def is_conform(
     izoom = np.array(img.header.get_zooms())
     is_correct_vox_size = np.max(np.abs(izoom[:3] - conformed_vox_size)) < eps
     _vox_sizes = conformed_vox_size if is_correct_vox_size else izoom[:3]
-    if Criteria.FORCE_VOX_SIZE in criteria:
+    if Criteria.FORCE_ISO_VOX in criteria:
         vox_size_criteria = f"Voxel Size {'x'.join([str(conformed_vox_size)] * 3)}"
         image_vox_size = f"image " + "x".join(map(str, izoom))
         checks[vox_size_criteria] = (is_correct_vox_size, image_vox_size)
@@ -820,7 +820,7 @@ def is_lia(
         eps: float = 1e-6,
 ):
     """
-    Checks whether the affine is lia-oriented.
+    Checks whether the affine is LIA-oriented.
 
     Parameters
     ----------
@@ -835,7 +835,7 @@ def is_lia(
     Returns
     -------
     bool
-        Whether the affine is lia-oriented.
+        Whether the affine is LIA-oriented.
     """
     iaffine = affine[:3, :3]
     lia_nonzero = LIA_AFFINE != 0

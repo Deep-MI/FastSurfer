@@ -528,9 +528,9 @@ fi
 # ============================= TALAIRACH ==============================================
 
 if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
-  echo " " 2>&1 | tee -a $LF
-  echo "============= Computing Talairach Transform ============" 2>&1 | tee -a $LF
-  echo " " 2>&1 | tee -a $LF
+  echo " " | tee -a $LF
+  echo "============= Computing Talairach Transform ============" | tee -a $LF
+  echo " " | tee -a $LF
   echo "\"$binpath/talairach-reg.sh\" \"$mdir\" \"$atlas3T\" \"$LF\"" | tee -a "$LF"
   "$binpath/talairach-reg.sh" "$mdir" "$atlas3T" "$LF"
 fi
@@ -562,9 +562,9 @@ fi
 
 # ============================= CC SEGMENTATION ============================================
 
-echo " " 2>&1 | tee -a $LF
-echo "============ Creating and adding CC Segmentation ============" 2>&1 | tee -a $LF
-echo " " 2>&1 | tee -a $LF
+echo " " | tee -a $LF
+echo "============ Creating and adding CC Segmentation ============" | tee -a $LF
+echo " " | tee -a $LF
 # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
 # Note: if original input segmentation already contains CC, this will exit with ERROR
 # in the future maybe check and skip this step (and next)
