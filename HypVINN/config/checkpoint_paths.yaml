@@ -1,6 +1,6 @@
 url:
-- "https://b2share.fz-juelich.de/api/files/d9e37247-5455-4c83-853d-21e31fb5bea5"
 - "https://zenodo.org/records/11184216/files"
+- "https://b2share.fz-juelich.de/api/files/d9e37247-5455-4c83-853d-21e31fb5bea5"
 
 checkpoint:
   axial: "checkpoints/HypVINN_axial_v1.1.0.pkl"
