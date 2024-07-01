@@ -143,7 +143,7 @@ case $key in
     ;;
     --parallel_subjects)
       shift
-      if [[ "$1" =~ ^-- ]]
+      if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]
       then
         # no additional parameter to --parallel_subjects, the next cmd args is unrelated
         # use parallel_sujects = max
