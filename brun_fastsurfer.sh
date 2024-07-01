@@ -90,10 +90,8 @@ This tool requires functions in stools.sh (expected in same folder as this scrip
 EOF
 }
 
-if [ -z "${BASH_SOURCE[0]}" ]; then
-    THIS_SCRIPT="$0"
-else
-    THIS_SCRIPT="${BASH_SOURCE[0]}"
+if [ -z "${BASH_SOURCE[0]}" ]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 
 # PRINT USAGE if called without params
@@ -112,114 +110,76 @@ while [[ $# -gt 0 ]]
 do
 # make key lowercase
 key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+shift # past argument
 
 case $key in
-    --subject_list|--subjects_list)
-      if [[ ! -f "$2" ]]
-      then
-        echo "ERROR: Could not find the subject list $2!"
-        exit 1
-      fi
-      # append the subjects in the listfile (cleanup first) to the subjects array
-      mapfile -t -O ${#subjects} subjects < <(sed "$SED_CLEANUP_SUBJECTS" "$2")
-      subjects_stdin="false"
-    shift # past argument
+  # parse/get the subjects to iterate over
+  #===================================================
+  --subject_list|--subjects_list)
+    if [[ ! -f "$1" ]]
+    then
+      echo "ERROR: Could not find the subject list $1!"
+      exit 1
+    fi
+    # append the subjects in the listfile (cleanup first) to the subjects array
+    mapfile -t -O ${#subjects} subjects < <(sed "$SED_CLEANUP_SUBJECTS" "$1")
+    subjects_stdin="false"
     shift # past value
     ;;
-    --subjects)
-      subjects_stdin="false"
-      shift # argument
-      while [[ "$1" =~ ^-- ]]
-      do
-        subjects=("${subjects[@]}" "$1")
-        shift # next value
-      done
+  --subjects)
+    subjects_stdin="false"
+    while [[ "$1" =~ ^-- ]] ; do subjects=("${subjects[@]}" "$key") ; shift
+    done
     ;;
-    --batch)
-      task_count=$(echo "$2" | cut -f2 -d/)
-      task_id=$(echo "$2" | cut -f1 -d/)
-      shift
-      shift
-    ;;
-    --parallel_subjects)
-      shift
-      if [[ "$1" =~ ^-- ]]
-      then
-        # no additional parameter to --parallel_subjects, the next cmd args is unrelated
-        # use parallel_sujects = max
+  # brun_fastsurfer-specific/custom options
+  #===================================================
+  --batch) task_count=$(echo "$1" | cut -f2 -d/) ;  task_id=$(echo "$1" | cut -f1 -d/) ; shift ;;
+  --run_fastsurfer) run_fastsurfer=($1) ; shift ;;
+  --parallel_subjects)
+    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]
+    then # no additional parameter to --parallel_subjects, the next cmd args is unrelated
+      parallel_subjects="max"
+    else # has parameter
+      lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+      if [[ "$lower_value" =~ ^surf(=-[0-9]*|=max)?$ ]]
+      then # parameter is surf=max or surf=<negative number> or surf
+        parallel_surf="true"
         parallel_subjects="max"
+      elif [[ "$lower_value" =~ ^surf=[0-9]*$ ]]
+      then # parameter is surf=<positive number>
+        parallel_surf="true"
+        parallel_subjects="${lower_value:5}"
+      elif [[ "$lower_value" =~ ^(-[0-9]+|max)$ ]] ; then parallel_subjects="max"
+      elif [[ "$lower_value" =~ ^[0-9]+$ ]] ; then parallel_subjects="$lower_value"
       else
-        lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
-        # has parameter
-        if [[ "$lower_value" =~ ^surf(=-?[0-9]*|=max)?$ ]]
-        then
-          # parameter is surf=max or surf=<positive/negative number> or surf
-          parallel_surf="true"
-          surf_p="${lower_value:5}"
-          if [[ "$surf_p" -lt 0 ]] || [[ "$surf_p" == "max" ]] || [[ -z "$surf_p" ]]
-          then
-            # parameter is surf=max or surf=<negative number> or surf
-            parallel_subjects="max"
-          else
-            # parameter is surf=<positive number>
-            parallel_subjects="$surf_p"
-          fi
-        elif [[ "$lower_value" =~ ^-?[0-9]+$ ]]
-        then
-          # parameter is a number
-          if [[ "$lower_value" -lt 0 ]] || [[ "$lower_value" == "max" ]]
-          then
-            # parameter is negative
-            parallel_subjects="max"
-          else
-            parallel_subjects="$lower_value"
-          fi
-        else
-          echo "Invalid option for --parallel_subjects: $1"
-          exit 1
-        fi
-        shift
+        echo "Invalid option for --parallel_subjects: $1"
+        exit 1
       fi
+      shift
+    fi
     ;;
-    --statusfile)
-      statusfile="$2"
-      shift
-      shift
+  --statusfile) statusfile="$1" ; shift ;;
+  --debug) debug="true" ;;
+  --help) usage ; exit ;;
+  # run_fastsurfer.sh options, with extra effect in brun_fastsurfer
+  #===================================================
+  --surf_only) surf_only="true" ;;
+  --seg_only) seg_only="true" ;;
+  --sid|--t1)
+    echo "ERROR: --sid and --t1 are not valid for brun_fastsurfer.sh, these values are populated"
+    echo "via --subjects or --subject_list."
+    exit 1
     ;;
-    --surf_only)
-      surf_only="true"
-      shift
-    ;;
-    --seg_only)
-      seg_only="true"
-      shift
-    ;;
-    --sid|--t1)
-      echo "ERROR: --sid and --t1 are not valid for brun_fastsurfer.sh, these values are populated"
-      echo "via --subjects or --subject_list."
-      exit 1
-    ;;
-    --debug)
-      debug="true"
-      shift
-      ;;
-    --help)
-      usage
-      exit
-      ;;
-    --run_fastsurfer)
-      run_fastsurfer=($2)
-      shift
-      shift
-      ;;
-    *)    # unknown option
-      POSITIONAL_FASTSURFER[$i]="$1"
-      i=$(($i + 1))
-      shift
+  *)    # unknown option/run_fastsurfer.sh option
+    POSITIONAL_FASTSURFER[$i]="$key"
+    i=$(($i + 1))
     ;;
 esac
 done
-set -- "${POSITIONAL[@]}" # restore positional parameters
+if [[ "${#POSITIONAL[@]}" -gt 0 ]]
+then
+  set -- "${POSITIONAL[@]}" # restore positional parameters
+fi
 
 echo "$THIS_SCRIPT ${inputargs[*]}"
 date -R
@@ -259,23 +219,14 @@ then
   echo "task_id/task_count: ${task_id:-not specified}/${task_count:-not specified}"
   if [[ "$parallel_subjects" != "1" ]]
   then
-    if [[ "$parallel_surf" == "true" ]]
-    then
-      echo "--parallel_subjects surf=$parallel_subjects"
-    else
-      echo "--parallel_subjects $parallel_subjects"
+    if [[ "$parallel_surf" == "true" ]] ; then echo "--parallel_subjects surf=$parallel_subjects"
+    else echo "--parallel_subjects $parallel_subjects"
     fi
   fi
-  if [[ "${run_fastsurfer[*]}" == "" ]]
-  then
-    echo "running default run_fastsurfer"
-  else
-    echo "running ${run_fastsurfer[*]}"
+  if [[ "${run_fastsurfer[*]}" == "" ]] ;  then echo "running default run_fastsurfer"
+  else echo "running ${run_fastsurfer[*]}"
   fi
-  if [[ -n "$statusfile" ]]
-  then
-    echo "statusfile: $statusfile"
-  fi
+  if [[ -n "$statusfile" ]] ;  then echo "statusfile: $statusfile" ; fi
   echo ""
   printf "FastSurfer parameters:"
   if [[ "$seg_only" == "true" ]]; then printf "\n--seg_only"; fi
@@ -343,17 +294,13 @@ then
 fi
 
 seg_surf_only=""
-if [[ "$surf_only" == "true" ]]
-then
-  seg_surf_only=--surf_only
-elif [[ "$seg_only" == "true" ]]
-then
-  seg_surf_only=--seg_only
+if [[ "$surf_only" == "true" ]] ; then seg_surf_only=--surf_only
+elif [[ "$seg_only" == "true" ]] ; then seg_surf_only=--seg_only
 fi
 
 if [[ "$parallel_surf" == "true" ]]
 then
- if [[ -n "$seg_surf_only" ]]
+  if [[ -n "$seg_surf_only" ]]
   then
     echo "ERROR: Cannot combine --parallel_subjects surf=<n> and --seg_only or --surf_only."
   fi
@@ -434,15 +381,9 @@ do
   then
     # parallel_surf implies $seg_surf_only == "" (see line 353), i.e. both seg and surf
     cmd=("${run_fastsurfer[@]}" "--seg_only" --t1 "$image_path" "${args[@]}" "${POSITIONAL_FASTSURFER[@]}")
-    if [[ "$debug" == "true" ]]
-    then
-      echo "DEBUG:" "${cmd[@]}"
-    fi
-    if [[ "$parallel_subjects" != "1" ]]
-    then
-      "${cmd[@]}" | prepend "$subject_id: "
-    else
-      "${cmd[@]}"
+    if [[ "$debug" == "true" ]] ; then echo "DEBUG:" "${cmd[@]}" ; fi
+    if [[ "$parallel_subjects" != "1" ]] ; then "${cmd[@]}" | prepend "$subject_id: "
+    else "${cmd[@]}"
     fi
     if [[ -n "$statusfile" ]]
     then
