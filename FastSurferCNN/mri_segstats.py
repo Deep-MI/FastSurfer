@@ -20,8 +20,13 @@ import argparse
 from pathlib import Path
 from typing import TypeVar, Sequence, Any
 
-from FastSurferCNN.segstats import (main, HelpFormatter, add_two_help_messages, VERSION,
-                                    empty)
+from FastSurferCNN.segstats import (
+    main,
+    HelpFormatter,
+    add_two_help_messages,
+    VERSION,
+    empty,
+)
 
 _T = TypeVar("_T")
 
@@ -117,19 +122,17 @@ def make_arguments() -> argparse.ArgumentParser:
     )
 
     def add_etiv_measures(args: argparse.Namespace) -> None:
-        cmeasures: list[str] = getattr(args, "computed_measures", [])
-        imeasures: list[str] = getattr(args, "imported_measures", [])
-        if ETIV_FROM_TAL in cmeasures:
-            try:
-                cmeasures.remove(ETIV_RATIO_KEY)
-                for k, v in ETIV_RATIOS.items():
-                    def test(m): return m == v or m.startswith(v + "(")
-                    if any(any(test(m) for m in ms) for ms in (cmeasures, imeasures)):
-                        cmeasures.append(k)
-                setattr(args, "computed_measures", cmeasures)
-            except ValueError:
-                # skip if measures does not have the etiv key
-                pass
+        measures: list[str] = getattr(args, "measures", [])
+        if all(m in measures for m in (ETIV_RATIO_KEY, ETIV_FROM_TAL)):
+            from FastSurferCNN.utils.brainvolstats import ImportedMeasure
+            prefix = ImportedMeasure.PREFIX
+
+            def test(m, w): return m == w or m.startswith(w + "(")
+            measures.remove(ETIV_RATIO_KEY)
+            for k, v in ETIV_RATIOS.items():
+                if any(test(m, v) or test(m, prefix + v) for m in measures):
+                    measures.append(k)
+            setattr(args, "measures", measures)
 
     def _update_what_to_import(args: argparse.Namespace) -> argparse.Namespace:
         """
@@ -139,20 +142,23 @@ def make_arguments() -> argparse.ArgumentParser:
         if not cachefile.is_absolute():
             cachefile = args.out_dir / args.sid / cachefile
         if not args.explicit_no_cached and cachefile.is_file():
-            from FastSurferCNN.utils.brainvolstats import read_measure_file
+            from FastSurferCNN.utils.brainvolstats import (
+                read_measure_file,
+                ImportedMeasure,
+            )
             measure_data = read_measure_file(cachefile)
-            cmeasures = list(getattr(args, "computed_measures", []))
-            imeasures = list(getattr(args, "imported_measures", []))
-            # for each measure to be computed, that we have data in brainvol.stats for
-            for mkey in measure_data.keys():
-                for i, ckey in enumerate(cmeasures):
-                    if ckey == mkey or ckey.startswith(mkey + "("):
-                        # delete it from the to-compute list and add it to to-import
-                        del cmeasures[i]
-                        imeasures.append(ckey)
-                        break
-            args.computed_measures = cmeasures
-            args.imported_measures = imeasures
+            measures = list(getattr(args, "measures", []))
+
+            def update_key(measure_string: str) -> str:
+                measure_key, _, _ = measure_string.partition("(")
+                if measure_key in measure_data.keys():
+                    return ImportedMeasure.PREFIX + measure_string
+                else:
+                    return measure_string
+
+            # for each measure to be computed, replace it with the value in
+            # brainvol.stats, if available
+            args.measures = list(map(update_key, measures))
         return args
 
     parser.set_defaults(

@@ -517,7 +517,7 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
             try:
                 self._data = self._callback(self._filename())
             except Exception as e:
-                e.args[0] += f" ... during reading for measure {self}."
+                e.args = f"{e.args[0]} ... during reading for measure {self}.",
                 raise e
             return True
         return False
@@ -539,6 +539,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
     A Measure that implements reading measure values from a statsfile.
     """
 
+    PREFIX = "__IMPORTEDMEASURE-prefix__"
     read_file = staticmethod(read_measure_file)
 
     def __init__(
@@ -1312,69 +1313,66 @@ class Manager(dict[str, AbstractMeasure]):
     _PATTERN_DELIM = re.compile("\\s*,\\s*")
 
     _compute_futures: list[Future]
+    __DEFAULT_MEASURES = (
+        "BrainSeg",
+        "BrainSegNotVent",
+        "VentricleChoroidVol",
+        "lhCortex",
+        "rhCortex",
+        "Cortex",
+        "lhCerebralWhiteMatter",
+        "rhCerebralWhiteMatter",
+        "CerebralWhiteMatter",
+        "SubCortGray",
+        "TotalGray",
+        "SupraTentorial",
+        "SupraTentorialNotVent",
+        "Mask",
+        "BrainSegVol-to-eTIV",
+        "MaskVol-to-eTIV",
+        "lhSurfaceHoles",
+        "rhSurfaceHoles",
+        "SurfaceHoles",
+        "EstimatedTotalIntraCranialVol",
+    )
 
     def __init__(
             self,
-            args: object,
+            measures: Sequence[tuple[bool, str]],
             measurefile: Optional[Path] = None,
+            segfile: Optional[Path] = None,
             on_missing: Literal["fail", "skip", "fill"] = "fail",
             executor: Optional[Executor] = None,
-            compat: Optional[bool] = None,
+            legacy_freesurfer: bool = False,
     ):
         """
 
         Parameters
         ----------
+        measures : Sequence[tuple[bool, str]]
+            The measures to be included as whether it is computed and name/measure str.
         measurefile : Path, optional
-            path to the file to import measures from (other stats file, absolute or
+            The path to the file to import measures from (other stats file, absolute or
+            relative to subject_dir).
+        segfile : Path, optional
+            The path to the file to use for segmentation (other stats file, absolute or
             relative to subject_dir).
         on_missing : Literal["fail", "skip", "fill"], optional
             behavior to follow if a requested measure does not exist in path.
         executor : concurrent.futures.Executor, optional
             thread pool to parallelize io
-        compat : bool, optional
-            FreeSurfer compatibility mode (default: legacy_freesurfer in args).
+        legacy_freesurfer : bool, default=False
+            FreeSurfer compatibility mode.
         """
-        from itertools import chain
         from concurrent.futures import ThreadPoolExecutor, Future
+        from copy import deepcopy
 
         super().__init__()
-        self._default_measures = (
-            "BrainSeg",
-            "BrainSegNotVent",
-            "VentricleChoroidVol",
-            "lhCortex",
-            "rhCortex",
-            "Cortex",
-            "lhCerebralWhiteMatter",
-            "rhCerebralWhiteMatter",
-            "CerebralWhiteMatter",
-            "SubCortGray",
-            "TotalGray",
-            "SupraTentorial",
-            "SupraTentorialNotVent",
-            "Mask",
-            "BrainSegVol-to-eTIV",
-            "MaskVol-to-eTIV",
-            "lhSurfaceHoles",
-            "rhSurfaceHoles",
-            "SurfaceHoles",
-            "EstimatedTotalIntraCranialVol",
-        )
-        computed_measures = getattr(args, "computed_measures", [])
-        imported_measures = getattr(args, "imported_measures", [])
-        all_measures = (computed_measures, imported_measures)
-        msg = "computed measures and imported measures must be sequences"
-        if not all(isinstance(i, Sequence) for i in all_measures):
-            raise ValueError(f"{msg}.")
-        elif not all(isinstance(i, str) for i in chain(*all_measures)):
-            raise ValueError(f"{msg} of str.")
-        if measurefile is None:
-            measurefile = getattr(args, "measurefile", None)
-        if measurefile is not None:
-            measurefile = Path(measurefile)
-        if compat is None:
-            compat = getattr(args, "legacy_freesurfer", False)
+        self._default_measures = deepcopy(self.__DEFAULT_MEASURES)
+        if (not isinstance(measures, Sequence) or
+                any(not isinstance(i, str) for i in measures)):
+            raise ValueError("measures must be sequences of str.")
+        measurefile = Path(measurefile)
         if executor is None:
             self._executor = ThreadPoolExecutor(8)
         elif isinstance(executor, ThreadPoolExecutor):
@@ -1392,7 +1390,7 @@ class Manager(dict[str, AbstractMeasure]):
         self._exported_measures: list[str] = []
         self._cache: dict[Path, Future[AnyBufferType] | AnyBufferType] = {}
         # self._lut: Optional[pd.DataFrame] = None
-        self._fs_compat: bool = compat
+        self._fs_compat: bool = legacy_freesurfer
         self._seg_from_file = Path("mri/aseg.mgz")
         _args_seg = getattr(args, "segfile", self._seg_from_file)
         if ((_segfile := getattr(args, "aseg_replace", None)) or
@@ -1403,8 +1401,7 @@ class Manager(dict[str, AbstractMeasure]):
             )
             self._seg_from_file = Path(_segfile)
 
-        _imported_measures = list(imported_measures)
-        if len(_imported_measures) != 0:
+        if any(m.startswith(ImportedMeasure.PREFIX) for m in measures):
             if measurefile is None:
                 raise ValueError(
                     "Measures defined to import, but no measurefile specified. "
@@ -1412,17 +1409,16 @@ class Manager(dict[str, AbstractMeasure]):
                 )
             _read_measurefile = self.make_read_hook(read_measure_file)
             _read_measurefile(measurefile, blocking=False)
-            for measure_string in _imported_measures:
+        for measure_string in measures:
+            if measure_string.startswith(ImportedMeasure.PREFIX):
                 self.add_imported_measure(
-                    measure_string,
+                    measure_string.removeprefix(ImportedMeasure.PREFIX),
                     measurefile=measurefile,
                     read_file=_read_measurefile,
                     vox_vol=_DefaultFloat(1.0),
                 )
-
-        _computed_measures = list(computed_measures)
-        for measure_string in _computed_measures:
-            self.add_computed_measure(measure_string)
+            else:
+                self.add_computed_measure(measure_string)
         self.instantiate_measures(self.values())
 
     @property

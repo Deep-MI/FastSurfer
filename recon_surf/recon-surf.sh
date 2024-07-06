@@ -961,12 +961,16 @@ fi
     # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
     # cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
     if [[ "$segstats_legacy" == "true" ]] ; then
-      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py --subject $subject"
-      RunIt "$cmd" "$LF"
+      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py"
+           --subject "$subject")
+      RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
 
-      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/aseg.mgz --sum $statsdir/aseg.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/ASegStatsLUT.txt --etiv"
-#     cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
-      RunIt "$cmd" "$LF"
+      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py" --seed 1234
+           --seg "$mdir/aseg.mgz" --sum "$statsdir/aseg.stats" --pv "$mdir/norm.mgz"
+           "--in-intensity-name" norm "--in-intensity-units" MR --subject "$subject"
+           --surf-wm-vol --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --etiv)
+#      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
+      RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
     else
       # calculate brainvol stats and aseg stats with segstats.py
       cmd_=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
@@ -979,24 +983,24 @@ fi
             "SupraTentorialNotVent" "Mask($mdir/mask.mgz)" "BrainSegVol-to-eTIV"
             "MaskVol-to-eTIV" "lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles"
             "EstimatedTotalIntraCranialVol")
-      RunIt "${cmd_[*]}" "$LF"
+      RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
       echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
       tmpfile_brainvolstats=$(mktemp)
       # ... so stats/brainvol.stats also exists (but it is slightly different
-      cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
-      RunIt "$cmd" $LF
-      cmd_=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-            --segfile "$mdir/aseg.mgz" --segstatsfile "$tmpfile_brainvolstats"
-            measures --file "$statsdir/aseg.stats" --import "BrainSeg" "BrainSegNotVent"
-            "SupraTentorial" "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
-            "Cortex" "TotalGray" "lhCerebralWhiteMatter" "rhCerebralWhiteMatter"
-            "CerebralWhiteMatter" "Mask" --compute "SupraTentorialNotVentVox"
-            "BrainSegNotVentSurf" "VentricleChoroidVol")
-      RunIt "${cmd_[*]}" "$LF"
+#      cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
+#      RunIt "$cmd" "$LF"
+      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+           --segfile "$mdir/aseg.mgz" --segstatsfile "$tmpfile_brainvolstats"
+           measures --file "$statsdir/aseg.stats" --import "BrainSeg" "BrainSegNotVent"
+           "SupraTentorial" "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
+           "Cortex" "TotalGray" "lhCerebralWhiteMatter" "rhCerebralWhiteMatter"
+           "CerebralWhiteMatter" "Mask" --compute "SupraTentorialNotVentVox"
+           "BrainSegNotVentSurf" "VentricleChoroidVol")
+      RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
       # stdout to brainvol.stats ; stderr to LF
       grep "^# Measure " "$tmpfile_brainvolstats" 2>&1 > "$statsdir/brainvol.stats" | tee -a "$LF"
-      cmd_=("rm" "$tmpfile_brainvolstats")
-      RunIt "${cmd_[*]}" "$LF"
+      cmd=("rm" "$tmpfile_brainvolstats")
+      RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
     fi
   fi
 
@@ -1017,8 +1021,8 @@ fi
          --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray
          "--in" "$mdir/norm.mgz" "--in-intensity-name" norm "--in-intensity-units" MR
          --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler
-         "--ctab" "$FREESURFER_HOME/ASegStatsLUT.txt" --subject "$subject")
-    RunIt "$(echo_quoted ${cmd[@]})" "$LF"
+         --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --subject "$subject")
+  RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
   else
     # segstats.py version of the mri_segstats call
     cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
@@ -1040,16 +1044,24 @@ fi
   # takes a few mins
   #cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   if [[ "$segstats_legacy" == "true" ]] ; then
-    cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $statsdir/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
-    RunIt "$cmd" "$LF"
+    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py"
+         --seed 1234 --seg "$mdir/wmparc.DKTatlas.mapped.mgz"
+         --sum "$statsdir/wmparc.DKTatlas.mapped.stats" --pv "$mdir/norm.mgz"
+         --excludeid 0 --brainmask "$mdir/brainmask.mgz" "--in" "$mdir/norm.mgz"
+         "--in-intensity-name" norm "--in-intensity-units" MR
+         --subject "$subject" --surf-wm-vol
+         --ctab "$FREESURFER_HOME/WMParcStatsLUT.txt")
+    RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
   else
     #
-    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --legacy_freesurfer --sid "$subject"
-         --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
-         --pvfile "$mdir/norm.mgz" --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats"
-         --sd "$sd" --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
-         measures --file "$statsdir/" --import "Mask" "VentricleChoroidVol"
-         "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter")
+  cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py"
+       --sid "$subject" --sd "$SUBJECTS_DIR" --pvfile "$mdir/norm.mgz"
+       --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
+       --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
+       --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats"
+       measures --file "$statsdir/brainvol.stats" --import "Mask"
+                "VentricleChoroidVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
+                "CerebralWhiteMatter")
     RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
   fi
 

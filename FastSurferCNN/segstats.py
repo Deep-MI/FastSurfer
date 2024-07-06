@@ -426,23 +426,31 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
         add_help=False,
     )
     add_two_help_messages(measure_parser)
+
+    def __add_computed_measure(x: str) -> tuple[bool, str]:
+        return True, x
     measure_parser.add_argument(
         "--compute",
-        type=str,
+        type=__add_computed_measure,
         nargs="+",
+        action="extend",
         default=[],
-        dest="computed_measures",
+        dest="measures",
         help="Additional Measures to compute based on imported/computed measures:<br>"
              "Cortex, CerebralWhiteMatter, SubCortGray, TotalGray, "
              "BrainSegVol-to-eTIV, MaskVol-to-eTIV, SurfaceHoles, "
              "EstimatedTotalIntraCranialVol",
     )
+
+    def __add_imported_measure(x: str) -> tuple[bool, str]:
+        return False, x
     measure_parser.add_argument(
         '--import',
-        type=str,
+        type=__add_imported_measure,
         nargs="+",
+        action="extend",
         default=[],
-        dest="imported_measures",
+        dest="measures",
         help="Additional Measures to import from the measurefile.<br>"
              "Example measures ('all' to import all measures in the measurefile):<br>"
              "BrainSeg, BrainSegNotVent, SupraTentorial, SupraTentorialNotVent, "
@@ -752,11 +760,13 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
     # measurefile
     try:
+        measures = getattr(args, "measures", [])
+        any_imported_measure = any(filter(lambda x: not x[0], measures))
         segfile, pvfile, normfile, segstatsfile, measurefile = parse_files(
             args,
             subjects_dir,
             subject_id,
-            require_measurefile=not empty(getattr(args, "imported_measures", [])),
+            require_measurefile=any_imported_measure,
         )
         brainvolstats_only = pvfile is None
         if brainvolstats_only:
