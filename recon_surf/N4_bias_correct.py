@@ -710,7 +710,7 @@ def main(
                     cap_dtype = prefix.upper() + cap_dtype[len(prefix):]
             sitk_dtype = getattr(sitk, "sitk" + cap_dtype)
             itk_outvol = sitk.Cast(itk_outvol, sitk_dtype)
-            image_header.set_dtype(np.dtype(out_dtype))
+            image_header.set_data_dtype(np.dtype(out_dtype))
 
         # write image
         logger.info(f"writing {type(outvol).__name__}: {outvol}")
