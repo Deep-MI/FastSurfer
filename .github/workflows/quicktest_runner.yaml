@@ -1,4 +1,4 @@
-name: quicktest
+name: quicktest-runner
 
 on:
 #  pull_request:
