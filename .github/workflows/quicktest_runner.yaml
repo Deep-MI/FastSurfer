@@ -1,4 +1,4 @@
-name: quicktest-runner
+name: quicktest-docker
 
 on:
 #  pull_request:
