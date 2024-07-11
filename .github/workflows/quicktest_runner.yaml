@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v2
 
   # Prepare job: Set up Python, Go, Singularity
-  prepare-job:
+  run-fastsurfer:
     runs-on: self-hosted
     needs: checkout
     steps:
@@ -20,70 +20,6 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-#    - name: Install package
-#      run: |
-#        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-#        python -m pip install --progress-bar off .[test]
-#    - name: Set up Go
-#      uses: actions/setup-go@v5
-#      with:
-#        go-version: '^1.13.1' # The Go version to download (if necessary) and use.
-#    - name: Set up Singularity
-#      uses: eWaterCycle/setup-singularity@v7
-#      with:
-#        singularity-version: 3.8.3
-
-#  # Build Docker Image and convert it to Singularity
-#  build-singularity-image:
-#    runs-on: self-hosted
-#    needs: prepare-job
-#    steps:
-#    - name: Build Docker Image and convert to Singularity
-#      run: |
-#        cd $RUNNER_SINGULARITY_IMGS
-#        FILE="fastsurfer-gpu.sif"
-#        if [ ! -f "$FILE" ]; then
-#        # If the file does not exist, build the file
-#          echo "SIF File does not exist. Building file."
-#          PYTHONPATH=$PYTHONPATH
-#          cd $PYTHONPATH
-#          python3 Docker/build.py --device cuda --tag fastsurfer_gpu:cuda
-#          cd $RUNNER_SINGULARITY_IMGS
-#          singularity build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
-#        else
-#          echo "File already exists"
-#          cd $PYTHONPATH
-#        fi
-
-  # Run FastSurfer on MRI data
-  run-fastsurfer:
-    runs-on: self-hosted
-    needs: prepare-job
-    steps:
-    - name: Run FastSurfer
-      run: |
-        cd $RUNNER_FS_OUTPUT
-        # DIRECTORY="subjectX"
-        echo "pwd: $(pwd)"
-        # if [ -d "$DIRECTORY" ]; then
-        #   # if output already exists, delete it and run again
-        #   echo "Output already exists. Deleting output directory and running FastSurfer again."
-        #   rm -rf $DIRECTORY
-        # fi
-        singularity exec --nv \
-                      --no-home \
-                      --bind $GITHUB_WORKSPACE:/fastsurfer-dev \
-                      --env FASTSURFER_HOME=/fastsurfer-dev \
-                      -B $RUNNER_FS_MRI_DATA:/data \
-                      -B $RUNNER_FS_OUTPUT:/output \
-                      -B $RUNNER_FS_LICENSE:/fs_license \
-                      $RUNNER_SINGULARITY_IMGS/fastsurfer-gpu.sif \
-                      /fastsurfer/brun_fastsurfer.sh \
-                      --fs_license /fs_license/.license \
-                      --subject_list /data/subject_list.txt \
-                      --sd /output \
-                      --parallel --3T \
-                      --parallel_subjects surf
 
   # Run pytest
   run-pytest:
