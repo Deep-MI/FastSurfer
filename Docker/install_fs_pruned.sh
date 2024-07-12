@@ -104,7 +104,6 @@ wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
       --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
       --exclude='freesurfer/average/mult-comp-cor' \
-      --exclude='freesurfer/average/mult-comp-cor' \
       --exclude='freesurfer/average/samseg' \
       --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
       --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
@@ -270,7 +269,6 @@ copy_files="
   bin/mris_euler_number
   bin/mris_extract_main_component
   bin/mris_fix_topology
-  bin/mris_inflate
   bin/mris_inflate
   bin/mris_info
   bin/mris_jacobian
