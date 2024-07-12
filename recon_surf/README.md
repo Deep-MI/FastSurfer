@@ -152,7 +152,7 @@ singularity exec --no-home \
 ```
 
 A dedicated subfolder will be used for each subject within the target directory. 
-As the `--t1` and ``--asegdkt_segfile` flags are not set, a subfolder within the target directory named after each subject (`$subject_id`) needs to exist and contain T1-weighted conformed image, 
+As the `--t1` and `--asegdkt_segfile` flags are not set, a subfolder within the target directory named after each subject (`$subject_id`) needs to exist and contain T1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under `$subjects_dir/$subject_id/mri/orig.mgz`, `$subjects_dir/$subject_id/mri/mask.mgz`, and `$subjects_dir/$subject_id/mri/aparc.DKTatlas+aseg.deep.mgz`, respectively). 
 The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). The script will also generate a bias-field corrected image at `$subjects_dir/$subject_id/mri/orig_nu.mgz`, if this did not already exist.   
 
