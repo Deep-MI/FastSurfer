@@ -43,9 +43,9 @@ List them by running the following command:
 
 For more details see `--help`.
 
-### Example 1: recon-surf inside Docker
+### Example 1: Surface module inside Docker
 
-Docker can be again be used to simplify the installation (no FreeSurfer on system required). 
+Docker can be used to simplify the installation (no FreeSurfer on system required). 
 Given you already ran the segmentation pipeline, and want to just run the surface pipeline on top of it 
 (i.e. on a different cluster), the following command can be used:
 ```bash
@@ -64,26 +64,28 @@ Check [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find out t
 Docker Flags: 
 * The `-v` commands mount your output, and directory with the FreeSurfer license file into the Docker container. Inside the container these are visible under the name following the colon (in this case /output and /fs_license). 
 
-As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
-mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, orig.mgz etc.)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
-and labels file (equivalent to a FreeSurfer recon-all run). 
-
+This essentially calls the run_fastsurfer.sh script as entry point and starts only the surface module. It assumes that this case `subjectX` exists already and that the output files of the segmentation module are 
+available in the subjectX/mri directory (e.g. `/home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz`, `mask.mgz`, `orig.mgz` etc.). The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). It is possible to modify the entry point during the docker call and directly run recon-surf.sh, as we will demonstrate with the Singularity example next.
 
 ## Example 2: recon-surf inside Singularity
-Singularity can be used as for the full pipeline. Given you already ran the segmentation pipeline, and want to just run 
+Singularity can be used instead of Docker to run the full pipeline or individual modules. In this example we change the entrypoint to `recon-surf.sh` instead of the standard
+`run_fastsurfer.sh`. Usually it is recomended to just use the default, so this is for expert users who may want to try out specific flags that are not passed to the wrapper. 
+Given you already ran the segmentation pipeline, and want to just run 
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:
 ```bash
 # 1. Build the singularity image (if it does not exist)
-singularity build fastsurfer-cpu.sif docker://deepmi/fastsurfer:cpu-v?.?.?
+singularity build fastsurfer-cpu-v?.?.?.sif docker://deepmi/fastsurfer:cpu-v?.?.?
 
 # 2. Run command
 singularity exec --no-home \
                  -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs_license \
-                  ./fastsurfer-cpu.sif \
+                  ./fastsurfer-cpu-?.?.?.sif \
                   /fastsurfer/recon_surf/recon-surf.sh \
                   --fs_license /fs_license/license.txt \
-                  --sid subjectX --sd /output --3T --surf_only
+                  --sid subjectX --sd /output --3T \
+                  --t1 <path_to>/subjectX/mri/orig.mgz \
+                  --asegdkt_segfile <path_to>/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
 ```
 Check [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find out the latest release version and replace the "?". 
 
@@ -92,13 +94,13 @@ Check [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find out t
 
 * The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../Singularity/README.md#mounting-home))
 
-As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
-mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under /home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz, mask.mgz, orig.mgz etc.)).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
+The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the segmentation module. Also other files from that pipeline
+will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`). The subject directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
 and labels file (equivalent to a FreeSurfer recon-all run). 
 
 ## Example 3: Native installation - recon-surf on a single subject (subjectX)
 
-Given you want to analyze data for subjectX which is stored on your computer under /home/user/my_mri_data/subjectX/orig.mgz, 
+Given you want to analyze data for subjectX which is stored on your computer under `/home/user/my_mri_data/subjectX/orig.mgz`, 
 run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
@@ -109,19 +111,20 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 # Define data directory
 datadir=/home/user/my_mri_data
 segdir=/home/user/my_segmentation_data
-targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECT_DIR
+targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECTS_DIR
 
 # Run recon-surf
 ./recon-surf.sh --sid subjectX \
                 --sd $targetdir \
                 --py python3.10 \
-                --3T
-
+                --3T \
+                --t1 <path_to>/subjectX/mri/orig.mgz \
+                --asegdkt_segfile <path_to>/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
 ```
 
-As the --t1 and --asegdkt_segfile flag are not set, a subfolder within the target directory named after the subject (here: subjectX) needs to exist and contain t1-weighted conformed image, 
-mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under `/home/user/my_fastsurfeer_analysis/subjectX/mri/orig.mgz`, `.../aparc.DKTatlas+aseg.deep.mgz`, and `.../mask.mgz`).  The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
-The script will also generate a bias-field corrected image at `/home/user/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz`, if this did not already exist.
+The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the segmentation module. Also other files from that pipeline
+will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`, i.e. under `/home/user/my_fastsurfeer_analysis/subjectX/mri/mask.mgz`). The `subjectX` directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
+The script will generate a bias-field corrected image at `/home/user/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz`, if this did not already exist.
 
 ### Example 4: recon-surf on multiple subjects
 
@@ -149,7 +152,7 @@ singularity exec --no-home \
 ```
 
 A dedicated subfolder will be used for each subject within the target directory. 
-As the --t1 and --asegdkt_segfile flags are not set, a subfolder within the target directory named after each subject (`$subject_id`) needs to exist and contain T1-weighted conformed image, 
+As the `--t1` and ``--asegdkt_segfile` flags are not set, a subfolder within the target directory named after each subject (`$subject_id`) needs to exist and contain T1-weighted conformed image, 
 mask and segmentations (as output by our FastSurfer segmentation networks, i.e. under `$subjects_dir/$subject_id/mri/orig.mgz`, `$subjects_dir/$subject_id/mri/mask.mgz`, and `$subjects_dir/$subject_id/mri/aparc.DKTatlas+aseg.deep.mgz`, respectively). 
 The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). The script will also generate a bias-field corrected image at `$subjects_dir/$subject_id/mri/orig_nu.mgz`, if this did not already exist.   
 
