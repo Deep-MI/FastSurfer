@@ -1,4 +1,4 @@
-name: quicktest-docker
+name: quicktest-runner
 
 on:
   workflow_dispatch:
