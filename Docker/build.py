@@ -245,12 +245,14 @@ def make_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also tag the resulting image as 'fastsurfer:dev'.",
     )
-    parser.add_argument(
-        "--save_image",
-        dest="image_path",
-        default=None,
-        help="Export the image to a to a tarball.",
-    )
+    # --save_image does not work as expected right now, it cannot be imported via
+    # docker load, but must be transferred to a registry...
+    # parser.add_argument(
+    #     "--save_image",
+    #     dest="image_path",
+    #     default=None,
+    #     help="Export the image to a tarball.",
+    # )
     parser.add_argument(
         "--singularity",
         type=Path,
@@ -402,7 +404,8 @@ def docker_build_image(
         The operation to perform after the image is built (only if a docker-container
         builder is detected).
     image_path : Path, str, optional
-        A path to save the image to.
+        A path to save the image to (experimental; currently cannot be imported into a
+        legacy docker storage driver).
 
     Additional kwargs add additional build flags to the build command in the following
     manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
@@ -449,6 +452,8 @@ def docker_build_image(
                          any(is_inline_cache(f"cache_{c}") for c in ("to", "from")))
     import_after_args = []
     if dest := image_path or "":
+        logger.warning("Images exported with image_path cannot be imported into legacy "
+                       "storage drivers. This feature is currently experimental.")
         dest = f",dest={dest}"
     if not has_buildx:
         # only standard build environment arguments available
@@ -483,20 +488,20 @@ def docker_build_image(
             logger.warning(
                 f"{CONTAINERD_MESSAGE}The build script will save the image to "
                 f"{image_path} (which will contain the attestation manifest files, "
-                f"but the imported image {image_name} will not."
+                f"but the imported image {image_name} will not, experimental)."
             )
             image_type = f"oci{dest}"
             if dry_run:
                 print(f"mkdir -p {Path(image_path).parent} && ", sep="")
             else:
                 Path(image_path).parent.mkdir(exist_ok=True)
-            import_after_args = ["image", "import", image_path, image_name]
+            # importing after (bock docker image import as well as docker image load
+            # are not supported for images exported by buildkit.
+            # import_after_args = ["image", "import", image_path, image_name]
         elif attestation:
             # also implicitly action == load
-            raise RuntimeError(
-                f"{CONTAINERD_MESSAGE}Alternatively, save the image to preserve the "
-                f"manifest files in that file."
-            )
+            raise RuntimeError(CONTAINERD_MESSAGE)
+            # Future Alternative: save the image to preserve the manifest files to file
         else:
             # no attestation, docker builder supports this format
             image_type = f"docker{dest}"
