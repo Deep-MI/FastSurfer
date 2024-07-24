@@ -471,7 +471,7 @@ echo "SUBJECT $subject"           >> $DoneFile
 echo "START_TIME $StartTime"      >> $DoneFile
 echo "END_TIME $EndTime"          >> $DoneFile
 echo "RUNTIME_HOURS $tRunHours"   >> $DoneFile
-echo "USER `id -un`"              >> $DoneFile
+echo "USER `id -un`"              >> $DoneFile 2> /dev/null
 echo "HOST `hostname`"            >> $DoneFile
 echo "PROCESSOR `uname -m`"       >> $DoneFile
 echo "OS `uname -s`"              >> $DoneFile

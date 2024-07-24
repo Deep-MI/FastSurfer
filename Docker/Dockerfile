@@ -81,7 +81,7 @@ RUN wget --no-check-certificate -qO ~/miniforge.sh \
     ~/miniforge.sh -b -p /opt/miniforge && \
     rm ~/miniforge.sh
 
-ENV PATH /opt/miniforge/bin:$PATH
+ENV PATH=/opt/miniforge/bin:$PATH
 
 # create a stage for the common components used across different DEVICE settings
 FROM build_base AS build_common
@@ -189,7 +189,7 @@ COPY --from=selected_conda_build_image /venv /venv
 
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
-ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages:$PYTHONPATH \
+ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
     FASTSURFER_HOME=/fastsurfer
 
 # Download all remote network checkpoints already, compile all FastSurfer scripts into
@@ -221,7 +221,7 @@ WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
 CMD ["--help"]
 
-FROM runtime as runtime_cuda
+FROM runtime AS runtime_cuda
 # to support AWS docker images, see Issue #352
 # https://sarus.readthedocs.io/en/stable/user/custom-cuda-images.html#controlling-the-nvidia-container-runtime
 

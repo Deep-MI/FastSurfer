@@ -43,10 +43,10 @@ class MessageBuffer:
         self.runtime = max(self.runtime or 0.0, other.runtime or 0.0)
         return self
 
-    def out_str(self, encoding=None):
+    def out_str(self, encoding="utf-8"):
         return self.out.decode(encoding=encoding)
 
-    def err_str(self, encoding=None):
+    def err_str(self, encoding="utf-8"):
         return self.err.decode(encoding=encoding)
 
 
