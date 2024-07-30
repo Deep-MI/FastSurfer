@@ -26,12 +26,12 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 from CCNet.models.networks import build_model
 from CCNet.data_loader.augmentation import ToTensorTest, CutoutTumorMaskInference
-from CCNet.data_loader.data_utils import map_prediction_sagittal2full
+from FastSurferCNN.data_loader.data_utils import map_prediction_sagittal2full
 from CCNet.data_loader.dataset import MultiScaleOrigDataThickSlices
-from CCNet.config.global_var import get_class_names
+from FastSurferCNN.config.global_var import get_class_names
 from CCNet.utils.misc import calculate_centers_of_comissures
 
 

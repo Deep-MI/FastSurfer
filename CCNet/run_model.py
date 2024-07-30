@@ -19,10 +19,10 @@ import sys
 import argparse
 import json
 
-from CCNet.utils import misc
-from CCNet.utils.load_config import get_config
-from CCNet.train import Trainer
-from CCNet.config.global_var import get_class_names
+from FastSurferCNN.utils import misc
+from FastSurferCNN.utils.load_config import get_config
+from CCNet.train import CCNetTrainer
+from FastSurferCNN.config.global_var import get_class_names
 
 def setup_options():
     # Training settings
@@ -51,6 +51,8 @@ def setup_options():
     return parser.parse_args()
 
 
+
+
 def main():
     args = setup_options()
     cfg = get_config(args)
@@ -77,7 +79,7 @@ def main():
     if cfg.MODEL.NUM_CLASSES == 0:
         cfg.MODEL.NUM_CLASSES = len(get_class_names(cfg.DATA.PLANE, cfg.DATA.CLASS_OPTIONS))+1
 
-    trainer = Trainer(cfg=cfg)
+    trainer = CCNetTrainer(cfg=cfg)
     trainer.run()
 
 

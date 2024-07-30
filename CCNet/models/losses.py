@@ -15,7 +15,7 @@
 
 
 # IMPORTS
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 from doctest import FAIL_FAST
 from math import e, log
 from numpy import NaN

@@ -20,8 +20,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-import CCNet.models.sub_module as sm
-import CCNet.models.interpolation_layer as il
+import FastSurferCNN.models.sub_module as sm
+import FastSurferCNN.models.interpolation_layer as il
 
 
 class CCNetBase(nn.Module):

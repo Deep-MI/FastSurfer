@@ -25,8 +25,8 @@ import scipy.ndimage.morphology as morphology
 import nibabel as nib
 import pandas as pd
 
-from CCNet.utils import logging
-from CCNet.data_loader.conform import is_conform, conform, check_affine_in_nifti
+from FastSurferCNN.utils import logging
+from FastSurferCNN.data_loader.conform import is_conform, conform, check_affine_in_nifti
 
 
 ##

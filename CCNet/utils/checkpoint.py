@@ -20,15 +20,15 @@ import glob
 import requests
 import torch
 
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
-URL = "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
-VINN_AXI = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/aparc_vinn_axial_v2.0.0.pkl")
-VINN_COR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/aparc_vinn_coronal_v2.0.0.pkl")
-VINN_SAG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl")
+URL = "TODO"
+VINN_AXI = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/CCNet_sagittal_v0.1.0.pkl")
+VINN_COR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/CCNet_sagittal_v0.1.0.pkl")
+VINN_SAG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkpoints/CCNet_sagittal_v0.1.0.pkl")
 
 
 def create_checkpoint_dir(expr_dir, expr_num):

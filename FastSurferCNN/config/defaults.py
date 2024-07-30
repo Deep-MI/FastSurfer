@@ -16,6 +16,12 @@ _C.MODEL.NUM_CLASSES = 79
 # Loss function, combined = dice loss + cross entropy, combined2 = dice loss + boundary loss
 _C.MODEL.LOSS_FUNC = "combined"
 
+_C.MODEL.WEIGHT_SEG = 1e-5
+
+_C.MODEL.WEIGHT_LOC = 1.0
+
+_C.MODEL.WEIGHT_DIST = 0.0
+
 # Filter dimensions for DenseNet (all layers same)
 _C.MODEL.NUM_FILTERS = 71
 
@@ -112,6 +118,9 @@ _C.TRAIN.EARLY_STOPPING_WAIT = 10
 # Delta = change below which early stopping starts (previous - current < delta = stop)
 _C.TRAIN.EARLY_STOPPING_DELTA = 0.00001
 
+# Flag to enable debugging run (smaller dataset, less epochs, etc.)
+_C.TRAIN.DEBUG = False
+
 # ---------------------------------------------------------------------------- #
 # Testing options
 # ---------------------------------------------------------------------------- #
@@ -131,6 +140,7 @@ _C.DATA.PATH_HDF5_TRAIN = ""
 
 # path to validation hdf5-dataset
 _C.DATA.PATH_HDF5_VAL = ""
+_C.DATA.PATH_HDF5_VAL2 = ""
 
 # The plane to load ['axial', 'coronal', 'sagittal']
 _C.DATA.PLANE = "coronal"
@@ -143,10 +153,15 @@ _C.DATA.CLASS_OPTIONS = ["aseg", "aparc"]
 _C.DATA.SIZES = [256, 311, 320]
 
 # the size that all inputs are padded to
-_C.DATA.PADDED_SIZE = 320
+_C.DATA.PADDED_SIZE = [320, 320, 320]
 
 # Augmentations
 _C.DATA.AUG = ["Scaling", "Translation"]
+
+# Augmentation probability
+_C.DATA.AUG_LIKELYHOOD = [0.3, 0.3]
+
+_C.DATA.LUT = ""
 
 # ---------------------------------------------------------------------------- #
 # DataLoader options (common for test and train)
@@ -158,6 +173,9 @@ _C.DATA_LOADER.NUM_WORKERS = 8
 
 # Load data to pinned host memory.
 _C.DATA_LOADER.PIN_MEMORY = True
+
+# How many batches to prefetch (maximum)
+_C.DATA_LOADER.PREFETCH_FACTOR = 2
 
 # ---------------------------------------------------------------------------- #
 # Optimizer options
@@ -222,6 +240,8 @@ _C.NUM_GPUS = 1
 # log directory for run
 _C.LOG_DIR = "./experiments"
 
+_C.LOG_LEVEL = 20
+
 # experiment number
 _C.EXPR_NUM = "Default"
 
@@ -229,8 +249,8 @@ _C.EXPR_NUM = "Default"
 # operator implementations in GPU operator libraries.
 _C.RNG_SEED = 1
 
-_C.SUMMARY_PATH = "FastSurferVINN/summary/FastSurferVINN_coronal"
-_C.CONFIG_LOG_PATH = "FastSurferVINN/config/FastSurferVINN_coronal"
+# Predict healthy tissue for inpainting / anomaly detection
+_C.INPAINT_LOSS_WEIGHT = 0.5  # Weight of intensity image in loss function
 
 
 def get_cfg_defaults():

@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from torchvision import utils
 
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 

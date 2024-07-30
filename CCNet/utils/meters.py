@@ -22,7 +22,7 @@ from matplotlib import axis
 import numpy as np
 import torch
 
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 from CCNet.utils.misc import calculate_centers_of_comissures, plot_confusion_matrix
 
 from scipy.ndimage import _ni_support

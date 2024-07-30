@@ -343,6 +343,19 @@ ALL_FLAGS = {
              "the order of messages in the log, but speed up the segmentation "
              "specifically for slow file systems.",
     ),
+    "crop": __arg(
+        "--crop",
+        dest="crop",
+        action="store_true",
+        help="Crop the input image to 5mm around the midplane 128", #TODO: variable midplane
+    ),
+    "lesion_mask": __arg(
+        "--lesion_mask",
+        type=str,
+        dest="lesion_mask",
+        default=None,
+        help="aparc_aseg_segfile",
+    ),
 }
 
 T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)

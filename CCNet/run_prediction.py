@@ -26,17 +26,18 @@ import nibabel as nib
 import nibabel.processing
 
 from CCNet.inference import Inference
-from CCNet.utils import logging, parser_defaults
+from FastSurferCNN.utils import logging
+from CCNet.utils import parser_defaults
 from CCNet.utils.checkpoint import get_checkpoints, VINN_AXI, VINN_COR, VINN_SAG
-from CCNet.utils.load_config import load_config
+from FastSurferCNN.utils.load_config import load_config
 from CCNet.utils.misc import find_device, calculate_centers_of_comissures
-from CCNet.data_loader import data_utils as du, conform as conf
-from CCNet.quick_qc import check_volume
-import CCNet.reduce_to_aseg as rta
-from CCNet.config.global_var import get_class_names
+from FastSurferCNN.data_loader import data_utils as du, conform as conf
+from FastSurferCNN.quick_qc import check_volume
+import FastSurferCNN.reduce_to_aseg as rta
+from FastSurferCNN.config.global_var import get_class_names
 
 # Set up logging
-from CCNet.utils.logging import setup_logging
+from FastSurferCNN.utils.logging import setup_logging
 
 ##
 # Global Variables
@@ -100,9 +101,6 @@ class RunModelOnData:
         self.conf_name = args.conf_name
         self.orig_name = args.orig_name
         self.remove_suffix = args.remove_suffix
-        self.lesion_mask_name = args.lesion_mask
-        if self.lesion_mask_name == 'none':
-            self.lesion_mask_name = None
 
         self.sf = 1.0
         self.out_dir = self.set_and_create_outdir(args.out_dir)
@@ -180,54 +178,6 @@ class RunModelOnData:
     def get_out_dir(self) -> str:
         return self.out_dir
     
-    def apply_tumor_mask_and_save(self, orig_img: nib.analyze.SpatialImage) -> nib.analyze.SpatialImage:
-        """
-        Mask tumor from original image and return masked image
-
-        :param orig_img: original image
-        :return: masked image, lesion mask binarized and resampled to orig space
-        """
-        if self.lesion_mask_name is not None:
-            assert(os.path.isfile(self.lesion_mask_name)), f"Lesion mask file {self.lesion_mask_name} not found!"
-
-        lesion_mask = nib.load(self.lesion_mask_name)
-        #print(self.lesion_mask_name)
-        #print(np.unique(lesion_mask.get_fdata()))
-        #assert(lesion_mask.get_data_dtype() == bool), f"Lesion mask {self.lesion_mask_name} should be boolean, but has dtype {lesion_mask.get_data_dtype()}"
-
-        if not lesion_mask.get_data_dtype() != bool:
-            LOGGER.warning(f"Lesion mask {self.lesion_mask_name} should be boolean, but has dtype {lesion_mask.get_data_dtype()}. Converting to boolean by considering all values >0 as lesion.")
-
-        # binarize
-        lesion_mask = nib.Nifti1Image(lesion_mask.get_fdata() > 0, header=lesion_mask.header, affine=lesion_mask.affine)
-
-
-        resampled_lesion_mask_image = nibabel.processing.resample_from_to(lesion_mask, orig_img, order=0, mode='constant', cval=0)
-        if (resampled_lesion_mask_image.get_fdata() == 0).all():
-            LOGGER.warning('Tumor mask is all zeros, skipping mask volume')
-            return orig_img, resampled_lesion_mask_image
-        elif (resampled_lesion_mask_image.get_fdata() == 1).all():
-            raise ValueError('Tumor mask is all ones')
-            #return nib.Nifti1Image(np.zeros(orig_img.shape), orig_img.affine, orig_img.header)
-
-
-        assert(resampled_lesion_mask_image.shape == orig_img.shape), 'Shape mismatch between tumor mask and orig image ' + str(resampled_lesion_mask_image.shape) + ' vs ' + str(orig_img.shape)
-        assert((resampled_lesion_mask_image.affine == orig_img.affine).all()), 'Affine mismatch between tumor mask and orig image ' + str(resampled_lesion_mask_image.affine) + ' vs ' + str(orig_img.affine)
-        assert((np.unique(resampled_lesion_mask_image.get_fdata()) == [0,1]).all()), 'Tumor mask should be binary, but has values: ' + str(np.unique(resampled_lesion_mask_image.get_fdata()))
-
-        # set lesion mask zero
-        #resampled_lesion_mask = (resampled_lesion_mask_image.get_fdata() == 0) # invert mask
-        masked_orig = orig_img.get_fdata() * (resampled_lesion_mask_image.get_fdata() == 0)
-
-        # fill mask with random noise
-        #masked_orig += (np.random.normal(0, 255, size=masked_orig.shape) * (resampled_lesion_mask_image.get_fdata() == 1)) # TODO: better to add noise in float image
-
-        out_img = nib.Nifti1Image(masked_orig, orig_img.affine, orig_img.header)
-
-        # Save conformed input image
-        nib.save(out_img, os.path.join(self.out_dir, self.subject_name, 'mri/orig_masked.mgz'))
-
-        return out_img, resampled_lesion_mask_image
 
     def conform_and_save_orig(self, orig_str: str) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
         orig, orig_data = self.get_img(orig_str)
@@ -383,10 +333,10 @@ def main():
     parser = argparse.ArgumentParser(description='Evaluation metrics')
 
     # 1. Options for input directories and filenames
-    parser = parser_defaults.add_arguments(parser, ["t1", "sid", "lesion_mask", "in_dir", "tag", "csv_file", "lut", "remove_suffix", "crop"])
+    parser = parser_defaults.add_arguments(parser, ["t1", "sid", "in_dir", "tag", "csv_file", "lut", "remove_suffix", "crop"])
 
     # 2. Options for output
-    parser = parser_defaults.add_arguments(parser, ["aparc_aseg_segfile", "conformed_name", "brainmask_name",
+    parser = parser_defaults.add_arguments(parser, ["asegdkt_segfile", "conformed_name", "brainmask_name",
                                                     "aseg_name", "sd", "seg_log", "qc_log"])
 
     # 3. Checkpoint to load
@@ -492,11 +442,7 @@ def main():
             offset = midplane-original_size[0]//2
             extra_slices = 0
 
-        if args.lesion_mask is not None:
-            masked_orig, lesion_mask = eval.apply_tumor_mask_and_save(orig_img)
-            lesion_mask = lesion_mask.get_fdata().astype(bool)
-        else:
-            lesion_mask = None
+        lesion_mask = None
         
         # Set prediction name
         out_dir, sbj_name = eval.get_out_dir(), eval.get_subject_name()
@@ -542,9 +488,9 @@ def main():
                     
             eval.save_img(pred_name, pred_data, orig_img, dtype=np.int16)
 
-            # Create aseg and brainmask
+# Create aseg and brainmask
             # Change datatype to np.uint8, else mri_cc will fail!
-
+            
             # # get mask
             # LOGGER.info("Creating brainmask based on segmentation...")
             # bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)

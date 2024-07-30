@@ -40,10 +40,10 @@ DATA:
   SIZES: [256, 320, 311, 429]
   PADDED_SIZE: [429, 429, 7] # [axis1, axis2, thickness]
   PLANE: "sagittal"
-  PATH_HDF5_TRAIN: "../data/sagittal_train.hdf5"
-  PATH_HDF5_VAL: "../data/sagittal_val.hdf5"
+  PATH_HDF5_TRAIN: "/groups/ag-reuter/projects/corpus_callosum_fornix/FastSurfer/data/sagittal_train.hdf5"
+  PATH_HDF5_VAL: "/groups/ag-reuter/projects/corpus_callosum_fornix/FastSurfer/data/sagittal_val.hdf5"
   AUG: [] # "Hemisphere" "Flip"
-  LUT: "../CCNet/config/CC_ColorLUT.tsv"
+  LUT: "/groups/ag-reuter/projects/corpus_callosum_fornix/FastSurfer/CCNet/config/CC_ColorLUT.tsv"
   #AUG_LIKELYHOOD: [0.8, 0.4] # Gaussian does not support probability
 
 DATA_LOADER:
@@ -68,7 +68,7 @@ OPTIMIZER:
 NUM_GPUS: 1
 #INPAINT_LOSS_WEIGHT: 0.5  # Weight of intensity image in loss function
 RNG_SEED: 1
-LOG_DIR: "../CCNet/experiments/debug"
+LOG_DIR: "/groups/ag-reuter/projects/corpus_callosum_fornix/FastSurfer/CCNet/experiments/debug"
 #LOG_LEVEL: 10
 EXPR_NUM: "cc_sagittal_debug"
 

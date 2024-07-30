@@ -391,9 +391,8 @@ def get_thick_slices(
 
 
 def filter_blank_slices_thick(
-        img_vol: npt.NDArray,
+        volume_list: list,
         label_vol: npt.NDArray,
-        weight_vol: npt.NDArray,
         threshold: int = 50
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -401,12 +400,10 @@ def filter_blank_slices_thick(
 
     Parameters
     ----------
-    img_vol : npt.NDArray
-        Orig image volume.
+    volume_list : list
+        List of image volumes (thick slices).
     label_vol : npt.NDArray
         Label images (ground truth).
-    weight_vol : npt.NDArray
-        Weight corresponding to labels.
     threshold : int
         Threshold for number of pixels needed to keep slice (below = dropped). (Default value = 50).
 
@@ -423,11 +420,11 @@ def filter_blank_slices_thick(
     select_slices = np.sum(label_vol, axis=(0, 1)) > threshold
 
     # Retain only slices with more than threshold labels/pixels
-    img_vol = img_vol[:, :, select_slices, :]
-    label_vol = label_vol[:, :, select_slices]
-    weight_vol = weight_vol[:, :, select_slices]
+    return_list = []
+    for v in volume_list:
+        return_list.append(v[:, :, select_slices])
 
-    return img_vol, label_vol, weight_vol
+    return return_list
 
 
 # weight map generator
@@ -1122,6 +1119,13 @@ def map_prediction_sagittal2full(
         _idx.extend([[20, 22, 27], r(29, 32), [33, 34], r(38, 43), [45]])
     elif num_classes == 21:
         _idx = [[0], r(5, 15), r(1, 4), [15, 16, 4], r(17, 20), r(5, 21)]
+    elif num_classes == 1:
+        _idx = [[0, 1, 1]]
+    elif num_classes == 3:
+        _idx = [[0, 1, 2]]
+    elif num_classes == 2:
+        _idx = [[0, 1]]
+
     if _idx:
         from itertools import chain
         idx_list = list(chain(*_idx))
@@ -1192,3 +1196,96 @@ def get_largest_cc(segmentation: npt.NDArray) -> np.ndarray:
     largest_cc = labels == np.argmax(bincount)
 
     return largest_cc
+
+
+def map_incrementing(mapped_aseg, lut):
+    """Map labels to an incrementing space"""
+    for idx, label in enumerate(lut['ID']):
+        mapped_aseg[mapped_aseg == label] = idx
+    return mapped_aseg
+
+def subset_volume_plane(volume: npt.NDArray, plane: Union[int, float] = 128, thickness: int = 5, axis: int = 0) -> np.ndarray:
+        """Return a subset of the volume around the plane
+
+        Parameters:
+        ----------
+        volume : npt.NDArray 
+            volume to subset
+        plane : Union[int, float] 
+            plane of the subset. Defaults to 127.5. (optional)
+        thickness : int
+            Total thickness of the subset. Defaults to 7. If odd, the plane should be inbetween two indices. (optional)
+        axis : int
+            axis of the plane. Defaults to 0. (optional)
+
+        Returns:
+            np.ndarray: subset of the volume. 
+            
+        Raises:
+            ValueError: If the thickness and plane combination is unknown.
+            ValueError: If the axis is unknown.
+
+        Notes:
+            If plane is an integer, it is included in the subset, the subset will need to have an odd thickness. Otherwise, the subset will have an even thickness.
+        """
+        assert 2*plane == int(2*plane), "Plane must be an integer or between two indices"
+        assert axis in [0, 1, 2], "axis must be 0, 1 or 2"
+
+        # Calculate the lower and upper bounds of the subset
+        lower_bound, upper_bound = 0, 0
+        if (thickness % 2 == 1) and plane == int(plane):
+            lower_bound = int(plane - thickness//2)
+            upper_bound = int(plane + thickness//2 + 1)
+        elif (thickness % 2 == 0) and plane != int(plane):
+            lower_bound = int(np.ceil(plane - thickness/2))
+            upper_bound = int(np.floor(plane + thickness/2))
+        else:
+            raise ValueError("Unknown thickness and plane combination.")
+
+
+        if axis == 0:
+            return volume[lower_bound: upper_bound, :, :]
+        elif axis == 1:
+            return volume[:, lower_bound: upper_bound, :]
+        elif axis == 2:
+            return volume[:, :, lower_bound: upper_bound]
+        else:
+            raise ValueError("Unknown axis")
+        
+def pad_to_size(volume: np.ndarray, size: tuple, plane: Union[int, float] = 128, axis: int = 0):
+    """ Pad a volume to a given size. Functions as a reverse to subset_volume_plane
+    
+    Parameters:
+    ----------
+    volume : np.ndarray
+        volume to pad
+    size : int 
+        size to pad to
+    plane : Union[int, float] 
+        plane of the subset. Defaults to 128. (optional)
+    axis (int, optional):
+        axis of the plane. Defaults to 0.
+
+    """
+    thickness = volume.shape[axis]
+   
+    pad_left = int(plane - thickness//2)
+    pad_right = int(size[axis] - pad_left - thickness)
+
+    assert pad_left >= 0, "Volume is larger than the size"
+    assert pad_right >= 0, "Volume is larger than the size"
+    assert pad_left + pad_right + thickness == size[axis] , "Padding is not correct"
+
+    if (size[2]-volume.shape[2]) != 0:
+        print("Padding volume")
+    
+    if (size[1]-volume.shape[1]) != 0:
+        print("Padding volume")
+
+    # Calculate the lower and upper bounds of the subset
+    if axis == 0:
+        return np.pad(volume, ((pad_left, pad_right), (0, size[1]-volume.shape[1]), (0, size[2]-volume.shape[2])), mode='constant', constant_values=0)
+    elif axis == 1:
+        return np.pad(volume, ((0, size[0]-volume.shape[0]), (pad_left, pad_right), (0, size[2]-volume.shape[2])), mode='constant', constant_values=0)
+    elif axis == 2:
+        return np.pad(volume, ((0, size[0]-volume.shape[0]), (0, size[1]-volume.shape[1]), (pad_left, pad_right)), mode='constant', constant_values=0)

@@ -22,7 +22,7 @@ from CCNet.data_loader import dataset as dset
 from CCNet.data_loader.augmentation import ToTensor, ZeroPad2D, \
     RandomizeScaleFactor, SmartRandomCutout, RandomCutout, CutoutRandomHemisphere, FlipLeftRight, \
     CutoutBRATSTumor, CutoutBRATSTumorDeterministic, CutoutTumorMask, RandGridDistortiond
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 #from monai.utils import GridSampleMode, GridSamplePadMode
 
 logger = logging.getLogger(__name__)

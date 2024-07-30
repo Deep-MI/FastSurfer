@@ -31,7 +31,7 @@ import multiprocessing
 from os import path
 from typing import Iterable, Mapping, Union, Literal, Dict, Protocol, TypeVar, Type
 
-from CCNet.utils.arg_types import (
+from FastSurferCNN.utils.arg_types import (
     vox_size as __vox_size,
     float_gt_zero_and_le_one as __conform_to_one_mm,
     unquote_str,

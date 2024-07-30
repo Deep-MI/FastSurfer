@@ -39,19 +39,19 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 from CCNet.data_loader import loader
 from CCNet.models.networks import build_model
-from CCNet.models.optimizer import get_optimizer
+from FastSurferCNN.models.optimizer import get_optimizer
 from CCNet.models.losses import get_loss_func, SSIMLoss, GradientLoss, MSELoss
-from CCNet.utils import logging, checkpoint as cp
-from CCNet.utils.lr_scheduler import get_lr_scheduler
+from FastSurferCNN.utils import logging, checkpoint as cp
+from FastSurferCNN.utils.lr_scheduler import get_lr_scheduler
 from CCNet.utils.meters import Meter, DiceScore, LocDistance
 #from CCNet.utils.metrics import iou_score, precision_recall
 from CCNet.utils.misc import update_num_steps, plot_predictions, plot_predictions_inpainting, calculate_centers_of_comissures
-from CCNet.config.global_var import get_class_names
+from FastSurferCNN.config.global_var import get_class_names
 
 logger = logging.getLogger(__name__)
 
 
-class Trainer:
+class CCNetTrainer:
     def __init__(self, cfg):
         # Set random seed from configs.
         #np.random.seed(cfg.RNG_SEED)
@@ -152,7 +152,7 @@ class Trainer:
 
                     loss_total = loss_total * (1 - self.cfg.INPAINT_LOSS_WEIGHT) + (self.cfg.INPAINT_LOSS_WEIGHT * inpainting_loss if not cutout_mask_empty else 0)
                 elif self.cfg.MODEL.MODEL_NAME == 'FastSurferLocalisation':
-
+                    
                     pred = self.model(images, scale_factors)         
                     loss_total, loss_seg, loss_dice, loss_ce, loc_loss, mse_loss = self.loss_func(pred, labels, weights)
                     # metrics only on classification
@@ -277,6 +277,7 @@ class Trainer:
             ignite_metrics['SSIM_inpaint'] = ignite.metrics.SSIM(data_range=255, kernel_size=(11, 11), sigma=(1.5, 1.5), k1=0.01, k2=0.03, gaussian=True, device=torch.device('cpu'))
 
         if self.cfg.MODEL.MODEL_NAME == 'FastSurferLocalisation':
+            # Add localisational distance error
             ignite_metrics['locational_distance'] = LocDistance(device=device, axis = 2)
 
         return ignite_metrics
@@ -390,7 +391,7 @@ class Trainer:
             os.mkdir(dir_path)
         # run git ls-files | tar Tczf - mycode.zip
         cmd = f'git ls-files | tar Tczf - {os.path.join(dir_path, "repository_code.zip")}'
-        subprocess.Popen([cmd], shell=True)
+        #subprocess.Popen([cmd], shell=True) # TODO: Fix tar "Cannot stat: No such file or directory"
 
 
 

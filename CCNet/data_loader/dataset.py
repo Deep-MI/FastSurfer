@@ -24,7 +24,7 @@ import torchio as tio
 import copy
 
 from CCNet.data_loader import data_utils as du
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,6 @@ class VINNDataset(Dataset, ABC):
         dif = lambda i : np.max([0, (padsize[i] - image.shape[i])])
         if len(image.shape) == 2:
             padded_img = np.pad(image, pad_width=((0, dif(0)), (0, dif(1))), mode='constant', constant_values = 0)
-            print("")
         else:
             padded_img = np.pad(image, pad_width=((0, dif(0)), (0, dif(1)), (0, dif(2))), mode='constant', constant_values = 0)
 

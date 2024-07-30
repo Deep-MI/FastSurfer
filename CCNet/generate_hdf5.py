@@ -29,11 +29,11 @@ import nibabel as nib
 import h5py
 from sympy import true
 
-from CCNet.data_loader.data_utils import (transform_axial, transform_sagittal, map_aparc_aseg2label,
+from FastSurferCNN.data_loader.data_utils import (transform_axial, transform_sagittal, map_aparc_aseg2label,
                                                   create_weight_mask, get_thick_slices, filter_blank_slices_thick,
                                                   read_classes_from_lut, get_labels_from_lut, unify_lateralized_labels,
                                                   map_incrementing, subset_volume_plane)
-from CCNet.utils import logging
+from FastSurferCNN.utils import logging
 from CCNet.utils.misc import calculate_centers_of_comissures
 
 
@@ -295,40 +295,6 @@ class H5pyDataset:
         tmp = calculate_centers_of_comissures(center_volume)
         return center_volume
     
-    def calculate_center_volume2(self, orig_file, centers : np.ndarray, l : int = 5, sig : float = 3., offset : int = 0):
-        """Calculates a gaussian kernel around the given centers and adds them to a volume
-        
-        Arguments:
-            orig_file (str): path to original image
-            centers (np.ndarray): array of RAS coordinates of the centers (In the same space as orig file)
-            l (int): size of the kernel (default: {5})
-            sig (float): sigma of the kernel (default: {1.})
-            
-        Returns:
-            np.ndarray: volume with gaussian kernels around the centers
-        
-        """
-        assert l % 2 == 1, "l must be odd"
-        orig = nib.load(orig_file)
-        
-        # create empty volume
-        center_volume = np.zeros_like(orig.get_fdata(), dtype=np.float32)
-
-        centers_vox = np.array(centers, dtype=np.float32)
-
-        # add gkern around centers
-        for center_point in centers_vox:
-            x, y, z = center_point
-            ix, iy, iz = np.floor(center_point).astype(int)
-            
-            # Calculate the fractional part of the center point's coordinates
-            fx, fy, fz = center_point - [ix, iy, iz]
-            
-            # Calculate the weights for the 8 surrounding voxels
-            probabilities = 0
-
-        tmp = calculate_centers_of_comissures(center_volume)
-        return center_volume
 
     def gkern(self, l=5, sig=1.):
         """\
