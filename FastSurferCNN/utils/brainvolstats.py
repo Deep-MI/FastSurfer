@@ -1344,6 +1344,7 @@ class Manager(dict[str, AbstractMeasure]):
             on_missing: Literal["fail", "skip", "fill"] = "fail",
             executor: Optional[Executor] = None,
             legacy_freesurfer: bool = False,
+            aseg_replace: Optional[Path] = None,
     ):
         """
 
@@ -1367,12 +1368,13 @@ class Manager(dict[str, AbstractMeasure]):
         from concurrent.futures import ThreadPoolExecutor, Future
         from copy import deepcopy
 
+        def _check_measures(x):
+            return not (isinstance(x, tuple) and len(x) == 2 or
+                        isinstance(x[0], bool) or isinstance(x[1], str))
         super().__init__()
         self._default_measures = deepcopy(self.__DEFAULT_MEASURES)
-        if (not isinstance(measures, Sequence) or
-                any(not isinstance(i, str) for i in measures)):
+        if not isinstance(measures, Sequence) or any(map(_check_measures, measures)):
             raise ValueError("measures must be sequences of str.")
-        measurefile = Path(measurefile)
         if executor is None:
             self._executor = ThreadPoolExecutor(8)
         elif isinstance(executor, ThreadPoolExecutor):
@@ -1392,31 +1394,34 @@ class Manager(dict[str, AbstractMeasure]):
         # self._lut: Optional[pd.DataFrame] = None
         self._fs_compat: bool = legacy_freesurfer
         self._seg_from_file = Path("mri/aseg.mgz")
-        _args_seg = getattr(args, "segfile", self._seg_from_file)
-        if ((_segfile := getattr(args, "aseg_replace", None)) or
-                not self._fs_compat and (_segfile := _args_seg) != self._seg_from_file):
+        if aseg_replace:
+            # explicitly defined a file to reduce the aseg for segmentation mask with
             logging.getLogger(__name__).info(
                 f"Replacing segmentation volume to compute volume measures from with "
-                f"{_segfile}."
+                f"the explicitly defined {aseg_replace}."
             )
-            self._seg_from_file = Path(_segfile)
+            self._seg_from_file = Path(aseg_replace)
+        elif not self._fs_compat and segfile and Path(segfile) != self._seg_from_file:
+            # not in freesurfer compatibility mode, so implicitly use segfile
+            logging.getLogger(__name__).info(
+                f"Replacing segmentation volume to compute volume measures from with "
+                f"the segmentation file {segfile}."
+            )
+            self._seg_from_file = Path(segfile)
 
-        if any(m.startswith(ImportedMeasure.PREFIX) for m in measures):
+        import_kwargs = {"vox_vol": _DefaultFloat(1.0)}
+        if any(filter(lambda x: x[0], measures)):
             if measurefile is None:
                 raise ValueError(
                     "Measures defined to import, but no measurefile specified. "
                     "A default must always be defined."
                 )
-            _read_measurefile = self.make_read_hook(read_measure_file)
-            _read_measurefile(measurefile, blocking=False)
-        for measure_string in measures:
-            if measure_string.startswith(ImportedMeasure.PREFIX):
-                self.add_imported_measure(
-                    measure_string.removeprefix(ImportedMeasure.PREFIX),
-                    measurefile=measurefile,
-                    read_file=_read_measurefile,
-                    vox_vol=_DefaultFloat(1.0),
-                )
+            import_kwargs["measurefile"] = Path(measurefile)
+            import_kwargs["read_file"] = self.make_read_hook(read_measure_file)
+            import_kwargs["read_file"](Path(measurefile), blocking=False)
+        for is_imported, measure_string in measures:
+            if is_imported:
+                self.add_imported_measure(measure_string, **import_kwargs)
             else:
                 self.add_computed_measure(measure_string)
         self.instantiate_measures(self.values())

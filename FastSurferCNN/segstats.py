@@ -35,7 +35,9 @@ from typing import (
     Sized,
     Type,
     TypedDict,
-    TypeVar, Container,
+    TypeVar,
+    Container,
+    Iterator,
 )
 from concurrent.futures import Executor, ThreadPoolExecutor
 
@@ -428,7 +430,7 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
     add_two_help_messages(measure_parser)
 
     def __add_computed_measure(x: str) -> tuple[bool, str]:
-        return True, x
+        return False, x
     measure_parser.add_argument(
         "--compute",
         type=__add_computed_measure,
@@ -443,7 +445,7 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
     )
 
     def __add_imported_measure(x: str) -> tuple[bool, str]:
-        return False, x
+        return True, x
     measure_parser.add_argument(
         '--import',
         type=__add_imported_measure,
@@ -760,8 +762,9 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
     # measurefile
     try:
-        measures = getattr(args, "measures", [])
-        any_imported_measure = any(filter(lambda x: not x[0], measures))
+        # individual entries are: (is_this_imported, the_name_and_parameters)
+        measures: list[tuple[bool, str]] = getattr(args, "measures", [])
+        any_imported_measure = any(filter(lambda x: x[0], measures))
         segfile, pvfile, normfile, segstatsfile, measurefile = parse_files(
             args,
             subjects_dir,
@@ -772,9 +775,11 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         if brainvolstats_only:
             print("No files are defined via -pv/--pvfile or -norm/--normfile:")
             print("Only computing brainvol stats in legacy mode.")
-            manager_kwargs["compat"] = True
+            manager_kwargs["legacy_freesurfer"] = True
     except ValueError as e:
         return e.args[0]
+
+    from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
 
     threads = getattr(args, "threads", 0)
     if threads <= 0:
@@ -784,8 +789,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
 
     # the manager object supports preloading of files (see below) for io parallelization
     # and calculates the measure
-    manager = Manager(args, **manager_kwargs)
-    from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
+    manager = Manager(measures, segfile=segfile, **manager_kwargs)
     read_lut = manager.make_read_hook(read_classes_from_lut)
     if lut_file := getattr(args, "lut", None):
         read_lut(lut_file, blocking=False)
@@ -1798,7 +1802,8 @@ def pv_calc(
     any_border = np.any(list(borders.values()), axis=0)
     pad_width = np.asarray(
         [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape)],
-        dtype=int)
+        dtype=int,
+    )
     any_border = np.pad(any_border, pad_width)
     if not np.array_equal(any_border.shape, seg.shape):
         raise RuntimeError("border and seg_array do not have same shape.")
@@ -1832,8 +1837,7 @@ def pv_calc(
         for lab in volumes.keys():
             volumes[lab] += vols.get(lab, 0.0) * vox_vol
 
-    # ColHeaders: Index SegId NVoxels Volume_mm3 StructName Mean StdDev ...
-    # Min Max Range
+    # ColHeaders: Index SegId NVoxels Volume_mm3 StructName Mean StdDev Min Max Range
     def prep_dict(lab: int):
         nvox = voxel_counts.get(lab, 0)
         vol = volumes.get(lab, 0.)
@@ -1859,17 +1863,19 @@ def pv_calc(
                 Range=maxes.get(lab, 0.0) - mins.get(lab, 0.0),
             )
     if merged_labels is not None:
-        table.extend(calculate_merged_labels(
-            merged_labels,
-            voxel_counts,
-            robust_voxel_counts,
-            volumes,
-            mins,
-            maxes,
-            sums,
-            sums_2,
-            eps,
-        ))
+        table.extend(
+            calculate_merged_labels(
+                merged_labels,
+                voxel_counts,
+                robust_voxel_counts,
+                volumes,
+                mins,
+                maxes,
+                sums,
+                sums_2,
+                eps,
+            )
+        )
 
     if return_maps:
         maps = {
@@ -1893,7 +1899,7 @@ def calculate_merged_labels(
         sums: dict[_IntType, float] | None = None,
         sums_of_squares: dict[_IntType, float] | None = None,
         eps: float = 1e-6,
-) -> list[PVStats]:
+) -> Iterator[PVStats]:
     """
     Calculate the statistics for meta-labels, i.e. labels based on other labels
     (`merge_labels`). Add respective items to `table`.

@@ -17,8 +17,9 @@
 
 # IMPORTS
 import argparse
+from itertools import pairwise, chain
 from pathlib import Path
-from typing import TypeVar, Sequence, Any
+from typing import TypeVar, Sequence, Any, Iterable
 
 from FastSurferCNN.segstats import (
     main,
@@ -122,16 +123,16 @@ def make_arguments() -> argparse.ArgumentParser:
     )
 
     def add_etiv_measures(args: argparse.Namespace) -> None:
-        measures: list[str] = getattr(args, "measures", [])
-        if all(m in measures for m in (ETIV_RATIO_KEY, ETIV_FROM_TAL)):
-            from FastSurferCNN.utils.brainvolstats import ImportedMeasure
-            prefix = ImportedMeasure.PREFIX
+        measures: list[tuple[bool, str]] = getattr(args, "measures", [])
+        measure_strings = list(map(lambda x: x[1], measures))
+        if all(m in measure_strings for m in (ETIV_RATIO_KEY, ETIV_FROM_TAL)):
 
-            def test(m, w): return m == w or m.startswith(w + "(")
-            measures.remove(ETIV_RATIO_KEY)
+            measures = [m for m in measures if m[1] == ETIV_RATIO_KEY]
             for k, v in ETIV_RATIOS.items():
-                if any(test(m, v) or test(m, prefix + v) for m in measures):
-                    measures.append(k)
+                for is_imported, m in measures:
+                    if m == v or m.startswith(v + "("):
+                        measures.append((False, k))
+                        continue
             setattr(args, "measures", measures)
 
     def _update_what_to_import(args: argparse.Namespace) -> argparse.Namespace:
@@ -142,23 +143,18 @@ def make_arguments() -> argparse.ArgumentParser:
         if not cachefile.is_absolute():
             cachefile = args.out_dir / args.sid / cachefile
         if not args.explicit_no_cached and cachefile.is_file():
-            from FastSurferCNN.utils.brainvolstats import (
-                read_measure_file,
-                ImportedMeasure,
-            )
-            measure_data = read_measure_file(cachefile)
-            measures = list(getattr(args, "measures", []))
+            from FastSurferCNN.utils.brainvolstats import read_measure_file
 
-            def update_key(measure_string: str) -> str:
+            measure_data = read_measure_file(cachefile)
+
+            def update_key(measure: tuple[bool, str]) -> tuple[bool, str]:
+                is_imported, measure_string = measure
                 measure_key, _, _ = measure_string.partition("(")
-                if measure_key in measure_data.keys():
-                    return ImportedMeasure.PREFIX + measure_string
-                else:
-                    return measure_string
+                return measure_key in measure_data.keys(), measure_string
 
             # for each measure to be computed, replace it with the value in
             # brainvol.stats, if available
-            args.measures = list(map(update_key, measures))
+            args.measures = list(map(update_key, getattr(args, "measures", [])))
         return args
 
     parser.set_defaults(
@@ -166,14 +162,19 @@ def make_arguments() -> argparse.ArgumentParser:
         parse_actions=[(1, add_etiv_measures), (10, _update_what_to_import)],
     )
 
-    do_detail = "--help" in sys.argv
-    if do_detail:
+    if "--help" in sys.argv:
         from FastSurferCNN.utils.brainvolstats import Manager
-        defaults = Manager(object())
+        manager = Manager([])
+
+        def help_text(keys: Iterable[str]) -> Iterable[str]:
+            return (manager[k].help() for k in keys)
+    else:
+        help_text = None
 
     def help_add_measures(message: str, keys: list[str]) -> str:
-        if do_detail:
-            keys = [f"{k}: {defaults[k.split(' ')[0]].help()}" for k in keys]
+        if help_text:
+            _keys = (k.split(' ')[0] for k in keys)
+            keys = [f"{k}: {text}" for k, text in zip(keys, help_text(_keys))]
         return "<br>- ".join([message] + list(keys))
 
     add_two_help_messages(parser)
@@ -260,6 +261,9 @@ def make_arguments() -> argparse.ArgumentParser:
             }
         parser.add_argument(*flags, **kwargs)
 
+    def _no_import(*args: str) -> list[tuple[bool, str]]:
+        return list((False, a) for a in args)
+
     _add_invol_op("--sqr", op="squaring")
     _add_invol_op("--sqrt", op="the square root")
     _add_invol_op("--mul", op="multiplication", metavar="val")
@@ -325,16 +329,12 @@ def make_arguments() -> argparse.ArgumentParser:
         const=[2, 3, 41, 42],
         help="Exclude cortical gray and white matter regions from volume stats.",
     )
-    surf_wm = [
-        "rhCerebralWhiteMatter",
-        "lhCerebralWhiteMatter",
-        "CerebralWhiteMatter",
-    ]
+    surf_wm = ["rhCerebralWhiteMatter", "lhCerebralWhiteMatter", "CerebralWhiteMatter"]
     parser.add_argument(
         "--surf-wm-vol",
         action=_ExtendConstAction,
-        dest="computed_measures",
-        const=surf_wm,
+        dest="measures",
+        const=_no_import(*surf_wm),
         help=help_add_measures(
             "Compute cortical white matter based on the surface:",
             surf_wm,
@@ -344,8 +344,8 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--surf-ctx-vol",
         action=_ExtendConstAction,
-        dest="computed_measures",
-        const=surf_ctx,
+        dest="measures",
+        const=_no_import(*surf_ctx),
         help=help_add_measures(
             "compute cortical gray matter based on the surface:",
             surf_ctx,
@@ -354,7 +354,7 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no_global_stats",
         action="store_const",
-        dest="computed_measures",
+        dest="measures",
         const=[],
         help="Resets the computed global stats.",
     )
@@ -375,50 +375,50 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--brain-vol-from-seg",
         action=_ExtendConstAction,
-        dest="computed_measures",
-        const=brainseg,
+        dest="measures",
+        const=_no_import(*brainseg),
         help=help_add_measures("Compute measures BrainSeg measures:", brainseg),
     )
 
     def _mask(__value):
-        return "Mask(" + str(__value) + ")"
+        return False, "Mask(" + str(__value) + ")"
 
     parser.add_argument(
         "--brainmask",
         type=_mask,
         metavar="brainmask",
         action="append",
-        dest="computed_measures",
+        dest="measures",
         help="Report the Volume of the brainmask",
     )
     supratent = ["SupraTentorial", "SupraTentorialNotVent"]
     parser.add_argument(
         "--supratent",
         action=_ExtendConstAction,
-        dest="computed_measures",
-        const=supratent,
+        dest="measures",
+        const=_no_import(*supratent),
         help=help_add_measures("Compute supratentorial measures:", supratent),
     )
     parser.add_argument(
         "--subcortgray",
         action="append_const",
-        dest="computed_measures",
-        const="SubCortGray",
+        dest="measures",
+        const=(False, "SubCortGray"),
         help=help_add_measures("Compute measure SubCortGray:", ["SubCortGray"]),
     )
     parser.add_argument(
         "--totalgray",
         action="append_const",
-        dest="computed_measures",
-        const="TotalGray",
+        dest="measures",
+        const=(False, "TotalGray"),
         help=help_add_measures("Compute measure TotalGray:", ["TotalGray"]),
     )
     etiv_measures = [f"{k} (if also --brain-vol-from-seg)" for k in ETIV_RATIOS]
     parser.add_argument(
         "--etiv",
         action=_ExtendConstAction,
-        dest="computed_measures",
-        const=[ETIV_FROM_TAL, ETIV_RATIO_KEY],
+        dest="measures",
+        const=_no_import(ETIV_FROM_TAL, ETIV_RATIO_KEY),
         help=help_add_measures("Compute eTIV:", [ETIV_FROM_TAL] + etiv_measures),
     )
     # --etiv-only
@@ -427,7 +427,9 @@ def make_arguments() -> argparse.ArgumentParser:
     surf_holes = ["rhSurfaceHoles", "lhSurfaceHoles", "SurfaceHoles"]
     parser.add_argument(
         "--euler",
-        action=_ExtendConstAction, dest="computed_measures", const=surf_holes,
+        action=_ExtendConstAction,
+        dest="measures",
+        const=_no_import(*surf_holes),
         help=help_add_measures("Compute surface holes measures:", surf_holes))
     # --avgwf textfile
     # --sumwf testfile
@@ -511,18 +513,18 @@ def format_cmdline_args(args: object) -> list[str]:
     if not empty(__ids := getattr(args, "ids", [])):
         arglist.extend(["--id"] + list(map(str, __ids)))
 
-    computed_measures = getattr(args, "computed_measures", [])
-    imported_measures = getattr(args, "imported_measures", [])
-    if not empty(computed_measures) or not empty(imported_measures):
+    measures: list[tuple[bool, str]] = getattr(args, "measures", [])
+    if not empty(measures):
         arglist.append("measures")
         if (measurefile := getattr(args, "measurefile", None)) is not None:
-            arglist.extend(["--file", str(measurefile)])
-        if not empty(computed_measures):
-            arglist.append("--compute")
-            arglist.extend(map(str, computed_measures))
-        if not empty(imported_measures):
-            arglist.append("--import")
-            arglist.extend(map(str, imported_measures))
+            arglist.extend(("--file", str(measurefile)))
+        _flag = {True: "--import", False: "--compute"}
+        blank_measure = (not measures[0][0], "")
+        flag_measure_iter = ((_flag[i], m) for i, m in [blank_measure, *measures])
+        arglist.extend(chain(
+            (*((flag,) if flag != last_flag else ()), str(measure))
+            for (last_flag, _), (flag, measure) in pairwise(flag_measure_iter)
+        ))
 
     return arglist
 

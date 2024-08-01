@@ -25,7 +25,7 @@ from FastSurferCNN.segstats import HelpFormatter, VERSION, _check_arg_path
 from FastSurferCNN.mri_segstats import print_and_exit
 from FastSurferCNN.utils.threads import get_num_threads
 
-DEFAULT_MEASURES = [
+DEFAULT_MEASURES_STRINGS = [
     "BrainSeg",
     "BrainSegNotVent",
     "SupraTentorial",
@@ -43,6 +43,7 @@ DEFAULT_MEASURES = [
     "BrainSegNotVentSurf",
     "VentricleChoroidVol",
 ]
+DEFAULT_MEASURES = list((False, m) for m in DEFAULT_MEASURES_STRINGS)
 
 USAGE = "python mri_brainvol_stats.py -s <subject>"
 HELPTEXT = f"""
@@ -111,7 +112,7 @@ def make_arguments() -> argparse.ArgumentParser:
     default_lut = Path(env[fs_home]) / "ASegStatsLUT.txt" if fs_home in env else None
     parser.set_defaults(
         segfile=Path("mri/aseg.mgz"),
-        computed_measures=DEFAULT_MEASURES,
+        measures=DEFAULT_MEASURES,
         lut=default_lut,
     )
     parser.add_argument(
@@ -150,7 +151,10 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     subject_id = getattr(args, "sid", None)
 
     # the manager object calculates the measure
-    manager = Manager(args)
+    manager = Manager(
+        args.measures,
+        legacy_freesurfer=getattr(args, "legacy_freesurfer", True),
+    )
     # load these files in different threads to avoid waiting on IO
     # (not parallel due to GIL though)
     with manager.with_subject(subjects_dir, subject_id):
