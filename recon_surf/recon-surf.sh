@@ -157,18 +157,9 @@ key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 shift # past argument
 
 case $key in
-  --sid)
-    subject="$1"
-    shift # past value
-    ;;
-  --sd)
-    export SUBJECTS_DIR="$1"
-    shift # past value
-    ;;
-  --t1)
-    t1="$1"
-    shift # past value
-    ;;
+  --sid) subject="$1" ; shift ;;
+  --sd) export SUBJECTS_DIR="$1" ; shift ;;
+  --t1) t1="$1" ; shift ;;
   --asegdkt_segfile | --aparc_aseg_segfile | --seg)
     if [ "$key" == "--seg" ] || [ "$key" == "--aparc_aseg_segfile" ]; then
       echo "WARNING: $key <filename> is deprecated and will be removed, use --asegdkt_segfile <filename>."
@@ -186,14 +177,8 @@ case $key in
   --no_surfreg) fssurfreg=0 ;;
   --3t) atlas3T="true" ;;
   --parallel) DoParallel=1 ;;
-  --threads)
-    threads="$1"
-    shift # past value
-    ;;
-  --py)
-    python="$1"
-    shift # past value
-    ;;
+  --threads) threads="$1" ; shift ;;
+  --py) python="$1" ; shift ;;
   --fs_license)
     if [ -f "$1" ]; then
       export FS_LICENSE="$1"
@@ -206,14 +191,9 @@ case $key in
   --ignore_fs_version) check_version=0 ;;
   --no_fs_t1 ) get_t1=0 ;;
   --allow_root) allow_root="--allow_root" ;;
-  -h|--help)
-    usage
-    exit
-    ;;
-  *)    # unknown option
-    echo "ERROR: Flag $key unrecognized."
-    exit 1
-    ;;
+  -h|--help) usage ; exit ;;
+  # unknown option
+  *) echo "ERROR: Flag $key unrecognized." ; exit 1 ;;
 esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
@@ -228,22 +208,13 @@ echo ""
 
 # Warning if run as root user
 if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
-  then
-    echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
-    echo "because it will lead to files and folders created as root."
-    echo "If you are running FastSurfer in a docker container, you can specify the user with "
-    echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-    echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
-    exit 1;
-fi
-
-# TODO remove: using segstats.py should resolve this limitation
-if [ "$subject" == "subject" ]
 then
-  echo "Subject ID cannot be \"subject\", please choose a different sid"
-  # Explanation, see https://github.com/Deep-MI/FastSurfer/issues/186
-  # this is a bug in FreeSurfer's argparse when calling "mri_brainvol_stats subject"
-  exit 1
+  echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
+  echo "because it will lead to files and folders created as root."
+  echo "If you are running FastSurfer in a docker container, you can specify the user with "
+  echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
+  echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
+  exit 1;
 fi
 
 if [ -z "$SUBJECTS_DIR" ]
@@ -451,9 +422,9 @@ cmd="mri_convert $asegdkt_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" "$LF"
 
 # link original T1 input to rawavg (needed by pctsurfcon)
-pushd "$mdir" || ( echo "Could not change to $mdir" ; exit 1 )
+pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir" ; exit 1 )
   softlink_or_copy "orig.mgz" "rawavg.mgz" "$LF"
-popd || ( echo "Could not change to subject_dir" ; exit 1 )
+popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 
 
 
@@ -499,11 +470,11 @@ if [ ! -f "$mdir/orig_nu.mgz" ]; then
   # frontal head), we don't. Also this avoids a second call to nu correct.
   # talairach.xfm is also not needed here at all, it can be dropped if other places in the
   # stream can be changed to avoid it.
-  pushd "$mdir" || ( echo "Cannot change to $mdir" ; exit 1 )
+  pushd "$mdir" > /dev/null || ( echo "Cannot change to $mdir" ; exit 1 )
     #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
     cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
     RunIt "$cmd" "$LF"
-  popd || (echo "Could not popd" ; exit 1)
+  popd > /dev/null || (echo "Could not popd" ; exit 1)
 fi
 
 
@@ -540,9 +511,9 @@ then
   RunIt "$cmd" "$LF"
 else
   # create brainmask by linkage to norm.mgz (masked nu.mgz)
-  pushd "$mdir" || ( echo "Could not cd to $mdir" ; exit 1 )
+  pushd "$mdir" > /dev/null || ( echo "Could not cd to $mdir" ; exit 1 )
     softlink_or_copy "norm.mgz" "brainmask.mgz" "$LF"
-  popd || (echo "Could not popd" ; exit 1 )
+  popd > /dev/null || (echo "Could not popd" ; exit 1 )
 fi
 
 
@@ -800,21 +771,21 @@ for hemi in lh rh; do
     } | tee -a "$CMDF"
 
     # 4 min compute white :
-    echo "pushd $mdir" >> "$CMDF"
+    echo "pushd $mdir > /dev/null" >> "$CMDF"
     cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white.preaparc --o ../surf/$hemi.white --white --nsmooth 0 --rip-label ../label/$hemi.cortex.label --rip-bg --rip-surf ../surf/$hemi.white.preaparc --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot"
     RunIt "$cmd" "$LF" "$CMDF"
     # 4 min compute pial :
     cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white --o ../surf/$hemi.pial.T1 --pial --nsmooth 0 --rip-label ../label/$hemi.cortex+hipamyg.label --pin-medial-wall ../label/$hemi.cortex.label --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot --repulse-surf ../surf/$hemi.white --white-surf ../surf/$hemi.white"
     RunIt "$cmd" "$LF" "$CMDF"
-    echo "popd" >> "$CMDF"
+    echo "popd > /dev/null" >> "$CMDF"
 
     # Here insert DoT2Pial  later --> if T2pial is not run, need to softlink pial.T1 to pial!
 
-    echo "pushd $sdir" >> "$CMDF"
+    echo "pushd $sdir > /dev/null" >> "$CMDF"
     softlink_or_copy "$hemi.pial.T1" "$hemi.pial" "$LF" "$CMDF"
-    echo "popd" >> "$CMDF"
+    echo "popd > /dev/null" >> "$CMDF"
 
-    echo "pushd $mdir" >> "$CMDF"
+    echo "pushd $mdir > /dev/null" >> "$CMDF"
     # these are run automatically in fs7* recon-all and cannot be called directly without -pial flag (or other t2 flags)
     if [ "$fssurfreg" == "1" ] ; then
       # jacobian needs sphere reg which might be turned off by user (on by default)
@@ -831,7 +802,7 @@ for hemi in lh rh; do
     RunIt "$cmd" "$LF" "$CMDF"
     cmd="mris_place_surface --thickness ../surf/$hemi.white ../surf/$hemi.pial 20 5 ../surf/$hemi.thickness"
     RunIt "$cmd" "$LF" "$CMDF"
-    echo "popd" >> "$CMDF"
+    echo "popd > /dev/null" >> "$CMDF"
   fi
 
 
@@ -926,18 +897,18 @@ fi
       echo ""
     } | tee -a "$LF"
     # pctsurfcon (has no way to specify which annot to use, so we need to link ours as aparc is not available)
-    pushd "$ldir" || (echo "Could not cd to $ldir" ; exit 1)
+    pushd "$ldir" > /dev/null || (echo "Could not cd to $ldir" ; exit 1)
       softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" "$LF"
       softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" "$LF"
-    popd || (echo "Could not popd" ; exit 1)
+    popd > /dev/null || (echo "Could not popd" ; exit 1)
     for hemi in lh rh; do
       cmd="pctsurfcon --s $subject --$hemi-only"
       RunIt "$cmd" "$LF"
     done
-    pushd "$ldir" || (echo "Could not cd to $ldir" ; exit 1)
+    pushd "$ldir" > /dev/null || (echo "Could not cd to $ldir" ; exit 1)
       cmd="rm *h.aparc.annot"
       RunIt "$cmd" "$LF"
-    popd || (echo "Could not popd" ; exit 1)
+    popd > /dev/null || (echo "Could not popd" ; exit 1)
 
     # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
     # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz
@@ -968,38 +939,42 @@ fi
       cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py" --seed 1234
            --seg "$mdir/aseg.mgz" --sum "$statsdir/aseg.stats" --pv "$mdir/norm.mgz"
            "--in-intensity-name" norm "--in-intensity-units" MR --subject "$subject"
-           --surf-wm-vol --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --etiv)
+           --surf-wm-vol --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --etiv
+           --threads "$threads")
 #      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
       RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
     else
       # calculate brainvol stats and aseg stats with segstats.py
       cmd_=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
             --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
-            --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz"
+            --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
             --lut "$FREESURFER_HOME/ASegStatsLUT.txt"
             measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
-            "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter" "rhCerebralWhiteMatter"
-            "CerebralWhiteMatter" "SubCortGray" "TotalGray" "SupraTentorial"
-            "SupraTentorialNotVent" "Mask($mdir/mask.mgz)" "BrainSegVol-to-eTIV"
-            "MaskVol-to-eTIV" "lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles"
-            "EstimatedTotalIntraCranialVol")
+                               "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
+                               "rhCerebralWhiteMatter" "CerebralWhiteMatter"
+                               "SubCortGray" "TotalGray" "SupraTentorial"
+                               "SupraTentorialNotVent" "Mask($mdir/mask.mgz)"
+                               "BrainSegVol-to-eTIV" "MaskVol-to-eTIV" "lhSurfaceHoles"
+                               "rhSurfaceHoles" "SurfaceHoles"
+                               "EstimatedTotalIntraCranialVol")
       RunIt "$(echo_quoted "${cmd_[@]}")" "$LF"
       echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
-      tmpfile_brainvolstats=$(mktemp)
       # ... so stats/brainvol.stats also exists (but it is slightly different
 #      cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
 #      RunIt "$cmd" "$LF"
+
+      # this call is only "required" to "compute" brainvol.stats, so --normfile/--pvfile
+      # are not required
       cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-           --segfile "$mdir/aseg.mgz" --segstatsfile "$tmpfile_brainvolstats"
-           measures --file "$statsdir/aseg.stats" --import "BrainSeg" "BrainSegNotVent"
-           "SupraTentorial" "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
-           "Cortex" "TotalGray" "lhCerebralWhiteMatter" "rhCerebralWhiteMatter"
-           "CerebralWhiteMatter" "Mask" --compute "SupraTentorialNotVentVox"
-           "BrainSegNotVentSurf" "VentricleChoroidVol")
-      RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
-      # stdout to brainvol.stats ; stderr to LF
-      grep "^# Measure " "$tmpfile_brainvolstats" 2>&1 > "$statsdir/brainvol.stats" | tee -a "$LF"
-      cmd=("rm" "$tmpfile_brainvolstats")
+           --segfile "$mdir/aseg.mgz" --pvfile "$mdir/norm.mgz"
+           --measure_only --threads "$threads" --segstatsfile "$statsdir/brainvol.stats"
+           measures --file "$statsdir/aseg.stats"
+                    --import "BrainSeg" "BrainSegNotVent" "SupraTentorial"
+                             "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
+                             "Cortex" "TotalGray" "lhCerebralWhiteMatter"
+                             "rhCerebralWhiteMatter" "CerebralWhiteMatter" "Mask"
+                    --compute "SupraTentorialNotVentVox" "BrainSegNotVentSurf"
+                              "VentricleChoroidVol")
       RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
     fi
   fi
@@ -1071,19 +1046,19 @@ fi
   # Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
   if [ "$fsaparc" == "0" ] ; then
     # Symlink of aparc.DKTatlas+aseg.mapped.mgz
-    pushd "$mdir" || (echo "Could not cd to $mdir" ; exit 1)
+    pushd "$mdir" > /dev/null || (echo "Could not cd to $mdir" ; exit 1)
       softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc.DKTatlas+aseg.mgz" "$LF"
       softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc+aseg.mgz" "$LF"
 
       # Symlink of wmparc.mapped
       softlink_or_copy "wmparc.DKTatlas.mapped.mgz" "wmparc.mgz" "$LF"
-    popd || ( echo "Could not popd" ; exit 1 )
+    popd > /dev/null || ( echo "Could not popd" ; exit 1 )
 
       # Symbolic link for mapped surface parcellations
-    pushd "$ldir" || (echo "Could not cd to $ldir" ; exit 1)
+    pushd "$ldir" > /dev/null || (echo "Could not cd to $ldir" ; exit 1)
       softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.DKTatlas.annot" "$LF"
       softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.DKTatlas.annot" "$LF"
-    popd || ( echo "Could not popd" ; exit 1 )
+    popd > /dev/null || ( echo "Could not popd" ; exit 1 )
   fi
 
 

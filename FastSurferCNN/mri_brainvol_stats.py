@@ -19,29 +19,27 @@
 import argparse
 from os import environ as env
 from pathlib import Path
-from typing import Literal
 
-from FastSurferCNN.segstats import HelpFormatter, VERSION, _check_arg_path
+from FastSurferCNN.segstats import HelpFormatter, main, VERSION
 from FastSurferCNN.mri_segstats import print_and_exit
-from FastSurferCNN.utils.threads import get_num_threads
 
 DEFAULT_MEASURES_STRINGS = [
-    "BrainSeg",
-    "BrainSegNotVent",
-    "SupraTentorial",
-    "SupraTentorialNotVent",
-    "SubCortGray",
-    "lhCortex",
-    "rhCortex",
-    "Cortex",
-    "TotalGray",
-    "lhCerebralWhiteMatter",
-    "rhCerebralWhiteMatter",
-    "CerebralWhiteMatter",
-    "Mask",
-    "SupraTentorialNotVentVox",
-    "BrainSegNotVentSurf",
-    "VentricleChoroidVol",
+   (False, "BrainSeg"),
+   (False, "BrainSegNotVent"),
+   (False, "SupraTentorial"),
+   (False, "SupraTentorialNotVent"),
+   (False, "SubCortGray"),
+   (False, "lhCortex"),
+   (False, "rhCortex"),
+   (False, "Cortex"),
+   (False, "TotalGray"),
+   (False, "lhCerebralWhiteMatter"),
+   (False, "rhCerebralWhiteMatter"),
+   (False, "CerebralWhiteMatter"),
+   (False, "Mask"),
+   (False, "SupraTentorialNotVentVox"),
+   (False, "BrainSegNotVentSurf"),
+   (False, "VentricleChoroidVol"),
 ]
 DEFAULT_MEASURES = list((False, m) for m in DEFAULT_MEASURES_STRINGS)
 
@@ -91,6 +89,7 @@ def make_arguments() -> argparse.ArgumentParser:
         "--sd",
         dest="out_dir", metavar="subjects_dir", type=Path,
         default=default_sd,
+        required=not bool(default_sd),
         help="set SUBJECTS_DIR, defaults to environment SUBJECTS_DIR, required to find "
              "several files used by measures, e.g. surfaces.")
     parser.add_argument(
@@ -114,87 +113,26 @@ def make_arguments() -> argparse.ArgumentParser:
         segfile=Path("mri/aseg.mgz"),
         measures=DEFAULT_MEASURES,
         lut=default_lut,
+        measure_only=True,
     )
-    parser.add_argument(
+    advanced = parser.add_argument_group(
+        "FastSurfer options (no equivalence with FreeSurfer's mri_brainvol_stats)",
+    )
+    advanced.add_argument(
         "--no_legacy",
         action="store_false",
         dest="legacy_freesurfer",
-        help="use fastsurfer algorithms instead of fastsurfer."
+        help="use FastSurfer algorithms instead of FastSurfer.",
+    )
+    advanced.add_argument(
+        "--pvfile",
+        "-pv",
+        type=Path,
+        dest="pvfile",
+        help="Path to image used to compute the partial volume effects. This file is "
+             "only used in the FastSurfer algoritms (--no_legacy).",
     )
     return parser
-
-
-def main(args: argparse.Namespace) -> Literal[0] | str:
-    """
-    Main segstats function, based on mri_segstats.
-
-    Parameters
-    ----------
-    args : object
-        Parameter object as defined by `make_arguments().parse_args()`
-
-    Returns
-    -------
-    Literal[0], str
-        Either as a successful return code or a string with an error message
-    """
-    from time import perf_counter_ns
-    from concurrent.futures import ThreadPoolExecutor
-
-    from FastSurferCNN.utils.common import assert_no_root
-    from FastSurferCNN.utils.brainvolstats import Manager, PVMeasure
-
-    start = perf_counter_ns()
-    getattr(args, "allow_root", False) or assert_no_root()
-
-    subjects_dir = getattr(args, "out_dir", None)
-    subject_id = getattr(args, "sid", None)
-
-    # the manager object calculates the measure
-    manager = Manager(
-        args.measures,
-        legacy_freesurfer=getattr(args, "legacy_freesurfer", True),
-    )
-    # load these files in different threads to avoid waiting on IO
-    # (not parallel due to GIL though)
-    with manager.with_subject(subjects_dir, subject_id):
-        segstatsfile = _check_arg_path(
-            args,
-            "segstatsfile",
-            subjects_dir=subjects_dir,
-            subject_id=subject_id,
-            require_exist=False,
-        )
-        # lutfile = _check_arg_path(
-        #     args,
-        #     "lut",
-        #     subjects_dir=subjects_dir,
-        #     subject_id=subject_id,
-        #     require_exist=False,
-        # )
-        # lut = manager.make_read_hook(read_classes_from_lut)(lutfile)
-
-        threads = getattr(args, "threads", 0)
-        if threads <= 0:
-            threads = get_num_threads()
-        compute_threads = ThreadPoolExecutor(threads)
-
-        if any(isinstance(m, PVMeasure) for m in manager.values()):
-            return "mri_brainvol_stats does not support PVMeasures."
-        manager.default_measures = DEFAULT_MEASURES
-
-    # finished manager io here
-    # manager.lut = lut
-    manager.compute_non_derived_pv(compute_threads)
-    # wait for computation of measures and return an error message if errors occur
-    try:
-        manager.wait_write_brainvolstats(segstatsfile)
-    except RuntimeError as e:
-        return e.args[0]
-    print(f"Brain volume stats written to {segstatsfile}.")
-    duration = (perf_counter_ns() - start) / 1e9
-    print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
-    return 0
 
 
 if __name__ == "__main__":

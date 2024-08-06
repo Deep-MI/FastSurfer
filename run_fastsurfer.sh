@@ -937,14 +937,14 @@ if [[ "$run_surf_pipeline" == "1" ]]
 then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
-  pushd "$reconsurfdir" || exit 1
+  pushd "$reconsurfdir" > /dev/null || exit 1
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
        "${surf_flags[@]}" "${allow_root[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${cmd[@]}"
   if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
-  popd || return
+  popd > /dev/null || return
 fi
 
 ########################################## End ########################################################

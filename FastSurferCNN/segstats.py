@@ -289,6 +289,12 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
              "segmentation when calculating the statistics (default: no robust "
              "statistics == `--robust 1.0`).",
     )
+    parser.add_argument(
+        "--measure_only",
+        action="store_true",
+        dest="measure_only",
+        help="Only calculate the Measures in the header, no PV table."
+    )
     subparsers = parser.add_subparsers(title="Suboptions", dest="subparser")
     add_measure_parser(subparsers.add_parser)
     advanced = parser.add_argument_group(title="Advanced options (not shown in -h)")
@@ -611,6 +617,7 @@ def parse_files(
     subjects_dir: Path | str | None = None,
     subject_id: str | None = None,
     require_measurefile: bool = False,
+    require_pvfile: bool = True,
 ) -> tuple[Path, Path | None, Path | None, Path, Path | None]:
     """
     Parse and read paths of files.
@@ -625,6 +632,8 @@ def parse_files(
         The subject_id string.
     require_measurefile : bool, default=False
         Require the measurefile to exist.
+    require_pvfile : bool, default=True
+        Require a pvfile or normfile to exist.
 
     Returns
     -------
@@ -652,6 +661,8 @@ def parse_files(
     segfile = check_arg_path(args, "segfile")
     not_has_arg = partial(_check_arg_defined, args=args)
     if not any(map(not_has_arg, ("normfile", "pvfile"))):
+        if require_pvfile:
+            raise ValueError("Either pvfile or normfile are required.")
         pvfile = None
         normfile = None
     elif getattr(args, "normfile", None) is None:
@@ -668,9 +679,7 @@ def parse_files(
     if not segstatsfile.is_absolute():
         raise ValueError("segstatsfile must be an absolute path!")
 
-    if getattr(args, "measurefile", None) is None:
-        measurefile = None
-    else:
+    if (measurefile := getattr(args, "measurefile", None)) is not None:
         measurefile = check_arg_path(
             args,
             "measurefile",
@@ -748,6 +757,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     from time import perf_counter_ns
     from FastSurferCNN.utils.common import assert_no_root
     from FastSurferCNN.utils.brainvolstats import Manager, read_volume_file, ImageTuple
+    from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
 
     start = perf_counter_ns()
     getattr(args, "allow_root", False) or assert_no_root()
@@ -757,10 +767,10 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         subjects_dir = Path(subjects_dir)
     subject_id = str(getattr(args, "sid", None))
     legacy_freesurfer = bool(getattr(args, "legacy_freesurfer", False))
+    measure_only = bool(getattr(args, "measure_only", False))
     manager_kwargs = {}
 
-    # Check the file name parameters segfile, pvfile, normfile, segstatsfile, and
-    # measurefile
+    # Check filename parameters segfile, pvfile, normfile, segstatsfile, and measurefile
     try:
         # individual entries are: (is_this_imported, the_name_and_parameters)
         measures: list[tuple[bool, str]] = getattr(args, "measures", [])
@@ -770,16 +780,15 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
             subjects_dir,
             subject_id,
             require_measurefile=any_imported_measure,
+            require_pvfile=not legacy_freesurfer,
         )
-        brainvolstats_only = pvfile is None
-        if brainvolstats_only:
-            print("No files are defined via -pv/--pvfile or -norm/--normfile:")
-            print("Only computing brainvol stats in legacy mode.")
-            manager_kwargs["legacy_freesurfer"] = True
+        if legacy_freesurfer and not measure_only and pvfile is None:
+            return (f"No files are defined via -pv/--pvfile or -norm/--normfile: "
+                    f"This is only supported for header only in legacy mode.")
+        if measurefile:
+            manager_kwargs["measurefile"] = measurefile
     except ValueError as e:
         return e.args[0]
-
-    from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
 
     threads = getattr(args, "threads", 0)
     if threads <= 0:
@@ -800,7 +809,8 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     preload_image(segfile)
     if normfile is not None:
         preload_image(normfile)
-    if not brainvolstats_only:
+    needs_pv_calc = manager.needs_pv_calculation() or not measure_only
+    if needs_pv_calc:
         preload_image(pvfile)
 
     with manager.with_subject(subjects_dir, subject_id):
@@ -812,13 +822,13 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
 
             # trigger preprocessing operations on the pvfile like --mul <factor>
             pv_preproc_future = None
-            if not brainvolstats_only:
+            if needs_pv_calc:
                 _pv: ImageTuple = load_image(pvfile, blocking=True)
                 pv_img, pv_data = _pv
 
                 if not empty(pvfile_preproc := getattr(args, "pvfile_preproc", None)):
                     pv_preproc_future = compute_threads.submit(
-                        preproc_image, pvfile_preproc, pv_data
+                        preproc_image, pvfile_preproc, pv_data,
                     )
 
                 check_shape_affine(seg, pv_img, "segmentation", "pv_guide")
@@ -842,11 +852,17 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
                 )
             except Exception as exception:
                 return exception.args[0]
-        try:
-            # construct the list of labels to calculate PV for
-            labels, exclude_id = infer_labels_excludeid(args, lut, seg_data)
-        except ValueError as e:
-            return e.args[0]
+
+        if measure_only:
+            # in this mode, we do not output a data tabel anyways, so no need to compute
+            # all these PV values.
+            labels, exclude_id = np.zeros((0,), dtype=int), []
+        else:
+            try:
+                # construct the list of labels to calculate PV for
+                labels, exclude_id = infer_labels_excludeid(args, lut, seg_data)
+            except ValueError as e:
+                return e.args[0]
 
         if (_merged_labels := getattr(args, "merged_labels", None)) is None:
             _merged_labels: Sequence[Sequence[int]] = ()
@@ -881,9 +897,31 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     # ------
     manager.compute_non_derived_pv(compute_threads)
 
-    if brainvolstats_only:
+    names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
+    save_maps_paths = (getattr(args, n, "") for n in names)
+    save_maps = any(bool(path) and path != Path() for path in save_maps_paths)
+    save_maps = save_maps and not measure_only
+
+    if needs_pv_calc:
+        if pv_preproc_future is not None:
+            # wait for preprocessing options on pvfile
+            pv_data = pv_preproc_future.result()
+        out = pv_calc(seg_data, pv_data, norm_data, labels, return_maps=save_maps, **kwargs)
+    else:
+        out = None
+
+    if measure_only:
         # if we are not computing partial volume effects, do not perform pv_calc
         try:
+            if needs_pv_calc:
+                # make sure required PV measures get computed
+                dataframe = table_to_dataframe(
+                    out,
+                    bool(getattr(args, "empty", False)),
+                    must_keep_ids=merged_labels.keys(),
+                )
+                manager.update_pv_from_table(dataframe, measure_labels)
+
             manager.wait_write_brainvolstats(segstatsfile)
         except RuntimeError as e:
             return e.args[0]
@@ -891,15 +929,6 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         duration = (perf_counter_ns() - start) / 1e9
         print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
         return 0
-
-    if pv_preproc_future is not None:
-        # wait for preprocessing options on pvfile
-        pv_data = pv_preproc_future.result()
-
-    names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
-    save_maps_paths = (getattr(args, n, "") for n in names)
-    save_maps = any(bool(path) and path != Path() for path in save_maps_paths)
-    out = pv_calc(seg_data, pv_data, norm_data, labels, return_maps=save_maps, **kwargs)
 
     _io_futures = []
     if save_maps:
@@ -1025,14 +1054,12 @@ def table_to_dataframe(
     pandas.DataFrame
         The DataFrame object of all columns and rows in table.
     """
-    has_must_keep_ids = must_keep_ids and isinstance(must_keep_ids, Container)
-
-    def must_keep_fn(x) -> bool:
-        return x in must_keep_ids if has_must_keep_ids else False
-
     df = pd.DataFrame(table, index=np.arange(len(table)))
     if not report_empty:
-        df = df[df["NVoxels"] != 0 | df["SegId"].map(must_keep_fn)]
+        df_mask = df["NVoxels"] != 0
+        if must_keep_ids and isinstance(must_keep_ids, Container):
+            df_mask |= df["SegId"].map(lambda x: x in must_keep_ids)
+        df = df[df_mask]
     df = df.sort_values("SegId")
     df.index = np.arange(1, len(df) + 1)
     return df
@@ -1650,7 +1677,7 @@ def pv_calc(
 def pv_calc(
     seg: npt.NDArray[_IntType],
     pv_guide: np.ndarray,
-    norm: np.ndarray,
+    norm: Optional[np.ndarray],
     labels: npt.ArrayLike,
     patch_size: int = 32,
     vox_vol: float = 1.0,
@@ -1707,14 +1734,16 @@ def pv_calc(
         mixing_coeff: The partial volume of the primary label at the location.
         nbr_mixing_coeff: The partial volume of the alternative (nbr) label.
     """
+    from math import ceil
+
     input_checker = {
         "seg": (seg, np.integer),
         "pv_guide": (pv_guide, np.number),
         "norm": (norm, np.number),
     }
     for name, (img, _type) in input_checker.items():
-        if (img is not None and not isinstance(img, np.ndarray) or
-                not np.issubdtype(img.dtype, _type)):
+        if (img is not None and
+                not (isinstance(img, np.ndarray) and np.issubdtype(img.dtype, _type))):
             raise TypeError(f"The {name} object is not a numpy.ndarray of {_type}.")
     _labels = np.asarray(labels)
     if not isinstance(labels, Sequence):
@@ -1723,10 +1752,13 @@ def pv_calc(
         raise TypeError("The labels list is not an arraylike of ints.")
 
     if seg.shape != pv_guide.shape:
-        raise RuntimeError(f"The shapes of the segmentation and the pv_guide must "
-                           f"be identical, but shapes are {seg.shape} and "
-                           f"{pv_guide.shape}!")
-    if seg.shape != norm.shape:
+        raise RuntimeError(
+            f"The shapes of the segmentation and the pv_guide must be identical, but "
+            f"shapes are {seg.shape} and {pv_guide.shape}!"
+        )
+
+    has_norm = isinstance(norm, np.ndarray)
+    if has_norm and seg.shape != norm.shape:
         raise RuntimeError(
             f"The shape of the segmentation and the norm must be identical, but shapes "
             f"are {seg.shape} and {norm.shape}!"
@@ -1759,7 +1791,7 @@ def pv_calc(
 
     global_stats_filled = partial(
         global_stats,
-        norm=None if norm is None else norm[global_crop],
+        norm=norm[global_crop] if has_norm else None,
         seg=seg[global_crop],
         robust_percentage=robust_percentage,
     )
@@ -1772,7 +1804,6 @@ def pv_calc(
         nthreads: int = get_num_threads()
     else:
         raise TypeError("threads must be int or concurrent.futures.Executor object.")
-    from math import ceil
     executor = ThreadPoolExecutor(nthreads) if isinstance(threads, int) else threads
     map_kwargs = {"chunksize": 1 if nthreads < 0 else ceil(len(labels) / nthreads)}
 
@@ -1844,7 +1875,7 @@ def pv_calc(
         return {"SegId": lab, "NVoxels": nvox, "Volume_mm3": vol}
 
     table = list(map(prep_dict, labels))
-    if norm is not None:
+    if has_norm:
         robust_vc_it = robust_voxel_counts.items()
         means = {lab: sums.get(lab, 0.) / cnt for lab, cnt in robust_vc_it if cnt > eps}
 
@@ -1863,19 +1894,9 @@ def pv_calc(
                 Range=maxes.get(lab, 0.0) - mins.get(lab, 0.0),
             )
     if merged_labels is not None:
-        table.extend(
-            calculate_merged_labels(
-                merged_labels,
-                voxel_counts,
-                robust_voxel_counts,
-                volumes,
-                mins,
-                maxes,
-                sums,
-                sums_2,
-                eps,
-            )
-        )
+        labs_vol_args = (merged_labels, voxel_counts, robust_voxel_counts, volumes)
+        intensity_args = (mins, maxes, sums, sums_2) if has_norm else ()
+        table.extend(calculate_merged_labels(*labs_vol_args, *intensity_args, eps=eps))
 
     if return_maps:
         maps = {
@@ -1894,10 +1915,10 @@ def calculate_merged_labels(
         voxel_counts: dict[_IntType, int],
         robust_voxel_counts: dict[_IntType, int],
         volumes: dict[_IntType, float],
-        mins: dict[_IntType, float] | None = None,
-        maxes: dict[_IntType, float] | None = None,
-        sums: dict[_IntType, float] | None = None,
-        sums_of_squares: dict[_IntType, float] | None = None,
+        mins: Optional[dict[_IntType, float]] = None,
+        maxes: Optional[dict[_IntType, float]] = None,
+        sums: Optional[dict[_IntType, float]] = None,
+        sums_of_squares: Optional[dict[_IntType, float]] = None,
         eps: float = 1e-6,
 ) -> Iterator[PVStats]:
     """
@@ -2015,9 +2036,18 @@ def global_stats(
         sum_of_intensity_squares, and border with respect to the label.
 
     """
+    def __compute_borders(out: Optional[np.ndarray]) -> np.ndarray:
+        # compute/update the border
+        if out is None:
+            out = seg_borders(label_mask, True, cmp_dtype="int8").astype(bool)
+        else:
+            out[:] = seg_borders(label_mask, True, cmp_dtype="int").astype(bool)
+        return out
+
     label_mask = cast(npt.NDArray[bool], seg == lab)
     if norm is None:
         nvoxels = int(label_mask.sum())
+        out = __compute_borders(out)
         return lab, (nvoxels, nvoxels, None, None, None, None, 0., out)
 
     data_dtype = int if np.issubdtype(norm.dtype, np.integer) else float
@@ -2026,11 +2056,7 @@ def global_stats(
     # if lab is not in the image at all
     if nvoxels == 0:
         return lab, (0, 0, None, None, None, None, 0., out)
-    # compute/update the border
-    if out is None:
-        out = seg_borders(label_mask, True, cmp_dtype="int8").astype(bool)
-    else:
-        out[:] = seg_borders(label_mask, True, cmp_dtype="int").astype(bool)
+    out = __compute_borders(out)
 
     if robust_percentage is not None:
         data = np.sort(data)

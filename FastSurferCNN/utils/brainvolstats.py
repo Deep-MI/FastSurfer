@@ -1832,6 +1832,9 @@ class Manager(dict[str, AbstractMeasure]):
         """
         Formats all measures as strings and returns them as an iterable of str.
 
+        In the output, measures are ordered in the order they are added to the Manager
+        object. Finally, the "all"-imported Measures are appended.
+
         Parameters
         ----------
         fmt_func: callable, default=fmt_measure
@@ -1842,15 +1845,11 @@ class Manager(dict[str, AbstractMeasure]):
         Iterable[str]
             An iterable of the measure strings.
         """
-        measures = self.get_imported_all_measures()
-        measures.update({key: self[key].as_tuple() for key in self._exported_measures})
+        measures = {key: self[key].as_tuple() for key in self._exported_measures}
+        for k, v in self.get_imported_all_measures().items():
+            measures.setdefault(k, v)
 
-        # order the measures, so they are in default order, appends "new" keys in the
-        # order they were in exported measures
-        ordered_keys = tuple(self.default_measures)
-        ordered = {k: measures[k] for k in ordered_keys if k in measures}
-        ordered.update(filter(lambda i: i[0] not in ordered_keys, measures.items()))
-        return map(fmt_func, ordered.keys(), ordered.values())
+        return map(lambda x: fmt_func(*x), measures.items())
 
     @property
     def default_measures(self) -> Iterable[str]:
@@ -2198,7 +2197,7 @@ class Manager(dict[str, AbstractMeasure]):
             # 1 => BrainSegNotVent: BrainSegVolNotVent (BrainSegVol-VentChorVol-TFFC)
             return DerivedMeasure(
                 ["BrainSeg", (-1, "VentricleChoroidVol"), (-1, "TFFC")],
-                "BrainSegVolNotVent",
+                key.replace("SegNot", "SegVolNot"),
                 "Brain Segmentation Volume Without Ventricles",
                 measure_host=self,
             )
@@ -2318,6 +2317,17 @@ class Manager(dict[str, AbstractMeasure]):
             run(this) for this in self.values() if not isinstance(this, invalid_types)
         ]
         return self._compute_futures
+
+    def needs_pv_calculation(self) -> bool:
+        """
+        Returns whether the manager has PV-dependent measures.
+
+        Returns
+        -------
+        bool
+            Whether the manager has PVMeasure children.
+        """
+        return any(isinstance(this, PVMeasure) for this in self.values())
 
     def get_virtual_labels(self, label_pool: Iterable[int]) -> dict[int, list[int]]:
         """
