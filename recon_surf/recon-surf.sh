@@ -703,6 +703,14 @@ for hemi in lh rh; do
   cmd="recon-all -subject $subject -hemi $hemi -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" $LF $CMDF
 
+  # rename the freesurfer preaparc surface
+  cmd="mv $sdir/$hemi.white.preaparc $sdir/$hemi.white.preaparc.nofix"
+  RunIt "$cmd" $LF $CMDF
+
+  # fix the surfaces if they are corrupt
+  cmd="$python ${binpath}rewrite_oriented_surface.py -i $sdir/$hemi.white.preaparc.nofix -o $sdir/$hemi.white.preaparc"
+  RunIt "$cmd" $LF $CMDF
+
 
 # ============================= MAP-DKT ==========================================================
 
