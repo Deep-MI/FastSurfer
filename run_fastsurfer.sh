@@ -345,10 +345,11 @@ case $key in
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
-    if [[ "$#" -lt 2 ]] || [[ "$1" =~ ^-- ]]; then
+    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then
+      # no more args or next arg starts with --
       version_and_quit="1"
     else
-      case "$1" in
+      case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         all) version_and_quit="+checkpoints+git+pip" ;;
         +*) version_and_quit="$1" ;;
         *) echo "ERROR: Invalid option for --version: '$1', must be 'all' or [+checkpoints][+git][+pip]"
