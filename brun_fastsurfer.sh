@@ -128,8 +128,7 @@ case $key in
     ;;
   --subjects)
     subjects_stdin="false"
-    while [[ "$1" =~ ^-- ]] ; do subjects=("${subjects[@]}" "$key") ; shift
-    done
+    while [[ ! "$1" =~ ^-- ]] ; do subjects+=("$1") ; shift ; done
     ;;
   # brun_fastsurfer-specific/custom options
   #===================================================
