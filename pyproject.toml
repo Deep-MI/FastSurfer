@@ -58,7 +58,9 @@ doc = [
     'memory-profiler',
     'myst-parser',
     'numpydoc',
-    'sphinx!=7.2.*',
+    # sphinx 8 handles importing of files differently in some manner and will cause the
+    # build of the doc to fail. This will need to be addressed before we up to sphinx 8.
+    'sphinx>=7.3,<8',
     'sphinxcontrib-bibtex',
     'sphinxcontrib-programoutput',
     'sphinx-argparse',
