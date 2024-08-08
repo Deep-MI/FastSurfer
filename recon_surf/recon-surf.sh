@@ -687,7 +687,18 @@ for hemi in lh rh; do
   echo "echo " | tee -a $CMDF
   echo "echo \"=================== Creating surfaces $hemi - fix ========================\"" | tee -a $CMDF
   echo "echo " | tee -a $CMDF
-  cmd="recon-all -subject $subject -hemi $hemi -fix -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
+  RunIt "$cmd" $LF $CMDF
+
+  # rename the freesurfer preaparc surface
+  cmd="mv $sdir/$hemi.orig.premesh $sdir/$hemi.orig.premesh.noorient"
+  RunIt "$cmd" $LF $CMDF
+
+  # fix the surfaces if they are corrupt
+  cmd="$python ${binpath}rewrite_oriented_surface.py -i $sdir/$hemi.orig.premesh.noorient -o $sdir/$hemi.orig.premesh"
+  RunIt "$cmd" $LF $CMDF
+
+  cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" $LF $CMDF
   ## copy nofix to orig and inflated for next step
   # -white (don't know how to call this from recon-all as it needs -whiteonly setting and by default it also creates the pial.
@@ -701,14 +712,6 @@ for hemi in lh rh; do
   echo "echo \" \"" | tee -a $CMDF
   # create nicer inflated surface from topo fixed (not needed, just later for visualization)
   cmd="recon-all -subject $subject -hemi $hemi -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" $LF $CMDF
-
-  # rename the freesurfer preaparc surface
-  cmd="mv $sdir/$hemi.white.preaparc $sdir/$hemi.white.preaparc.nofix"
-  RunIt "$cmd" $LF $CMDF
-
-  # fix the surfaces if they are corrupt
-  cmd="$python ${binpath}rewrite_oriented_surface.py -i $sdir/$hemi.white.preaparc.nofix -o $sdir/$hemi.white.preaparc"
   RunIt "$cmd" $LF $CMDF
 
 
