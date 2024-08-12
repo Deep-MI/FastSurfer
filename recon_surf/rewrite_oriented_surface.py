@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import shutil
 # IMPORTS
 import sys
 import argparse
@@ -36,18 +36,19 @@ def make_parser() -> argparse.ArgumentParser:
                     "correctly oriented) under a given name",
     )
     parser.add_argument(
-        "--input", "-i",
+        "--file", "-f",
         type=Path,
-        dest="input_surf",
-        help="path to input surface",
+        dest="file",
+        help="path to surface to check and fix",
         required=True,
     )
     parser.add_argument(
-        "--output", "-o",
+        "--backup",
         type=Path,
-        dest="output_surf",
-        help="path to output surface",
-        required=True,
+        dest="backup",
+        help="if the surface is corrupted, create a backup of the original surface. "
+             "Default: no backup.",
+        default=None,
     )
     parser.add_argument(
         "--version",
@@ -57,16 +58,27 @@ def make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def resafe_surface(insurf: Path | str, outsurf: Path | str) -> None:
+def resafe_surface(
+        surface_file: Path | str,
+        surface_backup: Path | str | None = None,
+) -> bool:
     """
-    Take path to insurf and rewrite it to outsurf thereby fixing improperly oriented triangles.
+    Take path to surface_file and rewrite it to fix improperly oriented triangles.
+
+    If the surface is not oriented and surface_backup is set, rename the old
+    surface_file to surface_backup. Else just overwrite with the corrected surface.
 
     Parameters
     ----------
-    insurf : Path, str
+    surface_file : Path, str
         Path and name of input surface.
-    outsurf : Path, str
+    surface_backup : Path, str, optional
         Path and name of output surface.
+
+    Returns
+    -------
+    bool
+        Whether the surface was rewritten.
     """
     import getpass
     try:
@@ -77,26 +89,36 @@ def resafe_surface(insurf: Path | str, outsurf: Path | str) -> None:
         from os import environ
         environ.setdefault("USERNAME", "UNKNOWN")
 
-    triamesh = lapy.TriaMesh.read_fssurf(str(insurf))
+    triamesh = lapy.TriaMesh.read_fssurf(str(surface_file))
+    fsinfo = triamesh.fsinfo
 
     # make sure the triangles are oriented (normals pointing to the same direction
     if not triamesh.is_oriented():
+        if surface_backup is not None:
+            print(f"Renaming {surface_file} to {surface_backup}")
+            shutil.move(surface_file, surface_backup)
+
         print("Surface was not oriented, flipping corrupted normals.")
         triamesh.orient_()
-    else:
-        print("Surface was oriented.")
 
-    triamesh.write_fssurf(str(outsurf))
+        from packaging.version import Version
+        if Version(lapy.__version__) <= Version("1.0.1"):
+            print(f"lapy version {lapy.__version__}<=1.0.1 detected, fixing fsinfo.")
+            triamesh.fsinfo = fsinfo
+
+        triamesh.write_fssurf(str(surface_file))
+        return True
+    else:
+        print("Surface was already oriented.")
+        return False
 
 
 if __name__ == "__main__":
     # Command Line options are error checking done here
     parser = make_parser()
     args = parser.parse_args()
-    surf_in = args.input_surf
-    surf_out = args.output_surf
 
-    print(f"Reading in surface: {surf_in} ...")
-    resafe_surface(surf_in, surf_out)
-    print(f"Outputting surface as: {surf_out}")
+    print(f"Reading in surface: {args.file} ...")
+    if resafe_surface(args.file, args.backup):
+        print(f"Outputting surface as: {args.file}")
     sys.exit(0)

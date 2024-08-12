@@ -690,12 +690,10 @@ for hemi in lh rh; do
   cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" $LF $CMDF
 
-  # rename the freesurfer preaparc surface
-  cmd="mv $sdir/$hemi.orig.premesh $sdir/$hemi.orig.premesh.noorient"
-  RunIt "$cmd" $LF $CMDF
-
   # fix the surfaces if they are corrupt
-  cmd="$python ${binpath}rewrite_oriented_surface.py -i $sdir/$hemi.orig.premesh.noorient -o $sdir/$hemi.orig.premesh"
+  cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"
+  RunIt "$cmd" $LF $CMDF
+  cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig --backup $sdir/$hemi.orig.noorient"
   RunIt "$cmd" $LF $CMDF
 
   cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
