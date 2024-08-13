@@ -687,7 +687,16 @@ for hemi in lh rh; do
   echo "echo " | tee -a $CMDF
   echo "echo \"=================== Creating surfaces $hemi - fix ========================\"" | tee -a $CMDF
   echo "echo " | tee -a $CMDF
-  cmd="recon-all -subject $subject -hemi $hemi -fix -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
+  RunIt "$cmd" $LF $CMDF
+
+  # fix the surfaces if they are corrupt
+  cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"
+  RunIt "$cmd" $LF $CMDF
+  cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig --backup $sdir/$hemi.orig.noorient"
+  RunIt "$cmd" $LF $CMDF
+
+  cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" $LF $CMDF
   ## copy nofix to orig and inflated for next step
   # -white (don't know how to call this from recon-all as it needs -whiteonly setting and by default it also creates the pial.

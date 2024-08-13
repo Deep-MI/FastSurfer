@@ -295,6 +295,12 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
     data = np.asarray(img.dataobj)
     # Use LaPy TriaMesh for vertex normal computation
     T = TriaMesh(surf[0], surf[1])
+
+    # make sure the triangles are oriented (normals pointing to the same direction
+    if not T.is_oriented():
+        print("WARNING: Surface is not oriented, flipping corrupted normals.")
+        T.orient_()
+
     # compute sample coordinates projmm mm along the surface normal
     # in surface RAS coordiante system:
     x = T.v + projmm * T.vertex_normals()
