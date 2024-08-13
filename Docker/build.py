@@ -453,8 +453,11 @@ def docker_build_image(
     import_after_args = []
     if dest := image_path or "":
         logger.warning("Images exported with image_path cannot be imported into legacy "
-                       "storage drivers. This feature is currently experimental.")
+                       "storage drivers. This feature is currently experimental. Also "
+                       "note, that exporting to a file is incompatible with the load "
+                       f"and push actions. Deactivating {action}-action!")
         dest = f",dest={dest}"
+        action = "export"
     if not has_buildx:
         # only standard build environment arguments available
         if require_container:
@@ -463,7 +466,7 @@ def docker_build_image(
                 "Using --cache_{from,to} or attestation requires docker buildx and a "
                 f"docker-container builder.\n{INSTALL_BUILDX}\n{CREATE_BUILDER}"
             )
-        if action == "push" or not dest:
+        if action != "load":
             raise RuntimeError(
                 "The legacy docker builder does not support pushing or exporting the "
                 "image."
@@ -479,17 +482,22 @@ def docker_build_image(
             "docker-container",
             require_container,
         )
-        if has_storage or action == "push":
+        if has_storage and action == "load":
+            image_type = f"docker"
+        elif action == "push":
             # with containerd storage driver or pushing to registry
-            image_type = f"oci{dest}"
+            image_type = f"image"
             # both support attestation no problem
-        elif attestation and dest:
-            # also implicitly action == load
-            logger.warning(
-                f"{CONTAINERD_MESSAGE}The build script will save the image to "
-                f"{image_path} (which will contain the attestation manifest files, "
-                f"but the imported image {image_name} will not, experimental)."
-            )
+        elif action == "export":
+            experimental = ". No image will be imported. This features is experimental."
+            if attestation:
+                warn_msg = (f"{CONTAINERD_MESSAGE}The build script will save the image "
+                            f"to {image_path} (which will contain the attestation "
+                            f"manifest files){experimental}")
+            else:
+                warn_msg = (f"The build script will save the image to {image_path}"
+                            f"{experimental}")
+            logger.warning(warn_msg)
             image_type = f"oci{dest}"
             if dry_run:
                 print(f"mkdir -p {Path(image_path).parent} && ", sep="")
@@ -504,7 +512,7 @@ def docker_build_image(
             # Future Alternative: save the image to preserve the manifest files to file
         else:
             # no attestation, docker builder supports this format
-            image_type = f"docker{dest}"
+            image_type = f"docker"
 
         args.extend(["--output", f"type={image_type},name={image_name}"])
         if not bool(import_after_args):
