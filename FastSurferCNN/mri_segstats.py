@@ -430,7 +430,8 @@ def make_arguments() -> argparse.ArgumentParser:
         action=_ExtendConstAction,
         dest="measures",
         const=_no_import(*surf_holes),
-        help=help_add_measures("Compute surface holes measures:", surf_holes))
+        help=help_add_measures("Compute surface holes measures:", surf_holes),
+    )
     # --avgwf textfile
     # --sumwf testfile
     # --avgwfvol mrivol

@@ -723,7 +723,7 @@ def infer_labels_excludeid(
     else:
         labels = np.unique(data)
 
-    # filter for excludeif entries
+    # filter for excludeid entries
     exclude_id = []
     if _excl_id := getattr(args, "excludeid", None):
         exclude_id = list(_excl_id)
