@@ -461,22 +461,24 @@ class Mapper(Generic[KT, VT]):
         Returns
         -------
         Mapper : "Mapper[KT, T_OtherValue]"
-            A mapper mapping from the input space of this mapper to the target-space of the `other_mapper`.
+            A mapper mapping from the input space of this mapper to the target-space of
+            the `other_mapper`.
         """
         target_space = list(self.target_space)
         is_target_set = [not isinstance(t, Hashable) for t in target_space]
         if any(is_target_set):
             index = is_target_set.index(True)
             raise ValueError(
-                f"The target space must be hashable, but {is_target_set.count(True)} values are not "
-                f"hashable, for example {index}: {target_space[index]}."
+                f"The target space must be hashable, but {is_target_set.count(True)} "
+                f"values are not hashable, for example {index}: {target_space[index]}."
             )
         target_space = set(target_space)
         if not target_space <= other_mapper.source_space:
-            # test whether every element in self.target_space is also in other_mapper.source_space
+            # test whether every element in self.target_space is also in
+            # other_mapper.source_space
             raise ValueError(
-                f"The first set ({self.name}) maps to the following keys, that the second mapper "
-                f"({other_mapper.name}) does not map from:\n  "
+                f"The first set ({self.name}) maps to the following keys, that the "
+                f"second mapper ({other_mapper.name}) does not map from:\n  "
                 + ", ".join(f"'{v}'" for v in target_space - other_mapper.source_space)
             )
         return Mapper(
@@ -1060,7 +1062,8 @@ class TSVLookupTable(ColorLookupTable[str]):
         Returns
         -------
         Mapper[KT, Any]
-            A Mapper object that links keys to their corresponding values based on the class and data index.
+            A Mapper object that links keys to their corresponding values based on the
+            class and data index.
 
         Raises
         ------

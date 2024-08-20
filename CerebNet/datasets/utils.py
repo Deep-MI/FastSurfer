@@ -542,7 +542,13 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
         )
 
 
-def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT] = None, pad=0):
+def crop_transform(
+        image: AT,
+        offsets: Optional[Sequence[int]] = None,
+        target_shape: Optional[Sequence[int]] = None,
+        out: Optional[AT] = None,
+        pad: int = 0,
+) -> AT:
     """
     Perform a crop transform of the last N dimensions on the image data.
     Cropping does not interpolate the image, but "just removes" border pixels/voxels.
@@ -550,26 +556,29 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
 
     Parameters
     ----------
-    image : np.ndarray
-        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N image dimensions.
-    offsets : Sequence[int]
-        Offset of the cropped region for the last N dimensions (default: center crop with less crop/pad
-        towards index 0).
+    image : np.ndarray, torch.Tensor
+        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N
+        image dimensions.
+    offsets : Sequence[int], optional
+        Offset of the cropped region for the last N dimensions (default: center crop
+        with less crop/pad towards index 0).
     target_shape : Sequence[int], optional
-        If defined, target_shape specifies the target shape of the "cropped region", else the crop
-        will be centered cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x
-        the dimension-specific offset). target_shape should have the same number of elements as offsets.
+        If defined, target_shape specifies the target shape of the "cropped region",
+        else the crop will be centered cropping offset[dim] voxels on each side (then
+        the shape is derived by subtracting 2x the dimension-specific offset).
+        target_shape should have the same number of elements as offsets.
         May be implicitly defined by out.
-    out : np.ndarray, optional
-        Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
-    pad :  int, str, default=0
-        Padding strategy to use when padding is required, if int, pad with that value (default: zero-pad).
+    out : np.ndarray, torch.Tensor, optional
+        Array to store the cropped image in (optional), can be a view on image for
+        memory-efficiency.
+    pad :  int, str, default=0/zero-pad
+        Padding strategy to use when padding is required, if int, pad with that value.
 
     Returns
     -------
-    out : np.ndarray
-        The image (stack) cropped in the last N dimensions by offsets to the shape target_shape, or if target_shape is
-        not given image.shape[i+2] - 2*offset[i].
+    out : np.ndarray, torch.Tensor
+        The image (stack) cropped in the last N dimensions by offsets to the shape
+        target_shape, or if target_shape is not given image.shape[i+2] - 2*offset[i].
 
     Raises
     ------
@@ -580,7 +589,8 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
     TypeError
         If the type of image is not an np.ndarray or a torch.Tensor.
     RuntimeError 
-        If the dimensionality of image, out, offset or target_shape is invalid or inconsistent.
+        If the dimensionality of image, out, offset or target_shape is invalid or
+        inconsistent.
 
     See Also
     --------
@@ -607,11 +617,11 @@ def crop_transform(image: AT, offsets=None, target_shape=None, out: Optional[AT]
             _target_shape = image.shape[:-len_off] + tuple(
                 i - 2 * o for i, o in zip(image.shape[-len_off:], offsets)
             )
+        elif len_off != len(target_shape):
+            raise ValueError(
+                "Incompatible offset and target_shape dimensionality (at least once)."
+            )
         else:
-            if len_off != len(target_shape):
-                raise ValueError(
-                    "Incompatible offset and target_shape dimensionality (at least once)."
-                )
             _target_shape = tuple(
                 i if t == -1 else t
                 for i, t in zip(image.shape[-len_off:], target_shape)
