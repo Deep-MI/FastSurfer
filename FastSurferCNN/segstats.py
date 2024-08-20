@@ -392,9 +392,9 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         "--volume_precision",
         type=id_type,
         dest="volume_precision",
-        default="3",
-        help="Number of digits after dot in summary stats file (default: 3). Note, "
-             "--legacy_freesurfer sets this to 1.",
+        default=3,
+        help="Number of digits after dot in summary stats file (default: 3). Use 1 for "
+             "maximum FreeSurfer compatibility).",
     )
     advanced.add_argument(
         "--norm_name",
@@ -1166,8 +1166,6 @@ def write_statsfile(
     """
     import datetime
 
-    volume_precision = "1" if legacy_freesurfer else volume_precision
-
     def _title(file: IO) -> None:
         """
         Write the file title to a file.
@@ -1291,42 +1289,30 @@ def write_statsfile(
 
     def _column_format(name: str) -> str:
         if _is_norm_column(name):
-            return ".4f"
+            return "{: >10.4f}"
         elif name == "Volume_mm3":
-            return f".{volume_precision}f"
-        elif name in ("Index", "SegId", "NVoxels"):
-            return "d"
-        return "s"
+            return f"{{: >10.{volume_precision}f}}"
+        elif name in ("Index", "SegId"):
+            return "{: >3d}"
+        elif name == "NVoxels":
+            return "{: >9d}"
+        return " {: <30s}"
 
     def _table_header(file: IO, _dataframe: pd.DataFrame) -> None:
         """Write the comments of the table header to a file."""
         columns = [col for col in COLUMNS if col in _dataframe.columns]
         for i, col in enumerate(columns):
-            file.write(f"# TableCol {i + 1: 2d} ColHeader {_column_name(col)}\n"
-                       f"# TableCol {i + 1: 2d} FieldName {_column_description(col)}\n"
-                       f"# TableCol {i + 1: 2d} Units     {_column_unit(col)}\n")
-        file.write(f"# NRows {len(_dataframe)}\n"
-                   f"# NTableCols {len(columns)}\n")
+            file.write(f"# TableCol {i + 1: >2d} ColHeader {_column_name(col)}\n"
+                       f"# TableCol {i + 1: >2d} FieldName {_column_description(col)}\n"
+                       f"# TableCol {i + 1: >2d} Units     {_column_unit(col)}\n")
+        file.write(f"# NRows {len(_dataframe): >2d}\n"
+                   f"# NTableCols {len(columns): >2d}\n")
         file.write("# ColHeaders  " + " ".join(map(_column_name, columns)) + "\n")
 
     def _table_body(file: IO, _dataframe: pd.DataFrame) -> None:
         """Write the volume stats from _dataframe to a file."""
-
-        def fmt_field(code: str, data: pd.DataFrame) -> str:
-            is_s, is_f, is_d = code[-1] == "s", code[-1] == "f", code[-1] == "d"
-            filler = "<" if is_s else " >"
-            if is_s:
-                prec = int(data.dropna().map(len).max())
-            else:
-                prec = int(np.ceil(np.log10(data.max())))
-            if is_f:
-                prec += int(code[-2]) + 1
-            return filler + str(prec) + code
-
         columns = [col for col in COLUMNS if col in _dataframe.columns]
-        fmt = " ".join(
-            ("{:" + fmt_field(_column_format(k), _dataframe[k]) + "}"
-             for k in columns))
+        fmt = " ".join(_column_format(k) for k in columns)
         for index, row in _dataframe.iterrows():
             data = [row[k] for k in columns]
             file.write(fmt.format(*data) + "\n")

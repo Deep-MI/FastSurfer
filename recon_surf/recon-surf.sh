@@ -1006,12 +1006,8 @@ fi
          # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
          --excludeid 0 2 3 41 42
          --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads" --empty
+         --volume_precision 1
          measures --file "$statsdir/aseg.stats" --import "all")
-    #    --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent" "SupraTentorial"
-    #              "SupraTentorialNotVent" "SubCortGray" "EstimatedTotalIntraCranialVol"
-    #              "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter"
-    #              "rhCortex" "lhCortex" "Cortex" "TotalGray" "rhSurfaceHoles"
-    #              "lhSurfaceHoles" "SurfaceHoles" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
   fi
   RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
@@ -1035,6 +1031,7 @@ fi
          --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
          --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
          --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats" --empty
+         --volume_precision 1
          measures --file "$statsdir/brainvol.stats" --import "Mask"
                   "VentricleChoroidVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
                   "CerebralWhiteMatter")
