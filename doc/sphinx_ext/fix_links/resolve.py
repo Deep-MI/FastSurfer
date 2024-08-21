@@ -110,27 +110,39 @@ def resolve_xref(
         doc_root = Path(env.srcdir)
         project_root = env.config.fix_links_project_root
         uri = node[attr]
-        if node["refdomain"] == "doc":
-            _uri_path, _uri_id = f"/{uri}", node.attributes.get("refid", None) or ""
+        if node["reftype"] == "doc":
+            if uri.startswith("/"):
+                node['reftarget'] = "index"
+                _uri_path = uri[1:]
+            else:
+                _uri_path = uri
+            _uri_id = node.attributes.get("refid", None) or ""
             _uri_sep = "#" if _uri_id else ""
             project_root = "."
+            reftype = "doc"
         else:
             _uri_path, _uri_sep, _uri_id = uri.partition("#")
             if not _uri_id and getattr(node, "reftargetid", None) is not None:
                 _uri_sep, _uri_id = "#", node["reftargetid"]
+
+            reftype = "ref"
         # resolve the target Path in the link w.r.t. the source it came from
         if _uri_path.startswith("/"):
             # absolute with respect to documentation root
             target_path = (doc_root / project_root / _uri_path[1:]).resolve()
         else:
-            sourcefile_path = Path(env.srcdir) / node["refdoc"]
+            sourcefile_path = doc_root / node.source.split(":")[0]
             target_path = (sourcefile_path.parent / _uri_path).resolve()
-        _uri_path = relpath(target_path, env.srcdir)
+        _uri_path = relpath(target_path, doc_root)
         _uri_hash = _uri_sep + _uri_id
 
         if not _uri_path.startswith("../"):
             # maybe this already fixed the path?
-            ref = _resolve_xref_with_(f"/{_uri_path}{_uri_hash}".lower(), uri)
+            ref = _resolve_xref_with_(
+                f"{_uri_path}{_uri_hash}".lower(),
+                node.source,
+                reftype=reftype,
+            )
             if ref is not None:
                 return ref
 
@@ -141,13 +153,27 @@ def resolve_xref(
                 env.found_docs,
                 _uri_path,
             )
+            _reftarget = node["reftarget"]
+            _reftype = "doc" if _uri_hash == "" else "ref"
             for potential_doc in potential_targets:
                 potential_path = env.doc2path(potential_doc, False)
-                ref = _resolve_xref_with_(f"/{potential_path}{_uri_hash}".lower(), uri)
+                if potential_path.endswith(".rst"):
+                    potential_path = potential_doc
+                potential_path = relpath(
+                    doc_root / potential_path,
+                    (doc_root / node["refdoc"]).parent,
+                )
+                node["reftarget"] = potential_path
+                ref = _resolve_xref_with_(
+                    (potential_path + _uri_hash).lower(),
+                    node.source,
+                    reftype=_reftype,
+                )
                 if ref is not None:
                     return ref
+            node["reftarget"] = _reftarget
 
-        source = f"/{_uri_path}{_uri_sep}{_uri_id}"
+        source = f"{_uri_path}{_uri_sep}{_uri_id}"
         for key, (pat, repls) in subs.items():
             # if this search string does not match, try next
             if not pat.match(source):
@@ -169,7 +195,11 @@ def resolve_xref(
                         break
                     replaced = _replaced
                 # search for a reference associated with the replaced link in std
-                ref = _resolve_xref_with_(str(replaced).lower(), uri)
+                ref = _resolve_xref_with_(
+                    str(replaced).lower(),
+                    node.source,
+                    reftype=reftype,
+                )
 
                 # check and return the reference, if it is valid
                 if ref is not None:
@@ -204,13 +234,14 @@ def _resolve_xref_with(
         contnode: nodes.Element,
         target: str,
         source: str,
+        reftype: str = "ref",
 ) -> nodes.reference | None:
     std_domain = env.domains["std"]
     ref: nodes.reference | None = std_domain.resolve_xref(
         env,
         node["refdoc"],  # fromdocname
         app.builder,
-        "ref",
+        reftype,
         target,
         node,
         contnode,

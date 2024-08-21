@@ -39,7 +39,7 @@ def wrap_include_run(method):
 
 class Renderer(SphinxRenderer):
     """
-    Renderer object to automatically fix headings that are not consequetive levels in
+    Renderer object to automatically fix headings that are not consecutive levels in
     (included) Markdown files. Also includes alternative targets into anchors that
     are rendered, but do not match a target.
     """
