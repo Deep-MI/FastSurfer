@@ -1324,6 +1324,9 @@ def write_statsfile(
     if segfile is not None and not isinstance(segfile, Path):
         segfile = Path(segfile)
 
+    if exclude is not None and not isinstance(exclude, Sequence):
+        raise RuntimeError("exclude must be a sequence of ints or None!")
+
     segstatsfile.parent.mkdir(exist_ok=True)
     with open(segstatsfile, "w") as fp:
         _title(fp)

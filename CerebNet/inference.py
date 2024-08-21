@@ -502,7 +502,7 @@ class Inference:
                                 normfile=norm_file,
                                 lut=self.freesurfer_lut_file,
                                 volume_precision="3",
-                                exclude=0,
+                                exclude=[0],
                                 pvfile=norm_file,
                                 report_empty=True,
                                 extra_header=[],
