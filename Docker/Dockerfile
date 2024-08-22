@@ -72,7 +72,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG FORGE_VERSION=23.11.0-0
+ARG FORGE_VERSION=24.3.0-0
 
 # Install conda
 RUN wget --no-check-certificate -qO ~/miniforge.sh \
