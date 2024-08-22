@@ -212,8 +212,8 @@ def mode_filter(
     # get rid of rows that have uniform vote (or are empty)
     # for this to work no negative numbers should exist
     # get row counts, max and sums
-    rmax = nlabels.max(1).A.squeeze()
-    sums = nlabels.sum(axis=1).A1
+    rmax = nlabels.max(1).toarray().squeeze()
+    sums = nlabels.sum(axis=1).toarray().ravel()
     counts = np.diff(nlabels.indptr)
     # then keep rows where max*counts differs from sums
     rmax = np.multiply(rmax, counts)
