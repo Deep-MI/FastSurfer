@@ -51,7 +51,10 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_issues",
-    "nbsphinx",
+    # sphinx.ext.autosectionlabel and nbsphinx together with sphinxarg.ext causes a
+    # duplicate label warning: https://github.com/spatialaudio/nbsphinx/issues/787
+    # nbsphinx is currently not 'needed' as we do not include ipynb files.
+    # "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
     "sphinxarg.ext",
@@ -64,6 +67,7 @@ extensions = [
 suppress_warnings = [
     # "myst.xref_missing",
     "myst.duplicate_def",
+    "autosectionlabel",
 ]
 
 # create anchors for which headings?

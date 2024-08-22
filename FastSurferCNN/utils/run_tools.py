@@ -1,3 +1,20 @@
+#!/bin/python
+
+# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from concurrent.futures import Executor, Future
 import subprocess
 from concurrent.futures import Executor, Future
 from dataclasses import dataclass
@@ -43,10 +60,10 @@ class MessageBuffer:
         self.runtime = max(self.runtime or 0.0, other.runtime or 0.0)
         return self
 
-    def out_str(self, encoding=None):
+    def out_str(self, encoding="utf-8"):
         return self.out.decode(encoding=encoding)
 
-    def err_str(self, encoding=None):
+    def err_str(self, encoding="utf-8"):
         return self.err.decode(encoding=encoding)
 
 

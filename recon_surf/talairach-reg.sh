@@ -57,7 +57,7 @@ source "$binpath/functions.sh"
 mkdir -p $mdir/transforms
 mkdir -p $mdir/tmp
 
-pushd "$mdir" || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
+pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
 
 # talairach.xfm: compute talairach full head (25sec)
 if [[ "$atlas3T" == "true" ]]
@@ -88,12 +88,12 @@ RunIt "$cmd" $LF
 # all this is basically useless, as we did a good orig_nu already, including WM normalization
 
 # Since we do not run mri_em_register we sym-link other talairach transform files here
-pushd $mdir/transforms || ( echo "ERROR: Could not change to the transforms directory $mdir/transforms!" | tee -a "$LF" && exit 1 )
-cmd="ln -sf talairach.xfm.lta talairach_with_skull.lta"
-RunIt "$cmd" $LF
-cmd="ln -sf talairach.xfm.lta talairach.lta"
-RunIt "$cmd" $LF
-popd || exit 1
+pushd "$mdir/transforms" > /dev/null || ( echo "ERROR: Could not change to the transforms directory $mdir/transforms!" | tee -a "$LF" && exit 1 )
+  cmd="ln -sf talairach.xfm.lta talairach_with_skull.lta"
+  RunIt "$cmd" $LF
+  cmd="ln -sf talairach.xfm.lta talairach.lta"
+  RunIt "$cmd" $LF
+popd > /dev/null || exit 1
 
 # Add xfm to nu
 # (use orig_nu, if nu.mgz does not exist already); by default, it should exist
@@ -103,4 +103,4 @@ fi
 cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
 RunIt "$cmd" $LF
 
-popd || return
+popd > /dev/null || return

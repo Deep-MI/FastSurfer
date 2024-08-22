@@ -291,6 +291,7 @@ class Inference:
         table = pv_calc(
             seg_data,
             norm_data,
+            norm_data,
             list(filter(lambda l: l != 0, label_map.keys())),
             vox_vol=vox_vol,
             threads=self.threads,

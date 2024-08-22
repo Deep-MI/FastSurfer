@@ -34,6 +34,22 @@ AllDeviceType = Literal["cpu", "cuda", "cu116", "cu117", "cu118", "rocm", "rocm5
                         "rocm5.4.2"]
 DeviceType = Literal["cpu", "cu116", "cu117", "cu118", "rocm5.1.1", "rocm5.4.2"]
 
+CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
+CONTAINERD_MESSAGE = (
+    "Attestation requires OCI images, which are not supported by the default docker "
+    "storage driver (your current storage driver?). Use containerd storage: "
+    "https://docs.docker.com/storage/containerd/\n"
+)
+_WGET_BUILDX_FMT = (
+    "wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker"
+    "/buildx/releases/download/{0:s}/buildx-{0:s}.{1:s}"
+)
+INSTALL_BUILDX = (
+    f"Install buildx with '{_WGET_BUILDX_FMT.format('<version>', '<platform>')}', "
+    f"e.g. '{_WGET_BUILDX_FMT.format('v0.12.1', 'linux-amd64')}.\nYou may need to "
+    f"'chmod +x ~/.docker/cli-plugins/docker-buildx'\nSee also "
+    f"https://github.com/docker/buildx#manual-download."
+)
 
 __import_cache = {}
 
@@ -229,6 +245,14 @@ def make_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also tag the resulting image as 'fastsurfer:dev'.",
     )
+    # --save_image does not work as expected right now, it cannot be imported via
+    # docker load, but must be transferred to a registry...
+    # parser.add_argument(
+    #     "--save_image",
+    #     dest="image_path",
+    #     default=None,
+    #     help="Export the image to a tarball.",
+    # )
     parser.add_argument(
         "--singularity",
         type=Path,
@@ -295,47 +319,54 @@ def red(skk):
     return "\033[91m {}\033[00m" .format(skk)
 
 
-def get_builder(Popen, require_builder_type: str) -> tuple[bool, str]:
+def get_builder(
+        Popen,
+        builder_type: str,
+        require_builder_type: bool = False,
+) -> tuple[bool, str]:
     """Get the builder to build the fastsurfer image."""
     from subprocess import PIPE
     from re import compile
+
     buildx_binfo = Popen(["docker", "buildx", "ls"], stdout=PIPE, stderr=PIPE).finish()
     header, *lines = buildx_binfo.out_str("utf-8").strip().split("\n")
     header_pattern = compile("\\S+\\s*")
     fields = {}
+    alternative_builder = "use_default"
     pos = 0
     while pos < len(header) and (match := header_pattern.search(header, pos)):
         start, pos = match.span()
         fields[match.group().strip()] = slice(start, pos)
-    builders = {line[fields["NAME/NODE"]]: line[fields["DRIVER/ENDPOINT"]]
+    builders = {line[fields["NAME/NODE"]].strip(): line[fields["DRIVER/ENDPOINT"]].strip()
                 for line in lines if not line.startswith(" ")}
-    builders = {key.strip(): value.strip() for key, value in builders.items()}
     default_builders = [name for name in builders.keys() if name.endswith("*")]
     if len(default_builders) != 1:
         raise RuntimeError("Could not find default builder of buildx")
     default_builder = default_builders[0][:-1].strip()
     builders[default_builder] = builders[default_builders[0]]
     del builders[default_builders[0]]
-    cannot_use_default_builder = (
-            require_builder_type and builders[default_builder] != require_builder_type
-    )
-    if cannot_use_default_builder:
-        # if the default builder is a docker builder (which does not support
+    builder_is_correct_type = builders[default_builder] == builder_type
+    default_builder_is_correct_type = builder_is_correct_type
+    if not builder_is_correct_type:
+        # if the default builder is a docker builder (which may not support features)
+        # see if there is an alternative builder named "fastsurfer*"
         for builder in builders.keys():
-            if (builder.startswith("fastsurfer") and
-                    builders[builder] == require_builder_type):
-                default_builder = builder
+            if builder.startswith("fastsurfer") and builders[builder] == builder_type:
+                # set the default_builder to this (prefered) builder
+                alternative_builder = builder
                 break
-        if builders[default_builder] != require_builder_type:
-            # did not find an appropriate builder
-            raise RuntimeError(
-                "Could not find an appropriate builder from the current builder "
-                "(see docker buildx use) or builders named fastsurfer* (searching for "
-                f"a builder of type {require_builder_type}, docker "
-                "builders may not be supported with the selected export settings. "
-                "Create builder with 'docker buildx create --name fastsurfer'."
-            )
-    return not cannot_use_default_builder, default_builder
+    # update is_correct_type
+    if alternative_builder != "use_default":
+        builder_is_correct_type = builders[alternative_builder] == builder_type
+    if not builder_is_correct_type and require_builder_type:
+        # did not find an appropriate builder, but is required!!
+        raise RuntimeError(
+            "Could not find an appropriate builder from the current builder "
+            "(see docker buildx use) or builders named fastsurfer* (searching for "
+            f"a builder of type {builder_type}, docker builders may not be supported "
+            f"with the selected export settings. {CREATE_BUILDER}"
+        )
+    return default_builder_is_correct_type, alternative_builder
 
 
 def docker_build_image(
@@ -346,6 +377,7 @@ def docker_build_image(
         dry_run: bool = False,
         attestation: bool = False,
         action: Literal["load", "push"] = "load",
+        image_path: Path | str | None = None,
         **kwargs) -> None:
     """
     Build a docker image.
@@ -371,6 +403,9 @@ def docker_build_image(
     action : "load", "push", default="load"
         The operation to perform after the image is built (only if a docker-container
         builder is detected).
+    image_path : Path, str, optional
+        A path to save the image to (experimental; currently cannot be imported into a
+        legacy docker storage driver).
 
     Additional kwargs add additional build flags to the build command in the following
     manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
@@ -378,13 +413,14 @@ def docker_build_image(
     translated to `docker [buildx] build ... --build-arg TEST=1 --build-arg VAL=2`.
     """
     from itertools import chain, repeat
+    from shutil import which
     from subprocess import PIPE
+
+    from FastSurferCNN.utils.run_tools import Popen
+
     logger.info("Building. This starts with sending the build context to the docker "
                 "daemon, which may take a while...")
     extra_env = {"DOCKER_BUILDKIT": "1"}
-
-    from shutil import which
-    from FastSurferCNN.utils.run_tools import Popen
 
     docker_cmd = which("docker")
     if docker_cmd is None:
@@ -400,82 +436,129 @@ def docker_build_image(
         # concatenate the --key_dashed value pairs
         return list(chain(*zip(repeat(f"--{key_dashed}"), values)))
 
-    buildx_test = Popen(
-        [docker_cmd, "buildx", "version"],
-        stdout=PIPE,
-        stderr=PIPE,
-    ).finish()
-    has_buildx = "'buildx' is not a docker command" not in buildx_test.err_str("utf-8")
+    kw = {"stdout": PIPE, "stderr": PIPE}
+    _buildx = Popen([docker_cmd, "buildx", "version"], **kw)
+    _storage = Popen([docker_cmd, "info", "-f", "{{.DriverStatus}}"], **kw)
+    has_buildx = "'buildx' is not a docker command" not in _buildx.finish().err_str()
+    has_storage = "io.containerd.snapshotter" in _storage.finish().out_str()
 
     def is_inline_cache(cache_kw):
         inline_cache = "type=inline"
         all_inline_cache = (None, "", inline_cache)
         return kwargs.get(cache_kw, inline_cache) not in all_inline_cache
 
-    # always use/require buildx (required for sbom and provenance)
-    if attestation or any(is_inline_cache(f"cache_{c}") for c in ("to", "from")):
-        if not has_buildx:
-            wget_cmd = (
-                "wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker"
-                "/buildx/releases/download/{0:s}/buildx-{0:s}.{1:s}"
-            )
-            wget_cmd_unfilled = wget_cmd.format('<version>', '<platform>')
-            wget_cmd_filled = wget_cmd.format('v0.12.1', 'linux-amd64')
+    # require buildx for sbom and provenance and cache != inline
+    require_container = (attestation or
+                         any(is_inline_cache(f"cache_{c}") for c in ("to", "from")))
+    import_after_args = []
+    if dest := image_path or "":
+        logger.warning("Images exported with image_path cannot be imported into legacy "
+                       "storage drivers. This feature is currently experimental. Also "
+                       "note, that exporting to a file is incompatible with the load "
+                       f"and push actions. Deactivating {action}-action!")
+        dest = f",dest={dest}"
+        action = "export"
+    if not has_buildx:
+        # only standard build environment arguments available
+        if require_container:
+            # not supported with builder != docker-container
             raise RuntimeError(
-                f"Using --cache or attestation requires docker buildx, install with "
-                f"'{wget_cmd_unfilled}'\ne.g. '{wget_cmd_filled}\n"
-                f"You may need to 'chmod +x ~/.docker/cli-plugins/docker-buildx'\n"
-                f"See also https://github.com/docker/buildx#manual-download"
+                "Using --cache_{from,to} or attestation requires docker buildx and a "
+                f"docker-container builder.\n{INSTALL_BUILDX}\n{CREATE_BUILDER}"
             )
-
-    if has_buildx:
+        if action != "load":
+            raise RuntimeError(
+                "The legacy docker builder does not support pushing or exporting the "
+                "image."
+            )
+        args = ["build"]
+        kwargs_to_exclude = [f"cache_{c}" for c in ("to", "from")]
+    else:
         # buildx argument construction
         args = ["buildx", "build"]
+        # raises RuntimeError, if a docker-container builder is required, but not found
         default_builder_is_container, alternative_builder = get_builder(
             Popen,
             "docker-container",
+            require_container,
         )
-        args.append("--output")
-        if not attestation:
-            # tag image_name in local registry (simple standard case)
-            if default_builder_is_container:
-                args.extend([f"type=docker,name={image_name}", "--" + action])
+        if has_storage and action == "load":
+            image_type = f"docker"
+        elif action == "push":
+            # with containerd storage driver or pushing to registry
+            image_type = f"image"
+            # both support attestation no problem
+        elif action == "export":
+            experimental = ". No image will be imported. This features is experimental."
+            if attestation:
+                warn_msg = (f"{CONTAINERD_MESSAGE}The build script will save the image "
+                            f"to {image_path} (which will contain the attestation "
+                            f"manifest files){experimental}")
             else:
-                args.append(f"type=image,name={image_name}")
+                warn_msg = (f"The build script will save the image to {image_path}"
+                            f"{experimental}")
+            logger.warning(warn_msg)
+            image_type = f"oci{dest}"
+            if dry_run:
+                print(f"mkdir -p {Path(image_path).parent} && ", sep="")
+            else:
+                Path(image_path).parent.mkdir(exist_ok=True)
+            # importing after (bock docker image import as well as docker image load
+            # are not supported for images exported by buildkit.
+            # import_after_args = ["image", "import", image_path, image_name]
+        elif attestation:
+            # also implicitly action == load
+            raise RuntimeError(CONTAINERD_MESSAGE)
+            # Future Alternative: save the image to preserve the manifest files to file
         else:
-            # want to create sbom and provenance manifests, so needs to use a
-            # docker-container builder
-            image_type = "registry" if action == "push" else "docker"
-            args.extend([f"type={image_type},name={image_name}", "--" + action])
+            # no attestation, docker builder supports this format
+            image_type = f"docker"
 
-            args.extend(["--attest", "type=sbom", "--provenance=true"])
-            if not default_builder_is_container:
-                args.extend(["--builder", alternative_builder])
+        args.extend(["--output", f"type={image_type},name={image_name}"])
+        if not bool(import_after_args):
+            args.append(f"--{action}")
+        if attestation:
+            args.extend([
+                "--attest", "type=sbom",
+                "--attest", "type=provenance",
+            ])
+        if not default_builder_is_container:
+            args.extend(["--builder", alternative_builder])
+
         kwargs_to_exclude = []
-    else:
-        # standard build arguments
-        args = ["build"]
-        kwargs_to_exclude = [f"cache_{c}" for c in ("to", "from")]
 
-    # arguments for standard build and buildx
-    args.extend(("-t", image_name))
     params = [to_pair(k, v) for k, v in kwargs.items() if k not in kwargs_to_exclude]
-    args.extend(["-f", str(dockerfile)] + list(chain(*params)))
+    # arguments for standard build and buildx
+    args.extend([
+        "-t", image_name,
+        "-f", str(dockerfile),
+    ])
+    args.extend(chain(*params))
     args.append(str(context))
 
     if dry_run:
         extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
-        print(" ".join(extra_environment + ["docker"] + args), sep="")
+        print(" ".join(extra_environment + [docker_cmd] + args), sep="")
+        if import_after_args:
+            print(" && " + " ".join([docker_cmd] + import_after_args), sep="")
     else:
         env = dict(os.environ)
         env.update(extra_env)
-        with Popen([docker_cmd] + args + ["--progress=plain"],
-                   cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
-            for msg in proc:
+
+        def forward_output_to_logger(process):
+            for msg in process:
                 if msg.out:
                     logger.info("stdout: " + msg.out.decode("utf-8"))
                 if msg.err:
                     logger.info("stderr: " + red(msg.err.decode("utf-8")))
+
+        with Popen([docker_cmd] + args + ["--progress=plain"],
+                   cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
+            forward_output_to_logger(proc)
+        if import_after_args:
+            with Popen([docker_cmd] + import_after_args,
+                       cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
+                forward_output_to_logger(proc)
 
 
 def singularity_build_image(
@@ -606,21 +689,10 @@ def main(
         logger.info(f"No image name/tag provided, auto-generated tag: {image_tag}")
 
     attestation = bool(keywords.get("attest"))
-    if not attestation:
-        # attestation and some caches require to actively change to a docker-container
-        # build driver (and buildx)
-        if cache is not None and cache.type != "inline":
-            from FastSurferCNN.utils.run_tools import Popen
-            try:
-                can_default, _ = get_builder(Popen, "docker-container")
-            except RuntimeError as e:
-                return e.args[0]
-            if not can_default:
-                return ("The docker build interface only support caching inline, i.e. "
-                        "--cache type=inline.")
-
     if tag_dev:
         kwargs["tag"] = f"fastsurfer:dev{image_prefix}"
+    if keywords.get("image_path", False):
+        kwargs["image_path"] = keywords["image_path"]
 
     if not dry_run:
         logger.info("Version info added to the docker image:")

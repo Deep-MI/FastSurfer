@@ -207,187 +207,101 @@ source "$(dirname "$THIS_SCRIPT")/stools.sh"
 inputargs=("$@")
 while [[ $# -gt 0 ]]
 do
+KEY=$1
 # make key lowercase
-key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+key=$(echo "$KEY" | tr '[:upper:]' '[:lower:]')
+shift
 
 case $key in
-  --fs_license)
-    fs_license="$2"
-    shift # past argument
-    shift # past value
-    ;;
-  --data)
-    in_dir="$2"
-    shift
-    shift
-    ;;
-  --sd)
-    out_dir="$2"
-    shift # past argument
-    shift # past value
-    ;;
-  --pattern)
-    pattern="$2"
-    shift # past argument
-    shift # past value
-    ;;
-  --subject_list|--subjects_list)
-    subject_list="$2"
-    shift
-    shift
-    ;;
-  --subject_list_delim|--subjects_list_delim)
-    subject_list_delim="$2"
-    shift
-    shift
-    ;;
+  --fs_license) fs_license="$1" ; shift ;;
+  --data) in_dir="$1" ; shift ;;
+  --sd) out_dir="$1" ; shift;;
+  --pattern) pattern="$1"; shift ;;
+  --subject_list|--subjects_list) subject_list="$1" ; shift ;;
+  --subject_list_delim|--subjects_list_delim) subject_list_delim="$1" ; shift ;;
   --subject_list_awk_code)
     echo "--subject_list_awk_code is outdated, use subject_list_awk_code_sid and subject_list_awk_code_args!"
     exit 1
     ;;
-  --subject_list_awk_code_sid|--subjects_list_awk_code_sid)
-    subject_list_awk_code_sid="$2"
-    shift
-    shift
-    ;;
-  --subject_list_awk_code_args|--subjects_list_awk_code_args)
-    subject_list_awk_code_args="$2"
-    shift
-    shift
-    ;;
-  --num_cases_per_task)
-    num_cases_per_task="$2"
-    shift # past argument
-    shift # past value
-    ;;
-  --num_cpus_per_task)
-    num_cpus_per_task="$2"
-    shift # past argument
-    shift # past value
-    ;;
-  --cpu_only)
-    cpu_only="true"
-    shift # past argument
-    ;;
-  --skip_cleanup)
-    do_cleanup="false"
-    shift # past argument
-    ;;
-  --work)
-    hpc_work="$2"
-    shift
-    shift
-    ;;
-  --surf_only)
-    surf_only="true"
-    shift
-    ;;
-  --seg_only)
-    seg_only="true"
-    shift
-    ;;
-  --parallel)
-    do_parallel="true"
-    shift
-    ;;
-  --singularity_image)
-    singularity_image="$2"
-    shift
-    shift
-    ;;
+  --subject_list_awk_code_sid|--subjects_list_awk_code_sid) subject_list_awk_code_sid="$1" ; shift ;;
+  --subject_list_awk_code_args|--subjects_list_awk_code_args) subject_list_awk_code_args="$1" ; shift ;;
+  --num_cases_per_task) num_cases_per_task="$1" ; shift ;;
+  --num_cpus_per_task) num_cpus_per_task="$1" ; shift ;;
+  --cpu_only) cpu_only="true" ;;
+  --skip_cleanup) do_cleanup="false" ;;
+  --work) hpc_work="$1" ; shift ;;
+  --surf_only) surf_only="true" ;;
+  --seg_only) seg_only="true" ;;
+  --parallel) do_parallel="true" ;;
+  --singularity_image) singularity_image="$1" ; shift ;;
   --partition)
-    partition_temp="$2"
     # make key lowercase
-    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_value" =~ seg=* ]]
     then
-      partition_seg=${partition_temp:4}
+      partition_seg=${1:4}
     elif [[ "$lower_value" =~ surf=* ]]
     then
-      partition_surf=${partition_temp:5}
+      partition_surf=${1:5}
     else
-      partition=$2
+      partition=$1
     fi
-    shift
     shift
     ;;
   --extra_singularity_options)
-    singularity_opts_temp="$2"
     # make key lowercase
-    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_value" =~ seg=* ]]
     then
-      extra_singularity_options_seg=${singularity_opts_temp:4}
+      extra_singularity_options_seg=${1:4}
     elif [[ "$lower_value" =~ surf=* ]]
     then
-      extra_singularity_options_surf=${singularity_opts_temp:5}
+      extra_singularity_options_surf=${1:5}
     else
-      extra_singularity_options=$2
+      extra_singularity_options=$1
     fi
-    shift
     shift
     ;;
   --time)
-    time_temp="$2"
     # make key lowercase
-    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_value" =~ ^seg=[0-9]+ ]]
     then
-      timelimit_seg=${time_temp:4}
+      timelimit_seg=${1:4}
     elif [[ "$lower_value" =~ surf=([0-9]+|[0-9]{0,1}(:[0-9]{2}){0,1}) ]]
     then
-      timelimit_surf=${time_temp:5}
+      timelimit_surf=${1:5}
     else
-      echo "Invalid parameter to --time: $2, must be seg|surf=<integer (minutes)>"
+      echo "Invalid parameter to --time: $1, must be seg|surf=<integer (minutes)>"
       exit 1
     fi
     shift
-    shift
     ;;
-  --email)
-    email="$2"
-    shift
-    shift
-    ;;
-  --dry)
-    submit_jobs="false"
-    shift
-    ;;
-  --debug)
-    debug="true"
-    shift
-    ;;
-  --slurm_jobarray)
-    jobarray=$2
-    shift
-    shift
-    ;;
-  --help)
-    usage
-    exit
-    ;;
+  --email) email="$1" ; shift ;;
+  --dry) submit_jobs="false" ;;
+  --debug) debug="true" ;;
+  --slurm_jobarray) jobarray=$1 ; shift ;;
+  --help) usage ; exit ;;
   --mem)
     # make key lowercase
-    lower_value=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     if [[ "$lower_value" =~ ^seg=[0-9]+$ ]]
     then
-      mem_seg_cpu=${2:4}
-      mem_seg_gpu=${2:4}
+      mem_seg_cpu=${1:4}
+      mem_seg_gpu=${1:4}
     elif [[ "$lower_value" =~ ^surf=[0-9]+$ ]]
     then
-      mem_surf_parallel=${2:5}
-      mem_surf_noparallel=${2:5}
+      mem_surf_parallel=${1:5}
+      mem_surf_noparallel=${1:5}
     else
-      echo "Invalid parameter to --mem: $2, must be seg|surf=<integer (GigaBytes)>"
+      echo "Invalid parameter to --mem: $1, must be seg|surf=<integer (GigaBytes)>"
       exit 1
     fi
-    shift
     shift
     ;;
   *)    # unknown option
-    POSITIONAL_FASTSURFER[$i]=$1
-    i=$(($i + 1))
-    shift
+    POSITIONAL_FASTSURFER[i]=$KEY
+    i=$((i + 1))
     ;;
 esac
 done
@@ -398,7 +312,7 @@ tmpLF=$(mktemp)
 LF=$tmpLF
 
 function log() { echo "$@" | tee -a "$LF" ; }
-function logf() { printf "$@" | tee -a "$LF" ; }
+function logf() { printf "%s" "$@" | tee -a "$LF" ; }
 
 log "Log of FastSurfer SLURM script"
 log "$(date -R)"
@@ -444,7 +358,7 @@ then
 else
   # all debug messages go into logfile no matter what, but here, not to the console
   function debug () { echo "$@" >> "$LF" ;  }
-  function debugf () { printf "$@" >> "$LF" ;  }
+  function debugf () { printf "%s" "$@" >> "$LF" ;  }
   if [[ "$submit_jobs" == "false" ]]
   then
     log "dry run, no jobs or operations are performed"
@@ -489,7 +403,7 @@ do
   else debugf " %s" "$p";
   fi
 done
-shell=$(ls -l "/proc/$$/exe" | cut -d">" -f2)
+shell=$(stat -c %N "/proc/$$/exe" | cut -d">" -f2 | tail -c +3 | head -c -2)
 debug "Running in shell $shell: $($shell --version 2>/dev/null | head -n 1)"
 debug ""
 
@@ -624,8 +538,8 @@ then
     slurm_email=("${slurm_email[@]}" --mail-type "END,FAIL,ARRAY_TASKS")
   fi
 fi
-jobarray_size="$(($(($num_cases - 1)) / $num_cases_per_task + 1))"
-real_num_cases_per_task="$(($(($num_cases - 1)) / $jobarray_size + 1))"
+jobarray_size="$(($((num_cases - 1)) / num_cases_per_task + 1))"
+real_num_cases_per_task="$(($((num_cases - 1)) / jobarray_size + 1))"
 if [[ "$jobarray_size" -gt 1 ]]
 then
   if [[ -n "$jobarray" ]]
@@ -658,11 +572,12 @@ then
     seg_cmd_file=$(mktemp)
   fi  # END OF NEW
 
-  slurm_partition=$(first_non_empty_partition "$partition_seg" "$partition")
+  slurm_part_=$(first_non_empty_partition "$partition_seg" "$partition")
+  if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=("$slurm_part_") ; fi
   {
     echo "#!/bin/bash"
     echo "module load singularity"
-    echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home \\"
+    echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-home --env TQDM_DISABLE=1 \\"
     if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]]; then
       echo "  $extra_singularity_options $extra_singularity_options_seg\\"
     fi
@@ -672,15 +587,15 @@ then
     echo "# jobarray items will be started by slurm under the aftercorr dependency"
     echo "# see https://github.com/Deep-MI/FastSurfer/pull/434#issuecomment-1910805112"
     echo "exit 0"
-  } > $seg_cmd_file
+  } > "$seg_cmd_file"
   if [[ "$cpu_only" == "true" ]]; then mem_seg="$mem_seg_cpu"
   else mem_seg="$mem_seg_gpu"
   fi
   # note that there can be a decent startup cost for each run, running multiple cases
   # per task significantly reduces this
   seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task"
-                   --time=$(($timelimit_seg * $real_num_cases_per_task + 5))
-                   $slurm_partition "${slurm_email[@]}"
+                   --time=$((timelimit_seg * real_num_cases_per_task + 5))
+                   "${slurm_partition[@]}" "${slurm_email[@]}"
                    "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER"
                    -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
   if [[ "$cpu_only" == "true" ]]
@@ -690,14 +605,14 @@ then
     seg_slurm_sched=(--gpus=1 "${seg_slurm_sched[@]}")
   fi
   log "chmod +x $seg_cmd_filename"
-  chmod +x $seg_cmd_file
+  chmod +x "$seg_cmd_file"
   log "sbatch --parsable ${seg_slurm_sched[*]}"
   echo "--- sbatch script $seg_cmd_filename ---"
-  cat $seg_cmd_file
+  cat "$seg_cmd_file"
   echo "--- end of script ---"
   if [[ "$submit_jobs" == "true" ]]
   then
-    seg_jobid=$(sbatch --parsable ${seg_slurm_sched[*]})
+    seg_jobid=$(sbatch --parsable "${seg_slurm_sched[@]}")
     log "Submitted Segmentation Jobs $seg_jobid"
   else
     log "Not submitting the Segmentation Jobs to slurm (--dry)."
@@ -754,7 +669,8 @@ then
   if [[ "$mem_surf" -gt "$((mem_per_core * cores_per_task))" ]]; then
     mem_per_core=$((mem_per_core+1))
   fi
-  slurm_partition=$(first_non_empty_partition "$partition_surf" "$partition")
+  slurm_part_=$(first_non_empty_partition "$partition_surf" "$partition")
+  if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=("$slurm_part_") ; fi
   {
     echo "#!/bin/bash"
     echo "module load singularity"
@@ -770,21 +686,21 @@ then
     echo "                /fastsurfer/run_fastsurfer.sh)"
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
     echo "  ${fastsurfer_options[*]} ${fastsurfer_surf_options[*]}"
-  } > $surf_cmd_file
+  } > "$surf_cmd_file"
   surf_slurm_sched=("--mem-per-cpu=${mem_per_core}G" "--cpus-per-task=$cores_per_task"
                     "--ntasks=$real_num_cases_per_task"
                     "--nodes=1-$real_num_cases_per_task" "--hint=nomultithread"
                     "${jobarray_option[@]}" "$surf_depend"
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
-                    $slurm_partition "${slurm_email[@]}" "$surf_cmd_filename")
-  chmod +x $surf_cmd_file
+                    "${slurm_partition[@]}" "${slurm_email[@]}" "$surf_cmd_filename")
+  chmod +x "$surf_cmd_file"
   log "sbatch --parsable ${surf_slurm_sched[*]}"
   echo "--- sbatch script $surf_cmd_filename ---"
-  cat $surf_cmd_file
+  cat "$surf_cmd_file"
   echo "--- end of script ---"
   if [[ "$submit_jobs" == "true" ]]
   then
-    surf_jobid=$(sbatch --parsable ${surf_slurm_sched[*]})
+    surf_jobid=$(sbatch --parsable "${surf_slurm_sched[@]}")
     log "Submitted Surface Jobs $surf_jobid"
   else
     log "Not submitting the Surface Jobs to slurm (--dry)."

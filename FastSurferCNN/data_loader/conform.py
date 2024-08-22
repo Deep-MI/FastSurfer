@@ -1,4 +1,5 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019
+# AI in Medical Imaging, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +15,14 @@
 
 
 # IMPORTS
-import logging
-from typing import Optional, Type, Tuple, Union, Iterable, cast
 import argparse
+from enum import Enum
+import logging
 import sys
+from typing import Optional, Type, Tuple, Union, Iterable, cast
 
 import numpy as np
+import numpy.typing as npt
 import nibabel as nib
 
 from FastSurferCNN.utils.arg_types import (
@@ -40,16 +43,34 @@ conform.py  -i <input> --check_only <options>
 Dependencies:
     Python 3.8+
     Numpy
-    http://www.numpy.org
+    https://www.numpy.org
     Nibabel to read and write FreeSurfer data
-    http://nipy.org/nibabel/
+    https://nipy.org/nibabel/
 Original Author: Martin Reuter
 Date: Jul-09-2019
 """
 
 h_input = "path to input image"
 h_output = "path to output image"
-h_order = "order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic)"
+h_order = "order of interpolation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic)"
+
+LIA_AFFINE = np.array([[-1, 0, 0], [0, 0, 1], [0, -1, 0]])
+
+
+class Criteria(Enum):
+    FORCE_LIA_STRICT = "lia strict"
+    FORCE_LIA = "lia"
+    FORCE_IMG_SIZE = "img size"
+    FORCE_ISO_VOX = "iso vox"
+
+
+DEFAULT_CRITERIA_DICT = {
+    "lia": Criteria.FORCE_LIA,
+    "strict_lia": Criteria.FORCE_LIA_STRICT,
+    "iso_vox": Criteria.FORCE_ISO_VOX,
+    "img_size": Criteria.FORCE_IMG_SIZE,
+}
+DEFAULT_CRITERIA = frozenset(DEFAULT_CRITERIA_DICT.values())
 
 
 def options_parse():
@@ -75,25 +96,26 @@ def options_parse():
         dest="check_only",
         default=False,
         action="store_true",
-        help="If True, only checks if the input image is conformed, and does not return an output.",
+        help="If True, only checks if the input image is conformed, and does not "
+             "return an output.",
     )
     parser.add_argument(
         "--seg_input",
         dest="seg_input",
         default=False,
         action="store_true",
-        help="Specifies whether the input is a seg image. If true, the check for conformance "
-        "disregards the uint8 dtype criteria. Use --dtype any for equivalent results. "
-        "--seg_input overwrites --dtype arguments.",
+        help="Specifies whether the input is a seg image. If true, the check for "
+             "conformance disregards the uint8 dtype criteria. Use --dtype any for "
+             "equivalent results. --seg_input overwrites --dtype arguments.",
     )
     parser.add_argument(
         "--vox_size",
         dest="vox_size",
         default=1.0,
         type=__vox_size,
-        help="Specifies the target voxel size to conform to. Also allows 'min' for conforming to the "
-        "minimum voxel size, otherwise similar to mri_convert's --conform_size <size> "
-        "(default: 1, conform to 1mm).",
+        help="Specifies the target voxel size to conform to. Also allows 'min' for "
+             "conforming to the minimum voxel size, otherwise similar to mri_convert's "
+             "--conform_size <size> (default: 1, conform to 1mm).",
     )
     parser.add_argument(
         "--conform_min",
@@ -107,16 +129,42 @@ def options_parse():
     advanced.add_argument(
         "--conform_to_1mm_threshold",
         type=__conform_to_one_mm,
-        help="Advanced option to change the threshold beyond which images are conformed to 1"
-        "(default: infinity, all images are conformed to their minimum voxel size).",
+        help="Advanced option to change the threshold beyond which images are "
+             "conformed to 1 (default: infinity, all images are conformed to their "
+             "minimum voxel size).",
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--dtype",
         dest="dtype",
         default="uint8",
         type=__target_dtype,
-        help="Specifies the target data type of the target image or 'any' (default: 'uint8', "
-        "as in FreeSurfer)",
+        help="Specifies the target data type of the target image or 'any' (default: "
+             "'uint8', as in FreeSurfer)",
+    )
+    advanced.add_argument(
+        "--no_strict_lia",
+        dest="force_strict_lia",
+        action="store_false",
+        help="Ignore the forced LIA reorientation.",
+    )
+    advanced.add_argument(
+        "--no_lia",
+        dest="force_lia",
+        action="store_false",
+        help="Ignore the reordering of data into LIA (without interpolation). "
+             "Superceeds --no_strict_lia",
+    )
+    advanced.add_argument(
+        "--no_iso_vox",
+        dest="force_iso_vox",
+        action="store_false",
+        help="Ignore the forced isometric voxel size (depends on --conform_min).",
+    )
+    advanced.add_argument(
+        "--no_img_size",
+        dest="force_img_size",
+        action="store_false",
+        help="Ignore the forced image dimensions (depends on --conform_min).",
     )
     parser.add_argument(
         "--verbose",
@@ -127,15 +175,18 @@ def options_parse():
     )
     args = parser.parse_args()
     if args.input is None:
-        sys.exit("ERROR: Please specify input image")
+        raise RuntimeError("ERROR: Please specify input image")
     if not args.check_only and args.output is None:
-        sys.exit("ERROR: Please specify output image")
+        raise RuntimeError("ERROR: Please specify output image")
     if args.check_only and args.output is not None:
-        sys.exit(
+        raise RuntimeError(
             "ERROR: You passed in check_only. Please do not also specify output image"
         )
     if args.seg_input and args.dtype not in ["uint8", "any"]:
         print("WARNING: --seg_input overwrites the --dtype arguments.")
+    if not args.force_lia and args.force_strict_lia:
+        print("INFO: --no_lia includes --no_strict_lia.")
+        args.force_strict_lia = False
     return args
 
 
@@ -158,12 +209,13 @@ def map_image(
         Trg image affine.
     out_shape : tuple[int, ...], np.ndarray
         The trg shape information.
-    ras2ras : Optional[np.ndarray]
+    ras2ras : np.ndarray, optional
         An additional mapping that should be applied (default=id to just reslice).
-    order : int
-        Order of interpolation (0=nearest,1=linear(default),2=quadratic,3=cubic).
-    dtype : Optional[Type]
-        Target dtype of the resulting image (relevant for reorientation, default=same as img).
+    order : int, default=1
+        Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).
+    dtype : Type, optional
+        Target dtype of the resulting image (relevant for reorientation,
+        default=keep dtype of img).
 
     Returns
     -------
@@ -209,8 +261,12 @@ def map_image(
     if dtype is not None:
         image_data = image_data.astype(dtype)
 
+    if not is_resampling_vox2vox(vox2vox):
+        # this is a shortcut to reordering resampling
+        order = 0
+
     return affine_transform(
-        image_data, inv(vox2vox), output_shape=out_shape, order=order
+        image_data, inv(vox2vox), output_shape=out_shape, order=order,
     )
 
 
@@ -222,7 +278,7 @@ def getscale(
         f_high: float = 0.999
 ) -> Tuple[float, float]:
     """
-    Get offset and scale of image intensities to robustly rescale to range dst_min..dst_max.
+    Get offset and scale of image intensities to robustly rescale to dst_min..dst_max.
 
     Equivalent to how mri_convert conforms images.
 
@@ -234,10 +290,10 @@ def getscale(
         Future minimal intensity value.
     dst_max : float
         Future maximal intensity value.
-    f_low : float
-        Robust cropping at low end (0.0 no cropping, default).
-    f_high : float
-        Robust cropping at higher end (0.999 crop one thousandth of high intensity voxels, default).
+    f_low : float, default=0.0
+        Robust cropping at low end (0.0=no cropping).
+    f_high : float, default=0.999
+        Robust cropping at higher end (0.999=crop one thousandth of highest intensity).
 
     Returns
     -------
@@ -378,10 +434,10 @@ def rescale(
         Future minimal intensity value.
     dst_max : float
         Future maximal intensity value.
-    f_low : float
-        Robust cropping at low end (0.0 no cropping, default).
-    f_high : float
-        Robust cropping at higher end (0.999 crop one thousandth of high intensity voxels, default).
+    f_low : float, default=0.0
+        Robust cropping at low end (0.0=no cropping).
+    f_high : float, default=0.999
+        Robust cropping at higher end (0.999=crop one thousandth of highest intensity).
 
     Returns
     -------
@@ -466,9 +522,10 @@ def conform(
         order: int = 1,
         conform_vox_size: VoxSizeOption = 1.0,
         dtype: Optional[Type] = None,
-        conform_to_1mm_threshold: Optional[float] = None
+        conform_to_1mm_threshold: Optional[float] = None,
+        criteria: set[Criteria] = DEFAULT_CRITERIA,
 ) -> nib.MGHImage:
-    """Python version of mri_convert -c.
+    f"""Python version of mri_convert -c.
 
     mri_convert -c by default turns image intensity values
     into UCHAR, reslices images to standard position, fills up slices to standard
@@ -490,6 +547,9 @@ def conform(
     conform_to_1mm_threshold : Optional[float]
         The threshold above which the image is conformed to 1mm
         (default: ignore).
+    criteria : set[Criteria], default={DEFAULT_CRITERIA}
+        Whether to force the conforming to include a LIA data layout, an image size
+        requirement and/or a voxel size requirement.
 
     Returns
     -------
@@ -502,28 +562,73 @@ def conform(
     to uchar. mri_convert is doing it the other way around. However, we compute
     the scale factor from the input to increase similarity.
     """
+    conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
+        img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold,
+    )
     from nibabel.freesurfer.mghformat import MGHHeader
 
-    conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
-        img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold
-    )
+    # may copy some parameters if input was MGH format
+    h1 = MGHHeader.from_header(img.header)
+    mdc_affine = h1["Mdc"]
+    img_shape = img.header.get_data_shape()
+    vox_size = img.header.get_zooms()
+    do_interp = False
+    affine = img.affine[:3, :3]
+    if {Criteria.FORCE_LIA, Criteria.FORCE_LIA_STRICT} & criteria != {}:
+        do_interp = bool(Criteria.FORCE_LIA_STRICT in criteria and is_lia(affine, True))
+        re_order_axes = [np.abs(affine[:, j]).argmax() for j in (0, 2, 1)]
+    else:
+        re_order_axes = [0, 1, 2]
 
-    h1 = MGHHeader.from_header(
-        img.header
-    )  # may copy some parameters if input was MGH format
+    if Criteria.FORCE_IMG_SIZE in criteria:
+        h1.set_data_shape([conformed_img_size] * 3 + [1])
+    else:
+        h1.set_data_shape([img_shape[i] for i in re_order_axes] + [1])
+    if Criteria.FORCE_ISO_VOX in criteria:
+        h1.set_zooms([conformed_vox_size] * 3)  # --> h1['delta']
+        do_interp |= not np.allclose(vox_size, conformed_vox_size)
+    else:
+        h1.set_zooms([vox_size[i] for i in re_order_axes])
 
-    h1.set_data_shape([conformed_img_size, conformed_img_size, conformed_img_size, 1])
-    h1.set_zooms(
-        [conformed_vox_size, conformed_vox_size, conformed_vox_size]
-    )  # --> h1['delta']
-    h1["Mdc"] = [[-1, 0, 0], [0, 0, -1], [0, 1, 0]]
-    h1["fov"] = conformed_img_size * conformed_vox_size
-    h1["Pxyz_c"] = img.affine.dot(np.hstack((np.array(img.shape[:3]) / 2.0, [1])))[:3]
+    if Criteria.FORCE_LIA_STRICT in criteria:
+        mdc_affine = LIA_AFFINE
+    elif Criteria.FORCE_LIA in criteria:
+        mdc_affine = affine[:3, re_order_axes]
+        if mdc_affine[0, 0] > 0:  # make 0,0 negative
+            mdc_affine[:, 0] = -mdc_affine[:, 0]
+        if mdc_affine[1, 2] < 0:  # make 1,2 positive
+            mdc_affine[:, 2] = -mdc_affine[:, 2]
+        if mdc_affine[2, 1] > 0:  # make 2,1 negative
+            mdc_affine[:, 1] = -mdc_affine[:, 1]
+    else:
+        mdc_affine = img.affine[:3, :3]
+
+    mdc_affine = mdc_affine / np.linalg.norm(mdc_affine, axis=1)
+    h1["Mdc"] = np.linalg.inv(mdc_affine)
+
+    print(h1.get_zooms())
+    h1["fov"] = max(i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms()))
+    center = np.asarray(img.shape[:3], dtype=float) / 2.0
+    h1["Pxyz_c"] = img.affine.dot(np.hstack((center, [1.0])))[:3]
+
+    # There is a special case here, where an interpolation is triggered, but it is not
+    # necessary, if the position of the center could "fix this"
+    # condition: 1. no rotation, no vox-size resampling,
+    if not is_resampling_vox2vox(np.linalg.inv(h1.get_affine()) @ img.affine):
+        # 2. img_size changes from odd to even and vice versa
+        ishape = np.asarray(img.shape)[re_order_axes]
+        delta_shape = np.subtract(ishape, h1.get_data_shape()[:3])
+        # 2. img_size changes from odd to even and vice versa
+        if not np.allclose(np.remainder(delta_shape, 2), 0):
+            # invert axis reordering
+            delta_shape[re_order_axes] = delta_shape
+            new_center = (center + delta_shape / 2.0, [1.0])
+            h1["Pxyz_c"] = img.affine.dot(np.hstack(new_center))[:3]
 
     # Here, we are explicitly using MGHHeader.get_affine() to construct the affine as
-    # MdcD = np.asarray(h1['Mdc']).T * h1['delta']
-    # vol_center = MdcD.dot(hdr['dims'][:3]) / 2
-    # affine = from_matvec(MdcD, h1['Pxyz_c'] - vol_center)
+    # MdcD = np.asarray(h1["Mdc"]).T * h1["delta"]
+    # vol_center = MdcD.dot(hdr["dims"][:3]) / 2
+    # affine = from_matvec(MdcD, h1["Pxyz_c"] - vol_center)
     affine = h1.get_affine()
 
     # from_header does not compute Pxyz_c (and probably others) when importing from nii
@@ -536,10 +641,8 @@ def conform(
     src_min, scale = 0, 1.0
     # get scale for conversion on original input before mapping to be more similar to
     # mri_convert
-    if (
-        img.get_data_dtype() != np.dtype(np.uint8)
-        or img.get_data_dtype() != target_dtype
-    ):
+    img_dtype = img.get_data_dtype()
+    if any(img_dtype != dtyp for dtyp in (np.dtype(np.uint8), target_dtype)):
         src_min, scale = getscale(np.asanyarray(img.dataobj), 0, 255)
 
     kwargs = {}
@@ -547,9 +650,7 @@ def conform(
         kwargs["dtype"] = "float"
     mapped_data = map_image(img, affine, h1.get_data_shape(), order=order, **kwargs)
 
-    if img.get_data_dtype() != np.dtype(np.uint8) or (
-        img.get_data_dtype() != target_dtype and scale != 1.0
-    ):
+    if img_dtype != np.dtype(np.uint8) or (img_dtype != target_dtype and scale != 1.0):
         scaled_data = scalecrop(mapped_data, 0, 255, src_min, scale)
         # map zero in input to zero in output (usually background)
         scaled_data[mapped_data == 0] = 0
@@ -560,21 +661,44 @@ def conform(
     new_img = nib.MGHImage(sctype(mapped_data), affine, h1)
 
     # make sure we store uchar
+    from nibabel.freesurfer import mghformat
     try:
         new_img.set_data_dtype(target_dtype)
-    except nib.freesurfer.mghformat.MGHError as e:
-        if "not recognized" in e.args[0]:
-            codes = set(
-                k.name
-                for k in nib.freesurfer.mghformat.data_type_codes.code.keys()
-                if isinstance(k, np.dtype)
-            )
-            print(
-                f'The data type "{options.dtype}" is not recognized for MGH images, switching '
-                f'to "{new_img.get_data_dtype()}" (supported: {tuple(codes)}).'
-            )
+    except mghformat.MGHError as e:
+        if "not recognized" not in e.args[0]:
+            raise
+        dtype_codes = mghformat.data_type_codes.code.keys()
+        codes = set(k.name for k in dtype_codes if isinstance(k, np.dtype))
+        print(
+            f"The data type '{options.dtype}' is not recognized for MGH images, "
+            f"switching to '{new_img.get_data_dtype()}' (supported: {tuple(codes)})."
+        )
 
     return new_img
+
+
+def is_resampling_vox2vox(
+        vox2vox: npt.NDArray[float],
+        eps: float = 1e-6,
+) -> bool:
+    """
+    Check whether the affine is resampling or just reordering.
+
+    Parameters
+    ----------
+    vox2vox : np.ndarray
+        The affine matrix.
+    eps : float, default=1e-6
+        The epsilon for the affine check.
+
+    Returns
+    -------
+    bool
+        The result.
+    """
+    _v2v = np.abs(vox2vox[:3, :3])
+    # check 1: have exactly 3 times 1/-1 rest 0, check 2: all 1/-1 or 0
+    return abs(_v2v.sum() - 3) > eps or np.any(np.maximum(_v2v, abs(_v2v - 1)) > eps)
 
 
 def is_conform(
@@ -584,9 +708,10 @@ def is_conform(
         check_dtype: bool = True,
         dtype: Optional[Type] = None,
         verbose: bool = True,
-        conform_to_1mm_threshold: Optional[float] = None
+        conform_to_1mm_threshold: Optional[float] = None,
+        criteria: set[Criteria] = DEFAULT_CRITERIA,
 ) -> bool:
-    """
+    f"""
     Check if an image is already conformed or not.
 
     Dimensions: 256x256x256, Voxel size: 1x1x1, LIA orientation, and data type UCHAR.
@@ -595,26 +720,27 @@ def is_conform(
     ----------
     img : nib.analyze.SpatialImage
         Loaded source image.
-    conform_vox_size : VoxSizeOption
+    conform_vox_size : VoxSizeOption, default=1.0
         Which voxel size to conform to. Can either be a float between 0.0 and
-        1.0 or 'min' check, whether the image is conformed to the minimal voxels size, i.e.
-        conforming to smaller, but isotropic voxel sizes for high-res (default: 1.0).
-    eps : float
-        Allowed deviation from zero for LIA orientation check (default: 1e-06).
+        1.0 or 'min' check, whether the image is conformed to the minimal voxels size, 
+        i.e. conforming to smaller, but isotropic voxel sizes for high-res.
+    eps : float, default=1e-06
+        Allowed deviation from zero for LIA orientation check.
         Small inaccuracies can occur through the inversion operation. Already conformed
         images are thus sometimes not correctly recognized. The epsilon accounts for
         these small shifts.
-    check_dtype : bool
+    check_dtype : bool, default=True
         Specifies whether the UCHAR dtype condition is checked for;
-        this is not done when the input is a segmentation (default: True).
-    dtype : Optional[Type]
-        Specifies the intended target dtype (default: uint8 = UCHAR).
-    verbose : bool
+        this is not done when the input is a segmentation.
+    dtype : Type, optional
+        Specifies the intended target dtype (default or None: uint8 = UCHAR).
+    verbose : bool, default=True
         If True, details of which conformance conditions are violated (if any)
-        are displayed (default: True).
-    conform_to_1mm_threshold : Optional[float]
-        The threshold above which the image is conformed to 1mm
-        (default: ignore).
+        are displayed.
+    conform_to_1mm_threshold : float, optional
+        Above this threshold the image is conformed to 1mm (default or None: ignore).
+    criteria : set[Criteria], default={DEFAULT_CRITERIA}
+        An enum/set of criteria to check.
 
     Returns
     -------
@@ -632,36 +758,37 @@ def is_conform(
     ishape = img.shape
     # check 3d
     if len(ishape) > 3 and ishape[3] != 1:
-        raise ValueError(
-            f"ERROR: Multiple input frames ({img.shape[3]}) not supported!"
-        )
+        raise ValueError(f"ERROR: Multiple input frames ({ishape[3]}) not supported!")
 
-    criteria = {}
+    checks = {
+        f"Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
+    }
     # check dimensions
-    criteria[f"Number of Dimensions 3"] = (len(ishape) == 3, f"image ndim {img.ndim}")
-    img_size_criteria = f"Dimensions {'x'.join([str(conformed_img_size)] * 3)}"
-    is_correct_img_size = all(s == conformed_img_size for s in ishape[:3])
-    criteria[img_size_criteria] = (is_correct_img_size, f"image dimensions {ishape}")
+    if Criteria.FORCE_IMG_SIZE in criteria:
+        img_size_criteria = f"Dimensions {'x'.join([str(conformed_img_size)] * 3)}"
+        is_correct_img_size = all(s == conformed_img_size for s in ishape[:3])
+        checks[img_size_criteria] = is_correct_img_size, f"image dimensions {ishape}"
 
     # check voxel size, drop voxel sizes of dimension 4 if available
     izoom = np.array(img.header.get_zooms())
     is_correct_vox_size = np.max(np.abs(izoom[:3] - conformed_vox_size)) < eps
-    vox_size_criteria = f"Voxel Size {'x'.join([str(conformed_vox_size)] * 3)}"
-    image_vox_size = f"image " + "x".join(map(str, izoom))
-    criteria[vox_size_criteria] = (is_correct_vox_size, image_vox_size)
+    _vox_sizes = conformed_vox_size if is_correct_vox_size else izoom[:3]
+    if Criteria.FORCE_ISO_VOX in criteria:
+        vox_size_criteria = f"Voxel Size {'x'.join([str(conformed_vox_size)] * 3)}"
+        image_vox_size = f"image " + "x".join(map(str, izoom))
+        checks[vox_size_criteria] = (is_correct_vox_size, image_vox_size)
 
     # check orientation LIA
-    lia_affine = np.array([[-1, 0, 0], [0, 0, 1], [0, -1, 0]])
-    iaffine = img.affine[:3, :3] - lia_affine * (
-        conformed_vox_size if is_correct_vox_size else izoom[:3]
-    )
-    is_correct_lia = np.max(np.abs(iaffine)) <= eps
-    if not is_correct_lia:
-        import re
-        lia_text = re.sub("\s+", " ", str(img.affine[:3, :3]))
-    else:
-        lia_text = ""
-    criteria["Orientation LIA"] = (is_correct_lia, lia_text)
+    if {Criteria.FORCE_LIA, Criteria.FORCE_LIA_STRICT} & criteria != {}:
+        is_strict = Criteria.FORCE_LIA_STRICT in criteria
+        lia_text = "strict" if is_strict else "lia"
+        if not (is_correct_lia := is_lia(img.affine, is_strict, eps)):
+            import re
+            print_options = np.get_printoptions()
+            np.set_printoptions(precision=2)
+            lia_text += ": " + re.sub("\\s+", " ", str(img.affine[:3, :3]))
+            np.set_printoptions(**print_options)
+        checks["Orientation LIA"] = (is_correct_lia, lia_text)
 
     # check dtype uchar
     if check_dtype:
@@ -670,9 +797,9 @@ def is_conform(
         else:  # assume obj
             dtype = np.dtype(np.obj2sctype(dtype)).name
         is_correct_dtype = img.get_data_dtype() == dtype
-        criteria[f"Dtype {dtype}"] = (is_correct_dtype, f"dtype {img.get_data_dtype()}")
+        checks[f"Dtype {dtype}"] = (is_correct_dtype, f"dtype {img.get_data_dtype()}")
 
-    _is_conform = all(map(lambda x: x[0], criteria.values()))
+    _is_conform = all(map(lambda x: x[0], checks.values()))
 
     if verbose:
         if not _is_conform:
@@ -682,9 +809,45 @@ def is_conform(
             "conformed" if conform_vox_size == 1.0 else f"{conform_vox_size}-conformed"
         )
         print(f"A {conform_str} image must satisfy the following criteria:")
-        for condition, (value, message) in criteria.items():
+        for condition, (value, message) in checks.items():
             print(f" - {condition:<30}: {value if value else 'BUT ' + message}")
     return _is_conform
+
+
+def is_lia(
+        affine: npt.NDArray[float],
+        strict: bool = True,
+        eps: float = 1e-6,
+):
+    """
+    Checks whether the affine is LIA-oriented.
+
+    Parameters
+    ----------
+    affine : np.ndarray
+        The affine to check.
+    strict : bool, default=True
+        Whether the orientation should be "exactly" LIA or just similar to LIA (i.e.
+        it is more LIA than other directions).
+    eps : float, default=1e-6
+        The threshold in strict mode.
+
+    Returns
+    -------
+    bool
+        Whether the affine is LIA-oriented.
+    """
+    iaffine = affine[:3, :3]
+    lia_nonzero = LIA_AFFINE != 0
+    signs = np.all(np.sign(iaffine[lia_nonzero]) == LIA_AFFINE[lia_nonzero])
+    if strict:
+        directions = np.all(iaffine[np.logical_not(lia_nonzero)] <= eps)
+    else:
+        def get_primary_dirs(a): return np.argmax(abs(a), axis=0)
+
+        directions = np.all(get_primary_dirs(iaffine) == get_primary_dirs(LIA_AFFINE))
+    is_correct_lia = directions and signs
+    return is_correct_lia
 
 
 def get_conformed_vox_img_size(
@@ -707,7 +870,7 @@ def get_conformed_vox_img_size(
         size).
     conform_to_1mm_threshold : float, optional
         The threshold for which image voxel size should be conformed to 1mm instead of
-        conformed to the smallest voxel size (default: None = 1.0, never apply).
+        conformed to the smallest voxel size (default: None, never apply).
 
     Returns
     -------
@@ -717,15 +880,10 @@ def get_conformed_vox_img_size(
         The size of the image adjusted to the conformed voxel size.
     """
     # this is similar to mri_convert --conform_min
-    if isinstance(conform_vox_size, str) and conform_vox_size.lower() in [
-        "min",
-        "auto",
-    ]:
+    auto_values = ["min", "auto"]
+    if isinstance(conform_vox_size, str) and conform_vox_size.lower() in auto_values:
         conformed_vox_size = find_min_size(img)
-        if (
-            conform_to_1mm_threshold is not None
-            and conformed_vox_size > conform_to_1mm_threshold
-        ):
+        if conform_to_1mm_threshold and conformed_vox_size > conform_to_1mm_threshold:
             conformed_vox_size = 1.0
     # this is similar to mri_convert --conform_size <float>
     elif isinstance(conform_vox_size, float) and 0.0 < conform_vox_size <= 1.0:
@@ -812,19 +970,26 @@ def check_affine_in_nifti(
 
 if __name__ == "__main__":
     # Command Line options are error checking done here
-    options = options_parse()
+    try:
+        options = options_parse()
+    except RuntimeError as e:
+        sys.exit(*e.args)
 
     print(f"Reading input: {options.input} ...")
     image = nib.load(options.input)
 
+    if not isinstance(image, nib.analyze.SpatialImage):
+        sys.exit(f"ERROR: Input image is not a spatial image: {type(image).__name__}")
     if len(image.shape) > 3 and image.shape[3] != 1:
         sys.exit(f"ERROR: Multiple input frames ({image.shape[3]}) not supported!")
 
-    target_dtype = "uint8" if options.seg_input else options.dtype
-    opt_kwargs = {}
-    check_dtype = target_dtype != "any"
-    if check_dtype:
-        opt_kwargs["dtype"] = target_dtype
+    _target_dtype = "uint8" if options.seg_input else options.dtype
+    crit = DEFAULT_CRITERIA_DICT.items()
+    opt_kwargs = {
+        "criteria": set(c for n, c in crit if getattr(options, "force_" + n, True)),
+    }
+    if check_dtype := _target_dtype != "any":
+        opt_kwargs["dtype"] = _target_dtype
 
     if hasattr(options, "conform_to_1mm_threshold"):
         opt_kwargs["conform_to_1mm_threshold"] = options.conform_to_1mm_threshold
@@ -853,13 +1018,16 @@ if __name__ == "__main__":
 
     # If image is nifti image
     if options.input[-7:] == ".nii.gz" or options.input[-4:] == ".nii":
-
-        if not check_affine_in_nifti(image):
+        from nibabel import Nifti1Image, Nifti2Image
+        if not check_affine_in_nifti(cast(Nifti1Image | Nifti2Image, image)):
             sys.exit("ERROR: inconsistency in nifti-header. Exiting now.\n")
 
     try:
         new_image = conform(
-            image, order=options.order, conform_vox_size=_vox_size, dtype=options.dtype
+            image,
+            order=options.order,
+            conform_vox_size=_vox_size,
+            **opt_kwargs,
         )
     except ValueError as e:
         sys.exit(e.args[0])

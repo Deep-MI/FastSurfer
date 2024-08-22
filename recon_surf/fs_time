@@ -117,7 +117,6 @@ function   arg1err()
 }
 
 inputargs=("$@")
-if [[ "$#" == 1 ]] ; then usage ; exit 0 ; fi
 any_help=$(echo "$@" | grep -e -help)
 if [[ -n "$any_help" ]]
 then
@@ -125,10 +124,10 @@ then
   help
   exit 0
 fi
-any_version=$(echo $argv | grep -e -version)
+any_version=$(echo "$@" | grep -e -version)
 if [[ -n "$any_version" ]]
 then
-  echo $VERSION
+  echo "$VERSION"
   exit 0
 fi
 
@@ -144,12 +143,12 @@ do
 
   case $flag in
     -o)
-      if [[ "$#" -lt 1 ]] ; then arg1err $flag; fi
+      if [[ "$#" -lt 1 ]] ; then arg1err "$flag"; fi
       outfile=$1
       shift
       ;;
     -k)
-      if [[ "$#" -lt 1 ]] ; then arg1err $flag ; fi
+      if [[ "$#" -lt 1 ]] ; then arg1err "$flag" ; fi
       key=$1
       shift
       ;;
@@ -161,7 +160,6 @@ do
       ;;
     -debug)
       verbose=1
-      echo=1
       ;;
     *)
       # must be at the start of the command to run
@@ -185,16 +183,16 @@ then
 fi
 
 # CHECK PARAMS
-if [[ ! -e /usr/bin/time ]]
-then
-  echo "ERROR: cannot find /usr/bin/time"
-  exit 1
-fi
-
 if [[ "${#cmd[@]}" == 0 ]]
 then
   usage
   echo "ERROR: no command passed to execute"
+  exit 1
+fi
+
+if [[ ! -e /usr/bin/time ]]
+then
+  echo "ERROR: cannot find /usr/bin/time"
   exit 1
 fi
 

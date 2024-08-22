@@ -584,29 +584,60 @@ def deep_sulci_and_wm_strand_mask(
 
 
 # Label mapping functions (to aparc (eval) and to label (train))
-def read_classes_from_lut(lut_file: Path | str) -> pd.DataFrame:
+def read_classes_from_lut(lut_file: str | Path):
     """
-    Read in FreeSurfer-like LUT table.
+    Modify from datautils to allow support for FreeSurfer-distributed ColorLUTs.
+
+    Read in **FreeSurfer-like** LUT table.
 
     Parameters
     ----------
     lut_file : Path, str
-        Path and name of FreeSurfer-style LUT file with classes of interest.
+        The path and name of FreeSurfer-style LUT file with classes of interest.
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
-        1   Left-Cerebral-Exterior 70  130 180 0.
+        1   Left-Cerebral-Exterior 70  130 180 0
+        ...
 
     Returns
     -------
-    pd.Dataframe
+    pandas.DataFrame
         DataFrame with ids present, name of ids, color for plotting.
     """
-    if isinstance(lut_file, str):
+    if not isinstance(lut_file, Path):
         lut_file = Path(lut_file)
+    if lut_file.suffix == ".tsv":
+        return pd.read_csv(lut_file, sep="\t")
+
     # Read in file
-    separator = {".tsv": "\t", ".csv": ",", ".txt": " "}
-    return pd.read_csv(lut_file, sep=separator[lut_file.suffix])
+    names = {
+        "ID": "int",
+        "LabelName": "str",
+        "Red": "int",
+        "Green": "int",
+        "Blue": "int",
+        "Alpha": "int",
+    }
+    kwargs = {}
+    if lut_file.suffix == ".csv":
+        kwargs["sep"] = ","
+    elif lut_file.suffix == ".txt":
+        kwargs["delim_whitespace"] = True
+    else:
+        raise RuntimeError(
+            f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv."
+        )
+    return pd.read_csv(
+        lut_file,
+        index_col=False,
+        skip_blank_lines=True,
+        comment="#",
+        header=None,
+        names=list(names.keys()),
+        dtype=names,
+        **kwargs,
+    )
 
 
 def map_label2aparc_aseg(

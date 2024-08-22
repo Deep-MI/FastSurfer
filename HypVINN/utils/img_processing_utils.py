@@ -98,20 +98,20 @@ def save_segmentation(
 
     if save_mask:
         mask_img = nib.Nifti1Image(labels_cc, affine=ras_affine, header=ras_header)
-        LOGGER.info(f"HypoVINN Mask orientation: {img2axcodes(mask_img)}")
+        LOGGER.info(f"HypVINN Mask orientation: {img2axcodes(mask_img)}")
         mask_img = reorient_img(mask_img, orig_img)
         LOGGER.info(
-            f"HypoVINN Mask after re-orientation: {img2axcodes(mask_img)}"
+            f"HypVINN Mask after re-orientation: {img2axcodes(mask_img)}"
         )
         nib.save(mask_img, subject_dir / "mri" / mask_file)
 
     pred_img = nib.Nifti1Image(pred_arr, affine=ras_affine, header=ras_header)
-    LOGGER.info(f"HypoVINN Prediction orientation: {img2axcodes(pred_img)}")
+    LOGGER.info(f"HypVINN Prediction orientation: {img2axcodes(pred_img)}")
     pred_img = reorient_img(pred_img, orig_img)
     LOGGER.info(
-        f"HypoVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
+        f"HypVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
     )
-    pred_img.set_data_dtype(np.int16)  # Maximum value 939
+    pred_img.set_data_dtype(np.int16)  # Maximum value 984
     nib.save(pred_img, subject_dir / "mri" / seg_file)
     return time() - starttime
 
@@ -159,10 +159,10 @@ def save_logits(
         affine=ras_affine,
         header=ras_header,
     )
-    LOGGER.info(f"HypoVINN logits orientation: {img2axcodes(nifti_img)}")
+    LOGGER.info(f"HypVINN logits orientation: {img2axcodes(nifti_img)}")
     nifti_img = reorient_img(nifti_img, orig_img)
     LOGGER.info(
-        f"HypoVINN logits after re-orientation: {img2axcodes(nifti_img)}"
+        f"HypVINN logits after re-orientation: {img2axcodes(nifti_img)}"
     )
     nifti_img.set_data_dtype(np.float32)
     save_as = save_dir / f"HypVINN_logits_{mode}.nii.gz"
