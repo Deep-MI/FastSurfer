@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 from FastSurferCNN.utils import logging, Plane, PLANES
 from FastSurferCNN.utils.threads import get_num_threads
-from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable
+from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable, Mapper
 from FastSurferCNN.utils.common import (
     find_device,
     SubjectList,
@@ -50,6 +50,11 @@ class Inference:
     Manages inference operations, including batch processing, data loading, and model
     predictions for neuroimaging data.
     """
+
+    cerebnet_labels: Mapper[str, int]
+    cereb_name2fs_id: Mapper[str, int]
+    freesurfer_name2id: Mapper[str, int]
+
     def __init__(
         self,
         cfg: "yacs.config.CfgNode",
@@ -128,8 +133,12 @@ class Inference:
 
         self.cerebnet_labels = _cerebnet_mapper.result().labelname2id()
         self.freesurfer_name2id = fs_color_map.result().labelname2id()
-        cereb_name2fs_name = cereb2freesurfer_mapper.result().labelname2id()
-        cerebsag_name2cereb_name = sagittal_cereb2cereb_mapper.result().labelname2id()
+        cereb_name2fs_name: Mapper[str, str] = (
+            cereb2freesurfer_mapper.result().labelname2id()
+        )
+        cerebsag_name2cereb_name: Mapper[str, str] = (
+            sagittal_cereb2cereb_mapper.result().labelname2id()
+        )
 
         cereb_id2name = self.cerebnet_labels.__reversed__()
         self.cereb_name2fs_id = cereb_name2fs_name.chain(self.freesurfer_name2id)
@@ -421,7 +430,7 @@ class Inference:
             norm_file, _, norm_data = norm.result()
         return norm_data, norm_file, subject_dataset
 
-    def run(self, subject_directories: SubjectList):
+    def run(self, subject_dirs: SubjectList):
         logger.info(time.strftime("%y-%m-%d_%H:%M:%S"))
 
         from tqdm.contrib.logging import logging_redirect_tqdm
@@ -432,12 +441,10 @@ class Inference:
                 from FastSurferCNN.utils.common import pipeline as iterate
             else:
                 from FastSurferCNN.utils.common import iterate
-            iter_subjects = iterate(
-                self.pool, self._get_subject_dataset, subject_directories
-            )
+            iter_subjects = iterate(self.pool, self._get_subject_dataset, subject_dirs)
             futures = []
             for idx, (subject, (norm, norm_file, subject_dataset)) in tqdm(
-                enumerate(iter_subjects), total=len(subject_directories), desc="Subject"
+                enumerate(iter_subjects), total=len(subject_dirs), desc="Subject",
             ):
                 try:
                     # predict CerebNet, returns logits
@@ -465,9 +472,8 @@ class Inference:
                         target_shape=bounding_box["source_shape"],
                     ).numpy()
 
-                    _ = (
-                        _mkdir.result()
-                    )  # this is None, but synchronizes the creation of the directory
+                    # this is None, but synchronizes the creation of the directory
+                    _ = _mkdir.result()
                     futures.append(
                         self._save_cerebnet_seg(
                             full_cereb_seg,
@@ -495,11 +501,16 @@ class Inference:
                                 segfile=subject.segfile,
                                 normfile=norm_file,
                                 lut=self.freesurfer_lut_file,
+                                volume_precision="3",
+                                exclude=[0],
+                                pvfile=norm_file,
+                                report_empty=True,
+                                extra_header=[],
                             )
                         )
 
                     logger.info(
-                        f"Subject {idx + 1}/{len(subject_directories)} with id "
+                        f"Subject {idx + 1}/{len(subject_dirs)} with id "
                         f"'{subject.id}' processed in {pred_time - start_time :.2f} "
                         f"sec."
                     )

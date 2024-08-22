@@ -162,7 +162,7 @@ def main(args: argparse.Namespace) -> int | str:
 
     # Check input and output options and get all subjects of interest
     subjects = SubjectList(
-        args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs
+        args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs,
     )
 
     try:
