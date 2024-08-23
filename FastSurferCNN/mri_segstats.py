@@ -160,6 +160,7 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.set_defaults(
         measurefile="stats/brainvol.stats",
         parse_actions=[(1, add_etiv_measures), (10, _update_what_to_import)],
+        volume_precision=1,
     )
 
     if "--help" in sys.argv:
@@ -491,34 +492,38 @@ def print_and_exit(args: object):
 def format_cmdline_args(args: object) -> list[str]:
     """Format the commandline arguments of the segstats script."""
     arglist = ["python", str(Path(__file__).parent / "segstats.py")]
-    if getattr(args, "allow_root", False):
-        arglist.append("--allow_root")
-    if getattr(args, "legacy_freesurfer", False):
-        arglist.append("--legacy_freesurfer")
-    if (segfile := getattr(args, "segfile", None)) is not None:
-        arglist.extend(["--segfile", str(segfile)])
-    if (normfile := getattr(args, "normfile", None)) is not None:
-        arglist.extend(["--normfile", str(normfile)])
-    if (pvfile := getattr(args, "pvfile", None)) is not None:
-        arglist.extend(["--pvfile", str(pvfile)])
-    if (segstatsfile := getattr(args, "segstatsfile", None)) is not None:
-        arglist.extend(["--segstatsfile", str(segstatsfile)])
-    if (subjects_dir := getattr(args, "out_dir", None)) is not None:
-        arglist.extend(["--sd", str(subjects_dir)])
-    if (subject_id := getattr(args, "sid", None)) is not None:
-        arglist.extend(["--sid", str(subject_id)])
-    if (threads := getattr(args, "threads", 0)) > 0:
-        arglist.extend(["--threads", str(threads)])
-    if (lut := getattr(args, "lut", None)) is not None:
-        arglist.extend(["--lut", str(lut)])
+    # this entry has nargs="+" and should therefore be up top
     if not empty(__ids := getattr(args, "ids", [])):
         arglist.extend(["--id"] + list(map(str, __ids)))
+
+    def _append_storetrue(name: str, flag: str = ""):
+        if flag == "":
+            flag = "--" + name
+        if getattr(args, name, False):
+            arglist.append(flag)
+
+    def _extend_arg(name: str, flag: str = None):
+        if flag == "":
+            flag = "--" + name
+        if (value := getattr(args, name, None)) is not None:
+            arglist.extend([flag, str(value)])
+
+    _append_storetrue("allow_root")
+    _append_storetrue("legacy_freesurfer")
+    _extend_arg("segfile")
+    _extend_arg("normfile")
+    _extend_arg("pvfile")
+    _extend_arg("segstatsfile")
+    _extend_arg("out_dir", "--sd")
+    _extend_arg("sid")
+    _extend_arg("threads")
+    _extend_arg("lut")
+    _extend_arg("volume_precision")
 
     measures: list[tuple[bool, str]] = getattr(args, "measures", [])
     if not empty(measures):
         arglist.append("measures")
-        if (measurefile := getattr(args, "measurefile", None)) is not None:
-            arglist.extend(("--file", str(measurefile)))
+        _extend_arg("measurefile", "--file")
         _flag = {True: "--import", False: "--compute"}
         blank_measure = (not measures[0][0], "")
         flag_measure_iter = ((_flag[i], m) for i, m in [blank_measure, *measures])
