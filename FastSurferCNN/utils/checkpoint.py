@@ -228,7 +228,9 @@ def load_from_checkpoint(
     loaded_epoch : int
         Epoch number.
     """
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    # WARNING: weights_only=False can cause unsafe code execution, but here the
+    # checkpoint can be considered to be from a safe source
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
     if drop_classifier:
         classifier_conv = ["classifier.conv.weight", "classifier.conv.bias"]

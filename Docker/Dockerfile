@@ -189,6 +189,9 @@ SHELL ["/bin/bash", "--login", "-c"]
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_conda_build_image /venv /venv
 
+# Fix for cuda11.8+cudnn8.7 bug+warning: https://github.com/pytorch/pytorch/issues/97041
+RUN if [[ "$DEVICE" == "cu118" ]] ; then cd /venv/python3.10/site-packages/torch/lib && ln -s libnvrtc-*.so.11.2 libnvrtc.so ; fi
+
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
 ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \

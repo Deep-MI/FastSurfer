@@ -73,5 +73,3 @@ pyversion=$(echo "$out" | head -n 1 | cut -d" " -f2)
   echo ""
   echo "# $out"
 } >> $1
-
-}

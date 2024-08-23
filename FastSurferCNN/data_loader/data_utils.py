@@ -623,7 +623,7 @@ def read_classes_from_lut(lut_file: str | Path):
     if lut_file.suffix == ".csv":
         kwargs["sep"] = ","
     elif lut_file.suffix == ".txt":
-        kwargs["delim_whitespace"] = True
+        kwargs["sep"] = "\\s+"
     else:
         raise RuntimeError(
             f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv."

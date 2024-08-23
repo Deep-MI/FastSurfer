@@ -181,7 +181,9 @@ class Inference:
             of a model.
         """
         logger.info("Loading checkpoint {}".format(ckpt))
-        model_state = torch.load(ckpt, map_location=self.device)
+        # WARNING: weights_only=False can cause unsafe code execution, but here the
+        # checkpoint can be considered to be from a safe source
+        model_state = torch.load(ckpt, map_location=self.device, weights_only=False)
         self.model.load_state_dict(model_state["model_state"])
 
     def get_modelname(self):

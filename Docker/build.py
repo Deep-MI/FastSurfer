@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer',
                  'build_base', 'runtime_cuda']
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu118", "cu121", "cu124", "rocm6.1"]
+AllDeviceType = Literal["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"]
 DeviceType = Literal["cpu", "cu118", "cu121", "cu124", "rocm6.1"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
@@ -58,6 +58,7 @@ class DEFAULTS:
     # and rocm versions, if pytorch comes with new versions.
     # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
+    # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
     MapDeviceType: Dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
         rocm="rocm6.1",
@@ -230,6 +231,7 @@ def make_parser() -> argparse.ArgumentParser:
                  --cache type=registry,ref=server/fastbuild,mode=max.
                  Will default to the environment variable FASTSURFER_BUILD_CACHE: 
                  {cache_kwargs.get('default', 'N/A')}""",
+        metavar="type={inline,local,...}[,<param>=<value>[,...]]",
         **cache_kwargs,
     )
     parser.add_argument(
