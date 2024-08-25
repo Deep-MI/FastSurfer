@@ -389,7 +389,7 @@ echo "Log file for Conform test" > "$CONFORM_LF"
 
 # check for input conformance
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
-RunIt "$cmd" "$LF" |& tee -a "$CONFORM_LF"
+RunIt "$cmd" "$LF" 2>&1 | tee -a "$CONFORM_LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
 vox_size=$(grep -E " - Voxel Size " "$CONFORM_LF" | cut -d' ' -f5 | cut -d'x' -f1)
@@ -835,7 +835,7 @@ if [ "$DoParallel" == 1 ] ; then
     echo ""
     echo " RUNNING HEMIs in PARALLEL !!! "
     echo ""
-  } |& tee -a "$LF"
+  } | tee -a "$LF"
   RunBatchJobs "$LF" "${CMDFS[@]}"
 fi
 
@@ -1088,7 +1088,7 @@ tRunHours=$(printf %6.3f "$tRunHours")
   echo "Started at $StartTime"
   echo "Ended   at $EndTime"
   echo "#@#%# recon-surf-run-time-hours $tRunHours"
-} |& tee -a "$LF"
+} | tee -a "$LF"
 
 # Create the Done File
 {
@@ -1113,7 +1113,7 @@ tRunHours=$(printf %6.3f "$tRunHours")
   echo "CMDPATH $0"
   echo "CMDARGS ${inputargs[*]}"
 } > "$DoneFile"
-echo "recon-surf.sh $subject finished without error at $(date)"  |& tee -a "$LF"
+echo "recon-surf.sh $subject finished without error at $(date)" | tee -a "$LF"
 
 cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surf_times.yaml"
 RunIt "$cmd" "/dev/null"
