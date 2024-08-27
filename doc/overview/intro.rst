@@ -7,7 +7,7 @@ Introduction to FastSurfer
     :relative-docs: .
     :relative-images:
     :start-after: <!-- start of getting started -->
-    :end-before: <!-- start of flags -->
+    :end-before: <!-- start of examples -->
 
 .. include:: ../../README.md
     :parser: fix_links.parser

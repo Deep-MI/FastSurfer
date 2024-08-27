@@ -1,10 +1,14 @@
-# Flags
-Next, you will need to select the `*fastsurfer-flags*` and replace `*fastsurfer-flags*` with your options. Please see the Examples below for some example flags.
+run_fastsurfer.sh
+=================
 
-The `*fastsurfer-flags*` will usually include the subject directory (`--sd`; Note, this will be the mounted path - `/output` - for containers), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
+`run_fastsurfer.sh` is the central command of FastSurfer. In general, `run_fastsurfer.sh` is called once for each T1w MRI image that is to be processed and each call will result in one "Subject Folder" with segmentation maps, surfaces and statistics tables. If you want to process multiple images, you can either loop through the images yourself or use [brun_fastsurfer.sh](BATCH.md) or [srun_fastsurfer.sh](SLURM.md), which are multi-subject extensions to `run_fastsurfer.sh`.
+
+On this page, we explain FastSurfer's options, usually referred to as `<*fastsurfer-flags*>` in this documentation. 
+
+The `<*fastsurfer-flags*>` will usually include the subject directory (`--sd`; Note, this will be the mounted path - `/output` - for containers), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
 
 ```bash
-... --sd /output --sid test_subject --t1 /data/test_subject_t1.nii.gz --3T
+$FASTSURFER_HOME/run_fastsurfer.sh --sd /output --sid test_subject --t1 /data/test_subject_t1.nii.gz --3T
 ```
 Additionally, you can use `--seg_only` or `--surf_only` to only run a part of the pipeline or `--no_biasfield`, `--no_cereb` and `--no_asegdkt` to switch off some segmentation modules (see above).
 Here, we have also added the `--3T` flag, which tells fastsurfer to register against the 3T atlas for ICV estimation (eTIV).
@@ -55,3 +59,10 @@ In the following, we give an overview of the most important options, but you can
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
 * `--ignore_fs_version`: Switch on to avoid check for FreeSurfer version. Program will terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions.
 * `-h`, `--help`: Prints help text
+
+Usage
+-----
+
+```{command-output} ./run_fastsurfer.sh --help
+:cwd: /../
+```

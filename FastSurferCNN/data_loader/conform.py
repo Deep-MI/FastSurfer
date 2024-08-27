@@ -165,7 +165,7 @@ def options_parse():
         "--no_iso_vox",
         dest="force_iso_vox",
         action="store_false",
-        help="Ignore the forced isotropic voxel size (depends on --conform_min).",
+        help="Ignore the forced isometric voxel size (depends on --conform_min).",
     )
     advanced.add_argument(
         "--no_img_size",

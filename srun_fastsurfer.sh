@@ -86,14 +86,14 @@ Data- and subject-related options:
   Note: files will be copied here only after all jobs have finished, so most IO happens on
   a work directory, which can use IO-optimized cluster storage (see --work).
 --work: directory with fast filesystem on cluster
-  (default: \$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S))
+  (default: \$HPCWORK/fastsurfer-processing/<date as YYMMDD-HHMMSS>)
   NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
   No modifications should be made to the directory after the job is started until it is
   finished (if the job fails, cleanup of this directory may be necessary) and it should be
   empty!
 --data: (root) directory to search in for t1 files (default: current work directory).
 --pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
-   for example --data /data/ --pattern \*/\*/mri/t1.nii.gz
+   for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
    will find all images of format /data/<somefolder>/<otherfolder>/mri/t1.nii.gz
 --subject_list: alternative way to define cases to process, files are of format:
   subject_id1=/path/to/t1.mgz
