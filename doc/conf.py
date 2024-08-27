@@ -2,14 +2,15 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-import importlib
-import io
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
+import importlib
+import inspect
+import io
+from importlib import import_module
 import sys
-import os
 from pathlib import Path
 
 # relative path so sphinx can locate the different modules directly for autosummary
@@ -80,6 +81,17 @@ suppress_warnings = [
 
 # create anchors for which headings?
 myst_heading_anchors = 7
+
+# myst extensions
+myst_enable_extensions = {
+    "substitution",
+}
+
+# configure substitutions
+myst_substitutions = {
+    # for now, the FASTSURFER_VERSION is hard-coded to 2.4.0
+    "FASTSURFER_VERSION": version,
+}
 
 templates_path = ["_templates"]
 exclude_patterns = [

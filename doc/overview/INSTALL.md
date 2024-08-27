@@ -22,9 +22,9 @@ Assuming you have singularity installed already (by a system admin), you can bui
 ```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 ```
-Additionally, [the Singularity README](SINGULARITY.md) contains detailed directions for building your own Singularity images from Docker.
+Additionally, [the Singularity documentation](SINGULARITY.md) contains detailed directions for building your own Singularity images from Docker.
 
-[Example 2](EXAMPLES.md#example-2-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../tools/Docker/README.md) and [Singularity](SINGULARITY.md). 
+[Example 1](EXAMPLES.md#example-1-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../tools/Docker/README.md) and [Singularity](SINGULARITY.md). 
 
 
 ### Docker
@@ -35,7 +35,7 @@ This is very similar to Singularity. Assuming you have Docker installed (by a sy
 docker pull deepmi/fastsurfer:latest
 ```
 
-[Example 1](EXAMPLES.md#example-1-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](../../tools/Docker/README.md). 
+[Example 2](EXAMPLES.md#example-2-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](../../tools/Docker/README.md). 
 
 If you are using the **rootless mode**, you have to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and follow the [configuration for the rootless mode](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode). Otherwise, running FastSurfer with Docker will give you this error message ```docker: Error response from daemon: could not select device driver "" with capabilities: [[gpu]]```.
 
@@ -148,7 +148,7 @@ Build the Docker container with ROCm support.
 python tools/Docker/build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
-You will need to add a couple of flags to your docker run command for AMD, see [Example 1](EXAMPLES.md#example-1-fastsurfer-docker) for `**other-docker-flags**` or `**fastsurfer-flags**`:
+You will need to add a couple of flags to your docker run command for AMD, see [Example 2](EXAMPLES.md#example-2-fastsurfer-docker) for `**other-docker-flags**` or `*<*fastsurfer-flags*>*`:
 ```bash
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/kfd \
         --device=/dev/dri --group-add video --ipc=host --shm-size 8G \
@@ -178,7 +178,7 @@ Second, pull one of our Docker containers. Open a terminal window and run:
 docker pull deepmi/fastsurfer:latest
 ```
 
-Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker). 
+Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker). 
 
 ### Package
 
@@ -232,7 +232,7 @@ After everything is installed, start Windows PowerShell and run the following co
 docker pull deepmi/fastsurfer:cpu-latest
 ```
 
-Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker) for the CPU build, for example:
+Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker) for the CPU build, for example:
 ```bash
 docker run -v C:/Users/user/my_mri_data:/data \
            -v C:/Users/user/my_fastsurfer_analysis:/output \
@@ -263,7 +263,7 @@ After everything is installed, start Windows PowerShell and run the following co
 docker pull deepmi/fastsurfer:latest
 ```
 
-Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker), for example:
+Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker), for example:
 ```bash
 docker run --gpus all \
            -v C:/Users/user/my_mri_data:/data \
