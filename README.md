@@ -37,7 +37,6 @@ Modules (all run by default):
    - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if `--no_bias_field` is passed).
 
-
 ### Surface reconstruction
 - approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
 - supports high-resolution images (up to 0.7mm, experimental beyond that).
@@ -66,59 +65,74 @@ The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer)
 
 ### Usage
 
-All installation methods use the `run_fastsurfer.sh` call interface (replace `*fastsurfer-flags*` with [FastSurfer flags](doc/overview/FLAGS.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
+All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<*fastsurfer-flags*>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
 
-1. For container installations, you need to define the hardware and mount the folders with the input (`/data`) and output data (`/output`):  
-   (a) For __singularity__, the syntax is 
-    ```
-    singularity exec --nv \
-                     --no-home \
-                     -B /home/user/my_mri_data:/data \
-                     -B /home/user/my_fastsurfer_analysis:/output \
-                     -B /home/user/my_fs_license_dir:/fs_license \
-                     ./fastsurfer-gpu.sif \
-                     /fastsurfer/run_fastsurfer.sh 
-                     *fastsurfer-flags*
+1. For container installations, you need to set up the container (`<*singularity-flags*>` or `<*docker-flags*>`) in addition to the `<*fastsurfer-flags*>`:  
+   1. For __Singularity__, the syntax is
+
+      ```bash
+      singularity run <*singularity-flags*> \
+                      fastsurfer.sif \
+                      <*fastsurfer-flags*>
+      ```
+      This command has two placeholders for flags: `<*singularity-flags*>` and `<*fastsurfer-flags*>`.
+      `<*singularity-flags*>` [set up the singularity environment](doc/overview/SINGULARITY.md), `<*fastsurfer-flags*>` include the options that determine the [behavior of FastSurfer](doc/scripts/RUN_FASTSURFER.md):
+      ### Basic FastSurfer Flags
+      
+      - `--t1`: the path to the image to process.
+      - `--sd`: the path to the "Subjects Directory", where all results will be stored.
+      - `--sid`: the identified for the results for this image (folder inside "Subjects Directory").
+      - `--fs_license`: path to the FreeSurfer license file.
+      
+      All options are explained in detail in the [run_fastsurfer.sh documentation](doc/scripts/RUN_FASTSURFER.md).  
+
+      An example for a simple full FastSurfer-Singularity command is
+      ```bash
+      singularity run --nv \
+                      -B $HOME/my/mri_data \
+                      -B $HOME/my/fastsurfer_analysis \
+                      -B /software/freesurfer/license.txt \
+                      fastsurfer.sif \
+                      --t1 $HOME/my/mri_data/participant1/image1.nii.gz \
+                      --sd $HOME/my/fastsurfer_analysis \
+                      --sid part1_img1 \
+                      --fs_license /software/freesurfer/license.txt
+      ```
+
+      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#fastsurfer-singularity-image-usage) for details on more singularity flags and how to create the `fastsurfer.sif` file.  
+
+   2. For __docker__, the syntax is
+      ```bash
+      docker run <*docker-flags*> \
+                 deepmi/fastsurfer:<device>-v<version> \
+                 <*fastsurfer-flags*>
+      ```
+      
+      The options for `<*docker-flags*>` and [`<*fastsurfer-flags*>`](README.md#basic-fastsurfer-flags) follow very similar patterns as for Singularity ([but the names of `<*docker-flags*>` are different](Docker/README.md#docker-flags)).
+ 
+      __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)__ also details a full FastSurfer run inside a Docker container and [the Docker documentation](tools/Docker/README.md#docker-flags) for more details on `*docker flags*` and the naming of docker images (`<device>-v<version>`).
+
+2. For a __macOS package install__, start FastSurfer from Applications and call the `run_fastsurfer.sh` FastSurfer script with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments) from the terminal that is opened for you.
+
+3. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python/conda environment needs to be [set up](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204) and activated.
+
+   ```bash
+   # activate fastsurfer environment
+   conda activate fastsurfer
+   
+   /path/to/fastsurfer/run_fastsurfer.sh <*fastsurfer-flags*>
    ```
-   The `--nv` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).
 
-   The `--no-home` flag tells singularity to not mount the home directory (see [Singularity documentation](doc/overview/SINGULARITY.md#mounting-home) for more info).
-
-   The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
- 
-   See also __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
-
-   (b) For __docker__, the syntax is
-    ```
-    docker run --gpus all \
-               -v /home/user/my_mri_data:/data \
-               -v /home/user/my_fastsurfer_analysis:/output \
-               -v /home/user/my_fs_license_dir:/fs_license \
-               --rm --user $(id -u):$(id -g) \
-               deepmi/fastsurfer:latest \
-               *fastsurfer-flags*
-    ```
-   The `--gpus` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).
-
-   The `-v` flag is used to tell docker, which folders FastSurfer can read and write to.
- 
-   See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-docker)__ for a full FastSurfer run inside a Docker container and [the Docker documentation](tools/Docker/README.md#docker-flags) for more details on the docker flags including `--rm` and `--user`.
-
-2. For a __native install__, you need to activate your FastSurfer environment (e.g. `conda activate fastsurfer_gpu`) and make sure you have added the FastSurfer path to your `PYTHONPATH` variable, e.g. `export PYTHONPATH=$(pwd)`. 
-
-   You will then be able to run fastsurfer with `./run_fastsurfer.sh *fastsurfer-flags*`.
-
-   See also [Example 3](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.
-
-<!-- start of flags -->
-### FastSurfer_Flags
-Please refer to [FASTSURFER_FLAGS](doc/overview/FLAGS.md).
+   In addition to the [Basic Flags](README.md#basic-fastsurfer-flags), note that you may need to use `--py python3.12` to specify your python version, see [FastSurfer flags for more details](doc/scripts/RUN_FASTSURFER.md#required-arguments).
 
 
+   [Example 3](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) also illustrates the running the FastSurfer pipeline natively.
+
+<!-- start of examples -->
 ## Examples
-All the examples can be found here: [FASTSURFER_EXAMPLES](doc/overview/EXAMPLES.md)
-- [Example 1: FastSurfer Docker](doc/overview/EXAMPLES.md#example-1-fastsurfer-docker)
-- [Example 2: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-2-fastsurfer-singularity)
+The documentation includes [6 detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer. 
+- [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity)
+- [Example 2: FastSurfer Docker](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)
 - [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
 - [Example 4: FastSurfer on multiple subjects](doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)
 - [Example 5: Quick Segmentation](doc/overview/EXAMPLES.md#example-5-quick-segmentation)
@@ -129,25 +143,30 @@ All the examples can be found here: [FASTSURFER_EXAMPLES](doc/overview/EXAMPLES.
 
 Modules output can be found here: [FastSurfer_Output_Files](doc/overview/OUTPUT_FILES.md)
 - [Segmentation module](doc/overview/OUTPUT_FILES.md#segmentation-module)
+- [Corpus Callosum module](doc/overview/OUTPUT_FILES.md#corpus-callosum-module)
 - [Cerebnet module](doc/overview/OUTPUT_FILES.md#cerebnet-module)
 - [HypVINN module](doc/overview/OUTPUT_FILES.md#hypvinn-module)
-- [Corpus Callosum module](doc/overview/OUTPUT_FILES.md#corpus-callosum-module)
 - [Surface module](doc/overview/OUTPUT_FILES.md#surface-module)
 
 <!-- start of system requirements -->
 ## System Requirements
 
-**Recommendation: At least 8 GB system memory and 8 GB NVIDIA graphics memory**
+**Recommendation**
 
-### Minimum Requirements:
+- intel or AMD CPU (6 or more cores)
+- 16 GB system memory
+- nVidia graphics card (2016 or newer) 
+- 12 GB graphics memory
 
-|       | --viewagg_device | Min GPU (in GB) | Min CPU (in GB) |
-|:------|------------------|----------------:|----------------:|
-| 1mm   | gpu              |               5 |               5 |
-| 1mm   | cpu              |               2 |               7 |
-| 0.7mm | gpu              |               8 |               6 |
-| 0.7mm | cpu              |               3 |               9 |
-| 0.7mm | --device cpu     |               0 |               9 |
+FastSurfer supports multiple hardware acceleration modes: fully CPU (`--device cpu`), partial GPU 
+(`--device cuda --viewagg_device cpu`) and fully GPU (`--device cuda`). By default, FastSurfer will try to pick the best
+option. These modes require different system and video memory capacities, see the table below. 
+
+| Voxel size | mode: fully CPU           | mode: partial gpu                       | mode: fully GPU       |
+|:-----------|---------------------------|-----------------------------------------|:----------------------|
+| 1mm        | system memory (RAM): 8 GB | RAM: 8 GB, graphics memory (VRAM): 2 GB | RAM: 8 GB, VRAM: 6 GB |
+| 0.8mm      | RAM: 8 GB                 | RAM: 8 GB, VRAM: 2 GB                   | RAM: 8 GB, VRAM: 8 GB |
+| 0.7mm      | RAM: 16 GB                | RAM: 16 GB, VRAM: 3 GB                  | RAM: 8 GB, VRAM: 8 GB |
 
 The default device is the GPU. The view-aggregation device can be switched to CPU and requires less GPU memory. CPU-only processing ```--device cpu``` is much slower and not recommended.
 

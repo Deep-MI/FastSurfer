@@ -29,7 +29,7 @@ export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
-export SUBJECTS_DIR=/home/user/my_fastsurfer_analysis
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 
 # Run FastSurfer longitudinally
 $FASTSURFER_HOME/long_fastsurfer.sh \
@@ -47,9 +47,9 @@ The above command will, of course, be slightly different when using your preferr
 ```bash
 singularity exec --nv \
                  --no-mount cwd,home \
-                 -B /home/user/my_mri_data:/data \
-                 -B /home/user/my_fastsurfer_analysis:/output \
-                 -B /home/user/my_fs_license_dir:/fs_license \
+                 -B $HOME/my_mri_data:/data \
+                 -B $HOME/my_fastsurfer_analysis:/output \
+                 -B $HOME/my_fs_license_dir:/fs_license \
                  ./fastsurfer-gpu.sif \
                  /fastsurfer/long_fastsurfer.sh \
                  --fs_license /fs_license/license.txt \
@@ -64,9 +64,9 @@ For Docker, this is very similar, but we need to specify the entrypoint explicit
 
 ```bash
 docker run --gpus all --rm --user  $(id -u):$(id -g) \
-                 -v /home/user/my_mri_data:/data \
-                 -v /home/user/my_fastsurfer_analysis:/output \
-                 -v /home/user/my_fs_license_dir:/fs_license \
+                 -v $HOME/my_mri_data:/data \
+                 -v $HOME/my_fastsurfer_analysis:/output \
+                 -v $HOME/my_fs_license_dir:/fs_license \
                  --entrypoint "/fastsurfer/long_fastsurfer.sh" \
                  deepmi/fastsurfer:latest \
                  --fs_license /fs_license/license.txt \
@@ -117,7 +117,7 @@ export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
-export SUBJECTS_DIR=/home/user/my_fastsurfer_analysis
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 
 # Run long_compat_segmentHA.py script to create missing files and sym-links
 python $FASTSURFER_HOME/recon_surf/long_compat_segmentHA.py \

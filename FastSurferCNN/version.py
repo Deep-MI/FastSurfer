@@ -526,8 +526,7 @@ def read_and_close_version(project_file: TextIO | None = None) -> str:
     -----
     See also FastSurferCNN.version.read_version_from_project_file
     """
-    if project_file is None:
-        project_file = open(DEFAULTS.PROJECT_TOML)
+    project_file = open(project_file or DEFAULTS.PROJECT_TOML)
     try:
         version = read_version_from_project_file(project_file)
     finally:

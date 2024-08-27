@@ -1,4 +1,4 @@
-# Contributing to FastSurfer
+# Contribution Guide
 
 All types of contributions are encouraged and valued. The community looks forward to your contributions.
 
