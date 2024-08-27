@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.checkpoint
+==============================
+
+.. automodule:: FastSurferCNN.utils.checkpoint
+    :members:

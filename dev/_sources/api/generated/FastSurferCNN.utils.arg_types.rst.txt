@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.arg_types
+=============================
+
+.. automodule:: FastSurferCNN.utils.arg_types
+    :members:

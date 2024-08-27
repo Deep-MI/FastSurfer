@@ -1,0 +1,5 @@
+﻿FastSurferCNN.generate_hdf5
+===========================
+
+.. automodule:: FastSurferCNN.generate_hdf5
+    :members:

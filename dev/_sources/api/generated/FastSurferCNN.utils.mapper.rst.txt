@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.mapper
+==========================
+
+.. automodule:: FastSurferCNN.utils.mapper
+    :members:

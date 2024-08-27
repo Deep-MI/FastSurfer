@@ -1,0 +1,5 @@
+﻿FastSurferCNN.models.sub_module
+===============================
+
+.. automodule:: FastSurferCNN.models.sub_module
+    :members:

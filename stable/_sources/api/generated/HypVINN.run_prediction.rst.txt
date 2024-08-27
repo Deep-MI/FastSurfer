@@ -1,0 +1,5 @@
+﻿HypVINN.run_prediction
+======================
+
+.. automodule:: HypVINN.run_prediction
+    :members:

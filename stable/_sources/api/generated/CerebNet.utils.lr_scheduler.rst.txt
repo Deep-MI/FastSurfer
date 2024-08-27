@@ -1,0 +1,5 @@
+﻿CerebNet.utils.lr_scheduler
+===========================
+
+.. automodule:: CerebNet.utils.lr_scheduler
+    :members:

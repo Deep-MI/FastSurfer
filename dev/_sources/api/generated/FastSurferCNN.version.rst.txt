@@ -1,0 +1,5 @@
+﻿FastSurferCNN.version
+=====================
+
+.. automodule:: FastSurferCNN.version
+    :members:

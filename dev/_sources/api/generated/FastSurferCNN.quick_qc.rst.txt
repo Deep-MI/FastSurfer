@@ -1,0 +1,5 @@
+﻿FastSurferCNN.quick_qc
+======================
+
+.. automodule:: FastSurferCNN.quick_qc
+    :members:

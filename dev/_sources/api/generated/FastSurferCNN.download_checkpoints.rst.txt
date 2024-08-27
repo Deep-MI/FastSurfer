@@ -1,0 +1,5 @@
+﻿FastSurferCNN.download_checkpoints
+==================================
+
+.. automodule:: FastSurferCNN.download_checkpoints
+    :members:
