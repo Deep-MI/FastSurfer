@@ -1,10 +1,14 @@
-# FastSurfer Flags
-Next, you will learn hot wo specify the `*fastsurfer-flags*` by replacing `*fastsurfer-flags*` with your specific options.
+run_fastsurfer.sh
+=================
 
-The `*fastsurfer-flags*` will usually at least include the subject directory (`--sd`; Note, this will be the mounted path - `/output` - for containers), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
+Next, you will learn hot wo specify the `*fastsurfer-flags*` by replacing `*fastsurfer-flags*` with your specific options.
+`run_fastsurfer.sh` is the central command of FastSurfer. In general, `run_fastsurfer.sh` is called once for each T1w MRI image that is to be processed and each call will result in one "Subject Folder" with segmentation maps, surfaces and statistics tables. If you want to process multiple images, you can either loop through the images yourself or use [brun_fastsurfer.sh](BATCH.md) or [srun_fastsurfer.sh](SLURM.md), which are multi-subject extensions to `run_fastsurfer.sh`.
+
+On this page, we explain FastSurfer's options, usually referred to as `<*fastsurfer-flags*>` in this documentation. 
+The `<*fastsurfer-flags*>` will usually at least include the subject directory (`--sd`), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
 
 ```bash
-... --sd /output --sid test_subject --t1 /data/test_subject_t1.nii.gz --3T
+$FASTSURFER_HOME/run_fastsurfer.sh --sd $HOME/fastsurfer-data --sid test_subject --t1 $HOME/mri-data/test_subject_t1.nii.gz --3T
 ```
 Additionally, you can use `--seg_only` or `--surf_only` to only run a part of the pipeline or `--no_biasfield`, `--no_cereb` and `--no_asegdkt` to switch off individual segmentation modules.
 Here, we have also added the `--3T` flag, which tells FastSurfer to register against the 3T atlas which is only relevant for the ICV estimation (eTIV).
@@ -53,3 +57,11 @@ In the following, we give an overview of the most important options. You can vie
 * `--py`: Command for python, used in both pipelines. Default: python3.10
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
 * `-h`, `--help`: Prints help text
+
+Usage
+-----
+This is the full output of `./run_fastsurfer.sh --help`.
+
+```{command-output} ./run_fastsurfer.sh --help
+:cwd: /../
+```

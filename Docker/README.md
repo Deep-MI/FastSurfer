@@ -21,6 +21,27 @@ docker pull deepmi/fastsurfer:cpu-v2.2.2
 After pulling the image, you can start a FastSurfer container and process a T1-weighted image (both segmentation and surface reconstruction) with the following command:
 
 ```bash
+docker run --gpus all \
+         -B /share/my/my/mri_data \
+         -B /share/my/fastsurfer_analysis \
+         -B /share/software/freesurfer/license.txt:/.fslicense \
+         --rm --user $(id -u):$(id -g) \
+         deepmi/fastsurfer:cuda-v2.3.0 \
+         --t1 /share/my/mri_data/participant1/image1.nii.gz \
+         --sd /share/my/fastsurfer_analysis \
+         --sid part1_img1 \
+         --fs_license /.fslicense
+```
+
+
+   The `--gpus` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).
+
+   The `-v` flag is used to tell docker, which folders FastSurfer can read and write to.
+ 
+
+
+
+```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
                       -v /home/user/my_fastsurfer_analysis:/output \
                       -v /home/user/my_fs_license_dir:/fs_license \

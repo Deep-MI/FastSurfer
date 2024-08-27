@@ -8,10 +8,9 @@ User Guide
     QUICKSTART.md
     INSTALL.md
     EXAMPLES.md
-    FLAGS.md
     OUTPUT_FILES.md
     docker
-    singularity
+    SINGULARITY.md
     EDITING.md
     LONG.md
     SECURITY.md

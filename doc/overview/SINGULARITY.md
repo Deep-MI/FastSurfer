@@ -1,5 +1,18 @@
 # FastSurfer Singularity Support
 
+
+## Sandbox
+
+
+## 
+
+`<*singularity-flags*>` includes flags that set up the singularity container:
+- `--nv`: enable nVidia GPUs in Singularity (otherwise FastSurfer will run on the CPU),
+- `-B <path>`: is used to share data between the host and Singularity (only paths listed here will be available to FastSurfer, see [Singularity documentation](doc/overview/README.md#sandbox) for more info).
+  This should specifically include the "Subject Directory". If two paths are given like `-B /my/path/host:/other`, this means `/my/path/host/somefile` will be accessible inside Singularity in directory as `/other/somefile`.  
+      
+
+
 For use on HPCs (or in other cases where Docker is not available or preferred) you can easily create a Singularity image from the Docker image. 
 Singularity uses its own image format, so the Docker images must be converted (we publish our releases as docker images available on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags)). 
 
@@ -21,7 +34,7 @@ If you want to manually convert the local Docker image `fastsurfer:myimage`, run
 singularity build /home/user/my_singlarity_images/fastsurfer-myimage.sif docker-daemon://fastsurfer:myimage
 ```
 
-For more information on how to create your own Docker images, see our [Docker guide](../Docker/README.md).
+For more information on how to create your own Docker images, see our [Docker guide](../../Docker/README.md).
 
 ## FastSurfer Singularity Image Usage
 
