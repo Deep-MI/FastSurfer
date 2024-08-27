@@ -41,7 +41,8 @@ jobs:
             !doc-build/.doctrees
 
   deploy:
-    if: github.event_name == 'push'
+    # only on push to dev or stable
+    if: ${{ github.event_name == 'push' && contains(fromJSON('["dev", "stable"]'), github.ref_name) }}
     needs: build
     timeout-minutes: 10
     runs-on: ubuntu-latest
@@ -56,12 +57,12 @@ jobs:
         with:
           name: doc
           path: doc
-      - name: Deploy dev documentation
+      - name: Deploy {dev,stable} documentation
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: doc
-          # destination_dir: github.event.ref_name will be dev or stable
-          destination_dir: ${{ github.event.ref_name }}
+          # destination_dir: github.ref_name will be dev or stable
+          destination_dir: ${{ github.ref_name }}
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
