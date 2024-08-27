@@ -162,6 +162,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Add FreeSurfer and python Environment variables
+# DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME=true deactivates the search for FS_LICENSE in FREESURFER_HOME
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -171,7 +172,8 @@ ENV OS=Linux \
     PYTHONUNBUFFERED=0 \
     MPLCONFIGDIR=/tmp \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
-    MPLCONFIGDIR=/tmp/matplotlib-config
+    MPLCONFIGDIR=/tmp/matplotlib-config \
+    DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # create matplotlib config dir; make sure we use bash and activate conda env
 #  (in case someone starts this interactively)
