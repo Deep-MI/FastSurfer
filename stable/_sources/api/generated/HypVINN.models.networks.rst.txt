@@ -1,0 +1,5 @@
+﻿HypVINN.models.networks
+=======================
+
+.. automodule:: HypVINN.models.networks
+    :members:

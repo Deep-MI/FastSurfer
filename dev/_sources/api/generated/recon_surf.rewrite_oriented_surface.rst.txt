@@ -1,0 +1,5 @@
+﻿recon_surf.rewrite_oriented_surface
+===================================
+
+.. automodule:: recon_surf.rewrite_oriented_surface
+    :members:

@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.lr_scheduler
+================================
+
+.. automodule:: FastSurferCNN.utils.lr_scheduler
+    :members:

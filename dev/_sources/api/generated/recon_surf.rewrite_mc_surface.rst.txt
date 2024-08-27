@@ -1,0 +1,5 @@
+﻿recon_surf.rewrite_mc_surface
+=============================
+
+.. automodule:: recon_surf.rewrite_mc_surface
+    :members:

@@ -1,0 +1,5 @@
+﻿FastSurferCNN.segstats
+======================
+
+.. automodule:: FastSurferCNN.segstats
+    :members:

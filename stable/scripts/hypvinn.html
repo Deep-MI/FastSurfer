@@ -1,0 +1,764 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Surface pipeline: recon-surf.sh" href="recon_surf.html" /><link rel="prev" title="CerebNet: run_prediction.py" href="cerebnet.html" />
+
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>HypVINN: run_prediction.py - FastSurfer</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">FastSurfer</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  
+  <span class="sidebar-brand-text">FastSurfer</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">HypVINN: run_prediction.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="segstats.html">FastSurferCNN: segstats.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of FastSurfer API</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of FastSurferCNN</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.download_checkpoints.html">FastSurferCNN.download_checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.generate_hdf5.html">FastSurferCNN.generate_hdf5</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.inference.html">FastSurferCNN.inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.quick_qc.html">FastSurferCNN.quick_qc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.reduce_to_aseg.html">FastSurferCNN.reduce_to_aseg</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.run_prediction.html">FastSurferCNN.run_prediction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.segstats.html">FastSurferCNN.segstats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.version.html">FastSurferCNN.version</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of FastSurferCNN.data_loader</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.augmentation.html">FastSurferCNN.data_loader.augmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.conform.html">FastSurferCNN.data_loader.conform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.data_utils.html">FastSurferCNN.data_loader.data_utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.dataset.html">FastSurferCNN.data_loader.dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.loader.html">FastSurferCNN.data_loader.loader</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of FastSurferCNN.models</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.interpolation_layer.html">FastSurferCNN.models.interpolation_layer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.losses.html">FastSurferCNN.models.losses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.networks.html">FastSurferCNN.models.networks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.sub_module.html">FastSurferCNN.models.sub_module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of FastSurferCNN.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.arg_types.html">FastSurferCNN.utils.arg_types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.checkpoint.html">FastSurferCNN.utils.checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.common.html">FastSurferCNN.utils.common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.load_config.html">FastSurferCNN.utils.load_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.logging.html">FastSurferCNN.utils.logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.lr_scheduler.html">FastSurferCNN.utils.lr_scheduler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.mapper.html">FastSurferCNN.utils.mapper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.misc.html">FastSurferCNN.utils.misc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.parser_defaults.html">FastSurferCNN.utils.parser_defaults</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.threads.html">FastSurferCNN.utils.threads</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of CerebNet</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.apply_warp.html">CerebNet.apply_warp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.inference.html">CerebNet.inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.run_prediction.html">CerebNet.run_prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet_dataloader.html">CerebNet.dataloader</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of CerebNet.dataloader</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.augmentation.html">CerebNet.data_loader.augmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.data_utils.html">CerebNet.data_loader.data_utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.dataset.html">CerebNet.data_loader.dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.loader.html">CerebNet.data_loader.loader</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet_datasets.html">CerebNet.datasets</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of CerebNet.datasets</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.generate_hdf5.html">CerebNet.datasets.generate_hdf5</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.load_data.html">CerebNet.datasets.load_data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.utils.html">CerebNet.datasets.utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.wm_merge_clean.html">CerebNet.datasets.wm_merge_clean</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet_models.html">CerebNet_models</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of CerebNet_models</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.networks.html">CerebNet.models.networks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.sub_module.html">CerebNet.models.sub_module</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet_utils.html">CerebNet.utils</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle navigation of CerebNet.utils</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.checkpoint.html">CerebNet.utils.checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><div class="visually-hidden">Toggle navigation of HypVINN</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.inference.html">HypVINN.inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.run_prediction.html">HypVINN.run_prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN_dataloader.html">HypVINN.data_loader</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><div class="visually-hidden">Toggle navigation of HypVINN.data_loader</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.data_utils.html">HypVINN.data_loader.data_utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.dataset.html">HypVINN.data_loader.dataset</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN_models.html">HypVINN.models</a><input class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><div class="visually-hidden">Toggle navigation of HypVINN.models</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.models.networks.html">HypVINN.models.networks</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/HypVINN_utils.html">HypVINN.utils</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><div class="visually-hidden">Toggle navigation of recon_surf</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_points.html">recon_surf.align_points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_seg.html">recon_surf.align_seg</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.lta.html">recon_surf.lta</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.map_surf_label.html">recon_surf.map_surf_label</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.N4_bias_correct.html">recon_surf.N4_bias_correct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.paint_cc_into_pred.html">recon_surf.paint_cc_into_pred</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rewrite_oriented_surface.html">recon_surf.rewrite_oriented_surface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rewrite_mc_surface.html">recon_surf.rewrite_mc_surface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rotate_sphere.html">recon_surf.rotate_sphere</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.sample_parc.html">recon_surf.sample_parc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.smooth_aparc.html">recon_surf.smooth_aparc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.spherically_project_wrapper.html">recon_surf.spherically_project_wrapper</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/scripts/hypvinn.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="hypvinn-run-prediction-py">
+<h1>HypVINN: run_prediction.py<a class="headerlink" href="#hypvinn-run-prediction-py" title="Link to this heading">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We recommend to run HypVINN with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interfaces!</p>
+</div>
+<p>The <code class="xref py py-obj docutils literal notranslate"><span class="pre">HypVINN/run_prediction.py</span></code> script enables the inference with HypVINN. In most
+situations, it will be called from <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> a direct call to
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">HypVINN/run_prediction.py</span></code> is not needed.</p>
+<p><p>Script for Hypothalamus Segmentation.</p>
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">sd</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">sid</span> <span class="n">SID</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">seg_log</span> <span class="n">LOG_NAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">t1</span> <span class="n">ORIG_NAME</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">t2</span> <span class="n">T2</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">qc_snap</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">reg_mode</span> <span class="p">{</span><span class="n">none</span><span class="p">,</span><span class="n">coreg</span><span class="p">,</span><span class="n">robust</span><span class="p">}]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">hypo_segfile</span> <span class="n">HYPO_SEGFILE</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">device</span> <span class="n">DEVICE</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">viewagg_device</span> <span class="n">VIEWAGG_DEVICE</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">batch_size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">async_io</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">allow_root</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">ckpt_ax</span> <span class="n">CKPT_AX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">ckpt_cor</span> <span class="n">CKPT_COR</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">ckpt_sag</span> <span class="n">CKPT_SAG</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_cor</span> <span class="n">CFG_COR</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">cfg_ax</span> <span class="n">CFG_AX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_sag</span> <span class="n">CFG_SAG</span><span class="p">]</span>
+</pre></div>
+</div>
+<section id="HypVINN.run_prediction-option_parse-named-arguments">
+<h2>Named Arguments<a class="headerlink" href="#HypVINN.run_prediction-option_parse-named-arguments" title="Link to this heading">¶</a></h2>
+<dl class="option-list">
+<dt><kbd>--sd</kbd></dt>
+<dd><p>Directory in which evaluation results should be written. Will be created if it does not exist. Optional if full path is defined for –pred_name.</p>
+</dd>
+<dt><kbd>--sid</kbd></dt>
+<dd><p>Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject processing, use remove suffix if sid is not second to last element of input file passed to –t1</p>
+</dd>
+<dt><kbd>--seg_log</kbd></dt>
+<dd><p>Absolute path to file in which run logs will be saved. If not set, logs will not be saved.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">''</span></code></p>
+</dd>
+<dt><kbd>--t1</kbd></dt>
+<dd><p>Name of T1 full head MRI. Absolute path if single image else common image name. Default: <cite>mri/orig.mgz</cite>.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/orig.mgz'</span></code></p>
+</dd>
+<dt><kbd>--t2</kbd></dt>
+<dd><p>Path to the T2 image to process.</p>
+</dd>
+<dt><kbd>--qc_snap</kbd></dt>
+<dd><p>Create qc snapshots in &lt;sd&gt;/&lt;sid&gt;/qc_snapshots.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+<dt><kbd>--reg_mode</kbd></dt>
+<dd><p>Possible choices: none, coreg, robust</p>
+<p>Freesurfer Registration type to run. coreg: mri_coreg, robust : mri_robust_register, none: entirely deactivates registration of T2 to T1, if both images are passed, images need to be register properly externally.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'coreg'</span></code></p>
+</dd>
+<dt><kbd>--hypo_segfile</kbd></dt>
+<dd><p>File pattern on where to save the hypothalamus segmentation file (default: hypothalamus.HypVINN.nii.gz).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'hypothalamus.HypVINN.nii.gz'</span></code></p>
+</dd>
+</dl>
+</section>
+<section id="HypVINN.run_prediction-option_parse-advanced-options">
+<h2>Advanced options<a class="headerlink" href="#HypVINN.run_prediction-option_parse-advanced-options" title="Link to this heading">¶</a></h2>
+<dl class="option-list">
+<dt><kbd>--device</kbd></dt>
+<dd><p>Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1), default: auto</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
+</dd>
+<dt><kbd>--viewagg_device</kbd></dt>
+<dd><p>Define the device, where the view aggregation should be run. By default, the program checks if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting &gt; –viewagg_device cpu &lt;, view agg is run on the cpu. Equivalently, if you define &gt; –viewagg_device cuda &lt;, view agg will be run on the gpu (no memory check will be done).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
+</dd>
+<dt><kbd>--threads</kbd></dt>
+<dd><p>Number of threads to use (defaults to number of hardware threads: 4)</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">4</span></code></p>
+</dd>
+<dt><kbd>--batch_size</kbd></dt>
+<dd><p>Batch size for inference. Default=1</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
+</dd>
+<dt><kbd>--async_io</kbd></dt>
+<dd><p>Allow asynchronous file operations (default: off). Note, this may impact the order of messages in the log, but speed up the segmentation specifically for slow file systems.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+<dt><kbd>--allow_root</kbd></dt>
+<dd><p>Allow execution as root user.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+<dt><kbd>--ckpt_ax</kbd></dt>
+<dd><p>axial checkpoint to load</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/HypVINN_axial_v1.1.0.pkl</span></code></p>
+</dd>
+<dt><kbd>--ckpt_cor</kbd></dt>
+<dd><p>coronal checkpoint to load</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/HypVINN_coronal_v1.1.0.pkl</span></code></p>
+</dd>
+<dt><kbd>--ckpt_sag</kbd></dt>
+<dd><p>sagittal checkpoint to load</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/HypVINN_sagittal_v1.1.0.pkl</span></code></p>
+</dd>
+<dt><kbd>--cfg_cor</kbd></dt>
+<dd><p>Path to the coronal config file</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/HypVINN/config/HypVINN_coronal_v1.1.0.yaml</span></code></p>
+</dd>
+<dt><kbd>--cfg_ax</kbd></dt>
+<dd><p>Path to the axial config file</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/HypVINN/config/HypVINN_axial_v1.1.0.yaml</span></code></p>
+</dd>
+<dt><kbd>--cfg_sag</kbd></dt>
+<dd><p>Path to the sagittal config file</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/HypVINN/config/HypVINN_sagittal_v1.1.0.yaml</span></code></p>
+</dd>
+</dl>
+</section>
+<p>Hypothalamic subfields segmentation pipeline</p>
+<section id="input">
+<h2>Input<a class="headerlink" href="#input" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>T1w image, a T2w image, or both images. Note: Input images to the tool need to be Bias-Field corrected.</p></li>
+</ul>
+</section>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Same as FastSurfer.</p></li>
+<li><p>If the T1w and T2w images are available and not co-registered, FreeSurfer should be sourced to run the registration code, and the mri_coreg and mri_vol2vol binaries should also be available.</p></li>
+</ul>
+</section>
+<section id="model-weights">
+<h2>Model weights<a class="headerlink" href="#model-weights" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/2af6da63d5c1414b832c1f606bbd068a</p></li>
+<li><p>Zenodo data repository: https://zenodo.org/records/11184216</p></li>
+</ul>
+<p>Note: These weights (version 1.1) are retrained compared to paper (<a class="reference external" href="https://b2share.fz-juelich.de/records/27ab0a28c11741558679c819d608f1e7">version 1.0</a>) for better rotation generalization, performance is equivalent.</p>
+</section>
+<section id="pipeline-steps">
+<h2>Pipeline Steps<a class="headerlink" href="#pipeline-steps" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Registration (optional, only required for multi-modal input)</p></li>
+<li><p>Hypothalamus Segmentation</p></li>
+</ol>
+</section>
+<section id="running-the-tool">
+<h2>Running the tool<a class="headerlink" href="#running-the-tool" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The HypVINN output can be obtained by running the default  <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script (for more information see <a class="reference internal" href="../index.html"><span class="doc std std-ref">FastSurfer documentation</span></a>).</p></li>
+<li><p>HypVINN can also be run independently by running <code class="docutils literal notranslate"><span class="pre">HypVINN/run_prediction.py</span></code>, however we recommend running the whole FastSurfer pipeline as it includes all the required pre-processing steps.</p></li>
+<li><p>HypVINN has the following arguments:</p></li>
+</ul>
+</section>
+<section id="input-and-output-arguments">
+<h2>Input and output arguments<a class="headerlink" href="#input-and-output-arguments" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--sid</span> <span class="pre">&lt;name&gt;</span></code> :  Subject ID, the subject data upon which to operate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span> <span class="pre">&lt;name&gt;</span></code> : Directory in which evaluation results should be written.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;/dir/T1**.nii.gz&gt;</span></code> : T1 image path</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;/dir/T2**.nii.gz&gt;</span></code> : T2 image path</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code> :  Path to file in which run logs will be saved. If not set logs will be stored in <code class="docutils literal notranslate"><span class="pre">/sd/sid/scripts/hypvinn_seg.log</span></code></p></li>
+</ul>
+</section>
+<section id="image-processing-options">
+<h2>Image processing options<a class="headerlink" href="#image-processing-options" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--reg_mode</span></code> :  Ignored, if no T2 image is passed. Specifies the registration method used to register T1 and T2 images. Options are ‘coreg’ (default) for mri_coreg, ‘robust’ for mri_robust_register, and ‘none’ to skip registration (this requires T1 and T2 are externally co-registered).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>: Activate the creation of QC snapshots of the predicted HypVINN segmentation in <code class="docutils literal notranslate"><span class="pre">/sd/sid/qc_snapshots</span></code>. The created QC snapshots are created to simplify the visual quality control process.</p></li>
+</ul>
+</section>
+<section id="fastsurfer-technical-parameters-see-fastsurfer-documentation">
+<h2>FastSurfer Technical parameters (see FastSurfer documentation)<a class="headerlink" href="#fastsurfer-technical-parameters-see-fastsurfer-documentation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--device</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--viewgg_device</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch_size</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--async_io</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--allow_root</span></code></p></li>
+</ul>
+</section>
+<section id="checkpoint-to-load">
+<h2>Checkpoint to load<a class="headerlink" href="#checkpoint-to-load" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_cor</span> <span class="pre">&lt;/dir/to/coronal/ckpt&gt;</span></code> : Coronal checkpoint to load, default =  $FASTSURFER_ROOT/checkpoints/HypVINN_axial_v1.1.0.pkl</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_ax</span> <span class="pre">&lt;/dir/to/axial/ckpt&gt;</span></code> : Axial checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_coronal_v1.1.0.pkl</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_sag</span> <span class="pre">&lt;/dir/to/sagittal/ckpt&gt;</span></code> : Sagittal checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_sagittal_v1.1.0.pkl</p></li>
+</ul>
+</section>
+<section id="cfg-file-with-default-options-for-network">
+<h2>CFG-file with default options for network<a class="headerlink" href="#cfg-file-with-default-options-for-network" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_cor</span> <span class="pre">&lt;/dir/to/coronal/cfg&gt;</span></code> : Coronal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_coronal_v1.1.0.yaml</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_ax</span> <span class="pre">&lt;/dir/to/axial/cfg&gt;</span></code> : Axial config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_axial_v1.1.0.yaml</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_sag</span> <span class="pre">&lt;/dir/to/sagittal/cfg&gt;</span></code> : Sagittal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_sagittal_v1.1.0.yaml</p></li>
+</ul>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The Hypothalamus pipeline can be run by using a T1 a T2 or both images.</p></li>
+<li><p>Is recommended that all input images are bias field corrected and when passing both T1 and T2 they need to be co-registered.</p></li>
+<li><p>The Hypvinn pipeline can do the registration by itself (step 1). This step can be skipped if images are already registered externally.</p></li>
+<li><p>Bias field-corrected images are generated by default by the FastSurfer pipeline; therefore, we recommend running the entire FastSurfer pipeline. If you already have a subject’s FastSurfer output without Hypvinn output, check example 5.</p></li>
+</ul>
+<ol class="arabic">
+<li><p>Run HypVINN pipeline</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
+                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t2_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">reg_mode</span> <span class="n">coreg</span> \
+                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span>
+</pre></div>
+</div>
+</li>
+<li><p>Run HypVINN pipeline only using a t1</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
+                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span>
+</pre></div>
+</div>
+</li>
+<li><p>Run HypVINN pipeline without the registration step</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
+                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t2_bias_field_corrected_and_coregistered_to_t1</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">reg_mode</span> <span class="n">none</span> \
+                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span>
+</pre></div>
+</div>
+</li>
+<li><p>Run HypVINN pipeline with creation of qc snapshots</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
+                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t2_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
+                                 <span class="o">--</span><span class="n">reg_mode</span> <span class="n">coreg</span> \
+                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span> <span class="o">--</span><span class="n">qc_snap</span>
+</pre></div>
+</div>
+</li>
+<li><p>Run HypVINN pipeline from an existing FastSurfer subject output – recommended when FastSurfer output is there without the Hypothalamus module</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
+                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">output</span><span class="o">/</span><span class="n">test_subject</span><span class="o">/</span><span class="n">mri</span><span class="o">/</span><span class="n">orig_nu</span><span class="o">.</span><span class="n">mgz</span> \
+                                 <span class="o">--</span><span class="n">seg_log</span> <span class="o">/</span><span class="n">output</span><span class="o">/</span><span class="n">test_subject</span><span class="o">/</span><span class="n">scripts</span><span class="o">/</span><span class="n">deep</span><span class="o">-</span><span class="n">seg</span><span class="o">.</span><span class="n">log</span> \
+                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span> <span class="o">--</span><span class="n">qc_snap</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1">#Output Scheme</span>
+<span class="p">|</span>--<span class="w"> </span>output_dir
+<span class="w">    </span><span class="p">|</span>--sid
+<span class="w">        </span><span class="p">|</span>--<span class="w"> </span>mri<span class="w"> </span>:<span class="w"> </span>MRI<span class="w"> </span>outputs
+<span class="w">            </span><span class="p">|</span>--hypothalamus.HypVINN.nii.gz<span class="o">(</span>Hypothalamus<span class="w"> </span>Segmentation<span class="o">)</span>
+<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>hypothalamus_mask.HypVINN.nii.gz<span class="w"> </span><span class="o">(</span>Hypothalamus<span class="w"> </span>Segmentation<span class="w"> </span>Mask<span class="o">)</span>
+<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>transforms
+<span class="w">                </span><span class="p">|</span>--<span class="w"> </span>t2tot1.lta<span class="w"> </span><span class="o">(</span>FreeSurfer<span class="w"> </span>registration<span class="w"> </span>file,<span class="w"> </span>only<span class="w"> </span>available<span class="w"> </span><span class="k">if</span><span class="w"> </span>registration<span class="w"> </span>is<span class="w"> </span>performed<span class="o">)</span>
+<span class="w">        </span><span class="p">|</span>--<span class="w"> </span>qc_snapshots<span class="w"> </span>:<span class="w"> </span>QC<span class="w"> </span>outputs<span class="w"> </span><span class="o">(</span>optional<span class="o">)</span>
+<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>hypothalamus.HypVINN_qc_screenshoot.png<span class="w"> </span><span class="o">(</span>Coronal<span class="w"> </span>quality<span class="w"> </span>control<span class="w"> </span>image<span class="o">)</span>
+<span class="w">        </span><span class="p">|</span>--<span class="w"> </span>stats<span class="w"> </span>:<span class="w"> </span>Statistics<span class="w"> </span>outputs
+<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>hypothalamus.HypVINN.stats<span class="w"> </span><span class="o">(</span>Segmentation<span class="w"> </span>stats<span class="o">)</span>
+</pre></div>
+</div>
+</section>
+<section id="developer">
+<h2>Developer<a class="headerlink" href="#developer" title="Link to this heading">¶</a></h2>
+<p>Santiago Estrada : santiago.estrada&#64;dzne.de</p>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Link to this heading">¶</a></h2>
+<p>If you use the HypVINN module please cite</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Santiago Estrada, David Kügler, Emad Bahrami, Peng Xu, Dilshad Mousa, Monique M.B. Breteler, N. Ahmad Aziz, Martin Reuter;
+FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI.
+Imaging Neuroscience 2023; 1 1–32. doi: https://doi.org/10.1162/imag_a_00034
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="recon_surf.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Surface pipeline: recon-surf.sh</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="cerebnet.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">CerebNet: run_prediction.py</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2020, FastSurfer Developers
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/deep-mi/FastSurfer" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">HypVINN: run_prediction.py</a><ul>
+<li><a class="reference internal" href="#HypVINN.run_prediction-option_parse-named-arguments">Named Arguments</a></li>
+<li><a class="reference internal" href="#HypVINN.run_prediction-option_parse-advanced-options">Advanced options</a></li>
+<li><a class="reference internal" href="#input">Input</a></li>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#model-weights">Model weights</a></li>
+<li><a class="reference internal" href="#pipeline-steps">Pipeline Steps</a></li>
+<li><a class="reference internal" href="#running-the-tool">Running the tool</a></li>
+<li><a class="reference internal" href="#input-and-output-arguments">Input and output arguments</a></li>
+<li><a class="reference internal" href="#image-processing-options">Image processing options</a></li>
+<li><a class="reference internal" href="#fastsurfer-technical-parameters-see-fastsurfer-documentation">FastSurfer Technical parameters (see FastSurfer documentation)</a></li>
+<li><a class="reference internal" href="#checkpoint-to-load">Checkpoint to load</a></li>
+<li><a class="reference internal" href="#cfg-file-with-default-options-for-network">CFG-file with default options for network</a></li>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#output">Output</a></li>
+<li><a class="reference internal" href="#developer">Developer</a></li>
+<li><a class="reference internal" href="#citation">Citation</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

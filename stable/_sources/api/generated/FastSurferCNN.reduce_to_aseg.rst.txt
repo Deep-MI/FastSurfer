@@ -1,0 +1,5 @@
+﻿FastSurferCNN.reduce_to_aseg
+============================
+
+.. automodule:: FastSurferCNN.reduce_to_aseg
+    :members:

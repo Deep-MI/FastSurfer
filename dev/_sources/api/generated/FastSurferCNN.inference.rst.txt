@@ -1,0 +1,5 @@
+﻿FastSurferCNN.inference
+=======================
+
+.. automodule:: FastSurferCNN.inference
+    :members:

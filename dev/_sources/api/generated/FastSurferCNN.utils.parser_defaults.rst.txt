@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.parser_defaults
+===================================
+
+.. automodule:: FastSurferCNN.utils.parser_defaults
+    :members:

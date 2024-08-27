@@ -1,0 +1,5 @@
+﻿FastSurferCNN.models.networks
+=============================
+
+.. automodule:: FastSurferCNN.models.networks
+    :members:

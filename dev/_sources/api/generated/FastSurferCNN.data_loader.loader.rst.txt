@@ -1,0 +1,5 @@
+﻿FastSurferCNN.data_loader.loader
+================================
+
+.. automodule:: FastSurferCNN.data_loader.loader
+    :members:

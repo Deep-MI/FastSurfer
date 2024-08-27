@@ -1,0 +1,5 @@
+﻿FastSurferCNN.run_prediction
+============================
+
+.. automodule:: FastSurferCNN.run_prediction
+    :members:

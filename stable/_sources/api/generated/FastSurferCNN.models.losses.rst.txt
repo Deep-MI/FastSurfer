@@ -1,0 +1,5 @@
+﻿FastSurferCNN.models.losses
+===========================
+
+.. automodule:: FastSurferCNN.models.losses
+    :members:

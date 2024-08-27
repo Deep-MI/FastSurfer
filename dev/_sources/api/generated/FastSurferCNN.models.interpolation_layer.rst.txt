@@ -1,0 +1,5 @@
+﻿FastSurferCNN.models.interpolation_layer
+========================================
+
+.. automodule:: FastSurferCNN.models.interpolation_layer
+    :members:

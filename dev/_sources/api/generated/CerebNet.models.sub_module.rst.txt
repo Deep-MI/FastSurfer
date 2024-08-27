@@ -1,0 +1,5 @@
+﻿CerebNet.models.sub_module
+==========================
+
+.. automodule:: CerebNet.models.sub_module
+    :members:

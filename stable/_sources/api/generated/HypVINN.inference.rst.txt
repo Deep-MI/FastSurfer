@@ -1,0 +1,5 @@
+﻿HypVINN.inference
+=================
+
+.. automodule:: HypVINN.inference
+    :members:
