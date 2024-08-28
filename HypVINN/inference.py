@@ -320,7 +320,7 @@ class Inference:
 
             images = batch["image"].to(self.device)
             scale_factors = batch["scale_factor"].to(self.device)
-            weight_factors = batch["weight_factor"].to(self.device)
+            weight_factors = batch["weight_factor"].to(self.device, dtype=torch.float32)
 
             pred = self.model(images, scale_factors, weight_factors, out_scale)
 

@@ -697,8 +697,24 @@ then
   msg="The surface pipeline and the talairach-registration in the segmentation pipeline require a FreeSurfer License"
   if [[ -z "$FS_LICENSE" ]]
   then
-    echo "ERROR: $msg, but no license was provided via --fs_license or the FS_LICENSE environment variable."
-    exit 1;
+    msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable."
+    if [[ "$DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME" != "true" ]] && [[ -n "$FREESURFER_HOME" ]]
+    then
+      echo "WARNING: $msg Checking common license files in \$FREESURFER_HOME."
+      for filename in "license.dat" "license.txt" ".license"
+      do
+        if [[ -f "$FREESURFER_HOME/$filename" ]]
+        then
+          echo "Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite."
+          export FS_LICENSE="$FREESURFER_HOME/$filename"
+          break
+        fi
+      done
+      if [[ -z "$FS_LICENSE" ]]; then echo "ERROR: No license found..." ; exit 1 ; fi
+    else
+      echo "ERROR: $msg"
+      exit 1;
+    fi
   elif [[ ! -f "$FS_LICENSE" ]]
   then
     echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."

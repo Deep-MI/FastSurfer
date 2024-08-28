@@ -212,8 +212,8 @@ def mode_filter(
     # get rid of rows that have uniform vote (or are empty)
     # for this to work no negative numbers should exist
     # get row counts, max and sums
-    rmax = nlabels.max(1).A.squeeze()
-    sums = nlabels.sum(axis=1).A1
+    rmax = nlabels.max(1).toarray().squeeze()
+    sums = np.asarray(nlabels.sum(axis=1)).ravel()
     counts = np.diff(nlabels.indptr)
     # then keep rows where max*counts differs from sums
     rmax = np.multiply(rmax, counts)
@@ -224,7 +224,7 @@ def mode_filter(
     # since we have only rows that were non-uniform, they should not become empty
     # rows may become unform: we still need to vote below to update this label
     if novote:
-        rr = np.in1d(nlabels.data, novote)
+        rr = np.isin(nlabels.data, novote)
         nlabels.data[rr] = 0
         nlabels.eliminate_zeros()
     # run over all rows and compute mode (maybe vectorize later)
@@ -303,7 +303,7 @@ def smooth_aparc(surf, labels, cortex = None):
     noncortids = np.where(~mask)
 
     # remove triangles where one vertex is non-cortex to avoid these edges to vote on neighbors later
-    rr = np.in1d(faces, noncortids)
+    rr = np.isin(faces, noncortids)
     rr = np.reshape(rr, faces.shape)
     rr = np.amax(rr, 1)
     faces = faces[~rr, :]
@@ -342,7 +342,7 @@ def smooth_aparc(surf, labels, cortex = None):
             )
             fillids = np.where(labels == fillonlylabel)[0]
             labels[fillids] = 0
-            rr = np.in1d(faces, fillids)
+            rr = np.isin(faces, fillids)
             rr = np.reshape(rr, faces.shape)
             rr = np.amax(rr, 1)
             faces = faces[~rr, :]
