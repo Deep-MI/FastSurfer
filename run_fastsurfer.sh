@@ -740,7 +740,7 @@ trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$s
 
 # create the build log, file with all version info in parallel
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
-$python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}" >> "$build_log" &
+$python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" --prefer_cache &
 
 if [[ "$run_seg_pipeline" != "1" ]]
 then
