@@ -635,7 +635,8 @@ def conform(
     # Pxyz is the center of the image in world coords
 
     # target scalar type and dtype
-    sctype = np.uint8 if dtype is None else np.obj2sctype(dtype, default=np.uint8)
+    #sctype = np.uint8 if dtype is None else np.obj2sctype(dtype, default=np.uint8)
+    sctype = np.uint8 if dtype is None else np.dtype(dtype).type
     target_dtype = np.dtype(sctype)
 
     src_min, scale = 0, 1.0
@@ -795,7 +796,8 @@ def is_conform(
         if dtype is None or (isinstance(dtype, str) and dtype.lower() == "uchar"):
             dtype = "uint8"
         else:  # assume obj
-            dtype = np.dtype(np.obj2sctype(dtype)).name
+            #dtype = np.dtype(np.obj2sctype(dtype)).name
+            dtype = np.dtype(dtype).type.__name__
         is_correct_dtype = img.get_data_dtype() == dtype
         checks[f"Dtype {dtype}"] = (is_correct_dtype, f"dtype {img.get_data_dtype()}")
 
