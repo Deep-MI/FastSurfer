@@ -762,7 +762,7 @@ def is_conform(
         raise ValueError(f"ERROR: Multiple input frames ({ishape[3]}) not supported!")
 
     checks = {
-        f"Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
+        "Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
     }
     # check dimensions
     if Criteria.FORCE_IMG_SIZE in criteria:
@@ -776,7 +776,7 @@ def is_conform(
     _vox_sizes = conformed_vox_size if is_correct_vox_size else izoom[:3]
     if Criteria.FORCE_ISO_VOX in criteria:
         vox_size_criteria = f"Voxel Size {'x'.join([str(conformed_vox_size)] * 3)}"
-        image_vox_size = f"image " + "x".join(map(str, izoom))
+        image_vox_size = "image " + "x".join(map(str, izoom))
         checks[vox_size_criteria] = (is_correct_vox_size, image_vox_size)
 
     # check orientation LIA
