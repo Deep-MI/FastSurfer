@@ -560,7 +560,7 @@ if [ "$long" == "1" ] ; then
 else #regular processing (cross and base)
   if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
     # if talairach registration is missing, compute it here
-    # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta 
+    # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta
     # all transforms (also ltas) are the same
     {
       echo " "
@@ -639,10 +639,10 @@ RunIt "$cmd" "$LF"
 
 if [ "$long" == "1" ] ; then
   # in long we can skip fill as surfaces come from base
-  # it would be great to also skip WM, but it is needed in place_surface to clip bright 
+  # it would be great to also skip WM, but it is needed in place_surface to clip bright
   # maybe later add code to copy edits from base in maskbfs and wm segmentation
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation $hiresflag $fsthreads"
-  RunIt "$cmd" $LF  
+  RunIt "$cmd" $LF
   # copy over filled from base for stop edits
   cmd="cp $basedir/mri/filled.mgz $mdir/filled.mgz"
   RunIt "$cmd" $LF
@@ -738,7 +738,7 @@ for hemi in lh rh; do
 
   # In Long stream we skip these
   if [ "$long" == "0" ] ; then
-  
+
   {
     echo "echo \"\""
     echo "echo \"=================== Creating surfaces $hemi - qsphere ====================\""
