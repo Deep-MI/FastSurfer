@@ -26,6 +26,7 @@ classifiers = [
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
     'Natural Language :: English',
     'License :: OSI Approved :: Apache Software License',
     'Intended Audience :: Science/Research',
@@ -108,6 +109,7 @@ add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
 line-length = 120
+target-version = "py310"
 extend-exclude = [
     "build",
     "checkpoints",
