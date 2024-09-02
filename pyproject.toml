@@ -107,7 +107,7 @@ match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*'
 add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 extend-exclude = [
     "build",
     "checkpoints",
@@ -120,18 +120,12 @@ extend-exclude = [
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/linter/#rule-selection
 select = [
-    # pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # pyupgrade
-    "UP",
-    # flake8-bugbear
-    "B",
-    # flake8-simplify
-    # "SIM",
-    # isort
-    "I",
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "I",   # isort
+    # "SIM", # flake8-simplify
 ]
 
 [tool.ruff.lint.per-file-ignores]
