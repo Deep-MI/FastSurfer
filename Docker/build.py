@@ -30,9 +30,8 @@ logger = logging.getLogger(__name__)
 Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer',
                  'build_base', 'runtime_cuda']
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu116", "cu117", "cu118", "rocm", "rocm5.1.1",
-                        "rocm5.4.2"]
-DeviceType = Literal["cpu", "cu116", "cu117", "cu118", "rocm5.1.1", "rocm5.4.2"]
+AllDeviceType = Literal["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"]
+DeviceType = Literal["cpu", "cu118", "cu121", "cu124", "rocm6.1"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
 CONTAINERD_MESSAGE = (
@@ -59,10 +58,11 @@ class DEFAULTS:
     # and rocm versions, if pytorch comes with new versions.
     # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
+    # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
     MapDeviceType: Dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
-        rocm="rocm5.1.1",
-        cuda="cu117",
+        rocm="rocm6.1",
+        cuda="cu124",
     )
     BUILD_BASE_IMAGE = "ubuntu:22.04"
     RUNTIME_BASE_IMAGE = "ubuntu:22.04"
@@ -185,12 +185,12 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
-        choices=["cpu", "cuda", "cu117", "cu118", "rocm", "rocm5.4.2"],
+        choices=["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"],
         required=True,
         help="""selection of internal build stages to build for a specific platform.<br>
-                - cuda: defaults to cu118, cuda 11.8<br>
+                - cuda: defaults to cu124, cuda 12.4<br>
                 - cpu: only cpu support<br>
-                - rocm: defaults to rocm5.4.2 (experimental)""",
+                - rocm: defaults to rocm6.1 (experimental)""",
     )
     parser.add_argument(
         "--tag",
@@ -231,6 +231,7 @@ def make_parser() -> argparse.ArgumentParser:
                  --cache type=registry,ref=server/fastbuild,mode=max.
                  Will default to the environment variable FASTSURFER_BUILD_CACHE: 
                  {cache_kwargs.get('default', 'N/A')}""",
+        metavar="type={inline,local,...}[,<param>=<value>[,...]]",
         **cache_kwargs,
     )
     parser.add_argument(

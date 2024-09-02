@@ -72,7 +72,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG PYTHON_VERSION=3.10
-ARG FORGE_VERSION=23.11.0-0
+ARG FORGE_VERSION=24.3.0-0
 
 # Install conda
 RUN wget --no-check-certificate -qO ~/miniforge.sh \
@@ -188,6 +188,9 @@ SHELL ["/bin/bash", "--login", "-c"]
 # seletced_<name>_build_image is a only a reference to $<NAME>_BUILD_IMAGE
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_conda_build_image /venv /venv
+
+# Fix for cuda11.8+cudnn8.7 bug+warning: https://github.com/pytorch/pytorch/issues/97041
+RUN if [[ "$DEVICE" == "cu118" ]] ; then cd /venv/python3.10/site-packages/torch/lib && ln -s libnvrtc-*.so.11.2 libnvrtc.so ; fi
 
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/

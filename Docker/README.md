@@ -139,7 +139,7 @@ As you can see, only the tag of the image is changed from gpu to cpu and the sta
 
 Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into 
 your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to work. For this follow:
-https://docs.amd.com/en/latest/deploy/linux/quick_start.html
+https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html
 
 ```bash
 PYTHONPATH=<FastSurferRoot>
@@ -149,9 +149,8 @@ python build.py --device rocm --tag my_fastsurfer:rocm
 and run segmentation only:
 
 ```bash
-docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
-           --device=/dev/kfd --device=/dev/dri --group-add video --ipc=host \
-	   --shm-size 8G \
+docker run --rm --security-opt seccomp=unconfined \
+           --device=/dev/kfd --device=/dev/dri --group-add video \
 	   -v /home/user/my_mri_data:/data \
 	   -v /home/user/my_fastsurfer_analysis:/output \
 	   my_fastsurfer:rocm \
@@ -159,12 +158,13 @@ docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
 	   --sid subjectX --sd /output 
 ```
 
-Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](https://docs.amd.com/en/latest/release/gpu_os_support.html), but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0` [inside docker did the trick](https://en.opensuse.org/AMD_OpenCL#ROCm_-_Running_on_unsupported_hardware):
+In conflict with the official ROCm documentation (above), we also needed to add the group render `--group-add render` (in addition to `--group-add video`).
+
+Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](https://docs.amd.com/en/latest/release/gpu_os_support.html), but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0` [inside docker did the trick](https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm):
 
 ```bash
-docker run --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
-           --device=/dev/kfd --device=/dev/dri --group-add video --ipc=host \
-	   --shm-size 8G \
+docker run --rm --security-opt seccomp=unconfined \
+           --device=/dev/kfd --device=/dev/dri --group-add video --group-add render \
 	   -v /home/user/my_mri_data:/data \
 	   -v /home/user/my_fastsurfer_analysis:/output \
 	   -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
