@@ -78,9 +78,7 @@ doc = [
 ]
 style = [
     'bibclean',
-    'black',
     'codespell',
-    'isort',
     'pydocstyle[toml]',
     'ruff',
 ]
@@ -101,37 +99,6 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 [tool.setuptools]
 packages = ['FastSurferCNN','CerebNet','recon_surf']
 
-[tool.black]
-line-length = 88
-target-version = ['py310']
-include = '\.pyi?$'
-extend-exclude = '''
-(
-      __pycache__
-    | .github
-    | setup.py
-    | Tutorial/
-    | checkpoints/
-    | doc/
-    | env/
-    | images/
-)
-'''
-
-[tool.isort]
-profile = 'black'
-multi_line_output = 3
-line_length = 88
-py_version = 310
-extend_skip_glob = [
-    'setup.py',
-    'Tutorial/*',
-    'checkpoints/*',
-    'doc/*',
-    'env/*',
-    'images/*',
-]
-
 [tool.pydocstyle]
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
@@ -142,9 +109,29 @@ add_ignore = 'D100,D104,D107'
 [tool.ruff]
 line-length = 88
 extend-exclude = [
-    "doc",
     "build",
+    "checkpoints",
+    "doc",
+    "env",
+    "images",
     "setup.py",
+]
+
+[tool.ruff.lint]
+# https://docs.astral.sh/ruff/linter/#rule-selection
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    # "SIM",
+    # isort
+    "I",
 ]
 
 [tool.ruff.lint.per-file-ignores]
