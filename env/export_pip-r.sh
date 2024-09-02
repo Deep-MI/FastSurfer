@@ -48,21 +48,23 @@ echo "Exporting versions from $2..."
   echo "#"
 } > $1
 
-pip_cmd="python --version && pip list --format=freeze --no-color --all --disable-pip-version-check --no-input"
+pip_cmd="python --version && pip list --format=freeze --no-color --disable-pip-version-check --no-input"
 if [ "${2/#.sif}" != "$2" ]
 then
   # singularity
-  cmd="singularity exec $2 /bin/bash -c '$pip_cmd'"
+  cmd=("singularity" "exec" "$2" "/bin/bash" -c "$pip_cmd")
+  clean_cmd="singularity exec $2 /bin/bash -c '$pip_cmd'"
 else
   # docker
-  cmd="docker run --entrypoint /bin/bash $2 -c '$pip_cmd'"
+  clean_cmd="docker run --rm -u <user_id>:<group_id> --entrypoint /bin/bash $2 -c '$pip_cmd'"
+  cmd=("docker" "run" --rm -u "$(id -u):$(id -g)" --entrypoint /bin/bash "$2" -c "$pip_cmd")
 fi
 {
   echo "# Which ran the following command:"
-  echo "#    $cmd"
+  echo "#    $clean_cmd"
   echo "#"
 } >> $1
-out=$($cmd)
+out=$("${cmd[@]}")
 hardware=$(echo "$out" | grep "torch==" | cut -d"+" -f2)
 pyversion=$(echo "$out" | head -n 1 | cut -d" " -f2)
 {
