@@ -115,7 +115,8 @@ def get_region_bg_intersection_mask(
         Segmentation array.
     region_labels : dict, default=<dict VENT_LABELS>
         Dictionary whose values correspond to the desired region's labels (see Note).
-    bg_label : int,  default as in BG_LABEL.
+    bg_label : int,  default as in <BG_LABEL>
+        Label id of the background.
 
     Returns
     -------
