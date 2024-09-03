@@ -29,7 +29,7 @@ Values can also be extracted by
 import argparse
 import types
 from collections.abc import Iterable, Mapping
-from dataclasses import Field, dataclass
+from dataclasses import Field, dataclass, fields
 from pathlib import Path
 from typing import Literal, Protocol, TypeVar, get_args, get_origin
 
