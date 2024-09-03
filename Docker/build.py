@@ -20,7 +20,6 @@
 import argparse
 import os
 import subprocess
-from itertools import chain
 from pathlib import Path
 from typing import Tuple, Literal, Sequence, Optional, Dict, get_args, cast, List, Callable, Union
 import logging
@@ -31,10 +30,25 @@ logger = logging.getLogger(__name__)
 Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer',
                  'build_base', 'runtime_cuda']
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu116", "cu117", "cu118", "rocm", "rocm5.1.1",
-                        "rocm5.4.2"]
-DeviceType = Literal["cpu", "cu116", "cu117", "cu118", "rocm5.1.1", "rocm5.4.2"]
+AllDeviceType = Literal["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"]
+DeviceType = Literal["cpu", "cu118", "cu121", "cu124", "rocm6.1"]
 
+CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
+CONTAINERD_MESSAGE = (
+    "Attestation requires OCI images, which are not supported by the default docker "
+    "storage driver (your current storage driver?). Use containerd storage: "
+    "https://docs.docker.com/storage/containerd/\n"
+)
+_WGET_BUILDX_FMT = (
+    "wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker"
+    "/buildx/releases/download/{0:s}/buildx-{0:s}.{1:s}"
+)
+INSTALL_BUILDX = (
+    f"Install buildx with '{_WGET_BUILDX_FMT.format('<version>', '<platform>')}', "
+    f"e.g. '{_WGET_BUILDX_FMT.format('v0.12.1', 'linux-amd64')}.\nYou may need to "
+    f"'chmod +x ~/.docker/cli-plugins/docker-buildx'\nSee also "
+    f"https://github.com/docker/buildx#manual-download."
+)
 
 __import_cache = {}
 
@@ -44,10 +58,11 @@ class DEFAULTS:
     # and rocm versions, if pytorch comes with new versions.
     # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
+    # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
     MapDeviceType: Dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
-        rocm="rocm5.1.1",
-        cuda="cu117",
+        rocm="rocm6.1",
+        cuda="cu124",
     )
     BUILD_BASE_IMAGE = "ubuntu:22.04"
     RUNTIME_BASE_IMAGE = "ubuntu:22.04"
@@ -55,39 +70,15 @@ class DEFAULTS:
     CONDA_BUILD_IMAGE = "build_conda"
 
 
-def _import_calls(fasturfer_home: Path, token: str = "Popen") -> Callable:
-    # import call and call_async without importing FastSurferCNN fully
-    if token not in __import_cache:
-        def __import(file: Path, name: str, *tokens: str, **rename_tokens: str):
-            from importlib.util import spec_from_file_location, module_from_spec
-            spec = spec_from_file_location(name, file)
-            module = module_from_spec(spec)
-            spec.loader.exec_module(module)
-            for tok, name in chain(zip(tokens, tokens), rename_tokens.items()):
-                __import_cache[tok] = getattr(module, name)
-
-        if token in ("Popen", "PyPopen"):
-            # import Popen and PyPopen from FastSurferCNN.utils.run_tools
-            __import(fasturfer_home / "FastSurferCNN/utils/run_tools.py",
-                     "run_tools", "Popen", "PyPopen")
-        elif token in ("version", "parse_build_file"):
-            # import main as version from FastSurferCNN.version
-            __import(fasturfer_home / "FastSurferCNN/version.py",
-                     "version", "parse_build_file", version="main")
-
-    if token in __import_cache:
-        return __import_cache[token]
-    else:
-        raise ImportError(f"Invalid token {token}")
-
-
 def docker_image(arg) -> str:
-    """Returns a str with the image.
+    """
+    Returns a str with the image.
 
     Raises
     ======
     ArgumentTypeError
-        if it is not a valid docker image."""
+        if it is not a valid docker image.
+    """
     from re import match
     # regex from https://stackoverflow.com/questions/39671641/regex-to-parse-docker-tag
     pattern = r"^(?:(?=[^:\/]{1,253})(?!-)[a-zA-Z0-9-]{1,63}(?<!-)" \
@@ -97,8 +88,9 @@ def docker_image(arg) -> str:
     if match(pattern, arg):
         return arg
     else:
-        raise argparse.ArgumentTypeError(f"The image '{arg}' does not look like a "
-                                         f"valid image name.")
+        raise argparse.ArgumentTypeError(
+            f"The image '{arg}' does not look like a valid image name."
+        )
 
 
 def target(arg) -> Target:
@@ -112,7 +104,8 @@ def target(arg) -> Target:
         return cast(Target, arg)
     else:
         raise argparse.ArgumentTypeError(
-            f"target must be one of {', '.join(get_args(Target))}, but was {arg}.")
+            f"target must be one of {', '.join(get_args(Target))}, but was {arg}."
+        )
 
 
 class CacheSpec:
@@ -192,19 +185,20 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
-        choices=["cpu", "cuda", "cu117", "cu1118", "rocm", "rocm5.4.2"],
+        choices=["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"],
         required=True,
         help="""selection of internal build stages to build for a specific platform.<br>
-                - cuda: defaults to cu118, cuda 11.8<br>
+                - cuda: defaults to cu124, cuda 12.4<br>
                 - cpu: only cpu support<br>
-                - rocm: defaults to rocm5.4.2 (experimental)""",
+                - rocm: defaults to rocm6.1 (experimental)""",
     )
     parser.add_argument(
         "--tag",
         type=docker_image,
         dest="image_tag",
         metavar="image[:tag]",
-        help="""tag build stage/target as <image>[:<tag>]""")
+        help="""tag build stage/target as <image>[:<tag>]""",
+    )
     parser.add_argument(
         "--target",
         default="runtime",
@@ -214,32 +208,77 @@ def make_parser() -> argparse.ArgumentParser:
         help=f"""target to build (from list of targets below, defaults to runtime):<br>
                  - build_conda: "finished" conda build image<br>
                  - build_freesurfer: "finished" freesurfer build image<br>
-                 - runtime: final fastsurfer runtime image""")
-    parser.add_argument(
-        "--rm",
-        action="store_true",
-        help="disables caching, i.e. removes all intermediate images.")
+                 - runtime: final fastsurfer runtime image""",
+    )
+    cache_kwargs = {}
+    if "FASTSURFER_BUILD_CACHE" in os.environ:
+        try:
+            cache_kwargs = {
+                "default": CacheSpec(os.environ["FASTSURFER_BUILD_CACHE"])
+            }
+        except ValueError as e:
+            logger.warning(
+                f"ERROR while parsing the environment variable 'FASTSURFER_BUILD_CACHE' "
+                f"{os.environ['FASTSURFER_BUILD_CACHE']} (ignoring this environment "
+                f"variable): {e.args[0]}"
+            )
     parser.add_argument(
         "--cache",
         type=CacheSpec,
-        help="""cache as defined in https://docs.docker.com/build/cache/backends/ 
-                (using --cache-to syntax, parameters are automatically filtered for use 
-                in --cache-to and --cache-from), e.g.: 
-                --cache type=registry,ref=server/fastbuild,mode=max.""")
+        help=f"""cache as defined in https://docs.docker.com/build/cache/backends/ 
+                 (using --cache-to syntax, parameters are automatically filtered for use 
+                 in --cache-to and --cache-from), e.g.: 
+                 --cache type=registry,ref=server/fastbuild,mode=max.
+                 Will default to the environment variable FASTSURFER_BUILD_CACHE: 
+                 {cache_kwargs.get('default', 'N/A')}""",
+        metavar="type={inline,local,...}[,<param>=<value>[,...]]",
+        **cache_kwargs,
+    )
     parser.add_argument(
         "--dry_run",
         "--print",
         action="store_true",
         help="Instead of starting processes, write the commands to stdout, so they can "
-             "be dry_run with 'build.py ... --dry_run | bash'.")
+             "be dry_run with 'build.py ... --dry_run | bash'.",
+    )
     parser.add_argument(
         "--tag_dev",
         action="store_true",
-        help="Also tag the resulting image as 'fastsurfer:dev'."
+        help="Also tag the resulting image as 'fastsurfer:dev'.",
+    )
+    # --save_image does not work as expected right now, it cannot be imported via
+    # docker load, but must be transferred to a registry...
+    # parser.add_argument(
+    #     "--save_image",
+    #     dest="image_path",
+    #     default=None,
+    #     help="Export the image to a tarball.",
+    # )
+    parser.add_argument(
+        "--singularity",
+        type=Path,
+        default=None,
+        help="Specify a singularity file name to build a singularity image into.",
     )
 
     expert = parser.add_argument_group('Expert options')
 
+    parser.add_argument(
+        "--attest",
+        action="store_true",
+        help="add sbom and provenance attestation (requires docker-container buildkit "
+             "builder created with 'docker buildx create')",
+    )
+    parser.add_argument(
+        "--action",
+        choices=("load", "push"),
+        default="load",
+        help="Which action to perform after building the image (if a docker-container "
+             "is detected): "
+             "'load' loads the image into the current docker context (default), "
+             "'push' pushes the image to the registry (needs --tag <registry>/"
+             "<name+maybe organization>:<tag>)",
+    )
     expert.add_argument(
         "--freesurfer_build_image",
         type=docker_image,
@@ -281,56 +320,285 @@ def red(skk):
     return "\033[91m {}\033[00m" .format(skk)
 
 
+def get_builder(
+        Popen,
+        builder_type: str,
+        require_builder_type: bool = False,
+) -> tuple[bool, str]:
+    """Get the builder to build the fastsurfer image."""
+    from subprocess import PIPE
+    from re import compile
+
+    buildx_binfo = Popen(["docker", "buildx", "ls"], stdout=PIPE, stderr=PIPE).finish()
+    header, *lines = buildx_binfo.out_str("utf-8").strip().split("\n")
+    header_pattern = compile("\\S+\\s*")
+    fields = {}
+    alternative_builder = "use_default"
+    pos = 0
+    while pos < len(header) and (match := header_pattern.search(header, pos)):
+        start, pos = match.span()
+        fields[match.group().strip()] = slice(start, pos)
+    builders = {line[fields["NAME/NODE"]].strip(): line[fields["DRIVER/ENDPOINT"]].strip()
+                for line in lines if not line.startswith(" ")}
+    default_builders = [name for name in builders.keys() if name.endswith("*")]
+    if len(default_builders) != 1:
+        raise RuntimeError("Could not find default builder of buildx")
+    default_builder = default_builders[0][:-1].strip()
+    builders[default_builder] = builders[default_builders[0]]
+    del builders[default_builders[0]]
+    builder_is_correct_type = builders[default_builder] == builder_type
+    default_builder_is_correct_type = builder_is_correct_type
+    if not builder_is_correct_type:
+        # if the default builder is a docker builder (which may not support features)
+        # see if there is an alternative builder named "fastsurfer*"
+        for builder in builders.keys():
+            if builder.startswith("fastsurfer") and builders[builder] == builder_type:
+                # set the default_builder to this (prefered) builder
+                alternative_builder = builder
+                break
+    # update is_correct_type
+    if alternative_builder != "use_default":
+        builder_is_correct_type = builders[alternative_builder] == builder_type
+    if not builder_is_correct_type and require_builder_type:
+        # did not find an appropriate builder, but is required!!
+        raise RuntimeError(
+            "Could not find an appropriate builder from the current builder "
+            "(see docker buildx use) or builders named fastsurfer* (searching for "
+            f"a builder of type {builder_type}, docker builders may not be supported "
+            f"with the selected export settings. {CREATE_BUILDER}"
+        )
+    return default_builder_is_correct_type, alternative_builder
+
+
 def docker_build_image(
         image_name: str,
         dockerfile: Path,
         working_directory: Optional[Path] = None,
-        context: Path = ".",
+        context: Path | str = ".",
         dry_run: bool = False,
-        **kwargs):
-    logger.info("Building. This starts with sending the build context to the docker daemon, which may take a while...")
+        attestation: bool = False,
+        action: Literal["load", "push"] = "load",
+        image_path: Path | str | None = None,
+        **kwargs) -> None:
+    """
+    Build a docker image.
+
+    Parameters
+    ----------
+    image_name : str
+        Name / target tag of the image.
+    dockerfile : Path, str
+        Path to the Dockerfile.
+    working_directory : Path, str, optional
+        Path o the working directory to perform the build operation (default: inherit).
+    context : Path, str, optional
+        Base path to the context folder to build the docker image from (default: '.').
+    dry_run : bool, optional
+        Whether to actually trigger the build, or just print the command to the console
+        (default: False => actually build).
+    cache_to : str, optional
+        Forces usage of buildx over build, use docker build caching as in the --cache-to
+        argument to docker buildx build.
+    attestation : bool, default=False
+        Whether to create sbom and provenance attestation
+    action : "load", "push", default="load"
+        The operation to perform after the image is built (only if a docker-container
+        builder is detected).
+    image_path : Path, str, optional
+        A path to save the image to (experimental; currently cannot be imported into a
+        legacy docker storage driver).
+
+    Additional kwargs add additional build flags to the build command in the following
+    manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
+    with its own flag, e.g. `docker_build_image(..., build_arg=["TEST=1", "VAL=2"])` is
+    translated to `docker [buildx] build ... --build-arg TEST=1 --build-arg VAL=2`.
+    """
+    from itertools import chain, repeat
+    from shutil import which
+    from subprocess import PIPE
+
+    from FastSurferCNN.utils.run_tools import Popen
+
+    logger.info("Building. This starts with sending the build context to the docker "
+                "daemon, which may take a while...")
     extra_env = {"DOCKER_BUILDKIT": "1"}
-    from itertools import chain
+
+    docker_cmd = which("docker")
+    if docker_cmd is None:
+        raise FileNotFoundError("Could not locate the docker executable")
+
+    if action not in ("load", "push"):
+        raise ValueError(f"Invalid Value for 'action' {action}, must be load or push.")
 
     def to_pair(key, values):
-        _values = values if isinstance(values, Sequence) and not isinstance(values, (str, bytes)) else [values]
+        if isinstance(values, Sequence) and isinstance(values, (str, bytes)):
+            values = [values]
         key_dashed = key.replace("_", "-")
-        return list(chain(*[[f"--{key_dashed}"] + ([] if val is None else [val]) for val in _values]))
+        # concatenate the --key_dashed value pairs
+        return list(chain(*zip(repeat(f"--{key_dashed}"), values)))
 
-    # needs buildx
-    buildx = "cache_to" in kwargs
-    args = ["buildx", "build"] if buildx else ["build"]
+    kw = {"stdout": PIPE, "stderr": PIPE}
+    _buildx = Popen([docker_cmd, "buildx", "version"], **kw)
+    _storage = Popen([docker_cmd, "info", "-f", "{{.DriverStatus}}"], **kw)
+    has_buildx = "'buildx' is not a docker command" not in _buildx.finish().err_str()
+    has_storage = "io.containerd.snapshotter" in _storage.finish().out_str()
 
-    if buildx:
-        Popen = _import_calls(working_directory)  # from fastsurfer dir
-        buildx_test = Popen(["docker", "buildx", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE).finish()
-        if "'buildx' is not a docker command" in buildx_test.err_str('utf-8').strip():
+    def is_inline_cache(cache_kw):
+        inline_cache = "type=inline"
+        all_inline_cache = (None, "", inline_cache)
+        return kwargs.get(cache_kw, inline_cache) not in all_inline_cache
+
+    # require buildx for sbom and provenance and cache != inline
+    require_container = (attestation or
+                         any(is_inline_cache(f"cache_{c}") for c in ("to", "from")))
+    import_after_args = []
+    if dest := image_path or "":
+        logger.warning("Images exported with image_path cannot be imported into legacy "
+                       "storage drivers. This feature is currently experimental. Also "
+                       "note, that exporting to a file is incompatible with the load "
+                       f"and push actions. Deactivating {action}-action!")
+        dest = f",dest={dest}"
+        action = "export"
+    if not has_buildx:
+        # only standard build environment arguments available
+        if require_container:
+            # not supported with builder != docker-container
             raise RuntimeError(
-                "Using --cache requires docker buildx, install with 'wget -qO ~/"
-                ".docker/cli-plugins/docker-buildx https://github.com/docker/buildx/"
-                "releases/download/<version>/buildx-<version>.<platform>'\n"
-                "e.g. 'wget -qO ~/.docker/cli-plugins/docker-buildx "
-                "https://github.com/docker/buildx/releases/download/v0.11.2/"
-                "buildx-v0.11.2.linux-amd64'\n"
-                "You may need to 'chmod +x ~/.docker/cli-plugins/docker-buildx'\n"
-                "See also https://github.com/docker/buildx#manual-download")
+                "Using --cache_{from,to} or attestation requires docker buildx and a "
+                f"docker-container builder.\n{INSTALL_BUILDX}\n{CREATE_BUILDER}"
+            )
+        if action != "load":
+            raise RuntimeError(
+                "The legacy docker builder does not support pushing or exporting the "
+                "image."
+            )
+        args = ["build"]
+        kwargs_to_exclude = [f"cache_{c}" for c in ("to", "from")]
+    else:
+        # buildx argument construction
+        args = ["buildx", "build"]
+        # raises RuntimeError, if a docker-container builder is required, but not found
+        default_builder_is_container, alternative_builder = get_builder(
+            Popen,
+            "docker-container",
+            require_container,
+        )
+        if has_storage and action == "load":
+            image_type = f"docker"
+        elif action == "push":
+            # with containerd storage driver or pushing to registry
+            image_type = f"image"
+            # both support attestation no problem
+        elif action == "export":
+            experimental = ". No image will be imported. This features is experimental."
+            if attestation:
+                warn_msg = (f"{CONTAINERD_MESSAGE}The build script will save the image "
+                            f"to {image_path} (which will contain the attestation "
+                            f"manifest files){experimental}")
+            else:
+                warn_msg = (f"The build script will save the image to {image_path}"
+                            f"{experimental}")
+            logger.warning(warn_msg)
+            image_type = f"oci{dest}"
+            if dry_run:
+                print(f"mkdir -p {Path(image_path).parent} && ", sep="")
+            else:
+                Path(image_path).parent.mkdir(exist_ok=True)
+            # importing after (bock docker image import as well as docker image load
+            # are not supported for images exported by buildkit.
+            # import_after_args = ["image", "import", image_path, image_name]
+        elif attestation:
+            # also implicitly action == load
+            raise RuntimeError(CONTAINERD_MESSAGE)
+            # Future Alternative: save the image to preserve the manifest files to file
+        else:
+            # no attestation, docker builder supports this format
+            image_type = f"docker"
 
-    params = [to_pair(*a) for a in kwargs.items()]
+        args.extend(["--output", f"type={image_type},name={image_name}"])
+        if not bool(import_after_args):
+            args.append(f"--{action}")
+        if attestation:
+            args.extend([
+                "--attest", "type=sbom",
+                "--attest", "type=provenance",
+            ])
+        if not default_builder_is_container:
+            args.extend(["--builder", alternative_builder])
 
-    args += ["-t", image_name, "-f", str(dockerfile)] + list(chain(*params)) + [str(context)]
+        kwargs_to_exclude = []
+
+    params = [to_pair(k, v) for k, v in kwargs.items() if k not in kwargs_to_exclude]
+    # arguments for standard build and buildx
+    args.extend([
+        "-t", image_name,
+        "-f", str(dockerfile),
+    ])
+    args.extend(chain(*params))
+    args.append(str(context))
+
     if dry_run:
         extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
-        print(" ".join(extra_environment + ["docker"] + args))
+        print(" ".join(extra_environment + [docker_cmd] + args), sep="")
+        if import_after_args:
+            print(" && " + " ".join([docker_cmd] + import_after_args), sep="")
     else:
-        from shutil import which
-        docker_cmd = which("docker")
-        if docker_cmd is None:
-            raise FileNotFoundError("Could not locate the docker executable")
-        Popen = _import_calls(working_directory)  # from fastsurfer dir
         env = dict(os.environ)
         env.update(extra_env)
+
+        def forward_output_to_logger(process):
+            for msg in process:
+                if msg.out:
+                    logger.info("stdout: " + msg.out.decode("utf-8"))
+                if msg.err:
+                    logger.info("stderr: " + red(msg.err.decode("utf-8")))
+
         with Popen([docker_cmd] + args + ["--progress=plain"],
                    cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
+            forward_output_to_logger(proc)
+        if import_after_args:
+            with Popen([docker_cmd] + import_after_args,
+                       cwd=working_directory, env=env, stdout=subprocess.PIPE) as proc:
+                forward_output_to_logger(proc)
+
+
+def singularity_build_image(
+        image_name: str,
+        singularity_image: Path,
+        working_directory: Optional[Path] = None,
+        dry_run: bool = False,
+):
+    """
+    Build the singularity image from the docker image.
+
+    Parameters
+    ----------
+    image_name : str
+        The name of the docker image to build the singularity image from.
+    singularity_image : Path
+        The path and file of the singularity image to build.
+    working_directory : Path, str, optional
+        Path o the working directory to perform the build operation (default: inherit).
+    dry_run : bool, default=False
+        Whether to build from python or to print the command to stdout.
+    """
+    from shutil import which
+
+    # Create the folder for the singularity image
+    singularity_image.parent.mkdir(exist_ok=True)
+    args = [
+        which("singularity"),
+        "build",
+        "--force",
+        str(singularity_image),
+        f"docker-daemon://{image_name}",
+    ]
+    if dry_run:
+        print(" ".join([" &&"] + args), sep="")
+    else:
+        from FastSurferCNN.utils.run_tools import Popen
+        with Popen(args,
+                   cwd=working_directory, stdout=subprocess.PIPE) as proc:
             for msg in proc:
                 if msg.out:
                     logger.info("stdout: " + msg.out.decode("utf-8"))
@@ -341,21 +609,15 @@ def docker_build_image(
 def main(
         device: DeviceType,
         cache: Optional[CacheSpec] = None,
-        rm: bool = False,
         target: Target = "runtime",
         debug: bool = False,
         image_tag: Optional[str] = None,
         dry_run: bool = False,
         tag_dev: bool = True,
-        **keywords
-        ):
-    this_script = Path(__file__)
-    if not this_script.is_absolute():
-        this_script = Path.cwd() / __file__
-    fastsurfer_home = this_script.parent.parent
-    version = _import_calls(fastsurfer_home, "version")
-    parse_build_file = _import_calls(fastsurfer_home, "parse_build_file")
-
+        fastsurfer_home: Optional[Path] = None,
+        **keywords,
+        ) -> int | str:
+    from FastSurferCNN.version import has_git, main as version
     kwargs: Dict[str, Union[str, List[str]]] = {}
     if cache is not None:
         if not isinstance(cache, CacheSpec):
@@ -363,13 +625,15 @@ def main(
         logger.info(f"cache: {cache}")
         kwargs["cache_from"] = cache.format_cache_from()
         kwargs["cache_to"] = cache.format_cache_from()
-    elif rm is True:
-        kwargs["no-cache"] = None
+
+    fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
     if device not in get_args(AllDeviceType):
         raise ValueError(f"Invalid device: {device}")
+    if keywords.get("action", "load") == "push":
+        kwargs["action"] = "push"
     # special case to add extra environment variables to better support AWS and ROCm
     if device.startswith("cu") and target == "runtime":
         target = "runtime_cuda"
@@ -377,33 +641,59 @@ def main(
     kwargs["build_arg"] = [f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}"]
     if debug:
         kwargs["build_arg"].append(f"DEBUG=true")
-    for key in ["build_base_image", "runtime_base_image", "freesurfer_build_image",
-                "conda_build_image"]:
+    build_arg_list = [
+        "build_base_image",
+        "runtime_base_image",
+        "freesurfer_build_image",
+        "conda_build_image",
+    ]
+    for key in build_arg_list:
         upper_key = key.upper()
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
     #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
 
     build_filename = fastsurfer_home / "BUILD.info"
+    if has_git():
+        version_sections = "+git"
+    else:
+        # try creating the build file without git info
+        version_sections = ""
+        logger.warning(
+            "Failed to create the git_status section in the BUILD.info file. "
+            "The resulting build file will not have valid git information, so "
+            "the version command of FastSurfer in the image will not complete."
+        )
+
     with open(build_filename, "w") as build_file, \
             open(fastsurfer_home / "pyproject.toml") as project_file:
-        ret_version = version("+git", project_file=project_file, file=build_file)
-        if ret_version != 0:
-            return f"Creating the version file failed with message: {ret_version}"
+        ret_version = version(
+            version_sections,
+            project_file=project_file,
+            file=build_file,
+            build_cache=False,
+        )
+    if ret_version != 0:
+        return f"Creating the version file failed with message: {ret_version}"
 
     with open(build_filename, "r") as build_file:
+        from FastSurferCNN.version import parse_build_file
         build_info = parse_build_file(build_file)
 
     version_tag = build_info["version_tag"]
-    image_suffix = ""
+    image_prefix = ""
     if device != "cuda":
-        image_suffix = f"-{device}"
+        image_prefix = f"{device}-"
     # image_tag is None or ""
     if not bool(image_tag):
-        image_tag = f"fastsurfer:{version_tag}{image_suffix}".replace("+", "_")
+        image_tag = f"fastsurfer:{image_prefix}{version_tag}".replace("+", "_")
+        logger.info(f"No image name/tag provided, auto-generated tag: {image_tag}")
 
+    attestation = bool(keywords.get("attest"))
     if tag_dev:
-        kwargs["tag"] = f"fastsurfer:dev{image_suffix}"
+        kwargs["tag"] = f"fastsurfer:dev{image_prefix}"
+    if keywords.get("image_path", False):
+        kwargs["image_path"] = keywords["image_path"]
 
     if not dry_run:
         logger.info("Version info added to the docker image:")
@@ -417,11 +707,34 @@ def main(
             working_directory=fastsurfer_home,
             context=fastsurfer_home,
             dry_run=dry_run,
-            **kwargs
+            attestation=attestation,
+            **kwargs,
         )
+        if singularity := keywords.get("singularity", None):
+            singularity_build_image(
+                image_tag,
+                Path(singularity),
+                dry_run=dry_run,
+            )
+        print("")
     except RuntimeError as e:
         return e.args[0]
     return 0
+
+
+def default_home() -> Path:
+    """
+    Find the fastsurfer path.
+
+    Returns
+    -------
+    Path
+        The FASTSURFER_HOME-path.
+    """
+    if "FASTSURFER_HOME" in os.environ:
+        return Path(os.environ["FASTSURFER_HOME"])
+    else:
+        return Path(__file__).parent.parent
 
 
 if __name__ == "__main__":
@@ -430,13 +743,9 @@ if __name__ == "__main__":
     arguments = make_parser().parse_args()
 
     # make sure the code can run without FastSurfer being in PYTHONPATH
-    if "FASTSURFER_HOME" in os.environ:
-        fastsurfer_home = os.environ["FASTSURFER_HOME"]
-    else:
-        fastsurfer_home = str(Path(__file__).parent.parent)
-
-    if fastsurfer_home not in sys.path:
-        sys.path.append(fastsurfer_home)
+    fastsurfer_home = default_home()
+    if str(fastsurfer_home) not in sys.path:
+        sys.path.append(str(fastsurfer_home))
 
     logger.setLevel(logging.WARN if arguments.dry_run else logging.INFO)
-    sys.exit(main(**vars(arguments)))
+    sys.exit(main(**vars(arguments), fastsurfer_home=fastsurfer_home))

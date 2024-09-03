@@ -28,9 +28,8 @@ from torchvision import transforms
 from CerebNet.data_loader.data_utils import FLIPPED_LABELS
 
 
-##
+
 # Transformations for training
-##
 class ToTensor(object):
     """
     Convert ndarrays in sample to Tensors.
@@ -71,10 +70,18 @@ class RandomAffine(object):
     """
     Apply a random affine transformation to
     images, label and weight
-    the transformation includes translation, rotation and scaling
+    the transformation includes translation, rotation and scaling.
     """
 
     def __init__(self, cfg):
+        """
+        Create a Affine augmentation operation with Random Parameter initialization.
+
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            Parameters degree, img_size, scale, translate, prob are filled from its attributes AUGMENTATION and MODEL.
+        """
         self.degree = cfg.AUGMENTATION.DEGREE
         self.img_size = [cfg.MODEL.HEIGHT, cfg.MODEL.WIDTH]
         self.scale = cfg.AUGMENTATION.SCALE
@@ -85,32 +92,7 @@ class RandomAffine(object):
     def _get_random_affine(self):
         """
         Random inverse affine matrix composed of rotation matrix (of each axis)and translation.
-
-        Parameters
-        ----------
-        degrees : sequence or float or int,
-             Range of degrees to select from.
-             If degrees is a number instead of sequence like (min, max), the range of degrees
-             will be (-degrees, +degrees).
-        translate : tuple, float
-             if translate=(a,b), the value for translation is uniformly sampled
-             in the range
-              -column_size * a < dx < column_size * a
-              -row_size * b < dy < row_size * b
-             If translate is a number then a=b=c.
-             The value should be between 0 and 1.
-        img_size : tuple
-            img_size = (column_size, row_size)
-        scale: tuple, range of min and max scaling factor
-        seed : int
-            random seed
-
-        Returns
-        -------
-        transform_mat : 3x3 matrix
-            Random affine transformation
         """
-
         if isinstance(self.degree, numbers.Number):
             if self.degree < 0:
                 raise ValueError("If degrees is a single number, it must be positive.")
@@ -179,9 +161,8 @@ class RandomAffine(object):
 
 class RandomFlip(object):
     """
-    Random horizontal flipping
+    Random horizontal flipping.
     """
-
     def __init__(self, cfg):
         self.prob = cfg.AUGMENTATION.PROB
         self.axis = cfg.AUGMENTATION.FLIP_AXIS
@@ -202,7 +183,8 @@ class RandomFlip(object):
 
 
 class RandomBiasField:
-    r"""Add random MRI bias field artifact.
+    """
+    Add random MRI bias field artifact.
 
     Based on https://github.com/fepegar/torchio
 
@@ -210,21 +192,30 @@ class RandomBiasField:
     `Sudre et al., 2017, Longitudinal segmentation of age-related
     white matter hyperintensities
     <https://www.sciencedirect.com/science/article/pii/S1361841517300257?via%3Dihub>`_.
-
-    Args:
-        coefficients: Magnitude :math:`n` of polynomial coefficients.
-            If a tuple :math:`(a, b)` is specified, then
-            :math:`n \sim \mathcal{U}(a, b)`.
-        order: Order of the basis polynomial functions.
-        p: Probability that this transform will be applied.
-        seed:
     """
-
     def __init__(
         self,
         cfg,
         seed: Optional[int] = None,
     ):
+        """
+        Initialize the RandomBiasField object with configuration and optional seed.
+        
+        Parameters
+        ----------
+        cfg : yacs.config.CfgNode
+            Node to get Config from (should include:
+            AUGMENTATION.BIAS_FIELD_COEFFICIENTS
+            Magnitude :math:`n` of polynomial coefficients.
+            If a tuple :math:`(a, b)` is specified, then
+            :math:`n \sim \mathcal{U}(a, b)`.
+            AUGMENTATION.BIAS_FIELD_ORDER
+            Order of the basis polynomial functions.
+            AUGMENTATION.PROB
+            Probability that this transform will be applied.
+        seed : int, optional
+            Seed.
+        """
         coefficients = cfg.AUGMENTATION.BIAS_FIELD_COEFFICIENTS
         if isinstance(coefficients, float):
             coefficients = (-coefficients, coefficients)
@@ -302,9 +293,8 @@ class RandomLabelsToImage(object):
     using the dataset intensity priors.
     based on  Billot et al.:
     A Learning Strategy for Contrast-agnostic MRI Segmentation
-     and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contrast.
+    and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contrast.
     """
-
     def __init__(self, mean, std, cfg, blur_factor=0.3):
         self.means = mean
         self.stds = std
@@ -335,22 +325,38 @@ class RandomLabelsToImage(object):
 def sample_intensity_stats_from_image(
     image, segmentation, labels_list, classes_list=None, keep_strictly_positive=True
 ):
-    """This function takes an image and corresponding segmentation as inputs. It estimates the mean and std intensity
-    for all specified label values. Labels can share the same statistics by being regrouped into K classes.
-    :param image: image from which to evaluate mean intensity and std deviation.
-    :param segmentation: segmentation of the input image. Must have the same size as image.
-    :param labels_list: list of labels for which to evaluate mean and std intensity.
-    Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
-    :param classes_list: (optional) enables to regroup structures into classes of similar intensity statistics.
-    Intenstites associated to regrouped labels will thus contribute to the same Gaussian during statistics estimation.
-    Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
-    It should have the same length as labels_list, and contain values between 0 and K-1, where K is the total number of
-    classes. Default is all labels have different classes (K=len(labels_list)).
-    :param keep_strictly_positive: (optional) whether to only keep strictly positive intensity values when
-    computing stats. This doesn't apply to the first label in label_list (or class if class_list is provided), for
-    which we keep positive and zero values, as we consider it to be the background label.
-    :return: a numpy array of size (2, K), the first row being the mean intensity for each structure,
-    and the second being the median absolute deviation (robust estimation of std).
+    """
+    This function takes an image and corresponding segmentation as inputs. 
+
+    It estimates the mean and std intensity for all specified label values.
+    Labels can share the same statistics by being regrouped into K classes.
+
+    Parameters
+    ----------
+    image : array_like
+        Image from which to evaluate mean intensity and std deviation.
+    segmentation : array_like
+        Segmentation of the input image. Must have the same size as image.
+    labels_list : array_like
+        List of labels for which to evaluate mean and std intensity.
+        Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.
+    classes_list : array_like, optional
+        Enables grouping structures into classes of similar intensity statistics.
+        The intensities associated with regrouped labels will contribute to the same
+        Gaussian during statistics estimation. Can be a sequence, a 1D numpy array,
+        or the path to a 1D numpy array. It should have the same length as `labels_list`,
+        and contain values between 0 and K-1, where K is the total number of classes.
+        By default, each label is considered its own class (K=len(labels_list)).
+    keep_strictly_positive : optional
+        Whether to only keep strictly positive intensity values when computing stats. 
+        This doesn't apply to the first label in label_list (or class if class_list is provided), for
+        which we keep positive and zero values, as we consider it to be the background label.
+
+    Returns
+    -------
+    numpy.ndarray 
+        A numpy array of size (2, K), the first row being the mean intensity for each structure,
+        and the second being the median absolute deviation (robust estimation of std).
     """
     # reformat labels and classes
     if classes_list is not None:

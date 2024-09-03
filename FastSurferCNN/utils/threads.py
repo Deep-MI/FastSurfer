@@ -12,10 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def get_num_threads():
+    """
+    Determine the number of available threads.
+
+    Tries to get the process's CPU affinity for usable thread count; defaults
+    to total CPU count on failure.
+
+    Returns
+    -------
+    int
+        Number of threads available to the process or total CPU count.
+    """
     try:
         from os import sched_getaffinity as __getaffinity
+
         return len(__getaffinity(0))
     except ImportError:
         from os import cpu_count
+
         return cpu_count()

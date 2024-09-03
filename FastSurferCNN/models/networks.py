@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # IMPORTS
-from torch import nn, Tensor
-import numpy as np
-from typing import Optional, Union, Dict
-import yacs
+from typing import Optional, TYPE_CHECKING
 
-import FastSurferCNN.models.sub_module as sm
+import numpy as np
+from torch import Tensor, nn
+if TYPE_CHECKING:
+    import yacs.config
+
 import FastSurferCNN.models.interpolation_layer as il
+import FastSurferCNN.models.sub_module as sm
 
 
 class FastSurferCNNBase(nn.Module):
-    """Network Definition of Fully Competitive Network network.
+    """
+    Network Definition of Fully Competitive Network network.
 
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
@@ -37,11 +39,11 @@ class FastSurferCNNBase(nn.Module):
     Attributes
     ----------
     encode1, encode2, encode3, encode4
-        Competitive Encoder Blocks
+        Competitive Encoder Blocks.
     decode1, decode2, decode3, decode4
-        Competitive Decoder Blocks
+        Competitive Decoder Blocks.
     bottleneck
-        Bottleneck Block
+        Bottleneck Block.
 
     Methods
     -------
@@ -49,16 +51,17 @@ class FastSurferCNNBase(nn.Module):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, padded_size: int = 256):
-        """Construct FastSurferCNNBase object.
+    def __init__(self, params: dict, padded_size: int = 256):
+        """
+        Construct FastSurferCNNBase object.
 
         Parameters
         ----------
         params : Dict
+            Parameters in dictionary format
 
-        padded_size : int
-            size of image when padded (Default value = 256)
-
+        padded_size : int, default = 256
+            Size of image when padded (Default value = 256).
         """
         super(FastSurferCNNBase, self).__init__()
 
@@ -89,27 +92,27 @@ class FastSurferCNNBase(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(
-            self,
-            x: Tensor,
-            scale_factor: Optional[Tensor] = None,
-            scale_factor_out: Optional[Tensor] =None
+        self,
+        x: Tensor,
+        scale_factor: Optional[Tensor] = None,
+        scale_factor_out: Optional[Tensor] = None,
     ) -> Tensor:
-        """Feedforward through graph.
+        """
+        Feedforward through graph.
 
-        Parameters [MISSING]
+        Parameters
         ----------
         x : Tensor
-            input image [N, C, H, W]
-        scale_factor : Optional[Tensor]
-            [N, 1] Defaults to None (Default value = None)
-        scale_factor_out : Optional[Tensor]
-            (Default value = None)
+            Input image [N, C, H, W] representing the input data.
+        scale_factor : Tensor, optional
+            [N, 1] Defaults to None.
+        scale_factor_out : Tensor, optional
+            Tensor representing the scale factor for the output. Defaults to None.
 
         Returns
         -------
         decoder_output1 : Tensor
-            prediction logits
-
+            Prediction logits.
         """
         encoder_output1, skip_encoder_1, indices_1 = self.encode1.forward(x)
         encoder_output2, skip_encoder_2, indices_2 = self.encode2.forward(
@@ -139,30 +142,30 @@ class FastSurferCNNBase(nn.Module):
 
 
 class FastSurferCNN(FastSurferCNNBase):
-    """Main Fastsurfer CNN Network.
+    """
+    Main Fastsurfer CNN Network.
 
     Attributes
     ----------
     classifier
-        Initialized Classification Block
+        Initialized Classification Block.
 
     Methods
     -------
     forward
-        Feedforward through graph
-
+        Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, padded_size: int):
-        """Construct FastSurferCNN object.
+    def __init__(self, params: dict, padded_size: int):
+        """
+        Construct FastSurferCNN object.
 
         Parameters
         ----------
         params : Dict
-            dictionary of configurations
+            Dictionary of configurations.
         padded_size : int
-            size of image when padded
-
+            Size of image when padded.
         """
         super(FastSurferCNN, self).__init__(params)
         params["num_channels"] = params["num_filters"]
@@ -179,27 +182,27 @@ class FastSurferCNN(FastSurferCNNBase):
                 nn.init.constant_(m.bias, 0)
 
     def forward(
-            self,
-            x: Tensor,
-            scale_factor: Optional[Tensor] = None,
-            scale_factor_out: Optional[Tensor] = None
+        self,
+        x: Tensor,
+        scale_factor: Optional[Tensor] = None,
+        scale_factor_out: Optional[Tensor] = None,
     ) -> Tensor:
-        """Feedforward through graph.
+        """
+        Feedforward through graph.
 
         Parameters
         ----------
         x : Tensor
-            input image [N, C, H, W]
-        scale_factor : Optional[Tensor]
-            [N, 1] Defaults to None
-        scale_factor_out : Optional[Tensor]
-            Defaults to None
+            Input image [N, C, H, W].
+        scale_factor : Tensor, optional
+            [N, 1] Defaults to None.
+        scale_factor_out : Tensor, optional
+            Tensor representing the scale factor for the output. Defaults to None.
 
         Returns
         -------
         output : Tensor
-            Prediction logits
-
+            Prediction logits.
         """
         net_out = super().forward(x, scale_factor)
         output = self.classifier.forward(net_out)
@@ -208,7 +211,8 @@ class FastSurferCNN(FastSurferCNNBase):
 
 
 class FastSurferVINN(FastSurferCNNBase):
-    """Network Definition of Fully Competitive Network.
+    """
+    Network Definition of Fully Competitive Network.
 
     * Spatial view aggregation (input 7 slices of which only middle one gets segmented)
     * Same Number of filters per layer (normally 64)
@@ -221,26 +225,25 @@ class FastSurferVINN(FastSurferCNNBase):
     Attributes
     ----------
     height
-        the height of segmentation model (after interpolation layer)
+        The height of segmentation model (after interpolation layer).
     width
-        the width of segmentation model
+        The width of segmentation model.
     out_tensor_shape
-        Out tensor dimensions for interpolation layer
+        Out tensor dimensions for interpolation layer.
     interpolation_mode
-        Interpolation mode for up/downsampling in flex networks
+        Interpolation mode for up/downsampling in flex networks.
     crop_position
-        Crop positions for up/downsampling in flex networks
+        Crop positions for up/downsampling in flex networks.
     inp_block
-        Initialized input dense block
+        Initialized input dense block.
     outp_block
-        Initialized output dense block
+        Initialized output dense block.
     interpol1
-        Initialized 2d input interpolation block
+        Initialized 2d input interpolation block.
     interpol2
-        Initialized 2d output interpolation block
+        Initialized 2d output interpolation block.
     classifier
-        Initialized Classification Block
-
+        Initialized Classification Block.
 
     Methods
     -------
@@ -248,16 +251,16 @@ class FastSurferVINN(FastSurferCNNBase):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, padded_size: int = 256):
-        """Construct FastSurferVINN object.
+    def __init__(self, params: dict, padded_size: int = 256):
+        """
+        Construct FastSurferVINN object.
 
         Parameters
         ----------
         params : Dict
-            dictionary of configurations
-        padded_size : int
-            size of image when padded (Default value = 256)
-
+            Dictionary of configurations.
+        padded_size : int, default = 256
+            Size of image when padded (Default value = 256).
         """
         num_c = params["num_channels"]
         params["num_channels"] = params["num_filters_interpol"]
@@ -326,27 +329,25 @@ class FastSurferVINN(FastSurferCNNBase):
                 nn.init.constant_(m.bias, 0)
 
     def forward(
-            self,
-            x: Tensor,
-            scale_factor: Tensor,
-            scale_factor_out: Optional[Tensor]  = None
+        self, x: Tensor, scale_factor: Tensor, scale_factor_out: Optional[Tensor] = None
     ) -> Tensor:
-        """Feedforward through graph.
+        """
+        Feedforward through graph.
 
         Parameters
         ----------
         x : Tensor
-            input image [N, C, H, W]
+            Input image [N, C, H, W].
         scale_factor : Tensor
-            [MISSING] [N, 1]
-        scale_factor_out : Tensor, Optional
-            [MISSING] Defaults to None
+            Tensor of shape [N, 1] representing the scale factor for each image in the
+            batch.
+        scale_factor_out : Tensor, optional
+            Tensor representing the scale factor for the output. Defaults to None.
 
         Returns
         -------
         logits : Tensor
-            prediction logits
-
+            Prediction logits.
         """
         # Input block + Flex to 1 mm
         skip_encoder_0 = self.inp_block(x)
@@ -387,22 +388,22 @@ _MODELS = {
 }
 
 
-def build_model(cfg: yacs.config.CfgNode) -> Union[FastSurferCNN, FastSurferVINN]:
-    """Build requested model.
+def build_model(cfg: 'yacs.config.CfgNode') -> FastSurferCNN | FastSurferVINN:
+    """
+    Build requested model.
 
     Parameters
     ----------
     cfg : yacs.config.CfgNode
-        Node of configs to be used
+        Node of configs to be used.
 
     Returns
     -------
     model
-        Object of the initialized model
-
+        Object of the initialized model.
     """
     assert (
-            cfg.MODEL.MODEL_NAME in _MODELS.keys()
+        cfg.MODEL.MODEL_NAME in _MODELS.keys()
     ), f"Model {cfg.MODEL.MODEL_NAME} not supported"
     params = {k.lower(): v for k, v in dict(cfg.MODEL).items()}
     model = _MODELS[cfg.MODEL.MODEL_NAME](params, padded_size=cfg.DATA.PADDED_SIZE)

@@ -181,7 +181,8 @@ def writeITKimage(
         filename: str,
         header: Optional[nib.freesurfer.mghformat.MGHHeader] = None
 ) -> None:
-    """[MISSING].
+    """
+    Writes the given ITK image to a file.
 
     Parameters
     ----------

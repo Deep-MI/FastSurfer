@@ -14,20 +14,20 @@
 
 
 # IMPORTS
-from subprocess import Popen, PIPE
 import shlex
 import argparse
 from typing import Any
+from subprocess import Popen, PIPE
 
 
 def setup_options():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     # Validation settings
     parser = argparse.ArgumentParser(description="Wrapper for spherical projection")
@@ -46,54 +46,59 @@ def setup_options():
 
 
 def call(command: str, **kwargs: Any) -> int:
-    """Run command with arguments.
+    """
+    Run command with arguments.
 
     Wait for command to complete. Sends output to logging module.
 
     Parameters
     ----------
     command : str
-        Command to call
+        Command to call.
     **kwargs : Any
+        Keyword arguments.
         
 
     Returns
     -------
     int
-       Returncode of called command
-
+       Returncode of called command.
     """
     kwargs["stdout"] = PIPE
     kwargs["stderr"] = PIPE
     command_split = shlex.split(command)
 
     p = Popen(command_split, **kwargs)
-    stdout = p.communicate()[0]
+    stdout, stderr = p.communicate()
 
     if stdout:
         for line in stdout.decode("utf-8").split("\n"):
+            print(line)
+    if stderr:
+        print("stderr")
+        for line in stderr.decode("utf-8").split("\n"):
             print(line)
 
     return p.returncode
 
 
 def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
-    """Run the first command. If it fails the fallback command is run as well.
+    """
+    Run the first command. If it fails the fallback command is run instead.
 
     Parameters
     ----------
     command1 : str
-        Command to call
+        Command to call.
     command2 : str
-        Fallback command to call
+        Fallback command to call.
     **kwargs : Any
-        Arguments. The same as for the Popen constructor
+        Arguments. The same as for the Popen constructor.
 
     Returns
     -------
     code_1
-        Return code of command1. If command1 failed return code of command2
-    
+        Return code of command1. If command1 failed return code of command2.
     """
     # First try to run standard spherical project
     print("Running command: {}".format(command1))
@@ -143,4 +148,8 @@ if __name__ == "__main__":
         + " -qsphere -no-isrunning "
         + threading
     )
-    spherical_wrapper(cmd1, cmd2)
+    # make sure the process has a username, so nibabel does not crash in write_geometry
+    from os import environ
+    env = dict(environ)
+    env.setdefault("USERNAME", "UNKNOWN")
+    spherical_wrapper(cmd1, cmd2, env=env)

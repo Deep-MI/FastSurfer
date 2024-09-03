@@ -36,7 +36,7 @@ map_surf_label.py --srclabel <in.label> --srcsphere <sphere.reg>
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
     numpy, nibabel, sklearn
     
 
@@ -59,13 +59,13 @@ h_outlabel = "output label file"
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id:map_surf_label.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -99,30 +99,30 @@ def writeSurfLabel(
         values: npt.NDArray,
         surf: npt.NDArray
 ) -> None:
-    """Write a FS surface label file to filename (e.g. lh.labelname.label).
+    """
+    Write a FS surface label file to filename (e.g. lh.labelname.label).
 
     Stores sid string in the header, then number of vertices
     and table of vertex index, RAS wm-surface coords (taken from surf)
-    and values (which can be zero)
+    and values (which can be zero).
 
     Parameters
     ----------
     filename : str
-        File there surface label is written
+        File there surface label is written.
     sid : str
-        Subject id
+        Subject id.
     label : npt.NDArray[str]
-        List of label names
+        List of label names.
     values : npt.NDArray
-        List of values
+        List of values.
     surf : npt.NDArray
-        Surface coordinations
+        Surface coordinations.
 
     Raises
     ------
     ValueError
-        Label and values should have same sizes
-
+        If label and values are not the same size.
     """
     if values is None:
         values = np.zeros(label.shape)
@@ -151,32 +151,33 @@ def getSurfCorrespondence(
         trg_sphere: Union[str, Tuple, np.ndarray],
         tree: Optional[KDTree] = None
 ) -> Tuple[np.ndarray, np.ndarray, KDTree]:
-    """For each vertex in src_sphere find the closest vertex in trg_sphere.
+    """
+    For each vertex in src_sphere find the closest vertex in trg_sphere.
 
-    Spheres are Nx3 arrays of coordinates on the sphere (usually R=100 FS format)
-    *_sphere can also be a file name of the sphere.reg files, then we load it.
-    The KDtree can be passed in cases where src moves around and trg stays fixed
+    src_sphere and trg_sphere are Nx3 arrays of coordinates on the sphere
+    (usually radius R=100 FS format). They also be a filenames of the corresponding
+    sphere.reg files to be loaded from disk. The KDtree can optionally be passed in
+    cases where src moves around and trg stays fixed.
 
     Parameters
     ----------
     src_sphere : Union[str, Tuple, np.ndarray]
         Either filepath (as str) or surface vertices
-        of source sphere
+        of source sphere.
     trg_sphere : Union[str, Tuple, np.ndarray]
         Either filepath (as str) or surface vertices
-        of target sphere
+        of target sphere.
     tree : Optional[KDTree]
-        Defaults to None
+        Defaults to None.
 
     Returns
     -------
     mapping : np.ndarray
-        Surface mapping of the trg surface
+        Surface mapping of the trg surface.
     distances : np.ndarray
-        Surface distance of the trg surface
+        Surface distance of the trg surface.
     tree : KDTree
-        KDTree of the trg surface
-
+        KDTree of the trg surface.
     """
     # We can also work with file names instead of surface vertices
     if isinstance(src_sphere, str):
@@ -204,36 +205,37 @@ def mapSurfLabel(
         trg_sid: str,
         rev_mapping: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Map a label from src surface according to the correspondence.
+    """
+    Map a label from src surface according to the correspondence.
 
     trg_surf is passed so that the label file will list the
-    correct coordinates (usually the white surface), can be vetrices or filename
+    correct coordinates (usually the white surface), can be vetrices or filename.
 
     Parameters
     ----------
     src_label_name : str
-        Path to label file of source
+        Path to label file of source.
     out_label_name : str
-        Path to label file of output
+        Path to label file of output.
     trg_surf : Union[str, np.ndarray]
-        Numpy array of vertex coordinates or filepath to target surface
+        Numpy array of vertex coordinates or filepath to target surface.
     trg_sid : str
-        Subject id of the target subject (as stored in the output label file header)
+        Subject id of the target subject (as stored in the output label file header).
     rev_mapping : np.ndarray
-        a mapping from target to source, listing the corresponding src vertex for each vertex on the trg surface
+        A mapping from target to source, listing the corresponding src vertex 
+        for each vertex on the trg surface.
 
     Returns
     -------
     trg_label : np.ndarray
-        target labels
+        Target labels.
     trg_values : np.ndarray
-        target values
+        Target values.
 
     Raises
     ------
     ValueError
-        Label and trg vertices should have same sizes
-
+        If label and trg vertices are not of same sizes.
     """
     print("Mapping label: {} ...".format(src_label_name))
     src_label, src_values = fs.read_label(src_label_name, read_scalars=True)
@@ -252,11 +254,8 @@ def mapSurfLabel(
     inside[src_label] = True
     values = np.zeros(smax)
     values[src_label] = src_values
-    inside_trg = inside[rev_mapping]
     trg_label = np.nonzero(inside[rev_mapping])[0]
     trg_values = values[rev_mapping[trg_label]]
-    # print(trg_values)
-    # print(trg_label.size)
     if out_label_name is not None:
         writeSurfLabel(out_label_name, trg_sid, trg_label, trg_values, trg_surf)
     return trg_label, trg_values

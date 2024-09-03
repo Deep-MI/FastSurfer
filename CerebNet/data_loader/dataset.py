@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import time
 
 # IMPORTS
-from typing import Sequence, Tuple, Literal, get_args as _get_args, TypeVar, Dict
+from typing import Tuple, Literal, TypeVar, Dict
 from numbers import Number
 
 import nibabel as nib
@@ -25,8 +24,7 @@ import h5py
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Compose
 
-from CerebNet.data_loader.data_utils import Plane
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import logging, Plane
 from FastSurferCNN.data_loader.data_utils import (
     get_thick_slices,
     transform_axial,
@@ -42,7 +40,6 @@ ROIKeys = Literal["source_shape", "offsets", "target_shape"]
 LocalizerROI = Dict[ROIKeys, Tuple[int, ...]]
 
 NT = TypeVar("NT", bound=Number)
-PLANES = _get_args(Plane)
 
 logger = logging.get_logger(__name__)
 

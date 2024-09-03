@@ -18,10 +18,12 @@
 
 # IMPORTS
 import optparse
+import sys
+
 import numpy as np
 from numpy import typing as npt
-import sys
 import nibabel.freesurfer.io as fs
+
 import align_points as align
 
 
@@ -35,7 +37,7 @@ rotate_sphere.py --srcsphere <?h.sphere> --srcaparc <?h.aparc>
                  --out <angles.txt>
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     SimpleITK https://simpleitk.org/ (v2.1.1)
 
@@ -66,13 +68,13 @@ h_out = "path to output txt files for angles"
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: rotate_sphere.py,v 1.0 2022/03/18 21:22:08 mreuter Exp $",
@@ -106,7 +108,8 @@ def align_aparc_centroids(
         labels_dst: npt.ArrayLike,
         label_ids: npt.ArrayLike = []
 ) -> np.ndarray:
-    """Align centroid of aparc parcels on the sphere (Attention mapping back to sphere!).
+    """
+    Align centroid of aparc parcels on the sphere (Attention mapping back to sphere!).
 
     Parameters
     ----------
@@ -119,13 +122,12 @@ def align_aparc_centroids(
     labels_dst : npt.ArrayLike
         Labels of aparc parcelation for rotation destination.
     label_ids : npt.ArrayLike
-        Ids of the centroid to be aligned. Defaults to []
+        Ids of the centroid to be aligned. Defaults to [].
 
     Returns
     -------
-    R
-        Rotation Matrix
-
+    R : npt.NDArray[float]
+        Rotation Matrix.
     """
     #nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
     #  precentral, precuneus, superiorfrontal, supramarginal

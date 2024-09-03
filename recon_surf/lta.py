@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from typing import Dict
 
 # Copyright 2021 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
@@ -24,43 +23,43 @@ def writeLTA(
         filename: str,
         T: npt.ArrayLike,
         src_fname: str,
-        src_header: Dict,
+        src_header: dict,
         dst_fname: str,
-        dst_header: Dict
+        dst_header: dict
 ) -> None:
-    """Write linear transform array info to a .lta file.
+    """
+    Write linear transform array info to an .lta file.
 
     Parameters
     ----------
     filename : str
-        File to write on
+        File to write on.
     T : npt.ArrayLike
-        Linear transform array to be saved
+        Linear transform array to be saved.
     src_fname : str
-        Source filename
+        Source filename.
     src_header : Dict
-        Source header
+        Source header.
     dst_fname : str
-        Destination filename
+        Destination filename.
     dst_header : Dict
-        Destination header
+        Destination header.
 
     Raises
     ------
     ValueError
-        Header format missing field (Source or Destination)
-    
+        Header format missing field (Source or Destination).
     """
     from datetime import datetime
     import getpass
 
     fields = ("dims", "delta", "Mdc", "Pxyz_c")
     for field in fields:
-        if not field in src_header:
+        if field not in src_header:
             raise ValueError(
                 "writeLTA Error: src_header format missing field: {}".format(field)
             )
-        if not field in dst_header:
+        if field not in dst_header:
             raise ValueError(
                 "writeLTA Error: dst_header format missing field: {}".format(field)
             )

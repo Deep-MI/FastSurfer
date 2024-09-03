@@ -79,6 +79,29 @@ def plot_confusion_matrix(
     figsize=(20, 20),
     file_save_name=None,
 ):
+    """
+    This function prints and plots the confusion matrix.
+
+    Parameters
+    ----------
+    cm : np.ndarray
+        Confusion matrix.
+    classes : list
+        List of classes.
+    title : str, default="Confusion matrix"
+        Title of the confusion matrix.
+    cmap : plt.cm, default=matplotlib.pyplot.cm.Blues
+        Color map.
+    figsize : tuple, default=(20, 20)
+        Figure size.
+    file_save_name : str, optional
+        File save name.
+
+    Returns
+    -------
+    fig : plt.Figure
+        Figure object.
+    """
     n_classes = len(classes)
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -175,9 +198,12 @@ def get_selected_class_ids(num_classes, ignored_classes=None):
 
 def set_summary_path(cfg):
     """
-        Set last experiment number(EXPR_NUM) and updates the summary path accordingly
-    :param cfg:
-    :return:
+    Set last experiment number(EXPR_NUM) and updates the summary path accordingly.
+    
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     summary_path = check_path(os.path.join(cfg.LOG_DIR, "summary"))
     cfg.EXPR_NUM = str(find_latest_experiment(os.path.join(cfg.LOG_DIR, "summary")) + 1)
@@ -188,7 +214,7 @@ def set_summary_path(cfg):
 
 def load_classwise_weights(cfg):
     """
-    Loading class-wise median frequency weights
+    Loading class-wise median frequency weights.
     """
     dataset_dir = os.path.dirname(cfg.DATA.PATH_HDF5_TRAIN)
     weight_path = glob.glob(os.path.join(dataset_dir, "*.npy"))
@@ -202,9 +228,12 @@ def load_classwise_weights(cfg):
 
 def update_results_dir(cfg):
     """
-    It will update the results path by finding the last experiment number
-    :param cfg:
-    :return:
+    It will update the results path by finding the last experiment number.
+
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     cfg.EXPR_NUM = str(find_latest_experiment(cfg.TEST.RESULTS_DIR) + 1)
     cfg.TEST.RESULTS_DIR = check_path(
@@ -215,11 +244,11 @@ def update_results_dir(cfg):
 def update_split_path(cfg):
     """
     Updating path with respect to the split number
-    Args:
-        cfg:
-
-    Returns:
-
+    
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     from os.path import split, join
 
@@ -240,7 +269,7 @@ def update_split_path(cfg):
 
 def visualize_batch(img, label, idx):
     """
-     For deubg
+    For deubg
     :param batch_dict:
     :return:
     """

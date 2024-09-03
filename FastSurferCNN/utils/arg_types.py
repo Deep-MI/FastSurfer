@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import argparse
-from typing import Union, Literal, Optional
+from typing import Literal, Optional, Union
 
 import nibabel as nib
 import numpy as np
@@ -22,22 +22,24 @@ VoxSizeOption = Union[float, Literal["min"]]
 
 
 def vox_size(a: str) -> VoxSizeOption:
-    """Convert the vox_size argument to 'min' or a valid voxel size.
+    """
+    Convert the vox_size argument to 'min' or a valid voxel size.
 
     Parameters
     ----------
     a : str
-        vox size type. Can be auto, bin or a number between 1 an 0
+        Vox size type. Can be auto, bin or a number between 1 an 0.
 
     Returns
     -------
-    [MISSING]
+    str or float
+        If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
+        If a valid voxel size (between 0 and 1) is provided, it returns a float.
 
     Raises
     ------
     argparse.ArgumentTypeError
-        An error from creating or using an argument. Additionally, vox_sizes may be 'min'.
-
+        If the arguemnt is not "min", "auto" or convertible to a float between 0 and 1.
     """
     if a.lower() in ["auto", "min"]:
         return "min"
@@ -50,17 +52,24 @@ def vox_size(a: str) -> VoxSizeOption:
 
 
 def float_gt_zero_and_le_one(a: str) -> Optional[float]:
-    """Check whether a parameters are a float between 0 and one.
+    """
+    Check whether a parameters are a float between 0 and one.
 
     Parameters
     ----------
     a : str
-        String of a number or none, infinity
+        String of a number or none, infinity.
 
     Returns
     -------
-    [MISSING]
+    float or None
+        If `a` is a valid float between 0 and 1, return the float value.
+        If `a` is 'none' or 'infinity', return None.
 
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If `a` is neither a float between 0 and 1.
     """
     if a is None or a.lower() in ["none", "infinity"]:
         return None
@@ -72,22 +81,28 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
 
 
 def target_dtype(a: str) -> str:
-    """Check for valid dtypes.
+    """
+    Check for valid dtypes.
 
     Parameters
     ----------
     a : str
-        datatype
+        Datatype descriptor.
 
     Returns
     -------
-    [MISSING]
+    str
+        The validated data type.
 
     Raises
     ------
     argparse.ArgumentTypeError
-        Invalid dtype
+        Invalid dtype.
 
+    See Also
+    --------
+    numpy.dtype
+        For more information on numpy data types and their properties.
     """
     dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
     dtypes.add("any")
@@ -107,23 +122,23 @@ def target_dtype(a: str) -> str:
 
 
 def int_gt_zero(value: Union[str, int]) -> int:
-    """Convert to positive integers.
+    """
+    Convert to positive integers.
 
     Parameters
     ----------
     value : Union[str, int]
-        integer to convert
+        Integer to convert.
 
     Returns
     -------
     val : int
-        converted integer
+        Converted integer.
 
     Raises
     ------
     argparse
         ArgumentTypeError: Invalid value, must not be negative.
-
     """
     val = int(value)
     if val <= 0:
@@ -131,24 +146,24 @@ def int_gt_zero(value: Union[str, int]) -> int:
     return val
 
 
-def int_ge_zero(value) -> int:
-    """Convert to integers greater 0.
+def int_ge_zero(value: str) -> int:
+    """
+    Convert to integers greater 0.
 
     Parameters
     ----------
-    value :
-        integer to convert
+    value : str
+        String to convert to int.
 
     Returns
     -------
     val : int
-        given value if bigger or equal to zero
+        Given value if bigger or equal to zero.
 
     Raises
     ------
     argparse
         ArgumentTypeError: Invalid value, must be greater than 0.
-
     """
     val = int(value)
     if val < 0:
@@ -157,18 +172,18 @@ def int_ge_zero(value) -> int:
 
 
 def unquote_str(value) -> str:
-    """Unquote a (single quoted) string.
+    """
+    Unquote a (single quoted) string, i.e. remove one level of single-quotes.
 
     Parameters
     ----------
-    value :
-        String to be unquoted
+    value : str
+        String to be unquoted.
 
     Returns
     -------
     val : str
-        A string of the value without quoting with '''
-
+        A string of the value without leading and trailing single-quotes.
     """
     val = str(value)
     if val.startswith("'") and val.endswith("'"):

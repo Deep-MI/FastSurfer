@@ -14,11 +14,12 @@
 
 
 # IMPORTS
-import numpy as np
-from numpy import typing as npt
-import nibabel as nib
+
 import sys
 import argparse
+import numpy as np
+import nibabel as nib
+from numpy import typing as npt
 
 HELPTEXT = """
 Script to add corpus callosum segmentation (CC, FreeSurfer IDs 251-255) to
@@ -30,7 +31,7 @@ paint_cc_into_pred  -in_cc <input_seg_with_cc> -in_pred <input_seg_without_cc> -
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Nibabel to read and write FreeSurfer data
     http://nipy.org/nibabel/
@@ -42,13 +43,13 @@ Date: Jul-10-2020
 
 
 def argument_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
@@ -79,22 +80,22 @@ def argument_parse():
 
 
 def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
-    """Paint corpus callosum segmentation into prediction.
+    """
+    Paint corpus callosum segmentation into aseg+dkt segmentation map.
 
     Note, that this function modifies the original array and does not create a copy.
 
     Parameters
     ----------
-    pred : npt.ArrayLike
-        Deep-learning prediction
+    asegdkt : npt.ArrayLike
+        Deep-learning segmentation map.
     aseg_cc : npt.ArrayLike
-        Aseg segmentation with CC
+        Aseg segmentation with CC.
 
     Returns
     -------
-    pred
-        Prediction with added CC
-
+    asegdkt
+        Segmentation map with added CC.
     """
     cc_mask = (aseg_cc >= 251) & (aseg_cc <= 255)
     pred[cc_mask] = aseg_cc[cc_mask]
@@ -115,3 +116,6 @@ if __name__ == "__main__":
     pred_with_cc_fin.to_filename(options.output)
 
     sys.exit(0)
+
+
+# TODO: Rename the file (paint_cc_into_asegdkt or similar) and functions.

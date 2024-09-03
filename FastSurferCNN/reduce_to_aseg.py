@@ -12,17 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # IMPORTS
+import copy
 import optparse
 import sys
-import numpy as np
-import nibabel as nib
-import copy
 
+import nibabel as nib
+import numpy as np
 import scipy.ndimage
-from skimage.measure import label
 from skimage.filters import gaussian
+from skimage.measure import label
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right GM.
@@ -42,7 +41,7 @@ reduce_to_aseg  -i <input_seg> -o <output_seg>
 
     
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Numpy
     http://www.numpy.org
@@ -65,13 +64,13 @@ h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
@@ -91,18 +90,20 @@ def options_parse():
     return options
 
 
-def reduce_to_aseg(data_inseg):
-    """[MISSING].
+def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
+    """
+    Reduce the input segmentation to a simpler segmentation.
 
     Parameters
     ----------
-    data_inseg :
-        [MISSING]
+    data_inseg : np.ndarray, torch.Tensor
+        The input segmentation. This should be a 3D array where the value at each position represents the segmentation
+        label for that position.
 
     Returns
     -------
-        [MISSING]
-
+    data_inseg : np.ndarray, torch.Tensor
+        The reduced segmentation.
     """
     print("Reducing to aseg ...")
     # replace 2000... with 42
@@ -113,21 +114,22 @@ def reduce_to_aseg(data_inseg):
 
 
 def create_mask(aseg_data, dnum, enum):
-    """Create dilated mask.
+    """
+    Create dilated mask.
 
     Parameters
     ----------
-    aseg_data
-        [MISSING]
-    dnum
-        [MISSING]
-    enum
-        [MISSING]
+    aseg_data : npt.NDArray[int]
+        The input segmentation data.
+    dnum : int
+        The number of iterations for the dilation operation.
+    enum : int
+        The number of iterations for the erosion operation.
 
     Returns
     -------
-        [MISSING]
-
+    -
+        Returns aseg_data.
     """
     print("Creating dilated mask ...")
 
@@ -166,20 +168,19 @@ def create_mask(aseg_data, dnum, enum):
     return aseg_data
 
 
-def flip_wm_islands(aseg_data):
-    """[MISSING].
+def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
+    """
+    Flip labels of disconnected white matter islands to the other hemisphere.
 
     Parameters
     ----------
-    aseg_data
-        [MISSING]
-        
+    aseg_data : numpy.ndarray
+        The input segmentation data.
 
     Returns
     -------
-    flip_data
-        [MISSING]
-
+    flip_data : numpy.ndarray
+        The segmentation data with flipped WM labels.
     """
     # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
     # These are usually islands, not connected to the main hemi WM component

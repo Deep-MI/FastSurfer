@@ -30,7 +30,8 @@ logger = logging.get_logger(__name__)
 
 class DiceScore:
     """
-        Accumulating the component of the dice coefficient i.e. the union and intersection
+    Accumulating the component of the dice coefficient i.e. the union and intersection.
+
     Args:
         op (callable): a callable to update accumulator. Method's signature is `(accumulator, output)`.
             For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
@@ -43,7 +44,6 @@ class DiceScore:
             if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
             initialized and available, device is set to `cuda`.
     """
-
     def __init__(
         self,
         num_classes,
@@ -67,18 +67,40 @@ class DiceScore:
         self.intersection = torch.zeros(self.n_classes, self.n_classes)
 
     def reset(self):
+        """
+        Reset the state of the object.
+        """
         self.union = torch.zeros(self.n_classes, self.n_classes)
         self.intersection = torch.zeros(self.n_classes, self.n_classes)
 
     def _check_output_type(self, output):
+        """
+        Check the type of the output and raise an error if it doesn't match expectations.
+
+        Parameters:
+        -----------
+        output : tuple
+            The output to be checked, expected to be a tuple.
+        """
         if not (isinstance(output, tuple)):
             raise TypeError(
-                "Output should a tuple consist of of torch.Tensors, but given {}".format(
+                "Output should be a tuple consisting of torch.Tensors, but given {}".format(
                     type(output)
                 )
             )
 
     def _update_union_intersection(self, batch_output, labels_batch):
+        """
+        Update the union and intersection matrices based on batch predictions and labels.
+
+        Parameters:
+        -----------
+        batch_output : torch.Tensor
+            Batch predictions from the model.
+
+        labels_batch : np.ndarray or torch.Tensor
+            Batch labels from the dataset.
+        """
         # self.union.to(batch_output.device)
         # self.intersection.to(batch_output.device)
         for i, c1 in enumerate(self.class_ids):
@@ -91,6 +113,14 @@ class DiceScore:
                 self.union[i, j] = self.union[i, j] + torch.sum(gt) + torch.sum(pred)
 
     def update(self, output):
+        """
+        Update the internal state based on the output.
+
+        Parameters
+        ----------
+        output : tuple of torch.Tensor
+            Tuple of predictions and labels.
+        """
         self._check_output_type(output)
 
         if self.out_transform is not None:
@@ -111,6 +141,9 @@ class DiceScore:
         self._update_union_intersection(y_pred, y)
 
     def compute(self, per_class=False, class_idxs=None):
+        """
+        Compute the Dice score.
+        """
         dice_cm_mat = self._dice_confusion_matrix(class_idxs)
         dice_score_per_class = dice_cm_mat.diagonal()
         dice_score = dice_score_per_class.mean()
@@ -120,6 +153,9 @@ class DiceScore:
             return dice_score, dice_cm_mat
 
     def _dice_confusion_matrix(self, class_idxs):
+        """
+        Compute the Dice score confusion matrix.
+        """
         dice_intersection = self.intersection.cpu().numpy()
         dice_union = self.union.cpu().numpy()
         if class_idxs is not None:
@@ -151,9 +187,9 @@ def volume_similarity(pred, gt):
 # https://github.com/amanbasu/3d-prostate-segmentation/blob/master/metric_eval.py
 def hd(result, reference, voxelspacing=None, connectivity=1):
     """
-    Hausdorff Distance.
     Computes the (symmetric) Hausdorff Distance (HD) between the binary objects in two
     images. It is defined as the maximum surface distance between the objects.
+
     Parameters
     ----------
     result : array_like
@@ -172,16 +208,23 @@ def hd(result, reference, voxelspacing=None, connectivity=1):
         of the binary objects. This value is passed to
         `scipy.ndimage.morphology.generate_binary_structure` and should usually be :math:`> 1`.
         Note that the connectivity influences the result in the case of the Hausdorff distance.
+
     Returns
     -------
     hd : float
-        The symmetric Hausdorff Distance between the object(s) in ```result``` and the
-        object(s) in ```reference```. The distance unit is the same as for the spacing of
+        The symmetric Hausdorff Distance between the object(s) in `result` and the
+        object(s) in `reference`. The distance unit is the same as for the spacing of
         elements along each dimension, which is usually given in mm.
-    See also
+    hd50 : float
+        The 50th percentile of the Hausdorff Distance.
+    hd95 : float
+        The 95th percentile of the Hausdorff Distance.
+
+    See Also
     --------
-    :func:`assd`
-    :func:`asd`
+    assd : Average Symmetric Surface Distance, computes the average symmetric surface distance.
+    asd : Average Surface Distance, computes the average surface distance.
+
     Notes
     -----
     This is a real metric. The binary images can therefore be supplied in any order.
@@ -196,13 +239,15 @@ def hd(result, reference, voxelspacing=None, connectivity=1):
 
 def hd95(result, reference, voxelspacing=None, connectivity=1):
     """
-    95th percentile of the Hausdorff Distance.
+    Computes the 95th percentile of the Hausdorff Distance.
+
     Computes the 95th percentile of the (symmetric) Hausdorff Distance (HD) between the binary objects in two
     images. Compared to the Hausdorff Distance, this metric is slightly more stable to small outliers and is
     commonly used in Biomedical Segmentation challenges.
+
     Parameters
     ----------
-    result : array_like
+    result : Any
         Input data containing objects. Can be any type but will be converted
         into binary: background where 0, object everywhere else.
     reference : array_like
@@ -218,15 +263,18 @@ def hd95(result, reference, voxelspacing=None, connectivity=1):
         of the binary objects. This value is passed to
         `scipy.ndimage.morphology.generate_binary_structure` and should usually be :math:`> 1`.
         Note that the connectivity influences the result in the case of the Hausdorff distance.
+
     Returns
     -------
-    hd : float
-        The symmetric Hausdorff Distance between the object(s) in ```result``` and the
+    hd95 : float
+        The 95th percentile of the symmetric Hausdorff Distance between the object(s) in ```result``` and the
         object(s) in ```reference```. The distance unit is the same as for the spacing of
         elements along each dimension, which is usually given in mm.
-    See also
+
+    See Also
     --------
-    :func:`hd`
+    hd : Computes the symmetric Hausdorff Distance.
+
     Notes
     -----
     This is a real metric. The binary images can therefore be supplied in any order.

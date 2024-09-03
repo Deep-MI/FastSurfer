@@ -12,27 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# IMPORTS
-from os.path import join
-import sys
 import argparse
 import json
+import sys
 
+# IMPORTS
+from os.path import join
+
+from FastSurferCNN.train import Trainer
 from FastSurferCNN.utils import misc
 from FastSurferCNN.utils.load_config import get_config
-from FastSurferCNN.train import Trainer
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 
-def setup_options():
-    """Set up the options parsed from STDIN.
-    
-    Parses arguments from the STDIN, including the flags: --cfg, --aug, --opt, opts,
+def make_parser() -> argparse.ArgumentParser:
+    """
+    Set up the options parsed from STDIN.
+
+    Parses arguments from the STDIN, including the flags: --cfg, --aug, --opt, opts.
 
     Returns
     -------
-    options
-        object holding options
-    
+    argparse.ArgumentParser
+        The parser object for options.
     """
     parser = argparse.ArgumentParser(description="Segmentation")
 
@@ -40,7 +42,7 @@ def setup_options():
         "--cfg",
         dest="cfg_file",
         help="Path to the config file",
-        default="config/FastSurferVINN.yaml",
+        default=FASTSURFER_ROOT / "FastSurferCNN/config/FastSurferVINN.yaml",
         type=str,
     )
     parser.add_argument(
@@ -53,15 +55,13 @@ def setup_options():
         default=None,
         nargs=argparse.REMAINDER,
     )
-
-    if len(sys.argv) == 1:
-        parser.print_help()
-    return parser.parse_args()
+    return parser
 
 
-def main():
-    """[MISSING] First set variables and then runs the trainer model."""
-    args = setup_options()
+def main(args):
+    """
+    First sets variables and then runs the trainer model.
+    """
     cfg = get_config(args)
 
     if args.aug is not None:
@@ -89,4 +89,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = make_parser()
+    if len(sys.argv) == 1:
+        parser.print_help()
+    args = parser.parse_args()
+    main(args)

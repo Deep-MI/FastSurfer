@@ -14,28 +14,22 @@
 
 
 # IMPORTS
-import argparse
-import os.path
-import sys
-from os.path import join, split, splitext
+from typing import TYPE_CHECKING
 
-from CerebNet.utils.checkpoint import CEREBNET_AXI, CEREBNET_SAG, CEREBNET_COR
+if TYPE_CHECKING:
+    import yacs.config
+
 from CerebNet.config import get_cfg_cerebnet
+from FastSurferCNN.utils import PLANES
 
 
-def get_config(args) -> "yacs.CfgNode":
+def get_config(args) -> "yacs.config.CfgNode":
     """
     Given the arguments, load and initialize the config_files.
-
     """
     # Setup cfg.
     cfg = get_cfg_cerebnet()
     # Load config from cfg.
-    if getattr(args, "cfg_file") is not None:
-        if os.path.exists(args.cfg_file):
-            cfg.merge_from_file(args.cfg_file)
-        else:
-            raise RuntimeError(f"The config file {args.cfg_file} does not exist.")
     # Load config from command line, overwrite config from opts.
     if args.opts is not None:
         cfg.merge_from_list(args.opts)
@@ -43,34 +37,14 @@ def get_config(args) -> "yacs.CfgNode":
     if hasattr(args, "rng_seed"):
         cfg.RNG_SEED = args.rng_seed
     if hasattr(args, "out_dir"):
-        cfg.LOG_DIR = args.out_dir
+        cfg.LOG_DIR = str(args.out_dir)
 
-    if getattr(args, "cfg_file") is not None:
-        # derive some paths relative to the config file
-        cfg_file_name = splitext(split(args.cfg_file)[1])[0]
-
-        if cfg.TEST.ENABLE:
-            cfg_file_name_first = "_".join(cfg_file_name.split("_"))
-            cfg.TEST.RESULTS_DIR = join(cfg.TEST.RESULTS_DIR, cfg_file_name_first)
-
-        cfg.LOG_DIR = join(cfg.LOG_DIR, cfg_file_name)
-
-    # populate default paths for the checkpoints
-    default_paths = [
-        ("ax_ckpt", CEREBNET_AXI),
-        ("sag_ckpt", CEREBNET_SAG),
-        ("cor_ckpt", CEREBNET_COR),
-    ]
     path_ax, path_sag, path_cor = [
-        getattr(args, name, default_path) for name, default_path in default_paths
+        getattr(args, name) for name in ["ckpt_ax", "ckpt_sag", "ckpt_cor"]
     ]
 
-    for plane, path in [
-        ("axial", path_ax),
-        ("sagittal", path_sag),
-        ("coronal", path_cor),
-    ]:
-        setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", path)
+    for plane, path in zip(PLANES, (path_ax, path_cor, path_sag)):
+        setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", str(path))
 
     # overwrite the batch size if it is passed as a parameter
     batch_size = getattr(args, "batch_size", None)
@@ -78,24 +52,3 @@ def get_config(args) -> "yacs.CfgNode":
         cfg.TEST.BATCH_SIZE = batch_size
 
     return cfg
-
-
-def setup_options():
-    parser = argparse.ArgumentParser(description="Segmentation")
-    parser.add_argument(
-        "--cfg",
-        dest="cfg_file",
-        help="Path to the config file",
-        default="config_files/CerebNet.yaml",
-        type=str,
-    )
-    parser.add_argument(
-        "opts",
-        help="See CerebNet/config/cerebnet.py for all options",
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
-
-    if len(sys.argv) == 1:
-        parser.print_help()
-    return parser.parse_args()

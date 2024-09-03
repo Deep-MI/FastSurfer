@@ -14,15 +14,16 @@
 
 
 # IMPORTS
-from typing import Tuple, Union, Sequence, Optional, TypeVar
+from typing import Tuple, Union, Sequence, Optional, TypeVar, TypedDict, Iterable, Type
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+from numpy import typing as npt
 import torch
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
 
-# class names for network training and validation/testing
 CLASS_NAMES = {
     "Background": 0,
     "Left_I_IV": 1,
@@ -54,9 +55,36 @@ CLASS_NAMES = {
     "Right_Corpus_Medullare": 38,
 }
 
+# class names for network training and validation/testing
 subseg_labels = {"cereb_subseg": np.array(list(CLASS_NAMES.values()))}
 
 AT = TypeVar("AT", np.ndarray, torch.Tensor)
+
+
+class LTADict(TypedDict):
+    type: int
+    nxforms: int
+    mean: list[float]
+    sigma: float
+    lta: npt.NDArray[float]
+    src_valid: int
+    src_filename: str
+    src_volume: list[int]
+    src_voxelsize: list[float]
+    src_xras: list[float]
+    src_yras: list[float]
+    src_zras: list[float]
+    src_cras: list[float]
+    dst_valid: int
+    dst_filename: str
+    dst_volume: list[int]
+    dst_voxelsize: list[float]
+    dst_xras: list[float]
+    dst_yras: list[float]
+    dst_zras: list[float]
+    dst_cras: list[float]
+    src: npt.NDArray[float]
+    dst: npt.NDArray[float]
 
 
 def define_size(mov_dim, ref_dim):
@@ -167,7 +195,7 @@ def bounding_volume_offset(
     if isinstance(img, np.ndarray):
         from FastSurferCNN.data_loader.data_utils import bbox_3d
 
-        bbox = bbox_3d(img != 0)
+        bbox = bbox_3d(np.not_equal(img, 0))
         bbox = bbox[::2] + bbox[1::2]
     else:
         bbox = img
@@ -325,237 +353,78 @@ def apply_warp_field(dform_field, img, interpol_order=3):
     return deformed_img
 
 
-def readLTA(file):
+def read_lta(file: Path | str) -> LTADict:
+    """Read the LTA info."""
     import re
+    from functools import partial
     import numpy as np
+    parameter_pattern = re.compile("^\s*([^=]+)\s*=\s*([^#]*)\s*(#.*)")
+    vol_info_pattern = re.compile("^(.*) volume info$")
+    shape_pattern = re.compile("^(\s*\d+)+$")
+    matrix_pattern = re.compile("^(-?\d+\.\S+\s+)+$")
+
+    _Type = TypeVar("_Type", bound=Type)
+
+    def _vector(_a: str, dtype: Type[_Type] = float, count: int = -1) -> list[_Type]:
+        return np.fromstring(_a, dtype=dtype, count=count, sep=" ").tolist()
+
+    parameters = {
+        "type": int,
+        "nxforms": int,
+        "mean": partial(_vector, dtype=float, count=3),
+        "sigma": float,
+        "subject": str,
+        "fscale": float,
+    }
+    vol_info_par = {
+        "valid": int,
+        "filename": str,
+        "volume": partial(_vector, dtype=int, count=3),
+        "voxelsize": partial(_vector, dtype=float, count=3),
+        **{f"{c}ras": partial(_vector, dtype=float) for c in "xyzc"}
+    }
 
     with open(file, "r") as f:
-        lta = f.readlines()
-    d = dict()
-    i = 0
-    while i < len(lta):
-        if re.match("type", lta[i]) is not None:
-            d["type"] = int(
-                re.sub("=", "", re.sub("[a-z]+", "", re.sub("#.*", "", lta[i]))).strip()
-            )
-            i += 1
-        elif re.match("nxforms", lta[i]) is not None:
-            d["nxforms"] = int(
-                re.sub("=", "", re.sub("[a-z]+", "", re.sub("#.*", "", lta[i]))).strip()
-            )
-            i += 1
-        elif re.match("mean", lta[i]) is not None:
-            d["mean"] = [
-                float(x)
-                for x in re.split(
-                    " +",
-                    re.sub(
-                        "=", "", re.sub("[a-z]+", "", re.sub("#.*", "", lta[i]))
-                    ).strip(),
-                )
-            ]
-            i += 1
-        elif re.match("sigma", lta[i]) is not None:
-            d["sigma"] = float(
-                re.sub("=", "", re.sub("[a-z]+", "", re.sub("#.*", "", lta[i]))).strip()
-            )
-            i += 1
-        elif (
-            re.match(
-                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+", lta[i]
-            )
-            is not None
-        ):
-            d["lta"] = np.array(
-                [
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i],
-                            ).string.strip(),
-                        )
-                    ],
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i + 1],
-                            ).string.strip(),
-                        )
-                    ],
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i + 2],
-                            ).string.strip(),
-                        )
-                    ],
-                    [
-                        float(x)
-                        for x in re.split(
-                            " +",
-                            re.match(
-                                "-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+-*[0-9]\.\S+\W+",
-                                lta[i + 3],
-                            ).string.strip(),
-                        )
-                    ],
-                ]
-            )
-            i += 4
-        elif re.match("src volume info", lta[i]) is not None:
-            while i < len(lta) and re.match("dst volume info", lta[i]) is None:
-                if re.match("valid", lta[i]) is not None:
-                    d["src_valid"] = int(
-                        re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                    )
-                elif re.match("filename", lta[i]) is not None:
-                    d["src_filename"] = re.split(
-                        " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                    )
-                elif re.match("volume", lta[i]) is not None:
-                    d["src_volume"] = [
-                        int(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("voxelsize", lta[i]) is not None:
-                    d["src_voxelsize"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("xras", lta[i]) is not None:
-                    d["src_xras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("yras", lta[i]) is not None:
-                    d["src_yras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("zras", lta[i]) is not None:
-                    d["src_zras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("cras", lta[i]) is not None:
-                    d["src_cras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                i += 1
-        elif re.match("dst volume info", lta[i]) is not None:
-            while i < len(lta) and re.match("src volume info", lta[i]) is None:
-                if re.match("valid", lta[i]) is not None:
-                    d["dst_valid"] = int(
-                        re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                    )
-                elif re.match("filename", lta[i]) is not None:
-                    d["dst_filename"] = re.split(
-                        " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                    )
-                elif re.match("volume", lta[i]) is not None:
-                    d["dst_volume"] = [
-                        int(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("voxelsize", lta[i]) is not None:
-                    d["dst_voxelsize"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("xras", lta[i]) is not None:
-                    d["dst_xras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("yras", lta[i]) is not None:
-                    d["dst_yras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("zras", lta[i]) is not None:
-                    d["dst_zras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                elif re.match("cras", lta[i]) is not None:
-                    d["dst_cras"] = [
-                        float(x)
-                        for x in re.split(
-                            " +", re.sub(".*=", "", re.sub("#.*", "", lta[i])).strip()
-                        )
-                    ]
-                i += 1
-        else:
-            i += 1
-    # create full transformation matrices
-    d["src"] = np.concatenate(
-        (
-            np.concatenate(
-                (
-                    np.c_[d["src_xras"]],
-                    np.c_[d["src_yras"]],
-                    np.c_[d["src_zras"]],
-                    np.c_[d["src_cras"]],
-                ),
-                axis=1,
-            ),
-            np.array([0.0, 0.0, 0.0, 1.0], ndmin=2),
-        ),
-        axis=0,
-    )
-    d["dst"] = np.concatenate(
-        (
-            np.concatenate(
-                (
-                    np.c_[d["dst_xras"]],
-                    np.c_[d["dst_yras"]],
-                    np.c_[d["dst_zras"]],
-                    np.c_[d["dst_cras"]],
-                ),
-                axis=1,
-            ),
-            np.array([0.0, 0.0, 0.0, 1.0], ndmin=2),
-        ),
-        axis=0,
-    )
-    # return
-    return d
+        lines = f.readlines()
+
+    items = []
+    shape_lines = []
+    matrix_lines = []
+    section = ""
+    for i, line in enumerate(lines):
+        if line.strip() == "":
+            continue
+        if hits := parameter_pattern.match(line):
+            name = hits.group(1)
+            if section and name in vol_info_par:
+                items.append((f"{section}_{name}", vol_info_par[name](hits.group(2))))
+            elif name in parameters:
+                section = ""
+                items.append((name, parameters[name](hits.group(2))))
+            else:
+                raise NotImplementedError(f"Unrecognized type string in lta-file "
+                                          f"{file}:{i+1}: '{name}'")
+        elif hits := vol_info_pattern.match(line):
+            section = hits.group(1)
+            # not a parameter line
+        elif shape_pattern.search(line):
+            shape_lines.append(np.fromstring(line, dtype=int, count=-1, sep=" "))
+        elif matrix_pattern.search(line):
+            matrix_lines.append(np.fromstring(line, dtype=float, count=-1, sep=" "))
+
+    shape_lines = list(map(tuple, shape_lines))
+    lta = dict(items)
+    if lta["nxforms"] != len(shape_lines):
+        raise IOError("Inconsistent lta format: nxforms inconsistent with shapes.")
+    if len(shape_lines) > 1 and np.any(np.not_equal([shape_lines[0]], shape_lines[1:])):
+        raise IOError(f"Inconsistent lta format: shapes inconsistent {shape_lines}")
+    lta_matrix = np.asarray(matrix_lines).reshape((-1,) + shape_lines[0].shape)
+    lta["lta"] = lta_matrix
+    return lta
 
 
 def load_talairach_coordinates(tala_path, img_shape, vox2ras):
-    tala_lta = readLTA(tala_path)
+    tala_lta = read_lta(tala_path)
     # create image grid p
     x, y, z = np.meshgrid(
         np.arange(img_shape[0]),
@@ -567,7 +436,7 @@ def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     p1 = np.concatenate((p, np.ones((p.shape[0], 1))), axis=1)
 
     assert tala_lta["type"] == 1, "talairach not in ras2ras"  # ras2ras
-    m = np.matmul(tala_lta["lta"], vox2ras)
+    m = np.matmul(tala_lta["lta"][0, 0], vox2ras)
 
     tala_coordinates = np.matmul(m, p1.transpose()).transpose()
     tala_coordinates = tala_coordinates[:, :-1]
@@ -587,7 +456,25 @@ def normalize_array(arr):
 
 
 def _crop_transform_make_indices(image_shape, offsets, target_shape):
-    """Create the indexing tuple. Returned pad tuples are for the last N dimensions."""
+    """
+    Create the indexing tuple and return padding tuples for the last N dimensions.
+
+    Parameters
+    ----------
+    image_shape : np.ndarray
+        The shape of the image from which a region is to be cropped.
+    offsets : Sequence[int]
+        Exact location within the image from which the cropping should start.
+    target_shape : Sequence[int], optional
+        The desired shape of the cropped region.
+
+    Returns
+    -------
+    paddings: list of 2-tuples of paddings or None
+        A list of per-axis tuples of the padding to apply to the slice to get the target_shape.
+    indices : tuple of indices
+        A tuple of per-axis indices to index in the data to get the target_shape.
+    """
     if len(offsets) != len(target_shape):
         raise ValueError(
             f"offsets {offsets} and target shape {target_shape} must be same length."
@@ -611,7 +498,21 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
 
 
 def _crop_transform_pad_fn(image, pad_tuples, pad):
-    """Generate a parameterized pad function."""
+    """
+    Generate a parameterized pad function.
+
+    Parameters
+    ----------
+    image : np.ndarray, torch.Tensor
+        Input image.
+    pad_tuples : List[Tuple[int, int]]
+        List of padding tuples for each axis.
+
+    Returns
+    -------
+    partial
+        A partial function to pad the image.
+    """
     if all(p1 == 0 and p2 == 0 for p1, p2 in pad_tuples):
         return None
 
@@ -642,35 +543,63 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
 
 
 def crop_transform(
-    image: AT, offsets=None, target_shape=None, out: Optional[AT] = None, pad=0
-):
+        image: AT,
+        offsets: Optional[Sequence[int]] = None,
+        target_shape: Optional[Sequence[int]] = None,
+        out: Optional[AT] = None,
+        pad: int = 0,
+) -> AT:
     """
-    Perform a crop transform of the last N dimensions on the image data. Cropping does not interpolate the image, but
-    "just removes" border pixels/voxels. Negative offsets lead to padding.
+    Perform a crop transform of the last N dimensions on the image data.
+    Cropping does not interpolate the image, but "just removes" border pixels/voxels.
+    Negative offsets lead to padding.
 
-    Args:
-        image: image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N image dimensions.
-        offsets: offset of the cropped region for the last N dimensions (default: center crop with less crop/pad
-            towards index 0).
-        target_shape: if defined, target_shape specifies the target shape of the "cropped region", else the crop
-            will be centered cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x
-            the dimension-specific offset). target_shape should have the same number of elements as offsets.
-            May be implicitly defined by out.
-        out: Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
-        pad: padding strategy to use when padding is required (default: zero-pad).
+    Parameters
+    ----------
+    image : np.ndarray, torch.Tensor
+        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N
+        image dimensions.
+    offsets : Sequence[int], optional
+        Offset of the cropped region for the last N dimensions (default: center crop
+        with less crop/pad towards index 0).
+    target_shape : Sequence[int], optional
+        If defined, target_shape specifies the target shape of the "cropped region",
+        else the crop will be centered cropping offset[dim] voxels on each side (then
+        the shape is derived by subtracting 2x the dimension-specific offset).
+        target_shape should have the same number of elements as offsets.
+        May be implicitly defined by out.
+    out : np.ndarray, torch.Tensor, optional
+        Array to store the cropped image in (optional), can be a view on image for
+        memory-efficiency.
+    pad :  int, str, default=0/zero-pad
+        Padding strategy to use when padding is required, if int, pad with that value.
 
-    Notes:
-        Either offsets, target_shape or out must be defined.
+    Returns
+    -------
+    out : np.ndarray, torch.Tensor
+        The image (stack) cropped in the last N dimensions by offsets to the shape
+        target_shape, or if target_shape is not given image.shape[i+2] - 2*offset[i].
 
-    Raises:
-        ValueError: If neither offsets nor target_shape nor out are defined.
-        ValueError: If out is not target_shape.
-        TypeError: If the type of image is not an np.ndarray or a torch.Tensor.
-        RuntimeError: If the dimensionality of image, out, offset or target_shape is invalid or inconsistent.
+    Raises
+    ------
+    ValueError
+        If neither offsets nor target_shape nor out are defined.
+    ValueError  
+        If out is not target_shape.
+    TypeError
+        If the type of image is not an np.ndarray or a torch.Tensor.
+    RuntimeError 
+        If the dimensionality of image, out, offset or target_shape is invalid or
+        inconsistent.
 
-    Returns:
-        The image (stack) cropped in the last N dimensions by offsets to the shape target_shape, or if target_shape is
-        not given image.shape[i+2] - 2*offset[i].
+    See Also
+    --------
+    numpy.pad
+        For additional information refer to numpy.pad function.
+
+    Notes
+    -----
+    Either offsets, target_shape or out must be defined.
     """
     if target_shape is None and out is not None:
         target_shape = out.shape
@@ -688,11 +617,11 @@ def crop_transform(
             _target_shape = image.shape[:-len_off] + tuple(
                 i - 2 * o for i, o in zip(image.shape[-len_off:], offsets)
             )
+        elif len_off != len(target_shape):
+            raise ValueError(
+                "Incompatible offset and target_shape dimensionality (at least once)."
+            )
         else:
-            if len_off != len(target_shape):
-                raise ValueError(
-                    "Incompatible offset and target_shape dimensionality (at least once)."
-                )
             _target_shape = tuple(
                 i if t == -1 else t
                 for i, t in zip(image.shape[-len_off:], target_shape)

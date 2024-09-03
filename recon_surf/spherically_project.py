@@ -19,8 +19,8 @@ import sys
 import nibabel.freesurfer.io as fs
 import numpy as np
 import math
-from lapy.diffGeo import tria_mean_curvature_flow
-from lapy.triaMesh import TriaMesh
+from lapy.diffgeo import tria_mean_curvature_flow
+from lapy import TriaMesh
 from lapy.solver import Solver
 
 HELPTEXT = """
@@ -48,7 +48,7 @@ system for the cortical surface. Human Brain Mapping 8:272-284, 1999
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Scipy 0.10 or later to solve the generalized eigenvalue problem.
     http://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html

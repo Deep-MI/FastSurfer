@@ -14,41 +14,131 @@
 
 # IMPORTS
 import os
-import glob
-from typing import Union, Iterable, Optional, Collection, MutableSequence
+from functools import lru_cache
+from pathlib import Path
+from typing import MutableSequence, Optional, Union, Literal, TypedDict, cast, overload
 
 import requests
 import torch
 import yacs.config
+import yaml
 
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import logging, Plane
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 Scheduler = "torch.optim.lr_scheduler"
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
-URL = "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
-FASTSURFER_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-VINN_AXI = os.path.join(FASTSURFER_ROOT, "checkpoints/aparc_vinn_axial_v2.0.0.pkl")
-VINN_COR = os.path.join(FASTSURFER_ROOT, "checkpoints/aparc_vinn_coronal_v2.0.0.pkl")
-VINN_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl")
+YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
+
+
+class CheckpointConfigDict(TypedDict, total=False):
+    url: list[str]
+    checkpoint: dict[Plane, Path]
+    config: dict[Plane, Path]
+
+
+CheckpointConfigFields = Literal["checkpoint", "config", "url"]
+
+
+@lru_cache
+def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointConfigDict:
+    """
+    Load the plane dictionary from the yaml file.
+
+    Parameters
+    ----------
+    filename : Path, str
+        Path to the yaml file. Either absolute or relative to the FastSurfer root
+        directory.
+
+    Returns
+    -------
+    CheckpointConfigDict
+        A dictionary representing the contents of the yaml file.
+    """
+    if not filename.absolute():
+        filename = FASTSURFER_ROOT / filename
+
+    with open(filename, "r") as file:
+        data = yaml.load(file, Loader=yaml.FullLoader)
+
+    required_fields = ("url", "checkpoint")
+    checks = [k not in data for k in required_fields]
+    if any(checks):
+        missing = tuple(k for k, c in zip(required_fields, checks) if c)
+        message = f"The file {filename} is not valid, missing key(s): {missing}"
+        raise IOError(message)
+    if isinstance(data["url"], str):
+        data["url"] = [data["url"]]
+    else:
+        data["url"] = list(data["url"])
+    for key in ("config", "checkpoint"):
+        if key in data:
+            data[key] = {k: Path(v) for k, v in data[key].items()}
+    return data
+
+
+@overload
+def load_checkpoint_config_defaults(
+        filetype: Literal["checkpoint", "config"],
+        filename: str | Path = YAML_DEFAULT,
+) -> dict[Plane, Path]: ...
+
+
+@overload
+def load_checkpoint_config_defaults(
+        configtype: Literal["url"],
+        filename: str | Path = YAML_DEFAULT,
+) -> list[str]: ...
+
+
+def load_checkpoint_config_defaults(
+        configtype: CheckpointConfigFields,
+        filename: str | Path = YAML_DEFAULT,
+) -> dict[Plane, Path] | list[str]:
+    """
+    Get the default value for a specific plane or the url.
+
+    Parameters
+    ----------
+    configtype : "checkpoint", "config", "url"
+        Type of value.
+    filename : str, Path
+        The path to the yaml file. Either absolute or relative to the FastSurfer root
+        directory.
+
+    Returns
+    -------
+    dict[Plane, Path], list[str]
+        Default value for the plane.
+    """
+    if not isinstance(filename, Path):
+        filename = Path(filename)
+
+    configtype = cast(CheckpointConfigFields, configtype.lower())
+    if configtype not in ("url", "checkpoint", "config"):
+        raise ValueError("Type must be 'url', 'checkpoint' or 'config'")
+
+    return load_checkpoint_config(filename)[configtype]
 
 
 def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
-    """Create the checkpoint dir if not exists.
+    """
+    Create the checkpoint dir if not exists.
 
     Parameters
     ----------
     expr_dir : Union[os.PathLike]
-        directory to create
+        Directory to create.
     expr_num : int
-        number of expr [MISSING]
+        Experiment number.
 
     Returns
     -------
     checkpoint_dir
-        directory of the checkpoint
-
+        Directory of the checkpoint.
     """
     checkpoint_dir = os.path.join(expr_dir, "checkpoints", str(expr_num))
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -56,20 +146,21 @@ def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
 
 
 def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
-    """Find the standardizes checkpoint name for the checkpoint in the directory ckpt_dir for the given epoch.
+    """
+    Find the standardizes checkpoint name for the checkpoint in the directory
+    ckpt_dir for the given epoch.
 
     Parameters
     ----------
     ckpt_dir : str
-        Checkpoint directory
+        Checkpoint directory.
     epoch : int
-        Number of the epoch
+        Number of the epoch.
 
     Returns
     -------
     checkpoint_dir
-        Standardizes checkpoint name
-
+        Standardizes checkpoint name.
     """
     checkpoint_dir = os.path.join(
         ckpt_dir, "Epoch_{:05d}_training_state.pkl".format(epoch)
@@ -78,66 +169,68 @@ def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
 
 
 def get_checkpoint_path(
-    log_dir: str, resume_experiment: Union[str, int, None] = None
-) -> Optional[MutableSequence[str]]:
-    """Find the paths to checkpoints from the experiment directory.
+        log_dir: Path | str, resume_experiment: Union[str, int, None] = None
+) -> MutableSequence[Path]:
+    """
+    Find the paths to checkpoints from the experiment directory.
 
     Parameters
     ----------
-    log_dir : str
-        experiment directory
+    log_dir : Path, str
+        Experiment directory.
     resume_experiment : Union[str, int, None]
-        sub-experiment to search in for a model (Default value = None)
+        Sub-experiment to search in for a model (Default value = None).
 
     Returns
     -------
-    prior_model_paths : Optional[MutableSequence[str]]
-        None, if no models are found, or a list of filenames for checkpoints.
-
+    prior_model_paths : MutableSequence[Path]
+        A list of filenames for checkpoints.
     """
     if resume_experiment == "Default" or resume_experiment is None:
-        return None
-    checkpoint_path = os.path.join(log_dir, "checkpoints", str(resume_experiment))
+        return []
+    if not isinstance(log_dir, Path):
+        log_dir = Path(log_dir)
+    checkpoint_path = log_dir / "checkpoints" / str(resume_experiment)
     prior_model_paths = sorted(
-        glob.glob(os.path.join(checkpoint_path, "Epoch_*")), key=os.path.getmtime
+        checkpoint_path.glob("Epoch_*"), key=lambda p: p.stat().st_mtime
     )
-    if len(prior_model_paths) == 0:
-        return None
-    return prior_model_paths
+    return list(prior_model_paths)
 
 
 def load_from_checkpoint(
-    checkpoint_path: str,
-    model: torch.nn.Module,
-    optimizer: Optional[torch.optim.Optimizer] = None,
-    scheduler: Optional[Scheduler] = None,
-    fine_tune: bool = False,
-    drop_classifier: bool = False,
+        checkpoint_path: str | Path,
+        model: torch.nn.Module,
+        optimizer: Optional[torch.optim.Optimizer] = None,
+        scheduler: Optional[Scheduler] = None,
+        fine_tune: bool = False,
+        drop_classifier: bool = False,
 ):
-    """Load the model from the given experiment number.
+    """
+    Load the model from the given experiment number.
 
     Parameters
     ----------
-    checkpoint_path : str
-        path to the checkpoint
+    checkpoint_path : str, Path
+        Path to the checkpoint.
     model : torch.nn.Module
-        Network model
+        Network model.
     optimizer : Optional[torch.optim.Optimizer]
-        Network optimizer (Default value = None)
+        Network optimizer (Default value = None).
     scheduler : Optional[Scheduler]
-        Network scheduler (Default value = None)
+        Network scheduler (Default value = None).
     fine_tune : bool
-        Whether to fine tune or not (Default value = False)
+        Whether to fine tune or not (Default value = False).
     drop_classifier : bool
-        Whether to drop the classifier or not (Default value = False)
+        Whether to drop the classifier or not (Default value = False).
 
     Returns
     -------
     loaded_epoch : int
-        epoch number
-    
+        Epoch number.
     """
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    # WARNING: weights_only=False can cause unsafe code execution, but here the
+    # checkpoint can be considered to be from a safe source
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
     if drop_classifier:
         classifier_conv = ["classifier.conv.weight", "classifier.conv.bias"]
@@ -159,39 +252,39 @@ def load_from_checkpoint(
 
 
 def save_checkpoint(
-    checkpoint_dir: str,
-    epoch: int,
-    best_metric,
-    num_gpus: int,
-    cfg: yacs.config.CfgNode,
-    model: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
-    scheduler: Optional[Scheduler] = None,
-    best: bool = False,
+        checkpoint_dir: str | Path,
+        epoch: int,
+        best_metric,
+        num_gpus: int,
+        cfg: yacs.config.CfgNode,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        scheduler: Optional[Scheduler] = None,
+        best: bool = False,
 ) -> None:
-    """Save the state of training for resume or fine-tune.
+    """
+    Save the state of training for resume or fine-tune.
 
     Parameters
     ----------
-    checkpoint_dir : str
-        path to the checkpoint directory
+    checkpoint_dir : str, Path
+        Path to the checkpoint directory.
     epoch : int
-        current epoch
-    best_metric :
-        best calculated metric
+        Current epoch.
+    best_metric : best_metric
+        Best calculated metric.
     num_gpus : int
-        number of used gpus
+        Number of used gpus.
     cfg : yacs.config.CfgNode
-        configuration node
+        Configuration node.
     model : torch.nn.Module
-        used network model
+        Used network model.
     optimizer : torch.optim.Optimizer
-        used network optimizer
+        Used network optimizer.
     scheduler : Optional[Scheduler]
-        used network scheduler. Optional (Default value = None)
-    best : bool
-        Whether this was the best checkpoint so far [MISSING] (Default value = False)
-
+        Used network scheduler. Optional (Default value = None).
+    best : bool, default=False
+        Whether this was the best checkpoint so far (Default value = False).
     """
     save_name = f"Epoch_{epoch:05d}_training_state.pkl"
     saving_model = model.module if num_gpus > 1 else model
@@ -205,95 +298,116 @@ def save_checkpoint(
 
     if scheduler is not None:
         checkpoint["scheduler_state"] = scheduler.state_dict()
+    if not isinstance(checkpoint_dir, Path):
+        checkpoint_dir = Path(checkpoint_dir)
 
-    torch.save(checkpoint, checkpoint_dir + "/" + save_name)
+    torch.save(checkpoint, checkpoint_dir / save_name)
 
     if best:
-        remove_ckpt(checkpoint_dir + "/Best_training_state.pkl")
-        torch.save(checkpoint, checkpoint_dir + "/Best_training_state.pkl")
+        remove_ckpt(checkpoint_dir / "Best_training_state.pkl")
+        torch.save(checkpoint, checkpoint_dir / "Best_training_state.pkl")
 
 
-def remove_ckpt(ckpt: str):
-    """Remove the checkpoint.
+def remove_ckpt(ckpt: str | Path):
+    """
+    Remove the checkpoint.
 
     Parameters
     ----------
-    ckpt : str
-        Path and filename to the checkpoint
-
+    ckpt : str, Path
+        Path and filename to the checkpoint.
     """
     try:
-        os.remove(ckpt)
+        Path(ckpt).unlink()
     except FileNotFoundError:
         pass
 
 
 def download_checkpoint(
-        download_url: str,
         checkpoint_name: str,
-        checkpoint_path: str
+        checkpoint_path: str | Path,
+        urls: list[str],
 ) -> None:
-    """Download a checkpoint file.
+    """
+    Download a checkpoint file.
 
     Raises an HTTPError if the file is not found or the server is not reachable.
 
     Parameters
     ----------
-    download_url : str
-        URL of checkpoint hosting site
     checkpoint_name : str
-        name of checkpoint
-    checkpoint_path : str
-        path of the file in which the checkpoint will be saved
-
+        Name of checkpoint.
+    checkpoint_path : Path, str
+        Path of the file in which the checkpoint will be saved.
+    urls : list[str]
+        List of URLs of checkpoint hosting sites.
     """
-    try:
-        response = requests.get(download_url + "/" + checkpoint_name, verify=True)
-        # Raise error if file does not exist:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        LOGGER.info("Response code: {}".format(e.response.status_code))
-        response = requests.get(download_url + "/" + checkpoint_name, verify=False)
-        response.raise_for_status()
+    response = None
+    for url in urls:
+        try:
+            LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
+            response = requests.get(
+                url + "/" + checkpoint_name,
+                verify=True,
+                timeout=(5, None),  # (connect timeout: 5 sec, read timeout: None)
+            )
+            # Raise error if file does not exist:
+            response.raise_for_status()
+            break
+
+        except requests.exceptions.RequestException as e:
+            LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
+            if isinstance(e, requests.exceptions.HTTPError):
+                LOGGER.warning(f"Response code: {e.response.status_code}")
+
+    if response is None:
+        links = ', '.join(u.removeprefix('https://')[:22] + "..." for u in urls)
+        raise requests.exceptions.RequestException(
+            f"Failed downloading the checkpoint {checkpoint_name} from {links}."
+        )
+    else:
+        response.raise_for_status()  # Raise error if no server is reachable
 
     with open(checkpoint_path, "wb") as f:
         f.write(response.content)
 
 
-def check_and_download_ckpts(checkpoint_path: str, url: str) -> None:
-    """Check and download a checkpoint file, if it does not exist.
+def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
+    """
+    Check and download a checkpoint file, if it does not exist.
 
     Parameters
     ----------
-    checkpoint_path : str
-        path of the file in which the checkpoint will be saved
-    url : str
-        URL of checkpoint hosting site
-
+    checkpoint_path : Path, str
+        Path of the file in which the checkpoint will be saved.
+    urls : list[str]
+        URLs of checkpoint hosting site.
     """
+    if not isinstance(checkpoint_path, Path):
+        checkpoint_path = Path(checkpoint_path)
     # Download checkpoint file from url if it does not exist
-    if not os.path.exists(checkpoint_path):
-        ckptdir, ckptname = os.path.split(checkpoint_path)
-        if not os.path.exists(ckptdir) and ckptdir:
-            os.makedirs(ckptdir)
-        download_checkpoint(url, ckptname, checkpoint_path)
+    if not checkpoint_path.exists():
+        # create dir if it does not exist
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        download_checkpoint(checkpoint_path.name, checkpoint_path, urls)
 
 
-def get_checkpoints(axi: str, cor: str, sag: str, url: str = URL) -> None:
-    """Check and download checkpoint files if not exist.
+def get_checkpoints(*checkpoints: Path | str, urls: list[str]) -> None:
+    """
+    Check and download checkpoint files if not exist.
 
     Parameters
     ----------
-    axi : str
-        Axial path of the file in which the checkpoint will be saved
-    cor : str
-        Coronal path of the file in which the checkpoint will be saved
-    sag : str
-        Sagittal path of the file in which the checkpoint will be saved
-    url : str
-        URL of checkpoint hosting site (Default value = URL)
-
+    *checkpoints : Path, str
+        Paths of the files in which the checkpoint will be saved.
+    urls : Path, str
+        URLs of checkpoint hosting sites.
     """
-    check_and_download_ckpts(axi, url)
-    check_and_download_ckpts(cor, url)
-    check_and_download_ckpts(sag, url)
+    try:
+        for file in map(Path, checkpoints):
+            if not file.is_absolute() and file.parts[0] != ".":
+                file = FASTSURFER_ROOT / file
+            check_and_download_ckpts(file, urls)
+    except requests.exceptions.HTTPError:
+        LOGGER.error(f"Could not find nor download checkpoints from {urls}")
+        raise

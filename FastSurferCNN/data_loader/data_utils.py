@@ -14,7 +14,8 @@
 
 
 # IMPORTS
-from typing import Optional, Tuple, Union, Mapping
+from pathlib import Path
+from typing import Optional, Tuple, Union, Mapping, cast, Iterable
 
 import numpy as np
 from numpy import typing as npt
@@ -39,7 +40,7 @@ from FastSurferCNN.utils.arg_types import VoxSizeOption
 ##
 # Global Vars
 ##
-SUPPORTED_OUTPUT_FILE_FORMATS = ["mgz", "nii", "nii.gz"]
+SUPPORTED_OUTPUT_FILE_FORMATS = ("mgz", "nii", "nii.gz")
 LOGGER = logging.getLogger(__name__)
 
 ##
@@ -47,47 +48,52 @@ LOGGER = logging.getLogger(__name__)
 ##
 
 
-# Conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic voxels
+# Conform an MRI brain image to UCHAR, RAS orientation, and 1mm or minimal isotropic
+# voxels
 def load_and_conform_image(
-        img_filename: str,
+        img_filename: Path | str,
         interpol: int = 1,
         logger: logging.Logger = LOGGER,
         conform_min: bool = False
-) -> Tuple[_Header, np.ndarray, np.ndarray]:
-    """Load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic voxels size.
+) -> tuple[_Header, np.ndarray, np.ndarray]:
+    """
+    Load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic
+    voxels size.
 
     Only, if it does not already have this format.
 
     Parameters
     ----------
-    img_filename : str
-        path and name of volume to read
-    interpol : int
-        interpolation order for image conformation (0=nearest,1=linear(default),2=quadratic,3=cubic)
-    logger : logging.Logger
-        Logger to write output to (default = STDOUT)
-    conform_min : bool
-        conform image to minimal voxel size (for high-res) (Default = False)
+    img_filename : Path, str
+        Path and name of volume to read.
+    interpol : int, default=1
+        Interpolation order for image conformation
+        (0=nearest, 1=linear(default), 2=quadratic, 3=cubic).
+    logger : logging.Logger, default=<local logger>
+        Logger to write output to (default = STDOUT).
+    conform_min : bool, default=False
+        Conform image to minimal voxel size (for high-res).
 
     Returns
     -------
     nibabel.Header header_info
-        header information of the conformed image
+        Header information of the conformed image.
     numpy.ndarray affine_info
-        affine information of the conformed image
+        Affine information of the conformed image.
     numpy.ndarray orig_data
-        conformed image data
+        Conformed image data.
 
     Raises
     ------
     RuntimeError
-        Multiple input frames not supported
+        Multiple input frames not supported.
     RuntimeError
-        Inconsistency in nifti-header
-
+        Inconsistency in nifti-header.
     """
-    orig = nib.load(img_filename)
-    # is_conform and conform accept numeric values and the string 'min' instead of the bool value
+    img_file = Path(img_filename)
+    orig = nib.load(img_file)
+    # is_conform and conform accept numeric values and the string 'min' instead of the
+    # bool value
     _conform_vox_size = "min" if conform_min else 1.0
     if not is_conform(orig, conform_vox_size=_conform_vox_size):
 
@@ -101,7 +107,7 @@ def load_and_conform_image(
             )
 
         # Check affine if image is nifti image
-        if any(img_filename.endswith(ext) for ext in (".nii.gz", ".nii")):
+        if img_file.suffix == ".nii" or img_file.suffixes[-2:] == [".nii", ".gz"]:
             if not check_affine_in_nifti(orig, logger=logger):
                 raise RuntimeError("ERROR: inconsistency in nifti-header. Exiting now.")
 
@@ -117,19 +123,21 @@ def load_and_conform_image(
 
 
 def load_image(
-        file: str,
+        file: str | Path,
         name: str = "image",
-        **kwargs
-) -> Tuple[nib.analyze.SpatialImage, np.ndarray]:
-    """Load file 'file' with nibabel, including all data.
+        **kwargs,
+) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
+    """
+    Load file 'file' with nibabel, including all data.
 
     Parameters
     ----------
-    file : str
-        path to the file to load.
-    name : str
-        name of the file (optional), only effects error messages. (Default value = "image")
+    file : Path, str
+        Path to the file to load.
+    name : str, default="image"
+        Name of the file (optional), only effects error messages.
     **kwargs :
+        Additional keyword arguments.
 
     Returns
     -------
@@ -142,17 +150,16 @@ def load_image(
         Failed loading the file
         nibabel releases the GIL, so the following is a parallel example.
         {
-        from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor() as pool:
-        future1 = pool.submit(load_image, filename1)
-        future2 = pool.submit(load_image, filename2)
-        image, data = future1.result()
-        image2, data2 = future2.result()
+        >>> from concurrent.futures import ThreadPoolExecutor
+        >>> with ThreadPoolExecutor() as pool:
+        >>>     future1 = pool.submit(load_image, filename1)
+        >>>     future2 = pool.submit(load_image, filename2)
+        >>>     image, data = future1.result()
+        >>>     image2, data2 = future2.result()
         }
-
     """
     try:
-        img = nib.load(file, **kwargs)
+        img = cast(nib.analyze.SpatialImage, nib.load(file, **kwargs))
     except (IOError, FileNotFoundError) as e:
         raise IOError(
             f"Failed loading the {name} '{file}' with error: {e.args[0]}"
@@ -162,33 +169,39 @@ def load_image(
 
 
 def load_maybe_conform(
-        file: str,
-        alt_file: str,
+        file: Path | str,
+        alt_file: Path | str,
         vox_size: VoxSizeOption = "min"
-) -> Tuple[str, nib.analyze.SpatialImage, np.ndarray]:
-    """Load an image by file, check whether it is conformed to vox_size and conform to vox_size if it is not.
+) -> tuple[Path, nib.analyze.SpatialImage, np.ndarray]:
+    """
+    Load an image by file, check whether it is conformed to vox_size and conform to
+    vox_size if it is not.
 
     Parameters
     ----------
-    file : str
-        path to the file to load.
-    alt_file : str
-        alternative file to interpolate from
-    vox_size : VoxSizeOption
-        Voxel Size (Default value = "min")
+    file : Path, str
+        Path to the file to load.
+    alt_file : Path, str
+        Alternative file to interpolate from.
+    vox_size : VoxSizeOption, default="min"
+        Voxel Size.
 
     Returns
     -------
-    Tuple[str, nib.analyze.SpatialImage, np.ndarray]
-        [MISSING]
-
+    Path
+        The path to the file.
+    nib.analyze.SpatialImage
+        The file container object including the corrected header.
+    np.ndarray
+        The data loaded from the file.
     """
-    from os.path import isfile
+    file = Path(file)
+    alt_file = Path(alt_file)
 
     _is_conform, img = False, None
-    if isfile(file):
+    if file.is_file():
         # see if the file is 1mm
-        img = nib.load(file)
+        img = cast(nib.analyze.SpatialImage, nib.load(file))
         # is_conform only needs the header, not the data
         _is_conform = is_conform(img, conform_vox_size=vox_size, verbose=False)
 
@@ -201,29 +214,33 @@ def load_maybe_conform(
         # the image is not conformed to 1mm, do this now.
         from nibabel.filebasedimages import FileBasedHeader as _Header
 
-        fileext = list(
-            filter(lambda ext: file.endswith("." + ext), SUPPORTED_OUTPUT_FILE_FORMATS)
-        )
+        fileext = [
+            ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS
+            if file.name.endswith("." + ext)
+        ]
         if len(fileext) != 1:
             raise RuntimeError(
                 f"Invalid file extension of conf_name: {file}, must be one of "
                 f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
             )
-        file_no_fileext = file[: -len(fileext[0]) - 1]
-        vox_suffix = "." + (
-            "min" if vox_size == "min" else str(vox_size) + "mm"
-        ).replace(".", "")
+        file_no_fileext = str(file)[:-len(fileext[0]) - 1]
+        if vox_size == "min":
+            vox_suffix = ".min"
+        else:
+            vox_suffix = f".{str(vox_size).replace('.', '')}mm"
         if not file_no_fileext.endswith(vox_suffix):
             file_no_fileext += vox_suffix
-        # if the orig file is neither absolute nor in the subject path, use the conformed file
-        src_file = alt_file if isfile(alt_file) else file
-        if not isfile(alt_file):
+        # if the orig file is neither absolute nor in the subject path, use the
+        # conformed file
+        src_file = alt_file if alt_file.is_file() else file
+        if not alt_file.is_file():
             LOGGER.warning(
-                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so "
-                f"we might lose quality due to multiple chained interpolations."
+                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to "
+                f"interpolate from, so we might lose quality due to multiple chained "
+                f"interpolations."
             )
 
-        dst_file = file_no_fileext + "." + fileext[0]
+        dst_file = Path(file_no_fileext + "." + fileext[0])
         # conform to 1mm
         header, affine, data = load_and_conform_image(
             src_file, conform_min=False, logger=logging.getLogger(__name__ + ".conform")
@@ -238,52 +255,55 @@ def load_maybe_conform(
 # Save image routine
 def save_image(
         header_info: _Header,
-        affine_info: npt.NDArray,
-        img_array: npt.NDArray,
-        save_as: str,
+        affine_info: npt.NDArray[float],
+        img_array: np.ndarray,
+        save_as: str | Path,
         dtype: Optional[npt.DTypeLike] = None
 ) -> None:
-    """Save an image (nibabel MGHImage), according to the desired output file format.
+    """
+    Save an image (nibabel MGHImage), according to the desired output file format.
 
-    Supported formats are defined in supported_output_file_formats. Saves predictions to save_as
+    Supported formats are defined in supported_output_file_formats. Saves predictions to
+    save_as.
 
     Parameters
     ----------
     header_info : _Header
-        image header information
-    affine_info : npt.NDArray
-        image affine information
-    img_array : npt.NDArray
-        an array containing image data
-    save_as : str
-        name under which to save prediction; this determines output file format
-    dtype : Optional[npt.DTypeLike]
-        image array type; if provided, the image object is explicitly set to match this type
-         (Default value = None)
-
+        Image header information.
+    affine_info : npt.NDArray[float]
+        Image affine information.
+    img_array : np.ndarray
+        An array containing image data.
+    save_as : Path, str
+        Name under which to save prediction; this determines output file format.
+    dtype : npt.DTypeLike, optional
+        Image array type; if provided, the image object is explicitly set to match this
+        type (Default value = None).
     """
-    assert any(
-        save_as.endswith(file_ext) for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS
+    save_as = Path(save_as)
+    assert (
+        save_as.suffix[1:] in SUPPORTED_OUTPUT_FILE_FORMATS or
+        save_as.suffixes[-2:] == [".nii", ".gz"]
     ), (
-        "Output filename does not contain a supported file format ("
-        + ", ".join(file_ext for file_ext in SUPPORTED_OUTPUT_FILE_FORMATS)
-        + ")!"
+        f"Output filename does not contain a supported file format "
+        f"{SUPPORTED_OUTPUT_FILE_FORMATS}!"
     )
 
     mgh_img = None
-    if save_as.endswith("mgz"):
+    if save_as.suffix == ".mgz":
         mgh_img = nib.MGHImage(img_array, affine_info, header_info)
-    elif any(save_as.endswith(file_ext) for file_ext in ["nii", "nii.gz"]):
+    elif save_as.suffix == ".nii" or save_as.suffixes[-2:] == [".nii", ".gz"]:
         mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
 
     if dtype is not None:
         mgh_img.set_data_dtype(dtype)
 
-    if any(save_as.endswith(file_ext) for file_ext in ["mgz", "nii"]):
+    if save_as.suffix in (".mgz", ".nii"):
         nib.save(mgh_img, save_as)
-    elif save_as.endswith("nii.gz"):
-        # For correct outputs, nii.gz files should be saved using the nifti1 sub-module's save():
-        nib.nifti1.save(mgh_img, save_as)
+    elif save_as.suffixes[-2:] == [".nii", ".gz"]:
+        # For correct outputs, nii.gz files should be saved using the nifti1
+        # sub-module's save():
+        nib.nifti1.save(mgh_img, str(save_as))
 
 
 # Transformation for mapping
@@ -291,20 +311,20 @@ def transform_axial(
         vol: npt.NDArray,
         coronal2axial: bool = True
 ) -> np.ndarray:
-    """Transform volume into Axial axis and back.
+    """
+    Transform volume into Axial axis and back.
 
     Parameters
     ----------
     vol : npt.NDArray
-        image volume to transform
+        Image volume to transform.
     coronal2axial : bool
-        transform from coronal to axial = True (default),
+        Transform from coronal to axial = True (default).
 
     Returns
     -------
     np.ndarray
-        Transformed image
-
+        Transformed image.
     """
     if coronal2axial:
         return np.moveaxis(vol, [0, 1, 2], [1, 2, 0])
@@ -316,20 +336,20 @@ def transform_sagittal(
         vol: npt.NDArray,
         coronal2sagittal: bool = True
 ) -> np.ndarray:
-    """Transform volume into Sagittal axis and back.
+    """
+    Transform volume into Sagittal axis and back.
 
     Parameters
     ----------
     vol : npt.NDArray
-        image volume to transform
+        Image volume to transform.
     coronal2sagittal : bool
-        transform from coronal to sagittal = True (default),
+        Transform from coronal to sagittal = True (default).
 
     Returns
     -------
     np.ndarray:
-        transformed image
-
+        Transformed image.
     """
     if coronal2sagittal:
         return np.moveaxis(vol, [0, 1, 2], [2, 1, 0])
@@ -342,23 +362,23 @@ def get_thick_slices(
         img_data: npt.NDArray,
         slice_thickness: int = 3
 ) -> np.ndarray:
-    """Extract thick slices from the image.
+    """
+    Extract thick slices from the image.
 
     Feed slice_thickness preceding and succeeding slices to network,
-    label only middle one
+    label only middle one.
 
     Parameters
     ----------
     img_data : npt.NDArray
-        3D MRI image read in with nibabel
+        3D MRI image read in with nibabel.
     slice_thickness : int
-        number of slices to stack on top and below slice of interest (default=3)
+        Number of slices to stack on top and below slice of interest (default=3).
 
     Returns
     -------
     np.ndarray
-        image data with the thick slices of the n-th axis appended into the n+1-th axis.
-
+        Image data with the thick slices of the n-th axis appended into the n+1-th axis.
     """
     img_data_pad = np.pad(
         img_data, ((0, 0), (0, 0), (slice_thickness, slice_thickness)), mode="edge"
@@ -376,28 +396,28 @@ def filter_blank_slices_thick(
         weight_vol: npt.NDArray,
         threshold: int = 50
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Filter blank slices from the volume using the label volume.
+    """
+    Filter blank slices from the volume using the label volume.
 
     Parameters
     ----------
     img_vol : npt.NDArray
-        orig image volume
+        Orig image volume.
     label_vol : npt.NDArray
-        label images (ground truth)
+        Label images (ground truth).
     weight_vol : npt.NDArray
-        weight corresponding to labels
+        Weight corresponding to labels.
     threshold : int
-        threshold for number of pixels needed to keep slice (below = dropped). (Default value = 50)
+        Threshold for number of pixels needed to keep slice (below = dropped). (Default value = 50).
 
     Returns
     -------
     filtered img_vol : np.ndarray
-        [MISSING]
+        Image volume with blank slices removed.
     label_vol : np.ndarray
-        [MISSING]
+        Label volume with blank slices removed.
     weight_vol : np.ndarray
-        [MISSING]
-
+        Weight volume with blank slices removed.
     """
     # Get indices of all slices with more than threshold labels/pixels
     select_slices = np.sum(label_vol, axis=(0, 1)) > threshold
@@ -421,32 +441,32 @@ def create_weight_mask(
         cortex_mask: bool = True,
         gradient: bool = True
 ) -> np.ndarray:
-    """Create weighted mask - with median frequency balancing and edge-weighting.
+    """
+    Create weighted mask - with median frequency balancing and edge-weighting.
 
     Parameters
     ----------
     mapped_aseg : np.ndarray
-        segmentation to create weight mask from.
+        Segmentation to create weight mask from.
     max_weight : int
-        maximal weight on median weights (cap at this value). (Default value = 5)
+        Maximal weight on median weights (cap at this value). (Default value = 5).
     max_edge_weight : int
-        maximal weight on gradient weight (cap at this value). (Default value = 5)
+        Maximal weight on gradient weight (cap at this value). (Default value = 5).
     max_hires_weight : int
-        maximal weight on hires weight (cap at this value). (Default value = None)
+        Maximal weight on hires weight (cap at this value). (Default value = None).
     ctx_thresh : int
-        label value of cortex (above = cortical parcels). (Default value = 33)
+        Label value of cortex (above = cortical parcels). (Default value = 33).
     mean_filter : bool
-        flag, set to add mean_filter mask (default = False).
+        Flag, set to add mean_filter mask (default = False).
     cortex_mask : bool
-        flag, set to create cortex weight mask (default=True).
+        Flag, set to create cortex weight mask (default=True).
     gradient : bool
-        flag, set to create gradient mask (default = True).
+        Flag, set to create gradient mask (default = True).
 
     Returns
     -------
     np.ndarray
-        Weights
-
+        Weights.
     """
     unique, counts = np.unique(mapped_aseg, return_counts=True)
 
@@ -495,22 +515,22 @@ def cortex_border_mask(
         structure: npt.NDArray,
         ctx_thresh: int = 33
 ) -> np.ndarray:
-    """Erode the cortex of a given mri image to create the inner gray matter mask (outer most cortex voxels).
+    """
+    Erode the cortex of a given mri image to create the inner gray matter mask (outer most cortex voxels).
 
     Parameters
     ----------
     label : npt.NDArray
-        ground truth labels.
+        Ground truth labels.
     structure : npt.NDArray
-        structuring element to erode with
+        Structuring element to erode with.
     ctx_thresh : int
-        label value of cortex (above = cortical parcels). Defaults to 33
+        Label value of cortex (above = cortical parcels). Defaults to 33.
 
     Returns
     -------
     np.ndarray
-        inner grey matter layer
-
+        Inner grey matter layer.
     """
     # create aseg brainmask, erode it and subtract from itself
     bm = np.clip(label, a_max=1, a_min=0)
@@ -529,24 +549,24 @@ def deep_sulci_and_wm_strand_mask(
         iteration: int = 1,
         ctx_thresh: int = 33
 ) -> np.ndarray:
-    """Get a binary mask of deep sulci and small white matter strands by using binary closing (erosion and dilation).
+    """
+    Get a binary mask of deep sulci and small white matter strands by using binary closing (erosion and dilation).
 
     Parameters
     ----------
     volume : npt.NDArray
-        loaded image (aseg, label space)
+        Loaded image (aseg, label space).
     structure : npt.NDArray
-        structuring element (e.g. np.ones((3, 3, 3)))
+        Structuring element (e.g. np.ones((3, 3, 3))).
     iteration : int
-        number of times mask should be dilated + eroded. Defaults to 1
+        Number of times mask should be dilated + eroded. Defaults to 1.
     ctx_thresh : int
-        label value of cortex (above = cortical parcels). Defaults to 33
+        Label value of cortex (above = cortical parcels). Defaults to 33.
 
     Returns
     -------
     np.ndarray
-        sulcus + wm mask
-
+        Sulcus + wm mask.
     """
     # Binarize label image (cortex = 1, everything else = 0)
     empty_im = np.zeros(shape=volume.shape)
@@ -564,47 +584,80 @@ def deep_sulci_and_wm_strand_mask(
 
 
 # Label mapping functions (to aparc (eval) and to label (train))
-def read_classes_from_lut(lut_file: str) -> pd.DataFrame:
-    """Read in FreeSurfer-like LUT table.
+def read_classes_from_lut(lut_file: str | Path):
+    """
+    Modify from datautils to allow support for FreeSurfer-distributed ColorLUTs.
+
+    Read in **FreeSurfer-like** LUT table.
 
     Parameters
     ----------
-    lut_file : str
-        path and name of FreeSurfer-style LUT file with classes of interest
+    lut_file : Path, str
+        The path and name of FreeSurfer-style LUT file with classes of interest.
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
         1   Left-Cerebral-Exterior 70  130 180 0
+        ...
 
     Returns
     -------
-    pd.Dataframe
-        DataFrame with ids present, name of ids, color for plotting
-
+    pandas.DataFrame
+        DataFrame with ids present, name of ids, color for plotting.
     """
+    if not isinstance(lut_file, Path):
+        lut_file = Path(lut_file)
+    if lut_file.suffix == ".tsv":
+        return pd.read_csv(lut_file, sep="\t")
+
     # Read in file
-    separator = {"tsv": "\t", "csv": ",", "txt": " "}
-    return pd.read_csv(lut_file, sep=separator[lut_file[-3:]])
+    names = {
+        "ID": "int",
+        "LabelName": "str",
+        "Red": "int",
+        "Green": "int",
+        "Blue": "int",
+        "Alpha": "int",
+    }
+    kwargs = {}
+    if lut_file.suffix == ".csv":
+        kwargs["sep"] = ","
+    elif lut_file.suffix == ".txt":
+        kwargs["sep"] = "\\s+"
+    else:
+        raise RuntimeError(
+            f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv."
+        )
+    return pd.read_csv(
+        lut_file,
+        index_col=False,
+        skip_blank_lines=True,
+        comment="#",
+        header=None,
+        names=list(names.keys()),
+        dtype=names,
+        **kwargs,
+    )
 
 
 def map_label2aparc_aseg(
         mapped_aseg: torch.Tensor,
         labels: Union[torch.Tensor, npt.NDArray]
 ) -> torch.Tensor:
-    """Perform look-up table mapping from sequential label space to LUT space.
+    """
+    Perform look-up table mapping from sequential label space to LUT space.
 
     Parameters
     ----------
     mapped_aseg : torch.Tensor
-        label space segmentation (aparc.DKTatlas + aseg)
+        Label space segmentation (aparc.DKTatlas + aseg).
     labels : Union[torch.Tensor, npt.NDArray]
-        list of labels defining LUT space
+        List of labels defining LUT space.
 
     Returns
     -------
     torch.Tensor
-        labels in LUT space
-
+        Labels in LUT space.
     """
     if isinstance(labels, np.ndarray):
         labels = torch.from_numpy(labels)
@@ -613,24 +666,24 @@ def map_label2aparc_aseg(
 
 
 def clean_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
-    """Clean up aparc segmentations.
+    """
+    Clean up aparc segmentations.
 
     Map undetermined and optic chiasma to BKG
     Map Hypointensity classes to one
     Vessel to WM
     5th Ventricle to CSF
-    Remaining cortical labels to BKG
+    Remaining cortical labels to BKG.
 
     Parameters
     ----------
     aparc : npt.NDArray
-        aparc segmentations
+        Aparc segmentations.
 
     Returns
     -------
     np.ndarray
-        cleaned aparc
-
+        Cleaned aparc.
     """
     aparc[aparc == 80] = 77  # Hypointensities Class
     aparc[aparc == 85] = 0  # Optic Chiasma to BKG
@@ -650,22 +703,22 @@ def fill_unknown_labels_per_hemi(
         unknown_label: int,
         cortex_stop: int
 ) -> np.ndarray:
-    """Replace label 1000 (lh unknown) and 2000 (rh unknown) with closest class for each voxel.
+    """
+    Replace label 1000 (lh unknown) and 2000 (rh unknown) with closest class for each voxel.
 
     Parameters
     ----------
     gt : npt.NDArray
-        ground truth segmentation with class unknown
+        Ground truth segmentation with class unknown.
     unknown_label : int
-        class label for unknown (lh: 1000, rh: 2000)
+        Class label for unknown (lh: 1000, rh: 2000).
     cortex_stop : int
-        class label at which cortical labels of this hemi stop (lh: 2000, rh: 3000)
+        Class label at which cortical labels of this hemi stop (lh: 2000, rh: 3000).
 
     Returns
     -------
     np.ndarray
-        ground truth segmentation with all classes
-
+        Ground truth segmentation with all classes.
     """
     # Define shape of image and dilation element
     h, w, d = gt.shape
@@ -700,18 +753,18 @@ def fill_unknown_labels_per_hemi(
 
 
 def fuse_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
-    """Fuse cortical parcels on left/right hemisphere (reduce aparc classes).
+    """
+    Fuse cortical parcels on left/right hemisphere (reduce aparc classes).
 
     Parameters
     ----------
     aparc : npt.NDArray
-        anatomical segmentation with cortical parcels
+        Anatomical segmentation with cortical parcels.
 
     Returns
     -------
     np.ndarray
-        anatomical segmentation with reduced number of cortical parcels
-
+        Anatomical segmentation with reduced number of cortical parcels.
     """
     aparc_temp = aparc.copy()
 
@@ -748,18 +801,18 @@ def fuse_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
 
 
 def split_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
-    """Splot cortex labels to completely de-lateralize structures.
+    """
+    Splot cortex labels to completely de-lateralize structures.
 
     Parameters
     ----------
     aparc : npt.NDArray
-        anatomical segmentation and parcellation from network
+        Anatomical segmentation and parcellation from network.
 
     Returns
     -------
     np.ndarray
-        re-lateralized aparc
-
+        Re-lateralized aparc.
     """
     # Post processing - Splitting classes
     # Quick Fix for 2026 vs 1026; 2029 vs. 1029; 2025 vs. 1025
@@ -840,24 +893,24 @@ def unify_lateralized_labels(
         lut: Union[str, pd.DataFrame],
         combi: Tuple[str, str] = ("Left-", "Right-")
 ) -> Mapping:
-    """Generate lookup dictionary of left-right labels.
+    """
+    Generate lookup dictionary of left-right labels.
 
     Parameters
     ----------
     lut : Union[str, pd.DataFrame]
-        either lut-file string to load or pandas dataframe
+        Either lut-file string to load or pandas dataframe
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
-        1   Left-Cerebral-Exterior 70  130 180 0
+        1   Left-Cerebral-Exterior 70  130 180 0.
     combi : Tuple[str, str]
-        Prefix or labelnames to combine. Default: Left- and Right-
+        Prefix or labelnames to combine. Default: Left- and Right-.
 
     Returns
     -------
     Mapping
-        dictionary mapping between left and right hemispheres
-
+        Dictionary mapping between left and right hemispheres.
     """
     if isinstance(lut, str):
         lut = read_classes_from_lut(lut)
@@ -873,7 +926,8 @@ def get_labels_from_lut(
         lut: Union[str, pd.DataFrame],
         label_extract: Tuple[str, str] = ("Left-", "ctx-rh")
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Extract labels from the lookup tables.
+    """
+    Extract labels from the lookup tables.
 
     Parameters
     ----------
@@ -883,18 +937,17 @@ def get_labels_from_lut(
         Example entry:
         ID LabelName  R   G   B   A
         0   Unknown   0   0   0   0
-        1   Left-Cerebral-Exterior 70  130 180 0
+        1   Left-Cerebral-Exterior 70  130 180 0.
     label_extract : Tuple[str, str]
-        suffix of label names to mask for sagittal labels
-        Default: "Left-" and "ctx-rh"
+        Suffix of label names to mask for sagittal labels
+        Default: "Left-" and "ctx-rh".
 
     Returns
     -------
     np.ndarray
-        full label list,
+        Full label list.
     np.ndarray
-        sagittal label list
-
+        Sagittal label list.
     """
     if isinstance(lut, str):
         lut = read_classes_from_lut(lut)
@@ -910,32 +963,32 @@ def map_aparc_aseg2label(
         aseg_nocc: Optional[npt.NDArray] = None,
         processing:  str = "aparc"
 ) ->  Tuple[np.ndarray, np.ndarray]:
-    """Perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space.
+    """
+    Perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space.
 
     Parameters
     ----------
     aseg : npt.NDArray
-        ground truth aparc+aseg
+        Ground truth aparc+aseg.
     labels : npt.NDArray
-        labels to use (extracted from LUT with get_labels_from_lut)
+        Labels to use (extracted from LUT with get_labels_from_lut).
     labels_sag : npt.NDArray
-        sagittal labels to use (extracted from LUT with
-        get_labels_from_lut)
+        Sagittal labels to use (extracted from LUT with
+        get_labels_from_lut).
     sagittal_lut_dict : Mapping
-        left-right label mapping (can be extracted with
-        unify_lateralized_labels from LUT)
+        Left-right label mapping (can be extracted with
+        unify_lateralized_labels from LUT).
     aseg_nocc : Optional[npt.NDArray]
-        ground truth aseg without corpus callosum segmentation (Default value = None)
+        Ground truth aseg without corpus callosum segmentation (Default value = None).
     processing : str
-        should be set to "aparc" or "aseg" for additional mappings (hard-coded) (Default value = "aparc")
+        Should be set to "aparc" or "aseg" for additional mappings (hard-coded) (Default value = "aparc").
 
     Returns
     -------
     np.ndarray
-        mapped aseg for coronal and axial,
+        Mapped aseg for coronal and axial.
     np.ndarray
-        mapped aseg for sagital
-
+        Mapped aseg for sagital.
     """
     # If corpus callosum is not removed yet, do it now
     if aseg_nocc is not None:
@@ -1001,18 +1054,18 @@ def map_aparc_aseg2label(
 
 
 def sagittal_coronal_remap_lookup(x: int) -> int:
-    """Convert left labels to corresponding right labels for aseg with dictionary mapping.
+    """
+    Convert left labels to corresponding right labels for aseg with dictionary mapping.
 
     Parameters
     ----------
     x : int
-        label to look up
+        Label to look up.
 
     Returns
     -------
     np.ndarray
-        mapped label
-
+        Mapped label.
     """
     return {
         2: 41,
@@ -1037,20 +1090,20 @@ def infer_mapping_from_lut(
         num_classes_full: int,
         lut: Union[str, pd.DataFrame]
 ) -> np.ndarray:
-    """[MISSING].
+    """
+    Guess the mapping from a lookup table.
 
     Parameters
     ----------
     num_classes_full : int
-        number of classes
+        Number of classes.
     lut : Union[str, pd.DataFrame]
-        look-up table listing class labels
+        Look-up table listing class labels.
 
     Returns
     -------
     np.ndarray
-        list of indexes for
-
+        List of indexes for.
     """
     labels, labels_sag = unify_lateralized_labels(lut)
     idx_list = np.ndarray(shape=(num_classes_full,), dtype=np.int16)
@@ -1072,290 +1125,69 @@ def map_prediction_sagittal2full(
         num_classes: int = 51,
         lut: Optional[str] = None
 ) -> np.ndarray:
-    """Remap the prediction on the sagittal network to full label space used by coronal and axial networks.
+    """
+    Remap the prediction on the sagittal network to full label space used by coronal and axial networks.
 
     Create full aparc.DKTatlas+aseg.mgz.
 
     Parameters
     ----------
     prediction_sag : npt.NDArray
-        sagittal prediction (labels)
+        Sagittal prediction (labels).
     num_classes : int
-        number of SAGITTAL classes (96 for full classes, 51 for hemi split, 21 for aseg) (Default value = 51)
+        Number of SAGITTAL classes (96 for full classes, 51 for hemi split, 21 for aseg) (Default value = 51).
     lut : Optional[str]
-        look-up table listing class labels (Default value = None)
+        Look-up table listing class labels (Default value = None).
 
     Returns
     -------
     np.ndarray
-        Remapped prediction
-
+        Remapped prediction.
     """
+    r = range
+    _idx = []
     if num_classes == 96:
-        idx_list = np.asarray(
-            [
-                0,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                1,
-                2,
-                3,
-                14,
-                15,
-                4,
-                16,
-                17,
-                18,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                20,
-                21,
-                22,
-                23,
-                24,
-                25,
-                26,
-                27,
-                28,
-                29,
-                30,
-                31,
-                32,
-                33,
-                34,
-                35,
-                36,
-                37,
-                38,
-                39,
-                40,
-                41,
-                42,
-                43,
-                44,
-                45,
-                46,
-                47,
-                48,
-                49,
-                50,
-                20,
-                21,
-                22,
-                23,
-                24,
-                25,
-                26,
-                27,
-                28,
-                29,
-                30,
-                31,
-                32,
-                33,
-                34,
-                35,
-                36,
-                37,
-                38,
-                39,
-                40,
-                41,
-                42,
-                43,
-                44,
-                45,
-                46,
-                47,
-                48,
-                49,
-                50,
-            ],
-            dtype=np.int16,
-        )
-
+        _idx = [[0], r(5, 14), r(1, 4), [14, 15, 4], r(16, 19), r(5, 51), r(20, 51)]
     elif num_classes == 51:
-        idx_list = np.asarray(
-            [
-                0,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                1,
-                2,
-                3,
-                14,
-                15,
-                4,
-                16,
-                17,
-                18,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                20,
-                21,
-                22,
-                23,
-                24,
-                25,
-                26,
-                27,
-                28,
-                29,
-                30,
-                31,
-                32,
-                33,
-                34,
-                35,
-                36,
-                37,
-                38,
-                39,
-                40,
-                41,
-                42,
-                43,
-                44,
-                45,
-                46,
-                47,
-                48,
-                49,
-                50,
-                20,
-                22,
-                27,
-                29,
-                30,
-                31,
-                33,
-                34,
-                38,
-                39,
-                40,
-                41,
-                42,
-                45,
-            ],
-            dtype=np.int16,
-        )
-
+        _idx = [[0], r(5, 14), r(1, 4), [14, 15, 4], r(16, 19), r(5, 51)]
+        _idx.extend([[20, 22, 27], r(29, 32), [33, 34], r(38, 43), [45]])
     elif num_classes == 21:
-        idx_list = np.asarray(
-            [
-                0,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                1,
-                2,
-                3,
-                15,
-                16,
-                4,
-                17,
-                18,
-                19,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                20,
-            ],
-            dtype=np.int16,
-        )
-
+        _idx = [[0], r(5, 15), r(1, 4), [15, 16, 4], r(17, 20), r(5, 21)]
+    if _idx:
+        from itertools import chain
+        idx_list = list(chain(*_idx))
     else:
         assert lut is not None, "lut is not defined!"
         idx_list = infer_mapping_from_lut(num_classes, lut)
-    prediction_full = prediction_sag[:, idx_list, :, :]
-    return prediction_full
+    return prediction_sag[:, idx_list, :, :]
 
 
 # Clean up and class separation
 def bbox_3d(
         img: npt.NDArray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Extract the three-dimensional bounding box coordinates.
+    """
+    Extract the three-dimensional bounding box coordinates.
 
     Parameters
     ----------
     img : npt.NDArray
-        mri image
+        Mri image.
 
     Returns
     -------
     np.ndarray
-        rmin
+        Rmin.
     np.ndarray
-        rmax
+        Rmax.
     np.ndarray
-        cmin
+        Cmin.
     np.ndarray
-        cmax
+        Cmax.
     np.ndarray
-        zmin
+        Zmin.
     np.ndarray
-        zmax
-
+        Zmax.
     """
     r = np.any(img, axis=(1, 2))
     c = np.any(img, axis=(0, 2))
@@ -1369,18 +1201,18 @@ def bbox_3d(
 
 
 def get_largest_cc(segmentation: npt.NDArray) -> np.ndarray:
-    """Find the largest connected component of segmentation.
+    """
+    Find the largest connected component of segmentation.
 
     Parameters
     ----------
     segmentation : npt.NDArray
-        segmentation
+        Segmentation.
 
     Returns
     -------
     np.ndarray
-        largest connected component of segmentation (binary mask)
-
+        Largest connected component of segmentation (binary mask).
     """
     labels = label(segmentation, connectivity=3, background=0)
 

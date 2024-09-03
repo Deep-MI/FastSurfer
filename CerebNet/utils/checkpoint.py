@@ -14,11 +14,13 @@
 
 
 # IMPORTS
-import os
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import yacs
 
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.checkpoint import (
-    FASTSURFER_ROOT,
     load_from_checkpoint,
     create_checkpoint_dir,
     get_checkpoint,
@@ -26,23 +28,22 @@ from FastSurferCNN.utils.checkpoint import (
     save_checkpoint,
 )
 
+# DEFAULTS
+YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
+
 logger = logging.get_logger(__name__)
 
-# Defaults
-URL = "https://b2share.fz-juelich.de/api/files/c6cf7bc6-2ae5-4d0e-814d-2a3cf0e1a8c5"
-CEREBNET_AXI = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_axial_v1.0.0.pkl")
-CEREBNET_COR = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_coronal_v1.0.0.pkl")
-CEREBNET_SAG = os.path.join(FASTSURFER_ROOT, "checkpoints/CerebNet_sagittal_v1.0.0.pkl")
 
-
-def is_checkpoint_epoch(cfg, cur_epoch):
+def is_checkpoint_epoch(cfg: "yacs.config.CfgNode", cur_epoch: int) -> bool:
     """
-    Check if checkpoint need to be saved
-    Check if the
-    :param cfg:
-    :param cur_epoch:
-    :return:
+    Check if checkpoint need to be saved.
+
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        The config node.
+    cur_epoch : int
+        The current epoch number to check if this is the last epoch.
     """
     final_epoch = (cur_epoch + 1) == cfg.TRAIN.NUM_EPOCHS
-    is_checkpoint = (cur_epoch + 1) % cfg.TRAIN.CHECKPOINT_PERIOD or final_epoch
-    return is_checkpoint
+    return (cur_epoch + 1) % cfg.TRAIN.CHECKPOINT_PERIOD or final_epoch

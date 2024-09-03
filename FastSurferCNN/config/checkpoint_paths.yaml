@@ -1,0 +1,13 @@
+url:
+- "https://zenodo.org/records/10390573/files"
+- "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
+
+checkpoint:
+  axial: "checkpoints/aparc_vinn_axial_v2.0.0.pkl"
+  coronal: "checkpoints/aparc_vinn_coronal_v2.0.0.pkl"
+  sagittal: "checkpoints/aparc_vinn_sagittal_v2.0.0.pkl"
+
+config:
+  axial: "FastSurferCNN/config/FastSurferVINN_axial.yaml"
+  coronal: "FastSurferCNN/config/FastSurferVINN_coronal.yaml"
+  sagittal: "FastSurferCNN/config/FastSurferVINN_sagittal.yaml"

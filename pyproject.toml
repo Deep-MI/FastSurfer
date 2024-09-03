@@ -4,21 +4,13 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'fastsurfer'
-version = "2.2.0"
-description = 'a fast and accurate deep-learning based neuroimaging pipeline'
+version = '2.3.0'
+description = 'A fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = {file = 'LICENSE'}
-requires-python = '>=3.8'
-authors = [
-    {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
-    {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
-    {name = 'David Kügler', email = 'david.kuegler@dzne.de'},
-]
-maintainers = [
-    {name = 'Martin Reuter', email = 'martin.reuter@dzne.de'},
-    {name = 'Leonie Henschel', email = 'leonie.henschel@dzne.de'},
-    {name = 'David Kügler', email = 'david.kuegler@dzne.de'},
-]
+requires-python = '>=3.10'
+authors = [{name = 'Martin Reuter et al.'}]
+maintainers = [{name = 'FastSurfer Developers'}]
 keywords = [
     'python',
     'Deep learning',
@@ -32,30 +24,71 @@ classifiers = [
     'Operating System :: Unix',
     'Operating System :: MacOS',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
     'Natural Language :: English',
-    'License :: OSI Approved :: MIT License',
+    'License :: OSI Approved :: Apache Software License',
     'Intended Audience :: Science/Research',
 ]
 dependencies = [
     'h5py>=3.7',
-    'lapy>=0.4.1',
-    'matplotlib>=3.5.1',
-    'nibabel>=3.2.2',
-    'numpy>=1.21',
-    'pandas>=1.4.3',
-    'pytorch>=1.12.0',
+    'lapy>=1.1.0',
+    'matplotlib>=3.7.1',
+    'nibabel>=5.1.0',
+    'numpy>=1.25,<2',
+    'pandas>=1.5.3',
     'pyyaml>=6.0',
-    'scipy>=1.8.0',
-    'yacs>=0.1.8',
-    'simpleitk>=2.1.1',
-    'scipy>=1.8.0',
-    'tensorboard>=2.9.1',
+    'requests>=2.31.0',
+    'scikit-image>=0.19.3',
+    'scikit-learn>=1.2.2',
+    'scipy>=1.10.1,!=1.13.0',
+    'simpleitk>=2.2.1',
+    'tensorboard>=2.12.1',
+    'torch>=2.0.1',
     'torchio>=0.18.83',
-    'tqdm>=4.64',
+    'torchvision>=0.15.2',
+    'tqdm>=4.65',
+    'yacs>=0.1.8',
+]
+
+[project.optional-dependencies]
+doc = [
+    'furo!=2023.8.17',
+    'matplotlib',
+    'memory-profiler',
+    'myst-parser',
+    'numpydoc',
+    # sphinx 8 handles importing of files differently in some manner and will cause the
+    # build of the doc to fail. This will need to be addressed before we up to sphinx 8.
+    'sphinx>=7.3,<8',
+    'sphinxcontrib-bibtex',
+    'sphinxcontrib-programoutput',
+    'sphinx-argparse',
+    'sphinx-copybutton',
+    'sphinx-design',
+    'sphinx-gallery',
+    'sphinx-issues',
+    'pypandoc',
+    'nbsphinx',
+    'IPython', # For syntax highlighting in notebooks
+    'ipykernel',
+    'scikit-image',
+    'torchvision',
+    'scikit-learn',
+]
+style = [
+    'bibclean',
+    'codespell',
+    'pydocstyle[toml]',
+    'ruff',
+]
+all = [
+    'fastsurfer[doc]',
+    'fastsurfer[style]',
+]
+full = [
+    'fastsurfer[all]',
 ]
 
 [project.urls]
@@ -63,3 +96,60 @@ homepage = 'https://fastsurfer.org'
 documentation = 'https://fastsurfer.org'
 source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
+
+[tool.setuptools]
+packages = ['FastSurferCNN','CerebNet','recon_surf']
+
+[tool.pydocstyle]
+convention = 'numpy'
+ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
+match = '^(?!setup|__init__|test_).*\.py'
+match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*'
+add_ignore = 'D100,D104,D107'
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = [
+    "build",
+    "checkpoints",
+    "doc",
+    "env",
+    "images",
+    "setup.py",
+]
+
+[tool.ruff.lint]
+# https://docs.astral.sh/ruff/linter/#rule-selection
+select = [
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "I",   # isort
+    # "SIM", # flake8-simplify
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"Tutorial/*.ipynb" = ["E501"]  # exclude "Line too long"
+
+[tool.pytest.ini_options]
+minversion = '6.0'
+addopts = '--durations 20 --junit-xml=junit-results.xml --verbose'
+filterwarnings = []
+
+[tool.coverage.run]
+branch = true
+cover_pylib = false
+omit = [
+    '**/__init__.py',
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    'pragma: no cover',
+    'if __name__ == .__main__.:',
+]
+precision = 2
+

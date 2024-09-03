@@ -15,13 +15,14 @@
 
 
 # IMPORTS
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import torch
 from numpy import typing as npt
 
-Plane = Literal['axial', 'coronal', 'sagittal']
+from FastSurferCNN.utils import Plane
+
 AT = TypeVar('AT', np.ndarray, torch.Tensor)
 
 # CLASSES for final evaluation
@@ -145,18 +146,26 @@ SAG2FULL_MAP = {
                               12, 13, 12,
                               14, 15, 14,
                               16, 16
-                              ])
-}
+                              ])}
 
 
 # Transformation for mapping
 def transform_axial(vol, coronal2axial=True):
     """
-    Function to transform volume into Axial axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool coronal2axial: transform from coronal to axial = True (default),
-                               transform from axial to coronal = False
-    :return:
+    Function to transform volume into Axial axis and back.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        Image volume to transform.
+    coronal2axial : bool, default = True
+        If True (default), transforms from coronal to axial.
+        If False, transforms from axial to coronal.
+
+    Returns
+    -------
+    np.ndarray
+        Transformed image volume.
     """
     if coronal2axial:
         return np.moveaxis(vol, [0, 1, 2, 3], [0, 2, 3, 1])
@@ -166,11 +175,20 @@ def transform_axial(vol, coronal2axial=True):
 
 def transform_sagittal(vol, coronal2sagittal=True):
     """
-    Function to transform volume into Sagittal axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool coronal2sagittal: transform from coronal to sagittal = True (default),
-                                transform from sagittal to coronal = False
-    :return:
+    Transform a volume into the Sagittal axis and back.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        The image volume to transform.
+    coronal2sagittal : bool, default = True
+        If True (default), transforms from coronal to sagittal.
+        If False, transforms from sagittal to coronal.
+
+    Returns
+    -------
+    np.ndarray
+        The transformed image volume.
     """
     if coronal2sagittal:
         return np.moveaxis(vol, [0, 1, 2, 3], [0, 3, 2, 1])
@@ -180,11 +198,20 @@ def transform_sagittal(vol, coronal2sagittal=True):
 
 def transform_coronal(vol, axial2coronal=True):
     """
-    Function to transform volume into coronal axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool axial2coronal: transform from axial to coronal = True (default),
-                                transform from coronal to axial = False
-    :return:
+    Transform a volume into the coronal axis and back.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        The image volume to transform.
+    axial2coronal : bool, default=True
+        If True (default), transforms from axial to coronal.
+        If False, transforms from coronal to axial.
+
+    Returns
+    -------
+    np.ndarray
+        The transformed image volume.
     """
     if axial2coronal:
         if len(vol.shape) == 4:
@@ -200,11 +227,20 @@ def transform_coronal(vol, axial2coronal=True):
 
 def transform_axial2sagittal(vol, axial2sagittal=True):
     """
-    Function to transform volume into Sagittal axis and back
-    :param np.ndarray vol: image volume to transform
-    :param bool coronal2sagittal: transform from coronal to sagittal = True (default),
-                                transform from sagittal to coronal = False
-    :return:
+    Transform a volume into the Sagittal axis and back.
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        The image volume to transform.
+    axial2sagittal : bool, default=True
+        If True (default), transforms from axial to sagittal.
+        If False, transforms from sagittal to axial.
+
+    Returns
+    -------
+    np.ndarray
+        The transformed image volume.
     """
     if axial2sagittal:
         if len(vol.shape) == 4:
@@ -238,12 +274,18 @@ def get_plane_transform(plane, primary_slice_dir='coronal'):
 
 def filter_blank_slices_thick(data_dict, img_key="img", lbl_key="label", threshold=10):
     """
-    Function to filter blank slices from the volume using the label volume
-    :param dict data_dict: dictionary containing all volumes need to be filtered
-    :param img_key
-    :param lbl_key
-    :param threshold
-    :return:
+    Function to filter blank slices from the volume using the label volume.
+
+    Parameters
+    ----------
+    data_dict : dict
+        A dictionary containing all volumes that need to be filtered.
+    img_key : str, default="img"
+        Name of the key with the image.
+    lbl_key : str, default="label"
+        Name of the key with the target label.
+    threshold : int, default=10
+        Threshold for number of voxels so this slice is included (or filtered).
     """
     # Get indices of all slices with more than threshold labels/pixels
     selected_slices = (np.sum(data_dict[lbl_key], axis=(1, 2)) > threshold)
@@ -253,11 +295,16 @@ def filter_blank_slices_thick(data_dict, img_key="img", lbl_key="label", thresho
 
 def create_weight_mask2d(label_map, class_wise_weights, max_edge_weight=5):
     """
-    Function to create weighted mask - with median frequency balancing and edge-weighting
-    :param label_map:
-    :param class_wise_weights:
-    :param max_edge_weight:
-    :return:
+    Function to create weighted mask - with median frequency balancing and edge-weighting.
+    
+    Parameters
+    ----------
+    label_map : np.ndarray
+        A 2D array representing the label map.
+    class_wise_weights : np.ndarray
+        A 1D array where each element is the weight corresponding to a class in the label map.
+    max_edge_weight : float, default=5
+        The maximum weight to be applied at the edges in the label map to emphasize boundaries.
     """
     (h, w) = label_map.shape
     weights_mask = np.reshape(class_wise_weights[label_map.ravel()], (h, w))
@@ -273,13 +320,19 @@ def create_weight_mask2d(label_map, class_wise_weights, max_edge_weight=5):
 
 def map_sag2label(lbl_data, label_type='cereb_subseg'):
     """
-    Mapping right ids to left and relabeling
-    Args:
-        lbl_data:
-        label_type:
+    Mapping right ids to left and relabeling.
 
-    Returns:
+    Parameters
+    ----------
+        lbl_data : np.ndarray
+            An array of label data.
+        label_type : str, default="cereb_subseg"
+            A string identifier for the type of labels to map to.
 
+    Returns
+    -------
+    np.ndarray
+        The remapped label array with continuous labels.
     """
     for r_lbl, l_lbl in sag_right2left.items():
         lbl_data[lbl_data == r_lbl] = l_lbl
@@ -296,19 +349,40 @@ def map_sag2label(lbl_data, label_type='cereb_subseg'):
 
 def map_prediction_sagittal2full(prediction_sag, lbl_type):
     """
-    Function to remap the prediction on the sagittal network to full label space used by coronal and axial networks
-    :param prediction_sag: sagittal prediction (labels)
-    :param lbl_type: type of label
-    :return: Remapped prediction
-    """
+    Function to remap the prediction on the sagittal network to 
+    full label space used by coronal and axial networks.
 
+    Parameters
+    ----------
+    prediction_sag : np.ndarray
+        Sagittal prediction (labels).
+    lbl_type : str
+        Type of label.
+
+    Returns
+    -------
+    np.ndarray
+        Remapped prediction.
+    """
     idx_list = SAG2FULL_MAP[lbl_type]
     prediction_full = prediction_sag[:, idx_list, :, :]
     return prediction_full
 
 
 def get_aseg_cereb_mask(aseg_map: npt.NDArray[int]) -> npt.NDArray[bool]:
-    """Get a boolean mask of the cerebellum from a segmentation image."""
+    """
+    Get a boolean mask of the cerebellum from a segmentation image.
+
+    Parameters
+    ----------
+    aseg_map : np.ndarray
+        A segmentation image.
+
+    Returns
+    -------
+    np.ndarray
+        A boolean mask of the cerebellum.
+    """
     wm_cereb_mask = np.logical_or(aseg_map == 46, aseg_map == 7)
     gm_cereb_mask = np.logical_or(aseg_map == 47, aseg_map == 8)
     return np.logical_or(wm_cereb_mask, gm_cereb_mask)
@@ -333,16 +407,23 @@ def get_binary_map(lbl_map, class_names):
 
 
 def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
-    """Maps the data from LIA to RAS orientation.
+    """
+    Maps the data from LIA to RAS orientation.
 
-    Args:
-        plane: the slicing direction (usually moved into batch dimension)
-        data: the data array of shape [plane, Channels, H, W]
-        thick_slices: whether the channels are thick slices and should also be flipped (default: False).
+    Parameters
+    ----------
+    plane : Plane 
+        The slicing direction (usually moved into batch dimension).
+    data : np.ndarray
+        The data array of shape [plane, Channels, H, W].
+    thick_slices : bool, default = False
+        Whether the channels are thick slices and should also be flipped.
 
-    Returns:
-        data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
-            [plane, Channels, W, H] (plane: 'axial').
+    Returns
+    -------
+    np.ndarray
+        Data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
+        [plane, Channels, W, H] (plane: 'axial').
     """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes
@@ -362,16 +443,23 @@ def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
 
 
 def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
-    """Maps the data from RAS to LIA orientation.
+    """
+    Maps the data from RAS to LIA orientation.
 
-    Args:
-        plane: the slicing direction (usually moved into batch dimension)
-        data: the data array of shape [plane, Channels, H, W]
-        thick_slices: whether the channels are thick slices and should also be flipped (default: False).
+    Parameters
+    ----------
+    plane : Plane
+        The slicing direction (usually moved into batch dimension).
+    data :  np.ndarray
+        The data array of shape [plane, Channels, H, W].
+    thick_slices : bool, default=False
+        Whether the channels are thick slices and should also be flipped.
 
-    Returns:
-        data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
-            [plane, Channels, W, H] (plane: 'axial').
+    Returns
+    -------
+    np.ndarray
+        Data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: 'sagittal' or 'coronal') or
+        [plane, Channels, W, H] (plane: 'axial'). The dtype of the array is the same as data.
     """
     if isinstance(data, np.ndarray):
         flip, swapaxes = np.flip, np.swapaxes

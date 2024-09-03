@@ -2,7 +2,7 @@
 **/.github
 checkpoints
 Singularity
-images
+doc
 venv
 Tutorial
 **/*.md

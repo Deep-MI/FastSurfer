@@ -16,11 +16,11 @@
 # IMPORTS
 import optparse
 import sys
-import numpy as np
+from typing import cast
+
 import nibabel as nib
-
+import numpy as np
 from skimage.morphology import binary_dilation
-
 
 HELPTEXT = """
 Script to perform quick qualtiy checks for the input segmentation to identify gross errors.
@@ -41,13 +41,13 @@ BG_LABEL = 0
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: quick_qc,v 1.0 2022/09/28 11:34:08 mreuter Exp $", usage=HELPTEXT
@@ -69,23 +69,23 @@ def options_parse():
     return options
 
 
-def check_volume(asegdkt_segfile, voxvol, thres=0.70):
-    """Check if total volume is bigger or smaller than threshold.
+def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70):
+    """
+    Check if total volume is bigger or smaller than threshold.
 
     Parameters
     ----------
-    asegdkt_segfile :
-        [MISSING]
-    voxvol :
-        [MISSING]
-    thres :
-        [MISSING]
+    asegdkt_segfile : np.ndarray
+        The segmentation file.
+    voxvol : float
+        The volume of a voxel.
+    thres : float, default=0.7
+        The threshold for the total volume (Default value = 0.70).
 
     Returns
     -------
     bool
-        Whether or not total volume is bigger or smaller than threshold
-
+        Whether or not total volume is bigger or smaller than threshold.
     """
     print("Checking total volume ...")
     mask = asegdkt_segfile > 0
@@ -101,27 +101,34 @@ def check_volume(asegdkt_segfile, voxvol, thres=0.70):
 def get_region_bg_intersection_mask(
     seg_array, region_labels=VENT_LABELS, bg_label=BG_LABEL
 ):
-    """Return a mask of the intersection between the voxels of a given region and background voxels.
-    
+    f"""
+    Return a mask of the intersection between the voxels of a given region and background voxels.
+
     This is obtained by dilating the region by 1 voxel and computing the intersection with the
     background mask.
-    
+
     The region can be defined by passing in the region_labels dict.
 
     Parameters
     ----------
     seg_array : numpy.ndarray
-        Segmentation array
-    region_labels : Dict
-        dict whose values correspond to the desired region's labels (Default value = VENT_LABELS)
-    bg_label : int
-        (Default value = BG_LABEL)
+        Segmentation array.
+    region_labels : dict, default=<dict VENT_LABELS>
+        Dictionary whose values correspond to the desired region's labels (see Note).
+    bg_label : int,  default={BG_LABEL}
+        (Default value = {BG_LABEL}).
 
     Returns
     -------
     bg_intersect : numpy.ndarray
-        Region and background intersection mask array
+        Region and background intersection mask array.
 
+    Notes
+    -----
+    VENT_LABELS is a dictionary containing labels for four regions related to the ventricles:
+    "Left-Lateral-Ventricle", "Right-Lateral-Ventricle", "Left-choroid-plexus", 
+    "Right-choroid-plexus" along with their corresponding integer label values 
+    (see also FreeSurferColorLUT.txt).
     """
     region_array = seg_array.copy()
     conditions = np.all(
@@ -145,20 +152,20 @@ def get_region_bg_intersection_mask(
 
 
 def get_ventricle_bg_intersection_volume(seg_array, voxvol):
-    """Return a volume estimate for the intersection of ventricle voxels with background voxels.
+    """
+    Return a volume estimate for the intersection of ventricle voxels with background voxels.
 
     Parameters
     ----------
     seg_array : numpy.ndarray
-        Segmentation array
+        Segmentation array.
     voxvol : float
-        Voxel volume
+        Voxel volume.
 
     Returns
     -------
     intersection_volume : float
-        Estimated volume of voxels in ventricle and background intersection
-
+        Estimated volume of voxels in ventricle and background intersection.
     """
     bg_intersect_mask = get_region_bg_intersection_mask(seg_array)
     intersection_volume = bg_intersect_mask.sum() * voxvol
@@ -169,11 +176,11 @@ def get_ventricle_bg_intersection_volume(seg_array, voxvol):
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
-    print("Reading in aparc+aseg: {} ...".format(options.asegdkt_segfile))
-    inseg = nib.load(options.asegdkt_segfile)
+    print(f"Reading in aparc+aseg: {options.asegdkt_segfile} ...")
+    inseg = cast(nib.analyze.SpatialImage, nib.load(options.asegdkt_segfile))
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
-    inseg_voxvol = np.product(inseg_header.get_zooms())
+    inseg_voxvol = np.prod(inseg_header.get_zooms())
 
     # Ventricle-BG intersection volume check:
     print("Estimating ventricle-background intersection volume...")
@@ -186,8 +193,7 @@ if __name__ == "__main__":
     # Total volume check:
     if not check_volume(inseg_data, inseg_voxvol):
         print(
-            "WARNING: Total segmentation volume is very small. Segmentation may be corrupted! Please check."
+            "WARNING: Total segmentation volume is very small. Segmentation may be "
+            "corrupted! Please check."
         )
-        sys.exit(0)
-    else:
-        sys.exit(0)
+    sys.exit(0)

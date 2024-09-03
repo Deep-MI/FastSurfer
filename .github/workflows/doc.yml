@@ -1,0 +1,68 @@
+name: doc
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
+on:
+  pull_request:
+  push:
+    branches: [dev, stable]
+  workflow_dispatch:
+
+jobs:
+  build:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: src
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+          cache: 'pip' # caching pip dependencies
+      - name: Install package
+        run: |
+          python -m pip install --progress-bar off --upgrade pip setuptools wheel
+          python -m pip install --progress-bar off src/.[doc]
+      - name: Build doc
+        run: PYTHONPATH=$PYTHONPATH:src TZ=UTC sphinx-build src/doc doc-build -W --keep-going
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc
+          path: |
+            doc-build
+            !doc-build/.doctrees
+
+  deploy:
+    # only on push to dev or stable
+    if: ${{ github.event_name == 'push' && contains(fromJSON('["dev", "stable"]'), github.ref_name) }}
+    needs: build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: doc
+          path: doc
+      - name: Deploy {dev,stable} documentation
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: doc
+          # destination_dir: github.ref_name will be dev or stable
+          destination_dir: ${{ github.ref_name }}
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'

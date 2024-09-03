@@ -30,8 +30,18 @@ logger = logging.get_logger(__name__)
 
 
 class TestMeter:
+    """
+    TestMeter class.
+    """
     def __init__(self, classname_to_ids):
+        """
+        Constructor function.
 
+        Parameters
+        ----------
+        classname_to_ids : dict
+            Dictionary containing class names and their corresponding ids.
+        """
         # class_id: class_name
         self.classname_to_ids = classname_to_ids
         self.measure_func = lambda pred, gt: {
@@ -40,6 +50,22 @@ class TestMeter:
         }
 
     def _compute_hd(self, pred_bin, gt_bin):
+        """
+        Compute the Hausdorff Distance (HD) between the predicted binary segmentation map
+        and the ground truth binary segmentation map.
+
+        Parameters
+        ----------
+        pred_bin : np.array
+            Predicted binary segmentation map.
+        gt_bin : np.array
+            Ground truth binary segmentation map.
+
+        Returns
+        -------
+        hd_dict : dict
+            Dictionary containing the maximum HD and 95th percentile HD.
+        """
         hd_dict = {}
         if np.count_nonzero(pred_bin) == 0:
             hd_dict["HD_Max"] = np.nan
@@ -52,10 +78,40 @@ class TestMeter:
         return hd_dict
 
     def _get_binray_map(self, lbl_map, class_names):
+        """
+        Generate binary map based on the label map and class names.
+
+        Parameters
+        ----------
+        lbl_map : np.array
+            Label map where each pixel/voxel is assigned a class label.
+        class_names : list
+            List of class names to be considered in the binary map.
+
+        Returns
+        -------
+        bin_map : np.array
+            Binary map where True represents class and False represents its absence.
+        """
         bin_map = np.logical_or.reduce(list(map(lambda l: lbl_map == l, class_names)))
         return bin_map
 
     def metrics_per_class(self, pred, gt):
+        """
+        Compute metrics for each class in the predicted and ground truth segmentation maps.
+
+        Parameters
+        ----------
+        pred : np.array
+            Predicted segmentation map.
+        gt : np.array
+            Ground truth segmentation map.
+
+        Returns
+        -------
+        metrics : dict
+            Dict containing metrics for each class.
+        """
         metrics = {"Label": [], "Dice": [], "HD95": [], "HD_Max": [], "VS": []}
         for lbl_name, lbl_id in self.classname_to_ids.items():
             # ignoring background
@@ -88,6 +144,9 @@ class TestMeter:
 
 
 class Meter:
+    """
+    Meter class.
+    """
     def __init__(
         self,
         cfg,
@@ -99,6 +158,28 @@ class Meter:
         device=None,
         writer=None,
     ):
+        """
+        Constructor function.
+
+        Parameters
+        ----------
+        cfg : object
+            Configuration object containing all the configuration parameters.
+        mode : str
+            Mode of operation ("Train" or "Val").
+        global_step : int
+            The global step count.
+        total_iter : int, optional
+            Total number of iterations.
+        total_epoch : int, optional
+            Total number of epochs.
+        class_names : list, optional
+            List of class names.
+        device : str, optional
+            Device to be used for computation.
+        writer : object, optional
+            Writer object for tensorboard.
+        """
         self._cfg = cfg
         self.mode = mode.capitalize()
         self.confusion_mat = self.mode == "Val"
@@ -115,10 +196,25 @@ class Meter:
         self.multi_gpu = cfg.NUM_GPUS > 1
 
     def reset(self):
+        """
+        Reset function.
+        """
         self.batch_losses = {}
         self.dice_score.reset()
 
     def update_stats(self, pred, labels, loss_dict=None):
+        """
+        Update stats.
+
+        Parameters
+        ----------
+        pred : torch.Tensor
+            Predicted labels.
+        labels : torch.Tensor
+            Ground truth labels.
+        loss_dict : dict, optional
+            Dictionary containing loss values.
+        """
         self.dice_score.update((pred, labels))
         if loss_dict is None:
             return
@@ -126,15 +222,37 @@ class Meter:
             self.batch_losses.setdefault(name, []).append(loss.item())
 
     def write_summary(self, loss_dict):
+        """
+        Write summary.
+
+        Parameters
+        ----------
+        loss_dict : dict
+            Dictionary containing loss values.
+        """
         if self.writer is None:
             return
         for name, loss in loss_dict.items():
             self.writer.add_scalar(f"{self.mode}/{name}", loss.item(), self.global_iter)
         self.global_iter += 1
 
-    def prediction_visualize(
-        self, cur_iter, cur_epoch, img_batch, label_batch, pred_batch
-    ):
+    def prediction_visualize(self, cur_iter, cur_epoch, img_batch, label_batch, pred_batch):
+        """
+        Visualize prediction results for current iteration and epoch.
+
+        Parameters
+        ----------
+        cur_iter : int
+            Current iteration number.
+        cur_epoch : int
+            Current epoch number.
+        img_batch : torch.Tensor
+            Input image batch.
+        label_batch : torch.Tensor
+            Ground truth label batch.
+        pred_batch : torch.Tensor
+            Predicted label batch.
+        """
         if self.writer is None:
             return
         if cur_iter == 1:
@@ -146,6 +264,16 @@ class Meter:
             plt.close("all")
 
     def log_iter(self, cur_iter, cur_epoch):
+        """
+        Log training or validation progress at each iteration.
+
+        Parameters
+        ----------
+        cur_iter : int
+            The current iteration number.
+        cur_epoch : int
+            The current epoch number.
+        """
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
             out_losses = {}
             for name, loss in self.batch_losses.items():
@@ -167,11 +295,36 @@ class Meter:
             )
 
     def log_lr(self, lr, step=None):
+        """
+        Log learning rate at each step.
+
+        Parameters
+        ----------
+        lr : list
+            Learning rate at the current step. Expected to be a list where the first
+            element is the learning rate.
+        step : int, optional
+            Current step number. If not provided, the global iteration
+            number is used.
+        """
         if step is None:
             step = self.global_iter
         self.writer.add_scalar("Train/lr", lr[0], step)
 
     def log_epoch(self, cur_epoch):
+        """
+        Log mean Dice score and confusion matrix at the end of each epoch.
+
+        Parameters
+        ----------
+        cur_epoch : int
+            Current epoch number.
+
+        Returns
+        -------
+        dice_score : float
+            The mean Dice score for the non-background classes.
+        """
         dice_score_per_class, confusion_mat = self.dice_score.compute(per_class=True)
         dice_score = dice_score_per_class[1:].mean()
         if self.writer is None:
