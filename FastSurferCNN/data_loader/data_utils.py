@@ -14,27 +14,28 @@
 
 
 # IMPORTS
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Optional, Tuple, Union, Mapping, cast, Iterable
+from typing import cast
 
-import numpy as np
-from numpy import typing as npt
-import torch
-from skimage.measure import label, regionprops
-from scipy.ndimage import (
-    binary_erosion,
-    binary_closing,
-    filters,
-    uniform_filter,
-    generate_binary_structure,
-)
-import scipy.ndimage.morphology as morphology
 import nibabel as nib
-from nibabel.filebasedimages import FileBasedHeader as _Header
+import numpy as np
 import pandas as pd
+import scipy.ndimage.morphology as morphology
+import torch
+from nibabel.filebasedimages import FileBasedHeader as _Header
+from numpy import typing as npt
+from scipy.ndimage import (
+    binary_closing,
+    binary_erosion,
+    filters,
+    generate_binary_structure,
+    uniform_filter,
+)
+from skimage.measure import label, regionprops
 
+from FastSurferCNN.data_loader.conform import check_affine_in_nifti, conform, is_conform
 from FastSurferCNN.utils import logging
-from FastSurferCNN.data_loader.conform import is_conform, conform, check_affine_in_nifti
 from FastSurferCNN.utils.arg_types import VoxSizeOption
 
 ##
@@ -160,8 +161,8 @@ def load_image(
     """
     try:
         img = cast(nib.analyze.SpatialImage, nib.load(file, **kwargs))
-    except (IOError, FileNotFoundError) as e:
-        raise IOError(
+    except (OSError, FileNotFoundError) as e:
+        raise OSError(
             f"Failed loading the {name} '{file}' with error: {e.args[0]}"
         ) from e
     data = np.asarray(img.dataobj)
@@ -212,7 +213,6 @@ def load_maybe_conform(
         dst_file = file
     else:
         # the image is not conformed to 1mm, do this now.
-        from nibabel.filebasedimages import FileBasedHeader as _Header
 
         fileext = [
             ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS
@@ -258,7 +258,7 @@ def save_image(
         affine_info: npt.NDArray[float],
         img_array: np.ndarray,
         save_as: str | Path,
-        dtype: Optional[npt.DTypeLike] = None
+        dtype: npt.DTypeLike | None = None
 ) -> None:
     """
     Save an image (nibabel MGHImage), according to the desired output file format.
@@ -395,7 +395,7 @@ def filter_blank_slices_thick(
         label_vol: npt.NDArray,
         weight_vol: npt.NDArray,
         threshold: int = 50
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Filter blank slices from the volume using the label volume.
 
@@ -435,7 +435,7 @@ def create_weight_mask(
         mapped_aseg: npt.NDArray,
         max_weight: int = 5,
         max_edge_weight: int = 5,
-        max_hires_weight: Optional[int] = None,
+        max_hires_weight: int | None = None,
         ctx_thresh: int = 33,
         mean_filter: bool = False,
         cortex_mask: bool = True,
@@ -642,7 +642,7 @@ def read_classes_from_lut(lut_file: str | Path):
 
 def map_label2aparc_aseg(
         mapped_aseg: torch.Tensor,
-        labels: Union[torch.Tensor, npt.NDArray]
+        labels: torch.Tensor | npt.NDArray
 ) -> torch.Tensor:
     """
     Perform look-up table mapping from sequential label space to LUT space.
@@ -890,8 +890,8 @@ def split_cortex_labels(aparc: npt.NDArray) -> np.ndarray:
 
 
 def unify_lateralized_labels(
-        lut: Union[str, pd.DataFrame],
-        combi: Tuple[str, str] = ("Left-", "Right-")
+        lut: str | pd.DataFrame,
+        combi: tuple[str, str] = ("Left-", "Right-")
 ) -> Mapping:
     """
     Generate lookup dictionary of left-right labels.
@@ -923,9 +923,9 @@ def unify_lateralized_labels(
 
 
 def get_labels_from_lut(
-        lut: Union[str, pd.DataFrame],
-        label_extract: Tuple[str, str] = ("Left-", "ctx-rh")
-) -> Tuple[np.ndarray, np.ndarray]:
+        lut: str | pd.DataFrame,
+        label_extract: tuple[str, str] = ("Left-", "ctx-rh")
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Extract labels from the lookup tables.
 
@@ -960,9 +960,9 @@ def map_aparc_aseg2label(
         labels: npt.NDArray,
         labels_sag: npt.NDArray,
         sagittal_lut_dict: Mapping,
-        aseg_nocc: Optional[npt.NDArray] = None,
+        aseg_nocc: npt.NDArray | None = None,
         processing:  str = "aparc"
-) ->  Tuple[np.ndarray, np.ndarray]:
+) ->  tuple[np.ndarray, np.ndarray]:
     """
     Perform look-up table mapping of aparc.DKTatlas+aseg.mgz data to label space.
 
@@ -1011,16 +1011,14 @@ def map_aparc_aseg2label(
 
         assert not np.any(
             251 <= aseg
-        ), "Error: CC classes (251-255) still exist in aseg {}".format(np.unique(aseg))
+        ), f"Error: CC classes (251-255) still exist in aseg {np.unique(aseg)}"
         assert np.any(aseg == 3) and np.any(
             aseg == 42
-        ), "Error: no cortical marker detected {}".format(np.unique(aseg))
+        ), f"Error: no cortical marker detected {np.unique(aseg)}"
 
     assert set(labels).issuperset(
         np.unique(aseg)
-    ), "Error: segmentation image contains classes not listed in the labels: \n{}\n{}".format(
-        np.unique(aseg), labels
-    )
+    ), f"Error: segmentation image contains classes not listed in the labels: \n{np.unique(aseg)}\n{labels}"
 
     h, w, d = aseg.shape
     lut_aseg = np.zeros(max(labels) + 1, dtype="int")
@@ -1088,7 +1086,7 @@ def sagittal_coronal_remap_lookup(x: int) -> int:
 
 def infer_mapping_from_lut(
         num_classes_full: int,
-        lut: Union[str, pd.DataFrame]
+        lut: str | pd.DataFrame
 ) -> np.ndarray:
     """
     Guess the mapping from a lookup table.
@@ -1123,7 +1121,7 @@ def infer_mapping_from_lut(
 def map_prediction_sagittal2full(
         prediction_sag: npt.NDArray,
         num_classes: int = 51,
-        lut: Optional[str] = None
+        lut: str | None = None
 ) -> np.ndarray:
     """
     Remap the prediction on the sagittal network to full label space used by coronal and axial networks.
@@ -1165,7 +1163,7 @@ def map_prediction_sagittal2full(
 # Clean up and class separation
 def bbox_3d(
         img: npt.NDArray
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Extract the three-dimensional bounding box coordinates.
 

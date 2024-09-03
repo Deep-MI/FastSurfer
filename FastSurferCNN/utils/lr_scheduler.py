@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
 
 import torch.optim
 
@@ -22,7 +21,7 @@ import yacs.config
 
 def get_lr_scheduler(
     optimzer: torch.optim.Optimizer, cfg: yacs.config.CfgNode
-) -> Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]:
+) -> None | scheduler.StepLR | scheduler.CosineAnnealingWarmRestarts:
     """
     Give a schedular for left-right scheduling.
 

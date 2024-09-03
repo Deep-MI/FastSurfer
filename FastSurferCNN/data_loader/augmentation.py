@@ -15,7 +15,8 @@
 
 # IMPORTS
 from numbers import Number, Real
-from typing import Union, Tuple, Any, Dict
+from typing import Any
+
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -24,7 +25,7 @@ import torch
 ##
 # Transformations for evaluation
 ##
-class ToTensorTest(object):
+class ToTensorTest:
     """
     Convert np.ndarrays in sample to Tensors.
 
@@ -61,7 +62,7 @@ class ToTensorTest(object):
         return img
 
 
-class ZeroPad2DTest(object):
+class ZeroPad2DTest:
     """
     Pad the input with zeros to get output size.
 
@@ -81,7 +82,7 @@ class ZeroPad2DTest(object):
     """
     def __init__(
             self,
-            output_size: Union[Number, Tuple[Number, Number]],
+            output_size: Number | tuple[Number, Number],
             pos: str = 'top_left'
     ):
         """
@@ -147,7 +148,7 @@ class ZeroPad2DTest(object):
 ##
 # Transformations for training
 ##
-class ToTensor(object):
+class ToTensor:
     """
     Convert ndarrays in sample to Tensors.
     
@@ -157,7 +158,7 @@ class ToTensor(object):
         Convert image.
     """
 
-    def __call__(self, sample: npt.NDArray) -> Dict[str, Any]:
+    def __call__(self, sample: npt.NDArray) -> dict[str, Any]:
         """
         Convert the image to float within range [0, 1] and make it torch compatible.
 
@@ -196,7 +197,7 @@ class ToTensor(object):
         }
 
 
-class ZeroPad2D(object):
+class ZeroPad2D:
     """
     Pad the input with zeros to get output size.
 
@@ -216,8 +217,8 @@ class ZeroPad2D(object):
     """
     def __init__(
             self,
-            output_size: Union[Number, Tuple[Number, Number]],
-            pos: Union[None, str] = 'top_left'
+            output_size: Number | tuple[Number, Number],
+            pos: None | str = 'top_left'
     ):
         """
         Initialize position and output_size (as Tuple[float]).
@@ -261,7 +262,7 @@ class ZeroPad2D(object):
 
         return padded_img
 
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         """
         Pad the image, label and weights.
 
@@ -289,7 +290,7 @@ class ZeroPad2D(object):
         return {"img": img, "label": label, "weight": weight, "scale_factor": sf}
 
 
-class AddGaussianNoise(object):
+class AddGaussianNoise:
     """
     Add gaussian noise to sample.
 
@@ -319,7 +320,7 @@ class AddGaussianNoise(object):
         self.std = std
         self.mean = mean
 
-    def __call__(self, sample: Dict[str, Real]) -> Dict[str, Real]:
+    def __call__(self, sample: dict[str, Real]) -> dict[str, Real]:
         """
         Add gaussian noise to scalefactor.
 
@@ -344,7 +345,7 @@ class AddGaussianNoise(object):
         return {"img": img, "label": label, "weight": weight, "scale_factor": sf}
 
 
-class AugmentationPadImage(object):
+class AugmentationPadImage:
     """
     Pad Image with either zero padding or reflection padding of img, label and weight.
 
@@ -364,8 +365,8 @@ class AugmentationPadImage(object):
     """
     def __init__(
             self,
-            pad_size: Tuple[Tuple[int, int],
-            Tuple[int, int]] = ((16, 16), (16, 16)),
+            pad_size: tuple[tuple[int, int],
+            tuple[int, int]] = ((16, 16), (16, 16)),
             pad_type: str = "edge"
     ):
         """
@@ -378,7 +379,7 @@ class AugmentationPadImage(object):
         pad_type : str
             The type of padding to be applied.
         """
-        assert isinstance(pad_size, (int, tuple))
+        assert isinstance(pad_size, int | tuple)
 
         if isinstance(pad_size, int):
 
@@ -391,7 +392,7 @@ class AugmentationPadImage(object):
 
         self.pad_type = pad_type
 
-    def __call__(self, sample: Dict[str, Number]):
+    def __call__(self, sample: dict[str, Number]):
         """
         Pad zeroes of sample image, label and weight.
 
@@ -414,12 +415,12 @@ class AugmentationPadImage(object):
         return {"img": img, "label": label, "weight": weight, "scale_factor": sf}
 
 
-class AugmentationRandomCrop(object):
+class AugmentationRandomCrop:
     """
     Randomly Crop Image to given size.
     """
 
-    def __init__(self, output_size: Union[int, Tuple], crop_type: str = 'Random'):
+    def __init__(self, output_size: int | tuple, crop_type: str = 'Random'):
         """Construct object.
 
         Attributes
@@ -429,7 +430,7 @@ class AugmentationRandomCrop(object):
         crop_type
         The type of crop to be performed.
         """
-        assert isinstance(output_size, (int, tuple))
+        assert isinstance(output_size, int | tuple)
 
         if isinstance(output_size, int):
             self.output_size = (output_size, output_size)
@@ -439,7 +440,7 @@ class AugmentationRandomCrop(object):
 
         self.crop_type = crop_type
 
-    def __call__(self, sample: Dict[str, Number]) -> Dict[str, Number]:
+    def __call__(self, sample: dict[str, Number]) -> dict[str, Number]:
         """
         Crops the augmentation.
 

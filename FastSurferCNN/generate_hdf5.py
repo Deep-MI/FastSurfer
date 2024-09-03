@@ -17,14 +17,12 @@ import glob
 # IMPORTS
 import time
 from collections import defaultdict
-from os.path import dirname, join
+from os.path import join
 from pathlib import Path
-from typing import Dict, Tuple
 
 import h5py
 import nibabel as nib
 import numpy as np
-from numpy import ndarray
 from numpy import typing as npt
 
 from FastSurferCNN.data_loader.data_utils import (
@@ -106,7 +104,7 @@ class H5pyDataset:
         Create a hdf5 file
     """
 
-    def __init__(self, params: Dict, processing: str = "aparc"):
+    def __init__(self, params: dict, processing: str = "aparc"):
         """
         Construct H5pyDataset object.
 
@@ -161,7 +159,7 @@ class H5pyDataset:
         self.lateralization = unify_lateralized_labels(self.lut, params["combi"])
 
         if params["csv_file"] is not None:
-            with open(params["csv_file"], "r") as s_dirs:
+            with open(params["csv_file"]) as s_dirs:
                 self.subject_dirs = [line.strip() for line in s_dirs.readlines()]
 
         else:
@@ -172,7 +170,7 @@ class H5pyDataset:
 
     def _load_volumes(
         self, subject_path: str
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Tuple]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple]:
         """
         Load the given image and segmentation and gets the zoom values.
 
@@ -196,9 +194,7 @@ class H5pyDataset:
         """
         # Load the orig and extract voxel spacing information (x, y, and z dim)
         LOGGER.info(
-            "Processing intensity image {} and ground truth segmentation {}".format(
-                self.orig_name, self.aparc_name
-            )
+            f"Processing intensity image {self.orig_name} and ground truth segmentation {self.aparc_name}"
         )
         orig = nib.load(join(subject_path, self.orig_name))
         # Load the segmentation ground truth
@@ -219,7 +215,7 @@ class H5pyDataset:
 
     def transform(
         self, plane: str, imgs: npt.NDArray, zoom: npt.NDArray
-    ) -> Tuple[npt.NDArray, npt.NDArray]:
+    ) -> tuple[npt.NDArray, npt.NDArray]:
         """
         Transform the image and zoom along the given axis.
 
@@ -268,7 +264,7 @@ class H5pyDataset:
         """
         # Get correct size = max along shape
         h, w, d = img.shape
-        LOGGER.info("Padding image from {0} to {1}x{1}x{1}".format(img.shape, max_out))
+        LOGGER.info(f"Padding image from {img.shape} to {max_out}x{max_out}x{max_out}")
         padded_img = np.zeros((max_out, max_out, max_out), dtype=img.dtype)
         padded_img[0:h, 0:w, 0:d] = img
         return padded_img
@@ -287,12 +283,10 @@ class H5pyDataset:
 
         for idx, current_subject in enumerate(self.subject_dirs):
             try:
-                start = time.time()
+                # start = time.time()
 
                 LOGGER.info(
-                    "Volume Nr: {} Processing MRI Data from {}/{}".format(
-                        idx + 1, current_subject, self.orig_name
-                    )
+                    f"Volume Nr: {idx + 1} Processing MRI Data from {current_subject}/{self.orig_name}"
                 )
 
                 orig, aseg, aseg_nocc, zoom = self._load_volumes(current_subject)
@@ -331,14 +325,8 @@ class H5pyDataset:
                     )
 
                 print(
-                    "Created weights with max_w {}, gradient {},"
-                    " edge_w {}, hires_w {}, gm_mask {}".format(
-                        self.max_weight,
-                        self.gradient,
-                        self.edge_weight,
-                        self.hires_weight,
-                        self.gm_mask,
-                    )
+                    f"Created weights with max_w {self.max_weight}, gradient {self.gradient},"
+                    f" edge_w {self.edge_weight}, hires_w {self.hires_weight}, gm_mask {self.gm_mask}"
                 )
 
                 # transform volumes to correct shape
@@ -368,7 +356,7 @@ class H5pyDataset:
                 )
 
             except Exception as e:
-                LOGGER.info("Volume: {} Failed Reading Data. Error: {}".format(idx, e))
+                LOGGER.info(f"Volume: {idx} Failed Reading Data. Error: {e}")
                 continue
 
         for key, data_dict in data_per_size.items():
@@ -388,9 +376,7 @@ class H5pyDataset:
 
         end_d = time.time() - start_d
         LOGGER.info(
-            "Successfully written {} in {:.3f} seconds.".format(
-                self.dataset_name, end_d
-            )
+            f"Successfully written {self.dataset_name} in {end_d:.3f} seconds."
         )
 
 

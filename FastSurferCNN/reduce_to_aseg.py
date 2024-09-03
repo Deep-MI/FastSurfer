@@ -153,7 +153,7 @@ def create_mask(aseg_data, dnum, enum):
     # extract largest component
     labels = label(datab)
     assert labels.max() != 0  # assume at least 1 real connected component
-    print("  Found {} connected component(s)!".format(labels.max()))
+    print(f"  Found {labels.max()} connected component(s)!")
 
     if labels.max() > 1:
         print("  Selecting largest component!")
@@ -221,7 +221,7 @@ def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
     flip_data = aseg_data.copy()
     flip_data[rhswap] = lh_wm
     flip_data[lhswap] = rh_wm
-    print("FlipWM: rh {} and lh {} flipped.".format(rhswap.sum(), lhswap.sum()))
+    print(f"FlipWM: rh {rhswap.sum()} and lh {lhswap.sum()} flipped.")
 
     return flip_data
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
-    print("Reading in aparc+aseg: {} ...".format(options.input_seg))
+    print(f"Reading in aparc+aseg: {options.input_seg} ...")
     inseg = nib.load(options.input_seg)
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     # get mask
     if options.output_mask:
         bm = create_mask(copy.deepcopy(inseg_data), 5, 4)
-        print("Outputting mask: {}".format(options.output_mask))
+        print(f"Outputting mask: {options.output_mask}")
         mask = nib.MGHImage(bm, inseg_affine, inseg_header)
         mask.to_filename(options.output_mask)
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
 
-    print("Outputting aseg: {}".format(options.output_seg))
+    print(f"Outputting aseg: {options.output_seg}")
     aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
     aseg_fin.to_filename(options.output_seg)
 

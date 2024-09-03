@@ -20,8 +20,8 @@ import argparse
 from os import environ as env
 from pathlib import Path
 
-from FastSurferCNN.segstats import HelpFormatter, main, VERSION
 from FastSurferCNN.mri_segstats import print_and_exit
+from FastSurferCNN.segstats import VERSION, HelpFormatter, main
 
 DEFAULT_MEASURES_STRINGS = [
    (False, "BrainSeg"),

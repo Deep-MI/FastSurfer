@@ -14,13 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from concurrent.futures import Executor, Future
 import subprocess
+from collections.abc import Generator, Sequence
 from concurrent.futures import Executor, Future
 from dataclasses import dataclass
-from functools import partialmethod
-from typing import Generator, Optional, Sequence, Callable, Any, Collection, Iterable
 from datetime import datetime
+from functools import partialmethod
 
 # TODO: python3.9+
 # from collections.abc import Generator
@@ -34,7 +33,7 @@ class MessageBuffer:
 
     out: bytes = b""
     err: bytes = b""
-    retcode: Optional[int] = None
+    retcode: int | None = None
     runtime: float = 0.
 
     def __add__(self, other: "MessageBuffer") -> "MessageBuffer":
@@ -71,7 +70,7 @@ class Popen(subprocess.Popen):
     """
     Extension of subprocess.Popen for convenience.
     """
-    _starttime: Optional[datetime] = None
+    _starttime: datetime | None = None
 
     def __init__(self, *args, **kwargs):
         self._starttime = datetime.now()
@@ -168,8 +167,8 @@ class Popen(subprocess.Popen):
             if i > 0:
                 self.kill()
                 raise RuntimeError(
-                    "The process {} did not stop properly in Popen.finish, "
-                    "abandoning.".format(self)
+                    f"The process {self} did not stop properly in Popen.finish, "
+                    "abandoning."
                 )
             i += 1
         if i == 0:
@@ -235,6 +234,6 @@ class PyPopen(Popen):
         }
         flags = "".join(k for k, v in all_flags.items() if getattr(sys.flags, v) == 1)
         flags = [] if len(flags) == 0 else ["-" + flags]
-        super(PyPopen, self).__init__(
+        super().__init__(
             [sys.executable] + flags + list(args), *_args, **kwargs
         )

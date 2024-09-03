@@ -18,30 +18,23 @@
 # IMPORTS
 import argparse
 import logging
+from collections.abc import Callable, Container, Iterable, Iterator, Sequence, Sized
+from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import partial, reduce
 from itertools import product
 from numbers import Number
 from pathlib import Path
 from typing import (
-    Any,
-    Callable,
-    cast,
-    Iterable,
     IO,
+    Any,
     Literal,
-    Optional,
-    overload,
-    Sequence,
-    Sized,
-    Type,
     TypedDict,
     TypeVar,
-    Container,
-    Iterator,
+    cast,
+    overload,
 )
-from concurrent.futures import Executor, ThreadPoolExecutor
 
-
+import nibabel as nib
 import numpy as np
 import pandas as pd
 from numpy import typing as npt
@@ -49,6 +42,7 @@ from numpy import typing as npt
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as robust_threshold
 from FastSurferCNN.utils.arg_types import int_ge_zero as id_type
 from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size_type
+from FastSurferCNN.utils.brainvolstats import Manager
 from FastSurferCNN.utils.parser_defaults import add_arguments
 from FastSurferCNN.utils.threads import get_num_threads
 
@@ -90,9 +84,9 @@ _ArrayType = TypeVar("_ArrayType", bound=np.ndarray)
 SlicingTuple = tuple[slice, ...]
 SlicingSequence = Sequence[slice]
 VirtualLabel = dict[int, Sequence[int]]
-_GlobalStats = tuple[int, int, Optional[_NumberType], Optional[_NumberType],
-                     Optional[float], Optional[float], float, npt.NDArray[bool]]
-SubparserCallback = Type[argparse.ArgumentParser.add_subparsers]
+_GlobalStats = tuple[int, int, _NumberType | None, _NumberType | None,
+                     float | None, float | None, float, npt.NDArray[bool]]
+SubparserCallback = type[argparse.ArgumentParser.add_subparsers]
 
 
 class _RequiredPVStats(TypedDict):
@@ -154,15 +148,15 @@ class HelpFormatter(argparse.HelpFormatter):
         """
         cond_len, texts = self._itemized_lines(text)
         lines = (super(HelpFormatter, self)._fill_text(t[p:], width, indent + " " * p)
-                 for t, (c, p) in zip(texts, cond_len))
-        return "\n".join("- " + t[p:] if c else t for t, (c, p) in zip(lines, cond_len))
+                 for t, (c, p) in zip(texts, cond_len, strict=False))
+        return "\n".join("- " + t[p:] if c else t for t, (c, p) in zip(lines, cond_len, strict=False))
 
     def _itemized_lines(self, text):
         texts = text.split(self._linebreak_sub())
         item = self._item_symbol()
         il = len(item)
         cond_len = [(c, il if c else 0) for c in map(lambda t: t[:il] == item, texts)]
-        texts = [t[p:] for t, (c, p) in zip(texts, cond_len)]
+        texts = [t[p:] for t, (c, p) in zip(texts, cond_len, strict=False)]
         return cond_len, texts
 
     def _split_lines(self, text: str, width: int) -> list[str]:
@@ -182,13 +176,13 @@ class HelpFormatter(argparse.HelpFormatter):
             The list of lines.
         """
         def indent_list(items: list[str]) -> list[str]:
-            return ["- " + items[0]] + ["  " + l for l in items[1:]]
+            return ["- " + items[0]] + ["  " + ln for ln in items[1:]]
 
         cond_len, texts = self._itemized_lines(text)
         from itertools import chain
         lines = (super(HelpFormatter, self)._split_lines(tex, width - p)
-                 for tex, (c, p) in zip(texts, cond_len))
-        lines = ((indent_list(lst) if c[0] else lst) for lst, c in zip(lines, cond_len))
+                 for tex, (c, p) in zip(texts, cond_len, strict=False))
+        lines = ((indent_list(lst) if c[0] else lst) for lst, c in zip(lines, cond_len, strict=False))
         return list(chain.from_iterable(lines))
 
 
@@ -755,9 +749,10 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         Either as a successful return code or a string with an error message.
     """
     from time import perf_counter_ns
-    from FastSurferCNN.utils.common import assert_no_root
-    from FastSurferCNN.utils.brainvolstats import Manager, read_volume_file, ImageTuple
+
     from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
+    from FastSurferCNN.utils.brainvolstats import ImageTuple, Manager, read_volume_file
+    from FastSurferCNN.utils.common import assert_no_root
 
     start = perf_counter_ns()
     getattr(args, "allow_root", False) or assert_no_root()
@@ -783,8 +778,8 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
             require_pvfile=not legacy_freesurfer,
         )
         if legacy_freesurfer and not measure_only and pvfile is None:
-            return (f"No files are defined via -pv/--pvfile or -norm/--normfile: "
-                    f"This is only supported for header only in legacy mode.")
+            return ("No files are defined via -pv/--pvfile or -norm/--normfile: "
+                    "This is only supported for header only in legacy mode.")
         if measurefile:
             manager_kwargs["measurefile"] = measurefile
     except ValueError as e:
@@ -837,10 +832,10 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
                 norm, norm_data = _norm
                 check_shape_affine(seg, norm, "segmentation", "norm")
 
-        except (IOError, RuntimeError, FileNotFoundError) as e:
+        except (OSError, RuntimeError, FileNotFoundError) as e:
             return e.args[0]
 
-        lut: Optional[pd.DataFrame] = None
+        lut: pd.DataFrame | None = None
         if lut_file:
             try:
                 lut = read_lut(lut_file)
@@ -934,7 +929,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     if save_maps:
         table, maps = out
         dtypes = [np.int16] + [np.float32] * 4
-        for name, dtype in zip(names, dtypes):
+        for name, dtype in zip(names, dtypes, strict=False):
             if not bool(file := getattr(args, name, "")) or file == Path():
                 # skip "fullview"-files that are not defined
                 continue
@@ -1035,7 +1030,7 @@ def infer_merged_labels(
 def table_to_dataframe(
         table: list[PVStats],
         report_empty: bool = True,
-        must_keep_ids: Optional[Container[int]] = None,
+        must_keep_ids: Container[int] | None = None,
 ) -> pd.DataFrame:
     """
     Convert the list of PVStats dictionaries into a dataframe.
@@ -1068,7 +1063,7 @@ def table_to_dataframe(
 def update_structnames(
     table: list[PVStats],
     lut: pd.DataFrame,
-    merged_labels: Optional[dict[_IntType, Sequence[_IntType]]] = None
+    merged_labels: dict[_IntType, Sequence[_IntType]] | None = None
 ) -> None:
     """
     Update StructNames from `lut` and `merged_labels` in `table`.
@@ -1115,11 +1110,11 @@ def write_statsfile(
     segstatsfile: Path | str,
     dataframe: pd.DataFrame,
     vox_vol: float,
-    exclude: Optional[Sequence[int | str]] = None,
-    segfile: Optional[Path | str] = None,
-    normfile: Optional[Path | str] = None,
-    pvfile: Optional[Path | str] = None,
-    lut: Optional[Path | str] = None,
+    exclude: Sequence[int | str] | None = None,
+    segfile: Path | str | None = None,
+    normfile: Path | str | None = None,
+    pvfile: Path | str | None = None,
+    lut: Path | str | None = None,
     report_empty: bool = False,
     extra_header: Sequence[str] = (),
     norm_name: str = "norm",
@@ -1178,6 +1173,7 @@ def write_statsfile(
         """
         import os
         import sys
+
         from FastSurferCNN.version import read_and_close_version
         file.write(
             "# generating_program segstats.py\n"
@@ -1201,7 +1197,7 @@ def write_statsfile(
         try:
             file.write(f"# user       {getuser()}\n")
         except KeyError:
-            file.write(f"# user       UNKNOWN\n")
+            file.write("# user       UNKNOWN\n")
 
     def _extra_header(file: IO, lines_extra_header: Iterable[str]) -> None:
         """
@@ -1221,12 +1217,12 @@ def write_statsfile(
 
                 warn_msg_sent or warn(
                     f"extra_header[{i}] includes embedded newline characters. "
-                    "Replacing all newline characters with <space>."
+                    "Replacing all newline characters with <space>.", stacklevel=2
                 )
                 warn_msg_sent = True
             file.write(f"# {line}\n")
 
-    def _file_annotation(file: IO, name: str, path_to_annotate: Optional[Path]) -> None:
+    def _file_annotation(file: IO, name: str, path_to_annotate: Path | None) -> None:
         """
         Write the annotation to file/path to a file.
         """
@@ -1242,7 +1238,7 @@ def write_statsfile(
         _voxvol: float,
         _exclude: Sequence[int | str],
         _report_empty: bool = False,
-        _lut: Optional[Path] = None,
+        _lut: Path | None = None,
         _leg_freesurfer: bool = False,
     ) -> None:
         """
@@ -1313,7 +1309,7 @@ def write_statsfile(
         """Write the volume stats from _dataframe to a file."""
         columns = [col for col in COLUMNS if col in _dataframe.columns]
         fmt = " ".join(_column_format(k) for k in columns)
-        for index, row in _dataframe.iterrows():
+        for _index, row in _dataframe.iterrows():
             data = [row[k] for k in columns]
             file.write(fmt.format(*data) + "\n")
 
@@ -1331,7 +1327,7 @@ def write_statsfile(
     with open(segstatsfile, "w") as fp:
         _title(fp)
         _system_info(fp)
-        fp.write(f"# anatomy_type volume\n#\n")
+        fp.write("# anatomy_type volume\n#\n")
         _extra_header(fp, extra_header)
 
         _file_annotation(fp, "SegVolFile", segfile)
@@ -1392,7 +1388,7 @@ def preproc_image(
 def seg_borders(
     _array: _ArrayType,
     label: np.integer | bool,
-    out: Optional[npt.NDArray[bool]] = None,
+    out: npt.NDArray[bool] | None = None,
     cmp_dtype: npt.DTypeLike = "int8",
 ) -> npt.NDArray[bool]:
     """
@@ -1436,9 +1432,9 @@ def seg_borders(
 def borders(
     _array: _ArrayType,
     labels: Iterable[np.integer] | bool,
-    max_label: Optional[np.integer] = None,
+    max_label: np.integer | None = None,
     six_connected: bool = True,
-    out: Optional[npt.NDArray[bool]] = None,
+    out: npt.NDArray[bool] | None = None,
 ) -> npt.NDArray[bool]:
     """
     Handle to fast border computation.
@@ -1496,7 +1492,6 @@ def borders(
             labels = [0] + labels
         lookup[labels] = np.arange(len(labels), dtype=lookup.dtype)
         _array = lookup[_array]
-    logical_or = np.logical_or
     # pad array by 1 voxel of zeros all around
     padded = np.pad(_array, 1)
 
@@ -1517,7 +1512,7 @@ def borders(
         # ((False, True), (True, False), (False, False), (False, True))  for each dim
         # is_mid=False: padded values already dropped
         indexes = (indexer(i, is_mid=False) for i in range(dim))
-        nbr_same = [(nbr_[i], nbr_[j]) for (i, j), nbr_ in zip(indexes, nbr_same)]
+        nbr_same = [(nbr_[i], nbr_[j]) for (i, j), nbr_ in zip(indexes, nbr_same, strict=False)]
         from itertools import chain
         nbr_same = list(chain.from_iterable(nbr_same))
     else:
@@ -1577,8 +1572,8 @@ def pad_slicer(
         _start, _end = start_end
         return slice(_start.item(), None if _end.item() == 0 else _end.item())
     # make grown patch and grown patch to patch
-    padded_slicer = tuple(slice(s.item(), e.item()) for s, e in zip(_start, _stop))
-    unpadded_slicer = tuple(map(_slice, zip(start - _start, stop - _stop)))
+    padded_slicer = tuple(slice(s.item(), e.item()) for s, e in zip(_start, _stop, strict=False))
+    unpadded_slicer = tuple(map(_slice, zip(start - _start, stop - _stop, strict=False)))
     return padded_slicer, unpadded_slicer
 
 
@@ -1586,7 +1581,7 @@ def uniform_filter(
     data: _ArrayType,
     filter_size: int,
     fillval: float = 0.,
-    slicer_patch: Optional[SlicingTuple] = None,
+    slicer_patch: SlicingTuple | None = None,
 ) -> _ArrayType:
     """
     Apply a uniform filter (with kernel size `filter_size`) to `input`.
@@ -1636,8 +1631,8 @@ def pv_calc(
     patch_size: int = 32,
     vox_vol: float = 1.0,
     eps: float = 1e-6,
-    robust_percentage: Optional[float] = None,
-    merged_labels: Optional[VirtualLabel] = None,
+    robust_percentage: float | None = None,
+    merged_labels: VirtualLabel | None = None,
     threads: int | Executor = -1,
     return_maps: False = False,
     legacy_freesurfer: bool = False,
@@ -1654,8 +1649,8 @@ def pv_calc(
     patch_size: int = 32,
     vox_vol: float = 1.0,
     eps: float = 1e-6,
-    robust_percentage: Optional[float] = None,
-    merged_labels: Optional[VirtualLabel] = None,
+    robust_percentage: float | None = None,
+    merged_labels: VirtualLabel | None = None,
     threads: int | Executor = -1,
     return_maps: True = True,
     legacy_freesurfer: bool = False,
@@ -1666,7 +1661,7 @@ def pv_calc(
 def pv_calc(
     seg: npt.NDArray[_IntType],
     pv_guide: np.ndarray,
-    norm: Optional[np.ndarray],
+    norm: np.ndarray | None,
     labels: npt.ArrayLike,
     patch_size: int = 32,
     vox_vol: float = 1.0,
@@ -1753,8 +1748,8 @@ def pv_calc(
             f"are {seg.shape} and {norm.shape}!"
         )
 
-    mins, maxes, voxel_counts, robust_voxel_counts = [{} for _ in range(4)]
-    borders, sums, sums_2, volumes = [{} for _ in range(4)]
+    mins, maxes, voxel_counts, robust_voxel_counts = ({} for _ in range(4))
+    borders, sums, sums_2, volumes = ({} for _ in range(4))
 
     if isinstance(merged_labels, dict) and len(merged_labels) > 0:
         _more_labels = list(merged_labels.values())
@@ -1789,7 +1784,7 @@ def pv_calc(
         raise ValueError("Zero is not a valid number of threads.")
     elif isinstance(threads, int) and threads > 0:
         nthreads = threads
-    elif isinstance(threads, (Executor, int)):
+    elif isinstance(threads, Executor | int):
         nthreads: int = get_num_threads()
     else:
         raise TypeError("threads must be int or concurrent.futures.Executor object.")
@@ -1821,7 +1816,7 @@ def pv_calc(
     # un_global_crop border here
     any_border = np.any(list(borders.values()), axis=0)
     pad_width = np.asarray(
-        [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape)],
+        [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape, strict=False)],
         dtype=int,
     )
     any_border = np.pad(any_border, pad_width)
@@ -1874,7 +1869,7 @@ def pv_calc(
 
         stds = {lab: get_std(lab, nvox) for lab, nvox in robust_vc_it if nvox > eps}
 
-        for lab, this in zip(labels, table):
+        for lab, this in zip(labels, table, strict=False):
             this.update(
                 Mean=means.get(lab, 0.0),
                 StdDev=stds.get(lab, 0.0),
@@ -1904,10 +1899,10 @@ def calculate_merged_labels(
         voxel_counts: dict[_IntType, int],
         robust_voxel_counts: dict[_IntType, int],
         volumes: dict[_IntType, float],
-        mins: Optional[dict[_IntType, float]] = None,
-        maxes: Optional[dict[_IntType, float]] = None,
-        sums: Optional[dict[_IntType, float]] = None,
-        sums_of_squares: Optional[dict[_IntType, float]] = None,
+        mins: dict[_IntType, float] | None = None,
+        maxes: dict[_IntType, float] | None = None,
+        sums: dict[_IntType, float] | None = None,
+        sums_of_squares: dict[_IntType, float] | None = None,
         eps: float = 1e-6,
 ) -> Iterator[PVStats]:
     """
@@ -1945,18 +1940,18 @@ def calculate_merged_labels(
 
     def aggregate(source, merge_labels, f: Callable[..., np.ndarray] = np.sum):
         """aggregate labels `merge_labels` from `source` with function `f`"""
-        _data = [source.get(l, 0) for l in merge_labels if num_robust_voxels(l) > eps]
+        _data = [source.get(lb, 0) for lb in merge_labels if num_robust_voxels(lb) > eps]
         return f(_data).item()
 
     def aggregate_std(sums, sums2, merge_labels, nvox):
         """aggregate std of labels `merge_labels` from `source`"""
-        s2 = [(s := sums.get(l, 0)) * s / r for l in group
-              if (r := num_robust_voxels(l)) > eps]
+        s2 = [(s := sums.get(lb, 0)) * s / r for lb in group
+              if (r := num_robust_voxels(lb)) > eps]
         return np.sqrt((aggregate(sums2, merge_labels) - np.sum(s2)) / nvox).item()
 
     for lab, group in merged_labels.items():
         stats = {"SegId": lab}
-        if all(l not in robust_voxel_counts for l in group):
+        if all(lb not in robust_voxel_counts for lb in group):
             logging.getLogger(__name__).warning(
                 f"None of the labels {group} for merged label {lab} exist in the "
                 f"segmentation."
@@ -1994,8 +1989,8 @@ def global_stats(
     lab: _IntType,
     norm: npt.NDArray[_NumberType] | None,
     seg: npt.NDArray[_IntType],
-    out: Optional[npt.NDArray[bool]] = None,
-    robust_percentage: Optional[float] = None,
+    out: npt.NDArray[bool] | None = None,
+    robust_percentage: float | None = None,
 ) -> tuple[_IntType, _GlobalStats]:
     """
     Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
@@ -2025,7 +2020,7 @@ def global_stats(
         sum_of_intensity_squares, and border with respect to the label.
 
     """
-    def __compute_borders(out: Optional[np.ndarray]) -> np.ndarray:
+    def __compute_borders(out: np.ndarray | None) -> np.ndarray:
         # compute/update the border
         if out is None:
             out = seg_borders(label_mask, True, cmp_dtype="int8").astype(bool)
@@ -2099,14 +2094,14 @@ def patch_filter(
         return slice(patch_start, min(patch_start + _patch_size, image_stop))
 
     # create slices for current patch context (constrained by the global_crop)
-    patch = [_slice(pc, patch_size, s.stop) for pc, s in zip(patch_corner, global_crop)]
+    patch = [_slice(pc, patch_size, s.stop) for pc, s in zip(patch_corner, global_crop, strict=False)]
     # crop patch context to the image content
     return crop_patch_to_mask(mask, sub_patch=patch)
 
 
 def crop_patch_to_mask(
     mask: npt.NDArray[_NumberType],
-    sub_patch: Optional[SlicingSequence] = None,
+    sub_patch: SlicingSequence | None = None,
 ) -> tuple[bool, SlicingSequence]:
     """
     Crop the patch to regions of the mask that are non-zero.
@@ -2164,7 +2159,7 @@ def crop_patch_to_mask(
         return slice(the_slice.start + offset, the_slice.stop + offset)
 
     target_slicer = [_move_slice(ts, sc.start) for ts, sc in zip(_target_slicer,
-                                                                 slicer_context)]
+                                                                 slicer_context, strict=False)]
     return _target_slicer[0].start != _target_slicer[0].stop, target_slicer
 
 
@@ -2175,11 +2170,11 @@ def pv_calc_patch(
     seg: npt.NDArray[_IntType],
     pv_guide: npt.NDArray,
     border: npt.NDArray[bool],
-    full_pv: Optional[npt.NDArray[float]] = None,
-    full_ipv: Optional[npt.NDArray[float]] = None,
-    full_nbr_label: Optional[npt.NDArray[_IntType]] = None,
-    full_seg_mean: Optional[npt.NDArray[float]] = None,
-    full_nbr_mean: Optional[npt.NDArray[float]] = None,
+    full_pv: npt.NDArray[float] | None = None,
+    full_ipv: npt.NDArray[float] | None = None,
+    full_nbr_label: npt.NDArray[_IntType] | None = None,
+    full_seg_mean: npt.NDArray[float] | None = None,
+    full_nbr_mean: npt.NDArray[float] | None = None,
     eps: float = 1e-6,
     legacy_freesurfer: bool = False,
 ) -> dict[_IntType, float]:
@@ -2245,11 +2240,11 @@ def pv_calc_patch(
     slicer_large_to_small = tuple(
         slice(l2p.start - s2p.start,
               None if l2p.stop == s2p.stop else l2p.stop - s2p.stop)
-        for s2p, l2p in zip(slicer_small_to_patch, slicer_large_to_patch))
+        for s2p, l2p in zip(slicer_small_to_patch, slicer_large_to_patch, strict=False))
     patch_in_gc = tuple(
         slice(p.start - gc.start,
               p.stop - gc.start)
-        for p, gc in zip(slicer_patch, global_crop))
+        for p, gc in zip(slicer_patch, global_crop, strict=False))
 
     label_lookup = np.unique(seg[slicer_small_patch])
     maxlabels = label_lookup[-1] + 1
@@ -2506,5 +2501,5 @@ if __name__ == "__main__":
         from os import environ as env
 
         if (sd := env.get("SUBJECTS_DIR")) is not None:
-            setattr(opts, "out_dir", sd)
+            opts.out_dir = sd
     sys.exit(main(opts))

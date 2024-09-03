@@ -26,14 +26,13 @@ Values can also be extracted by
 >>> #  'dest': 'root', 'help': 'Allow execution as root user.'}
 """
 
-import argparse
 import types
-from dataclasses import dataclass, Field, fields
+from collections.abc import Iterable, Mapping
+from dataclasses import Field, dataclass
 from pathlib import Path
-from typing import (Dict, Iterable, Literal, Mapping, Protocol, Type, TypeVar, Union,
-                    Optional, get_origin, get_args)
+from typing import Literal, Protocol, TypeVar, get_args, get_origin
 
-from FastSurferCNN.utils import Plane, PLANES
+from FastSurferCNN.utils import PLANES, Plane
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
 from FastSurferCNN.utils.arg_types import unquote_str
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
@@ -46,7 +45,7 @@ PLANE_HELP = {
     "checkpoint": "{} checkpoint to load",
     "config": "Path to the {} config file",
 }
-VoxSize = Union[Literal["min"], float]
+VoxSize = Literal["min"] | float
 
 
 class CanAddArguments(Protocol):
@@ -63,7 +62,7 @@ class CanAddArguments(Protocol):
 
 def __arg(
         *default_flags: str,
-        dcf: Optional[Field] = None,
+        dcf: Field | None = None,
         dc=None,
         fieldname: str = "",
         **default_kwargs,
@@ -113,7 +112,7 @@ def __arg(
             else:
                 default_kwargs.setdefault(kw, default)
 
-    def _stub(parser: Union[CanAddArguments, Type[Dict]], *flags, **kwargs):
+    def _stub(parser: CanAddArguments | type[dict], *flags, **kwargs):
         # prefer the value passed to the "new" call
         for kw, arg in kwargs.items():
             if callable(arg) and kw in default_kwargs:
@@ -126,7 +125,7 @@ def __arg(
         _flags = flags if len(flags) != 0 else default_flags
         if hasattr(parser, "add_argument"):
             return parser.add_argument(*_flags, **kwargs)
-        elif parser == dict or isinstance(parser, dict):
+        elif isinstance(parser, dict):
             return {"flag": _flags[0], "flags": _flags, **kwargs}
         else:
             raise ValueError(
@@ -168,18 +167,18 @@ class SubjectDirectoryConfig:
              "mri/orig.mgz.",
         flags=("--conformed_name",),
     )
-    in_dir: Optional[Path] = field(
+    in_dir: Path | None = field(
         flags=("--in_dir",),
         default=None,
         help="Directory in which input volume(s) are located. Optional, if full path "
              "is defined for --t1.",
     )
-    csv_file: Optional[Path] = field(
+    csv_file: Path | None = field(
         flags=("--csv_file",),
         default=None,
         help="Csv-file with subjects to analyze (alternative to --tag)",
     )
-    sid: Optional[str] = field(
+    sid: str | None = field(
         flags=("--sid",),
         default=None,
         help="Optional: directly set the subject id to use. Can be used for single "
@@ -207,7 +206,7 @@ class SubjectDirectoryConfig:
              "correct subject name (e.g. /ses-x/anat/ for BIDS or /mri/ for FreeSurfer "
              "input). Default: do not remove anything.",
     )
-    out_dir: Optional[Path] = field(
+    out_dir: Path | None = field(
         default=None,
         help="Directory in which evaluation results should be written. Will be created "
              "if it does not exist. Optional if full path is defined for --pred_name.",

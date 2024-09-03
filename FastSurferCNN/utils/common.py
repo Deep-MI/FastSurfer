@@ -14,19 +14,11 @@
 
 # IMPORTS
 import os
-from collections import namedtuple
+from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Executor, Future
-from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
     TypeVar,
 )
 
@@ -126,6 +118,7 @@ def assert_no_root() -> bool:
     """
     if os.name == "posix" and os.getuid() == 0:
         import sys
+
         import __main__
 
         sys.exit(
@@ -185,7 +178,7 @@ def pipeline(
     iterable: Iterable[_Ti],
     *,
     pipeline_size: int = 1,
-) -> Iterator[Tuple[_Ti, _T]]:
+) -> Iterator[tuple[_Ti, _T]]:
     """
     Pipeline a function to be executed in the pool.
 
@@ -229,7 +222,7 @@ def pipeline(
 
 def iterate(
     pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti],
-) -> Iterator[Tuple[_Ti, _T]]:
+) -> Iterator[tuple[_Ti, _T]]:
     """
     Iterate over iterable, yield pairs of elements and func(element).
 
@@ -674,18 +667,18 @@ class SubjectList:
     Represent a list of subjects.
     """
 
-    _subjects: List[Path]
+    _subjects: list[Path]
     _orig_name_: str
     _conf_name_: str
     _segfile_: str
-    _flags: Dict[str, dict]
+    _flags: dict[str, dict]
 
     DEFAULT_FLAGS = {k: v(dict) for k, v in parser_defaults.ALL_FLAGS.items()}
 
     def __init__(
             self,
             args: SubjectDirectoryConfig,
-            flags: Optional[dict[str, dict]] = None,
+            flags: dict[str, dict] | None = None,
             **assign,
     ):
         """
@@ -778,10 +771,10 @@ class SubjectList:
         self._out_segfile = getattr(self, "_segfile_", None)
         if self._out_segfile is None:
             raise RuntimeError(
-                f"The segmentation output file is not set, it should be either "
-                f"'segfile' (which gets populated from args.segfile), or a keyword "
-                f"argument to __init__, e.g. `SubjectList(args, subseg='subseg_param', "
-                f"out_filename='subseg')`."
+                "The segmentation output file is not set, it should be either "
+                "'segfile' (which gets populated from args.segfile), or a keyword "
+                "argument to __init__, e.g. `SubjectList(args, subseg='subseg_param', "
+                "out_filename='subseg')`."
             )
 
         # if out_dir is not set, fall back to in_dir by default
@@ -796,12 +789,12 @@ class SubjectList:
             raise RuntimeError(msg.format(**self._flags))
 
         # 1. are we doing a csv file of subjects
-        if getattr(args, "csv_file") is not None:
-            with open(args.csv_file, "r") as s_dirs:
+        if args.csv_file is not None:
+            with open(args.csv_file) as s_dirs:
                 self._subjects = [Path(line.strip()) for line in s_dirs.readlines()]
             if any(not d.is_absolute() for d in self._subjects):
                 msg = f"At least one path in {args.csv_file} was relative, but the "
-                if getattr(args, "in_dir") is None:
+                if args.in_dir is None:
                     raise RuntimeError(
                         "{}in_dir was not in args (no {in_dir[flag]} flag).".format(
                             msg, **self._flags
@@ -950,7 +943,7 @@ class SubjectList:
     __init__.__doc__ = __init__.__doc__.format(**DEFAULT_FLAGS)
 
     @property
-    def flags(self) -> Dict[str, Dict]:
+    def flags(self) -> dict[str, dict]:
         """
         Give the flags.
 
@@ -1090,7 +1083,7 @@ class SerialExecutor(Executor):
         self,
         fn: Callable[..., _T],
         *iterables: Iterable[Any],
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         chunksize: int = -1,
     ) -> Iterator[_T]:
         """

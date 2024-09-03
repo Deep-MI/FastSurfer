@@ -13,10 +13,7 @@
 # limitations under the License.
 
 # IMPORTS
-from logging import *
-from logging import DEBUG, INFO, FileHandler, StreamHandler, basicConfig
-from logging import getLogger
-from logging import getLogger as get_logger
+from logging import INFO, FileHandler, StreamHandler, basicConfig
 from pathlib import Path as _Path
 from sys import stdout as _stdout
 

@@ -14,7 +14,7 @@
 
 # IMPORTS
 import time
-from typing import Optional, Tuple, Dict
+from typing import Optional
 
 import h5py
 import numpy as np
@@ -66,16 +66,16 @@ class MultiScaleOrigDataThickSlices(Dataset):
         if self.plane == "sagittal":
             orig_data = du.transform_sagittal(orig_data)
             self.zoom = orig_zoom[::-1][:2]
-            logger.info("Loading Sagittal with input voxelsize {}".format(self.zoom))
+            logger.info(f"Loading Sagittal with input voxelsize {self.zoom}")
 
         elif self.plane == "axial":
             orig_data = du.transform_axial(orig_data)
             self.zoom = orig_zoom[::-1][:2]
-            logger.info("Loading Axial with input voxelsize {}".format(self.zoom))
+            logger.info(f"Loading Axial with input voxelsize {self.zoom}")
 
         else:
             self.zoom = orig_zoom[:2]
-            logger.info("Loading Coronal with input voxelsize {}".format(self.zoom))
+            logger.info(f"Loading Coronal with input voxelsize {self.zoom}")
 
         # Create thick slices
         orig_thick = du.get_thick_slices(orig_data, self.slice_thickness)
@@ -101,7 +101,7 @@ class MultiScaleOrigDataThickSlices(Dataset):
 
         return scale
 
-    def __getitem__(self, index: int) -> Dict:
+    def __getitem__(self, index: int) -> dict:
         """
         Return a single image and its scale factor.
 
@@ -181,38 +181,28 @@ class MultiScaleDataset(Dataset):
                     logger.info(f"Processing images of size {size}.")
                     img_dset = list(hf[f"{size}"]["orig_dataset"])
                     logger.info(
-                        "Processed origs of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed origs of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.images.extend(img_dset)
                     self.labels.extend(list(hf[f"{size}"]["aseg_dataset"]))
                     logger.info(
-                        "Processed asegs of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed asegs of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.weights.extend(list(hf[f"{size}"]["weight_dataset"]))
                     self.zooms.extend(list(hf[f"{size}"]["zoom_dataset"]))
                     logger.info(
-                        "Processed zooms of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed zooms of size {size} in {time.time() - start:.3f} seconds"
                     )
                     logger.info(
-                        "Processed weights of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed weights of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.subjects.extend(list(hf[f"{size}"]["subject"]))
                     logger.info(
-                        "Processed subjects of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed subjects of size {size} in {time.time() - start:.3f} seconds"
                     )
                     logger.info(f"Number of slices for size {size} is {len(img_dset)}")
 
-                except KeyError as e:
+                except KeyError:
                     print(
                         f"KeyError: Unable to open object (object {size} does not exist)"
                     )
@@ -222,9 +212,8 @@ class MultiScaleDataset(Dataset):
             self.transforms = transforms
 
             logger.info(
-                "Successfully loaded {} data from {} with plane {} in {:.3f} seconds".format(
-                    self.count, dataset_path, cfg.DATA.PLANE, time.time() - start
-                )
+                f"Successfully loaded {self.count} data from {dataset_path} with plane {cfg.DATA.PLANE}" \
+                f" in {time.time() - start:.3f} seconds"
             )
 
     def get_subject_names(self):
@@ -313,7 +302,7 @@ class MultiScaleDataset(Dataset):
             img: npt.NDArray,
             label: npt.NDArray,
             weight: npt.NDArray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Pad img, label and weight.
 
@@ -433,38 +422,28 @@ class MultiScaleDatasetVal(Dataset):
                     logger.info(f"Processing images of size {size}.")
                     img_dset = list(hf[f"{size}"]["orig_dataset"])
                     logger.info(
-                        "Processed origs of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed origs of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.images.extend(img_dset)
                     self.labels.extend(list(hf[f"{size}"]["aseg_dataset"]))
                     logger.info(
-                        "Processed asegs of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed asegs of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.weights.extend(list(hf[f"{size}"]["weight_dataset"]))
                     logger.info(
-                        "Processed weights of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed weights of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.zooms.extend(list(hf[f"{size}"]["zoom_dataset"]))
                     logger.info(
-                        "Processed zooms of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed zooms of size {size} in {time.time() - start:.3f} seconds"
                     )
                     self.subjects.extend(list(hf[f"{size}"]["subject"]))
                     logger.info(
-                        "Processed subjects of size {} in {:.3f} seconds".format(
-                            size, time.time() - start
-                        )
+                        f"Processed subjects of size {size} in {time.time() - start:.3f} seconds"
                     )
                     logger.info(f"Number of slices for size {size} is {len(img_dset)}")
 
-                except KeyError as e:
+                except KeyError:
                     print(
                         f"KeyError: Unable to open object (object {size} does not exist)"
                     )
@@ -473,9 +452,8 @@ class MultiScaleDatasetVal(Dataset):
         self.count = len(self.images)
         self.transforms = transforms
         logger.info(
-            "Successfully loaded {} data from {} with plane {} in {:.3f} seconds".format(
-                self.count, dataset_path, cfg.DATA.PLANE, time.time() - start
-            )
+            f"Successfully loaded {self.count} data from {dataset_path} with plane {cfg.DATA.PLANE}" \
+            f" in {time.time() - start:.3f} seconds"
         )
 
     def get_subject_names(self):

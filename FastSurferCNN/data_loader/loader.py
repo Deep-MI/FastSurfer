@@ -12,12 +12,12 @@
 # limitations under the License.
 
 # IMPORTS
-from torchvision import transforms
-from torch.utils.data import DataLoader
 import yacs.config
+from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from FastSurferCNN.data_loader import dataset as dset
-from FastSurferCNN.data_loader.augmentation import ToTensor, ZeroPad2D, AddGaussianNoise
+from FastSurferCNN.data_loader.augmentation import AddGaussianNoise, ToTensor, ZeroPad2D
 from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)

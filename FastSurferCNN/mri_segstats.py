@@ -17,16 +17,17 @@
 
 # IMPORTS
 import argparse
-from itertools import pairwise, chain
+from collections.abc import Iterable, Sequence
+from itertools import chain, pairwise
 from pathlib import Path
-from typing import TypeVar, Sequence, Any, Iterable
+from typing import Any, TypeVar
 
 from FastSurferCNN.segstats import (
-    main,
+    VERSION,
     HelpFormatter,
     add_two_help_messages,
-    VERSION,
     empty,
+    main,
 )
 
 _T = TypeVar("_T")
@@ -79,7 +80,7 @@ class _ExtendConstAction(argparse.Action):
             help: str | None = None,
             metavar: str | tuple[str, ...] | None = None,
     ) -> None:
-        super(_ExtendConstAction, self).__init__(
+        super().__init__(
             option_strings=option_strings,
             dest=dest,
             nargs=0,
@@ -129,11 +130,11 @@ def make_arguments() -> argparse.ArgumentParser:
 
             measures = [m for m in measures if m[1] == ETIV_RATIO_KEY]
             for k, v in ETIV_RATIOS.items():
-                for is_imported, m in measures:
+                for _is_imported, m in measures:
                     if m == v or m.startswith(v + "("):
                         measures.append((False, k))
                         continue
-            setattr(args, "measures", measures)
+            args.measures = measures
 
     def _update_what_to_import(args: argparse.Namespace) -> argparse.Namespace:
         """
@@ -175,7 +176,7 @@ def make_arguments() -> argparse.ArgumentParser:
     def help_add_measures(message: str, keys: list[str]) -> str:
         if help_text:
             _keys = (k.split(' ')[0] for k in keys)
-            keys = [f"{k}: {text}" for k, text in zip(keys, help_text(_keys))]
+            keys = [f"{k}: {text}" for k, text in zip(keys, help_text(_keys), strict=False)]
         return "<br>- ".join([message] + list(keys))
 
     add_two_help_messages(parser)
@@ -540,6 +541,6 @@ if __name__ == "__main__":
 
     args = make_arguments().parse_args()
     parse_actions = getattr(args, "parse_actions", [])
-    for i, parse_action in sorted(parse_actions, key=lambda x: x[0], reverse=True):
+    for _i, parse_action in sorted(parse_actions, key=lambda x: x[0], reverse=True):
         parse_action(args)
     sys.exit(main(args))

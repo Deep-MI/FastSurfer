@@ -13,7 +13,6 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Union
 
 import torch
 import yacs

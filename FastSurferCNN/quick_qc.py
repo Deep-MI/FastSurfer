@@ -90,8 +90,8 @@ def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70)
     print("Checking total volume ...")
     mask = asegdkt_segfile > 0
     total_vol = np.sum(mask) * voxvol / 1000000
-    print("Voxel size in mm3: {}".format(voxvol))
-    print("Total segmentation volume in liter: {}".format(np.round(total_vol, 2)))
+    print(f"Voxel size in mm3: {voxvol}")
+    print(f"Total segmentation volume in liter: {np.round(total_vol, 2)}")
     if total_vol < thres:
         return False
 
@@ -101,7 +101,7 @@ def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70)
 def get_region_bg_intersection_mask(
     seg_array, region_labels=VENT_LABELS, bg_label=BG_LABEL
 ):
-    f"""
+    """
     Return a mask of the intersection between the voxels of a given region and background voxels.
 
     This is obtained by dilating the region by 1 voxel and computing the intersection with the
@@ -115,8 +115,7 @@ def get_region_bg_intersection_mask(
         Segmentation array.
     region_labels : dict, default=<dict VENT_LABELS>
         Dictionary whose values correspond to the desired region's labels (see Note).
-    bg_label : int,  default={BG_LABEL}
-        (Default value = {BG_LABEL}).
+    bg_label : int,  default as in BG_LABEL.
 
     Returns
     -------
@@ -185,9 +184,8 @@ if __name__ == "__main__":
     # Ventricle-BG intersection volume check:
     print("Estimating ventricle-background intersection volume...")
     print(
-        "Ventricle-background intersection volume in mm3: {:.2f}".format(
-            get_ventricle_bg_intersection_volume(inseg_data, inseg_voxvol)
-        )
+        f"Ventricle-background intersection volume in mm3:" \
+        f" {get_ventricle_bg_intersection_volume(inseg_data, inseg_voxvol):.2f}"
     )
 
     # Total volume check:

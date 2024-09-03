@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Tuple
 
 # IMPORTS
 import torch
@@ -40,7 +39,7 @@ class InputDenseBlock(nn.Module):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict):
+    def __init__(self, params: dict):
         """
         Construct InputDenseBlock object.
 
@@ -49,7 +48,7 @@ class InputDenseBlock(nn.Module):
         params : Dict
             Parameters in dictionary format.
         """
-        super(InputDenseBlock, self).__init__()
+        super().__init__()
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
         padding_w = int((params["kernel_w"] - 1) / 2)
@@ -177,7 +176,7 @@ class CompetitiveDenseBlock(nn.Module):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict, outblock: bool = False):
+    def __init__(self, params: dict, outblock: bool = False):
         """
         Construct CompetitiveDenseBlock object.
 
@@ -188,7 +187,7 @@ class CompetitiveDenseBlock(nn.Module):
         outblock : bool
             Flag indicating if last block (Default value = False).
         """
-        super(CompetitiveDenseBlock, self).__init__()
+        super().__init__()
 
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
@@ -322,7 +321,7 @@ class CompetitiveDenseBlockInput(nn.Module):
         Feedforward through graph.
     """
 
-    def __init__(self, params: Dict):
+    def __init__(self, params: dict):
         """
         Construct CompetitiveDenseBlockInput object.
 
@@ -331,7 +330,7 @@ class CompetitiveDenseBlockInput(nn.Module):
         params : Dict
             Dictionary with parameters specifying block architecture.
         """
-        super(CompetitiveDenseBlockInput, self).__init__()
+        super().__init__()
 
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
@@ -496,7 +495,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         Feed forward trough graph.
     """
 
-    def __init__(self, params: Dict):
+    def __init__(self, params: dict):
         """
         Construct CompetitiveEncoderBlock object.
 
@@ -505,14 +504,14 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         params : Dict
             Parameters like number of channels, stride etc.
         """
-        super(CompetitiveEncoderBlock, self).__init__(params)
+        super().__init__(params)
         self.maxpool = nn.MaxPool2d(
             kernel_size=params["pool"],
             stride=params["stride_pool"],
             return_indices=True,
         )  # For Unpooling later on with the indices
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         """
         Feed forward trough Encoder Block.
 
@@ -533,7 +532,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         indicies : Tensor
             Maxpool indices.
         """
-        out_block = super(CompetitiveEncoderBlock, self).forward(
+        out_block = super().forward(
             x
         )  # To be concatenated as Skip Connection
         out_encoder, indices = self.maxpool(
@@ -547,7 +546,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
     Encoder Block = CompetitiveDenseBlockInput + Max Pooling.
     """
 
-    def __init__(self, params: Dict):
+    def __init__(self, params: dict):
         """
         Construct CompetitiveEncoderBlockInput object.
 
@@ -556,7 +555,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
         params : Dict
             Parameters like number of channels, stride etc.
         """
-        super(CompetitiveEncoderBlockInput, self).__init__(
+        super().__init__(
             params
         )  # The init of CompetitiveDenseBlock takes in params
         self.maxpool = nn.MaxPool2d(
@@ -565,7 +564,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
             return_indices=True,
         )  # For Unpooling later on with the indices
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         """
         Feed forward trough Encoder Block.
 
@@ -586,7 +585,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
         Tensor
             The indices of the maxpool operation.
         """
-        out_block = super(CompetitiveEncoderBlockInput, self).forward(
+        out_block = super().forward(
             x
         )  # To be concatenated as Skip Connection
         out_encoder, indices = self.maxpool(
@@ -600,7 +599,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
     Decoder Block = (Unpooling + Skip Connection) --> Dense Block.
     """
 
-    def __init__(self, params: Dict, outblock: bool = False):
+    def __init__(self, params: dict, outblock: bool = False):
         """
         Construct CompetitiveDecoderBlock object.
 
@@ -612,7 +611,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
             Flag, indicating if last block of network before classifier
             is created.(Default value = False)
         """
-        super(CompetitiveDecoderBlock, self).__init__(params, outblock=outblock)
+        super().__init__(params, outblock=outblock)
         self.unpool = nn.MaxUnpool2d(
             kernel_size=params["pool"], stride=params["stride_pool"]
         )
@@ -641,7 +640,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
         """
         unpool = self.unpool(x, indices)
         concat_max = torch.maximum(unpool, out_block)
-        out_block = super(CompetitiveDecoderBlock, self).forward(concat_max)
+        out_block = super().forward(concat_max)
 
         return out_block
 
@@ -674,7 +673,7 @@ class OutputDenseBlock(nn.Module):
         params : dict
             Parameters like number of channels, stride etc.
         """
-        super(OutputDenseBlock, self).__init__()
+        super().__init__()
 
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
@@ -793,7 +792,7 @@ class ClassifierBlock(nn.Module):
         params : dict
             Parameters like number of channels, stride etc.
         """
-        super(ClassifierBlock, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(
             params["num_channels"],
             params["num_classes"],

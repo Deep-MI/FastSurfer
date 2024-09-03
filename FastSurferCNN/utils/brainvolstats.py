@@ -1,20 +1,29 @@
 import abc
 import logging
 import re
-from concurrent.futures import Executor
+from collections.abc import Callable, Iterable, Sequence
+from concurrent.futures import Executor, Future
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (TYPE_CHECKING, Sequence, cast, Literal, Iterable, Callable, Union,
-                    Optional, overload, TextIO, Protocol, TypeVar, Generic, Type)
-from concurrent.futures import Future
+from typing import (
+    TYPE_CHECKING,
+    Generic,
+    Literal,
+    Protocol,
+    TextIO,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 
 if TYPE_CHECKING:
-    from numpy import typing as npt
     import lapy
     import nibabel as nib
     import pandas as pd
+    from numpy import typing as npt
 
     from CerebNet.datasets.utils import LTADict
 
@@ -55,7 +64,7 @@ class ReadFileHook(Protocol[T_BufferType]):
     @overload
     def __call__(self, file: Path, blocking: False) -> None: ...
 
-    def __call__(self, file: Path, b: bool = True) -> Optional[T_BufferType]: ...
+    def __call__(self, file: Path, b: bool = True) -> T_BufferType | None: ...
 
 
 class _DefaultFloat(float):
@@ -77,12 +86,12 @@ def read_measure_file(path: Path) -> dict[str, MeasureTuple]:
     {'<key>': ('<name>', '<description>', <value>, '<unit>')}.
     """
     if not path.exists():
-        raise IOError(f"Measures could not be imported from {path}, "
+        raise OSError(f"Measures could not be imported from {path}, "
                       f"the file does not exist.")
-    with open(path, "r") as fp:
+    with open(path) as fp:
         lines = list(fp.readlines())
-    vox_line = list(filter(lambda l: l.startswith("# VoxelVolume_mm3 "), lines))
-    lines = filter(lambda l: l.startswith("# Measure "), lines)
+    vox_line = list(filter(lambda ln: ln.startswith("# VoxelVolume_mm3 "), lines))
+    lines = filter(lambda ln: ln.startswith("# Measure "), lines)
 
     def to_measure(line: str) -> tuple[str, MeasureTuple]:
         data_tup = line.removeprefix("# Measure ").strip()
@@ -119,9 +128,9 @@ def read_volume_file(path: Path) -> ImageTuple:
             raise RuntimeError(
                 f"Loading the file '{path}' for Measure was invalid, no SpatialImage."
             )
-    except (IOError, FileNotFoundError) as e:
+    except (OSError, FileNotFoundError) as e:
         args = e.args[0]
-        raise IOError(f"Failed loading the file '{path}' with error: {args}") from e
+        raise OSError(f"Failed loading the file '{path}' with error: {args}") from e
     data = np.asarray(img.dataobj)
     return img, data
 
@@ -143,9 +152,9 @@ def read_mesh_file(path: Path) -> "lapy.TriaMesh":
     try:
         import lapy
         mesh = lapy.TriaMesh.read_fssurf(str(path))
-    except (IOError, FileNotFoundError) as e:
+    except (OSError, FileNotFoundError) as e:
         args = e.args[0]
-        raise IOError(
+        raise OSError(
             f"Failed loading the file '{path}' with error: {args}") from e
     return mesh
 
@@ -191,8 +200,8 @@ def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
         lines = f.readlines()
 
     try:
-        transf_start = [l.lower().startswith("linear_") for l in lines].index(True) + 1
-        tal_str = [l.replace(";", " ") for l in lines[transf_start:transf_start + 3]]
+        transf_start = [ln.lower().startswith("linear_") for ln in lines].index(True) + 1
+        tal_str = [ln.replace(";", " ") for ln in lines[transf_start:transf_start + 3]]
         tal = np.genfromtxt(tal_str)
         tal = np.vstack([tal, [0, 0, 0, 1]])
 
@@ -403,11 +412,11 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
             )
         _kwargs = {}
         _kwmode = False
-        for i, (arg, default_key) in enumerate(zip(args, _pargs)):
+        for i, (arg, default_key) in enumerate(zip(args, _pargs, strict=False)):
             if (hit := self.__PATTERN.match(arg)) is None:
                 # non-keyword mode
                 if _kwmode:
-                    raise kwerror(i, args, f"non-keyword after keyword")
+                    raise kwerror(i, args, "non-keyword after keyword")
                 _kwargs[default_key] = arg
             else:
                 # keyword mode
@@ -485,7 +494,7 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
     ):
         self._file = file
         self._callback = read_hook
-        self._data: Optional[T_BufferType] = None
+        self._data: T_BufferType | None = None
         self.__buffer = None
         super().__init__(name, description, unit)
 
@@ -549,8 +558,8 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
             name: str = "N/A",
             description: str = "N/A",
             unit: UnitString = "unitless",
-            read_file: Optional[ReadFileHook[dict[str, MeasureTuple]]] = None,
-            vox_vol: Optional[float] = None,
+            read_file: ReadFileHook[dict[str, MeasureTuple]] | None = None,
+            vox_vol: float | None = None,
     ):
         self._key: str = key
         super().__init__(
@@ -560,7 +569,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
             unit,
             self.read_file if read_file is None else read_file,
         )
-        self._vox_vol: Optional[float] = vox_vol
+        self._vox_vol: float | None = vox_vol
 
     def _compute(self) -> int | float:
         """
@@ -656,7 +665,7 @@ class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
             name: str,
             description: str,
             unit: UnitString,
-            read_mesh: Optional[ReadFileHook["lapy.TriaMesh"]] = None,
+            read_mesh: ReadFileHook["lapy.TriaMesh"] | None = None,
     ):
         super().__init__(
             surface_file,
@@ -807,10 +816,10 @@ class VolumeMeasure(Measure[ImageTuple]):
             name: str,
             description: str,
             unit: UnitString = "unitless",
-            read_file: Optional[ReadFileHook[ImageTuple]] = None,
+            read_file: ReadFileHook[ImageTuple] | None = None,
     ):
         if callable(classes_or_cond):
-            self._classes: Optional[ClassesType] = None
+            self._classes: ClassesType | None = None
             self._cond: _ToBoolCallback = classes_or_cond
         else:
             if len(classes_or_cond) == 0:
@@ -886,7 +895,7 @@ class MaskMeasure(VolumeMeasure):
             threshold: float = 0.5,
             # sign: MaskSign = "abs", frame: int = 0,
             # erode: int = 0, invert: bool = False,
-            read_file: Optional[ReadFileHook[ImageTuple]] = None,
+            read_file: ReadFileHook[ImageTuple] | None = None,
     ):
         self._threshold: float = threshold
         # self._sign: MaskSign = sign
@@ -946,7 +955,7 @@ class TransformMeasure(Measure, metaclass=abc.ABCMeta):
             name: str,
             description: str,
             unit: str,
-            read_lta: Optional[ReadFileHook["npt.NDArray[float]"]] = None,
+            read_lta: ReadFileHook["npt.NDArray[float]"] | None = None,
     ):
         super().__init__(
             lta_file,
@@ -985,7 +994,7 @@ class ETIVMeasure(TransformMeasure):
             name: str,
             description: str,
             unit: str,
-            read_lta: Optional[ReadFileHook["LTADict"]] = None,
+            read_lta: ReadFileHook["LTADict"] | None = None,
             etiv_scale_factor: float | None = None,
     ):
         if etiv_scale_factor is None:
@@ -1022,7 +1031,7 @@ class DerivedMeasure(AbstractMeasure):
             description: str,
             unit: str = "from parents",
             operation: DerivedAggOperation = "sum",
-            measure_host: Optional[dict[str, AbstractMeasure]] = None,
+            measure_host: dict[str, AbstractMeasure] | None = None,
     ):
         """
         Create the Measure, which depends on other measures, called parent measures.
@@ -1058,7 +1067,7 @@ class DerivedMeasure(AbstractMeasure):
             else:
                 factor, measure = 1., value
 
-            if not isinstance(measure, (str, AbstractMeasure)):
+            if not isinstance(measure, str | AbstractMeasure):
                 raise ValueError(f"Expected a str or AbstractMeasure, not "
                                  f"{type(measure).__name__}!")
             if not isinstance(factor, float):
@@ -1303,7 +1312,7 @@ class VoxelClassGenerator(Protocol):
 
 
 def format_measure(key: str, data: MeasureTuple) -> str:
-    value = data[2] if isinstance(data[2], int) else ("%.6f" % data[2])
+    value = data[2] if isinstance(data[2], int) else f"{data[2]:.6f}"
     return f"# Measure {key}, {data[0]}, {data[1]}, {value}, {data[3]}"
 
 
@@ -1339,12 +1348,12 @@ class Manager(dict[str, AbstractMeasure]):
     def __init__(
             self,
             measures: Sequence[tuple[bool, str]],
-            measurefile: Optional[Path] = None,
-            segfile: Optional[Path] = None,
+            measurefile: Path | None = None,
+            segfile: Path | None = None,
             on_missing: Literal["fail", "skip", "fill"] = "fail",
-            executor: Optional[Executor] = None,
+            executor: Executor | None = None,
             legacy_freesurfer: bool = False,
-            aseg_replace: Optional[Path] = None,
+            aseg_replace: Path | None = None,
     ):
         """
 
@@ -1365,7 +1374,7 @@ class Manager(dict[str, AbstractMeasure]):
         legacy_freesurfer : bool, default=False
             FreeSurfer compatibility mode.
         """
-        from concurrent.futures import ThreadPoolExecutor, Future
+        from concurrent.futures import Future, ThreadPoolExecutor
         from copy import deepcopy
 
         def _check_measures(x):
@@ -1447,7 +1456,7 @@ class Manager(dict[str, AbstractMeasure]):
         AssertionError
         """
         any_computed = False
-        for key, measure in self.items():
+        for _key, measure in self.items():
             if isinstance(measure, DerivedMeasure):
                 pass
             elif isinstance(measure, ImportedMeasure):
@@ -1759,7 +1768,7 @@ class Manager(dict[str, AbstractMeasure]):
             The function returns None or the output of the wrapped function.
         """
 
-        def read_wrapper(file: Path, blocking: bool = True) -> Optional[T_BufferType]:
+        def read_wrapper(file: Path, blocking: bool = True) -> T_BufferType | None:
             out = self._cache.get(file, None)
             if out is None:
                 # not already in cache
@@ -1795,7 +1804,7 @@ class Manager(dict[str, AbstractMeasure]):
         m.update({key: self[key]() for key in self._exported_measures})
         return m
 
-    def print_measures(self, file: Optional[TextIO] = None) -> None:
+    def print_measures(self, file: TextIO | None = None) -> None:
         """
         Print the measures to stdout or file.
 
@@ -2024,7 +2033,7 @@ class Manager(dict[str, AbstractMeasure]):
             return DerivedMeasure(
                 ["lhCortex", "rhCortex"],
                 "CortexVol",
-                f"Total cortical gray matter volume",
+                "Total cortical gray matter volume",
                 measure_host=self,
             )
         elif key == "CorpusCallosumVol":
@@ -2346,7 +2355,7 @@ class Manager(dict[str, AbstractMeasure]):
         """
         lbls = (this.labels() for this in self.values() if isinstance(this, PVMeasure))
         no_duplicate_dict = {self.__to_lookup(labs): labs for labs in lbls}
-        return dict(zip(label_pool, no_duplicate_dict.values()))
+        return dict(zip(label_pool, no_duplicate_dict.values(), strict=False))
 
     @staticmethod
     def __to_lookup(labels: Sequence[int]) -> str:
