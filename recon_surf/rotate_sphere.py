@@ -20,12 +20,10 @@
 import optparse
 import sys
 
+import align_points as align
+import nibabel.freesurfer.io as fs
 import numpy as np
 from numpy import typing as npt
-import nibabel.freesurfer.io as fs
-
-import align_points as align
-
 
 HELPTEXT = """
 
@@ -95,7 +93,9 @@ def options_parse():
         or options.out is None
     ):
         sys.exit(
-            "\nERROR: Please specify src and target sphere and parcellation files as well as output txt file\n   Use --help to see all options.\n"
+            "\nERROR: Please specify src and target sphere and parcellation" \
+            " files as well as output txt file\n" \
+            " Use --help to see all options.\n"
         )
 
     return options
@@ -106,7 +106,7 @@ def align_aparc_centroids(
         labels_mov: npt.ArrayLike,
         v_dst: npt.ArrayLike,
         labels_dst: npt.ArrayLike,
-        label_ids: npt.ArrayLike = []
+        label_ids: npt.ArrayLike = None
 ) -> np.ndarray:
     """
     Align centroid of aparc parcels on the sphere (Attention mapping back to sphere!).
@@ -122,7 +122,7 @@ def align_aparc_centroids(
     labels_dst : npt.ArrayLike
         Labels of aparc parcelation for rotation destination.
     label_ids : npt.ArrayLike
-        Ids of the centroid to be aligned. Defaults to [].
+        Ids of the centroid to be aligned. Defaults to None.
 
     Returns
     -------
@@ -135,7 +135,7 @@ def align_aparc_centroids(
     # lids=np.array([8,9,22,24,31])
     # lids=np.array([8,22,24])
 
-    if not label_ids:
+    if label_ids is not None:
         # use all joint labels except -1 and 0:
         lids = np.intersect1d(labels_mov, labels_dst)
         lids = lids[(lids > 0)]
@@ -168,30 +168,30 @@ if __name__ == "__main__":
     print()
     print("Rotate Sphere Parameters:")
     print()
-    print("- src sphere {}".format(options.srcsphere))
-    print("- src aparc: {}".format(options.srcaparc))
-    print("- trg sphere {}".format(options.trgsphere))
-    print("- trg aparc: {}".format(options.trgaparc))
-    print("- out txt {}".format(options.out))
+    print(f"- src sphere {options.srcsphere}")
+    print(f"- src aparc: {options.srcaparc}")
+    print(f"- trg sphere {options.trgsphere}")
+    print(f"- trg aparc: {options.trgaparc}")
+    print(f"- out txt {options.out}")
 
     # read image (only nii supported) and convert to float32
-    print("\nreading {}".format(options.srcsphere))
+    print(f"\nreading {options.srcsphere}")
     srcsphere = fs.read_geometry(options.srcsphere, read_metadata=True)
-    print("reading annotation: {} ...".format(options.srcaparc))
+    print(f"reading annotation: {options.srcaparc} ...")
     srcaparc = fs.read_annot(options.srcaparc)
-    print("reading {}".format(options.trgsphere))
+    print(f"reading {options.trgsphere}")
     trgsphere = fs.read_geometry(options.trgsphere, read_metadata=True)
-    print("reading annotation: {} ...".format(options.trgaparc))
+    print(f"reading annotation: {options.trgaparc} ...")
     trgaparc = fs.read_annot(options.trgaparc)
 
     R = align_aparc_centroids(srcsphere[0], srcaparc[0], trgsphere[0], trgaparc[0])
     alpha, beta, gamma = align.rmat2angles(R)
-    print("\nalpha {:.1f}   beta {:.1f}   gamma {:.1f}\n".format(alpha, beta, gamma))
+    print(f"\nalpha {alpha:.1f}   beta {beta:.1f}   gamma {gamma:.1f}\n")
 
     # write angles
-    print("writing: {}".format(options.out))
+    print(f"writing: {options.out}")
     f = open(options.out, "w")
-    f.write("{:.1f} {:.1f} {:.1f}\n".format(alpha, beta, gamma))
+    f.write(f"{alpha:.1f} {beta:.1f} {gamma:.1f}\n")
     f.close()
     print("...done\n")
 

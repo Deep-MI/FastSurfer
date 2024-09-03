@@ -18,15 +18,15 @@
 
 # IMPORTS
 import optparse
-import os.path
 import os
-from typing import Tuple, List
-import numpy as np
+import os.path
 import sys
+
+import numpy as np
 from create_annotation import (
+    build_annot,
     map_multiple_labels,
     read_colortable,
-    build_annot,
     write_annot,
 )
 
@@ -105,10 +105,10 @@ def options_parse():
 
 
 def read_colortables(
-        colnames: List[str],
-        colappend: List[str],
+        colnames: list[str],
+        colappend: list[str],
         drop_unknown: bool = True
-) -> Tuple[List, List, List]:
+) -> tuple[list, list, list]:
     """
     Read multiple colortables and appends extensions, drops unknown by default.
 
@@ -136,7 +136,7 @@ def read_colortables(
     all_ids = []
     all_cols = []
     for coltab in colnames:
-        print("Reading in colortable: {} ...".format(coltab))
+        print(f"Reading in colortable: {coltab} ...")
         ids, names, cols = read_colortable(coltab)
         if drop_unknown and names[0] == "unknown":
             ids = ids[1:]
@@ -156,10 +156,10 @@ if __name__ == "__main__":
     stream = os.popen("date")
     output = stream.read()
 
-    print
+    print()
     print("#--------------------------------------------")
     print("#@# BA_exvivo Labels " + output)
-    print
+    print()
 
     # Command line options and error checking done here
     options = options_parse()
@@ -196,9 +196,7 @@ if __name__ == "__main__":
         white = os.path.join(options.sd, options.sid, "surf", hemi + ".white")
         cortex = os.path.join(options.sd, options.sid, "label", hemi + ".cortex.label")
         print(
-            "Mapping multiple labels from {} to {} for {} ...\n".format(
-                labeldir, trgdir, hemi
-            )
+            f"Mapping multiple labels from {labeldir} to {trgdir} for {hemi} ...\n"
         )
         all_labels, all_values = map_multiple_labels(
             hemi,
@@ -217,7 +215,7 @@ if __name__ == "__main__":
         for annot in annotnames:
             # print("Debug length labelids pos {}".format(len(label_ids[pos])))
             stop = start + len(label_ids[pos])
-            print("\nCreating {} annotation on {}".format(annot, white))
+            print(f"\nCreating {annot} annotation on {white}")
             # print("Debug info start: {}, stop: {}".format(start,stop))
             annot_ids, annot_vals = build_annot(
                 all_labels[start:stop],
@@ -227,7 +225,7 @@ if __name__ == "__main__":
                 cortex,
             )
             # write annot
-            print("Writing BA_exvivo annotation to {}\n".format(annot))
+            print(f"Writing BA_exvivo annotation to {annot}\n")
             annotout = os.path.join(
                 options.sd, options.sid, "label", hemi + "." + annot + ".annot"
             )
@@ -241,10 +239,8 @@ if __name__ == "__main__":
                     options.sd, options.sid, "stats", hemi + "." + annot + ".stats"
                 )
                 ctab = os.path.join(options.sd, options.sid, "label", annot + ".ctab")
-                cmd = "mris_anatomical_stats -mgz -f {} -b -a {} -c {} \
-                       {} {} white".format(
-                    stats, annotout, ctab, options.sid, hemi
-                )
+                cmd = f"mris_anatomical_stats -mgz -f {stats} -b -a {annotout} -c {ctab} \
+                       {options.sid} {hemi} white"
                 print("Debug cmd: " + cmd)
                 stream = os.popen(cmd)
                 print(stream.read())

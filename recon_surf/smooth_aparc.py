@@ -19,11 +19,11 @@
 # IMPORTS
 import optparse
 import sys
-import numpy as np
+
 import nibabel.freesurfer.io as fs
+import numpy as np
 from numpy import typing as npt
 from scipy import sparse
-
 
 HELPTEXT = """
 Script to fill holes and smooth aparc labels. 
@@ -131,7 +131,7 @@ def mode_filter(
         adjM: sparse.csr_matrix,
         labels: npt.NDArray[str],
         fillonlylabel = None,
-        novote: npt.ArrayLike = []
+        novote: npt.ArrayLike = None
 ) -> npt.NDArray[int]:
     """
     Apply mode filter (smoothing) to integer labels on mesh vertices.
@@ -148,7 +148,7 @@ def mode_filter(
     fillonlylabel : int
         Label to fill exclusively. Defaults to None to smooth all labels.
     novote : npt.ArrayLike
-        Label ids that should not vote. Defaults to [].
+        Label ids that should not vote. Defaults to None.
 
     Returns
     -------
@@ -223,7 +223,7 @@ def mode_filter(
     # get rid of entries that should not vote
     # since we have only rows that were non-uniform, they should not become empty
     # rows may become unform: we still need to vote below to update this label
-    if novote:
+    if novote is not None:
         rr = np.isin(nlabels.data, novote)
         nlabels.data[rr] = 0
         nlabels.eliminate_zeros()
@@ -338,7 +338,9 @@ def smooth_aparc(surf, labels, cortex = None):
         if ids.size == idssize:
             # no more improvement, strange could be an island in the cortex label that cannot be filled
             print(
-                "Warning: Cannot improve but still have holes. Maybe there is an island in the cortex label that cannot be filled with real labels."
+                "Warning: Cannot improve, but still have holes." \
+                " Maybe there is an island in the cortex " \
+                " label that cannot be filled with real labels?"
             )
             fillids = np.where(labels == fillonlylabel)[0]
             labels[fillids] = 0
@@ -385,16 +387,16 @@ def main(
         Surface filepath and name of destination.
     """
     # read input files
-    print("Reading in surface: {} ...".format(insurfname))
+    print(f"Reading in surface: {insurfname} ...")
     surf = fs.read_geometry(insurfname, read_metadata=True)
-    print("Reading in annotation: {} ...".format(inaparcname))
+    print(f"Reading in annotation: {inaparcname} ...")
     aparc = fs.read_annot(inaparcname)
-    print("Reading in cortex label: {} ...".format(incortexname))
+    print(f"Reading in cortex label: {incortexname} ...")
     cortex = fs.read_label(incortexname)
     # set labels (n) and triangles (n x 3)
     labels = aparc[0]
     slabels = smooth_aparc(surf, labels, cortex)
-    print("Outputting fixed annot: {}".format(outaparcname))
+    print(f"Outputting fixed annot: {outaparcname}")
     fs.write_annot(outaparcname, slabels, aparc[1], aparc[2])
 
 

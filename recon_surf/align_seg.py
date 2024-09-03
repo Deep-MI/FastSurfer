@@ -17,15 +17,14 @@
 
 # IMPORTS
 import optparse
-from typing import Optional, Tuple
-import numpy as np
-from numpy import typing as npt
 import sys
-import SimpleITK as sitk
-import image_io as iio
-import align_points as align
-import lta as lta
 
+import align_points as align
+import image_io as iio
+import lta as lta
+import numpy as np
+import SimpleITK as sitk
+from numpy import typing as npt
 
 HELPTEXT = """
 
@@ -46,8 +45,8 @@ Dependencies:
 
 Description:
 For each common segmentation ID in the two inputs, the centroid coordinate is 
-computed. The point pairs are then aligned by finding the optimal translation and rotation
-(rigid) or affine. The output is a FreeSurfer LTA registration file. 
+computed. The point pairs are then aligned by finding the optimal translation
+and rotation (rigid) or affine. The output is a FreeSurfer LTA registration file.
 
 Original Author: Martin Reuter
 Date: Aug-24-2022
@@ -61,7 +60,8 @@ h_affine = (
 )
 h_outlta = "path to output transform lta file"
 h_flipped = "register to left-right flipped as target aparc+aseg (cortical needed)"
-h_midslice = "Optional, only for flipped. Slice where the midplane should be. Defaults to middle of image (width-1)/2."
+h_midslice = "Optional, only for flipped. Slice where the midplane should be." \
+             " Defaults to middle of image (width-1)/2."
 
 
 def options_parse():
@@ -94,12 +94,17 @@ def options_parse():
         or options.outlta is None
     ):
         sys.exit(
-            "\nERROR: Please specify srcseg and trgseg (or flipped) as well as output lta file\n   Use --help to see all options.\n"
+            "\nERROR: Please specify srcseg and trgseg (or flipped)" \
+            " as well as output lta file\n   Use --help to see all options.\n"
         )
     return options
 
 
-def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optional[npt.NDArray[int]] = []) -> Tuple[npt.NDArray, npt.NDArray]:
+def get_seg_centroids(
+        seg_mov: sitk.Image,
+        seg_dst: sitk.Image,
+        label_ids: npt.NDArray[int] | None = None
+) -> tuple[npt.NDArray, npt.NDArray]:
     """
     Extract the centroids of the segmentation labels for mov and dst in RAS coords.
 
@@ -119,7 +124,7 @@ def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optio
     centroids_dst
         List of centroids of target segmentation.
     """
-    if not label_ids:
+    if label_ids is not None:
         # use all joint labels except -1 and 0:
         nda1 = sitk.GetArrayFromImage(seg_mov)
         nda2 = sitk.GetArrayFromImage(seg_dst)
@@ -156,7 +161,7 @@ def get_seg_centroids(seg_mov: sitk.Image, seg_dst: sitk.Image, label_ids: Optio
 def align_seg_centroids(
         seg_mov: sitk.Image,
         seg_dst: sitk.Image,
-        label_ids: Optional[npt.NDArray[int]] = [],
+        label_ids: npt.NDArray[int] | None = None,
         affine: bool = False
 ) -> npt.NDArray:
     """
@@ -169,7 +174,7 @@ def align_seg_centroids(
     seg_dst : sitk.Image
         Path to trg segmentation.
     label_ids : Optional[npt.NDArray[int]]
-        List of label ids to align. Defaults to [].
+        List of label ids to align. Defaults to None.
     affine : bool
         True if affine should be returned.
         False if rigid should be returned. Defaults to False.
@@ -219,7 +224,7 @@ def get_vox2ras(img:sitk.Image) -> npt.NDArray:
     vox2ras[0:3,3] = img.GetOrigin() * np.array([-1, -1, 1])
     return vox2ras
 
-def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDArray:
+def align_flipped(seg: sitk.Image, mid_slice: float | None = None) -> npt.NDArray:
     """
     Registrate Left - right (make upright).
 
@@ -323,9 +328,9 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
 
     # compute vox2ras matrix from image information
     vox2ras = get_vox2ras(seg)
-    print("vox2ras:\n {}".format(vox2ras))
+    print(f"vox2ras:\n {vox2ras}")
     ras2vox = np.linalg.inv(vox2ras)
-    print("ras2vox:\n {}".format(ras2vox))
+    print(f"ras2vox:\n {ras2vox}")
 
     # find mid slice of image (usually 127.5 for 256 width)
     # instead we could also fix this to be 128 independent of width
@@ -334,7 +339,7 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
         middle = 0.5*(seg.GetWidth()-1.0)
     else:
         middle = mid_slice
-    print("Mid slice will be at: {}".format(middle))
+    print(f"Mid slice will be at: {middle}")
 
     # negate right-left by flipping across middle of image (as make_upright would do it)
     centroids_flipped = centroids.copy()
@@ -350,7 +355,7 @@ def align_flipped(seg: sitk.Image, mid_slice: Optional[float] = None) -> npt.NDA
     from scipy.linalg import sqrtm
 
     Tsqrt = np.real(sqrtm(T))
-    print("Matrix sqrt diff: {}".format(np.linalg.norm(T - (Tsqrt @ Tsqrt))))
+    print(f"Matrix sqrt diff: {np.linalg.norm(T - (Tsqrt @ Tsqrt))}")
 
     # convert vox2vox to ras2ras:
     Tsqrt = vox2ras @ Tsqrt @ ras2vox 
@@ -366,23 +371,23 @@ if __name__ == "__main__":
     print()
     print("Align Segmentations Parameters:")
     print()
-    print("- src seg {}".format(options.srcseg))
+    print(f"- src seg {options.srcseg}")
     if options.trgseg is not None:
-        print("- trg seg {}".format(options.trgseg))
+        print(f"- trg seg {options.trgseg}")
     if options.flipped:
         print("- registering with left-right flipped image")
     if options.affine:
         print("- affine registration")
     else:
         print("- rigid registration")
-    print("- out lta {}".format(options.outlta))
+    print(f"- out lta {options.outlta}")
 
-    print("\nreading src {}".format(options.srcseg))
+    print(f"\nreading src {options.srcseg}")
     srcseg, srcheader = iio.readITKimage(
         options.srcseg, sitk.sitkInt16, with_header=True
     )
     if options.trgseg is not None:
-        print("reading trg {} ...".format(options.trgseg))
+        print(f"reading trg {options.trgseg} ...")
         trgseg, trgheader = iio.readITKimage(
             options.trgseg, sitk.sitkInt16, with_header=True
         )
@@ -394,7 +399,7 @@ if __name__ == "__main__":
         trgheader = srcheader
 
     # write transform lta
-    print("writing: {}".format(options.outlta))
+    print(f"writing: {options.outlta}")
     lta.writeLTA(
         options.outlta, T, options.srcseg, srcheader, options.trgseg, trgheader
     )
