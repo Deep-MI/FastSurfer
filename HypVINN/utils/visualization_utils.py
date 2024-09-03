@@ -11,17 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os.path
 from pathlib import Path
 
-import numpy as np
-import nibabel as nib
 import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
 
+#from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from HypVINN.config.hypvinn_files import HYPVINN_LUT
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
-_doc_HYPVINN_LUT = os.path.relpath(HYPVINN_LUT, FASTSURFER_ROOT)
+#_doc_HYPVINN_LUT = os.path.relpath(HYPVINN_LUT, FASTSURFER_ROOT)
 
 
 def remove_values_from_list(the_list, val):
@@ -44,14 +43,14 @@ def remove_values_from_list(the_list, val):
 
 
 def get_lut(lookup_table_path: Path = HYPVINN_LUT):
-    f"""
+    """
     Retrieve a color lookup table (LUT) from a file.
 
     This function reads a file and constructs a lookup table (LUT) from it.
 
     Parameters
     ----------
-    lookup_table_path: Path, default="{_doc_HYPVINN_LUT}"
+    lookup_table_path: Path, defaults to local LUT"
         The path to the file from which the LUT will be constructed.
 
     Returns
@@ -61,7 +60,7 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     """
     from collections import OrderedDict
     lut = OrderedDict()
-    with open(lookup_table_path, "r") as f:
+    with open(lookup_table_path) as f:
         for line in f:
             if line[0] == "#" or line[0] == "\n":
                 pass
@@ -73,14 +72,14 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
 
 
 def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
-    f"""
+    """
     Map a HypVINN segmentation to a continuous label space using a lookup table.
 
     Parameters
     ----------
     hyposeg : np.ndarray
         The original segmentation map.
-    lut_file : Path, default="{_doc_HYPVINN_LUT}"
+    lut_file : Path, defaults to local LUT"
         The path to the lookup table file.
 
     Returns
@@ -171,8 +170,10 @@ def plot_coronal_predictions(cmap, images_batch=None, pred_batch=None, img_per_r
     pred = torch.from_numpy(pred_batch.copy())
     pred = torch.unsqueeze(pred, 1)
     pred_grid = utils.make_grid(pred.cpu(), nrow=img_per_row)[0]  # dont take the channels axis from grid
-    # pred_grid=color.label2rgb(pred_grid.numpy(),grid.numpy().transpose(1, 2, 0),alpha=0.6,bg_label=0,colors=DEFAULT_COLORS)
-    # pred_grid = color.label2rgb(pred_grid.numpy(), grid.numpy().transpose(1, 2, 0), alpha=0.6, bg_label=0,bg_color=None,colors=DEFAULT_COLORS)
+    # pred_grid=color.label2rgb(pred_grid.numpy(),grid.numpy().transpose(1, 2, 0), \
+    #    alpha=0.6,bg_label=0,colors=DEFAULT_COLORS)
+    # pred_grid = color.label2rgb(pred_grid.numpy(), grid.numpy().transpose(1, 2, 0), \
+    #    alpha=0.6, bg_label=0,bg_color=None,colors=DEFAULT_COLORS)
 
     alphas = np.ones(pred_grid.numpy().shape) * 0.8
     alphas[pred_grid.numpy() == 0] = 0
@@ -245,7 +246,7 @@ def plot_qc_images(
         padd: int = 45,
         lut_file: Path = HYPVINN_LUT,
         slice_step: int = 2):
-    f"""
+    """
     Plot the quality control images for the subject.
 
     Parameters
@@ -258,15 +259,15 @@ def plot_qc_images(
         The path to the predicted image.
     padd : int, default=45
         The padding value for cropping the images and segmentations.
-    lut_file : Path, default="{_doc_HYPVINN_LUT}"
+    lut_file : Path, defaults to local LUT"
         The path to the lookup table file.
     slice_step : int, default=2
         The step size for selecting indices from the predicted segmentation.
     """
     from scipy import ndimage
 
-    from HypVINN.data_loader.data_utils import transform_axial2coronal, hypo_map_subseg_2_fsseg
     from HypVINN.config.hypvinn_files import HYPVINN_QC_IMAGE_NAME
+    from HypVINN.data_loader.data_utils import hypo_map_subseg_2_fsseg, transform_axial2coronal
 
     subject_qc_dir.mkdir(exist_ok=True, parents=True)
 

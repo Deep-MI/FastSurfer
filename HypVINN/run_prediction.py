@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # IMPORTS
-from typing import TYPE_CHECKING, Optional, cast, Literal
 import argparse
 from pathlib import Path
 from time import time
+from typing import TYPE_CHECKING, Literal, cast
 
 import numpy as np
-from numpy import typing as npt
 import torch
+from numpy import typing as npt
 
 if TYPE_CHECKING:
     import yacs.config
@@ -30,9 +30,8 @@ from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from FastSurferCNN.utils.common import assert_no_root, SerialExecutor
-
-from HypVINN.config.hypvinn_files import HYPVINN_SEG_NAME, HYPVINN_MASK_NAME
+from FastSurferCNN.utils.common import SerialExecutor, assert_no_root
+from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
 from HypVINN.utils import ModalityDict, ModalityMode, ViewOperations
@@ -52,7 +51,7 @@ logger = logging.get_logger(__name__)
 ##
 
 
-def optional_path(a: Path | str) -> Optional[Path]:
+def optional_path(a: Path | str) -> Path | None:
     """
     Convert a string to a Path object or None.
 
@@ -163,8 +162,8 @@ def option_parse() -> argparse.ArgumentParser:
 
 def main(
         out_dir: Path,
-        t2: Optional[Path],
-        orig_name: Optional[Path],
+        t2: Path | None,
+        orig_name: Path | None,
         sid: str,
         ckpt_ax: Path,
         ckpt_cor: Path,
@@ -183,7 +182,7 @@ def main(
         device: str = "auto",
         viewagg_device: str = "auto",
 ) -> int | str:
-    f"""
+    """
     Main function of the hypothalamus segmentation module.
 
     Parameters
@@ -208,10 +207,10 @@ def main(
         The path to the coronal configuration file.
     cfg_sag : Path
         The path to the sagittal configuration file.
-    hypo_segfile : str, default="{HYPVINN_SEG_NAME}"
-        The name of the hypothalamus segmentation file. Default is {HYPVINN_SEG_NAME}.
-    hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
-        The name of the hypothalamus mask file. Default is {HYPVINN_MASK_NAME}.
+    hypo_segfile : str, default is in HYPVINN_SEG_NAME as specified in config.
+        The name of the hypothalamus segmentation file. Default is in HYPVINN_SEG_NAME.
+    hypo_maskfile : str, default is in HYPVINN_MASK_NAME
+        The name of the hypothalamus mask file. Default is in HYPVINN_MASK_NAME.
     allow_root : bool, default=False
         Whether to allow running as root user. Default is False.
     qc_snapshots : bool, optional
@@ -236,7 +235,7 @@ def main(
         0, if successful, an error message describing the cause for the
         failure otherwise.
     """
-    from concurrent.futures import ProcessPoolExecutor, Future
+    from concurrent.futures import Future, ProcessPoolExecutor
     if threads != 1:
         pool = ProcessPoolExecutor(threads)
     else:
@@ -301,7 +300,7 @@ def main(
 
         cfgs = (cfg_ax, cfg_cor, cfg_sag)
         ckpts = (ckpt_ax, ckpt_cor, ckpt_sag)
-        for plane, _cfg_file, _ckpt_file in zip(PLANES, cfgs, ckpts):
+        for plane, _cfg_file, _ckpt_file in zip(PLANES, cfgs, ckpts, strict=False):
             logger.info(f"{plane} model configuration from {_cfg_file}")
             view_ops[plane] = {
                 "cfg": set_up_cfgs(_cfg_file, subject_dir, batch_size),
@@ -374,7 +373,7 @@ def main(
         )
         logger.info(f"Prediction successfully saved in {time_needed} seconds.")
         if qc_snapshots:
-            qc_future: Optional[Future] = pool.submit(
+            qc_future: Future | None = pool.submit(
                 plot_qc_images,
                 subject_qc_dir=subject_dir / "qc_snapshots",
                 orig_path=orig_path,
@@ -438,8 +437,8 @@ def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
 
 def load_volumes(
         mode: ModalityMode,
-        t1_path: Optional[Path] = None,
-        t2_path: Optional[Path] = None,
+        t1_path: Path | None = None,
+        t2_path: Path | None = None,
 ) -> tuple[
     ModalityDict,
     npt.NDArray[float],
@@ -450,8 +449,9 @@ def load_volumes(
     """
     Load the volumes of T1 and T2 images.
 
-    This function loads the T1 and T2 images, checks their compatibility based on the mode, and returns the loaded
-    volumes along with their affine transformations, headers, zoom levels, and sizes.
+    This function loads the T1 and T2 images, checks their compatibility based
+    on the mode, and returns the loaded volumes along with their affine
+    transformations, headers, zoom levels, and sizes.
 
     Parameters
     ----------
@@ -466,7 +466,8 @@ def load_volumes(
     -------
     tuple
         A tuple containing the following elements:
-        - modalities: A dictionary with keys 't1' and/or 't2' and values being the corresponding loaded and rescaled images.
+        - modalities: A dictionary with keys 't1' and/or 't2' and values
+                      being the corresponding loaded and rescaled images.
         - affine: The affine transformation of the loaded image(s).
         - header: The header of the loaded image(s).
         - zoom: The zoom level of the loaded image(s).
@@ -475,7 +476,8 @@ def load_volumes(
     Raises
     ------
     RuntimeError
-        If the mode is inconsistent with the provided image paths, or if the number of dimensions of the data is invalid.
+        If the mode is inconsistent with the provided image paths,
+        or if the number of dimensions of the data is invalid.
     ValueError
         If the mode is invalid, or if a header is missing.
     AssertionError
@@ -489,7 +491,7 @@ def load_volumes(
     t1_zoom = ()
     t2_zoom = ()
     affine: npt.NDArray[float] = np.ndarray([0])
-    header: Optional["FileBasedHeader"] = None
+    header: FileBasedHeader | None = None
     zoom: tuple[float, float, float] = (0.0, 0.0, 0.0)
     size: tuple[int, ...] = (0, 0, 0)
 

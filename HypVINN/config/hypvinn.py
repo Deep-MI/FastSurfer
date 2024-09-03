@@ -100,7 +100,8 @@ _C.MODEL.MULTI_AUTO_W_CHANNELS = False #weight per channel
 _C.MODEL.MULTI_SMOOTH = False
 #  Brach weights can be aleatory set to zero
 _C.MODEL.HETERO_INPUT = False
-# Flag for replicating any given modality into the two branches. This branch require that the hetero_input also set to TRUE
+# Flag for replicating any given modality into the two branches.
+#  This branch require that the hetero_input also set to TRUE
 _C.MODEL.DUPLICATE_INPUT = False
 # ---------------------------------------------------------------------------- #
 # Training options

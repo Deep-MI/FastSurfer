@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from pathlib import Path
-from typing import Optional
 
 from FastSurferCNN.utils import logging
 from HypVINN.utils import ModalityMode
@@ -23,8 +21,8 @@ LOGGER = logging.get_logger(__name__)
 
 
 def get_hypinn_mode(
-        t1_path: Optional[Path] = None,
-        t2_path: Optional[Path] = None,
+        t1_path: Path | None = None,
+        t2_path: Path | None = None,
 ) -> ModalityMode:
     """
     Determine the input mode for HypVINN based on the existence of T1 and T2 files.
