@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'fastsurfer'
-version = '2.3.0-dev'
+version = '2.3.0'
 description = 'A fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = {file = 'LICENSE'}
@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     'h5py>=3.7',
-    'lapy>=1.0.1',
+    'lapy>=1.1.0',
     'matplotlib>=3.7.1',
     'nibabel>=5.1.0',
     'numpy>=1.25,<2',
