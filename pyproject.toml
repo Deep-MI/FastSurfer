@@ -115,8 +115,6 @@ extend-exclude = [
     "checkpoints",
     "doc",
     "env",
-    "images",
-    "setup.py",
 ]
 
 [tool.ruff.lint]
