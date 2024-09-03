@@ -635,7 +635,8 @@ def conform(
     # Pxyz is the center of the image in world coords
 
     # target scalar type and dtype
-    sctype = np.uint8 if dtype is None else np.obj2sctype(dtype, default=np.uint8)
+    #sctype = np.uint8 if dtype is None else np.obj2sctype(dtype, default=np.uint8)
+    sctype = np.uint8 if dtype is None else np.dtype(dtype).type
     target_dtype = np.dtype(sctype)
 
     src_min, scale = 0, 1.0
@@ -761,7 +762,7 @@ def is_conform(
         raise ValueError(f"ERROR: Multiple input frames ({ishape[3]}) not supported!")
 
     checks = {
-        f"Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
+        "Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
     }
     # check dimensions
     if Criteria.FORCE_IMG_SIZE in criteria:
@@ -775,7 +776,7 @@ def is_conform(
     _vox_sizes = conformed_vox_size if is_correct_vox_size else izoom[:3]
     if Criteria.FORCE_ISO_VOX in criteria:
         vox_size_criteria = f"Voxel Size {'x'.join([str(conformed_vox_size)] * 3)}"
-        image_vox_size = f"image " + "x".join(map(str, izoom))
+        image_vox_size = "image " + "x".join(map(str, izoom))
         checks[vox_size_criteria] = (is_correct_vox_size, image_vox_size)
 
     # check orientation LIA
@@ -795,7 +796,8 @@ def is_conform(
         if dtype is None or (isinstance(dtype, str) and dtype.lower() == "uchar"):
             dtype = "uint8"
         else:  # assume obj
-            dtype = np.dtype(np.obj2sctype(dtype)).name
+            #dtype = np.dtype(np.obj2sctype(dtype)).name
+            dtype = np.dtype(dtype).type.__name__
         is_correct_dtype = img.get_data_dtype() == dtype
         checks[f"Dtype {dtype}"] = (is_correct_dtype, f"dtype {img.get_data_dtype()}")
 

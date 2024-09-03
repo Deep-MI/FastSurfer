@@ -213,7 +213,9 @@ class Inference:
             # make sure the model is, where it is supposed to be
             self.model.to(self.device)
 
-        model_state = torch.load(ckpt, map_location=device)
+        # WARNING: weights_only=False can cause unsafe code execution, but here the
+        # checkpoint can be considered to be from a safe source
+        model_state = torch.load(ckpt, map_location=device, weights_only=False)
         self.model.load_state_dict(model_state["model_state"])
 
         # workaround for mps (move the model back to mps)

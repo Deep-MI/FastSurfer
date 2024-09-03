@@ -19,7 +19,7 @@ dependencies_pattern = re.compile('^\\s*dependencies:\\s*$')
 def mode(arg: str) -> str:
     if arg in ["base", "cpu"] or \
             re.match("^cu\\d+$", arg) or \
-            re.match("^rocm\\d+\\.\\d+(\\.\\d+)?$"):
+            re.match("^rocm\\d+\\.\\d+(\\.\\d+)?$", arg):
         return arg
     else:
         raise argparse.ArgumentTypeError(f"The mode was '{arg}', but should be "

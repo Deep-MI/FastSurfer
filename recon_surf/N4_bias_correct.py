@@ -20,7 +20,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, cast, Literal, TypeVar, Callable, get_args, Union
+from typing import Optional, cast, Literal, TypeVar, Callable
 
 # Group 2: External modules
 import SimpleITK as sitk
@@ -499,9 +499,9 @@ def read_talairach_xfm(fname: Path | str) -> np.ndarray:
     try:
         transform_iter = iter(lines)
         # advance transform_iter to linear header
-        _ = next(l for l in transform_iter if l.lower().startswith("linear_"))
+        _ = next(ln for ln in transform_iter if ln.lower().startswith("linear_"))
         # return the next 3 lines in transform_lines
-        transform_lines = (l for l, _ in zip(transform_iter, range(3)))
+        transform_lines = (ln for ln, _ in zip(transform_iter, range(3)))
         tal_str = [ln.replace(";", " ") for ln in transform_lines]
         tal = np.genfromtxt(tal_str)
         tal = np.vstack([tal, [0, 0, 0, 1]])

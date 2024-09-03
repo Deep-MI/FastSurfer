@@ -26,6 +26,7 @@ classifiers = [
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
     'Natural Language :: English',
     'License :: OSI Approved :: Apache Software License',
     'Intended Audience :: Science/Research',
@@ -78,9 +79,7 @@ doc = [
 ]
 style = [
     'bibclean',
-    'black',
     'codespell',
-    'isort',
     'pydocstyle[toml]',
     'ruff',
 ]
@@ -105,37 +104,6 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 [tool.setuptools]
 packages = ['FastSurferCNN','CerebNet','recon_surf']
 
-[tool.black]
-line-length = 88
-target-version = ['py310']
-include = '\.pyi?$'
-extend-exclude = '''
-(
-      __pycache__
-    | .github
-    | setup.py
-    | Tutorial/
-    | checkpoints/
-    | doc/
-    | env/
-    | images/
-)
-'''
-
-[tool.isort]
-profile = 'black'
-multi_line_output = 3
-line_length = 88
-py_version = 310
-extend_skip_glob = [
-    'setup.py',
-    'Tutorial/*',
-    'checkpoints/*',
-    'doc/*',
-    'env/*',
-    'images/*',
-]
-
 [tool.pydocstyle]
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
@@ -144,15 +112,31 @@ match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*'
 add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
-line-length = 88
+line-length = 120
+target-version = "py310"
 extend-exclude = [
-    "doc",
     "build",
+    "checkpoints",
+    "doc",
+    "env",
+    "images",
     "setup.py",
+]
+
+[tool.ruff.lint]
+# https://docs.astral.sh/ruff/linter/#rule-selection
+select = [
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "I",   # isort
+    # "SIM", # flake8-simplify
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"Tutorial/*.ipynb" = ["E501"]  # exclude "Line too long"
 
 [tool.pytest.ini_options]
 minversion = '6.0'
