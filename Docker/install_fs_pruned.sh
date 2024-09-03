@@ -7,7 +7,7 @@
 # In order to update to a new FreeSurfer version you need to update the fslink and then build a 
 # docker with this setup. Run it and whenever it crashes/exits, find the missing file (binary,
 # atlas, datafile, or dependency) and add it here or if a dependency is missing install it in the 
-# docker and rebuild and re-run. Repeat until recon-surf finishes sucessfully. Then repeat with
+# docker and rebuild and re-run. Repeat until recon-surf finishes successfully. Then repeat with
 # all supported recon-surf flags (--hires, --fsaparc etc.).
 
 
