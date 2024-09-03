@@ -132,6 +132,7 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"Tutorial/*.ipynb" = ["E501"]  # exclude "Line too long"
 
 [tool.pytest.ini_options]
 minversion = '6.0'
