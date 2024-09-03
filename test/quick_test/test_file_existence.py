@@ -1,8 +1,9 @@
-import sys
-import yaml
-import unittest
 import argparse
+import sys
+import unittest
 from pathlib import Path
+
+import yaml
 
 
 class TestFileExistence(unittest.TestCase):
@@ -39,7 +40,8 @@ class TestFileExistence(unittest.TestCase):
         """
         Test method to check the existence of files in the folder.
 
-        This method gets a list of all files in the folder recursively and checks if each file specified in the YAML file exists in the folder.
+        This method gets a list of all files in the folder recursively and checks
+        if each file specified in the YAML file exists in the folder.
         """
 
         # Check if each file in the YAML file exists in the folder
@@ -57,8 +59,8 @@ if __name__ == '__main__':
     """
     Main entry point of the script.
 
-    This block checks if there are any command line arguments, assigns the first argument to the error_file_path class variable,
-    and runs the unittest main function.
+    This block checks if there are any command line arguments, assigns the first argument
+    to the error_file_path class variable, and runs the unittest main function.
     """
 
     parser = argparse.ArgumentParser(description="Test for file existence based on a YAML file.")
