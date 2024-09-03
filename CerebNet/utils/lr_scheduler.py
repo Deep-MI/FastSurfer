@@ -44,7 +44,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         Args:
             ...: same as ReduceLROnPlateau
             T_0 (optional): number of epochs until first restart (default: 10)
-            Tmult (optiona): multiplicative factor for future restarts (default: 1)
+            Tmult (optional): multiplicative factor for future restarts (default: 1)
             lr_restart (optinoal): multiplicative factor for learning rate adjustment at restart.
         """
         # from torch.optim.lr_scheduler._LRSchduler
@@ -72,12 +72,12 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
     def step(self, metrics, epoch=None):
         """
-        Perfroms an optimization step.
+        Performs an optimization step.
 
         Parameters
         ----------
         metrics : float
-            The value of matrics= used to determine learning rate adjustments.
+            The value of metrics is used to determine learning rate adjustments.
         epoch : int, default=None
             Number of epochs.
         

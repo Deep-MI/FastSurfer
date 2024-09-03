@@ -93,15 +93,15 @@ _C.MODEL.ATTENTION_OUTPUT = False
 # Options for addition instead of Maxout
 _C.MODEL.ADDITION = False
 
-#Options for multi modalitie
+# Options for multi modalitie
 _C.MODEL.MULTI_AUTO_W = False # weight per modalitiy
 _C.MODEL.MULTI_AUTO_W_CHANNELS = False #weight per channel
 # Flag, for smoothing testing (double number of feature maps before the input interpolation block)
 _C.MODEL.MULTI_SMOOTH = False
-#  Brach weights can be aleatory set to zero
+# Branch weights can be aleatory set to zero
 _C.MODEL.HETERO_INPUT = False
 # Flag for replicating any given modality into the two branches.
-#  This branch require that the hetero_input also set to TRUE
+# This branch requires that the hetero_input also set to TRUE
 _C.MODEL.DUPLICATE_INPUT = False
 # ---------------------------------------------------------------------------- #
 # Training options

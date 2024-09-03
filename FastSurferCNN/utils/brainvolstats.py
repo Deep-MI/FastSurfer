@@ -1934,7 +1934,7 @@ class Manager(dict[str, AbstractMeasure]):
           The volume of the corpus callosum in the segmentation.
         - `lhWM-hypointensities`, and `rhWM-hypointensities`
           The volume of unlateralized the white matter hypointensities in the
-          segmentation, but lateralized by neigboring voxels
+          segmentation, but lateralized by neighboring voxels
           (FreeSurfer uses talairach coordinates to re-lateralize).
         - `lhCerebralWhiteMatter`, `rhCerebralWhiteMatter`, and `CerebralWhiteMatter`
           The volume of the cerebral white matter in the segmentation (including corpus
@@ -1952,7 +1952,7 @@ class Manager(dict[str, AbstractMeasure]):
         - `VentricleChoroidVol`
           The volume of the choroid plexus and inferiar and lateral ventricles and CSF.
         - `BrainSeg`
-          The volume of all brains structres in the segmentation.
+          The volume of all brain structures in the segmentation.
         - `BrainSegNotVent`, and `BrainSegNotVentSurf`
           The brain segmentation volume without ventricles.
         - `Cerebellum`
@@ -2171,7 +2171,7 @@ class Manager(dict[str, AbstractMeasure]):
             )
         elif key in "BrainSeg":
             # 0 => BrainSegVol:
-            # FS7 (does mot use ribbon any more, just )
+            # FS7 (does not use ribbon any more, just )
             #   not background, in aseg ctab, not Brain stem, not optic chiasm,
             #   aseg undefined in aseg ctab and not cortex or WM (L/R Cerebral
             #   Ctx/WM)

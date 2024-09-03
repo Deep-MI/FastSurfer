@@ -159,7 +159,7 @@ def options_parse():
         dest="force_lia",
         action="store_false",
         help="Ignore the reordering of data into LIA (without interpolation). "
-             "Superceeds --no_strict_lia",
+             "Supersedes --no_strict_lia",
     )
     advanced.add_argument(
         "--no_iso_vox",

@@ -130,7 +130,7 @@ def make_arguments() -> argparse.ArgumentParser:
         type=Path,
         dest="pvfile",
         help="Path to image used to compute the partial volume effects. This file is "
-             "only used in the FastSurfer algoritms (--no_legacy).",
+             "only used in the FastSurfer algorithms (--no_legacy).",
     )
     return parser
 

@@ -39,7 +39,7 @@ def vox_size(a: str) -> VoxSizeOption:
     Raises
     ------
     argparse.ArgumentTypeError
-        If the arguemnt is not "min", "auto" or convertible to a float between 0 and 1.
+        If the argument is not "min", "auto" or convertible to a float between 0 and 1.
     """
     if a.lower() in ["auto", "min"]:
         return "min"

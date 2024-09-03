@@ -725,7 +725,7 @@ def main(
 
         if aseg:  # has aseg
             # used to be 110, but we found experimentally, that freesurfer wm-normalized
-            # intensity insde the WM mask is closer to 105 (but also quite inconsistent).
+            # intensity inside the WM mask is closer to 105 (but also quite inconsistent).
             # So when we have a WM mask, we need to use 105 and not 110 as for the
             # percentile approach above.
             target_wm = 105.

@@ -143,13 +143,13 @@ def find_all_islands(surf, annot):
         surf[1] is the np.array of (m, 3) triangle indices.
     annot : np.ndarray
         Annotation as an int array of (n,) with label ids for each vertex.
-        This is for example the first element of the tupel returned by
+        This is for example the first element of the tuple returned by
         nibabel fs.read_annot.
 
     Returns
     -------
     vidx : np.ndarray (i,)
-        Arrray listing vertex indices of island vertices, empty if no islands
+        Array listing vertex indices of island vertices, empty if no islands
         (components disconnetcted from largest label region) are found.
     """
     # construct adjaceny matrix without edges across regions:
@@ -203,7 +203,7 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     # the nearest neighbor voxel, instead of at the float vox coordinates
 
     # create box with 2*rvox+1 side length to fully contain ball
-    # and get coordiante offsets with zero at center
+    # and get coordinate offsets with zero at center
     ri = np.floor(rvox).astype(int)
     ll = np.arange(-ri,ri+1)
     xv, yv, zv = np.meshgrid(ll, ll, ll)
@@ -300,7 +300,7 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
         T.orient_()
 
     # compute sample coordinates projmm mm along the surface normal
-    # in surface RAS coordiante system:
+    # in surface RAS coordinate system:
     x = T.v + projmm * T.vertex_normals()
     # mask cortex
     xx = x[mask]
@@ -341,7 +341,7 @@ def replace_labels(img_labels, img_lut, surf_lut):
     Parameters
     ----------
     img_labels : np.ndarray(n,)
-        Array with imgage label ids.
+        Array with image label ids.
     img_lut : str
         Filename for image label look up table.
     surf_lut : str

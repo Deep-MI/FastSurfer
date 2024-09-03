@@ -706,7 +706,7 @@ def infer_labels_excludeid(
     labels : npt.NDArray[int]
         The array of all labels to calculate partial volumes for.
     exclude_id : list[int]
-        A list of labels exlicitly excluded from the output table.
+        A list of labels explicitly excluded from the output table.
     """
     explicit_ids = False
     if __ids := getattr(args, "ids", None):
@@ -849,7 +849,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
                 return exception.args[0]
 
         if measure_only:
-            # in this mode, we do not output a data tabel anyways, so no need to compute
+            # in this mode, we do not output a data table anyways, so no need to compute
             # all these PV values.
             labels, exclude_id = np.zeros((0,), dtype=int), []
         else:
@@ -1450,7 +1450,7 @@ def borders(
         List of labels for which borders will be computed.
         If labels is True, _array is treated as a binary mask.
     max_label : int, optional
-        The maximum label ot consider. If None, the maximum label in the array is used.
+        The maximum label to consider. If None, the maximum label in the array is used.
     six_connected : bool, default=True
         If True, 6-connected borders (must share a face) are computed,
         otherwise 26-connected borders (must share a vertex) are computed.

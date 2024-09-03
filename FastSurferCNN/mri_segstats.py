@@ -211,7 +211,7 @@ def make_arguments() -> argparse.ArgumentParser:
         type=Path,
         metavar="file",
         dest="segstatsfile",
-        help="Specifiy the output summary statistics file.",
+        help="Specify the output summary statistics file.",
     )
     parser.add_argument(
         "--pv",

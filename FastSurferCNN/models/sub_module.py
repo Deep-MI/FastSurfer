@@ -385,7 +385,7 @@ class CompetitiveDenseBlockInput(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         """
-        Feed forward trough CompetitiveDenseBlockInput.
+        Feed forward through CompetitiveDenseBlockInput.
 
         in -> BN -> {Conv -> BN -> PReLU} -> {Conv -> BN -> Maxout -> PReLU} -> {Conv -> BN} -> out
 
@@ -492,7 +492,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
     Methods
     -------
     forward
-        Feed forward trough graph.
+        Feed forward through graph.
     """
 
     def __init__(self, params: dict):
@@ -513,7 +513,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         """
-        Feed forward trough Encoder Block.
+        Feed forward through Encoder Block.
 
         * CompetitiveDenseBlock
         * Max Pooling (+ retain indices)
@@ -529,7 +529,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
             Original feature map.
         out_block : Tensor
             Maxpooled feature map.
-        indicies : Tensor
+        indices : Tensor
             Maxpool indices.
         """
         out_block = super().forward(
@@ -566,7 +566,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         """
-        Feed forward trough Encoder Block.
+        Feed forward through Encoder Block.
 
         * CompetitiveDenseBlockInput
         * Max Pooling (+ retain indices)
@@ -618,7 +618,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
 
     def forward(self, x: Tensor, out_block: Tensor, indices: Tensor) -> Tensor:
         """
-        Feed forward trough Decoder block.
+        Feed forward through Decoder block.
 
         * Unpooling of feature maps from lower block
         * Maxout combination of unpooled map + skip connection
@@ -661,7 +661,7 @@ class OutputDenseBlock(nn.Module):
     Methods
     -------
     forward
-        Feed forward trough graph.
+        Feed forward through graph.
     """
 
     def __init__(self, params: dict):
@@ -727,7 +727,7 @@ class OutputDenseBlock(nn.Module):
 
     def forward(self, x: Tensor, out_block: Tensor) -> Tensor:
         """
-        Feed forward trough Output block.
+        Feed forward through Output block.
 
         * Maxout combination of unpooled map from previous block + skip connection
         * Forwarding toward CompetitiveDenseBlock
@@ -802,7 +802,7 @@ class ClassifierBlock(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         """
-        Feed forward trough classifier.
+        Feed forward through classifier.
 
         Parameters
         ----------

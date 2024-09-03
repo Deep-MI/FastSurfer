@@ -214,7 +214,7 @@ def select_index_to_plot(hyposeg, slice_step=2):
     idx_only_third_ventricle = []
     for i in idx_with_third_ventricle:
         label = np.unique(hyposeg[i])
-        # Background is allways at position 0
+        # Background is always at position 0
         if label[1] == 10:
             idx_only_third_ventricle.append(i)
     # Remove slices with only third ventricle from the total

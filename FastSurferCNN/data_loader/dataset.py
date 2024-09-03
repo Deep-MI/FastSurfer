@@ -48,7 +48,7 @@ class MultiScaleOrigDataThickSlices(Dataset):
         Parameters
         ----------
         orig_data : npt.NDArray
-            Orignal Data.
+            Original Data.
         orig_zoom : npt.NDArray
             Original zoomfactors.
         cfg : yacs.config.CfgNode

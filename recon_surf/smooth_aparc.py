@@ -222,7 +222,7 @@ def mode_filter(
     # Only after fixing the rows above, we can
     # get rid of entries that should not vote
     # since we have only rows that were non-uniform, they should not become empty
-    # rows may become unform: we still need to vote below to update this label
+    # rows may become uniform: we still need to vote below to update this label
     if novote is not None:
         rr = np.isin(nlabels.data, novote)
         nlabels.data[rr] = 0
@@ -262,7 +262,7 @@ def smooth_aparc(surf, labels, cortex = None):
     Parameters
     ----------
     surf : nibabel surface
-        Suface filepath and name of source.
+        Surface filepath and name of source.
     labels : np.array[int]
         Labels at each vertex (int).
     cortex : np.array[int]
@@ -378,7 +378,7 @@ def main(
     Parameters
     ----------
     insurfname : str
-        Suface filepath and name of source.
+        Surface filepath and name of source.
     inaparcname : str
         Annotation filepath and name of source.
     incortexname : str

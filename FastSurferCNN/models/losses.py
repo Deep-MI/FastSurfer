@@ -31,7 +31,7 @@ class DiceLoss(_Loss):
     Methods
     -------
     forward
-        Calulate the DiceLoss.
+        Calculate the DiceLoss.
     """
 
     def forward(
@@ -42,7 +42,7 @@ class DiceLoss(_Loss):
         ignore_index: int | None = None,
     ) -> torch.Tensor:
         """
-        Calulate the DiceLoss.
+        Calculate the DiceLoss.
 
         Parameters
         ----------
@@ -178,7 +178,7 @@ class CombinedLoss(nn.Module):
         target : Tensor
             A Tensor of shape N x H x W of integers containing the target.
         weight : Tensor
-            A Tensor of shape N x H x W of floats containg the weights.
+            A Tensor of shape N x H x W of floats containing the weights.
 
         Returns
         -------

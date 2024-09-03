@@ -300,7 +300,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
             Original feature map.
         out_block : Tensor
             Maxpooled feature map.
-        indicies : Tensor
+        indices : Tensor
             Maxpool indices.
         """
         out_block = super().forward(

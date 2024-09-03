@@ -988,7 +988,7 @@ def map_aparc_aseg2label(
     np.ndarray
         Mapped aseg for coronal and axial.
     np.ndarray
-        Mapped aseg for sagital.
+        Mapped aseg for sagittal.
     """
     # If corpus callosum is not removed yet, do it now
     if aseg_nocc is not None:

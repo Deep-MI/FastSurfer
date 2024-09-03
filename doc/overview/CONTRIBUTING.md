@@ -72,7 +72,7 @@ This is the preferred way, but only possible if you are the sole develop or your
 
 10. Switch into dev branch (`git checkout dev`)
 11. Update your dev branch (`git pull upstream dev`)
-12. Switch into your feature (`git chekcout my-new-feature`)
+12. Switch into your feature (`git checkout my-new-feature`)
 13. Rebase your branch onto dev (`git rebase dev`), resolve conflicts and continue until complete
 14. Force push the updated feature branch to your gihub (`git push -f origin my-new-feature`)
 
@@ -81,7 +81,7 @@ Instead you need to merge upstream dev into your branch:
 
 10. Switch into dev branch (`git checkout dev`)
 11. Update your dev branch (`git pull upstream dev`)
-12. Switch into your feature (`git chekcout my-new-feature`)
+12. Switch into your feature (`git checkout my-new-feature`)
 13. Merge dev into your feature (`git merge dev`), resolve conflicts and commit
 14. Push to origin (`git push origin my-new-feature`)
 

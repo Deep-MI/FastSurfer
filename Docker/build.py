@@ -353,7 +353,7 @@ def get_builder(
         # see if there is an alternative builder named "fastsurfer*"
         for builder in builders.keys():
             if builder.startswith("fastsurfer") and builders[builder] == builder_type:
-                # set the default_builder to this (prefered) builder
+                # set the default_builder to this (preferred) builder
                 alternative_builder = builder
                 break
     # update is_correct_type

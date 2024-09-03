@@ -82,7 +82,7 @@ class HypVINNDataset(Dataset):
         self.plane = cfg.DATA.PLANE
         #Inference Mode
         self.mode = mode
-        #set thickness base on train paramters
+        #set thickness base on train parameters
         if cfg.MODEL.MODE in ["t1", "t2"]:
             self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
         else:

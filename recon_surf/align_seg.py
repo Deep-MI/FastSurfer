@@ -226,9 +226,7 @@ def get_vox2ras(img:sitk.Image) -> npt.NDArray:
 
 def align_flipped(seg: sitk.Image, mid_slice: float | None = None) -> npt.NDArray:
     """
-    Registrate Left - right (make upright).
-
-    Register cortial lables
+    Register selected cortical labels with left-right flipped (make upright).
 
     Parameters
     ----------
@@ -236,7 +234,6 @@ def align_flipped(seg: sitk.Image, mid_slice: float | None = None) -> npt.NDArra
         Segmentation Image. Should be aparc+aseg (DKT or not).
     mid_slice : Optional[float]
         Where the mid slice will be in upright space. Defaults to (width-1)/2.
-
 
     Returns
     -------

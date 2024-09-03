@@ -93,9 +93,9 @@ class H5pyDataset:
     Methods
     -------
     __init__
-        Consturctor
+        Constructor
     _load_volumes
-        load image and segmentation volume
+        Load image and segmentation volume
     transform
         Transform image along axis
     _pad_image
@@ -233,7 +233,7 @@ class H5pyDataset:
         npt.NDArray
             Transformed image.
         npt.NDArray
-            Transformed zoom facors.
+            Transformed zoom factors.
         """
         for i in range(len(imgs)):
             if self.plane == "sagittal":
