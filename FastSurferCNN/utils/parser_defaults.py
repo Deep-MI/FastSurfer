@@ -26,6 +26,7 @@ Values can also be extracted by
 >>> #  'dest': 'root', 'help': 'Allow execution as root user.'}
 """
 
+import argparse
 import types
 from collections.abc import Iterable, Mapping
 from dataclasses import Field, dataclass
@@ -129,7 +130,7 @@ def __arg(
             return {"flag": _flags[0], "flags": _flags, **kwargs}
         else:
             raise ValueError(
-                "Unclear parameter, should be dict or argparse.ArgumentParser, not " \
+                f"Unclear parameter, should be dict or argparse.ArgumentParser, not "
                 f"{type(parser).__name__}."
             )
 
