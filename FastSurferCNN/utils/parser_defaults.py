@@ -129,7 +129,7 @@ def __arg(
             return {"flag": _flags[0], "flags": _flags, **kwargs}
         else:
             raise ValueError(
-                f"Unclear parameter, should be dict or argparse.ArgumentParser, not "
+                "Unclear parameter, should be dict or argparse.ArgumentParser, not " \
                 f"{type(parser).__name__}."
             )
 
