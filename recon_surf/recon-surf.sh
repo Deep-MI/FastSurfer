@@ -1077,8 +1077,7 @@ fi
 # Collect info
 EndTime=$(date)
 tSecEnd=$(date '+%s')
-tRunHours=$(($((tSecEnd - tSecStart))/3600))
-tRunHours=$(printf %6.3f "$tRunHours")
+tRunHours=$(printf %6.3f "$(bc <<< "($tSecEnd - $tSecStart) / 3600")")
 
 {
   echo ""
