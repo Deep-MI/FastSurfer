@@ -16,7 +16,6 @@
 # IMPORTS
 import math
 import numbers
-from typing import List
 import typing as _T
 
 import torch
@@ -61,7 +60,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
             map(lambda group: group["initial_lr"], optimizer.param_groups)
         )
 
-        super(ReduceLROnPlateauWithRestarts, self).__init__(optimizer, *args, **kwargs)
+        super().__init__(optimizer, *args, **kwargs)
         self.T_0 = T_0
         self.Tmult = Tmult
         self.lr_restart = lr_restart
@@ -88,7 +87,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html
         """
         self.Tcur += 1
-        super(ReduceLROnPlateauWithRestarts, self).step(metrics, epoch)
+        super().step(metrics, epoch)
         if self.Tcur >= self.T_i:
             self._reset_lr()
         self._last_lr = [group["lr"] for group in self.optimizer.param_groups]
@@ -105,7 +104,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         self._reset()
 
         for i, param_group in enumerate(self.optimizer.param_groups):
-            old_lr = float(param_group["lr"])
+            # old_lr = float(param_group["lr"])
             lr_r = (
                 self.lr_restart[i]
                 if isinstance(self.lr_restart, _T.Sequence)
@@ -119,8 +118,8 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
             param_group["lr"] = new_lr
             if self.verbose:
                 logger.info(
-                    "Epoch {:5d}: restarting learning rate with "
-                    "{:.4e} for group {}.".format(self.last_epoch, new_lr, i)
+                    f"Epoch {self.last_epoch:5d}: restarting learning rate with "
+                    f"{new_lr:.4e} for group {i}."
                 )
 
 
@@ -144,7 +143,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
         """
         Get the learning rates at the current epoch.
         """
@@ -164,7 +163,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
             for base_lr in self.base_lrs
         ]
 
-    def _compute_values(self) -> List[float]:
+    def _compute_values(self) -> list[float]:
         # The new interface
         return self.get_lr()
 
@@ -195,7 +194,7 @@ def _get_warmup_factor_at_iter(
         alpha = iter / warmup_iters
         return warmup_factor * (1 - alpha) + alpha
     else:
-        raise ValueError("Unknown warmup method: {}".format(method))
+        raise ValueError(f"Unknown warmup method: {method}")
 
 
 class CosineLR:
@@ -255,7 +254,7 @@ class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
     decay factor for where the learning rate restarts at. 
     """
     def __init__(self, optimizer, T_0, T_mult=1, eta_min=0, last_epoch=-1):
-        super(CosineAnnealingWarmRestartsDecay, self).__init__(
+        super().__init__(
             optimizer, T_0, T_mult=T_mult, eta_min=eta_min, last_epoch=last_epoch
         )
         pass

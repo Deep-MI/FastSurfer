@@ -14,17 +14,15 @@
 
 
 # IMPORTS
-from functools import partial
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 
-from FastSurferCNN.utils import logging
-
-from CerebNet.utils.metrics import DiceScore, hd, dice_score, volume_similarity
+from CerebNet.data_loader.data_utils import GRAY_MATTER, VERMIS_NAMES
+from CerebNet.utils.metrics import DiceScore, dice_score, hd, volume_similarity
 from CerebNet.utils.misc import plot_confusion_matrix, plot_predictions
-from CerebNet.data_loader.data_utils import VERMIS_NAMES, GRAY_MATTER
+from FastSurferCNN.utils import logging
 
 logger = logging.get_logger(__name__)
 
@@ -93,7 +91,7 @@ class TestMeter:
         bin_map : np.array
             Binary map where True represents class and False represents its absence.
         """
-        bin_map = np.logical_or.reduce(list(map(lambda l: lbl_map == l, class_names)))
+        bin_map = np.logical_or.reduce(list(map(lambda lb: lbl_map == lb, class_names)))
         return bin_map
 
     def metrics_per_class(self, pred, gt):
@@ -283,15 +281,8 @@ class Meter:
             )
 
             logger.info(
-                "{} Epoch [{}/{}] Iter [{}/{}] [Dice Score: {:.4f}]  [{}]".format(
-                    self.mode,
-                    cur_epoch + 1,
-                    self.total_epochs,
-                    cur_iter + 1,
-                    self.total_iter_num,
-                    dice_score_per_class[1:].mean(),
-                    out_losses,
-                )
+                f"{self.mode} Epoch [{cur_epoch + 1}/{self.total_epochs}] Iter [{cur_iter + 1}/{self.total_iter_num}]" \
+                f" [Dice Score: {dice_score_per_class[1:].mean():.4f}]  [{out_losses}]"
             )
 
     def log_lr(self, lr, step=None):

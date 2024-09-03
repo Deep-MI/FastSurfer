@@ -1,4 +1,7 @@
 import argparse
+from os.path import join
+
+import nibabel as nib
 
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
@@ -13,12 +16,9 @@ import argparse
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 # IMPORTS
 import numpy as np
-import nibabel as nib
 
-from os.path import join
 from CerebNet.datasets import utils
 
 

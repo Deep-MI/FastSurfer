@@ -15,18 +15,12 @@
 
 # IMPORTS
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     import yacs
 
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.checkpoint import (
-    load_from_checkpoint,
-    create_checkpoint_dir,
-    get_checkpoint,
-    get_checkpoint_path,
-    save_checkpoint,
-)
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 # DEFAULTS
 YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"

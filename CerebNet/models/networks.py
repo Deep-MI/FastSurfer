@@ -14,14 +14,13 @@
 
 
 # IMPORTS
-from typing import Mapping
+from collections.abc import Mapping
 
 import torch
 import torch.nn as nn
 
-from FastSurferCNN.utils import logging
 from CerebNet.models import sub_module as sm
-
+from FastSurferCNN.utils import logging
 
 logger = logging.get_logger(__name__)
 
@@ -42,7 +41,7 @@ class FastSurferCNN(nn.Module):
         """
         Create the FastSurferCNN model.
         """
-        super(FastSurferCNN, self).__init__()
+        super().__init__()
 
         # Parameters for the Descending Arm
         self.encode1 = sm.CompetitiveEncoderBlockInput(params)

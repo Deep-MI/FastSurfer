@@ -14,8 +14,8 @@
 
 
 # IMPORTS
-from os.path import join, isfile
 from functools import partial
+from os.path import isfile, join
 
 import numpy as np
 
@@ -91,9 +91,9 @@ class SubjectLoader:
 
         img_meta_data = {}
         orig, _ = utils.load_reorient_rescale_image(orig_path)
-        print("Orig image {}".format(orig_path))
+        print(f"Orig image {orig_path}")
 
-        print("Loading from {}".format(subseg_path))
+        print(f"Loading from {subseg_path}")
         subseg_file = utils.load_reorient(subseg_path)
         cereb_subseg = np.asarray(subseg_file.get_fdata(), dtype=np.int16)
         img_meta_data["affine"] = subseg_file.affine
