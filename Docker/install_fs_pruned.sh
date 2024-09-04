@@ -97,7 +97,7 @@ function run_parallel ()
 }
 
 
-# get FreeSurfer and upnack (some of it)
+# get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
 wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/average/*.gca' \
