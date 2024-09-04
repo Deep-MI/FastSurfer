@@ -6,8 +6,7 @@ name: quicktest
 # Functionality: This workflow runs some quick integration tests on FastSurfer commits. It checks out the new
 #                FastSurfer repo, sets up Python, builds a Singularity image, runs FastSurfer on sample MRI data, and
 #                runs pytest to check if the results are acceptable
-# Usage: This workflow is triggered on a push or pull-request to the dev and main branch of DeepMI/FastSurfer.
-#        It can also be triggered manually with workflow-dispatch
+# Usage: This workflow is exclusively triggered manually with workflow-dispatch in DeepMI/FastSurfer.
 
 
 on:
@@ -57,7 +56,6 @@ jobs:
           echo "SIF File does not exist. Building file."
           cd $FASTSURFER_HOME
           python3 Docker/build.py --device cuda --tag fastsurfer_gpu:cuda
-          cd $RUNNER_FASTSURFER_IMGS
           apptainer build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
         else
           echo "File already exists"
@@ -85,7 +83,7 @@ jobs:
                       --env FASTSURFER_HOME=/fastsurfer-dev \
                       -B $RUNNER_FS_MRI_DATA:/data \
                       -B $RUNNER_FS_OUTPUT:/output \
-                      -B $RUNNER_FS_LICENSE:/fs_license \
+                      -B $RUNNER_FS_LICENSE:/fs_license/.license \
                       $RUNNER_FASTSURFER_IMGS/fastsurfer-gpu.sif \
                       /fastsurfer/brun_fastsurfer.sh \
                       --fs_license /fs_license/.license \

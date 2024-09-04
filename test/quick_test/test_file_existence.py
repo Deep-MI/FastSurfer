@@ -9,27 +9,27 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-def get_files_from_yaml(file_path: str):
-    """
-    Get the list of files from the YAML file.
-
-    Parameters
-    ----------
-    file_path : str
-        Path to the YAML file.
-
-    Returns
-    -------
-    list
-        List of files specified in the YAML file.
-    """
-
-    # Open the file_path and read the files into an array
-    with open(file_path, 'r') as file:
-        data = yaml.safe_load(file)
-        files = data.get('files', [])
-
-    return files
+# def get_files_from_yaml(file_path: str):
+#     """
+#     Get the list of files from the YAML file.
+#
+#     Parameters
+#     ----------
+#     file_path : str
+#         Path to the YAML file.
+#
+#     Returns
+#     -------
+#     list
+#         List of files specified in the YAML file.
+#     """
+#
+#     # Open the file_path and read the files into an array
+#     with open(file_path, 'r') as file:
+#         data = yaml.safe_load(file)
+#         files = data.get('files', [])
+#
+#     return files
 
 
 def get_files_from_folder(folder_path: str):
@@ -89,7 +89,7 @@ def test_file_existence(subjects_dir, test_dir, reference_dir, test_subject):
     test_files = get_files_from_folder(test_subject)
 
     # Check if each file in the reference list exists in the test list
-    for file in reference_files:
-        assert file in test_files, f"File '{file}' does not exist."
+    missing_files = [file for file in reference_files if file not in test_files]
+    assert not missing_files, f"Files '{missing_files}' do not exist in test subject."
 
     logger.debug("\nAll files present.")

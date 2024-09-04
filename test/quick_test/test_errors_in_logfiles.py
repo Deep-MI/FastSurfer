@@ -12,13 +12,13 @@ logger = getLogger(__name__)
 
 def load_errors():
     """
-    Load the errors and whitelist from the given file path.
+    Load the errors and whitelist strings from ./data/logfile.errors.yaml.
 
     Returns
     -------
-    errors : list
+    errors : list[str]
         List of errors.
-    whitelist : list
+    whitelist : list[str]
         List of whitelisted errors.
     """
 
@@ -45,7 +45,7 @@ def load_log_files(test_subject: str):
 
     Returns
     -------
-    log_files : list
+    log_files : list[Path]
         List of log files in the given log directory.
     """
 
@@ -88,7 +88,7 @@ def test_errors(subjects_dir, test_dir, test_subject):
 
     # Check if any of the keywords are in the log files
     for log_file in log_files:
-        rel_path = log_file.relative_to(os.environ["SUBJECTS_DIR"])
+        rel_path = log_file.relative_to(subjects_dir)
         logger.debug(f"Checking file: {rel_path}")
         try:
             with log_file.open('r') as file:
