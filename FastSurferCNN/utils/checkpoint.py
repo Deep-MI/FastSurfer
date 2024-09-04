@@ -17,7 +17,7 @@ import os
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, TypedDict, cast, overload
+from typing import Literal, TypedDict, cast, overload, TYPE_CHECKING
 
 import requests
 import torch
@@ -27,7 +27,12 @@ import yaml
 from FastSurferCNN.utils import Plane, logging
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
-Scheduler = "torch.optim.lr_scheduler"
+if TYPE_CHECKING:
+    from torch.optim import lr_scheduler as Scheduler
+else:
+    class Scheduler:
+        ...
+
 LOGGER = logging.getLogger(__name__)
 
 # Defaults

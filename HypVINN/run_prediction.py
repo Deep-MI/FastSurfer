@@ -160,6 +160,18 @@ def option_parse() -> argparse.ArgumentParser:
     return parser
 
 
+def _update_docstring(**kwargs):
+    """
+    Make custom replacements in the docstring.
+    """
+
+    def stub(f):
+        f.__doc__ = f.__doc__.format(**kwargs)
+        return f
+    return stub
+
+
+@_update_docstring(HYPVINN_SEG_NAME=HYPVINN_SEG_NAME, HYPVINN_MASK_NAME=HYPVINN_MASK_NAME)
 def main(
         out_dir: Path,
         t2: Path | None,
@@ -207,10 +219,10 @@ def main(
         The path to the coronal configuration file.
     cfg_sag : Path
         The path to the sagittal configuration file.
-    hypo_segfile : str, default is in HYPVINN_SEG_NAME as specified in config.
-        The name of the hypothalamus segmentation file. Default is in HYPVINN_SEG_NAME.
-    hypo_maskfile : str, default is in HYPVINN_MASK_NAME
-        The name of the hypothalamus mask file. Default is in HYPVINN_MASK_NAME.
+    hypo_segfile : str, default="{HYPVINN_SEG_NAME}"
+        The name of the hypothalamus segmentation file. Default is {HYPVINN_SEG_NAME}.
+    hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
+        The name of the hypothalamus mask file. Default is {HYPVINN_MASK_NAME}.
     allow_root : bool, default=False
         Whether to allow running as root user. Default is False.
     qc_snapshots : bool, optional
@@ -466,8 +478,7 @@ def load_volumes(
     -------
     tuple
         A tuple containing the following elements:
-        - modalities: A dictionary with keys 't1' and/or 't2' and values
-                      being the corresponding loaded and rescaled images.
+        - modalities: A dictionary of `ndarrays` of rescaled images for keys 't1' and/or 't2'.
         - affine: The affine transformation of the loaded image(s).
         - header: The header of the loaded image(s).
         - zoom: The zoom level of the loaded image(s).
