@@ -17,7 +17,6 @@
 # IMPORTS
 import argparse
 from pathlib import Path
-from numbers import Number
 from typing import cast
 
 import nibabel as nib

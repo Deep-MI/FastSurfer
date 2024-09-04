@@ -17,7 +17,7 @@ import os
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, TypedDict, cast, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
 
 import requests
 import torch
