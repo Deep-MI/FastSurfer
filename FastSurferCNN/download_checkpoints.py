@@ -15,19 +15,18 @@
 # limitations under the License.
 
 import argparse
-from functools import lru_cache
-from typing import Optional
 
+from CerebNet.utils.checkpoint import (
+    YAML_DEFAULT as CEREBNET_YAML,
+)
 from FastSurferCNN.utils import PLANES
+from FastSurferCNN.utils.checkpoint import (
+    YAML_DEFAULT as VINN_YAML,
+)
 from FastSurferCNN.utils.checkpoint import (
     check_and_download_ckpts,
     get_checkpoints,
     load_checkpoint_config_defaults,
-    YAML_DEFAULT as VINN_YAML,
-)
-
-from CerebNet.utils.checkpoint import (
-    YAML_DEFAULT as CEREBNET_YAML,
 )
 from HypVINN.utils.checkpoint import (
     YAML_DEFAULT as HYPVINN_YAML,
@@ -35,15 +34,12 @@ from HypVINN.utils.checkpoint import (
 
 
 class ConfigCache:
-    @lru_cache
     def vinn_url(self):
         return load_checkpoint_config_defaults("url", filename=VINN_YAML)
 
-    @lru_cache
     def cerebnet_url(self):
         return load_checkpoint_config_defaults("url", filename=CEREBNET_YAML)
 
-    @lru_cache
     def hypvinn_url(self):
         return load_checkpoint_config_defaults("url", filename=HYPVINN_YAML)
 
@@ -108,7 +104,7 @@ def main(
         hypvinn: bool,
         all: bool,
         files: list[str],
-        url: Optional[str] = None,
+        url: str | None = None,
 ) -> int | str:
     if not vinn and not files and not cerebnet and not hypvinn and not all:
         return ("Specify either files to download or --vinn, --cerebnet, "
@@ -159,7 +155,7 @@ def main(
 
 if __name__ == "__main__":
     import sys
-    from logging import basicConfig, INFO
+    from logging import INFO, basicConfig
 
     basicConfig(stream=sys.stdout, level=INFO)
     args = make_arguments()

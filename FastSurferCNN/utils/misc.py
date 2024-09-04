@@ -15,7 +15,6 @@
 # IMPORTS
 import os
 from itertools import product
-from typing import List
 
 import matplotlib.figure
 import matplotlib.pyplot as plt
@@ -83,7 +82,7 @@ def plot_predictions(
 
 def plot_confusion_matrix(
     cm: npt.NDArray,
-    classes: List[str],
+    classes: list[str],
     title: str = "Confusion matrix",
     cmap: plt.cm.ColormapRegistry = plt.cm.Blues,
     file_save_name: str = "temp.pdf",

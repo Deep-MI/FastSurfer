@@ -14,17 +14,17 @@
 
 
 # IMPORTS
-import os
 import glob
 import math
+import os
 from itertools import product
 
-import torch
-from torchvision import utils
 import numpy as np
-from skimage import color
+import torch
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from skimage import color
+from torchvision import utils
 
 from FastSurferCNN.utils import logging
 
@@ -209,7 +209,7 @@ def set_summary_path(cfg):
     cfg.EXPR_NUM = str(find_latest_experiment(os.path.join(cfg.LOG_DIR, "summary")) + 1)
     if cfg.TRAIN.RESUME and cfg.TRAIN.RESUME_EXPR_NUM > 0:
         cfg.EXPR_NUM = cfg.TRAIN.RESUME_EXPR_NUM
-    cfg.SUMMARY_PATH = check_path(os.path.join(summary_path, "{}".format(cfg.EXPR_NUM)))
+    cfg.SUMMARY_PATH = check_path(os.path.join(summary_path, f"{cfg.EXPR_NUM}"))
 
 
 def load_classwise_weights(cfg):
@@ -237,7 +237,7 @@ def update_results_dir(cfg):
     """
     cfg.EXPR_NUM = str(find_latest_experiment(cfg.TEST.RESULTS_DIR) + 1)
     cfg.TEST.RESULTS_DIR = check_path(
-        os.path.join(cfg.TEST.RESULTS_DIR, "{}".format(cfg.EXPR_NUM))
+        os.path.join(cfg.TEST.RESULTS_DIR, f"{cfg.EXPR_NUM}")
     )
 
 
@@ -250,7 +250,7 @@ def update_split_path(cfg):
     cfg : yacs.config.CfgNode
         Configuration node.
     """
-    from os.path import split, join
+    from os.path import join, split
 
     split_num = cfg.SPLIT_NUM
     keys = [
@@ -273,8 +273,8 @@ def visualize_batch(img, label, idx):
     :param batch_dict:
     :return:
     """
-    from skimage import color
     import matplotlib.pyplot as plt
+    from skimage import color
 
     plt.imshow(img[idx, 3].cpu().numpy(), cmap="gray")
     plt.imshow(color.label2rgb(label[idx].cpu().numpy(), bg_label=0), alpha=0.4)

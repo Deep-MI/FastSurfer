@@ -14,10 +14,10 @@
 
 
 # IMPORTS
-import shlex
 import argparse
+import shlex
+from subprocess import PIPE, Popen
 from typing import Any
-from subprocess import Popen, PIPE
 
 
 def setup_options():
@@ -101,14 +101,12 @@ def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
         Return code of command1. If command1 failed return code of command2.
     """
     # First try to run standard spherical project
-    print("Running command: {}".format(command1))
+    print(f"Running command: {command1}")
     code_1 = call(command1, **kwargs)
 
     if code_1 != 0:
         print(
-            "Command {} failed.\nRunning fallback command: {}".format(
-                command1, command2
-            )
+            f"Command {command1} failed.\nRunning fallback command: {command2}"
         )
         code_1 = call(command2, **kwargs)
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def iou_score(
     pred_cls: torch.Tensor, true_cls: torch.Tensor, nclass: int = 79
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute the intersection-over-union score.
 
@@ -64,7 +64,7 @@ def iou_score(
 
 def precision_recall(
     pred_cls: torch.Tensor, true_cls: torch.Tensor, nclass: int = 79
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class.
 
@@ -125,7 +125,7 @@ class DiceScore:
     def __init__(
         self,
         num_classes: int,
-        device: Optional[str] = None,
+        device: str | None = None,
         output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y),
     ):
         """
@@ -152,9 +152,7 @@ class DiceScore:
         """
         if not (isinstance(output, tuple)):
             raise TypeError(
-                "Output should a tuple consist of of torch.Tensors, but given {}".format(
-                    type(output)
-                )
+                f"Output should a tuple consist of of torch.Tensors, but given {type(output)}"
             )
 
     def _update_union_intersection_matrix(
@@ -195,7 +193,7 @@ class DiceScore:
             self.intersection[i, i] += torch.sum(torch.mul(gt, pred))
             self.union[i, i] += torch.sum(gt) + torch.sum(pred)
 
-    def update(self, output: Tuple[Any, Any], cnf_mat: bool):
+    def update(self, output: tuple[Any, Any], cnf_mat: bool):
         """
         Update the intersection.
 

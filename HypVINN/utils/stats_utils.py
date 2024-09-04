@@ -48,8 +48,8 @@ def compute_stats(
     """
     from collections import namedtuple
 
-    from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT
     from FastSurferCNN.segstats import main
+    from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT
     from HypVINN.config.hypvinn_files import HYPVINN_STATS_NAME
     from HypVINN.config.hypvinn_global_var import FS_CLASS_NAMES
 

@@ -16,21 +16,19 @@
 # IMPORTS
 import numbers
 import random
-from typing import Optional
 
 import numpy as np
 import torch
 from numpy import random as npr
-from scipy.ndimage import gaussian_filter, affine_transform
+from scipy.ndimage import affine_transform, gaussian_filter
 from scipy.stats import median_abs_deviation
 from torchvision import transforms
 
 from CerebNet.data_loader.data_utils import FLIPPED_LABELS
 
 
-
 # Transformations for training
-class ToTensor(object):
+class ToTensor:
     """
     Convert ndarrays in sample to Tensors.
     """
@@ -66,7 +64,7 @@ class ToTensorTest(ToTensor):
         return super()._apply_img(img.transpose((2, 0, 1)))
 
 
-class RandomAffine(object):
+class RandomAffine:
     """
     Apply a random affine transformation to
     images, label and weight
@@ -99,7 +97,7 @@ class RandomAffine(object):
             degrees = (-self.degree, self.degree)
         else:
             assert (
-                isinstance(self.degree, (tuple, list)) and len(self.degree) == 2
+                isinstance(self.degree, tuple | list) and len(self.degree) == 2
             ), "degrees should be a list or tuple and it must be of length 2."
         if isinstance(self.translate, numbers.Number):
             if not (0.0 <= self.translate <= 1.0):
@@ -107,7 +105,7 @@ class RandomAffine(object):
             translate = (self.translate, self.translate)
         else:
             assert (
-                isinstance(self.translate, (tuple, list)) and len(self.translate) == 2
+                isinstance(self.translate, tuple | list) and len(self.translate) == 2
             ), "translate should be a list or tuple and it must be of length 2."
             for t in self.translate:
                 if not (0.0 <= t <= 1.0):
@@ -159,7 +157,7 @@ class RandomAffine(object):
         return sample
 
 
-class RandomFlip(object):
+class RandomFlip:
     """
     Random horizontal flipping.
     """
@@ -196,7 +194,7 @@ class RandomBiasField:
     def __init__(
         self,
         cfg,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         """
         Initialize the RandomBiasField object with configuration and optional seed.
@@ -287,7 +285,7 @@ class RandomBiasField:
         return sample
 
 
-class RandomLabelsToImage(object):
+class RandomLabelsToImage:
     """
     Generate image from segmentation
     using the dataset intensity priors.

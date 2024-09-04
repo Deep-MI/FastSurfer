@@ -40,7 +40,7 @@
 # - build_freesurfer:
 #   Build the freesurfer build image only.
 # - build_common:
-#   Build the basic image with the python enviroment (hardware/driver-agnostic)
+#   Build the basic image with the python environment (hardware/driver-agnostic)
 # - build_conda:
 #   Build the python environment image with cuda/rocm/cpu support
 
@@ -51,7 +51,7 @@ ARG BUILD_BASE_IMAGE=ubuntu:22.04
 # BUILDKIT_SBOM:SCAN_CONTEXT enables buildkit to provide and scan build images
 # this is active by default to provide proper SBOM manifests, however, it may also
 # include parts that are not part of the distributed image (specifically build image
-# parts installed in the build image, but not transfered to the runtime image such as
+# parts installed in the build image, but not transferred to the runtime image such as
 # git, wget, the miniconda installer, etc.)
 ARG BUILDKIT_SBOM_SCAN_CONTEXT=true
 

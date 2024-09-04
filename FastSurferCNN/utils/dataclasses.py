@@ -1,20 +1,22 @@
-from typing import Mapping, TypeVar, overload, Any, Callable, Optional
-
+from collections.abc import Callable, Mapping
 from dataclasses import (
-    field as _field,
+    KW_ONLY,
+    MISSING,
+    Field,
+    FrozenInstanceError,
+    InitVar,
     asdict,
     astuple,
     dataclass,
     fields,
-    Field,
-    FrozenInstanceError,
     is_dataclass,
-    InitVar,
     make_dataclass,
-    MISSING,
-    KW_ONLY,
     replace,
 )
+from dataclasses import (
+    field as _field,
+)
+from typing import Any, TypeVar, overload
 
 __all__ = [
     "field",
@@ -116,7 +118,7 @@ def field(
     elif metadata is None:
         metadata = {}
     else:
-        raise TypeError(f"Invalid type of metadata, must be a Mapping!")
+        raise TypeError("Invalid type of metadata, must be a Mapping!")
     if help:
         if not isinstance(help, str):
             raise TypeError("help must be a str!")

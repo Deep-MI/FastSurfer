@@ -13,15 +13,13 @@
 # limitations under the License.
 
 import numpy as np
-from numpy import typing as npt
 import torch
+from numpy import typing as npt
 from torch.utils.data import Dataset
 
-
-from HypVINN.data_loader.data_utils import transform_axial2sagittal,transform_axial2coronal
-from FastSurferCNN.data_loader.data_utils import get_thick_slices
-
 import FastSurferCNN.utils.logging as logging
+from FastSurferCNN.data_loader.data_utils import get_thick_slices
+from HypVINN.data_loader.data_utils import transform_axial2coronal, transform_axial2sagittal
 from HypVINN.utils import ModalityDict, ModalityMode
 
 logger = logging.get_logger(__name__)
@@ -84,7 +82,7 @@ class HypVINNDataset(Dataset):
         self.plane = cfg.DATA.PLANE
         #Inference Mode
         self.mode = mode
-        #set thickness base on train paramters
+        #set thickness base on train parameters
         if cfg.MODEL.MODE in ["t1", "t2"]:
             self.slice_thickness = cfg.MODEL.NUM_CHANNELS//2
         else:
@@ -121,8 +119,8 @@ class HypVINNDataset(Dataset):
         if ((cfg.MODEL.MULTI_AUTO_W or cfg.MODEL.MULTI_AUTO_W_CHANNELS) and
                 (self.mode == 't1t2' or cfg.MODEL.DUPLICATE_INPUT)) :
             logger.info(
-                f"For inference T1 block weight and the T2 block are set to "
-                f"the weights learn during training"
+                "For inference T1 block weight and the T2 block are set to "
+                "the weights learn during training"
             )
         else:
             logger.info(

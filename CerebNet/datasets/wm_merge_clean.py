@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from numbers import Number
 
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
@@ -13,18 +14,16 @@ from numbers import Number
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 # IMPORTS
 from os.path import join
-from typing import TypeVar, Iterable
+from typing import TypeVar
 
+import nibabel as nib
 import numpy as np
 from numpy import typing as npt
-import nibabel as nib
 from scipy import ndimage
+from skimage.measure import label, regionprops
 from skimage.morphology import binary_dilation
-from skimage.measure import regionprops, label
 
 NT = TypeVar("NT", bound=Number)
 
@@ -124,7 +123,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
     :return:
     """
     # to capture small holes
-    struc = ndimage.generate_binary_structure(3, 1)
+    # struc = ndimage.generate_binary_structure(3, 1)
 
     l_wm_fs = aseg == 7
     r_wm_fs = aseg == 46
@@ -244,7 +243,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
     )
 
     print("4.Filling any remaining holes")
-    filled_bin_mask = ndimage.binary_fill_holes(dropped_comp_img != 0, structure=struc)
+    #filled_bin_mask = ndimage.binary_fill_holes(dropped_comp_img != 0, structure=struc)
     remaining_holes_mask = (
         dropped_comp_img != 0
     )  # np.logical_xor(filled_bin_mask, dropped_comp_img != 0)

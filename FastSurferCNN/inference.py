@@ -16,7 +16,7 @@ import os
 
 # IMPORTS
 import time
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional
 
 import numpy as np
 import torch
@@ -75,8 +75,8 @@ class Inference:
         Run the loaded model
     """
 
-    permute_order: Dict[str, Tuple[int, int, int, int]]
-    device: Optional[torch.device]
+    permute_order: dict[str, tuple[int, int, int, int]]
+    device: torch.device | None
     default_device: torch.device
 
     def __init__(
@@ -84,7 +84,7 @@ class Inference:
         cfg: yacs.config.CfgNode,
         device: torch.device,
         ckpt: str = "",
-        lut: Union[None, str, np.ndarray, DataFrame] = None,
+        lut: None | str | np.ndarray | DataFrame = None,
     ):
         """
         Construct Inference object.
@@ -171,7 +171,7 @@ class Inference:
         """
         self.cfg = cfg
 
-    def to(self, device: Optional[torch.device] = None):
+    def to(self, device: torch.device | None = None):
         """
         Move and/or cast the parameters and buffers.
 
@@ -188,7 +188,7 @@ class Inference:
         self.device = _device
         self.model.to(device=_device)
 
-    def load_checkpoint(self, ckpt: Union[str, os.PathLike]):
+    def load_checkpoint(self, ckpt: str | os.PathLike):
         """
         Load the checkpoint and set device and model.
 
@@ -197,7 +197,7 @@ class Inference:
         ckpt : Union[str, os.PathLike]
             String or os.PathLike object containing the name to the checkpoint file.
         """
-        logger.info("Loading checkpoint {}".format(ckpt))
+        logger.info(f"Loading checkpoint {ckpt}")
 
         self.model = self._model_not_init
         # If device is None, the model has never been loaded (still in random initial configuration)
@@ -323,7 +323,7 @@ class Inference:
         val_loader: DataLoader,
         *,
         out_scale: Optional = None,
-        out: Optional[torch.Tensor] = None,
+        out: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Perform prediction and inplace-aggregate views into pred_prob.
 
@@ -363,11 +363,13 @@ class Inference:
 
         if out is None:
             out = init_pred.detach().clone()
+        log_batch_idx = None
         with logging_redirect_tqdm():
             try:
                 for batch_idx, batch in tqdm(
                     enumerate(val_loader), total=len(val_loader), unit="batch"
                 ):
+                    log_batch_idx = batch_idx
                     # move data to the model device
                     images, scale_factors = batch["image"].to(self.device), batch[
                         "scale_factor"
@@ -399,14 +401,12 @@ class Inference:
 
             except:
                 logger.exception(
-                    "Exception in batch {} of {} inference.".format(batch_idx, plane)
+                    f"Exception in batch {log_batch_idx} of {plane} inference."
                 )
                 raise
             else:
                 logger.info(
-                    "Inference on {} batches for {} successful".format(
-                        batch_idx + 1, plane
-                    )
+                    f"Inference on {batch_idx + 1} batches for {plane} successful"
                 )
 
         return out
@@ -418,12 +418,13 @@ class Inference:
         img_filename: str,
         orig_data: npt.NDArray,
         orig_zoom: npt.NDArray,
-        out: Optional[torch.Tensor] = None,
-        out_res: Optional[int] = None,
+        out: torch.Tensor | None = None,
+        out_res: int | None = None,
         batch_size: int = None,
     ) -> torch.Tensor:
         """
-        Run the loaded model on the data (T1) from orig_data and img_filename (for messages only)  with scale factors orig_zoom.
+        Run the loaded model on the data (T1) from orig_data and
+        img_filename (for messages only) with scale factors orig_zoom.
 
         Parameters
         ----------

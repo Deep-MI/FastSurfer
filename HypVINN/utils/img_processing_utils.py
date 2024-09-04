@@ -14,11 +14,11 @@
 
 from pathlib import Path
 
+import nibabel as nib
 import numpy as np
 from numpy import typing as npt
-import nibabel as nib
-from skimage.measure import label
 from scipy import ndimage
+from skimage.measure import label
 
 import FastSurferCNN.utils.logging as logging
 from HypVINN.data_loader.data_utils import hypo_map_subseg_2_fsseg

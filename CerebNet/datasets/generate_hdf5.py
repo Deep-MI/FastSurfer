@@ -14,10 +14,10 @@
 
 
 # IMPORTS
+import time
 import warnings
 from collections import defaultdict
-from os.path import join, isfile
-import time
+from os.path import isfile, join
 
 import h5py
 import numpy as np
@@ -65,7 +65,7 @@ class CerebNetDataset:
         """
         subj2warps = defaultdict(list)
         all_imgs = []
-        with open(join(self.cfg.REG_DATA_DIR, self.cfg.REG_DATA_CSV), "r") as f:
+        with open(join(self.cfg.REG_DATA_DIR, self.cfg.REG_DATA_CSV)) as f:
             for line in f.readlines():
                 line = line.strip()
                 ids = line.split(",")
@@ -84,7 +84,7 @@ class CerebNetDataset:
                         all_imgs.append(img_path)
                         subj2warps[i].append((img_path, lbl_path))
                     else:
-                        warnings.warn(f"Warp field at {img_path} not found.")
+                        warnings.warn(f"Warp field at {img_path} not found.", stacklevel=2)
         return subj2warps
 
     def create_hdf5_dataset(
@@ -123,9 +123,7 @@ class CerebNetDataset:
             # try:
             start = time.time()
             print(
-                "Volume Nr: {}/{} Processing MRI Data from {}".format(
-                    idx + 1, len(subjects_list), current_subject
-                )
+                f"Volume Nr: {idx + 1}/{len(subjects_list)} Processing MRI Data from {current_subject}"
             )
 
             in_data = self.subj_loader.load_subject(
@@ -145,9 +143,7 @@ class CerebNetDataset:
             end = time.time() - start
             print("Number of Cerebellum classes", len(np.unique(in_data["label"])))
             print(
-                "Volume: {} Finished Data Reading and Appending in {:.3f} seconds.".format(
-                    idx + 1, end
-                )
+                f"Volume: {idx + 1} Finished Data Reading and Appending in {end:.3f} seconds."
             )
 
             # except Exception as e:
@@ -156,4 +152,4 @@ class CerebNetDataset:
 
         self._save_hdf5_file(datasets, dataset_name)
         end_d = time.time() - start_d
-        print("Successfully written {} in {:.3f} seconds.".format(dataset_name, end_d))
+        print(f"Successfully written {dataset_name} in {end_d:.3f} seconds.")

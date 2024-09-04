@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
+import argparse
+import locale
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import dateutil.parser
-import argparse
 import yaml
-import locale
 
 
 def get_recon_all_stage_duration(line: str, previous_datetime_str: str) -> float:

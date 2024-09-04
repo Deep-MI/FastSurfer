@@ -15,19 +15,19 @@
 # limitations under the License.
 
 # IMPORTS
-import sys
 import argparse
+import sys
 from pathlib import Path
 
-from FastSurferCNN.utils import logging, parser_defaults, Plane, PLANES
+from CerebNet.inference import Inference
+from CerebNet.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
+from CerebNet.utils.load_config import get_config
+from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from FastSurferCNN.utils.common import assert_no_root, SubjectList
-from CerebNet.inference import Inference
-from CerebNet.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
-from CerebNet.utils.load_config import get_config
+from FastSurferCNN.utils.common import SubjectList, assert_no_root
 
 logger = logging.get_logger(__name__)
 DEFAULT_CEREBELLUM_STATSFILE = Path("stats/cerebellum.CerebNet.stats")
@@ -138,7 +138,7 @@ def main(args: argparse.Namespace) -> int | str:
     # Set up logging
     from FastSurferCNN.utils.logging import setup_logging
 
-    setup_logging(getattr(args, "log_name"))
+    setup_logging(args.log_name)
 
     subjects_kwargs = {}
     cereb_statsfile = getattr(args, "cereb_statsfile", None)

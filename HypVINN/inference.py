@@ -15,19 +15,19 @@
 from time import time
 from typing import Optional
 
-import torch
 import numpy as np
+import torch
 import yacs.config
-from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from tqdm import tqdm
 
 import FastSurferCNN.utils.logging as logging
-from FastSurferCNN.utils.common import find_device
 from FastSurferCNN.data_loader.augmentation import ToTensorTest, ZeroPad2DTest
-from HypVINN.models.networks import build_model
+from FastSurferCNN.utils.common import find_device
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
+from HypVINN.models.networks import build_model
 from HypVINN.utils import ModalityMode
 
 logger = logging.get_logger(__name__)
@@ -180,7 +180,7 @@ class Inference:
             The path to the checkpoint file. The checkpoint file should be a .pth file containing a state dictionary
             of a model.
         """
-        logger.info("Loading checkpoint {}".format(ckpt))
+        logger.info(f"Loading checkpoint {ckpt}")
         # WARNING: weights_only=False can cause unsafe code execution, but here the
         # checkpoint can be considered to be from a safe source
         model_state = torch.load(ckpt, map_location=self.device, weights_only=False)
@@ -271,8 +271,8 @@ class Inference:
         Returns
         -------
         int or tuple
-            The maximum size. If the width and height of the output tensor are equal, it returns the width. Otherwise, it
-            returns both the width and height.
+            The maximum size. If the width and height of the output tensor are equal,
+            it returns the width. Otherwise, it returns both the width and height.
         """
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH
@@ -292,7 +292,8 @@ class Inference:
         """
         return self.device,self.viewagg_device
 
-    #TODO check is possible to modify to CerebNet inference mode from RAS directly to LIA (CerebNet.Inference._predict_single_subject)
+    #TODO check is possible to modify to CerebNet inference mode from RAS directly to LIA
+    # (CerebNet.Inference._predict_single_subject)
     @torch.no_grad()
     def eval(self, val_loader: DataLoader, pred_prob: torch.Tensor, out_scale: float = None) -> torch.Tensor:
         """
@@ -318,7 +319,7 @@ class Inference:
         self.model.eval()
 
         start_index = 0
-        for batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
+        for _batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
 
             images = batch["image"].to(self.device)
             scale_factors = batch["scale_factor"].to(self.device)
@@ -341,7 +342,7 @@ class Inference:
                 pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2)
                 start_index += pred.shape[0]
 
-        logger.info("--->  {} Model Testing Done.".format(self.cfg.DATA.PLANE))
+        logger.info(f"--->  {self.cfg.DATA.PLANE} Model Testing Done.")
 
         return pred_prob
 

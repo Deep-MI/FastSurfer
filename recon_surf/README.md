@@ -69,7 +69,7 @@ available in the subjectX/mri directory (e.g. `/home/user/my_fastsurfeer_analysi
 
 ## Example 2: recon-surf inside Singularity
 Singularity can be used instead of Docker to run the full pipeline or individual modules. In this example we change the entrypoint to `recon-surf.sh` instead of the standard
-`run_fastsurfer.sh`. Usually it is recomended to just use the default, so this is for expert users who may want to try out specific flags that are not passed to the wrapper. 
+`run_fastsurfer.sh`. Usually it is recommended to just use the default, so this is for expert users who may want to try out specific flags that are not passed to the wrapper. 
 Given you already ran the segmentation pipeline, and want to just run 
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:
 ```bash

@@ -20,8 +20,8 @@ import argparse
 from os import environ as env
 from pathlib import Path
 
-from FastSurferCNN.segstats import HelpFormatter, main, VERSION
 from FastSurferCNN.mri_segstats import print_and_exit
+from FastSurferCNN.segstats import VERSION, HelpFormatter, main
 
 DEFAULT_MEASURES_STRINGS = [
    (False, "BrainSeg"),
@@ -130,7 +130,7 @@ def make_arguments() -> argparse.ArgumentParser:
         type=Path,
         dest="pvfile",
         help="Path to image used to compute the partial volume effects. This file is "
-             "only used in the FastSurfer algoritms (--no_legacy).",
+             "only used in the FastSurfer algorithms (--no_legacy).",
     )
     return parser
 

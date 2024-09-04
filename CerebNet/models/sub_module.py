@@ -53,7 +53,7 @@ class CompetitiveDenseBlock(nn.Module):
         discriminator_block : bool, default=False
             Flag indicating if the block is discriminator block or not.
         """
-        super(CompetitiveDenseBlock, self).__init__()
+        super().__init__()
 
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
@@ -177,7 +177,7 @@ class CompetitiveDenseBlockInput(nn.Module):
         params : dict
             Dictionary with parameters specifying block architecture.
         """
-        super(CompetitiveDenseBlockInput, self).__init__()
+        super().__init__()
 
         # Padding to get output tensor of same dimensions
         padding_h = int((params["kernel_h"] - 1) / 2)
@@ -276,7 +276,7 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
         params : dict
             Parameters like number of channels, stride etc.
         """
-        super(CompetitiveEncoderBlock, self).__init__(params)
+        super().__init__(params)
         self.maxpool = nn.MaxPool2d(
             kernel_size=params["pool"],
             stride=params["stride_pool"],
@@ -300,10 +300,10 @@ class CompetitiveEncoderBlock(CompetitiveDenseBlock):
             Original feature map.
         out_block : Tensor
             Maxpooled feature map.
-        indicies : Tensor
+        indices : Tensor
             Maxpool indices.
         """
-        out_block = super(CompetitiveEncoderBlock, self).forward(
+        out_block = super().forward(
             x
         )  # To be concatenated as Skip Connection
         out_encoder, indices = self.maxpool(
@@ -326,7 +326,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
         params : dict
             Parameters like number of channels, stride etc.
         """
-        super(CompetitiveEncoderBlockInput, self).__init__(
+        super().__init__(
             params
         )  # The init of CompetitiveDenseBlock takes in params
         self.maxpool = nn.MaxPool2d(
@@ -355,7 +355,7 @@ class CompetitiveEncoderBlockInput(CompetitiveDenseBlockInput):
         Tensor
             The indices of the maxpool operation.
         """
-        out_block = super(CompetitiveEncoderBlockInput, self).forward(
+        out_block = super().forward(
             x
         )  # To be concatenated as Skip Connection
         out_encoder, indices = self.maxpool(
@@ -381,7 +381,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
             Flag, indicating if last block of network before classifier
             is created.
         """
-        super(CompetitiveDecoderBlock, self).__init__(params, outblock=outblock)
+        super().__init__(params, outblock=outblock)
         self.unpool = nn.MaxUnpool2d(
             kernel_size=params["pool"], stride=params["stride_pool"]
         )
@@ -413,7 +413,7 @@ class CompetitiveDecoderBlock(CompetitiveDenseBlock):
         out_block = torch.unsqueeze(out_block, 4)
         concat = torch.cat((unpool, out_block), dim=4)  # Competitive Concatenation
         concat_max, _ = torch.max(concat, 4)
-        out_block = super(CompetitiveDecoderBlock, self).forward(concat_max)
+        out_block = super().forward(concat_max)
 
         return out_block
 
@@ -428,7 +428,7 @@ class ClassifierBlock(nn.Module):
         Classifier Block initialization
         :param dict params: parameters like number of channels, stride etc.
         """
-        super(ClassifierBlock, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(
             params["num_channels"],
             params["num_classes"],

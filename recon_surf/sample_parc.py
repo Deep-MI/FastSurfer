@@ -20,15 +20,13 @@
 import optparse
 import sys
 
-import numpy as np
-import nibabel.freesurfer.io as fs
 import nibabel as nib
+import nibabel.freesurfer.io as fs
+import numpy as np
+from lapy import TriaMesh
 from scipy import sparse
 from scipy.sparse.csgraph import connected_components
-from lapy import TriaMesh
-
 from smooth_aparc import smooth_aparc
-
 
 HELPTEXT = """
 Script to sample labels from image to surface and clean up. 
@@ -145,13 +143,13 @@ def find_all_islands(surf, annot):
         surf[1] is the np.array of (m, 3) triangle indices.
     annot : np.ndarray
         Annotation as an int array of (n,) with label ids for each vertex.
-        This is for example the first element of the tupel returned by
+        This is for example the first element of the tuple returned by
         nibabel fs.read_annot.
 
     Returns
     -------
     vidx : np.ndarray (i,)
-        Arrray listing vertex indices of island vertices, empty if no islands
+        Array listing vertex indices of island vertices, empty if no islands
         (components disconnetcted from largest label region) are found.
     """
     # construct adjaceny matrix without edges across regions:
@@ -167,7 +165,7 @@ def find_all_islands(surf, annot):
         lmax = np.bincount(ll).argmax()
         v = lidx[(ll != lmax)]
         if v.size > 0:
-            print("Found disconnected islands ({} vertices total) for label {}!".format(v.size, lid))
+            print(f"Found disconnected islands ({v.size} vertices total) for label {lid}!")
         vidx = np.concatenate((vidx,v))
     return vidx
 
@@ -191,7 +189,7 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     """
     # check for isotropic voxels 
     voxsize = img.header.get_zooms()
-    print("Check isotropic vox sizes: {}".format(voxsize))
+    print(f"Check isotropic vox sizes: {voxsize}")
     assert (np.max(np.abs(voxsize - voxsize[0])) < 0.001), 'Voxels not isotropic!'
     data = np.asarray(img.dataobj)
     
@@ -205,7 +203,7 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     # the nearest neighbor voxel, instead of at the float vox coordinates
 
     # create box with 2*rvox+1 side length to fully contain ball
-    # and get coordiante offsets with zero at center
+    # and get coordinate offsets with zero at center
     ri = np.floor(rvox).astype(int)
     ll = np.arange(-ri,ri+1)
     xv, yv, zv = np.meshgrid(ll, ll, ll)
@@ -302,7 +300,7 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
         T.orient_()
 
     # compute sample coordinates projmm mm along the surface normal
-    # in surface RAS coordiante system:
+    # in surface RAS coordinate system:
     x = T.v + projmm * T.vertex_normals()
     # mask cortex
     xx = x[mask]
@@ -327,7 +325,7 @@ def sample_img(surf, img, cortex=None, projmm=0.0, radius=None):
         return samplesfull
     # here we need to do the hard work of searching in a windows
     # for non-zero samples
-    print("sample_img: found {} zero samples, searching radius ...".format(zeros.size))
+    print(f"sample_img: found {zeros.size} zero samples, searching radius ...")
     z_nn = x_nn[zeros]
     z_samples = sample_nearest_nonzero(img, z_nn, radius=radius)
     samples_nn[zeros] = z_samples
@@ -343,7 +341,7 @@ def replace_labels(img_labels, img_lut, surf_lut):
     Parameters
     ----------
     img_labels : np.ndarray(n,)
-        Array with imgage label ids.
+        Array with image label ids.
     img_lut : str
         Filename for image label look up table.
     surf_lut : str
@@ -427,7 +425,8 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
-    sample_parc(options.insurf, options.inseg, options.seglut, options.surflut, options.outaparc, options.incort, options.projmm, options.radius)
+    sample_parc(options.insurf, options.inseg, options.seglut, options.surflut,
+                options.outaparc, options.incort, options.projmm, options.radius)
 
     sys.exit(0)
 

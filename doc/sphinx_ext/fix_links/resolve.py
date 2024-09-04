@@ -81,7 +81,7 @@ def resolve_xref(
     app : sphinx.application.Sphinx
     env : sphinx.environment.BuildEnvironment
     node : sphinx.addnodes.pending_xref
-    contnode : docutils.noes.Element
+    contnode : docutils.nodes.Element
 
     Returns
     -------
@@ -96,7 +96,7 @@ def resolve_xref(
 
         if attr not in node.attributes:
             logger.debug(
-                f"[fix_links] Skipping replacement of {node.attibutes} (no {attr})",
+                f"[fix_links] Skipping replacement of {node.attributes} (no {attr})",
                 location=loc(node),
             )
             return

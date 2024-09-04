@@ -19,16 +19,17 @@
 import argparse
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, cast, Literal, TypeVar, Callable
+from typing import Literal, TypeVar, cast
 
-# Group 2: External modules
-import SimpleITK as sitk
-import numpy as np
-from numpy import typing as npt
-
-# Group 3: Internal modules
+# Group 2: Internal modules
 import image_io as iio
+
+# Group 3: External modules
+import numpy as np
+import SimpleITK as sitk
+from numpy import typing as npt
 
 HELPTEXT = """
 
@@ -234,7 +235,7 @@ def options_parse():
 
 def itk_n4_bfcorrection(
         itk_image: sitk.Image,
-        itk_mask: Optional[sitk.Image] = None,
+        itk_mask: sitk.Image | None = None,
         shrink: int = 4,
         levels: int = 4,
         numiter: int = 50,
@@ -302,9 +303,9 @@ def itk_n4_bfcorrection(
 
 def normalize_wm_mask_ball(
         itk_image: sitk.Image,
-        itk_mask: Optional[sitk.Image] = None,
+        itk_mask: sitk.Image | None = None,
         radius: float = 50.,
-        centroid: Optional[np.ndarray] = None,
+        centroid: np.ndarray | None = None,
         target_wm: float = 110.,
         target_bg: float = 3.
 ) -> sitk.Image:
@@ -372,7 +373,7 @@ def normalize_wm_mask_ball(
 
 def normalize_wm_aseg(
         itk_image: sitk.Image,
-        itk_mask: Optional[sitk.Image],
+        itk_mask: sitk.Image | None,
         itk_aseg: sitk.Image,
         target_wm: float = 110.,
         target_bg: float = 3.
@@ -429,7 +430,7 @@ def normalize_wm_aseg(
 
 def normalize_img(
         itk_image: sitk.Image,
-        itk_mask: Optional[sitk.Image],
+        itk_mask: sitk.Image | None,
         source_intensity: tuple[float, float],
         target_intensity: tuple[float, float]
 ) -> sitk.Image:
@@ -501,7 +502,7 @@ def read_talairach_xfm(fname: Path | str) -> np.ndarray:
         # advance transform_iter to linear header
         _ = next(ln for ln in transform_iter if ln.lower().startswith("linear_"))
         # return the next 3 lines in transform_lines
-        transform_lines = (ln for ln, _ in zip(transform_iter, range(3)))
+        transform_lines = (ln for ln, _ in zip(transform_iter, range(3), strict=False))
         tal_str = [ln.replace(";", " ") for ln in transform_lines]
         tal = np.genfromtxt(tal_str)
         tal = np.vstack([tal, [0, 0, 0, 1]])
@@ -511,8 +512,8 @@ def read_talairach_xfm(fname: Path | str) -> np.ndarray:
         return tal
     except StopIteration:
         _logger.error(msg := f"Could not find 'linear_' in {fname}.")
-        raise ValueError(msg)
-    except (Exception, StopIteration) as e:
+        raise ValueError(msg) from None
+    except Exception as e:
         err = ValueError(f"Could not find taiairach transform in {fname}.")
         _logger.exception(err)
         raise err from e
@@ -567,7 +568,7 @@ def print_options(options: dict):
             _logger.info(m.format(**options))
 
 
-def get_image_mean(image: sitk.Image, mask: Optional[sitk.Image] = None) -> float:
+def get_image_mean(image: sitk.Image, mask: sitk.Image | None = None) -> float:
     """
     Get the mean of a sitk Image.
 
@@ -622,13 +623,13 @@ def main(
     rescalevol: LiteralSkipRescaling | Path = SKIP_RESCALING,
     dtype: str = "keep",
     threads: int = 1,
-    mask: Optional[Path] = None,
-    aseg: Optional[Path] = None,
+    mask: Path | None = None,
+    aseg: Path | None = None,
     shrink: int = 4,
     levels: int = 4,
     numiter: int = 50,
     thres: float = 0.0,
-    tal: Optional[Path] = None,
+    tal: Path | None = None,
     verbosity: int = -1,
 ) -> int | str:
     if rescalevol == "skip rescaling" and outvol == DO_NOT_SAVE:
@@ -653,7 +654,7 @@ def main(
     has_mask = bool(mask)
     if has_mask:
         logger.debug(f"reading mask {mask}")
-        itk_mask: Optional[sitk.Image] = iio.readITKimage(
+        itk_mask: sitk.Image | None = iio.readITKimage(
             str(mask),
             sitk.sitkUInt8,
             with_header=False
@@ -724,7 +725,7 @@ def main(
 
         if aseg:  # has aseg
             # used to be 110, but we found experimentally, that freesurfer wm-normalized
-            # intensity insde the WM mask is closer to 105 (but also quite inconsistent).
+            # intensity inside the WM mask is closer to 105 (but also quite inconsistent).
             # So when we have a WM mask, we need to use 105 and not 110 as for the
             # percentile approach above.
             target_wm = 105.

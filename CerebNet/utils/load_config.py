@@ -39,11 +39,11 @@ def get_config(args) -> "yacs.config.CfgNode":
     if hasattr(args, "out_dir"):
         cfg.LOG_DIR = str(args.out_dir)
 
-    path_ax, path_sag, path_cor = [
+    path_ax, path_sag, path_cor = (
         getattr(args, name) for name in ["ckpt_ax", "ckpt_sag", "ckpt_cor"]
-    ]
+    )
 
-    for plane, path in zip(PLANES, (path_ax, path_cor, path_sag)):
+    for plane, path in zip(PLANES, (path_ax, path_cor, path_sag), strict=False):
         setattr(cfg.TEST, f"{plane.upper()}_CHECKPOINT_PATH", str(path))
 
     # overwrite the batch size if it is passed as a parameter

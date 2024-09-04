@@ -14,8 +14,9 @@
 
 
 # IMPORTS
-import sys
 import optparse
+import sys
+
 import nibabel.freesurfer.io as fs
 from nibabel import load as nibload
 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     surf_out = options.output_surf
     vol_in = options.in_pretess
 
-    print("Reading in surface: {} ...".format(surf_in))
+    print(f"Reading in surface: {surf_in} ...")
     resafe_surface(surf_in, surf_out, vol_in)
-    print("Outputting surface as: {}".format(surf_out))
+    print(f"Outputting surface as: {surf_out}")
     sys.exit(0)

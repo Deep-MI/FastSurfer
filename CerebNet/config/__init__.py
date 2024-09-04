@@ -15,6 +15,7 @@
 # IMPORTS
 from CerebNet.config.cerebnet import get_cfg_cerebnet
 from CerebNet.config.dataset import get_cfg_dataset
+
 __all__ = [
     "cerebnet",
     "dataset",

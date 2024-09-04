@@ -402,7 +402,7 @@ def uncrop_volume(vol, uncrop_shape, roi):
 
 
 def get_binary_map(lbl_map, class_names):
-    bin_map = np.logical_or.reduce(list(map(lambda l: lbl_map == l, class_names)))
+    bin_map = np.logical_or.reduce(list(map(lambda lb: lbl_map == lb, class_names)))
     return bin_map
 
 
