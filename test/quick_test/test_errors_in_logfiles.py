@@ -1,4 +1,3 @@
-import os
 import pytest
 import yaml
 from pathlib import Path
@@ -24,23 +23,23 @@ def load_errors():
 
     # Open the error_file_path and read the errors and whitelist into arrays
 
-    error_file_path = os.path.join(Path(__file__).parent, "data/logfile.errors.yaml")
+    error_file_path = Path(__file__).parent / "data" / "logfile.errors.yaml"
 
-    with open(error_file_path, 'r') as file:
+    with open(error_file_path, "r") as file:
         data = yaml.safe_load(file)
-        errors = data.get('errors', [])
-        whitelist = data.get('whitelist', [])
+        errors = data.get("errors", [])
+        whitelist = data.get("whitelist", [])
 
     return errors, whitelist
 
 
-def load_log_files(test_subject: str):
+def load_log_files(test_subject: Path):
     """
     Retrieve the log files in the given log directory.
 
     Parameters
     ----------
-    test_subject : str
+    test_subject : Path
         Subject directory to test.
 
     Returns
@@ -51,24 +50,24 @@ def load_log_files(test_subject: str):
 
     # Retrieve the log files in given log directory
 
-    log_directory = os.path.join(test_subject, "scripts")
-    log_files = [file for file in Path(log_directory).iterdir() if file.suffix == '.log']
+    log_directory = test_subject / "scripts"
+    log_files = [file for file in Path(log_directory).iterdir() if file.suffix == ".log"]
 
     return log_files
 
 
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_errors(subjects_dir, test_dir, test_subject):
+def test_errors(subjects_dir: Path, test_dir: Path, test_subject: Path):
     """
     Test if there are any errors in the log files.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Subjects directory.
-    test_dir : str
+    test_dir : Path
         Tests directory.
-    test_subject : str
+    test_subject : Path
         Subject to test.
 
     Raises
@@ -77,7 +76,7 @@ def test_errors(subjects_dir, test_dir, test_subject):
         If any of the keywords are in the log files.
     """
 
-    test_subject = os.path.join(subjects_dir, test_dir, test_subject)
+    test_subject = subjects_dir / test_dir / test_subject
     log_files = load_log_files(test_subject)
 
     error_flag = False
@@ -91,14 +90,14 @@ def test_errors(subjects_dir, test_dir, test_subject):
         rel_path = log_file.relative_to(subjects_dir)
         logger.debug(f"Checking file: {rel_path}")
         try:
-            with log_file.open('r') as file:
+            with log_file.open("r") as file:
                 lines = file.readlines()
                 lines_with_errors = []
                 for line_number, line in enumerate(lines, start=1):
                     if any(error in line.lower() for error in errors):
                         if not any(white in line.lower() for white in whitelist):
                             # Get two lines before and after the current line
-                            context = lines[max(0, line_number - 2):min(len(lines), line_number + 3)]
+                            context = lines[max(0, line_number - 2) : min(len(lines), line_number + 3)]
                             lines_with_errors.append((line_number, context))
                             # print(lines_with_errors)
                             files_with_errors[rel_path] = lines_with_errors

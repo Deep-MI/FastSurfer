@@ -1,10 +1,8 @@
-import os
 import pytest
-from pathlib import Path
 import nibabel as nib
 import nibabel.cmdline.diff
 import numpy as np
-import yaml
+from pathlib import Path
 
 from collections import OrderedDict
 
@@ -17,15 +15,15 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-def load_image(subject_path, image_name):
+def load_image(subject_path: Path, image_name: Path):
     """
     Load the image data using nibabel.
 
     Parameters
     ----------
-    subject_path : str
+    subject_path : Path
         Path to the subject directory.
-    image_name : str
+    image_name : Path
         Name of the image file.
 
     Returns
@@ -33,7 +31,7 @@ def load_image(subject_path, image_name):
     nibabel.nifti1.Nifti1Image
         Image data.
     """
-    image_path = os.path.join(subject_path, "mri", image_name)
+    image_path = subject_path / "mri" / image_name
     image = nib.load(image_path)
 
     return image
@@ -100,19 +98,19 @@ def compute_mean_square_error(test_data, reference_data):
 
 
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_image_headers(subjects_dir, test_dir, reference_dir, test_subject):
+def test_image_headers(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
     """
     Test the image headers by comparing the headers of the test and reference images.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the subjects directory.
-    test_dir : str
+    test_dir : Path
         Name of test directory.
-    reference_dir: str
+    reference_dir: Path
         Name of reference directory.
-    test_subject : str
+    test_subject : Path
         Name of the test subject.
 
     Raises
@@ -122,9 +120,10 @@ def test_image_headers(subjects_dir, test_dir, reference_dir, test_subject):
     """
 
     # Load images
-    test_subject = os.path.join(subjects_dir, test_dir, test_subject)
+    test_subject = subjects_dir / test_dir / test_subject
     test_image = load_image(test_subject, "brain.mgz")
-    reference_subject = os.path.join(subjects_dir, reference_dir, test_subject)
+
+    reference_subject = subjects_dir / reference_dir / test_subject
     reference_image = load_image(reference_subject, "brain.mgz")
 
     # Get the image headers
@@ -137,19 +136,19 @@ def test_image_headers(subjects_dir, test_dir, reference_dir, test_subject):
 
 
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_seg_data(subjects_dir, test_dir, reference_dir, test_subject):
+def test_seg_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
     """
     Test the segmentation data by calculating and comparing dice scores.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the subjects directory.
-    test_dir : str
+    test_dir : Path
         Name of test directory.
-    reference_dir : str
+    reference_dir : Path
         Name of reference directory.
-    test_subject : str
+    test_subject : Path
         Name of the test subject.
 
     Raises
@@ -158,10 +157,10 @@ def test_seg_data(subjects_dir, test_dir, reference_dir, test_subject):
         If the dice score is not 0 for all classes
     """
 
-    test_file = os.path.join(subjects_dir, test_dir, test_subject)
+    test_file = subjects_dir / test_dir / test_subject
     test_image = load_image(test_file, "aseg.mgz")
 
-    reference_subject = os.path.join(subjects_dir, reference_dir, test_subject)
+    reference_subject = subjects_dir / reference_dir / test_subject
     reference_image = load_image(reference_subject, "aseg.mgz")
 
     labels = np.unique([np.asarray(reference_image.dataobj), np.asarray(test_image.dataobj)])
@@ -174,8 +173,9 @@ def test_seg_data(subjects_dir, test_dir, reference_dir, test_subject):
     dscore = compute_dice_score(test_data, reference_data, labels)
 
     # Check the dice score
-    np.testing.assert_allclose(dscore, 0, atol=1e-6, rtol=1e-6,
-                               err_msg=f"Dice scores are not within range for all classes")
+    np.testing.assert_allclose(
+        dscore, 0, atol=1e-6, rtol=1e-6, err_msg=f"Dice scores are not within range for all classes"
+    )
 
     # assert dscore == 1, "Dice scores are not 1 for all classes"
 
@@ -183,19 +183,19 @@ def test_seg_data(subjects_dir, test_dir, reference_dir, test_subject):
 
 
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_int_data(subjects_dir, test_dir, reference_dir, test_subject):
+def test_int_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
     """
     Test the intensity data by calculating and comparing the mean square error.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the subjects directory.
-    test_dir : str
+    test_dir : Path
         Name of test directory.
-    reference_dir : str
+    reference_dir : Path
         Name of reference directory.
-    test_subject : str
+    test_subject : Path
         Name of the test subject.
 
     Raises
@@ -204,10 +204,10 @@ def test_int_data(subjects_dir, test_dir, reference_dir, test_subject):
         If the mean square error is not 0
     """
 
-    test_file = os.path.join(subjects_dir, test_dir, test_subject)
+    test_file = subjects_dir / test_dir / test_subject
     test_image = load_image(test_file, "brain.mgz")
 
-    reference_subject = os.path.join(subjects_dir, reference_dir, test_subject)
+    reference_subject = subjects_dir / reference_dir / test_subject
     reference_image = load_image(reference_subject, "brain.mgz")
 
     # Get the image data

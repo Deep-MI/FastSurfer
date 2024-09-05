@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+
 @pytest.fixture
 def subjects_dir():
     return Path(os.environ["SUBJECTS_DIR"])
@@ -20,4 +21,4 @@ def reference_dir():
 
 @pytest.fixture
 def subjects_list():
-    return os.environ["SUBJECTS_LIST"]
+    return Path(os.environ["SUBJECTS_LIST"])

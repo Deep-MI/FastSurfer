@@ -1,12 +1,10 @@
 from .conftest import *
 
-import os
 from pathlib import Path
 
 import pandas as pd
 import pytest
 import yaml
-import numpy as np
 
 from .common import *
 
@@ -28,32 +26,49 @@ def thresholds():
         Dictionary containing the thresholds
     """
 
-    thresholds_file = os.path.join(Path(__file__).parent, "data/thresholds/aseg.stats.yaml")
+    thresholds_file = Path(__file__).parent / "data/thresholds/aseg.stats.yaml"
 
     # Open the file_path and read the thresholds into a dictionary
-    with open(thresholds_file, 'r') as file:
+    with open(thresholds_file, "r") as file:
         data = yaml.safe_load(file)
-        default_threshold = data.get('default_threshold')
-        thresholds = data.get('thresholds', {})
+        default_threshold = data.get("default_threshold")
+        thresholds = data.get("thresholds", {})
 
     return default_threshold, thresholds
 
 
-def load_stats_file(test_subject: str):
+def load_stats_file(test_subject: Path):
+    """
+    Load the stats file from the given file path.
 
-    files = os.listdir(os.path.join(test_subject, "stats"))
+    Parameters
+    ----------
+    test_subject : Path
+        Path to the test subject.
+
+    Returns
+    -------
+    stats_file : Path
+    """
+
+    files = os.listdir(test_subject / "stats")
 
     if "aseg.stats" in files:
-        return os.path.join(test_subject, "stats", "aseg.stats")
+        return test_subject / "stats" / "aseg.stats"
     elif "aparc+DKT.stats" in files:
-        return os.path.join(test_subject, "stats", "aparc+DKT.stats")
+        return test_subject / "stats" / "aparc+DKT.stats"
     else:
         raise ValueError("Unknown stats file")
 
 
-def load_structs(test_file: str):
+def load_structs(test_file: Path):
     """
     Load the structs from the given file path.
+
+    Parameters
+    ----------
+    test_file : Path
+        Path to the test file.
 
     Returns
     -------
@@ -61,28 +76,28 @@ def load_structs(test_file: str):
         List of structs.
     """
 
-    if "aseg" in test_file:
-        structs_file = os.path.join(Path(__file__).parent, "data/thresholds/aseg.stats.yaml")
-    elif "aparc+DKT" in test_file:
-        structs_file = os.path.join(Path(__file__).parent, "data/thresholds/aparc+DKT.stats.yaml")
+    if "aseg" in str(test_file):
+        structs_file = Path(__file__).parent / "data/thresholds/aseg.stats.yaml"
+    elif "aparc+DKT" in str(test_file):
+        structs_file = Path(__file__).parent / "data/thresholds/aparc+DKT.stats.yaml"
     else:
         raise ValueError("Unknown test file")
 
     # Open the file_path and read the structs: into a list
-    with open(structs_file, 'r') as file:
+    with open(structs_file, "r") as file:
         data = yaml.safe_load(file)
-        structs = data.get('structs', [])
+        structs = data.get("structs", [])
 
     return structs
 
 
-def read_measure_stats(file_path: str):
+def read_measure_stats(file_path: Path):
     """
     Read the measure stats from the given file path.
 
     Parameters
     ----------
-    file_path : str
+    file_path : Path
         Path to the stats file.
 
     Returns
@@ -97,7 +112,7 @@ def read_measure_stats(file_path: str):
     measurements = {}
 
     # Retrieve lines starting with "# Measure" from the stats file
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         # Read each line in the file
         for i, line in enumerate(file, 1):
             # Check if the line starts with "# ColHeaders"
@@ -117,13 +132,13 @@ def read_measure_stats(file_path: str):
     return measure, measurements
 
 
-def read_table(file_path: str):
+def read_table(file_path: Path):
     """
     Read the table from the given file path.
 
     Parameters
     ----------
-    file_path : str
+    file_path : Path
         Path to the stats file.
 
     Returns
@@ -135,10 +150,10 @@ def read_table(file_path: str):
     table_start = 0
     columns = []
 
-    file_path = os.path.join(file_path, "stats", "aseg.stats")
+    file_path = file_path / "stats" / "aseg.stats"
 
     # Retrieve stats table from the stats file
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         # Read each line in the file
         for i, line in enumerate(file, 1):
             # Check if the line starts with "# ColHeaders"
@@ -148,7 +163,7 @@ def read_table(file_path: str):
 
     # Read the reference table into a pandas dataframe
     table = pd.read_table(file_path, skiprows=table_start, sep="\s+", header=None)
-    table_numeric = table.apply(pd.to_numeric, errors='coerce')
+    table_numeric = table.apply(pd.to_numeric, errors="coerce")
     table.columns = columns
     table.set_index(columns[0], inplace=True)
 
@@ -156,17 +171,17 @@ def read_table(file_path: str):
 
 
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_measure_exists(subjects_dir, test_dir, test_subject):
+def test_measure_exists(subjects_dir: Path, test_dir: Path, test_subject: Path):
     """
     Test if the measure exists in the stats file.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the subjects directory.
-    test_dir : str
+    test_dir : Path
         Name of the test directory.
-    test_subject : str
+    test_subject : Path
         Name of the test subject.
 
     Raises
@@ -175,7 +190,7 @@ def test_measure_exists(subjects_dir, test_dir, test_subject):
         If the measure does not exist in the stats file.
     """
 
-    test_subject = os.path.join(subjects_dir, test_dir, test_subject)
+    test_subject = subjects_dir / test_dir / test_subject
     test_file = load_stats_file(test_subject)
     data = read_measure_stats(test_file)
     ref_data = read_measure_stats(test_file)
@@ -183,8 +198,9 @@ def test_measure_exists(subjects_dir, test_dir, test_subject):
 
     for struct in load_structs(test_file):
         if struct not in data[1]:
-            errors.append(f"for struct {struct} the value {data[1].get(struct)} is not close to "
-                          f"{ref_data[1].get(struct)}")
+            errors.append(
+                f"for struct {struct} the value {data[1].get(struct)} is not close to " f"{ref_data[1].get(struct)}"
+            )
 
     stats_data = read_measure_stats(test_file)
 
@@ -193,20 +209,22 @@ def test_measure_exists(subjects_dir, test_dir, test_subject):
 
 
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_tables(subjects_dir, test_dir, reference_dir, test_subject, thresholds):
+def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, thresholds):
     """
     Test if the tables are within the threshold.
 
     Parameters
     ----------
-    subjects_dir : str
+    subjects_dir : Path
         Path to the subjects directory.
-    test_dir : str
+    test_dir : Path
         Name of the test directory.
-    reference_dir : str
+    reference_dir : Path
         Name of the reference directory.
-    test_subject : str
+    test_subject : Path
         Name of the test subject.
+    thresholds : tuple
+        Tuple containing the default threshold and the thresholds.
 
     Raises
     ------
@@ -215,10 +233,10 @@ def test_tables(subjects_dir, test_dir, reference_dir, test_subject, thresholds)
     """
 
     # Load the test and reference tables
-    test_file = os.path.join(subjects_dir, test_dir, test_subject)
+    test_file = subjects_dir / test_dir / test_subject
     test_table = read_table(test_file)
 
-    reference_subject = os.path.join(subjects_dir, reference_dir, test_subject)
+    reference_subject = subjects_dir / reference_dir / test_subject
     ref_table = read_table(reference_subject)
 
     # Load the thresholds

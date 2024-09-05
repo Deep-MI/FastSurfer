@@ -62,76 +62,26 @@ jobs:
           echo "Error: FreeSurfer installation directory does not exist at $FREESURFER_HOME"
           exit 1
         fi
-      # Set up Python using setup-python@v3 action
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-      # Check if FastSurfer environment already exists
-    - name: Check Environment
-      run: |
-        if [ ! -f "$MAMBAPATH" ]; then
-          echo "FastSurfer environment does not exist. Creating FastSurfer Environment..."
-          echo "HAS_MAMBA=true" >> $GITHUB_OUTPUT
-        else
-          echo "FastSurfer environment exists. Skipping FastSurfer Environment creation..."
-          echo "HAS_MAMBA=false" >> $GITHUB_OUTPUT
-        fi
-      id: check-environment
-      # Create FastSurfer environment if it does not exist
-    - name: Create FastSurfer Environment
-      uses: mamba-org/setup-micromamba@v1
-      with:
-        environment-file: env/fastsurfer.yml
-        micromamba-root-path: $MAMBAROOT
-        micromamba-binary-path: $MAMBAPATH
-        cache-downloads: true
-        cache-environment: true
-        init-shell: none
-      if: steps.check-environment.outputs.HAS_MAMBA == 'true'
-      # Set up cache for python packages
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: /home/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-      # Install required python packages
-    - name: Install package
-      run: |
-        python -m pip install --progress-bar off --upgrade pip \
-        setuptools wheel
-        python -m pip install --progress-bar off .[test]
-      # Run fastsurfer on list of subjects
+    # Run FastSurfer on test subjects
     - name: Run FastSurfer
       run: |
         echo "Running FastSurfer..."
-        export FREESURFER_HOME=/freesurfer
-        source $FREESURFER_HOME/SetUpFreeSurfer.sh
+        echo "Output will be saved in data/${GITHUB_SHA:0:7}"
         export FASTSURFER_HOME=$(pwd)
         export THIS_RUN_OUTDIR=${GITHUB_SHA:0:7}
         mkdir -p $SUBJECTS_DIR/$THIS_RUN_OUTDIR
+        export TEST_DIR=$THIS_RUN_OUTDIR
         ./brun_fastsurfer.sh --subject_list $RUNNER_FS_MRI_DATA/subjects_list.txt \
                              --sd $SUBJECTS_DIR/$THIS_RUN_OUTDIR \
                              --parallel --threads 4 --3T --parallel_subjects surf
-        export TEST_DIR=$THIS_RUN_OUTDIR
 
   # Test fastsurfer output
   run-pytest:
     runs-on: self-hosted
+    if: always()
     needs: run-fastsurfer
     steps:
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: /home/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
     - name: Run pytest
-      run: python -m pytest test/quick_test
+      run: |
+        source /venv-pytest/bin/activate
+        python -m pytest test/quick_test
