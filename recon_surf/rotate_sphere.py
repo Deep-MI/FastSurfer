@@ -135,7 +135,7 @@ def align_aparc_centroids(
     # lids=np.array([8,9,22,24,31])
     # lids=np.array([8,22,24])
 
-    if label_ids is not None:
+    if label_ids is None:
         # use all joint labels except -1 and 0:
         lids = np.intersect1d(labels_mov, labels_dst)
         lids = lids[(lids > 0)]
