@@ -124,7 +124,7 @@ def get_seg_centroids(
     centroids_dst
         List of centroids of target segmentation.
     """
-    if label_ids is not None:
+    if label_ids is None:
         # use all joint labels except -1 and 0:
         nda1 = sitk.GetArrayFromImage(seg_mov)
         nda2 = sitk.GetArrayFromImage(seg_dst)
