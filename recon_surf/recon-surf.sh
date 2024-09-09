@@ -265,16 +265,16 @@ basedir=""
 if [ "$long" == "1" ]
 then
   basedir="$SUBJECTS_DIR/$baseid"
-  if [ ! -f "$basedir/base-tps.fastsurfer" ]
+  if [ ! -f "$basedir/base-tps.fastsurfer" ] ; then
     echo "$baseid is either not found in SUBJECTS_DIR or it is not a longitudinal template"
     echo "directory, which needs to contain base-tps.fastsurfer file. Please ensure that"
     echo "the base (template) has been created when running with --long flag."
-    exit 1;
+    exit 1
   fi
-  if [ ! grep -Fxq $basedir/base-tps.fastsurfer $subject ]
+  if [ ! grep -Fxq $basedir/base-tps.fastsurfer $subject ] ; then
     echo "$subject id not found in base-tps.fastsurfer. Please ensure that this time point"
     echo "was included during creation of the base (template)."
-    exit 1;
+    exit 1
   fi
 fi
 
@@ -325,14 +325,14 @@ then
 fi
 
 # Check if running on an existing subject directory
-if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]; then
+if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ] ; then
   echo "ERROR: running on top of an existing subject directory!"
   echo "The output directory must not contain data from a previous invocation of recon-surf."
   exit 1
 fi
 
 # collect info
-StartTime=$(date);
+StartTime=$(date)
 tSecStart=$(date '+%s')
 year=$(date +%Y)
 month=$(date +%m)
@@ -506,7 +506,7 @@ fi
 
 # ============================= NU BIAS CORRECTION =======================================
 
-if [ ! -f "$mdir/orig_nu.mgz" ]; then
+if [ ! -f "$mdir/orig_nu.mgz" ] ; then
   # only run the bias field correction, if the bias field corrected does not exist already
   {
     echo " "
@@ -551,14 +551,14 @@ if [ "$long" == "1" ] ; then
   popd > /dev/null || (echo "Could not popd" ; exit 1)
   # Add xfm to nu header
   # (use orig_nu, if nu.mgz does not exist already); by default, it should exist
-  if [[ -e "$mdir/nu.mgz" ]]; then src_nu_file="$mdir/nu.mgz"
+  if [[ -e "$mdir/nu.mgz" ]] ; then src_nu_file="$mdir/nu.mgz"
   else src_nu_file="$mdir/orig_nu.mgz"
   fi
   cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
   RunIt "$cmd" $LF
 
 else #regular processing (cross and base)
-  if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]]; then
+  if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]] ; then
     # if talairach registration is missing, compute it here
     # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta
     # all transforms (also ltas) are the same
@@ -659,7 +659,7 @@ fi
 
 CMDFS=()
 
-for hemi in lh rh; do
+for hemi in lh rh ; do
 
   CMDF="$SUBJECTS_DIR/$subject/scripts/$hemi.processing.cmdf"
   CMDFS+=("$CMDF")
@@ -685,10 +685,10 @@ for hemi in lh rh; do
   else
     # instead of mri_tesselate lego land use marching cube
 
-    if [ $hemi == "lh" ]; then
-        hemivalue=255;
+    if [ $hemi == "lh" ] ; then
+        hemivalue=255
     else
-        hemivalue=127;
+        hemivalue=127
     fi
 
     # extract initial surface "?h.orig.nofix"
@@ -710,14 +710,14 @@ for hemi in lh rh; do
       echo "echo \"$cmd\""
       echo "$timecmd $cmd"
     } | tee -a "$CMDF"
-    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \"; exit 1 ; fi" >> "$CMDF"
+    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \" ; exit 1 ; fi" >> "$CMDF"
 
     # Reduce to largest component (usually there should only be one)
     cmd="mris_extract_main_component $outmesh $outmesh"
     RunIt "$cmd" "$LF" "$CMDF"
     
     # for hires decimate mesh 
-    if [ -n "$hiresflag" ]; then
+    if [ -n "$hiresflag" ] ; then
       DecimationFaceArea="0.5"
       # Reduce the number of faces such that the average face area is
       # DecimationFaceArea.  If the average face area is already more
@@ -1003,7 +1003,7 @@ if [ "$base" != "1" ] ; then
 } | tee -a "$LF"
 
   # 2x18sec create stats from mapped aparc
-  for hemi in lh rh; do
+  for hemi in lh rh ; do
     cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $statsdir/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
     RunIt "$cmd" "$LF"
   done
@@ -1022,7 +1022,7 @@ if [ "$base" != "1" ] ; then
       softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" "$LF"
       softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" "$LF"
     popd > /dev/null || (echo "Could not popd" ; exit 1)
-    for hemi in lh rh; do
+    for hemi in lh rh ; do
       cmd="pctsurfcon --s $subject --$hemi-only"
       RunIt "$cmd" "$LF"
     done
