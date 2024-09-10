@@ -22,12 +22,12 @@
 # - find_affine
 
 # IMPORTS
+
 import numpy as np
 from numpy import typing as npt
-from typing import Tuple
 
 
-def rmat2angles(R: npt.NDArray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def rmat2angles(R: npt.NDArray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Extract rotation angles (alpha,beta,gamma) in FreeSurfer format (mris_register) from a rotation matrix.
 
@@ -104,9 +104,7 @@ def find_rotation(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     """
     if p_mov.shape != p_dst.shape:
         raise ValueError(
-            "Shape of points should be identical, but mov = {}, dst = {} expecting Nx3".format(
-                p_mov.shape, p_dst.shape
-            )
+            f"Shape of points should be identical, but mov = {p_mov.shape}, dst = {p_dst.shape} expecting Nx3"
         )
     # average SSD
     # dd = p_mov-p_dst
@@ -148,9 +146,7 @@ def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     """
     if p_mov.shape != p_dst.shape:
         raise ValueError(
-            "Shape of points should be identical, but mov = {}, dst = {} expecting Nx3".format(
-                p_mov.shape, p_dst.shape
-            )
+            f"Shape of points should be identical, but mov = {p_mov.shape}, dst = {p_dst.shape} expecting Nx3"
         )  # average SSD
     # translate points to be centered around origin
     centroid_mov = np.mean(p_mov, axis=0)
@@ -168,9 +164,9 @@ def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     T[:m, m] = t
     # compute disteances
     dd = p_mov - p_dst
-    print("Initial avg SSD: {}".format(np.sum(dd * dd) / p_mov.shape[0]))
+    print(f"Initial avg SSD: {np.sum(dd * dd) / p_mov.shape[0]}")
     dd = (np.transpose(R @ np.transpose(p_mov)) + t) - p_dst
-    print("Final avg SSD: {}".format(np.sum(dd * dd) / p_mov.shape[0]))
+    print(f"Final avg SSD: {np.sum(dd * dd) / p_mov.shape[0]}")
     # return T, R, t
     return T
 
@@ -199,9 +195,7 @@ def find_affine(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     """
     if p_mov.shape != p_dst.shape:
         raise ValueError(
-            "Shape of points should be identical, but mov = {}, dst = {} expecting Nx3".format(
-                p_mov.shape, p_dst.shape
-            )
+            f"Shape of points should be identical, but mov = {p_mov.shape}, dst = {p_dst.shape} expecting Nx3"
         )  # average SSD
     n = len(p_mov)
     # Solve overdetermined system for the three rows of

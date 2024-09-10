@@ -15,23 +15,23 @@
 
 
 # IMPORTS
-from typing import Dict
 
-import yacs.config
-from torch import Tensor, nn
-import torch
-import FastSurferCNN.models.sub_module as sm
-import FastSurferCNN.models.interpolation_layer as il
-from FastSurferCNN.models.networks import FastSurferCNNBase
 import numpy as np
+import torch
+import yacs.config
+from torch import nn
+
+import FastSurferCNN.models.interpolation_layer as il
+import FastSurferCNN.models.sub_module as sm
+from FastSurferCNN.models.networks import FastSurferCNNBase
 
 
 class HypVINN(FastSurferCNNBase):
     """
     HypVINN class that extends the FastSurferCNNBase class.
 
-    This class represents a HypVINN model. It includes methods for initializing the model, setting up the layers,
-    and performing forward propagation.
+    This class represents a HypVINN model. It includes methods for initializing the model,
+    setting up the layers, and performing forward propagation.
 
     Attributes
     ----------
@@ -42,9 +42,11 @@ class HypVINN(FastSurferCNNBase):
     out_tensor_shape : tuple
         The shape of the output tensor.
     interpolation_mode : str
-        The interpolation mode to use when resizing the images. This can be 'nearest', 'bilinear', 'bicubic', or 'area'.
+        The interpolation mode to use when resizing the images. This can be 'nearest', 'bilinear',
+        'bicubic', or 'area'.
     crop_position : str
-        The position to crop the images from. This can be 'center', 'top_left', 'top_right', 'bottom_left', or 'bottom_right'.
+        The position to crop the images from. This can be 'center', 'top_left', 'top_right',
+        'bottom_left', or 'bottom_right'.
     m1_inp_block : InputDenseBlock
         The input block for the first modality.
     m2_inp_block : InputDenseBlock
@@ -89,7 +91,7 @@ class HypVINN(FastSurferCNNBase):
 
         params["num_channels"] = params["num_filters_interpol"]
 
-        super(HypVINN, self).__init__(params)
+        super().__init__(params)
 
         # Flex options
         self.height = params["height"]
@@ -172,7 +174,8 @@ class HypVINN(FastSurferCNNBase):
         weight_factor : torch.Tensor
             The weight factor for the two modalities. It should have a shape of (batch_size, 2).
         scale_factor_out : torch.Tensor, optional
-            The scale factor for the output images. If not provided, it defaults to the scale factor of the input images.
+            The scale factor for the output images. If not provided, it defaults to the scale factor
+            of the input images.
 
         Returns
         -------
@@ -206,7 +209,8 @@ class HypVINN(FastSurferCNNBase):
         # Shared latent space
         skip_encoder_0 = mw1 * skip_encoder_01 + mw2 * skip_encoder_02
 
-        encoder_output0, rescale_factor = self.interpol1(skip_encoder_0, scale_factor) # instead of maxpool = encoder_output_0
+        # instead of maxpool = encoder_output_0:
+        encoder_output0, rescale_factor = self.interpol1(skip_encoder_0, scale_factor)
 
         # FastSurferCNN Base
         decoder_output1 = super().forward(encoder_output0, scale_factor=scale_factor)

@@ -14,19 +14,25 @@
 
 # IMPORTS
 import os
+from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
-from typing import MutableSequence, Optional, Union, Literal, TypedDict, cast, overload
+from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
 
 import requests
 import torch
 import yacs.config
 import yaml
 
-from FastSurferCNN.utils import logging, Plane
+from FastSurferCNN.utils import Plane, logging
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
-Scheduler = "torch.optim.lr_scheduler"
+if TYPE_CHECKING:
+    from torch.optim import lr_scheduler as Scheduler
+else:
+    class Scheduler:
+        ...
+
 LOGGER = logging.getLogger(__name__)
 
 # Defaults
@@ -61,15 +67,15 @@ def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointCon
     if not filename.absolute():
         filename = FASTSURFER_ROOT / filename
 
-    with open(filename, "r") as file:
+    with open(filename) as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
 
     required_fields = ("url", "checkpoint")
     checks = [k not in data for k in required_fields]
     if any(checks):
-        missing = tuple(k for k, c in zip(required_fields, checks) if c)
+        missing = tuple(k for k, c in zip(required_fields, checks, strict=False) if c)
         message = f"The file {filename} is not valid, missing key(s): {missing}"
-        raise IOError(message)
+        raise OSError(message)
     if isinstance(data["url"], str):
         data["url"] = [data["url"]]
     else:
@@ -93,7 +99,7 @@ def load_checkpoint_config_defaults(
         filename: str | Path = YAML_DEFAULT,
 ) -> list[str]: ...
 
-
+@lru_cache
 def load_checkpoint_config_defaults(
         configtype: CheckpointConfigFields,
         filename: str | Path = YAML_DEFAULT,
@@ -124,7 +130,7 @@ def load_checkpoint_config_defaults(
     return load_checkpoint_config(filename)[configtype]
 
 
-def create_checkpoint_dir(expr_dir: Union[os.PathLike], expr_num: int):
+def create_checkpoint_dir(expr_dir: os.PathLike, expr_num: int):
     """
     Create the checkpoint dir if not exists.
 
@@ -163,13 +169,13 @@ def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
         Standardizes checkpoint name.
     """
     checkpoint_dir = os.path.join(
-        ckpt_dir, "Epoch_{:05d}_training_state.pkl".format(epoch)
+        ckpt_dir, f"Epoch_{epoch:05d}_training_state.pkl"
     )
     return checkpoint_dir
 
 
 def get_checkpoint_path(
-        log_dir: Path | str, resume_experiment: Union[str, int, None] = None
+        log_dir: Path | str, resume_experiment: str | int | None = None
 ) -> MutableSequence[Path]:
     """
     Find the paths to checkpoints from the experiment directory.
@@ -200,8 +206,8 @@ def get_checkpoint_path(
 def load_from_checkpoint(
         checkpoint_path: str | Path,
         model: torch.nn.Module,
-        optimizer: Optional[torch.optim.Optimizer] = None,
-        scheduler: Optional[Scheduler] = None,
+        optimizer: torch.optim.Optimizer | None = None,
+        scheduler: Scheduler | None = None,
         fine_tune: bool = False,
         drop_classifier: bool = False,
 ):
@@ -259,7 +265,7 @@ def save_checkpoint(
         cfg: yacs.config.CfgNode,
         model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        scheduler: Optional[Scheduler] = None,
+        scheduler: Scheduler | None = None,
         best: bool = False,
 ) -> None:
     """

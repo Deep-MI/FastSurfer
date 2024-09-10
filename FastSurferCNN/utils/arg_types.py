@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import argparse
-from typing import Literal, Optional, Union
+from typing import Literal
 
 import nibabel as nib
 import numpy as np
 
-VoxSizeOption = Union[float, Literal["min"]]
+VoxSizeOption = float | Literal["min"]
 
 
 def vox_size(a: str) -> VoxSizeOption:
@@ -39,7 +39,7 @@ def vox_size(a: str) -> VoxSizeOption:
     Raises
     ------
     argparse.ArgumentTypeError
-        If the arguemnt is not "min", "auto" or convertible to a float between 0 and 1.
+        If the argument is not "min", "auto" or convertible to a float between 0 and 1.
     """
     if a.lower() in ["auto", "min"]:
         return "min"
@@ -51,7 +51,7 @@ def vox_size(a: str) -> VoxSizeOption:
         ) from None
 
 
-def float_gt_zero_and_le_one(a: str) -> Optional[float]:
+def float_gt_zero_and_le_one(a: str) -> float | None:
     """
     Check whether a parameters are a float between 0 and one.
 
@@ -121,7 +121,7 @@ def target_dtype(a: str) -> str:
         raise argparse.ArgumentTypeError(f"Invalid dtype {a}. {msg}")
 
 
-def int_gt_zero(value: Union[str, int]) -> int:
+def int_gt_zero(value: str | int) -> int:
     """
     Convert to positive integers.
 

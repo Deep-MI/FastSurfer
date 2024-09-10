@@ -13,31 +13,30 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Tuple, Literal, TypeVar, Dict
 from numbers import Number
+from typing import Literal, TypeVar
 
-import nibabel as nib
-import torch
-import numpy as np
-from numpy import typing as npt
 import h5py
+import nibabel as nib
+import numpy as np
+import torch
+from numpy import typing as npt
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Compose
 
-from FastSurferCNN.utils import logging, Plane
+from CerebNet.data_loader import data_utils as utils
+from CerebNet.data_loader.augmentation import ToTensor
+from CerebNet.datasets.load_data import SubjectLoader
+from CerebNet.datasets.utils import bounding_volume_offset, crop_transform
 from FastSurferCNN.data_loader.data_utils import (
     get_thick_slices,
     transform_axial,
     transform_sagittal,
 )
-
-from CerebNet.data_loader import data_utils as utils
-from CerebNet.data_loader.augmentation import ToTensor
-from CerebNet.datasets.load_data import SubjectLoader
-from CerebNet.datasets.utils import crop_transform, bounding_volume_offset
+from FastSurferCNN.utils import Plane, logging
 
 ROIKeys = Literal["source_shape", "offsets", "target_shape"]
-LocalizerROI = Dict[ROIKeys, Tuple[int, ...]]
+LocalizerROI = dict[ROIKeys, tuple[int, ...]]
 
 NT = TypeVar("NT", bound=Number)
 
@@ -118,11 +117,7 @@ class CerebDataset(Dataset):
         del self.dataset["subject"]
 
         logger.info(
-            "Successfully loaded {} slices in {} plane from {}".format(
-                self.count,
-                cfg.DATA.PLANE,
-                dataset_path,
-            )
+            f"Successfully loaded {self.count} slices in {cfg.DATA.PLANE} plane from {dataset_path}"
         )
 
         logger.info(
@@ -242,7 +237,7 @@ class SubjectDataset(Dataset):
         self,
         img_org: nib.analyze.SpatialImage,
         brain_seg: nib.analyze.SpatialImage,
-        patch_size: Tuple[int, ...],
+        patch_size: tuple[int, ...],
         slice_thickness: int,
         primary_slice: str,
     ):
@@ -298,10 +293,10 @@ class SubjectDataset(Dataset):
             "coronal": img,
             "sagittal": transform_sagittal(img),
         }
-        for plane, data in data.items():
+        for plane, data_i in data.items():
             # data is transformed to 'plane'-direction in axis 2
             thick_slices = get_thick_slices(
-                data, self.slice_thickness
+                data_i, self.slice_thickness
             )  # [H, W, n_slices, C]
             # it seems x and y are flipped with respect to expectations here
             self.images_per_plane[plane] = np.transpose(
@@ -315,7 +310,7 @@ class SubjectDataset(Dataset):
             bbox of min0, min1, ..., max0, max1, ...
         """
         # filter disconnected components
-        from skimage.measure import regionprops, label
+        from skimage.measure import label, regionprops
 
         label_image = label(mask, connectivity=3)
         regions = regionprops(label_image)
@@ -341,7 +336,7 @@ class SubjectDataset(Dataset):
         """Returns the active plane"""
         return self._plane
 
-    def __getitem__(self, index: int) -> Tuple[Plane, np.ndarray]:
+    def __getitem__(self, index: int) -> tuple[Plane, np.ndarray]:
         """Get the plane and data belonging to indices given."""
 
         if not (0 <= index < self.images_per_plane[self.plane].shape[0]):

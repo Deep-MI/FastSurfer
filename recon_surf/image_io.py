@@ -17,17 +17,18 @@
 
 
 # IMPORTS
-import numpy as np
 import sys
-import SimpleITK as sitk
+from typing import Any, overload
+
 import nibabel as nib
+import numpy as np
+import SimpleITK as sitk
 from nibabel.freesurfer.mghformat import MGHHeader
-from typing import Union, Any, Optional, Tuple, overload
 
 
 def mgh_from_sitk(
         sitk_img: sitk.Image,
-        orig_mgh_header: Optional[nib.freesurfer.mghformat.MGHHeader] = None
+        orig_mgh_header: nib.freesurfer.mghformat.MGHHeader | None = None
 ) -> nib.MGHImage:
     """Convert sitk image to mgh image.
 
@@ -109,7 +110,7 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
 @overload
 def readITKimage(
         filename: str,
-        vox_type: Optional[Any] = None,
+        vox_type: Any | None = None,
         with_header: False = False
 ) -> sitk.Image:
     ...
@@ -118,17 +119,17 @@ def readITKimage(
 @overload
 def readITKimage(
         filename: str,
-        vox_type: Optional[Any] = None,
+        vox_type: Any | None = None,
         with_header: True = True
-) -> Tuple[sitk.Image, Any]:
+) -> tuple[sitk.Image, Any]:
     ...
 
 
 def readITKimage(
         filename: str,
-        vox_type: Optional[Any] = None,
+        vox_type: Any | None = None,
         with_header: bool = False
-) -> Union[sitk.Image, Tuple[sitk.Image, Any]]:
+) -> sitk.Image | tuple[sitk.Image, Any]:
     """Read the itk image.
 
     Parameters
@@ -166,9 +167,7 @@ def readITKimage(
             itkimage = sitk.Cast(itkimage, vox_type)
     else:
         sys.exit(
-            "read ERROR: {} image type not supported (only: .mgz, .nii, .nii.gz).\n".format(
-                filename
-            )
+            f"read ERROR: {filename} image type not supported (only: .mgz, .nii, .nii.gz).\n"
         )
     if with_header:
         return itkimage, header
@@ -179,7 +178,7 @@ def readITKimage(
 def writeITKimage(
         img: sitk.Image,
         filename: str,
-        header: Optional[nib.freesurfer.mghformat.MGHHeader] = None
+        header: nib.freesurfer.mghformat.MGHHeader | None = None
 ) -> None:
     """
     Writes the given ITK image to a file.
@@ -205,9 +204,7 @@ def writeITKimage(
         nib.save(mgh_image, filename)
     else:
         sys.exit(
-            "write ERROR: {} image type not supported (only: .mgz, .nii, .nii.gz).\n".format(
-                filename
-            )
+            f"write ERROR: {filename} image type not supported (only: .mgz, .nii, .nii.gz).\n"
         )
 
 

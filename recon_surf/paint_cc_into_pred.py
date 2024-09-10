@@ -15,10 +15,11 @@
 
 # IMPORTS
 
-import sys
 import argparse
-import numpy as np
+import sys
+
 import nibabel as nib
+import numpy as np
 from numpy import typing as npt
 
 HELPTEXT = """
@@ -106,12 +107,12 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = argument_parse()
 
-    print("Reading inputs: {} {}...".format(options.input_cc, options.input_pred))
+    print(f"Reading inputs: {options.input_cc} {options.input_pred}...")
     aseg_image = np.asanyarray(nib.load(options.input_cc).dataobj)
     prediction = nib.load(options.input_pred)
     pred_with_cc = paint_in_cc(np.asanyarray(prediction.dataobj), aseg_image)
 
-    print("Writing segmentation with corpus callosum to: {}".format(options.output))
+    print(f"Writing segmentation with corpus callosum to: {options.output}")
     pred_with_cc_fin = nib.MGHImage(pred_with_cc, prediction.affine, prediction.header)
     pred_with_cc_fin.to_filename(options.output)
 

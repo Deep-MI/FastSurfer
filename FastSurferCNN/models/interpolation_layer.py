@@ -25,7 +25,7 @@ from FastSurferCNN.utils.logging import getLogger as _getLogger
 
 LOGGER = _getLogger(__name__)
 
-T_Scale = _T.TypeVar("T_Scale", _T.List[float], Tensor)
+T_Scale = _T.TypeVar("T_Scale", list[float], Tensor)
 T_ScaleAll = _T.TypeVar("T_ScaleAll", _T.Sequence[float], Tensor, np.ndarray, float)
 
 
@@ -57,7 +57,7 @@ class _ZoomNd(nn.Module):
 
     def __init__(
         self,
-        target_shape: _T.Optional[_T.Sequence[int]],
+        target_shape: _T.Sequence[int] | None,
         interpolation_mode: str = "nearest",
     ):
         """
@@ -72,22 +72,22 @@ class _ZoomNd(nn.Module):
             Interpolation mode as in `torch.nn.interpolate`
             (default: 'neareast').
         """
-        super(_ZoomNd, self).__init__()
+        super().__init__()
         self._mode = interpolation_mode
         if not hasattr(self, "_N"):
             self._N = -1
-        self._target_shape: _T.Tuple[int, ...] = tuple()
+        self._target_shape: tuple[int, ...] = tuple()
         self.target_shape = target_shape
 
     @property
-    def target_shape(self) -> _T.Tuple[int, ...]:
+    def target_shape(self) -> tuple[int, ...]:
         """
         Return the target shape.
         """
         return self._target_shape
 
     @target_shape.setter
-    def target_shape(self, target_shape: _T.Optional[_T.Sequence[int]]) -> None:
+    def target_shape(self, target_shape: _T.Sequence[int] | None) -> None:
         """
         Validate and set the target_shape.
         """
@@ -112,7 +112,7 @@ class _ZoomNd(nn.Module):
 
     def forward(
         self, input_tensor: Tensor, scale_factors: T_ScaleAll, rescale: bool = False
-    ) -> _T.Tuple[Tensor, _T.List[T_Scale]]:
+    ) -> tuple[Tensor, list[T_Scale]]:
         """
         Zoom the `input_tensor` with `scale_factors`.
 
@@ -130,8 +130,8 @@ class _ZoomNd(nn.Module):
             or a (cascaded) sequence of floats or ints) or a float. If it is a float, all axis and all images of the
             batch are treated the same (zoomed by the float). Else, it will be interpreted as a multidimensional
             image: The first dimension corresponds to and must be equal to the batch size of the image. The second
-            dimension is optional and may contain different values for the _scale_limits factor per axis. In consequence,
-            this dimension can have 1 or {dim} values.
+            dimension is optional and may contain different values for the _scale_limits factor per axis.
+            In consequence, this dimension can have 1 or {dim} values.
         rescale : bool, default="False"
             (Default value = False).
 
@@ -161,7 +161,7 @@ class _ZoomNd(nn.Module):
             )
 
         scales_chunks = list(
-            zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]))
+            zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]), strict=False)
         )
         if len(scales_chunks) == 0:
             raise ValueError(
@@ -173,7 +173,7 @@ class _ZoomNd(nn.Module):
 
         # Pytorch Tensor shape BxCxHxW --> loop over batches, interpolate single images, concatenate output at end
         for tensor, scale_f, num in zip(
-            torch.split(input_tensor, chunks, dim=0), scales, chunks
+            torch.split(input_tensor, chunks, dim=0), scales, chunks, strict=False
         ):
             if rescale:
                 if isinstance(scale_f, list):
@@ -188,7 +188,7 @@ class _ZoomNd(nn.Module):
 
     def _fix_scale_factors(
         self, scale_factors: T_ScaleAll, batch_size: int
-    ) -> _T.Iterable[_T.Tuple[T_Scale, int]]:
+    ) -> _T.Iterable[tuple[T_Scale, int]]:
         """
         Check and fix the conformity of scale_factors.
 
@@ -209,7 +209,7 @@ class _ZoomNd(nn.Module):
         ValueError
             Scale_factors is neither a _T.Iterable nor a Number.
         """
-        if isinstance(scale_factors, (Tensor, np.ndarray)):
+        if isinstance(scale_factors, Tensor | np.ndarray):
             batch_size_sf = scale_factors.shape[0]
         elif isinstance(scale_factors, _T.Iterable):
             scale_factors = list(scale_factors)
@@ -223,13 +223,13 @@ class _ZoomNd(nn.Module):
                     "scale_factors is a Sequence, but not the same length as the batch-size."
                 )
             num = 0
-            last_sf: _T.Optional[T_Scale] = None
+            last_sf: T_Scale | None = None
             # Loop over batches
             for i, sf in enumerate(scale_factors):
                 if isinstance(sf, Number):
                     sf = [sf] * self._N
                 else:
-                    if isinstance(sf, (np.ndarray, Tensor)):
+                    if isinstance(sf, np.ndarray | Tensor):
                         if isinstance(sf, Tensor) and sf.dim() == 0:
                             sf_dim = 1
                             sf = [sf] * self._N
@@ -252,7 +252,7 @@ class _ZoomNd(nn.Module):
                             f"scale factors, but only 1 or {self._N} are valid: {sf}."
                         )
 
-                if last_sf is not None and any(l != t for l, t in zip(last_sf, sf)):
+                if last_sf is not None and any(ln != t for ln, t in zip(last_sf, sf, strict=False)):
                     yield last_sf, num
                     # reset the counter
                     num = 0
@@ -267,7 +267,7 @@ class _ZoomNd(nn.Module):
                 "scale_factors is not the correct type, must be sequence of floats or float."
             )
 
-    def _interpolate(self, *args) -> _T.Tuple[Tensor, T_Scale]:
+    def _interpolate(self, *args) -> tuple[Tensor, T_Scale]:
         """
         Abstract method.
 
@@ -284,7 +284,7 @@ class _ZoomNd(nn.Module):
         scale_factor: T_Scale,
         dim: int,
         alignment: str,
-    ) -> _T.Tuple[slice, T_Scale, _T.Tuple[int, int], int]:
+    ) -> tuple[slice, T_Scale, tuple[int, int], int]:
         """
         Return start- and end- coordinate given sizes, the updated scale factor.
 
@@ -380,7 +380,7 @@ class Zoom2d(_ZoomNd):
 
     def __init__(
         self,
-        target_shape: _T.Optional[_T.Sequence[int]],
+        target_shape: _T.Sequence[int] | None,
         interpolation_mode: str = "nearest",
         crop_position: str = "top_left",
     ):
@@ -401,7 +401,7 @@ class Zoom2d(_ZoomNd):
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
         self._N = 2
-        super(Zoom2d, self).__init__(target_shape, interpolation_mode)
+        super().__init__(target_shape, interpolation_mode)
         self.crop_position = crop_position
 
     @property
@@ -435,8 +435,8 @@ class Zoom2d(_ZoomNd):
     def _interpolate(
         self,
         data: Tensor,
-        scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[float]],
-    ) -> _T.Tuple[Tensor, T_Scale]:
+        scale_factor: Tensor | np.ndarray | _T.Sequence[float],
+    ) -> tuple[Tensor, T_Scale]:
         """
         Crop, interpolate and pad the tensor according to the scale_factor.
 
@@ -512,7 +512,7 @@ class Zoom3d(_ZoomNd):
 
     def __init__(
         self,
-        target_shape: _T.Optional[_T.Sequence[int]],
+        target_shape: _T.Sequence[int] | None,
         interpolation_mode: str = "nearest",
         crop_position: str = "front_top_left",
     ):
@@ -536,7 +536,7 @@ class Zoom3d(_ZoomNd):
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
         self._N = 3
-        super(Zoom3d, self).__init__(target_shape, interpolation_mode)
+        super().__init__(target_shape, interpolation_mode)
         self.crop_position = crop_position
 
     @property
@@ -573,7 +573,7 @@ class Zoom3d(_ZoomNd):
         self._crop_position = crop_position
     
     def _interpolate(
-        self, data: Tensor, scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[int]]
+        self, data: Tensor, scale_factor: Tensor | np.ndarray | _T.Sequence[int]
     ):
         """
         Crop, interpolate and pad the tensor according to the scale_factor.

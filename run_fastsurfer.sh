@@ -37,6 +37,7 @@ reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 # Regular flags defaults
 subject=""
+sd="$SUBJECTS_DIR"
 t1=""
 t2=""
 merged_segfile=""

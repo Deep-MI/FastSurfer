@@ -64,7 +64,7 @@ that was provided from the first run. This can help brighten up some regions and
 
 You can manually edit ```aparc.DKTatlas+aseg.deep.mgz```. This is similar to aseg edits in FreeSurfer. You can fill-in undersegmented regions (with the correct segmentation ID). To re-create the aseg and mask run the following command before continuing with other modules:
 
-- Step 1: Assuming that you have run the full fastsurfer pipeline once as described in method_1 and succesfully produced segmentations and surfaces
+- Step 1: Assuming that you have run the full fastsurfer pipeline once as described in method_1 and successfully produced segmentations and surfaces
 - Step 2: Execute this command where reduce_to_aseg.py is located
    ```bash
    python3 reduce_to_aseg.py -i sid/mri/aparc.DKTatlas+aseg.deep.edited.mgz \ 
@@ -72,7 +72,7 @@ You can manually edit ```aparc.DKTatlas+aseg.deep.mgz```. This is similar to ase
                              --outmask sid/mri/mask.mgz \
                              --fixwm
    ```
-   Assuming you have edited ```aparc.DKTatlas+aseg.deep.edited.mgz``` in freeview, step_2 will produce two files i.e ```aseg.auto_noCCseg.mgz``` and ```mask.mgz ``` in the specified output folder. The ouput files can be loaded in freeview as a load volume. Edit-->load volume
+   Assuming you have edited ```aparc.DKTatlas+aseg.deep.edited.mgz``` in freeview, step_2 will produce two files i.e ```aseg.auto_noCCseg.mgz``` and ```mask.mgz ``` in the specified output folder. The output files can be loaded in freeview as a load volume. Edit-->load volume
 
 - Step 3: For this step you would have to copy segmentation files produced in step_1, edited file ```aparc.DKTatlas+aseg.deep.edited.mgz``` and re-created file produced in step_2 in new output directory beforehand. 
 
@@ -99,7 +99,7 @@ You can manually edit ```aparc.DKTatlas+aseg.deep.mgz```. This is similar to ase
 ## 3. Brainmask Edits: 
 When surfaces go out too far, e.g. they grab dura, you can tighten the mask directly, just edit ```mask.mgz```and start the *surface module*. 
 
-- Step 1: Assuming that you have run the full fastsurfer pipeline once as described in method_1 and succesfully produced segmentations and surfaces
+- Step 1: Assuming that you have run the full fastsurfer pipeline once as described in method_1 and successfully produced segmentations and surfaces
 - Step 2: Edit ```mask.mgz``` file in freeview
 - Step 3: Run the pipeline again in order to get the surfaces but before running the pipeline again do not forget to copy all the segmented files in to new input and output directory. 
    Note: The files in output folder should be pasted in the subjectX folder, the name of subjectX should be the same as it was used in step_1 otherwise it would raise an error of missing files even though the segmentation files exists in output folder.
@@ -121,5 +121,5 @@ When surfaces go out too far, e.g. they grab dura, you can tighten the mask dire
 
    Note: ```t1-weighted-nii.gz``` would be the original input mri image.
 
-   We hope that this will help with (some of) your editing needs. If more edits become availble we will update this file. 
+   We hope that this will help with (some of) your editing needs. If more edits become available we will update this file. 
    Thanks for using FastSurfer. 

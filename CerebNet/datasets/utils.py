@@ -14,13 +14,14 @@
 
 
 # IMPORTS
-from typing import Tuple, Union, Sequence, Optional, TypeVar, TypedDict, Iterable, Type
+from collections.abc import Sequence
 from pathlib import Path
+from typing import TypedDict, TypeVar
 
 import nibabel as nib
 import numpy as np
-from numpy import typing as npt
 import torch
+from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
 
@@ -112,7 +113,7 @@ def map_size(arr, base_shape, return_border=False):
     _pad = []
     _unpad_borders = []
 
-    for i, j in zip(arr.shape, base_shape):
+    for i, j in zip(arr.shape, base_shape, strict=False):
         delta = i - j
         left = delta // 2
         if delta > 0:  # crop
@@ -186,10 +187,10 @@ def map_size_leg(arr, base_shape, return_border=False):
 
 
 def bounding_volume_offset(
-    img: Union[np.ndarray, Sequence[int]],
-    target_img_size: Tuple[int, ...],
-    image_shape: Optional[Tuple[int, ...]] = None,
-) -> Tuple[int, ...]:
+    img: np.ndarray | Sequence[int],
+    target_img_size: tuple[int, ...],
+    image_shape: tuple[int, ...] | None = None,
+) -> tuple[int, ...]:
     """Find the center of the non-zero values in img and returns offsets so this center is in the center of a bounding
     volume of size target_img_size."""
     if isinstance(img, np.ndarray):
@@ -201,10 +202,10 @@ def bounding_volume_offset(
         bbox = img
     center = (
         (_max + _min) / 2
-        for _min, _max in zip(bbox[: len(bbox) // 2], bbox[len(bbox) // 2 :])
+        for _min, _max in zip(bbox[: len(bbox) // 2], bbox[len(bbox) // 2 :], strict=False)
     )
     offset = tuple(
-        max(0, int(round(c - ts / 2))) for c, ts in zip(center, target_img_size)
+        max(0, int(round(c - ts / 2))) for c, ts in zip(center, target_img_size, strict=False)
     )
     img_shape = (
         image_shape
@@ -216,7 +217,7 @@ def bounding_volume_offset(
     if img_shape is not None:
         offset = tuple(
             min(max(0, o), imgs - ts)
-            for o, ts, imgs in zip(offset, target_img_size, img_shape)
+            for o, ts, imgs in zip(offset, target_img_size, img_shape, strict=False)
         )
         if any(o < 0 for o in offset):
             raise RuntimeError(
@@ -357,15 +358,16 @@ def read_lta(file: Path | str) -> LTADict:
     """Read the LTA info."""
     import re
     from functools import partial
+
     import numpy as np
     parameter_pattern = re.compile("^\s*([^=]+)\s*=\s*([^#]*)\s*(#.*)")
     vol_info_pattern = re.compile("^(.*) volume info$")
     shape_pattern = re.compile("^(\s*\d+)+$")
     matrix_pattern = re.compile("^(-?\d+\.\S+\s+)+$")
 
-    _Type = TypeVar("_Type", bound=Type)
+    _Type = TypeVar("_Type", bound=type)
 
-    def _vector(_a: str, dtype: Type[_Type] = float, count: int = -1) -> list[_Type]:
+    def _vector(_a: str, dtype: type[_Type] = float, count: int = -1) -> list[_Type]:
         return np.fromstring(_a, dtype=dtype, count=count, sep=" ").tolist()
 
     parameters = {
@@ -384,7 +386,7 @@ def read_lta(file: Path | str) -> LTADict:
         **{f"{c}ras": partial(_vector, dtype=float) for c in "xyzc"}
     }
 
-    with open(file, "r") as f:
+    with open(file) as f:
         lines = f.readlines()
 
     items = []
@@ -415,9 +417,9 @@ def read_lta(file: Path | str) -> LTADict:
     shape_lines = list(map(tuple, shape_lines))
     lta = dict(items)
     if lta["nxforms"] != len(shape_lines):
-        raise IOError("Inconsistent lta format: nxforms inconsistent with shapes.")
+        raise OSError("Inconsistent lta format: nxforms inconsistent with shapes.")
     if len(shape_lines) > 1 and np.any(np.not_equal([shape_lines[0]], shape_lines[1:])):
-        raise IOError(f"Inconsistent lta format: shapes inconsistent {shape_lines}")
+        raise OSError(f"Inconsistent lta format: shapes inconsistent {shape_lines}")
     lta_matrix = np.asarray(matrix_lines).reshape((-1,) + shape_lines[0].shape)
     lta["lta"] = lta_matrix
     return lta
@@ -486,7 +488,7 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
     paddings = []
     any_pad = False
     for offset, t_shape, i_shape in zip(
-        offsets, target_shape, image_shape[batch_dims:]
+        offsets, target_shape, image_shape[batch_dims:], strict=False
     ):
         crop_end = min(offset + t_shape, i_shape)
         indices.append(slice(max(0, offset), crop_end))
@@ -544,9 +546,9 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
 
 def crop_transform(
         image: AT,
-        offsets: Optional[Sequence[int]] = None,
-        target_shape: Optional[Sequence[int]] = None,
-        out: Optional[AT] = None,
+        offsets: Sequence[int] | None = None,
+        target_shape: Sequence[int] | None = None,
+        out: AT | None = None,
         pad: int = 0,
 ) -> AT:
     """
@@ -609,13 +611,13 @@ def crop_transform(
         if target_shape is None:
             raise ValueError("Either target_shape or offsets must be defined!")
         _target_shape = image.shape[: -len(target_shape)] + tuple(target_shape)
-        offsets = tuple(int((i - t) / 2) for t, i in zip(_target_shape, image.shape))
+        offsets = tuple(int((i - t) / 2) for t, i in zip(_target_shape, image.shape, strict=False))
         len_off = len(offsets)
     else:
         len_off = len(offsets)
         if target_shape is None:
             _target_shape = image.shape[:-len_off] + tuple(
-                i - 2 * o for i, o in zip(image.shape[-len_off:], offsets)
+                i - 2 * o for i, o in zip(image.shape[-len_off:], offsets, strict=False)
             )
         elif len_off != len(target_shape):
             raise ValueError(
@@ -624,7 +626,7 @@ def crop_transform(
         else:
             _target_shape = tuple(
                 i if t == -1 else t
-                for i, t in zip(image.shape[-len_off:], target_shape)
+                for i, t in zip(image.shape[-len_off:], target_shape, strict=False)
             )
             _target_shape = image.shape[:-len_off] + _target_shape
 

@@ -19,13 +19,12 @@
 # IMPORTS
 import optparse
 import os.path
-from typing import Union, Optional, Tuple, List
-import numpy as np
-from numpy import typing as npt
 import sys
-import nibabel.freesurfer.io as fs
-from map_surf_label import mapSurfLabel, getSurfCorrespondence
 
+import nibabel.freesurfer.io as fs
+import numpy as np
+from map_surf_label import getSurfCorrespondence, mapSurfLabel
+from numpy import typing as npt
 
 HELPTEXT = """
 
@@ -122,7 +121,8 @@ def options_parse():
         or options.outannot is None
     ):
         sys.exit(
-            "\nERROR: Please specify all parameters!\n   Use --help to see all options.\n"
+            "\nERROR: Please specify all parameters!\n" \
+            "   Use --help to see all options.\n"
         )
     if (
         options.trgsphere is not None
@@ -132,13 +132,16 @@ def options_parse():
     ):
         if options.trgsphere is None or options.srcsphere is None:
             sys.exit(
-                "\nERROR: Please specify at least src and trg sphere when mapping!\n   Use --help to see all options.\n"
+                "\nERROR: Please specify at least src and trg sphere when mapping!\n" \
+                "   Use --help to see all options.\n"
             )
     if (options.trgdir is not None and options.trgsid is None) or (
         options.trgdir is None and options.trgsid is not None
     ):
         sys.exit(
-            "\nERROR: Please specify both trgdir and trgsid when outputting mapped labels!\n   Use --help to see all options.\n"
+            "\nERROR: Please specify both trgdir and trgsid" \
+            " when outputting mapped labels!\n" \
+            "   Use --help to see all options.\n"
         )
 
     return options
@@ -153,9 +156,9 @@ def map_multiple_labels(
         trg_sphere_name: str,
         trg_white_name: str,
         trg_sid: str,
-        out_dir: Optional[str] = None,
+        out_dir: str | None = None,
         stop_missing: bool = True
-) -> Tuple[npt.ArrayLike, npt.ArrayLike]:
+) -> tuple[npt.ArrayLike, npt.ArrayLike]:
     """
     Map a list of labels from one surface (e.g. fsavaerage sphere.reg) to another.
 
@@ -201,7 +204,7 @@ def map_multiple_labels(
     all_labels = []
     all_values = []
     # read target surf info (for label writing)
-    print("Reading in trg white surface: {} ...".format(trg_white_name))
+    print(f"Reading in trg white surface: {trg_white_name} ...")
     trg_white = fs.read_geometry(trg_white_name, read_metadata=False)[0]
     out_label_name = None
     for l_name in src_labels:
@@ -220,10 +223,10 @@ def map_multiple_labels(
         else:
             if stop_missing:
                 raise ValueError(
-                    "ERROR: Label file missing {}\n".format(src_label_name)
+                    f"ERROR: Label file missing {src_label_name}\n"
                 )
             else:
-                print("\nWARNING: Label file missing {}\n".format(src_label_name))
+                print(f"\nWARNING: Label file missing {src_label_name}\n")
                 ll = []
                 vv = []
         all_labels.append(ll)
@@ -235,7 +238,7 @@ def read_multiple_labels(
         hemi: str,
         input_dir: str,
         label_names: npt.ArrayLike
-) -> Tuple[ List[npt.NDArray],  List[npt.NDArray]]:
+) -> tuple[ list[npt.NDArray],  list[npt.NDArray]]:
     """
     Read multiple label files from input_dir.
 
@@ -262,7 +265,7 @@ def read_multiple_labels(
         if os.path.exists(label_file):
             ll, vv = fs.read_label(label_file, read_scalars=True)
         else:
-            print("\nWARNING: Label file missing {}\n".format(label_file))
+            print(f"\nWARNING: Label file missing {label_file}\n")
             ll = []
             vv = []
         all_labels.append(ll)
@@ -272,9 +275,9 @@ def read_multiple_labels(
 
 
 def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
-                col_ids: npt.ArrayLike, trg_white: Union[str, npt.NDArray],
-                cortex_label_name: Optional[str] = None
-                ) -> Tuple[npt.NDArray, npt.NDArray]:
+                col_ids: npt.ArrayLike, trg_white: str | npt.NDArray,
+                cortex_label_name: str | None = None
+                ) -> tuple[npt.NDArray, npt.NDArray]:
     """
     Create an annotation from multiple labels.
 
@@ -314,9 +317,7 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
         # print("counter={}".format(counter))
         if len(label) == 0:
             print(
-                "\nWARNING: Label with id {} missing, skipping ...\n".format(
-                    col_ids[counter]
-                )
+                f"\nWARNING: Label with id {col_ids[counter]} missing, skipping ...\n"
             )
             counter = counter + 1
             continue
@@ -338,7 +339,7 @@ def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,
     return annot_ids, annot_vals
 
 
-def read_colortable(colortab_name: str) -> Tuple[npt.ArrayLike, List[str], npt.ArrayLike]:
+def read_colortable(colortab_name: str) -> tuple[npt.ArrayLike, list[str], npt.ArrayLike]:
     """
     Read the colortable of given name.
 
@@ -369,7 +370,7 @@ def write_annot(
         label_names: npt.ArrayLike,
         colortab_name: str,
         out_annot: str,
-        append: Union[None, str] = ""
+        append: None | str = ""
 ) -> None:
     """
     Combine the colortable with the annotations ids to write an annotation file.
@@ -396,13 +397,11 @@ def write_annot(
     offset = 0
     if col_names[0] == "unknown":
         offset = 1
-    for name_tab, name_list in zip(col_names[offset:], label_names):
+    for name_tab, name_list in zip(col_names[offset:], label_names, strict=False):
         if name_tab + append != name_list:
             # print("Name in colortable and in label lists disagree: {} != {}".format(name_tab+append,name_list))
             raise ValueError(
-                "Error: name in colortable and in label lists disagree: {} != {}".format(
-                    name_tab + append, name_list
-                )
+                f"Error: name in colortable and in label lists disagree: {name_tab + append} != {name_list}"
             )
     # fill_ctab computes the last column (R+G*2^8+B*2^16)
     if offset == 0:
@@ -438,28 +437,28 @@ def create_annotation(options, verbose: bool = True) -> None:
     print("Map BA Labels Parameters:")
     print()
     if verbose:
-        print("- hemi: {}".format(options.hemi))
-        print("- color table: {}".format(options.colortab))
-        print("- label dir: {}".format(options.labeldir))
-        print("- white: {}".format(options.white))
-        print("- out annot: {}".format(options.outannot))
+        print(f"- hemi: {options.hemi}")
+        print(f"- color table: {options.colortab}")
+        print(f"- label dir: {options.labeldir}")
+        print(f"- white: {options.white}")
+        print(f"- out annot: {options.outannot}")
         if options.cortex is not None:
-            print("- cortex mask: {}".format(options.cortex))
+            print(f"- cortex mask: {options.cortex}")
         if options.append is not None:
             if options.append[0] != ".":
                 options.append = "." + options.append
-            print("- append {} to label names".format(options.append))
+            print(f"- append {options.append} to label names")
         if options.trgsphere is not None:
             print("Mapping labels from another subject:")
-            print("- src sphere: {}".format(options.srcsphere))
-            print("- trg sphere: {}".format(options.trgsphere))
+            print(f"- src sphere: {options.srcsphere}")
+            print(f"- trg sphere: {options.trgsphere}")
             if options.trgdir is not None:
                 print("And will write mapped labels:")
-                print("- trg dir: {}".format(options.trgdir))
-                print("- trg sid: {}".format(options.trgsid))
+                print(f"- trg dir: {options.trgdir}")
+                print(f"- trg sid: {options.trgsid}")
         print()
     # read label names from color table
-    print("Reading in colortable: {} ...".format(options.colortab))
+    print(f"Reading in colortable: {options.colortab} ...")
     ids, names, cols = read_colortable(options.colortab)
     if names[0] == "unknown":
         ids = ids[1:]
@@ -467,19 +466,17 @@ def create_annotation(options, verbose: bool = True) -> None:
         cols = cols[1:]  # although we do not care about color at this stage at all
     if options.append is not None:
         names = [x + options.append for x in names]
-    print("Merging these labels into annot:\n{}\n".format(names))
+    print(f"Merging these labels into annot:\n{names}\n")
     # if reading multiple label files
     if options.trgsphere is None:
-        print("Reading multiple labels from {} ...".format(options.labeldir))
+        print(f"Reading multiple labels from {options.labeldir} ...")
         all_labels, all_values = read_multiple_labels(
             options.hemi, options.labeldir, names
         )
     else:
         # if mapping multiple label files
         print(
-            "Mapping multiple labels from {} to {} ...".format(
-                options.labeldir, options.trgdir
-            )
+            f"Mapping multiple labels from {options.labeldir} to {options.trgdir} ..."
         )
         all_labels, all_values = map_multiple_labels(
             options.hemi,
@@ -492,12 +489,12 @@ def create_annotation(options, verbose: bool = True) -> None:
             options.trgdir,
         )
     # merge labels into annot
-    print("Creating annotation on {}".format(options.white))
+    print(f"Creating annotation on {options.white}")
     annot_ids, annot_vals = build_annot(
         all_labels, all_values, ids, options.white, options.cortex
     )
     # write annot
-    print("Writing annotation to {}".format(options.outannot))
+    print(f"Writing annotation to {options.outannot}")
     write_annot(annot_ids, names, options.colortab, options.outannot, options.append)
     print("...done\n")
 

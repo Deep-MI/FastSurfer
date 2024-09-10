@@ -14,30 +14,31 @@
 
 # IMPORTS
 import time
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 from concurrent.futures import Future, ThreadPoolExecutor
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from FastSurferCNN.utils import logging, Plane, PLANES
-from FastSurferCNN.utils.threads import get_num_threads
-from FastSurferCNN.utils.mapper import JsonColorLookupTable, TSVLookupTable, Mapper
-from FastSurferCNN.utils.common import (
-    find_device,
-    SubjectList,
-    SubjectDirectory,
-    SerialExecutor,
-)
 from CerebNet.data_loader.augmentation import ToTensorTest
 from CerebNet.data_loader.dataset import SubjectDataset
 from CerebNet.datasets.utils import crop_transform
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
+from FastSurferCNN.utils import PLANES, Plane, logging
+from FastSurferCNN.utils.common import (
+    SerialExecutor,
+    SubjectDirectory,
+    SubjectList,
+    find_device,
+)
+from FastSurferCNN.utils.mapper import JsonColorLookupTable, Mapper, TSVLookupTable
+from FastSurferCNN.utils.threads import get_num_threads
 
 if TYPE_CHECKING:
     import yacs.config
@@ -159,7 +160,7 @@ class Inference:
         if self.pool is not None:
             self.pool.shutdown(True)
 
-    def _load_model(self, cfg) -> Dict[Plane, torch.nn.Module]:
+    def _load_model(self, cfg) -> dict[Plane, torch.nn.Module]:
         """Loads the three models per plane."""
 
         def __load_model(cfg: "yacs.config.CfgNode", plane: Plane) -> torch.nn.Module:
@@ -181,12 +182,12 @@ class Inference:
         from functools import partial
 
         _load_model_func = partial(__load_model, cfg)
-        return dict(zip(PLANES, self.pool.map(_load_model_func, PLANES)))
+        return dict(zip(PLANES, self.pool.map(_load_model_func, PLANES), strict=False))
 
     @torch.no_grad()
     def _predict_single_subject(
         self, subject_dataset: SubjectDataset
-    ) -> Dict[Plane, List[torch.Tensor]]:
+    ) -> dict[Plane, list[torch.Tensor]]:
         """Predict the classes based on a SubjectDataset."""
         img_loader = DataLoader(
             subject_dataset, batch_size=self.batch_size, shuffle=False
@@ -219,8 +220,8 @@ class Inference:
         return prediction_logits
 
     def _post_process_preds(
-        self, preds: Dict[Plane, List[torch.Tensor]]
-    ) -> Dict[Plane, torch.Tensor]:
+        self, preds: dict[Plane, list[torch.Tensor]]
+    ) -> dict[Plane, torch.Tensor]:
         """
         Permutes axes, so it has consistent sagittal, coronal, axial, channels format.
         Also maps classes of sagittal predictions into the global label space.
@@ -251,9 +252,10 @@ class Inference:
 
         return {plane: _convert(plane) for plane in preds.keys()}
 
-    def _view_aggregation(self, logits: Dict[Plane, torch.Tensor]) -> torch.Tensor:
+    def _view_aggregation(self, logits: dict[Plane, torch.Tensor]) -> torch.Tensor:
         """
-        Aggregate the view (axial, coronal, sagittal) into one volume and get the class of the largest probability. (argmax)
+        Aggregate the view (axial, coronal, sagittal) into one volume and get the
+        class of the largest probability. (argmax)
 
         Args:
             logits: dictionary of per plane predicted logits (axial, coronal, sagittal)
@@ -269,12 +271,12 @@ class Inference:
 
     def _calc_segstats(
         self, seg_data: np.ndarray, norm_data: np.ndarray, vox_vol: float
-    ) -> "pandas.DataFrame":
+    ) -> "pd.DataFrame":
         """
         Computes volume and volume similarity
         """
 
-        def _get_ids_startswith(_label_map: Dict[int, str], prefix: str) -> List[int]:
+        def _get_ids_startswith(_label_map: dict[int, str], prefix: str) -> list[int]:
             return [
                 id
                 for id, name in _label_map.items()
@@ -301,7 +303,7 @@ class Inference:
             seg_data,
             norm_data,
             norm_data,
-            list(filter(lambda l: l != 0, label_map.keys())),
+            list(filter(lambda lb: lb != 0, label_map.keys())),
             vox_vol=vox_vol,
             threads=self.threads,
             patch_size=32,
@@ -318,8 +320,6 @@ class Inference:
             else:
                 # noinspection PyTypeChecker
                 table[i]["StructName"] = "Merged-Label-" + str(_id)
-
-        import pandas as pd
 
         dataframe = pd.DataFrame(table, index=np.arange(len(table)))
         dataframe = dataframe[dataframe["NVoxels"] != 0].sort_values("SegId")
@@ -361,7 +361,7 @@ class Inference:
 
     def _get_subject_dataset(
         self, subject: SubjectDirectory
-    ) -> Tuple[Optional[np.ndarray], Optional[Path], SubjectDataset]:
+    ) -> tuple[np.ndarray | None, Path | None, SubjectDataset]:
         """
         Load and prepare input files asynchronously, then locate the cerebellum and
         provide a localized patch.

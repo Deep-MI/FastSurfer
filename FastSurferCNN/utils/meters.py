@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any
 
 import matplotlib.pyplot as plt
 
 # IMPORTS
 import numpy as np
-import torch
 import yacs.config
 
 from FastSurferCNN.utils import logging
@@ -37,11 +36,11 @@ class Meter:
         cfg: yacs.config.CfgNode,
         mode: str,
         global_step: int,
-        total_iter: Optional[int] = None,
-        total_epoch: Optional[int] = None,
-        class_names: Optional[Any] = None,
-        device: Optional[Any] = None,
-        writer: Optional[Any] = None,
+        total_iter: int | None = None,
+        total_epoch: int | None = None,
+        class_names: Any | None = None,
+        device: Any | None = None,
+        writer: Any | None = None,
     ):
         """
         Construct a Meter object.
@@ -150,14 +149,9 @@ class Meter:
         """
         if (cur_iter + 1) % self._cfg.TRAIN.LOG_INTERVAL == 0:
             logger.info(
-                "{} Epoch [{}/{}] Iter [{}/{}] with loss {:.4f}".format(
-                    self.mode,
-                    cur_epoch + 1,
-                    self.total_epochs,
-                    cur_iter + 1,
-                    self.total_iter_num,
-                    np.array(self.batch_losses).mean(),
-                )
+                f"{self.mode} Epoch [{cur_epoch + 1}/{self.total_epochs}]" \
+                f" Iter [{cur_iter + 1}/{self.total_iter_num}]" \
+                f" with loss {np.array(self.batch_losses).mean():.4f}"
             )
 
     def log_epoch(self, cur_epoch: int):

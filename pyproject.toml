@@ -4,7 +4,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'fastsurfer'
-version = '2.3.0-dev'
+version = '2.4.0-dev'
 description = 'A fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = {file = 'LICENSE'}
@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     'h5py>=3.7',
-    'lapy>=1.0.1',
+    'lapy>=1.1.0',
     'matplotlib>=3.7.1',
     'nibabel>=5.1.0',
     'numpy>=1.25,<2',
@@ -119,8 +119,6 @@ extend-exclude = [
     "checkpoints",
     "doc",
     "env",
-    "images",
-    "setup.py",
 ]
 
 [tool.ruff.lint]
@@ -137,6 +135,8 @@ select = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "Tutorial/*.ipynb" = ["E501"]  # exclude "Line too long"
+"FastSurferCNN/utils/logging.py" = ["F401"]  # exclude "Imported but unused"
+"FastSurferCNN/utils/parser_defaults.py" = ["F401"]  # exclude "Imported but unused"
 
 [tool.pytest.ini_options]
 minversion = '6.0'

@@ -15,7 +15,6 @@
 # IMPORTS
 from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT
 
-
 HYPVINN_LUT = FASTSURFER_ROOT / "HypVINN/config/HypVINN_ColorLUT.txt"
 
 HYPVINN_STATS_NAME = "hypothalamus.HypVINN.stats"

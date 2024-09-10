@@ -29,9 +29,10 @@ See Also
 import argparse
 import copy
 import sys
-from concurrent.futures import Executor, ThreadPoolExecutor, Future
+from collections.abc import Iterator, Sequence
+from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Iterator, Literal, Optional, Sequence
+from typing import Any, Literal
 
 import nibabel as nib
 import numpy as np
@@ -42,29 +43,29 @@ import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.inference import Inference
-from FastSurferCNN.utils import logging, parser_defaults, Plane, PLANES
+from FastSurferCNN.quick_qc import check_volume
+from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
 from FastSurferCNN.utils.arg_types import VoxSizeOption
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.common import (
     SerialExecutor,
-    find_device,
-    assert_no_root,
-    handle_cuda_memory_exception,
-    SubjectList,
     SubjectDirectory,
+    SubjectList,
+    assert_no_root,
+    find_device,
+    handle_cuda_memory_exception,
     pipeline,
 )
-from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
-from FastSurferCNN.quick_qc import check_volume
+from FastSurferCNN.utils.load_config import load_config
 
 ##
 # Global Variables
 ##
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT, SubjectDirectoryConfig
+
 LOGGER = logging.getLogger(__name__)
 CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
@@ -103,9 +104,9 @@ def set_up_cfgs(
 
 
 def args2cfg(
-    cfg_ax: Optional[str] = None,
-    cfg_cor: Optional[str] = None,
-    cfg_sag: Optional[str] = None,
+    cfg_ax: str | None = None,
+    cfg_cor: str | None = None,
+    cfg_sag: str | None = None,
     batch_size: int = 1,
 ) -> tuple[
     yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode
@@ -139,8 +140,8 @@ def args2cfg(
     # returns the first non-None cfg
     try:
         cfg_fin = next(filter(None, cfgs))
-    except StopIteration:
-        raise RuntimeError("No valid configuration passed!")
+    except StopIteration as err:
+        raise RuntimeError("No valid configuration passed!") from err
     return (cfg_fin,) + cfgs
 
 
@@ -192,7 +193,7 @@ class RunModelOnData:
     current_plane: Plane
     models: dict[Plane, Inference]
     view_ops: dict[Plane, dict[str, Any]]
-    conform_to_1mm_threshold: Optional[float]
+    conform_to_1mm_threshold: float | None
     device: torch.device
     viewagg_device: torch.device
     _pool: Executor
@@ -200,12 +201,12 @@ class RunModelOnData:
     def __init__(
             self,
             lut: Path,
-            ckpt_ax: Optional[Path] = None,
-            ckpt_sag: Optional[Path] = None,
-            ckpt_cor: Optional[Path] = None,
-            cfg_ax: Optional[Path] = None,
-            cfg_sag: Optional[Path] = None,
-            cfg_cor: Optional[Path] = None,
+            ckpt_ax: Path | None = None,
+            ckpt_sag: Path | None = None,
+            ckpt_cor: Path | None = None,
+            cfg_ax: Path | None = None,
+            cfg_sag: Path | None = None,
+            cfg_cor: Path | None = None,
             device: str = "auto",
             viewagg_device: str = "auto",
             threads: int = 1,
@@ -246,11 +247,11 @@ class RunModelOnData:
 
         try:
             self.lut = du.read_classes_from_lut(lut)
-        except FileNotFoundError:
+        except FileNotFoundError as err:
             raise ValueError(
                 f"Could not find the ColorLUT in {lut}, please make sure the "
                 f"--lut argument is valid."
-            )
+            ) from err
         self.labels = self.lut["ID"].values
         self.torch_labels = torch.from_numpy(self.lut["ID"].values)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
@@ -418,7 +419,7 @@ class RunModelOnData:
         save_as: str | Path,
         data: np.ndarray | torch.Tensor,
         orig: nib.analyze.SpatialImage,
-        dtype: Optional[type] = None,
+        dtype: type | None = None,
     ) -> None:
         """
         Save image as a file.
@@ -532,8 +533,7 @@ class RunModelOnData:
                 yield subject, self.conform_and_save_orig(subject)
         else:
             # pipeline the same
-            for data in pipeline(self.pool, self.conform_and_save_orig, subjects):
-                yield data
+            yield from pipeline(self.pool, self.conform_and_save_orig, subjects)
 
 
 def make_parser():
@@ -614,11 +614,11 @@ def main(
         log_name: str = "",
         allow_root: bool = False,
         conf_name: str = "mri/orig.mgz",
-        in_dir: Optional[Path] = None,
-        sid: Optional[str] = None,
-        search_tag: Optional[str] = None,
-        csv_file: Optional[str | Path] = None,
-        lut: Optional[Path | str] = None,
+        in_dir: Path | None = None,
+        sid: str | None = None,
+        search_tag: str | None = None,
+        csv_file: str | Path | None = None,
+        lut: Path | str | None = None,
         remove_suffix: str = "",
         brainmask_name: str = "mri/mask.mgz",
         aseg_name: str = "mri/aseg.auto_noCC.mgz",

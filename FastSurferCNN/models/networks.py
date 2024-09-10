@@ -13,10 +13,11 @@
 # limitations under the License.
 
 # IMPORTS
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import numpy as np
 from torch import Tensor, nn
+
 if TYPE_CHECKING:
     import yacs.config
 
@@ -63,7 +64,7 @@ class FastSurferCNNBase(nn.Module):
         padded_size : int, default = 256
             Size of image when padded (Default value = 256).
         """
-        super(FastSurferCNNBase, self).__init__()
+        super().__init__()
 
         # Parameters for the Descending Arm
         self.encode1 = sm.CompetitiveEncoderBlockInput(params)
@@ -94,8 +95,8 @@ class FastSurferCNNBase(nn.Module):
     def forward(
         self,
         x: Tensor,
-        scale_factor: Optional[Tensor] = None,
-        scale_factor_out: Optional[Tensor] = None,
+        scale_factor: Tensor | None = None,
+        scale_factor_out: Tensor | None = None,
     ) -> Tensor:
         """
         Feedforward through graph.
@@ -167,7 +168,7 @@ class FastSurferCNN(FastSurferCNNBase):
         padded_size : int
             Size of image when padded.
         """
-        super(FastSurferCNN, self).__init__(params)
+        super().__init__(params)
         params["num_channels"] = params["num_filters"]
         self.classifier = sm.ClassifierBlock(params)
 
@@ -184,8 +185,8 @@ class FastSurferCNN(FastSurferCNNBase):
     def forward(
         self,
         x: Tensor,
-        scale_factor: Optional[Tensor] = None,
-        scale_factor_out: Optional[Tensor] = None,
+        scale_factor: Tensor | None = None,
+        scale_factor_out: Tensor | None = None,
     ) -> Tensor:
         """
         Feedforward through graph.
@@ -264,7 +265,7 @@ class FastSurferVINN(FastSurferCNNBase):
         """
         num_c = params["num_channels"]
         params["num_channels"] = params["num_filters_interpol"]
-        super(FastSurferVINN, self).__init__(params)
+        super().__init__(params)
 
         # Flex options
         self.height = params["height"]
@@ -329,7 +330,7 @@ class FastSurferVINN(FastSurferCNNBase):
                 nn.init.constant_(m.bias, 0)
 
     def forward(
-        self, x: Tensor, scale_factor: Tensor, scale_factor_out: Optional[Tensor] = None
+        self, x: Tensor, scale_factor: Tensor, scale_factor_out: Tensor | None = None
     ) -> Tensor:
         """
         Feedforward through graph.

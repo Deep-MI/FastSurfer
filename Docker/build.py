@@ -18,12 +18,12 @@
 # June 27th 2023
 
 import argparse
+import logging
 import os
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Tuple, Literal, Sequence, Optional, Dict, get_args, cast, List, Callable, Union
-import logging
-
+from typing import Literal, cast, get_args
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class DEFAULTS:
     # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
     # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
-    MapDeviceType: Dict[AllDeviceType, DeviceType] = dict(
+    MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
         rocm="rocm6.1",
         cuda="cu124",
@@ -114,7 +114,7 @@ class CacheSpec:
     _type: CacheType
     _params: dict
 
-    CACHE_PARAMETERS: Dict[CacheType, Tuple[List[str], List[str]]] = {
+    CACHE_PARAMETERS: dict[CacheType, tuple[list[str], list[str]]] = {
         "inline": ([], []),
         "registry": (
             ["ref", "compression", "compression-level", "force-compression",
@@ -150,7 +150,7 @@ class CacheSpec:
 
     @type.setter
     def type(self, _type: str):
-        from typing import get_args, cast
+        from typing import cast, get_args
         if _type.lower() in get_args(CacheType):
             self._type = cast(CacheType, _type)
         else:
@@ -205,7 +205,7 @@ def make_parser() -> argparse.ArgumentParser:
         type=target,
         choices=get_args(Target),
         metavar="target",
-        help=f"""target to build (from list of targets below, defaults to runtime):<br>
+        help="""target to build (from list of targets below, defaults to runtime):<br>
                  - build_conda: "finished" conda build image<br>
                  - build_freesurfer: "finished" freesurfer build image<br>
                  - runtime: final fastsurfer runtime image""",
@@ -317,7 +317,7 @@ def make_parser() -> argparse.ArgumentParser:
 
 
 def red(skk):
-    return "\033[91m {}\033[00m" .format(skk)
+    return f"\033[91m {skk}\033[00m"
 
 
 def get_builder(
@@ -326,8 +326,8 @@ def get_builder(
         require_builder_type: bool = False,
 ) -> tuple[bool, str]:
     """Get the builder to build the fastsurfer image."""
-    from subprocess import PIPE
     from re import compile
+    from subprocess import PIPE
 
     buildx_binfo = Popen(["docker", "buildx", "ls"], stdout=PIPE, stderr=PIPE).finish()
     header, *lines = buildx_binfo.out_str("utf-8").strip().split("\n")
@@ -353,7 +353,7 @@ def get_builder(
         # see if there is an alternative builder named "fastsurfer*"
         for builder in builders.keys():
             if builder.startswith("fastsurfer") and builders[builder] == builder_type:
-                # set the default_builder to this (prefered) builder
+                # set the default_builder to this (preferred) builder
                 alternative_builder = builder
                 break
     # update is_correct_type
@@ -373,7 +373,7 @@ def get_builder(
 def docker_build_image(
         image_name: str,
         dockerfile: Path,
-        working_directory: Optional[Path] = None,
+        working_directory: Path | None = None,
         context: Path | str = ".",
         dry_run: bool = False,
         attestation: bool = False,
@@ -431,7 +431,7 @@ def docker_build_image(
         raise ValueError(f"Invalid Value for 'action' {action}, must be load or push.")
 
     def to_pair(key, values):
-        if isinstance(values, Sequence) and isinstance(values, (str, bytes)):
+        if isinstance(values, Sequence) and isinstance(values, str | bytes):
             values = [values]
         key_dashed = key.replace("_", "-")
         # concatenate the --key_dashed value pairs
@@ -484,10 +484,10 @@ def docker_build_image(
             require_container,
         )
         if has_storage and action == "load":
-            image_type = f"docker"
+            image_type = "docker"
         elif action == "push":
             # with containerd storage driver or pushing to registry
-            image_type = f"image"
+            image_type = "image"
             # both support attestation no problem
         elif action == "export":
             experimental = ". No image will be imported. This features is experimental."
@@ -513,7 +513,7 @@ def docker_build_image(
             # Future Alternative: save the image to preserve the manifest files to file
         else:
             # no attestation, docker builder supports this format
-            image_type = f"docker"
+            image_type = "docker"
 
         args.extend(["--output", f"type={image_type},name={image_name}"])
         if not bool(import_after_args):
@@ -565,7 +565,7 @@ def docker_build_image(
 def singularity_build_image(
         image_name: str,
         singularity_image: Path,
-        working_directory: Optional[Path] = None,
+        working_directory: Path | None = None,
         dry_run: bool = False,
 ):
     """
@@ -608,17 +608,18 @@ def singularity_build_image(
 
 def main(
         device: DeviceType,
-        cache: Optional[CacheSpec] = None,
+        cache: CacheSpec | None = None,
         target: Target = "runtime",
         debug: bool = False,
-        image_tag: Optional[str] = None,
+        image_tag: str | None = None,
         dry_run: bool = False,
         tag_dev: bool = True,
-        fastsurfer_home: Optional[Path] = None,
+        fastsurfer_home: Path | None = None,
         **keywords,
         ) -> int | str:
-    from FastSurferCNN.version import has_git, main as version
-    kwargs: Dict[str, Union[str, List[str]]] = {}
+    from FastSurferCNN.version import has_git
+    from FastSurferCNN.version import main as version
+    kwargs: dict[str, str | list[str]] = {}
     if cache is not None:
         if not isinstance(cache, CacheSpec):
             cache = CacheSpec(cache)
@@ -640,7 +641,7 @@ def main(
     kwargs["target"] = target
     kwargs["build_arg"] = [f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}"]
     if debug:
-        kwargs["build_arg"].append(f"DEBUG=true")
+        kwargs["build_arg"].append("DEBUG=true")
     build_arg_list = [
         "build_base_image",
         "runtime_base_image",
@@ -676,7 +677,7 @@ def main(
     if ret_version != 0:
         return f"Creating the version file failed with message: {ret_version}"
 
-    with open(build_filename, "r") as build_file:
+    with open(build_filename) as build_file:
         from FastSurferCNN.version import parse_build_file
         build_info = parse_build_file(build_file)
 

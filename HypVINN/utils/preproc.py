@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import time
 from pathlib import Path
-import os
 from typing import cast
 
 import nibabel as nib
@@ -65,9 +65,10 @@ def t1_to_t2_registration(
         If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot
         be found.
     """
+    import shutil
+
     from FastSurferCNN.utils.run_tools import Popen
     from FastSurferCNN.utils.threads import get_num_threads
-    import shutil
 
     if threads <= 0:
         threads = get_num_threads()

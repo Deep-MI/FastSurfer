@@ -562,7 +562,7 @@ for hemi in lh rh; do
   echo "#!/bin/bash" > "$CMDF"
 
 
-# ============================= TESSELATE - SMOOTH =====================================================
+# ============================= TESSELLATE - SMOOTH =====================================================
 
   {
     echo "echo \" \""
@@ -1077,8 +1077,7 @@ fi
 # Collect info
 EndTime=$(date)
 tSecEnd=$(date '+%s')
-tRunHours=$(($((tSecEnd - tSecStart))/3600))
-tRunHours=$(printf %6.3f "$tRunHours")
+tRunHours=$(printf %6.3f "$(bc <<< "($tSecEnd - $tSecStart) / 3600")")
 
 {
   echo ""

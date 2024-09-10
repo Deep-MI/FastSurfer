@@ -16,20 +16,27 @@
 
 # IMPORTS
 import argparse
-from enum import Enum
 import logging
 import sys
-from typing import Optional, Type, Tuple, Union, Iterable, cast
+from collections.abc import Iterable
+from enum import Enum
+from typing import cast
 
+import nibabel as nib
 import numpy as np
 import numpy.typing as npt
-import nibabel as nib
 
 from FastSurferCNN.utils.arg_types import (
-    vox_size as __vox_size,
-    target_dtype as __target_dtype,
-    float_gt_zero_and_le_one as __conform_to_one_mm,
     VoxSizeOption,
+)
+from FastSurferCNN.utils.arg_types import (
+    float_gt_zero_and_le_one as __conform_to_one_mm,
+)
+from FastSurferCNN.utils.arg_types import (
+    target_dtype as __target_dtype,
+)
+from FastSurferCNN.utils.arg_types import (
+    vox_size as __vox_size,
 )
 
 HELPTEXT = """
@@ -152,7 +159,7 @@ def options_parse():
         dest="force_lia",
         action="store_false",
         help="Ignore the reordering of data into LIA (without interpolation). "
-             "Superceeds --no_strict_lia",
+             "Supersedes --no_strict_lia",
     )
     advanced.add_argument(
         "--no_iso_vox",
@@ -194,9 +201,9 @@ def map_image(
         img: nib.analyze.SpatialImage,
         out_affine: np.ndarray,
         out_shape: tuple[int, ...] | np.ndarray | Iterable[int],
-        ras2ras: Optional[np.ndarray] = None,
+        ras2ras: np.ndarray | None = None,
         order: int = 1,
-        dtype: Optional[Type] = None
+        dtype: type | None = None
 ) -> np.ndarray:
     """
     Map image to new voxel space (RAS orientation).
@@ -222,8 +229,8 @@ def map_image(
     np.ndarray
         Mapped image data array.
     """
-    from scipy.ndimage import affine_transform
     from numpy.linalg import inv
+    from scipy.ndimage import affine_transform
 
     if ras2ras is None:
         ras2ras = np.eye(4)
@@ -276,7 +283,7 @@ def getscale(
         dst_max: float,
         f_low: float = 0.0,
         f_high: float = 0.999
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     Get offset and scale of image intensities to robustly rescale to dst_min..dst_max.
 
@@ -521,11 +528,11 @@ def conform(
         img: nib.analyze.SpatialImage,
         order: int = 1,
         conform_vox_size: VoxSizeOption = 1.0,
-        dtype: Optional[Type] = None,
-        conform_to_1mm_threshold: Optional[float] = None,
+        dtype: type | None = None,
+        conform_to_1mm_threshold: float | None = None,
         criteria: set[Criteria] = DEFAULT_CRITERIA,
 ) -> nib.MGHImage:
-    f"""Python version of mri_convert -c.
+    """Python version of mri_convert -c.
 
     mri_convert -c by default turns image intensity values
     into UCHAR, reslices images to standard position, fills up slices to standard
@@ -547,7 +554,7 @@ def conform(
     conform_to_1mm_threshold : Optional[float]
         The threshold above which the image is conformed to 1mm
         (default: ignore).
-    criteria : set[Criteria], default={DEFAULT_CRITERIA}
+    criteria : set[Criteria], default in DEFAULT_CRITERIA
         Whether to force the conforming to include a LIA data layout, an image size
         requirement and/or a voxel size requirement.
 
@@ -607,7 +614,7 @@ def conform(
     h1["Mdc"] = np.linalg.inv(mdc_affine)
 
     print(h1.get_zooms())
-    h1["fov"] = max(i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms()))
+    h1["fov"] = max(i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms(), strict=False))
     center = np.asarray(img.shape[:3], dtype=float) / 2.0
     h1["Pxyz_c"] = img.affine.dot(np.hstack((center, [1.0])))[:3]
 
@@ -707,12 +714,12 @@ def is_conform(
         conform_vox_size: VoxSizeOption = 1.0,
         eps: float = 1e-06,
         check_dtype: bool = True,
-        dtype: Optional[Type] = None,
+        dtype: type | None = None,
         verbose: bool = True,
-        conform_to_1mm_threshold: Optional[float] = None,
+        conform_to_1mm_threshold: float | None = None,
         criteria: set[Criteria] = DEFAULT_CRITERIA,
 ) -> bool:
-    f"""
+    """
     Check if an image is already conformed or not.
 
     Dimensions: 256x256x256, Voxel size: 1x1x1, LIA orientation, and data type UCHAR.
@@ -740,7 +747,7 @@ def is_conform(
         are displayed.
     conform_to_1mm_threshold : float, optional
         Above this threshold the image is conformed to 1mm (default or None: ignore).
-    criteria : set[Criteria], default={DEFAULT_CRITERIA}
+    criteria : set[Criteria], default in DEFAULT_CRITERIA
         An enum/set of criteria to check.
 
     Returns
@@ -855,8 +862,8 @@ def is_lia(
 def get_conformed_vox_img_size(
         img: nib.analyze.SpatialImage,
         conform_vox_size: VoxSizeOption,
-        conform_to_1mm_threshold: Optional[float] = None
-) -> Tuple[float, int]:
+        conform_to_1mm_threshold: float | None = None
+) -> tuple[float, int]:
     """
     Extract the voxel size and the image size.
 
@@ -897,8 +904,8 @@ def get_conformed_vox_img_size(
 
 
 def check_affine_in_nifti(
-        img: Union[nib.Nifti1Image, nib.Nifti2Image],
-        logger: Optional[logging.Logger] = None
+        img: nib.Nifti1Image | nib.Nifti2Image,
+        logger: logging.Logger | None = None
 ) -> bool:
     """
     Check the affine in nifti Image.

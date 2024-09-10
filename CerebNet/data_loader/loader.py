@@ -13,13 +13,12 @@
 # limitations under the License.
 
 # IMPORTS
-from torchvision import transforms
 from torch.utils.data import DataLoader
-
-from FastSurferCNN.utils import logging
+from torchvision import transforms
 
 from CerebNet.data_loader import dataset as dset
 from CerebNet.data_loader.augmentation import ToTensor, get_transform
+from FastSurferCNN.utils import logging
 
 logger = logging.get_logger(__name__)
 

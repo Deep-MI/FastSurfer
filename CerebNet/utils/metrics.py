@@ -18,8 +18,8 @@ import numpy as np
 import torch
 from scipy.ndimage import _ni_support
 from scipy.ndimage.morphology import (
-    distance_transform_edt,
     binary_erosion,
+    distance_transform_edt,
     generate_binary_structure,
 )
 
@@ -84,9 +84,7 @@ class DiceScore:
         """
         if not (isinstance(output, tuple)):
             raise TypeError(
-                "Output should be a tuple consisting of torch.Tensors, but given {}".format(
-                    type(output)
-                )
+                f"Output should be a tuple consisting of torch.Tensors, but given {type(output)}"
             )
 
     def _update_union_intersection(self, batch_output, labels_batch):

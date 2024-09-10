@@ -1,8 +1,9 @@
-import sys
-import yaml
-import unittest
 import argparse
+import sys
+import unittest
 from pathlib import Path
+
+import yaml
 
 
 class TestErrors(unittest.TestCase):
@@ -23,7 +24,7 @@ class TestErrors(unittest.TestCase):
         """
 
         # Open the error_file_path and read the errors and whitelist into arrays
-        with open(cls.error_file_path, 'r') as file:
+        with open(cls.error_file_path) as file:
             data = yaml.safe_load(file)
             cls.errors = data.get('errors', [])
             cls.whitelist = data.get('whitelist', [])
@@ -34,7 +35,7 @@ class TestErrors(unittest.TestCase):
             print(cls.log_directory)
             cls.log_files = [file for file in cls.log_directory.iterdir() if file.suffix == '.log']
         except FileNotFoundError:
-            raise FileNotFoundError(f"Log directory not found at path: {cls.log_directory}")
+            raise FileNotFoundError(f"Log directory not found at path: {cls.log_directory}") from None
 
     def test_find_errors_in_logs(self):
         """
@@ -64,13 +65,13 @@ class TestErrors(unittest.TestCase):
                                 files_with_errors[rel_path] = lines_with_errors
                                 self.error_flag = True
             except FileNotFoundError:
-                raise FileNotFoundError(f"Log file not found at path: {log_file}")
+                raise FileNotFoundError(f"Log file not found at path: {log_file}") from None
                 continue
 
         # Print the lines and context with errors for each file
         for file, lines in files_with_errors.items():
             print(f"\nFile {file}, in line {files_with_errors[file][0][0]}:")
-            for line_number, line in lines:
+            for _line_number, line in lines:
                 print(*line, sep = "")
 
         # Assert that there are no lines with any of the keywords

@@ -65,14 +65,14 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Deep-M
 7. Create your feature branch from dev (`git checkout -b my-new-feature`)
 8. Commit your changes (`git commit -am 'Add some feature'`)
 9. Push to the branch to your github (`git push origin my-new-feature`)
-10. Create new pull request on github web interface from that branch into Deep-NI **dev branch** (not into stable, which is default)
+10. Create new pull request on github web interface from that branch into Deep-NI **dev branch** (not into stable)
 
 If lots of things changed in the meantime or the pull request is showing conflicts you should rebase your branch to the current upstream dev.
 This is the preferred way, but only possible if you are the sole develop or your branch:
 
 10. Switch into dev branch (`git checkout dev`)
 11. Update your dev branch (`git pull upstream dev`)
-12. Switch into your feature (`git chekcout my-new-feature`)
+12. Switch into your feature (`git checkout my-new-feature`)
 13. Rebase your branch onto dev (`git rebase dev`), resolve conflicts and continue until complete
 14. Force push the updated feature branch to your gihub (`git push -f origin my-new-feature`)
 
@@ -81,7 +81,7 @@ Instead you need to merge upstream dev into your branch:
 
 10. Switch into dev branch (`git checkout dev`)
 11. Update your dev branch (`git pull upstream dev`)
-12. Switch into your feature (`git chekcout my-new-feature`)
+12. Switch into your feature (`git checkout my-new-feature`)
 13. Merge dev into your feature (`git merge dev`), resolve conflicts and commit
 14. Push to origin (`git push origin my-new-feature`)
 

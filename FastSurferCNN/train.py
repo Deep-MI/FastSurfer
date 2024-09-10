@@ -18,7 +18,6 @@ import os
 import pprint
 import time
 from collections import defaultdict
-from typing import Union
 
 import numpy as np
 import torch
@@ -173,9 +172,7 @@ class Trainer:
 
         train_meter.log_epoch(epoch)
         logger.info(
-            "Training epoch {} finished in {:.04f} seconds".format(
-                epoch, time.time() - epoch_start
-            )
+            f"Training epoch {epoch} finished in {time.time() - epoch_start:.04f} seconds"
         )
 
     @torch.no_grad()
@@ -267,9 +264,7 @@ class Trainer:
 
         val_meter.log_epoch(epoch)
         logger.info(
-            "Validation epoch {} finished in {:.04f} seconds".format(
-                epoch, time.time() - val_start
-            )
+            f"Validation epoch {epoch} finished in {time.time() - val_start:.04f} seconds"
         )
 
         # Get final measures and log them
@@ -282,21 +277,12 @@ class Trainer:
 
             # Log metrics
             logger.info(
-                "[Epoch {} stats]: SF: {}, MIoU: {:.4f}; "
-                "Mean Recall: {:.4f}; "
-                "Mean Precision: {:.4f}; "
-                "Avg loss total: {:.4f}; "
-                "Avg loss dice: {:.4f}; "
-                "Avg loss ce: {:.4f}".format(
-                    epoch,
-                    key,
-                    np.mean(ious),
-                    np.mean(accs[key] / per_cls_counts_gt[key]),
-                    np.mean(accs[key] / per_cls_counts_pred[key]),
-                    val_loss_total[key],
-                    val_loss_dice[key],
-                    val_loss_ce[key],
-                )
+                f"[Epoch {epoch} stats]: SF: {key}, MIoU: {np.mean(ious):.4f}; "
+                f"Mean Recall: {np.mean(accs[key] / per_cls_counts_gt[key]):.4f}; "
+                f"Mean Precision: {np.mean(accs[key] / per_cls_counts_pred[key]):.4f}; "
+                f"Avg loss total: {val_loss_total[key]:.4f}; "
+                f"Avg loss dice: {val_loss_dice[key]:.4f}; "
+                f"Avg loss ce: {val_loss_ce[key]:.4f}"
             )
 
             logger.info(self.a.format(*self.class_names))
@@ -344,7 +330,7 @@ class Trainer:
                 logger.info(f"Resume training from epoch {start_epoch}")
             except Exception as e:
                 print(
-                    "No model to restore. Resuming training from Epoch 0. {}".format(e)
+                    f"No model to restore. Resuming training from Epoch 0. {e}"
                 )
         else:
             logger.info("Training from scratch")
@@ -352,9 +338,7 @@ class Trainer:
             best_miou = 0
 
         logger.info(
-            "{} parameters in total".format(
-                sum(x.numel() for x in self.model.parameters())
-            )
+            f"{sum(x.numel() for x in self.model.parameters())} parameters in total"
         )
 
         # Create tensorboard summary writer
@@ -381,9 +365,9 @@ class Trainer:
             writer=writer,
         )
 
-        logger.info("Summary path {}".format(self.cfg.SUMMARY_PATH))
+        logger.info(f"Summary path {self.cfg.SUMMARY_PATH}")
         # Perform the training loop.
-        logger.info("Start epoch: {}".format(start_epoch + 1))
+        logger.info(f"Start epoch: {start_epoch + 1}")
 
         for epoch in range(start_epoch, self.cfg.TRAIN.NUM_EPOCHS):
             self.train(train_loader, optimizer, scheduler, train_meter, epoch=epoch)

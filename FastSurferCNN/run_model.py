@@ -58,12 +58,10 @@ def make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-
 def main(args):
     """
     First sets variables and then runs the trainer model.
     """
-    args = setup_options()
     cfg = get_config(args)
 
     if args.aug is not None:
@@ -78,9 +76,9 @@ def main(args):
     if cfg.TRAIN.RESUME and cfg.TRAIN.RESUME_EXPR_NUM != "Default":
         cfg.EXPR_NUM = cfg.TRAIN.RESUME_EXPR_NUM
 
-    cfg.SUMMARY_PATH = misc.check_path(join(summary_path, "{}".format(cfg.EXPR_NUM)))
+    cfg.SUMMARY_PATH = misc.check_path(join(summary_path, f"{cfg.EXPR_NUM}"))
     cfg.CONFIG_LOG_PATH = misc.check_path(
-        join(cfg.LOG_DIR, "config", "{}".format(cfg.EXPR_NUM))
+        join(cfg.LOG_DIR, "config", f"{cfg.EXPR_NUM}")
     )
 
     with open(join(cfg.CONFIG_LOG_PATH, "config.yaml"), "w") as json_file:

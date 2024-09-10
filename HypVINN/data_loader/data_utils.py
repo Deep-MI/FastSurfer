@@ -20,9 +20,11 @@ from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
 from HypVINN.config.hypvinn_global_var import (
-    hyposubseg_labels, SAG2FULL_MAP, HYPVINN_CLASS_NAMES, FS_CLASS_NAMES,
+    FS_CLASS_NAMES,
+    HYPVINN_CLASS_NAMES,
+    SAG2FULL_MAP,
+    hyposubseg_labels,
 )
-
 
 ##
 # Helper Functions

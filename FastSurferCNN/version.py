@@ -4,9 +4,10 @@ import argparse
 import re
 import shutil
 import subprocess
+from collections.abc import Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, cast, get_args, Literal, Optional, TypedDict, Sequence, TextIO
-from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Any, Literal, TextIO, TypedDict, cast, get_args
 
 
 class DEFAULTS:
@@ -125,7 +126,7 @@ def make_parser():
         "--file",
         default=None,
         type=argparse.FileType("w"),
-        help=f"File to write version info to (default: write to stdout).",
+        help="File to write version info to (default: write to stdout).",
     )
     parser.add_argument(
         "--prefer_cache",
@@ -154,7 +155,7 @@ def print_build_file(
     git_status: str = "",
     checkpoints: str = "",
     pypackages: str = "",
-    file: Optional[TextIO] = None,
+    file: TextIO | None = None,
 ) -> None:
     """
     Format and print the build file.
@@ -207,9 +208,9 @@ def print_build_file(
 
 def main(
     sections: str = "",
-    project_file: Optional[TextIO] = None,
-    build_cache: Optional[TextIO | bool] = None,
-    file: Optional[TextIO] = None,
+    project_file: TextIO | None = None,
+    build_cache: TextIO | bool | None = None,
+    file: TextIO | None = None,
     prefer_cache: bool = False,
 ) -> str | int:
     """
@@ -280,7 +281,7 @@ def main(
     if sections == "all":
         sections = "+checkpoints+git+pip"
 
-    from FastSurferCNN.utils.run_tools import Popen, PyPopen, MessageBuffer
+    from FastSurferCNN.utils.run_tools import MessageBuffer, Popen, PyPopen
 
     build_cache_required = prefer_cache
     kw_root = {"cwd": DEFAULTS.PROJECT_ROOT, "stdout": subprocess.PIPE}
@@ -334,7 +335,7 @@ def main(
 
     try:
         version = futures.pop("version").result()
-    except IOError:
+    except OSError:
         version = build_cache["version"]
 
     def __future_or_cache(
@@ -401,7 +402,7 @@ def get_default_version_info() -> VersionDict:
     }
 
 
-def parse_build_file(build_file: Optional[TextIO]) -> VersionDict:
+def parse_build_file(build_file: TextIO | None) -> VersionDict:
     """Read and parse a build file (same as output of `main`).
 
     Read and parse a file with version information in the format that is also the
@@ -426,8 +427,8 @@ def parse_build_file(build_file: Optional[TextIO]) -> VersionDict:
     file_cache: VersionDict = {}
     if build_file is None:
         try:
-            build_file = open(DEFAULTS.BUILD_TXT, "r")
-        except FileNotFoundError as e:
+            build_file = open(DEFAULTS.BUILD_TXT)
+        except FileNotFoundError:
             return get_default_version_info()
     file_cache["content"] = "".join(build_file.readlines())
     if not build_file.closed:
@@ -456,7 +457,7 @@ def parse_build_file(build_file: Optional[TextIO]) -> VersionDict:
     else:
         file_cache["version_tag"] = file_cache["version"]
 
-    def get_section_name_by_header(header: str) -> Optional[str]:
+    def get_section_name_by_header(header: str) -> str | None:
         for name, info in DEFAULTS.VERSION_SECTIONS.items():
             if info[1] == header:
                 return name
@@ -508,7 +509,7 @@ def read_version_from_project_file(project_file: TextIO) -> str:
     return version
 
 
-def filter_git_status(git_process: "FastSurferCNN.utils.run_tools.Popen") -> str:
+def filter_git_status(git_process) -> str:
     """
     Filter the output of a running git status process.
 
@@ -531,7 +532,7 @@ def filter_git_status(git_process: "FastSurferCNN.utils.run_tools.Popen") -> str
     )
 
 
-def read_and_close_version(project_file: Optional[TextIO] = None) -> str:
+def read_and_close_version(project_file: TextIO | None = None) -> str:
     """
     Read and close the version from the pyproject file. Also fill default.
 
@@ -552,7 +553,7 @@ def read_and_close_version(project_file: Optional[TextIO] = None) -> str:
     See also FastSurferCNN.version.read_version_from_project_file
     """
     if project_file is None:
-        project_file = open(DEFAULTS.PROJECT_TOML, "r")
+        project_file = open(DEFAULTS.PROJECT_TOML)
     try:
         version = read_version_from_project_file(project_file)
     finally:
