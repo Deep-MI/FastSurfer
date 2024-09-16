@@ -60,7 +60,6 @@ Usage: recon-surfreg.sh --sid <sid> --sd <sdir> [OPTIONS]
 
 recon-surfreg.sh creates the ?h.sphere and ?h.sphere.reg from an existing
 subject directory, if this step was skipped in recon-surf.sh with --no_surfreg
-ATTENTION: currently no highres support yet !!!
 
 FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
