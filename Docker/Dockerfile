@@ -221,6 +221,7 @@ RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our conda env is active
+RUN useradd -m -s /bin/bash -u 1000 -g 1000 nonroot
 USER nonroot
 WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
