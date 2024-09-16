@@ -15,7 +15,7 @@
 # limitations under the License.
 
 VERSION='$Id$'
-FS_VERSION_SUPPORT="7.3.2"
+FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
 subject=""; # Subject name
@@ -56,10 +56,11 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surfreg.sh --sid <sid> --sd <sdir> --seg <seg> [OPTIONS]
+Usage: recon-surfreg.sh --sid <sid> --sd <sdir> [OPTIONS]
 
-recon-surfreg.sh takes a segmentation and T1 full head image and creates surfaces,
-thickness etc as a FS subject dir.
+recon-surfreg.sh creates the ?h.sphere and ?h.sphere.reg from an existing
+subject directory, if this step was skipped in recon-surf.sh with --no_surfreg
+ATTENTION: currently no highres support yet !!!
 
 FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
