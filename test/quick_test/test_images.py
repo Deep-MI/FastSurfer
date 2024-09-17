@@ -1,16 +1,15 @@
-import pytest
+from collections import OrderedDict
+from logging import getLogger
+from pathlib import Path
+
 import nibabel as nib
 import nibabel.cmdline.diff
 import numpy as np
-from pathlib import Path
-
-from collections import OrderedDict
-
-from .common import *
+import pytest
 
 from CerebNet.utils.metrics import dice_score
 
-from logging import getLogger
+from .common import load_test_subjects
 
 logger = getLogger(__name__)
 
@@ -106,10 +105,13 @@ def test_image_headers(subjects_dir: Path, test_dir: Path, reference_dir: Path, 
     ----------
     subjects_dir : Path
         Path to the subjects directory.
+        Filled by pytest fixture from conftest.py.
     test_dir : Path
         Name of test directory.
+        Filled by pytest fixture from conftest.py.
     reference_dir: Path
         Name of reference directory.
+        Filled by pytest fixture from conftest.py.
     test_subject : Path
         Name of the test subject.
 
@@ -144,10 +146,13 @@ def test_seg_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_
     ----------
     subjects_dir : Path
         Path to the subjects directory.
+        Filled by pytest fixture from conftest.py.
     test_dir : Path
         Name of test directory.
+        Filled by pytest fixture from conftest.py.
     reference_dir : Path
         Name of reference directory.
+        Filled by pytest fixture from conftest.py.
     test_subject : Path
         Name of the test subject.
 
@@ -174,7 +179,7 @@ def test_seg_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_
 
     # Check the dice score
     np.testing.assert_allclose(
-        dscore, 0, atol=1e-6, rtol=1e-6, err_msg=f"Dice scores are not within range for all classes"
+        dscore, 0, atol=1e-6, rtol=1e-6, err_msg="Dice scores are not within range for all classes"
     )
 
     # assert dscore == 1, "Dice scores are not 1 for all classes"
@@ -191,10 +196,13 @@ def test_int_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_
     ----------
     subjects_dir : Path
         Path to the subjects directory.
+        Filled by pytest fixture from conftest.py.
     test_dir : Path
         Name of test directory.
+        Filled by pytest fixture from conftest.py.
     reference_dir : Path
         Name of reference directory.
+        Filled by pytest fixture from conftest.py.
     test_subject : Path
         Name of the test subject.
 

@@ -1,10 +1,9 @@
+from logging import getLogger
+from pathlib import Path
+
 import pytest
 
-from .common import *
-
-from logging import getLogger
-
-from pathlib import Path
+from .common import load_test_subjects
 
 logger = getLogger(__name__)
 
@@ -41,10 +40,13 @@ def test_file_existence(subjects_dir: Path, test_dir: Path, reference_dir: Path,
     ----------
     subjects_dir : Path
         Path to the subjects directory.
+        Filled by pytest fixture from conftest.py.
     test_dir : Path
         Name of the test directory.
+        Filled by pytest fixture from conftest.py.
     reference_dir : Path
         Name of the reference directory.
+        Filled by pytest fixture from conftest.py.
     test_subject : Path
         Name of the test subject.
 
@@ -53,8 +55,6 @@ def test_file_existence(subjects_dir: Path, test_dir: Path, reference_dir: Path,
     AssertionError
         If a file in the reference list does not exist in the test list.
     """
-
-    print(test_subject)
 
     # Get reference files from the reference subject directory
     reference_subject = subjects_dir / reference_dir / test_subject

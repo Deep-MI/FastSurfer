@@ -1,14 +1,12 @@
-from .conftest import *
-
+import os
+from logging import getLogger
 from pathlib import Path
 
 import pandas as pd
 import pytest
 import yaml
 
-from .common import *
-
-from logging import getLogger
+from .common import load_test_subjects
 
 logger = getLogger(__name__)
 
@@ -29,7 +27,7 @@ def thresholds():
     thresholds_file = Path(__file__).parent / "data/thresholds/aseg.stats.yaml"
 
     # Open the file_path and read the thresholds into a dictionary
-    with open(thresholds_file, "r") as file:
+    with open(thresholds_file) as file:
         data = yaml.safe_load(file)
         default_threshold = data.get("default_threshold")
         thresholds = data.get("thresholds", {})
@@ -76,15 +74,15 @@ def load_structs(test_file: Path):
         List of structs.
     """
 
-    if "aseg" in str(test_file):
+    if test_file.name == "aseg.stats":
         structs_file = Path(__file__).parent / "data/thresholds/aseg.stats.yaml"
-    elif "aparc+DKT" in str(test_file):
+    elif test_file.name == "aparc+DKT.stats":
         structs_file = Path(__file__).parent / "data/thresholds/aparc+DKT.stats.yaml"
     else:
         raise ValueError("Unknown test file")
 
     # Open the file_path and read the structs: into a list
-    with open(structs_file, "r") as file:
+    with open(structs_file) as file:
         data = yaml.safe_load(file)
         structs = data.get("structs", [])
 
@@ -112,18 +110,17 @@ def read_measure_stats(file_path: Path):
     measurements = {}
 
     # Retrieve lines starting with "# Measure" from the stats file
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         # Read each line in the file
-        for i, line in enumerate(file, 1):
+        for _i, line in enumerate(file, 1):
             # Check if the line starts with "# ColHeaders"
             if line.startswith("# ColHeaders"):
-                table_start = i
-                columns = line.strip("# ColHeaders").strip().split(" ")
+                line.removeprefix("# ColHeaders").strip().split(" ")
 
             # Check if the line starts with "# Measure"
             if line.startswith("# Measure"):
                 # Strip "# Measure" from the line
-                line = line.strip("# Measure").strip()
+                line = line.removeprefix("# Measure").strip()
                 # Append the measure to the list
                 line = line.split(", ")
                 measure.append(line[1])
@@ -153,17 +150,16 @@ def read_table(file_path: Path):
     file_path = file_path / "stats" / "aseg.stats"
 
     # Retrieve stats table from the stats file
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         # Read each line in the file
         for i, line in enumerate(file, 1):
             # Check if the line starts with "# ColHeaders"
             if line.startswith("# ColHeaders"):
                 table_start = i
-                columns = line.strip("# ColHeaders").strip().split(" ")
+                columns = line.removeprefix("# ColHeaders").strip().split(" ")
 
     # Read the reference table into a pandas dataframe
     table = pd.read_table(file_path, skiprows=table_start, sep="\s+", header=None)
-    table_numeric = table.apply(pd.to_numeric, errors="coerce")
     table.columns = columns
     table.set_index(columns[0], inplace=True)
 
@@ -201,8 +197,6 @@ def test_measure_exists(subjects_dir: Path, test_dir: Path, test_subject: Path):
             errors.append(
                 f"for struct {struct} the value {data[1].get(struct)} is not close to " f"{ref_data[1].get(struct)}"
             )
-
-    stats_data = read_measure_stats(test_file)
 
     # Check if all measures exist in stats file
     assert len(errors) == 0, ", ".join(errors)

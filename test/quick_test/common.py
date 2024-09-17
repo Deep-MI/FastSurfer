@@ -1,8 +1,10 @@
 import os
-
 from logging import getLogger
 
 logger = getLogger(__name__)
+
+
+__all__ = ["load_test_subjects"]
 
 
 def load_test_subjects():
@@ -19,7 +21,7 @@ def load_test_subjects():
     test_subjects = []
 
     # Load the reference and test files
-    with open(os.path.join(subjects_dir, subjects_list), "r") as file:
+    with open(os.path.join(subjects_dir, subjects_list)) as file:
         for line in file:
             filename = line.strip()
             logger.debug(filename)

@@ -1,10 +1,10 @@
-import pytest
-import yaml
+from logging import getLogger
 from pathlib import Path
 
-from .common import *
+import pytest
+import yaml
 
-from logging import getLogger
+from .common import load_test_subjects
 
 logger = getLogger(__name__)
 
@@ -25,7 +25,7 @@ def load_errors():
 
     error_file_path = Path(__file__).parent / "data" / "logfile.errors.yaml"
 
-    with open(error_file_path, "r") as file:
+    with open(error_file_path) as file:
         data = yaml.safe_load(file)
         errors = data.get("errors", [])
         whitelist = data.get("whitelist", [])
@@ -65,8 +65,10 @@ def test_errors(subjects_dir: Path, test_dir: Path, test_subject: Path):
     ----------
     subjects_dir : Path
         Subjects directory.
+        Filled by pytest fixture from conftest.py.
     test_dir : Path
         Tests directory.
+        Filled by pytest fixture from conftest.py.
     test_subject : Path
         Subject to test.
 
@@ -93,22 +95,22 @@ def test_errors(subjects_dir: Path, test_dir: Path, test_subject: Path):
             with log_file.open("r") as file:
                 lines = file.readlines()
                 lines_with_errors = []
-                for line_number, line in enumerate(lines, start=1):
+                for _line_number, line in enumerate(lines, start=1):
                     if any(error in line.lower() for error in errors):
                         if not any(white in line.lower() for white in whitelist):
                             # Get two lines before and after the current line
-                            context = lines[max(0, line_number - 2) : min(len(lines), line_number + 3)]
-                            lines_with_errors.append((line_number, context))
+                            context = lines[max(0, _line_number - 2) : min(len(lines), _line_number + 3)]
+                            lines_with_errors.append((_line_number, context))
                             # print(lines_with_errors)
                             files_with_errors[rel_path] = lines_with_errors
                             error_flag = True
         except FileNotFoundError:
-            raise FileNotFoundError(f"Log file not found at path: {log_file}")
+            raise FileNotFoundError(f"Log file not found at path: {log_file}") from None
 
     # Print the lines and context with errors for each file
     for file, lines in files_with_errors.items():
         logger.debug(f"\nFile {file}, in line {files_with_errors[file][0][0]}:")
-        for line_number, line in lines:
+        for _line_number, line in lines:
             logger.debug(*line, sep="")
 
     # Assert that there are no lines with any of the keywords

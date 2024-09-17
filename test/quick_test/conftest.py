@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pytest
 
+__all__ = ["subjects_dir", "test_dir", "reference_dir", "subjects_list"]
+
 
 @pytest.fixture
 def subjects_dir():
