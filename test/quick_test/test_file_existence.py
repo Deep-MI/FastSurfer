@@ -1,73 +1,71 @@
-import argparse
-import sys
-import unittest
+from logging import getLogger
 from pathlib import Path
 
-import yaml
+import pytest
+
+from .common import load_test_subjects
+
+logger = getLogger(__name__)
 
 
-class TestFileExistence(unittest.TestCase):
+def get_files_from_folder(folder_path: Path):
     """
-    A test case class to check the existence of files in a folder based on a YAML file.
+    Get the list of files in the directory relative to the folder path.
 
-    This class defines test methods to verify if each file specified in the YAML file exists in the given folder.
-    """
+    Parameters
+    ----------
+    folder_path : Path
+        Path to the folder.
 
-    file_path: Path = Path("./test/quick_test/data/files.yaml")
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        Set up the test case by loading the YAML file and extracting the folder path.
-
-        This method is executed once before any test methods in the class.
-        """
-
-        # Open the file_path and read the files into an array
-        with cls.file_path.open('r') as file:
-            data = yaml.safe_load(file)
-            cls.files = data.get('files', [])
-
-        # Get a list of all files in the folder recursively
-        cls.filenames = []
-        for file in cls.folder_path.glob('**/*'):
-            if file.is_file():
-                # Get the relative path from the current directory to the file
-                rel_path = file.relative_to(cls.folder_path)
-                cls.filenames.append(str(rel_path))
-
-    def test_file_existence(self):
-        """
-        Test method to check the existence of files in the folder.
-
-        This method gets a list of all files in the folder recursively and checks
-        if each file specified in the YAML file exists in the folder.
-        """
-
-        # Check if each file in the YAML file exists in the folder
-        if not self.files:
-            self.fail("The 'files' key was not found in the YAML file")
-
-        for file in self.files:
-            print(f"Checking for file: {file}")
-            self.assertIn(file, self.filenames, f"File '{file}' does not exist in the folder.")
-
-        print("All files present")
-
-
-if __name__ == '__main__':
-    """
-    Main entry point of the script.
-
-    This block checks if there are any command line arguments, assigns the first argument
-    to the error_file_path class variable, and runs the unittest main function.
+    Returns
+    -------
+    list
+        List of files in the directory.
     """
 
-    parser = argparse.ArgumentParser(description="Test for file existence based on a YAML file.")
-    parser.add_argument('folder_path', type=Path, help="The path to the folder to check.")
+    # Get a list of all files in the folder recursively
+    filenames = []
+    for file in Path(folder_path).rglob("*"):
+        filenames.append(str(file.relative_to(folder_path)))
 
-    args = parser.parse_args()
+    return filenames
 
-    TestFileExistence.folder_path = args.folder_path
 
-    unittest.main(argv=[sys.argv[0]])
+@pytest.mark.parametrize("test_subject", load_test_subjects())
+def test_file_existence(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
+    """
+    Test the existence of files in the folder.
+
+    Parameters
+    ----------
+    subjects_dir : Path
+        Path to the subjects directory.
+        Filled by pytest fixture from conftest.py.
+    test_dir : Path
+        Name of the test directory.
+        Filled by pytest fixture from conftest.py.
+    reference_dir : Path
+        Name of the reference directory.
+        Filled by pytest fixture from conftest.py.
+    test_subject : Path
+        Name of the test subject.
+
+    Raises
+    ------
+    AssertionError
+        If a file in the reference list does not exist in the test list.
+    """
+
+    # Get reference files from the reference subject directory
+    reference_subject = subjects_dir / reference_dir / test_subject
+    reference_files = get_files_from_folder(reference_subject)
+
+    # Get test list of files in the test subject directory
+    test_subject = subjects_dir / test_dir / test_subject
+    test_files = get_files_from_folder(test_subject)
+
+    # Check if each file in the reference list exists in the test list
+    missing_files = [file for file in reference_files if file not in test_files]
+    assert not missing_files, f"Files '{missing_files}' do not exist in test subject."
+
+    logger.debug("\nAll files present.")
