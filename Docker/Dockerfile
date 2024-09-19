@@ -195,7 +195,8 @@ RUN if [[ "$DEVICE" == "cu118" ]] ; then cd /venv/python3.10/site-packages/torch
 # Copy fastsurfer over from the build context and add PYTHONPATH
 COPY . /fastsurfer/
 ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
-    FASTSURFER_HOME=/fastsurfer
+    FASTSURFER_HOME=/fastsurfer \
+    PATH=/fastsurfer:$PATH
 
 # Download all remote network checkpoints already, compile all FastSurfer scripts into
 # bytecode and update the build file with checkpoints md5sums and pip packages.
