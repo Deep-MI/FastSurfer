@@ -67,6 +67,6 @@ runs:
       shell: bash
       run: |
         echo "::group::Run tests"
-        python -m pytest test/quick_test
+        python -m pytest test/quicktest
         echo "::endgroup::"
 
