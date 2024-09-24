@@ -7,7 +7,7 @@ export binpath
 
 # fs_time command from fs60, fs72 fails in parallel mode, use local one
 # also check for failure (e.g. on mac it fails, so we cannot use it there)
-if FSTIME_LOAD=0 "${binpath}fs_time" echo testing &> /dev/null ; then timecmd="${binpath}fs_time"
+if "${binpath}fs_time" --no-load echo testing &> /dev/null ; then timecmd="${binpath}fs_time"
 else timecmd="" ; echo "INFO: Testing fs_time was not successful, not reporting per-command runtimes."
 fi
 export timecmd
@@ -48,6 +48,36 @@ function check_create_subjects_dir_properties()
   fi
 }
 
+function time_it()
+{
+  # parameters
+  # $1 : timing file
+  # $* : cmd  (command to run)
+
+  # wraps cmd with fs_time, but fs_time's timing information (the output of fs_time) is stored to the
+  # timing file ($1) instead of stdout. If cmd is using fs_time itself, the FSLOAD environment variable
+  # is read and the appropriate --load/--no-load argument is passed to fs_time inside cmd.
+  local TF="$1"
+  shift
+  local cmd=("$@")
+  if [[ -n "$timecmd" ]]
+  then
+    timecmd_pos=-1
+    for (( i=0; i<${#cmd[@]}; i++)) ; do if [ "${cmd[i]}" == "$timecmd" ]; then timecmd_pos=$i ; break ; fi ; done
+    if [ "$timecmd_pos" -gt -1 ] ; then
+      if [[ "$FSLOAD" == 1 ]] ; then a="--load" ; else a="--no-load" ; fi
+      cmd=("${cmd[@]:0:$timecmd_pos}" "$a" "${cmd[@]:$timecmd_pos}")
+    fi
+    # timecmd is non-empty here, so time/fs_time does not fail
+    printf -v key "%s\n-> " "$(echo_quoted "${cmd[@]}")"
+    "${binpath}fs_time" -k "$key" --no-load -o "$TF" -a "${cmd[@]}"
+  else
+    echo "WARNING: Using time_it, but time seems to fail. Not timing..."
+    "${cmd[@]}"
+  fi
+  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit "${PIPESTATUS[0]}" ; fi
+}
+
 function RunIt()
 {
   # parameters
@@ -63,7 +93,7 @@ function RunIt()
     run_it_cmdf "$LF" "$CMDF" $cmd
   else
     run_it "$LF" $cmd
-    if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
   fi
 }
 
@@ -76,7 +106,7 @@ function run_it()
   shift
   echo_quoted "$@" | tee -a "$LF"
   $timecmd "$@" 2>&1 | tee -a "$LF"
-  if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
 }
 
 function run_it_cmdf()
@@ -89,28 +119,31 @@ function run_it_cmdf()
   local CMDF=$2
   shift
   shift
+  local cmd
   cmd="$(echo_quoted "$@" | tee -a "$LF")"
   printf -v tmp %q "$cmd"
   echo "echo $tmp" | tee -a "$CMDF"
   echo "$timecmd $cmd" | tee -a "$CMDF"
-  echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> "$CMDF"
+  echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi" >> "$CMDF"
 }
 
 function RunBatchJobs()
 {
-# parameters
-# $1 : LF
-# $2 ... : CMDFS
-  local LOG_FILE=$1
+  # parameters
+  # $1 : LF
+  # $2 ... : CMDFS
   # launch jobs found in command files (shift past first logfile arg).
   # job output goes to a logfile named after the command file, which
   # later gets appended to LOG_FILE
+
+  local LOG_FILE=$1
 
   echo
   echo "RunBatchJobs: Logfile: $LOG_FILE"
 
   local PIDS=()
   local LOGS=()
+  local CMDFS=()
   shift
   local JOB
   local LOG
@@ -118,36 +151,43 @@ function RunBatchJobs()
     echo "RunBatchJobs: CMDF: $cmdf"
     chmod u+x "$cmdf"
     JOB="$cmdf"
-    LOG=$cmdf.log
-    echo "" >& "$LOG"
-    echo " $JOB" >> "$LOG"
-    echo "" >> "$LOG"
+    LOG="$cmdf.log"
+    printf "\n %s\n\n" "$JOB" > "$LOG"
     exec "$JOB" >> "$LOG" 2>&1 &
-    PIDS=("${PIDS[@]}" "$!")
-    LOGS=("${LOGS[@]}" "$LOG")
+    PIDS+=("$!")
+    CMDFS+=("$JOB")
+    LOGS+=("$LOG")
+  done
 
-  done
   # wait till all processes have finished
-  local PIDS_STATUS=()
-  for pid in "${PIDS[@]}"; do
-    echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
-    wait "$pid"
-    PIDS_STATUS=("${PIDS_STATUS[@]}" "$?")
-  done
-  # now append their logs to the main log file
-  for log in "${LOGS[@]}"
+  local unsuccessful=()
+  for i in $(seq "${#PIDS}")
   do
-    tee -a "$LOG_FILE" < "$log"
-    rm -f "$log"
-  done
-  echo "PIDs (${PIDS[*]}) completed and logs appended."
-  # and check for failures
-  for pid_status in "${PIDS_STATUS[@]}"
-  do
-    if [ "$pid_status" != "0" ] ; then
-      exit 1
+    echo "Waiting for PID ${PIDS[i-1]} of (${PIDS[*]}) to complete..."
+    wait "${PIDS[i-1]}"
+    status="$?"
+    # now append their logs to the main log file
+    tee -a "$LOG_FILE" < "${LOGS[i-1]}"
+    rm -f "${LOGS[i-1]}"
+    if [[ "$status" != "0" ]]
+    then
+      unsuccessful+=($((i - 1)))
+      {
+        echo "ERROR: The script ${CMDFS[i-1]} (PID: ${PIDS[i-1]}) did not complete successfully!"
+        echo "========================================"
+        echo ""
+      } | tee -a "$LOG_FILE"
     fi
   done
+  # and check for failures
+  if [[ "${#unsuccessful}" == 0 ]]
+  then
+    echo "PIDs (${PIDS[*]}) completed successfully! Their logs have been appended." | tee -a "$LOG_FILE"
+  else
+    echo "PIDs (${unsuccessful[*]}) of (${PIDS[*}]}) have NOT completed successfully! All logs appended." | \
+      tee -a "$LOG_FILE"
+    exit 1
+  fi
 }
 
 function check_allow_root()
@@ -200,22 +240,22 @@ function softlink_or_copy()
     {
       echo "echo $(echo_quoted "${ln_cmd[@]}")"
       echo "$timecmd $(echo_quoted "${ln_cmd[@]}")"
-      echo "if [ \${PIPESTATUS[0]} -ne 0 ]"
+      echo "if [[ \${PIPESTATUS[0]} != 0 ]]"
       echo "then"
       echo "  echo $(echo_quoted "${cp_cmd[@]}")"
       echo "  $timecmd $(echo_quoted "${cp_cmd[@]}")"
-      echo "  if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi"
+      echo "  if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi"
       echo "fi"
     } | tee -a "$CMDF"
   else
     {
       echo_quoted "${ln_cmd[@]}"
       $timecmd "${ln_cmd[@]}" 2>&1
-      if [ "${PIPESTATUS[0]}" -ne 0 ]
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo_quoted "${cp_cmd[@]}"
         $timecmd "${cp_cmd[@]}" 2>&1
-        if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
       fi
     } | tee -a "$LF"
     if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit 1; fi # forward subshell exit to main script

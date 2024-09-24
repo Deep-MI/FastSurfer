@@ -1,27 +1,31 @@
 #!/bin/bash
 # fs_time
 
-VERSION='$Id: fs_time,v 1.0 2024/03/08 15:12:00 kueglerd Exp $'
+VERSION="\$Id: fs_time, v1.1 2024/11/13 15:04:00 kueglerd Exp \$"
 outfile=""
 key="@#@FSTIME "
+flags=()
 cmd=()
 verbose=0
+print_uptime=$FSTIME_LOAD
 
-if [[ -z "$FSTIME_LOAD" ]]
+if [[ -z "$print_uptime" ]]
 then
   # Turn on by default
-  export FSTIME_LOAD=1
+  print_uptime=1
 fi
 
 function usage()
 {
   cat << EOF
-
 fs_time [options] command args
  options:
-  -o outputfile : save resource info into outputfile
-  -k key
-  -l : report on load averages as from uptime
+  -o outputfile : save resource info into outputfile instead
+  -a : append to outputfile (see time)
+  -k key : key to find timing info in output
+  -l|--load : report on load averages as from uptime (default: \$FSTIME_LOAD or on)
+  --no-load : do not report on load averages
+  --debug : make output more verbose
 EOF
 }
 
@@ -44,31 +48,29 @@ Default fs_time Output (see also the manual page for /usr/bin/time):
 2. Time stamp at the onset of execution
 3. Command name
 4. N Number of arguments passed to command
-5. e Elapsed real time in seconds . This is the total
-      amount of time from when the command started to when it ended regardless
-      of how much of the CPU it got.
+5. e Elapsed real time in seconds. This is the total amount of time from when the
+     command started to when it ended regardless of how much of the CPU it got.
 6. S Total number of CPU-seconds that the process spent in kernel mode.
 7. U Total number of CPU-seconds that the process spent in user mode.
 8. P Percentage of the CPU that this job got, computed as (U+S)/e.
 9. M Maximum resident set size of the process during its lifetime, in Kbytes.
 10. F Number  of major page faults that occurred while the process was running.
       These are faults where the page has to be read in from disk.
-11. R Number of minor, or recoverable, page faults.  These are
-   faults for pages that are not valid but which have not yet been
-   claimed by other virtual pages.  Thus the data in the page is
-   still valid but the system tables must be updated.
-12.  W Number of times the process was swapped out of main memory.
-13. c Number of times the process was context-switched involuntarily
-    (because the time slice expired).
-14. w Number of waits: times that the program was context-switched voluntarily,
-    for instance while  waiting  for an I/O operation to complete.
+11. R Number of minor, or recoverable, page faults.  These are faults for pages that
+      are not valid but which have not yet been claimed by other virtual pages.  Thus
+      the data in the page is still valid but the system tables must be updated.
+12. W Number of times the process was swapped out of main memory.
+13. c Number of times the process was context-switched involuntarily (because the
+      time slice expired).
+14. w Number of waits: times that the program was context-switched voluntarily, for
+      instance while  waiting  for an I/O operation to complete.
 15. I Number of file system inputs by the process.
 16. O Number of file system outputs by the process.
 17. L L1 L5 L15 : load averages at 1, 5, and 15 min (with setenv FSTIME_LOAD 1)
 
 Example:
 
-fs_time -o resource.dat mri_convert orig.mgz myfile.mgz
+fs_time mri_convert orig.mgz myfile.mgz
 mri_convert orig.mgz myfile.mgz
 reading from orig.mgz...
 TR=2730.00, TE=3.44, TI=1000.00, flip angle=7.00
@@ -83,7 +85,7 @@ produces the information about resources. It also creates a file
 resource.dat with the resource information. In this case, the above is
 interpreted as:
 
-@#@FSTIME  : key for easy searching/grepping
+@#@FSTIME : key for easy searching/grepping
 mri_convert : command that was run
 2016:01:21:18:27:08 : time stamp at the onset of execution year:month:day:hour:min:sec
 N 2 : mri_convert was run with 2 arguments
@@ -112,73 +114,50 @@ EOF
 function   arg1err()
 {
   # param 1 : flag
-  echo "ERROR: flag $1 requires one argument"
+  echo "ERROR: Flag $1 requires one argument!"
   exit 1
 }
-
-inputargs=("$@")
-any_help=$(echo "$@" | grep -e -help)
-if [[ -n "$any_help" ]]
-then
-  usage
-  help
-  exit 0
-fi
-any_version=$(echo "$@" | grep -e -version)
-if [[ -n "$any_version" ]]
-then
-  echo "$VERSION"
-  exit 0
-fi
 
 # sourcing FreeSurfer should not be needed at this point,
 # source $FREESURFER_HOME/sources.sh
 
-cmdline=("$@")
 while [[ $# != 0 ]]
 do
 
-  flag=$1
+  flag="$1"
   shift
 
   case $flag in
-    -o)
-      if [[ "$#" -lt 1 ]] ; then arg1err "$flag"; fi
-      outfile=$1
-      shift
-      ;;
-    -k)
-      if [[ "$#" -lt 1 ]] ; then arg1err "$flag" ; fi
-      key=$1
-      shift
-      ;;
-    -l|-load)
-      export FSTIME_LOAD=1
-      ;;
-    -no-load)
-      export FSTIME_LOAD=0
-      ;;
-    -debug)
-      verbose=1
-      ;;
-    *)
-      # must be at the start of the command to run
-      # put item back into the list
-      cmd=("$flag" "$@")
-      break
-      ;;
+    -o|-k) if [[ "$#" -lt 1 ]] ; then arg1err "$flag"; fi ;;
   esac
 
+  case "$flag" in
+    -help|--help) usage ; help ; exit 0 ;;
+    -version|--version) echo "$VERSION" ; exit 0 ;;
+    -o) outfile="$1" ; shift ;;
+    -k) key="$1" ; shift ;;
+    -a) flags+=("$flag") ;;
+    -l|-load|--load) print_uptime=1 ;;
+    -no-load|--no-load) print_uptime=0 ;;
+    -debug|--debug) verbose=1 ;;
+    # we must now be at the start of the command to run, so put all items back into the list
+    *) cmd=("$flag" "$@") ; break ;;
+  esac
 done
 
 if [[ "$verbose" == 1 ]]
 then
   echo "Parameters to fs_time:"
-  if [[ -n "$outfile" ]] ; then echo "-o $outfile" ; fi
-  if [[ "$key" != "@#@FSTIME " ]] ; then echo "-k $key" ; fi
-  echo "FSTIME_LOAD=$FSTIME_LOAD"
+  if [[ -n "$outfile" ]] ; then echo "  -o $outfile" ; fi
+  if [[ "$key" != "@#@FSTIME " ]] ; then echo "  -k $key" ; fi
+  if [[ "${#flags[@]}" -gt 0 ]] ; then echo "  ${flags[*]}" ; fi
+  if [[ "$print_uptime" != "$FSTIME_LOAD" ]] && [[ -n "$FSTIME_LOAD" ]] ; then
+    if [[ "$print_uptime" == 1 ]] ; then echo "  --load" ; else echo "  --noload" ; fi
+  else
+    echo "  FSTIME_LOAD=$FSTIME_LOAD" ;
+  fi
   echo "command:"
-  echo "${cmd[*]}"
+  echo "  ${cmd[*]}"
   echo ""
 fi
 
@@ -186,13 +165,13 @@ fi
 if [[ "${#cmd[@]}" == 0 ]]
 then
   usage
-  echo "ERROR: no command passed to execute"
+  echo "ERROR: No command passed to execute!"
   exit 1
 fi
 
 if [[ ! -e /usr/bin/time ]]
 then
-  echo "ERROR: cannot find /usr/bin/time"
+  echo "ERROR: Cannot find /usr/bin/time!"
   exit 1
 fi
 
@@ -217,36 +196,43 @@ fi
 
 nargs=$((${#cmd[@]} - 1 - npyargs))
 
-function make_string ()
+function make_uptime ()
+{
+  # shellcheck disable=SC2207
+  uptime_data_array=($(uptime | sed 's/,/ /g'))
+  echo "L ${uptime_data_array[-3]} ${uptime_data_array[-2]} ${uptime_data_array[-1]}"
+}
+
+function make_fmt ()
 {
   # param 1 : key
   # param 2 : command
   # param 3 : num args
-  dt=$(date '+%Y:%m:%d:%H:%M:%S')
-  uptime_data_array=($(uptime | sed 's/,/ /g'))
-  echo "$1 $dt $2 N $3 ${uptime_data_array[-3]} ${uptime_data_array[-2]} ${uptime_data_array[-1]}"
-  export upt="L ${uptime_data_array[-3]} ${uptime_data_array[-2]} ${uptime_data_array[-1]}"
+  # param 4 : additional data
+  add=$4
+  if [[ "${#add}" -gt 0 ]] && [[ "${add:0:1}" != " " ]] ; then add=" $add" ; fi
+  echo "$1 $(date '+%Y:%m:%d:%H:%M:%S') $2 N $3$add"
 }
 
-if [[ "$FSTIME_LOAD" == 1 ]]
+if [[ "$print_uptime" == 1 ]]
 then
-  make_string "@#@FSLOADPRE" "$command" "$nargs"
+  uptime="$(make_uptime)"
+  make_fmt "@#@FSLOADPRE" "$command" "$nargs" "$uptime"
 else
-  upt=""
+  uptime=""
 fi
 
-dt=$(date '+%Y:%m:%d:%H:%M:%S')
-fmt="$key $dt $command N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O $upt"
+fmt="$(make_fmt "$key" "$command" "$nargs" "e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O$uptime")"
 
-timecmd=("/usr/bin/time")
-if [[ -n "$outfile" ]] ; then timecmd=("${timecmd[@]}" -o "$outfile"); fi
+timecmd=("/usr/bin/time" "${flags[@]}")
+if [[ -n "$outfile" ]] ; then timecmd+=(-o "$outfile"); fi
+if [[ "$verbose" == 1 ]] ; then echo "${timecmd[@]}" -f "'$fmt'" "${cmd[@]}" ; fi
 "${timecmd[@]}" -f "$fmt" "${cmd[@]}"
 st=$?
-if [[ -n "$outfile" ]] ; then cat $outfile; fi
 
-if [[ "$FSTIME_LOAD" == 1 ]]
+if [[ "$print_uptime" == 1 ]]
 then
-  make_string "@#@FSLOADPOST" "$command" "$nargs"
+  make_fmt "@#@FSLOADPOST" "$command" "$nargs"
 fi
 
 exit $st
