@@ -11,5 +11,4 @@ CerebNet.utils
     load_config
     lr_scheduler
     meters
-    metrics
     misc

@@ -21,3 +21,26 @@ thresholds:
  rhSurfaceHoles: 0.1
  SurfaceHoles: 0.1
  eTIV: 0.1
+
+
+structs:
+  - 'BrainSegVol'
+  - 'BrainSegVolNotVent'
+  - 'VentricleChoroidVol'
+  - 'lhCortexVol'
+  - 'rhCortexVol'
+  - 'CortexVol'
+  - 'lhCerebralWhiteMatterVol'
+  - 'rhCerebralWhiteMatterVol'
+  - 'CerebralWhiteMatterVol'
+  - 'SubCortGrayVol'
+  - 'TotalGrayVol'
+  - 'SupraTentorialVol'
+  - 'SupraTentorialVolNotVent'
+  - 'MaskVol'
+  - 'BrainSegVol-to-eTIV'
+  - 'MaskVol-to-eTIV'
+  - 'lhSurfaceHoles'
+  - 'rhSurfaceHoles'
+  - 'SurfaceHoles'
+  - 'eTIV'
