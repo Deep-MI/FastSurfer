@@ -78,6 +78,8 @@ threads_surf="1"
 # python3 -s excludes user-directory package inclusion
 python="python3 -s"
 allow_root=()
+do_timeit="false"
+timing_log=""
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
@@ -267,6 +269,8 @@ Resource Options:
                             (-s: do no search for packages in home directory)
 
  Dev Flags:
+  --timeit                Time the steps of the segmentation pipeline.
+  --timeit_log <time_log> Same as --timeit and write timing to the time_log file.
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will terminate if the supported version
                             (see recon-surf.sh) is not sourced. Can be used for
@@ -390,6 +394,8 @@ case $key in
   --t1) t1="$1" ; shift ;;
   --t2) t2="$1" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
+  --timeit) do_timeit="true" ;;
+  --timeit_log) do_timeit="true" ; timing_log="$1" ; shift ;;
   --conformed_name) conformed_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name) norm_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name_t2) norm_name_t2="$1" ; shift ;;
@@ -618,6 +624,7 @@ if [[ -z "$conformed_name" ]] ; then conformed_name="$subject_dir/mri/orig.mgz";
 if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="$subject_dir/mri/T2orig.mgz" ; fi
 if [[ -z "$norm_name" ]] ; then norm_name="$subject_dir/mri/orig_nu.mgz" ; fi
 if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  fi
+if [[ -z "$timing_log" ]] ; then timing_log="$subject_dir/scripts/timing.log" ; fi
 if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
 # T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
@@ -871,7 +878,11 @@ set +eo > /dev/null
 
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
+mkdir -p "$(dirname "$timing_log")"
 
+
+wrap=()
+if [[ "$do_timeit" == "true" ]] ; then wrap=("time_it" "$timing_log") ; fi
 
 if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
@@ -951,7 +962,7 @@ then
     if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd") ; fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${cmd[@]}"
+    "${wrap[@]}" "${cmd[@]}"
     exit_code="${PIPESTATUS[0]}"
     if [[ "${exit_code}" == 2 ]]
     then
@@ -996,14 +1007,14 @@ then
       echo "INFO: Copying T2 file to ${copy_name_T2}..."
       cmd=("nib-convert" "$t2" "$copy_name_T2")
       echo_quoted "${cmd[@]}"
-      "${cmd[@]}" 2>&1
+      "${wrap[@]}" "${cmd[@]}" 2>&1
       # do not terminate if this fails
 
       echo "INFO: Robust scaling (partial conforming) of T2 image..."
       cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
            --no_iso_vox --no_img_size -i "$t2" -o "$conformed_name_t2")
       echo_quoted "${cmd[@]}"
-      "${cmd[@]}" 2>&1
+      "${wrap[@]}" "${cmd[@]}" 2>&1
       exit_code=$?
       echo "Done."
       exit $exit_code  # this will only terminate the subshell
@@ -1019,7 +1030,7 @@ then
            --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads_seg")
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
-      "${cmd[@]}" 2>&1
+      "${wrap[@]}" "${cmd[@]}" 2>&1
       exit $?  # this will only terminate the subshell
     } | tee -a "$seg_log"
     if [[ "${PIPESTATUS[0]}" != 0 ]]
@@ -1039,7 +1050,7 @@ then
         echo "INFO: Running talairach registration..."
         echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
-      "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
@@ -1070,7 +1081,7 @@ then
       fi
       {
         echo_quoted "${cmd[@]}"
-        "${cmd[@]}" 2>&1
+        "${wrap[@]}" "${cmd[@]}" 2>&1
         exit $?  # this will only terminate the subshell
       } | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" != 0 ]]
@@ -1092,7 +1103,7 @@ then
       )
       {
         echo_quoted "${cmd[@]}"
-        "${cmd[@]}" 2>&1
+        "${wrap[@]}" "${cmd[@]}" 2>&1
         exit $?  # this will only terminate the subshell
       } | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" != 0 ]]
@@ -1114,7 +1125,7 @@ then
         echo "INFO: Running N4 bias-field correction of the t2..."
         echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
-      "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: T2 Biasfield correction failed!" | tee -a "$seg_log"
@@ -1131,7 +1142,7 @@ then
         echo "  passed T2 image is properly scaled and typed. T2 needs to be uchar and"
         echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
       } | tee -a "$seg_log"
-      "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
     fi
   fi
 
@@ -1152,7 +1163,7 @@ then
     # if we are trying to create the thickness image in a headless setting, wrap call in xvfb-run
     {
       echo_quoted "${cmd[@]}"
-      "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: FastSurferCC corpus callosum analysis failed!" ; exit 1 ; fi
       if [[ "$edits" == 1 ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
 
@@ -1160,7 +1171,7 @@ then
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
            "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
       echo_quoted "${cmd[@]}"
-      "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
 
       if [[ "$run_biasfield" == 1 ]]
@@ -1189,7 +1200,7 @@ then
                         rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
         )
         echo_quoted "${cmd[@]}"
-        "${cmd[@]}"
+        "${wrap[@]}" "${cmd[@]}"
         if [[ "${PIPESTATUS[0]}" != 0 ]] ; then
           echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!" ; exit 1
           # this will only terminate the subshell
@@ -1211,7 +1222,7 @@ then
              measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
         )
         echo_quoted "${cmd[@]}"
-        "${cmd[@]}" 2>&1
+        "${wrap[@]}" "${cmd[@]}" 2>&1
         if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
       } | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
@@ -1240,7 +1251,7 @@ then
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${cmd[@]}"  # no tee, directly logging to $seg_log
+    "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
     if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
@@ -1268,7 +1279,7 @@ then
       if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${cmd[@]}"
+    "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log
     if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Hypothalamus Segmentation failed!" | tee -a "$seg_log"
@@ -1297,8 +1308,13 @@ then
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-  "${cmd[@]}"
-  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
+  "${wrap[@]}" "${cmd[@]}" # no tee, this gets logged to recon-surf.log from inside recon-surf.sh
+  if [[ "${PIPESTATUS[0]}" != 0 ]]
+  then
+    echo "ERROR: Surface reconstruction failed! See recon-surf log: $subject_dir/scripts/recon-surf.log" | \
+      tee -a "$seg_log"
+    exit 1
+  fi
   popd > /dev/null || return
 fi
 
