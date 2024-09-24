@@ -50,6 +50,7 @@ dependencies = [
     'torchvision>=0.15.2',
     'tqdm>=4.65',
     'yacs>=0.1.8',
+    'ignite>=0.4.3',
 ]
 
 [project.optional-dependencies]

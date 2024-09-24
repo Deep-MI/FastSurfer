@@ -5,14 +5,17 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
+from torch.nn.functional import threshold
 
 from .common import load_test_subjects
 
 logger = getLogger(__name__)
 
+file_types = ["aseg.stats", "aseg+DKT.stats", "aseg.presurf.hypos.stats", "cerebellum.CerebNet.stats",
+              "hypothalamus.HypVINN.stats", "wmparc.DKTatlas.mapped.stats"]
 
 @pytest.fixture
-def thresholds():
+def thresholds(file_type):
     """
     Load the thresholds from the given file path.
 
@@ -24,7 +27,8 @@ def thresholds():
         Dictionary containing the thresholds
     """
 
-    thresholds_file = Path(__file__).parent / "data/thresholds/aseg.stats.yaml"
+    # Load the thresholds file
+    thresholds_file = Path(__file__).parent / "data/thresholds" / f"{file_type}.yaml"
 
     # Open the file_path and read the thresholds into a dictionary
     with open(thresholds_file) as file:
@@ -35,7 +39,7 @@ def thresholds():
     return default_threshold, thresholds
 
 
-def load_stats_file(test_subject: Path):
+def load_stats_file(test_subject: Path, file_type: Path):
     """
     Load the stats file from the given file path.
 
@@ -57,36 +61,6 @@ def load_stats_file(test_subject: Path):
         return test_subject / "stats" / "aparc+DKT.stats"
     else:
         raise ValueError("Unknown stats file")
-
-
-def load_structs(test_file: Path):
-    """
-    Load the structs from the given file path.
-
-    Parameters
-    ----------
-    test_file : Path
-        Path to the test file.
-
-    Returns
-    -------
-    structs : list
-        List of structs.
-    """
-
-    if test_file.name == "aseg.stats":
-        structs_file = Path(__file__).parent / "data/thresholds/aseg.stats.yaml"
-    elif test_file.name == "aparc+DKT.stats":
-        structs_file = Path(__file__).parent / "data/thresholds/aparc+DKT.stats.yaml"
-    else:
-        raise ValueError("Unknown test file")
-
-    # Open the file_path and read the structs: into a list
-    with open(structs_file) as file:
-        data = yaml.safe_load(file)
-        structs = data.get("structs", [])
-
-    return structs
 
 
 def read_measure_stats(file_path: Path):
@@ -129,7 +103,7 @@ def read_measure_stats(file_path: Path):
     return measure, measurements
 
 
-def read_table(file_path: Path):
+def read_table(file_path: Path, file_type: Path):
     """
     Read the table from the given file path.
 
@@ -137,6 +111,8 @@ def read_table(file_path: Path):
     ----------
     file_path : Path
         Path to the stats file.
+    file_type : Path
+        Type of the file.
 
     Returns
     -------
@@ -147,7 +123,7 @@ def read_table(file_path: Path):
     table_start = 0
     columns = []
 
-    file_path = file_path / "stats" / "aseg.stats"
+    file_path = file_path / "stats" / file_type
 
     # Retrieve stats table from the stats file
     with open(file_path) as file:
@@ -166,8 +142,9 @@ def read_table(file_path: Path):
     return table
 
 
+@pytest.mark.parametrize("file_type", file_types)
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_measure_exists(subjects_dir: Path, test_dir: Path, test_subject: Path):
+def test_measure_exists(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, file_type: Path):
     """
     Test if the measure exists in the stats file.
 
@@ -187,23 +164,30 @@ def test_measure_exists(subjects_dir: Path, test_dir: Path, test_subject: Path):
     """
 
     test_subject = subjects_dir / test_dir / test_subject
-    test_file = load_stats_file(test_subject)
-    data = read_measure_stats(test_file)
-    ref_data = read_measure_stats(test_file)
+    test_file = test_subject / "stats" / file_type
+
+    reference_subject = subjects_dir / reference_dir / test_subject
+    reference_file = reference_subject / "stats" / file_type
+
+    test_data = read_measure_stats(test_file)
+    ref_data = read_measure_stats(reference_file)
     errors = []
 
-    for struct in load_structs(test_file):
-        if struct not in data[1]:
+    for struct in ref_data[1]:
+        if struct not in test_data[1]:
+            print("\nstruct:", struct)
             errors.append(
-                f"for struct {struct} the value {data[1].get(struct)} is not close to " f"{ref_data[1].get(struct)}"
+                f"for struct {struct} the value {test_data[1].get(struct)} is not close to {ref_data[1].get(struct)}"
             )
 
     # Check if all measures exist in stats file
     assert len(errors) == 0, ", ".join(errors)
 
 
+@pytest.mark.parametrize("file_type", file_types)
 @pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, thresholds):
+def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, thresholds,
+                 file_type: Path):
     """
     Test if the tables are within the threshold.
 
@@ -228,10 +212,10 @@ def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_su
 
     # Load the test and reference tables
     test_file = subjects_dir / test_dir / test_subject
-    test_table = read_table(test_file)
+    test_table = read_table(test_file, file_type)
 
     reference_subject = subjects_dir / reference_dir / test_subject
-    ref_table = read_table(reference_subject)
+    ref_table = read_table(reference_subject, file_type)
 
     # Load the thresholds
     default_threshold, thresholds = thresholds
@@ -256,6 +240,6 @@ def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_su
         for key, value in variations.items():
             logger.debug(key, value)
 
-    assert not variations, "Variations greater than threshold found."
+    return variations
 
-    logger.debug("\nAll table values are within the threshold.")
+

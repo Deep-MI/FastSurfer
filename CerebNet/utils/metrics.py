@@ -165,13 +165,21 @@ class DiceScore:
         return dice_cnf_matrix
 
 
-def dice_score(pred, gt):
+def dice_score(pred, gt, validate=True):
     """
     Calculates the Dice Similarity between pred and gt.
     """
-    from scipy.spatial.distance import dice
+    if validate:
+        from scipy.spatial.distance import dice
+        return dice(pred.flat, gt.flat)
 
-    return dice(pred.flat, gt.flat)
+    else:
+        assert pred.dtype == gt.dtype == bool, "Input images must be boolean"
+
+        ntt = (pred & gt).sum()
+        nft = (~pred & gt).sum()
+        ntf = (pred & ~gt).sum()
+        return float((ntf + nft) / np.array(2.0 * ntt + ntf + nft))
 
 
 def volume_similarity(pred, gt):
