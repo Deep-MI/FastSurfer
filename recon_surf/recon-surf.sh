@@ -640,7 +640,7 @@ RunIt "$cmd" "$LF"
 if [ "$long" == "1" ] ; then
   # in long we can skip fill as surfaces come from base
   # it would be great to also skip WM, but it is needed in place_surface to clip bright
-  # maybe later add code to copy edits from base in maskbfs and wm segmentation
+  # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation $hiresflag $fsthreads"
   RunIt "$cmd" $LF
   # copy over filled from base for stop edits
@@ -766,7 +766,10 @@ for hemi in lh rh ; do
 
   fi # not long
 
-# ============================= FIX - WHITEPREAPARC - CORTEXLABEL ============================================
+# ============================= FIX - WHITEPREAPARC ==================================================
+
+  # In Long stream we skip topo fix
+  if [ "$long" == "0" ] ; then
 
   {
     echo "echo \"\""
@@ -783,14 +786,25 @@ for hemi in lh rh ; do
   cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig --backup $sdir/$hemi.orig.noorient"
   RunIt "$cmd" $LF $CMDF
 
-  cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -cortex-label -no-isrunning $hiresflag $fsthreads"
+  # create first WM surface white.preaparc from topo fixed orig surf
+  cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" "$LF" "$CMDF"
-  ## copy nofix to orig and inflated for next step
-  # -white (don't know how to call this from recon-all as it needs -whiteonly setting and by default it also creates the pial.
-  # create first WM surface white.preaparc from topo fixed orig surf, also first cortex label (1min), (3min for deep learning surf)
+
+  else # longitudinal
+
+    # in long we don't use orig.premesh (so switch off remesh for autodetgwstat)
+    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -no-remesh -no-isrunning $hiresflag $fsthreads"
+    RunIt "$cmd" "$LF" "$CMDF"
+
+    # for place_surfaces white.preparc we need to directly call it with special long paramter:
+    # cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning $hiresflag $fsthreads"
+    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/lh.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
+    RunIt "$cmd" "$LF" "$CMDF"
+
+  fi # long
 
 
-# ============================= INFLATE2 - CURVHK ===================================================
+# ============================= CORTEXLABEL - INFLATE2 - CURVHK ==========================================
 
   {
     echo "echo \"\""
@@ -798,8 +812,10 @@ for hemi in lh rh ; do
     echo "echo \"\""
   } | tee -a "$CMDF"
 
+  # create cortex lable (1min)
   # create nicer inflated surface from topo fixed (not needed, just later for visualization)
-  cmd="recon-all -subject $subject -hemi $hemi -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
+  # identical for long processing
+  cmd="recon-all -subject $subject -hemi $hemi -cortex-label -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" "$LF" "$CMDF"
 
 
@@ -834,10 +850,14 @@ for hemi in lh rh ; do
       echo "echo \" \""
     } | tee -a "$CMDF"
 
-    # Surface registration for cross-subject correspondence (registration to fsaverage)
+    if [ "$long" == "0" ] ; then
+
+    # SPHERE: Inflate to sphere with minimal metric distortion
     cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
-  
+
+    # SURFREG (sphere.reg)
+    # Surface registration for cross-subject correspondence (registration to fsaverage)
     # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
     # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
     # seem to do this, so we initialize the spherical registration with the better
@@ -860,67 +880,136 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF" "$CMDF"
     # command to generate new aparc to check if registration was OK
     # run only for debugging
-    #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
+    # cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
     #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
     #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
     #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
+ 
+    else # longitudinal
+
+      # SPHERE (mapping with minimal distortion) we copy it from base:
+      cmd="cp $basedir/surf/$hemi.shpere $sdir/$hemi.sphere"
+      RunIt "$cmd" "$LF" "$CMDF"
+
+      # SURFREG (sphere.reg)
+      # Surface registration for cross-subject correspondence (registration to fsaverage)
+      # In long we initialize with sphere.reg from base template (which was also
+      # copied to sphere above) and use -nosulc and -norot:
+      cmd="mris_register -curv -nosulc -norot \
+           -threads $threads \
+           $basedir/surf/${hemi}.sphere.reg \
+           $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+           $sdir/${hemi}.sphere.reg"
+      RunIt "$cmd" "$LF" "$CMDF"
+
+    fi # LONG
+
+    # in all cases where sphere.reg is available, create jacobian white (distortion to sphere)
+    # and avgcurv (map atlas curvature to subject):
+    cmd="recon-all -subject $subject -hemi $hemi -jacobian_white -avgcurv -no-isrunning $hiresflag $fsthreads"
+    RunIt "$cmd" "$LF" "$CMDF"
+
   fi
 
-# ============================= WHITE & PIAL & (FSSURFSEG optional) ===============================================
 
+# ============================= aparc.annot (optional) ==============================================
+
+
+  # aparc only takes 20 seconds, and is created when -fsaparc is passed
+  # it is then used also below for surface placement.
+  # we should consider, always computing it (when surfreg is availbe) -> test later what consequences this has
+  #if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   if [ "$fsaparc" == "1" ] ; then
     {
       echo "echo \" \""
-      echo "echo \"============ Creating surfaces $hemi - FS asegdkt_segfile..pial ===============\""
+      echo "echo \"============ Creating surfaces $hemi - FS aparc ===============\""
       echo "echo \" \""
     } | tee -a "$CMDF"
 
-    # 20-25 min for traditional surface segmentation (each hemi)
-    # this creates aparc and creates pial using aparc, also computes jacobian
-    cmd="recon-all -subject $subject -hemi $hemi -jacobian_white -avgcurv -cortparc -white -pial -no-isrunning $hiresflag $fsthreads"
+    longflag=""
+    if [ "$long" == "1" ] ; then
+      # recon-all has different treatment for cortparc:
+      # initialize with aparc.annot from base
+      longflag="-long -R $basedir/label/${hemi}.aparc.annot"
+    fi
+    CPAtlas="$FREESURFER_HOME/average/${hemi}.DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs"
+    cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $ldir/${hemi}.aparc.annot"
     RunIt "$cmd" "$LF" "$CMDF"
-    # Here insert DoT2Pial  later!
-  else
+
+  fi
+
+
+# ============================= SURFACES: WHITE & PIAL  =======================================================
+
+
+  # first select what cortical parcellation to use to guide surface placement:
+  aparc=""
+  if [ "$fsaparc" == "1" ] ; then
+    {
+      echo "echo \" \""
+      echo "echo \"============ Creating surfaces $hemi - white and pial using FS aparc ===============\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
+    # use FS aparc in surface placement below
+    aparc="../label/${hemi}.aparc.annot"
+
+  else # FastSurfer mapped
     {
       echo "echo \" \""
       echo "echo \"================ Creating surfaces $hemi - white and pial direct ===================\""
       echo "echo \" \""
     } | tee -a "$CMDF"
-
-    # 4 min compute white :
-    echo "pushd $mdir > /dev/null" >> "$CMDF"
-    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white.preaparc --o ../surf/$hemi.white --white --nsmooth 0 --rip-label ../label/$hemi.cortex.label --rip-bg --rip-surf ../surf/$hemi.white.preaparc --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot"
-    RunIt "$cmd" "$LF" "$CMDF"
-    # 4 min compute pial :
-    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --seg aseg.presurf.mgz --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.white --o ../surf/$hemi.pial.T1 --pial --nsmooth 0 --rip-label ../label/$hemi.cortex+hipamyg.label --pin-medial-wall ../label/$hemi.cortex.label --aparc ../label/$hemi.aparc.DKTatlas.mapped.annot --repulse-surf ../surf/$hemi.white --white-surf ../surf/$hemi.white"
-    RunIt "$cmd" "$LF" "$CMDF"
-    echo "popd > /dev/null" >> "$CMDF"
-
-    # Here insert DoT2Pial  later --> if T2pial is not run, need to softlink pial.T1 to pial!
-
-    echo "pushd $sdir > /dev/null" >> "$CMDF"
-    softlink_or_copy "$hemi.pial.T1" "$hemi.pial" "$LF" "$CMDF"
-    echo "popd > /dev/null" >> "$CMDF"
-
-    echo "pushd $mdir > /dev/null" >> "$CMDF"
-    # these are run automatically in fs7* recon-all and cannot be called directly without -pial flag (or other t2 flags)
-    if [ "$fssurfreg" == "1" ] ; then
-      # jacobian needs sphere reg which might be turned off by user (on by default)
-      cmd="mris_jacobian ../surf/$hemi.white ../surf/$hemi.sphere.reg ../surf/$hemi.jacobian_white"
-      RunIt "$cmd" "$LF" "$CMDF"
-    fi
-    cmd="mris_place_surface --curv-map ../surf/$hemi.white 2 10 ../surf/$hemi.curv"
-    RunIt "$cmd" "$LF" "$CMDF"
-    cmd="mris_place_surface --area-map ../surf/$hemi.white ../surf/$hemi.area"
-    RunIt "$cmd" "$LF" "$CMDF"
-    cmd="mris_place_surface --curv-map ../surf/$hemi.pial 2 10 ../surf/$hemi.curv.pial"
-    RunIt "$cmd" "$LF" "$CMDF"
-    cmd="mris_place_surface --area-map ../surf/$hemi.pial ../surf/$hemi.area.pial"
-    RunIt "$cmd" "$LF" "$CMDF"
-    cmd="mris_place_surface --thickness ../surf/$hemi.white ../surf/$hemi.pial 20 5 ../surf/$hemi.thickness"
-    RunIt "$cmd" "$LF" "$CMDF"
-    echo "popd > /dev/null" >> "$CMDF"
+    # use our mapped aparcDKT for surface placement (not sure if and where this makes a difference)
+    aparc="../label/${hemi}.aparc.DKTatlas.mapped.annot"
   fi
+
+  # change into mri dir, for local paths below (not sure this is needed, but maybe global paths did not work)
+  echo "pushd $mdir > /dev/null" >> "$CMDF"
+
+  # CREATE WHITE SURFACE:
+  # 4 min compute white :  
+  inputsurf="../surf/$hemi.white.preaparc"
+  longmaxdist=""
+  if [ "$long"] == "1" ] ; then
+    inputsurf="../surf/$hemi.orig_white"
+    longmaxdist="--max-cbv-dist 3.5"
+  fi
+  cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i $inputsurf --o ../surf/${hemi}.white --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc $longmaxdist"
+  RunIt "$cmd" "$LF" "$CMDF"
+
+  # CREAT PIAL SURFACE  
+  # 4 min compute pial :
+  inputsurf="../surf/$hemi.white"
+  longmaxdist=""
+  if [ "$long"] == "1" ] ; then
+    inputsurf="../surf/$hemi.orig_pial"
+    longmaxdist="--max-cbv-dist 3.5 --blend-surf .25 ../surf/$hemi.white"
+  fi
+  cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i $inputsurf --o ../surf/${hemi}.pial.T1 --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white $longmaxdist"
+  RunIt "$cmd" "$LF" "$CMDF"
+  
+  echo "popd > /dev/null" >> "$CMDF"
+
+  # Here insert DoT2Pial  later --> if T2pial is not run, need to softlink pial.T1 to pial!
+  echo "pushd $sdir > /dev/null" >> "$CMDF"
+  softlink_or_copy "$hemi.pial.T1" "$hemi.pial" "$LF" "$CMDF"
+  echo "popd > /dev/null" >> "$CMDF"
+
+  # these are run automatically in fs7* recon-all and cannot be called directly without -pial flag (or other t2 flags)
+  # they are the same for fsaparc and long
+  echo "pushd $mdir > /dev/null" >> "$CMDF"
+  cmd="mris_place_surface --curv-map ../surf/$hemi.white 2 10 ../surf/$hemi.curv"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_place_surface --area-map ../surf/$hemi.white ../surf/$hemi.area"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_place_surface --curv-map ../surf/$hemi.pial 2 10 ../surf/$hemi.curv.pial"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_place_surface --area-map ../surf/$hemi.pial ../surf/$hemi.area.pial"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_place_surface --thickness ../surf/$hemi.white ../surf/$hemi.pial 20 5 ../surf/$hemi.thickness"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "popd > /dev/null" >> "$CMDF"
+ 
 
 
 # ============================= CURVSTATS ===============================================
@@ -984,10 +1073,32 @@ if [ "$base" != "1" ] ; then
       echo "============= Creating surfaces - other FS asegdkt_segfile and stats ======================="
       echo ""
     } | tee -a "$LF"
-    cmd="recon-all -subject $subject -cortparc2 -cortparc3 -pctsurfcon -hyporelabel $hiresflag $fsthreads"
+
+    # Destrieux Atlas (recon-all -cortparc2):
+    longflag=""
+    if [ "$long" == "1" ] ; then
+      # recon-all has different treatment for cortparc:
+      # initialize with destrieux annot from base
+      longflag="-long -R $basedir/label/${hemi}.a2009s.annot"
+    fi
+    CPAtlas="$FREESURFER_HOME/average/${hemi}.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs"
+    annot="$ldir/${hemi}.aparc.a2009s.annot"
+    cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $annot"
     RunIt "$cmd" "$LF"
 
-    cmd="recon-all -subject $subject -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
+    # DKT Atlas (recon-all -cortparc3):
+    longflag=""
+    if [ "$long" == "1" ] ; then
+      # recon-all has different treatment for cortparc:
+      # initialize with destrieux annot from base
+      longflag="-long -R $basedir/label/${hemi}.DKTatlas.annot"
+    fi
+    CPAtlas="$FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs"
+    annot="$ldir/${hemi}.aparc.DKTatlas.annot"
+    cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $annot"
+    RunIt "$cmd" "$LF"
+
+    cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
     # removed -segstats here (now part of mri_segstats.py/segstats.py
