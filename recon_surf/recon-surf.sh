@@ -485,7 +485,7 @@ if [ "$long" == "1" ] ; then
   # for long we copy mask from base
   cmd="cp $basedir/mri/mask.mgz $mask"
   RunIt "$cmd" $LF
-  # for base stream, don't overwrite mask in reduce_to_aseg.py below
+  # for long stream, don't overwrite mask in reduce_to_aseg.py below
   outmask=""
 fi
 
@@ -536,19 +536,17 @@ fi
 if [ "$long" == "1" ] ; then
   # copy all talairach transforms from base (as we are in same space)
   # this also fixes eTIV across time (if FreeSurfer scaling method is used)
+  cmd="cp $basedir/mri/transforms/talairach.lta $mdir/transforms/talairach.lta"
+  RunIt "$cmd" $LF
   cmd="cp $basedir/mri/transforms/talairach.auto.xfm $mdir/transforms/talairach.auto.xfm"
   RunIt "$cmd" $LF
   cmd="cp $mdir/transforms/talairach.auto.xfm $mdir/transforms/talairach.xfm"
   RunIt "$cmd" $LF
   cmd="cp $basedir/mri/transforms/talairach.xfm.lta $mdir/transforms/talairach.xfm.lta"
   RunIt "$cmd" $LF
-  # Since we do not run mri_em_register we sym-link other talairach transform files here
-  pushd "$mdir/transforms" > /dev/null || ( echo "ERROR: Could not change to the transforms directory $mdir/transforms!" | tee -a "$LF" ; exit 1 )
-    cmd="ln -sf talairach.xfm.lta talairach_with_skull.lta"
-    RunIt "$cmd" $LF
-    cmd="ln -sf talairach.xfm.lta talairach.lta"
-    RunIt "$cmd" $LF
-  popd > /dev/null || (echo "Could not popd" ; exit 1)
+  cmd="cp $basedir/mri/transforms/talairach_with_skull.lta $mdir/transforms/talairach_with_skull.lta"
+  RunIt "$cmd" $LF
+
   # Add xfm to nu header
   # (use orig_nu, if nu.mgz does not exist already); by default, it should exist
   if [[ -e "$mdir/nu.mgz" ]] ; then src_nu_file="$mdir/nu.mgz"
@@ -643,7 +641,7 @@ if [ "$long" == "1" ] ; then
   # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation $hiresflag $fsthreads"
   RunIt "$cmd" $LF
-  # copy over filled from base for stop edits
+  # copy over filled from base for stop-edits to transfer to long (a bit of a hack)
   cmd="cp $basedir/mri/filled.mgz $mdir/filled.mgz"
   RunIt "$cmd" $LF
 else # cross and base
@@ -731,7 +729,17 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF" "$CMDF"
   fi
 
-  fi # not long
+  else # LONG
+
+    # here we skip most steps above (and some below) and copy surfaces from base for initialization of placement later
+    cmd="cp $basedir/surf/${hemi}.white $sdir/${hemi}.orig_white"
+    RunIt "$cmd" $LF
+    cmd="cp $basedir/surf/${hemi}.white $sdir/${hemi}.orig"
+    RunIt "$cmd" $LF
+    cmd="cp $basedir/surf/${hemi}.pial $sdir/${hemi}.orig_pial"
+    RunIt "$cmd" $LF
+
+  fi # end LONG
 
 
 # ============================= INFLATE1 - QSPHERE =====================================================
@@ -798,7 +806,7 @@ for hemi in lh rh ; do
 
     # for place_surfaces white.preparc we need to directly call it with special long paramter:
     # cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning $hiresflag $fsthreads"
-    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/lh.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
+    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
     RunIt "$cmd" "$LF" "$CMDF"
 
   fi # long
@@ -888,7 +896,7 @@ for hemi in lh rh ; do
     else # longitudinal
 
       # SPHERE (mapping with minimal distortion) we copy it from base:
-      cmd="cp $basedir/surf/$hemi.shpere $sdir/$hemi.sphere"
+      cmd="cp $basedir/surf/$hemi.sphere $sdir/$hemi.sphere"
       RunIt "$cmd" "$LF" "$CMDF"
 
       # SURFREG (sphere.reg)
