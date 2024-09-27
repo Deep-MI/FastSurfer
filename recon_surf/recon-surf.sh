@@ -1183,6 +1183,22 @@ if [ "$base" != "1" ] ; then
            --threads "$threads")
 #      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
     else
+
+      if [ "$long" == "1" ] ; then
+        cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+           --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
+           --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
+           # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
+           --excludeid 0 2 3 41 42
+           --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
+           measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
+                              "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
+                              "rhCerebralWhiteMatter" "CerebralWhiteMatter"
+                              "SubCortGray" "TotalGray" "SupraTentorial"
+                              "SupraTentorialNotVent" "Mask($mdir/mask.mgz)"
+                              "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
+                              "EstimatedTotalIntraCranialVol")
+      else
       # calculate brainvol stats and aseg stats with segstats.py
       cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
            --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
@@ -1198,6 +1214,7 @@ if [ "$base" != "1" ] ; then
                               "BrainSegVol-to-eTIV" "MaskVol-to-eTIV" "lhSurfaceHoles"
                               "rhSurfaceHoles" "SurfaceHoles"
                               "EstimatedTotalIntraCranialVol")
+      fi
       RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
       echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
       # ... so stats/brainvol.stats also exists (but it is slightly different
