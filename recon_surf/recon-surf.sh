@@ -1185,6 +1185,8 @@ if [ "$base" != "1" ] ; then
     else
 
       if [ "$long" == "1" ] ; then
+        # in long we do not have orig_nofix for surface hole computation as surfaces
+        # are inherited from base/template
         cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
            --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
            --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
