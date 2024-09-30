@@ -6,11 +6,10 @@ import nibabel as nib
 import nibabel.cmdline.diff
 import numpy as np
 import pytest
-import torch
-from monai.metrics import DiceMetric
+
+from FastSurferCNN.utils.metrics import dice_score
 
 from .common import load_test_subjects
-from .test_stats import file_types
 
 logger = getLogger(__name__)
 
@@ -63,19 +62,26 @@ def compute_dice_score(test_data, reference_data, labels):
         Dice scores for each class.
     """
     # Ensure the numpy arrays have the native byte order
-    test_data = test_data.astype(test_data.dtype.newbyteorder("="))
-    reference_data = reference_data.astype(reference_data.dtype.newbyteorder("="))
+    # test_data = test_data.astype(test_data.dtype.newbyteorder("="))
+    # reference_data = reference_data.astype(reference_data.dtype.newbyteorder("="))
+    #
+    # # Convert numpy arrays to torch tensors
+    # test_tensor = torch.from_numpy(test_data, dtype=torch.int)
+    # reference_tensor = torch.from_numpy(reference_data, dtype=torch.int)
+    #
+    # # Initialize DiceMetric
+    # dice_metric = DiceMetric(include_background=False, get_not_nans=False, ignore_empty=True, num_classes=len(labels))
+    #
+    # # Compute Dice score
+    # dice_metric(y_pred=test_tensor.unsqueeze(0), y=reference_tensor.unsqueeze(0))
+    # dscore = dice_metric.aggregate().cpu().numpy()
 
-    # Convert numpy arrays to torch tensors
-    test_tensor = torch.tensor(test_data, dtype=torch.int)
-    reference_tensor = torch.tensor(reference_data, dtype=torch.int)
+    dice = np.zeros(len(labels))
+    for idx, label in enumerate(labels):
 
-    # Initialize DiceMetric
-    dice_metric = DiceMetric(include_background=False, get_not_nans=False, ignore_empty=True, num_classes=len(labels))
+        dice[idx] = dice_score(test_data == label, reference_data == label, validate=False)
 
-    # Compute Dice score
-    dice_metric(y_pred=test_tensor.unsqueeze(0), y=reference_tensor.unsqueeze(0))
-    dscore = dice_metric.aggregate().cpu().numpy()
+    dscore = np.mean(dice)
 
     logger.debug("\nDice score: ", dscore)
 
@@ -182,8 +188,6 @@ def test_seg_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_
     # Compute the dice score
     dscore = compute_dice_score(test_data, reference_data, labels)
 
-    print("\ndscore: ", dscore)
-
     # Check the dice score
     np.testing.assert_allclose(
         dscore, 0, atol=1e-6, rtol=1e-6, err_msg="Dice scores are not within range for all classes"
@@ -231,221 +235,3 @@ def test_int_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_
     assert mse == 0, "Mean square error is not 0"
 
     logger.debug("\nImage data matches")
-
-
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_aseg_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the segmentation data by calculating and comparing dice scores.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the dice score is not 0 for all classes
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_seg_data(test_file, reference_file, "aseg.mgz")
-#
-#
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_aparc_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the segmentation data by calculating and comparing dice scores.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the dice score is not 0 for all classes
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_seg_data(test_file, reference_file, "aparc.DKTatlas+aseg.deep.mgz")
-#
-#
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_cereb_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the segmentation data by calculating and comparing dice scores.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the dice score is not 0 for all classes
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_seg_data(test_file, reference_file, "cerebellum.CerebNet.nii.gz")
-#
-#
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_hyp_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the segmentation data by calculating and comparing dice scores.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the dice score is not 0 for all classes
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_seg_data(test_file, reference_file, "hypothalamus.HypVINN.nii.gz")
-#
-#
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_wmparc_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the segmentation data by calculating and comparing dice scores.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the dice score is not 0 for all classes
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_seg_data(test_file, reference_file, "wmparc.DKTatlas.mapped.mgz")
-#
-#
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_orig_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the intensity data by calculating and comparing the mean square error.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the mean square error is not 0
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_int_data(test_file, reference_file, "orig.mgz")
-#
-#
-# @pytest.mark.parametrize("test_subject", load_test_subjects())
-# def test_orignu_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
-#     """
-#     Test the intensity data by calculating and comparing the mean square error.
-#
-#     Parameters
-#     ----------
-#     subjects_dir : Path
-#         Path to the subjects directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_dir : Path
-#         Name of test directory.
-#         Filled by pytest fixture from conftest.py.
-#     reference_dir : Path
-#         Name of reference directory.
-#         Filled by pytest fixture from conftest.py.
-#     test_subject : Path
-#         Name of the test subject.
-#
-#     Raises
-#     ------
-#     AssertionError
-#         If the mean square error is not 0
-#     """
-#
-#     test_file = subjects_dir / test_dir / test_subject
-#     reference_file = subjects_dir / reference_dir / test_subject
-#
-#     check_int_data(test_file, reference_file, "orig_nu.mgz")
-
