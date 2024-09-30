@@ -23,18 +23,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Checkout repo
-  checkout:
+  run-quicktest:
     runs-on: self-hosted
     steps:
+    # Checkout fastsurfer
     - uses: actions/checkout@v2
-
-  # Create conda environment, install packages, and run Fastsurfer
-  run-fastsurfer:
-    runs-on: self-hosted
-    needs: checkout
-    steps:
-      # Check if the Environment Variables used in further steps are present
+    # Check if the Environment Variables used in further steps are present
     - name: Check Environment Variables
       run: |
         REQUIRED_ENV_VARS=(
@@ -71,16 +65,11 @@ jobs:
         export THIS_RUN_OUTDIR=${GITHUB_SHA:0:7}
         mkdir -p $SUBJECTS_DIR/$THIS_RUN_OUTDIR
         export TEST_DIR=$THIS_RUN_OUTDIR
+        export TQDM_DISABLE=1
         ./brun_fastsurfer.sh --subject_list $RUNNER_FS_MRI_DATA/subjects_list.txt \
                              --sd $SUBJECTS_DIR/$THIS_RUN_OUTDIR \
                              --parallel --threads 4 --3T --parallel_subjects surf
-
-  # Test fastsurfer output
-  run-pytest:
-    runs-on: self-hosted
-    if: always()
-    needs: run-fastsurfer
-    steps:
+    # run pytest checks for data consistency/quality
     - name: Run pytest
       run: |
         source /venv-pytest/bin/activate
