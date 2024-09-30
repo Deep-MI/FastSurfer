@@ -1,6 +1,6 @@
-name: quicktest-runner
+name: quicktest
 
-# File: quicktest_runner.yaml
+# File: quicktest.yaml
 # Author: Taha Abdullah
 # Created on: 2023-07-10
 # Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
