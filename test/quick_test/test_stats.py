@@ -5,7 +5,6 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
-from torch.nn.functional import threshold
 
 from .common import load_test_subjects
 
@@ -241,5 +240,3 @@ def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_su
             logger.debug(key, value)
 
     return variations
-
-
