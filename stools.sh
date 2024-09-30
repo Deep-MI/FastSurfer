@@ -388,27 +388,10 @@ function make_copy_job ()
   fi
 }
 
-function first_non_empty_partition ()
-{
-  for i in "$@"
-  do
-    if [[ -n "$i" ]]
-    then
-      echo "-p $i"
-      break
-    fi
-  done
-}
 function first_non_empty_arg ()
 {
-  for i in "$@"
-  do
-    if [[ -n "$i" ]]
-    then
-      echo "$i"
-      break
-    fi
-  done
+  # returns the first argument to the function that was not empty
+  for i in "$@" ; do if [[ -n "$i" ]] ; then echo "$i" ; break ; fi ; done
 }
 function print_status ()
 {

@@ -372,8 +372,8 @@ debug "SLURM options:"
 debug "submit jobs and perform operations: $submit_jobs"
 debug "perform the cleanup step: $do_cleanup"
 debug "seg/surf running on slurm partition:" \
-  "$(first_non_empty_arg "$partition_seg" "$partition")" "/" \
-  "$(first_non_empty_arg "$partition_surf" "$partition")"
+  "$(first_non_empty_arg "$partition_seg" "$partition" "<default partition>")" "/" \
+  "$(first_non_empty_arg "$partition_surf" "$partition" "<default partition>")"
 debug "num_cpus_per_task/max. num_cases_per_task: $num_cpus_per_task/$num_cases_per_task"
 debug "segmentation on cpu only: $cpu_only"
 debug "Data options:"
@@ -572,8 +572,8 @@ then
     seg_cmd_file=$(mktemp)
   fi  # END OF NEW
 
-  slurm_part_=$(first_non_empty_partition "$partition_seg" "$partition")
-  if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=("$slurm_part_") ; fi
+  slurm_part_=$(first_non_empty_arg "$partition_seg" "$partition")
+  if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
   {
     echo "#!/bin/bash"
     echo "module load singularity"
@@ -669,8 +669,8 @@ then
   if [[ "$mem_surf" -gt "$((mem_per_core * cores_per_task))" ]]; then
     mem_per_core=$((mem_per_core+1))
   fi
-  slurm_part_=$(first_non_empty_partition "$partition_surf" "$partition")
-  if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=("$slurm_part_") ; fi
+  slurm_part_=$(first_non_empty_arg "$partition_surf" "$partition")
+  if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
   {
     echo "#!/bin/bash"
     echo "module load singularity"
