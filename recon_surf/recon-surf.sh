@@ -108,7 +108,7 @@ FLAGS:
                             for free to obtain it if you do not have FreeSurfer
                             installed already.
   --base                  For longitudinal template (base) creation.
-  --long <basid>          For longitudinal time point creation, pass the ID of
+  --long <baseid>         For longitudinal time point creation, pass the ID of
                             the base (template) which needs to exist already in
                             the same subjects_dir.
   -h --help               Print Help
@@ -469,24 +469,10 @@ popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 # ============================= MASK & ASEG_noCC ========================================
 
 
-outmask="--outmask $mask"
-
-if [ "$base" == "1" ] ; then
-  # for base we build union of mapped masks beforehand so it should be available
-  if [ ! -f "$mask" ] ; then
-    echo "ERROR: file missing, base run requires $mask !" | tee -a $LF
-    exit 1
-  fi
-  # for base stream, don't overwrite mask in reduce_to_aseg.py below
-  outmask=""
-fi
-
 if [ "$long" == "1" ] ; then
   # for long we copy mask from base
-  cmd="cp $basedir/mri/mask.mgz $mask"
-  RunIt "$cmd" $LF
-  # for long stream, don't overwrite mask in reduce_to_aseg.py below
-  outmask=""
+  cmd=(cp "$basedir/mri/mask.mgz" "$mask")
+  RunIt "${cmd[*]}" "$LF"
 fi
 
 if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
@@ -499,8 +485,19 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
 
   # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
   # output will be uchar (else mri_cc will fail below)
-  cmd="$python $FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py -i $mdir/aparc.DKTatlas+aseg.orig.mgz -o $mdir/aseg.auto_noCCseg.mgz $outmask --fixwm"
-  RunIt "$cmd" $LF
+  cmd=($python "$FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py" -i "$mdir/aparc.DKTatlas+aseg.orig.mgz"
+       -o "$mdir/aseg.auto_noCCseg.mgz" --fixwm)
+
+  if [ "$base" == "1" ] && [ ! -f "$mask" ] ; then
+    # for base we build union of mapped masks beforehand so it should be available
+    echo "ERROR: $mask missing, but base run requires $mask!" | tee -a "$LF"
+    exit 1
+  elif [ "$long" != "1" ] && [ "$base" != 1 ] ; then
+    # cross-sectional processing, add outmask to cmd (not for or base long stream)
+    cmd+=(--outmask "$mask")
+  fi
+
+  RunIt "${cmd[*]}" "$LF"
 fi
 
 
@@ -534,6 +531,8 @@ fi
 # ============================= TALAIRACH ==============================================
 
 if [ "$long" == "1" ] ; then
+  #TODO: move this processing into talairach-reg.sh for consistency.
+
   # copy all talairach transforms from base (as we are in same space)
   # this also fixes eTIV across time (if FreeSurfer scaling method is used)
   cmd="cp $basedir/mri/transforms/talairach.lta $mdir/transforms/talairach.lta"
@@ -555,7 +554,8 @@ if [ "$long" == "1" ] ; then
   cmd="mri_add_xform_to_header -c $mdir/transforms/talairach.xfm $src_nu_file $mdir/nu.mgz"
   RunIt "$cmd" $LF
 
-else #regular processing (cross and base)
+else
+  # regular processing (cross and base)
   if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]] ; then
     # if talairach registration is missing, compute it here
     # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta
@@ -1183,40 +1183,25 @@ if [ "$base" != "1" ] ; then
            --threads "$threads")
 #      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
     else
-
-      if [ "$long" == "1" ] ; then
-        # in long we do not have orig_nofix for surface hole computation as surfaces
-        # are inherited from base/template
-        cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-           --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
-           --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
-           # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
-           --excludeid 0 2 3 41 42
-           --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
-           measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
-                              "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
-                              "rhCerebralWhiteMatter" "CerebralWhiteMatter"
-                              "SubCortGray" "TotalGray" "SupraTentorial"
-                              "SupraTentorialNotVent" "Mask($mdir/mask.mgz)"
-                              "BrainSegVol-to-eTIV" "MaskVol-to-eTIV"
-                              "EstimatedTotalIntraCranialVol")
-      else
       # calculate brainvol stats and aseg stats with segstats.py
       cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-           --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
-           --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
-           # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
-           --excludeid 0 2 3 41 42
-           --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
-           measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
-                              "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
-                              "rhCerebralWhiteMatter" "CerebralWhiteMatter"
-                              "SubCortGray" "TotalGray" "SupraTentorial"
-                              "SupraTentorialNotVent" "Mask($mdir/mask.mgz)"
-                              "BrainSegVol-to-eTIV" "MaskVol-to-eTIV" "lhSurfaceHoles"
-                              "rhSurfaceHoles" "SurfaceHoles"
-                              "EstimatedTotalIntraCranialVol")
+         --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
+         --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
+         # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
+         --excludeid 0 2 3 41 42
+         --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
+         measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
+                            "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
+                            "rhCerebralWhiteMatter" "CerebralWhiteMatter"
+                            "SubCortGray" "TotalGray" "SupraTentorial"
+                            "SupraTentorialNotVent" "Mask($mdir/mask.mgz)"
+                            "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
+      if [ "$long" == "0" ] ; then
+        # in long we do not have orig_nofix for surface hole computation as surfaces
+        # are inherited from base/template
+        cmd+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles")
       fi
+      cmd+=("EstimatedTotalIntraCranialVol")
       RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
       echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
       # ... so stats/brainvol.stats also exists (but it is slightly different
