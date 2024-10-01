@@ -804,7 +804,7 @@ for hemi in lh rh ; do
     cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -no-remesh -no-isrunning $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
-    # for place_surfaces white.preparc we need to directly call it with special long paramter:
+    # for place_surfaces white.preparc we need to directly call it with special long parameter:
     # cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning $hiresflag $fsthreads"
     cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
     RunIt "$cmd" "$LF" "$CMDF"
@@ -820,7 +820,7 @@ for hemi in lh rh ; do
     echo "echo \"\""
   } | tee -a "$CMDF"
 
-  # create cortex lable (1min)
+  # create cortex label (1min)
   # create nicer inflated surface from topo fixed (not needed, just later for visualization)
   # identical for long processing
   cmd="recon-all -subject $subject -hemi $hemi -cortex-label -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
@@ -925,7 +925,7 @@ for hemi in lh rh ; do
 
   # aparc only takes 20 seconds, and is created when -fsaparc is passed
   # it is then used also below for surface placement.
-  # we should consider, always computing it (when surfreg is availbe) -> test later what consequences this has
+  # we should consider, always computing it (when surfreg is available) -> test later what consequences this has
   #if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
   if [ "$fsaparc" == "1" ] ; then
     {
