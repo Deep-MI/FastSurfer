@@ -978,7 +978,7 @@ for hemi in lh rh ; do
   # 4 min compute white :  
   inputsurf="../surf/$hemi.white.preaparc"
   longmaxdist=""
-  if [ "$long"] == "1" ] ; then
+  if [ "$long" == "1" ] ; then
     inputsurf="../surf/$hemi.orig_white"
     longmaxdist="--max-cbv-dist 3.5"
   fi
@@ -989,7 +989,7 @@ for hemi in lh rh ; do
   # 4 min compute pial :
   inputsurf="../surf/$hemi.white"
   longmaxdist=""
-  if [ "$long"] == "1" ] ; then
+  if [ "$long" == "1" ] ; then
     inputsurf="../surf/$hemi.orig_pial"
     longmaxdist="--max-cbv-dist 3.5 --blend-surf .25 ../surf/$hemi.white"
   fi
