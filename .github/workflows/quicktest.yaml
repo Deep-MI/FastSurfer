@@ -2,108 +2,75 @@ name: quicktest
 
 # File: quicktest.yaml
 # Author: Taha Abdullah
-# Created on: 2023-03-04
-# Functionality: This workflow runs some quick integration tests on FastSurfer commits. It checks out the new
-#                FastSurfer repo, sets up Python, builds a Singularity image, runs FastSurfer on sample MRI data, and
-#                runs pytest to check if the results are acceptable
-# Usage: This workflow is exclusively triggered manually with workflow-dispatch in DeepMI/FastSurfer.
-
+# Created on: 2023-07-10
+# Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
+#  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
+# Usage: This workflow is triggered on a pull request to the dev and main branch. It can also be triggered manually
+#  with workflow-dispatch.
+# Expected/Used Environment Variables:
+#  - MAMBAPATH: Path to the micromamba binary.
+#  - MAMBAROOT: Root path for micromamba.
+#  - RUNNER_FS_OUTPUT: Path to the directory where FastSurfer output is stored.
+#  - RUNNER_FS_MRI_DATA: Path to the directory where MRI data is stored.
+#  - FREESURFER_HOME: Path to the freesurfer directory.
+#  - FS_LICENSE: Path to the FreeSurfer license file.
 
 on:
-#  pull_request:
+  pull_request:
+    branches:
+      - dev
+      - stable
   workflow_dispatch:
 
 jobs:
-  # Checkout repo
-  checkout:
+  run-quicktest:
     runs-on: self-hosted
     steps:
+    # Checkout fastsurfer
     - uses: actions/checkout@v2
-
-  # Prepare job: Set up Python, Go, Apptainer
-  prepare-job:
-    runs-on: self-hosted
-    needs: checkout
-    steps:
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Install package
+    # Check if the Environment Variables used in further steps are present
+    - name: Check Environment Variables
       run: |
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off .[test]
-#    - name: Set up Go
-#      uses: actions/setup-go@v5
-#      with:
-#        go-version: '^1.13.1' # The Go version to download (if necessary) and use.
-    - name: Set up Singularity
-      uses: eWaterCycle/setup-singularity@v7
-      with:
-        singularity-version: 3.8.7
-
-  # Build Docker Image and convert it to Apptainer
-  build-apptainer-image:
-    runs-on: self-hosted
-    needs: prepare-job
-    steps:
-    - name: Build Docker Image and convert to Apptainer
-      run: |
-        cd $RUNNER_FASTSURFER_IMGS
-        FILE="fastsurfer-gpu.sif"
-        if [ ! -f "$FILE" ]; then
-        # If the file does not exist, build the file
-          echo "SIF File does not exist. Building file."
-          cd $FASTSURFER_HOME
-          python3 Docker/build.py --device cuda --tag fastsurfer_gpu:cuda
-          apptainer build --force fastsurfer-gpu.sif docker-daemon://fastsurfer_gpu:cuda
-        else
-          echo "File already exists"
-          cd $FASTSURFER_HOME
+        REQUIRED_ENV_VARS=(
+          "MAMBAPATH"
+          "MAMBAROOT"
+          "RUNNER_FS_OUTPUT"
+          "RUNNER_FS_MRI_DATA"
+          "FREESURFER_HOME"
+          "FS_LICENSE"
+        )
+        
+        for VAR_NAME in "${REQUIRED_ENV_VARS[@]}"; do
+          if [ -z "${!VAR_NAME}" ]; then
+            echo "Error: Required environment variable $VAR_NAME is not set"
+            exit 1
+          fi
+        done
+        
+        if [ ! -f "$FS_LICENSE" ]; then
+          echo "Error: FreeSurfer license file does not exist at $FS_LICENSE"
+          exit 1
         fi
-
-  # Run FastSurfer on MRI data
-  run-fastsurfer:
-    runs-on: self-hosted
-    needs: build-apptainer-image
-    steps:
+        
+        if [ ! -d "$FREESURFER_HOME" ]; then
+          echo "Error: FreeSurfer installation directory does not exist at $FREESURFER_HOME"
+          exit 1
+        fi
+    # Run FastSurfer on test subjects
     - name: Run FastSurfer
       run: |
-        cd $RUNNER_FS_OUTPUT
-        # DIRECTORY="subjectX"
-        echo "pwd: $(pwd)"
-        # if [ -d "$DIRECTORY" ]; then
-        #   # if output already exists, delete it and run again
-        #   echo "Output already exists. Deleting output directory and running FastSurfer again."
-        #   rm -rf $DIRECTORY
-        # fi
-        apptainer exec --nv \
-                      --no-home \
-                      --bind $GITHUB_WORKSPACE:/fastsurfer-dev \
-                      --env FASTSURFER_HOME=/fastsurfer-dev \
-                      -B $RUNNER_FS_MRI_DATA:/data \
-                      -B $RUNNER_FS_OUTPUT:/output \
-                      -B $RUNNER_FS_LICENSE:/fs_license/.license \
-                      $RUNNER_FASTSURFER_IMGS/fastsurfer-gpu.sif \
-                      /fastsurfer/brun_fastsurfer.sh \
-                      --fs_license /fs_license/.license \
-                      --subject_list /data/subject_list.txt \
-                      --sd /output \
-                      --parallel --3T \
-                      --parallel_subjects surf
-
-  # Run pytest
-  run-pytest:
-      runs-on: self-hosted
-      needs: run-fastsurfer
-      steps:
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.10"
-      - name: Install package
-        run: |
-          python -m pip install --progress-bar off --upgrade pip setuptools wheel
-          python -m pip install --progress-bar off .[test]
-      - name : Run pytest
-        run: pytest test/quick_test
+        echo "Running FastSurfer..."
+        echo "Output will be saved in data/${GITHUB_SHA:0:7}"
+        export FASTSURFER_HOME=$(pwd)
+        export THIS_RUN_OUTDIR=${GITHUB_SHA:0:7}
+        mkdir -p $SUBJECTS_DIR/$THIS_RUN_OUTDIR
+        export TEST_DIR=$THIS_RUN_OUTDIR
+        export TQDM_DISABLE=1
+        ./brun_fastsurfer.sh --subject_list $RUNNER_FS_MRI_DATA/subjects_list.txt \
+                             --sd $SUBJECTS_DIR/$THIS_RUN_OUTDIR \
+                             --parallel --threads 4 --3T --parallel_subjects surf
+    # run pytest checks for data consistency/quality
+    - name: Run pytest
+      run: |
+        source /venv-pytest/bin/activate
+        python -m pytest test/quick_test
