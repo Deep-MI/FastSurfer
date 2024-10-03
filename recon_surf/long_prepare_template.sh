@@ -35,6 +35,7 @@
 #   - Check if a bias field correction before the registration is helpful.
 #   - Check if single view FastSurferVINN network is sufficient or if multi-view helps.
 #   - Check if centroid based alignemnt of the segmentation helps for initializing robust_template.
+#   - Maybe use intersection of tp masks as brainmask for base, as done in FreeSurfer.
 #   - Add flag for adding a new time point to an existing base/template.
 #
 #  FreeSurfer requirements: 
@@ -66,15 +67,16 @@ weights_sag="$checkpointsdir/aparc_vinn_sagittal_v2.0.0.pkl"
 weights_ax="$checkpointsdir/aparc_vinn_axial_v2.0.0.pkl"
 weights_cor="$checkpointsdir/aparc_vinn_coronal_v2.0.0.pkl"
 
-# TODO: these are fixed here, but should be passed via command line
-batch_size=16
-cuda=""
+# default arguments
+batch_size=1
+device="auto"
+viewagg="auto"
 python="python3.10 -s" # avoid user-directory package inclusion
 vox_size="min"
-
-# setup variables that are actually passed
-tid=""
 sd="$SUBJECTS_DIR"
+
+# init variables that need to be passed
+tid=""
 tpids=()
 t1s=()
 
@@ -100,7 +102,41 @@ FLAGS:
   --tpids <tID1> >tID2> ..  IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
   --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
+  --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
+                            If a number between 0.7 and 1 is specified (below
+                            is experimental) the T1w image is conformed to
+                            that voxel size and processed.
+                            If "min" is specified (default), the voxel size is
+                            read from the size of the minimal voxel size
+                            (smallest per-direction voxel size) in the T1w
+                            image:
+                              If the minimal voxel size is bigger than 0.98mm,
+                                the image is conformed to 1mm isometric.
+                              If the minimal voxel size is smaller or equal to
+                                0.98mm, the T1w image will be conformed to
+                                isometric voxels of that voxel size.
+                            The voxel size (whether set manually or derived)
+                            determines whether the surfaces are processed with
+                            highres options (below 1mm) or not.
   -h --help                 Print Help
+
+Resource Options:
+  --device                Set device on which inference should be run ("cpu" for
+                            CPU, "cuda" for Nvidia GPU, or pass specific device,
+                            e.g. cuda:1), default check GPU and then CPU
+  --viewagg_device <str>  Define where the view aggregation should be run on.
+                            Can be "auto" or a device (see --device). By default,
+                            the program checks if you have enough memory to run
+                            the view aggregation on the gpu. The total memory is
+                            considered for this decision. If this fails, or you
+                            actively overwrote the check with setting with "cpu"
+                            view agg is run on the cpu. Equivalently, if you
+                            pass a different device, view agg will be run on that
+                            device (no memory check will be done).
+  --batch <batch_size>    Batch size for inference. Default: 1
+  --py <python_cmd>       Command for python, used in both pipelines.
+                            Default: "$python"
+                            (-s: do no search for packages in home directory)
 
 EOF
 }
@@ -138,11 +174,27 @@ case $key in
     done
     ;;
   --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
+  --vox_size) vox_size="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   *)    # unknown option
     # if not empty arguments, error & exit
     if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
     ;;
+  --py) python="$1" ; shift ;;
+  --device) device="$1" ; shift ;;
+  --batch) batch_size="$1" ; shift ;;
+  --viewagg_device)
+    case "$1" in
+      check)
+        echo "WARNING: the option \"check\" is deprecated for --viewagg_device <device>, use \"auto\"."
+        viewagg="auto"
+        ;;
+      gpu) viewagg="cuda" ;;
+      *) viewagg="$1" ;;
+    esac
+    shift # past value
+    ;;
+
 esac
 done
 
@@ -208,7 +260,7 @@ fi
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
 echo "Version: $VERSION" | tee -a "$LF"
 echo "Log file for long_prepare_template" >> "$LF"
-  { date 2>&1 ; echo "" ; } | tee -a "$LF"
+{ date 2>&1 ; echo "" ; } | tee -a "$LF"
 echo "" | tee -a "$LF"
 echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a "$LF"
 echo "cd `pwd`" | tee -a "$LF"
@@ -291,34 +343,44 @@ for ((i=0;i<${#tpids[@]};++i)); do
   RunIt "$cmd" $LF
   # segment conform image
   # with the goal to create brainmask for mainly registration
-  # (here we can only use one network)
-  #seg="$mdir/aparc+aseg.orig${extension}" #currently eval cannot output nii.gz!!!!!
-  seg="$mdir/aparc+aseg.orig.mgz"
-  order=1
-  clean_seg=""
+  # (here we can probably only use one network)
+  asegdkt_segfile="$mdir/aparc+aseg.orig${extension}"
+  #seg="$mdir/aparc+aseg.orig.mgz"
+  conformed_name="$mdir/T1_orig${extension}"
+  mask_name="$mdir/mask${extension}"
+  aseg_segfile="$mdir/aseg.auto_noCCseg${extension}"
+  seg_log="/dev/null"
+
+  #clean_seg=""
   #pushd $fscnndir
-  cmd="$python $fastsurfercnndir/eval.py --in_name $conform --out_name $seg --order $order \
-         --network_sagittal_path $weights_sag \
-         --network_axial_path $weights_ax \
-         --network_coronal_path $weights_cor \
-         --batch_size $batch_size --simple_run $clean_seg $cuda"
-  RunIt "$cmd" $LF
+  #cmd="$python $fastsurfercnndir/eval.py --in_name $conform --out_name $seg --order $order \
+  #       --network_sagittal_path $weights_sag \
+  #       --network_axial_path $weights_ax \
+  #       --network_coronal_path $weights_cor \
+  #       --batch_size $batch_size --simple_run $clean_seg $device"
+  cmd=($python "$fastsurfercnndir/run_prediction.py" -t1 "${t1s[i]}"
+         --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
+         --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
+         --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
+         --viewagg_device "$viewagg" --device "$device")
+  RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
   #popd    
 
-  echo " " | tee -a $LF
-  echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ===============" | tee -a $LF
-  echo " " | tee -a $LF
-  # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
-  # output will be uchar (else mri_cc will fail below)
-  mask="$mdir/mask${extension}"
-  aseg="$mdir/aseg.auto_noCCseg${extension}"
-  mask="$mdir/mask.mgz"
-  aseg="$mdir/aseg.auto_noCCseg.mgz"
-  # not sure this works with nifti !!! no cannot output nifti automatically:
-  cmd="$python $reconsurfdir/reduce_to_aseg.py -i $seg -o $aseg --outmask $mask"
-  RunIt "$cmd" $LF
+  #echo " " | tee -a $LF
+  #echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ===============" | tee -a $LF
+  #echo " " | tee -a $LF
+  ## reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
+  ## output will be uchar (else mri_cc will fail below)
+  #mask="$mdir/mask${extension}"
+  #aseg="$mdir/aseg.auto_noCCseg${extension}"
+  #mask="$mdir/mask.mgz"
+  #aseg="$mdir/aseg.auto_noCCseg.mgz"
+  ## not sure this works with nifti !!! no cannot output nifti automatically:
+  #cmd="$python $reconsurfdir/reduce_to_aseg.py -i $seg -o $aseg --outmask $mask"
+  #RunIt "$cmd" $LF
+  
   # mask is binary, we need to use on orig
-  cmd="mri_mask $conform $mask $mdir/brainmask${extension}"
+  cmd="mri_mask $conformed_name $mask_name $mdir/brainmask${extension}"
   RunIt "$cmd" $LF
 done
 
@@ -367,13 +429,11 @@ then
   # 1. make the norm upright (base space)
   cmd="make_upright ${normInVols[0]} \
        ${SUBJECTS_DIR}/$tid/mri/norm_template.mgz ${ltaXforms[0]}"
-  #echo "$cmd"
   RunIt "$cmd" $LF
 
   # 2. create the upright orig volume
   cmd="mri_convert -rt cubic \
        -at ${ltaXforms[0]} ${subjInVols[0]} ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
-  #echo "$cmd"
   RunIt "$cmd" $LF
 
 else #more than 1 time point:
@@ -386,7 +446,6 @@ else #more than 1 time point:
   cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/norm_template.mgz"
   cmd="$cmd --average ${robust_template_avg_arg}"
   cmd="$cmd --sat 4.685"
-  #echo "$cmd"
   RunIt "$cmd" $LF
 
   # create the 'mean/median' input (orig) volume:
@@ -396,7 +455,6 @@ else #more than 1 time point:
   cmd="$cmd --noit"
   t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
   cmd="$cmd --template $t1"
-  #echo "$cmd"
   RunIt "$cmd" $LF
 
 fi # more than one time point
@@ -411,10 +469,6 @@ do
   cmd="$cmd $odir/${s}_to_${tid}.lta"
   cmd="$cmd identity.nofile"
   cmd="$cmd $odir/${tid}_to_${s}.lta"
-  #echo "$cmd"
   RunIt "$cmd" $LF
 done
 
-# for consistency with FreeSurfer longitudinal strea, one could
-# map all cross sectional mask to base space and compute the union. 
-# currently we simply re-create the mask in base during segmentation.
