@@ -19,7 +19,7 @@
 #
 #  FastSurfer Longitudinal Processing
 # 
-#  1. Preapre base inputs (time point co-registration etc)
+#  1. Prepare base inputs (time point co-registration etc)
 #  2. Run Base Segmentation (aparcDKT only)
 #  3. Run Base Surface creation (skip some steps there using -base flag)
 #  4. Run Long Segmentation (can be in parallel with 2 and 3 above)
@@ -211,7 +211,7 @@ RunIt "$cmd" $LF
 
 # This can run in parallel with base segd and surf steps above
 
-# file name for longitudinal inputs (paths need to be pre-pended later)
+# file name for longitudinal inputs (paths need to be prepended later)
 extension=".nii.gz"
 t1lfn="long_conform${extension}"
 for ((i=0;i<${#tpids[@]};++i)); do

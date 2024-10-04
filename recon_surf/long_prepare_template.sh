@@ -21,7 +21,7 @@
 # 
 # 
 #  This script is part of the FastSurfer longitudinal pipeline. It runs a few pre-processing steps
-#  to setup a base template for processing with a slighly modified version of run_fastsurfer.
+#  to setup a base template for processing with a slightly modified version of run_fastsurfer.
 # 
 #  1. It obtains a brainmask on all time points for a specific subject
 #  2. It uses mri_robust_template to co-register all time points into a mid-space
@@ -34,7 +34,7 @@
 #  Potential future things:
 #   - Check if a bias field correction before the registration is helpful.
 #   - Check if single view FastSurferVINN network is sufficient or if multi-view helps.
-#   - Check if centroid based alignemnt of the segmentation helps for initializing robust_template.
+#   - Check if centroid based alignment of the segmentation helps for initializing robust_template.
 #   - Maybe use intersection of tp masks as brainmask for base, as done in FreeSurfer.
 #   - Add flag for adding a new time point to an existing base/template.
 #
@@ -63,7 +63,7 @@ fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 # some fixed variables
-extension=".nii.gz" # this script already works completely with nifti execpt for the final <TID>/mri/orig.mgz output
+extension=".nii.gz" # this script already works completely with nifti except for the final <TID>/mri/orig.mgz output
 interpol="cubic"    # for the final interpolation of all time points in median image
 robust_template_avg_arg=1  # median for template creation (if more than 1 time point)
 
@@ -307,7 +307,7 @@ then
   {
     echo " "
     echo "*******************************************************************************" 
-    echo "WARNING: Image parameters differ across time, maybe due to aquisition changes?"
+    echo "WARNING: Image parameters differ across time, maybe due to acquisition changes?"
     echo "         Consistent changes in, e.g., resolution can potentially bias a "
     echo "         longitudinal study! You can check image parameters by running mri_info"
     echo "         on each input image. Will continue in 10 seconds ..."
