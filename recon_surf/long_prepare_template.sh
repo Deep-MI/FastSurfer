@@ -154,6 +154,7 @@ fi
 # PARSE Command line
 inputargs=("$@")
 POSITIONAL=()
+i=0
 while [[ $# -gt 0 ]]
 do
 # make key lowercase
@@ -193,10 +194,14 @@ case $key in
     esac
     shift # past value
     ;;
-  *)    # unknown option
-    # if not empty arguments, error & exit
-    if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
+  *)    # unknown option get ignored
+    POSITIONAL_FASTSURFER[i]=$KEY
+    i=$((i + 1))
     ;;
+  #*)    # unknown option
+  #  # if not empty arguments, error & exit
+  #  if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
+  #  ;;
 esac
 done
 

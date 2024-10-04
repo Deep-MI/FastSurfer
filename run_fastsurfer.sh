@@ -73,6 +73,10 @@ threads="1"
 python="python3.10 -s"
 allow_root=()
 version_and_quit=""
+base=0                # flag for longitudinal template (base) run
+long=0                # flag for longitudinal time point run
+baseid=""             # baseid for logitudinal time point run
+
 
 function usage()
 {
@@ -236,6 +240,17 @@ Resource Options:
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
                             (-s: do no search for packages in home directory)
+
+ Longitudinal Flags:
+  --base                  For longitudinal template (base) creation. Will switch
+                            off all segmentation modules except ASEGDKT and run a
+                            few steps differently in the surface module.
+  --long <baseid>         For longitudinal time point creation, pass the ID of
+                            the base (template) which needs to exist already in
+                            the same subjects_dir. For segmentation modules this
+                            is identical to regular processing, for surface
+                            module skip many steps and initialize from subject
+                            template.
 
  Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
@@ -446,6 +461,13 @@ case $key in
   --segstats_legacy)
     surf_flags=("${surf_flags[@]}" "$key")
     ;;
+
+  ##############################################################
+  # longitudinal options
+  ##############################################################
+  --base) base=1 ; run_cereb_module="0" ; run_hypvinn_module="0" ; surf_flags=("${surf_flags[@]}" "--base") ;;
+  --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long $1") ; shift ;;
+
   *)    # unknown option
     # if not empty arguments, error & exit
     if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
