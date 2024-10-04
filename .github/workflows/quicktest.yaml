@@ -16,10 +16,10 @@ name: quicktest
 #  - FS_LICENSE: Path to the FreeSurfer license file.
 
 on:
-  pull_request:
-    branches:
-      - dev
-      - stable
+#  pull_request:
+#    branches:
+#      - dev
+#      - stable
   workflow_dispatch:
 
 jobs:
