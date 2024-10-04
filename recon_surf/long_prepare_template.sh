@@ -61,11 +61,11 @@ fi
 # Paths
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
-# Maybe Todo: don't hard code checkpoints here:
-checkpointsdir="$FASTSURFER_HOME/checkpoints"
-weights_sag="$checkpointsdir/aparc_vinn_sagittal_v2.0.0.pkl"
-weights_ax="$checkpointsdir/aparc_vinn_axial_v2.0.0.pkl"
-weights_cor="$checkpointsdir/aparc_vinn_coronal_v2.0.0.pkl"
+
+# some fixed variables
+extension=".nii.gz" # this script already works completely with nifti execpt for the final <TID>/mri/orig.mgz output
+interpol="cubic"    # for the final interpolation of all time points in median image
+robust_template_avg_arg=1  # median for template creation (if more than 1 time point)
 
 # default arguments
 batch_size=1
@@ -86,22 +86,25 @@ function usage()
 {
 cat << EOF
 
-Usage: long_prepare_template.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
+Usage: long_prepare_template.sh --tid <sid> --t1s <T1_1> <T1_2> .. \\
+                                --tpids <ID1> <ID2> .. \\
+                                --sd <sdir> [OPTIONS]
 
-long_prepare_template.sh takes a list of T1 full head image and creates:
-     (i)   a template subject directory 
-     (ii)  skull stripped and co-registerd images
-     (iii) median image as template for this subject
+long_prepare_template.sh takes a list of T1 full head images and creates:
+     (i)   a template/base subject directory: <SUBJECTS_DIR>/<TID>
+     (ii)  co-registered images for all time points:
+           <TID>/long-inputs/<tpid>/long_conform.nii.gz
+     (iii) median image as template for this subject <TID>/mri/orig.mgz
 
 FLAGS:
 
-  --tid <templateID>        ID for subject template/base directory inside
-                              \$SUBJECTS_DIR to be created"
-  --t1s <T1_1> <T1_2> ..    T1 full head inputs for each time point (do not need
-                              to be bias corrected). Requires ABSOLUTE paths!
-  --tpids <tID1> >tID2> ..  IDs for future time points directories inside
-                              \$SUBJECTS_DIR to be created later (during --long)
-  --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
+  --tid <templateID>      ID for subject template/base directory inside
+                            \$SUBJECTS_DIR to be created"
+  --t1s <T1_1> <T1_2> ..  T1 full head inputs for each time point (do not need
+                            to be bias corrected). Requires ABSOLUTE paths!
+  --tpids <ID1> >ID2> ..  IDs for future time points directories inside
+                            \$SUBJECTS_DIR to be created later (during --long)
+  --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
@@ -118,7 +121,7 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
-  -h --help                 Print Help
+  -h --help                Print Help
 
 Resource Options:
   --device                Set device on which inference should be run ("cpu" for
@@ -176,10 +179,6 @@ case $key in
   --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
   --vox_size) vox_size="$1" ; shift ;;
   -h|--help) usage ; exit ;;
-  *)    # unknown option
-    # if not empty arguments, error & exit
-    if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
-    ;;
   --py) python="$1" ; shift ;;
   --device) device="$1" ; shift ;;
   --batch) batch_size="$1" ; shift ;;
@@ -194,14 +193,15 @@ case $key in
     esac
     shift # past value
     ;;
-
+  *)    # unknown option
+    # if not empty arguments, error & exit
+    if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
+    ;;
 esac
 done
 
 
-
-
-#### CHECKS
+################################## CHECKS ##############################
 
 if [ -z "$t1s" ]
  then
@@ -246,6 +246,8 @@ then
   exit 1;
 fi
 
+
+################################## SETUP and LOGFILE ##############################
 
 
 # Setup Base/Template Directory and Log file
@@ -326,61 +328,44 @@ fi
   echo " "
 } | tee -a "$LF"
 
-# copy inputs locally as nii.gz files (keep log where they came from)
-extension=".nii.gz"
 for ((i=0;i<${#tpids[@]};++i)); do
   #printf "%s with T1 %s\n" "${tpids[i]}" "${t1s[i]}"
   echo "${tpids[i]} with T1 ${t1s[i]}" | tee -a "$LF"
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
   mkdir -p $mdir
   # Import (copy) raw inputs (convert to extension format)
-  cmd="mri_convert ${t1s[i]} $mdir/T1_raw${extension}"
+  t1input=$mdir/cross_input${extension}
+  cmd="mri_convert ${t1s[i]} $t1input"
   RunIt "$cmd" $LF
-  # conform
-  conform="$mdir/T1_orig${extension}"
+  
+  # conform !!!!!!! should we conform to some common value, determined from all time points?? !!!!!!
+  # this is relevant if input resolutions differe (which they should not), currently conform min may not work as expected
+  #conform="$mdir/T1_conform${extension}"
   #cmd="mri_convert -c ${t1s[i]} $conform"
-  cmd="$python $fastsurfercnndir/data_loader/conform.py -i ${t1s[i]} -o $conform --vox_size $vox_size --dtype any --verbose"
-  RunIt "$cmd" $LF
-  # segment conform image
+  #cmd="$python $fastsurfercnndir/data_loader/conform.py -i ${t1s[i]} -o $conform --vox_size $vox_size --dtype any --verbose"
+  #RunIt "$cmd" $LF
+
+  # segment image
   # with the goal to create brainmask for mainly registration
   # (here we can probably only use one network)
-  asegdkt_segfile="$mdir/aparc+aseg.orig${extension}"
-  #seg="$mdir/aparc+aseg.orig.mgz"
-  conformed_name="$mdir/T1_orig${extension}"
-  mask_name="$mdir/mask${extension}"
-  aseg_segfile="$mdir/aseg.auto_noCCseg${extension}"
+  asegdkt_segfile="$mdir/cross_aparc+aseg.orig${extension}"
+  conformed_name="$mdir/cross_conform${extension}"
+  mask_name="$mdir/cross_mask${extension}"
+  aseg_segfile="$mdir/cross_aseg.auto_noCCseg${extension}"
   seg_log="/dev/null"
-
-  #clean_seg=""
-  #pushd $fscnndir
-  #cmd="$python $fastsurfercnndir/eval.py --in_name $conform --out_name $seg --order $order \
-  #       --network_sagittal_path $weights_sag \
-  #       --network_axial_path $weights_ax \
-  #       --network_coronal_path $weights_cor \
-  #       --batch_size $batch_size --simple_run $clean_seg $device"
-  cmd=($python "$fastsurfercnndir/run_prediction.py" -t1 "${t1s[i]}"
+  cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1input"
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
-         --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
+         --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "${tpids[i]}"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
          --viewagg_device "$viewagg" --device "$device")
   RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
-  #popd    
 
-  #echo " " | tee -a $LF
-  #echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ===============" | tee -a $LF
-  #echo " " | tee -a $LF
-  ## reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
-  ## output will be uchar (else mri_cc will fail below)
-  #mask="$mdir/mask${extension}"
-  #aseg="$mdir/aseg.auto_noCCseg${extension}"
-  #mask="$mdir/mask.mgz"
-  #aseg="$mdir/aseg.auto_noCCseg.mgz"
-  ## not sure this works with nifti !!! no cannot output nifti automatically:
-  #cmd="$python $reconsurfdir/reduce_to_aseg.py -i $seg -o $aseg --outmask $mask"
-  #RunIt "$cmd" $LF
+  # remove mri subdirectory (run_prediction creates 001 there)
+  cmd="rm -rf $mdir/mri"
+  RunIt "$cmd" $LF
   
-  # mask is binary, we need to use on orig
-  cmd="mri_mask $conformed_name $mask_name $mdir/brainmask${extension}"
+  # mask is binary, we need to use on conformed image:
+  cmd="mri_mask $conformed_name $mask_name $mdir/cross_brainmask${extension}"
   RunIt "$cmd" $LF
 done
 
@@ -411,9 +396,9 @@ do
   echo $s
   echo "${s}" >> ${BaseSubjsListFname}
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${s}"
-  invol="$mdir/T1_orig${extension}"
+  invol="$mdir/cross_conform${extension}"
   subjInVols+=($invol)
-  normvol="$mdir/brainmask${extension}"
+  normvol="$mdir/cross_brainmask${extension}"
   normInVols+=($normvol)
   ltaname=${s}_to_${tid}.lta
   ltaXforms+=(${SUBJECTS_DIR}/$tid/mri/transforms/${ltaname})
@@ -428,7 +413,7 @@ then
 
   # 1. make the norm upright (base space)
   cmd="make_upright ${normInVols[0]} \
-       ${SUBJECTS_DIR}/$tid/mri/norm_template.mgz ${ltaXforms[0]}"
+       ${SUBJECTS_DIR}/$tid/mri/base_brainmaks${extension} ${ltaXforms[0]}"
   RunIt "$cmd" $LF
 
   # 2. create the upright orig volume
@@ -438,12 +423,11 @@ then
 
 else #more than 1 time point:
 
-  robust_template_avg_arg=1  # median
 
   # create the 'mean/median' norm volume:
   cmd="mri_robust_template --mov ${normInVols[@]}"
   cmd="$cmd --lta ${ltaXforms[@]}"
-  cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/norm_template.mgz"
+  cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   cmd="$cmd --average ${robust_template_avg_arg}"
   cmd="$cmd --sat 4.685"
   RunIt "$cmd" $LF
@@ -471,4 +455,14 @@ do
   cmd="$cmd $odir/${tid}_to_${s}.lta"
   RunIt "$cmd" $LF
 done
+
+# finally map inputs to template space for each time point
+for ((i=0;i<${#tpids[@]};++i))
+do
+  mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
+  # map orig to base space
+  cmd="mri_convert -at ${ltaXforms[$i]} -rt $interpol $mdir/cross_input${extension} $mdir/long_conform${extension}"
+  RunIt "$cmd" $LF
+done
+
 
