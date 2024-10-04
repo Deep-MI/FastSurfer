@@ -131,7 +131,7 @@ done
 
 
 
-#### CHECKS
+################################### CHECKS ###############################
 
 if [ -z "$t1s" ]
  then
@@ -180,20 +180,19 @@ fi
 
 ################################### Prepare Base ###################################
 
-t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
 cmd="$reconsurfdir/long_preapre_template.sh \
         --tid $tid --t1s $t1s --tpids $tpids"
 RunIt "$cmd" $LF
 
-
 ################################### Run Base Seg ###################################
 
+# t1 for base/template processing:
+t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
 cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
         --sid $tid --sd $sd --t1 $t1 \
         --seg_only --no_cereb --no_hypothal \
         ${POSITIONAL_FASTSURFER[@]}"
 RunIt "$cmd" $LF
-
 
 
 ################################### Run Base Surf ###################################
@@ -205,19 +204,22 @@ cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
 RunIt "$cmd" $LF
 
 
-
 ################################### Run Long Seg ###################################
 
+
+# This can run in parallel with base segd and surf steps above
+
+# file name for longitudinal inputs (paths need to be pre-pended later)
+extension=".nii.gz"
+t1lfn="long_conform${extension}"
 for ((i=0;i<${#tpids[@]};++i)); do
   #printf "%s with T1 %s\n" "${tpids[i]}" "${t1s[i]}"
   echo "Seg: ${tpids[i]} with T1 ${t1s[i]}\n"
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
-  # map orig to base space
-  cmd="mri_convert -at ${ltaXforms[$i]} -it $interpol $mdir/T1_orig${extension}  $mdir/T1_orig_base${extenstion}"
-  RunIt "$cmd" $LF
-   # segment orig in base space
+
+  # segment orig in base space
   cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid ${tpids[i]} --t1 $mdir/T1_orig_base${extenstion} --sd $sd \
+        --sid ${tpids[i]} --t1 $mdir/$t1lfn --sd $sd \
         --seg_only --long $tid \
         ${POSITIONAL_FASTSURFER[@]}"
   RunIt "$cmd" $LF
