@@ -466,7 +466,7 @@ case $key in
   # longitudinal options
   ##############################################################
   --base) base=1 ; run_cereb_module="0" ; run_hypvinn_module="0" ; surf_flags=("${surf_flags[@]}" "--base") ;;
-  --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long $1") ; shift ;;
+  --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
 
   *)    # unknown option
     # if not empty arguments, error & exit
@@ -978,6 +978,7 @@ then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
+  echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
        "${surf_flags[@]}" "${allow_root[@]}")
