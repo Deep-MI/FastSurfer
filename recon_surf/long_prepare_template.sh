@@ -153,7 +153,7 @@ fi
 
 # PARSE Command line
 inputargs=("$@")
-POSITIONAL=()
+POSITIONAL_FASTSURFER=()
 i=0
 while [[ $# -gt 0 ]]
 do
@@ -195,7 +195,7 @@ case $key in
     shift # past value
     ;;
   *)    # unknown option get ignored
-    POSITIONAL_FASTSURFER[i]=$KEY
+    POSITIONAL_FASTSURFER[i]=$key
     i=$((i + 1))
     ;;
   #*)    # unknown option

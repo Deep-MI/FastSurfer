@@ -78,7 +78,7 @@ FLAGS:
   --tpids <tID1> >tID2> ..  IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
   --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
-  --py <python_cmd>.        Command for python, used in both pipelines.
+  --py <python_cmd>         Command for python, used in both pipelines.
                               Default: "$python"
                               (-s: do no search for packages in home directory)
   -h --help                 Print Help
@@ -95,7 +95,7 @@ fi
 
 # PARSE Command line
 inputargs=("$@")
-POSITIONAL=()
+POSITIONAL_FASTSURFER=()
 i=0
 while [[ $# -gt 0 ]]
 do
@@ -123,7 +123,7 @@ case $key in
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   *)    # unknown option
-    POSITIONAL_FASTSURFER[i]=$KEY
+    POSITIONAL_FASTSURFER[i]=$key
     i=$((i + 1))
     ;;
 esac
@@ -182,16 +182,17 @@ fi
 ################################### Prepare Base ###################################
 
 cmd="$reconsurfdir/long_prepare_template.sh \
-        --tid $tid --t1s $t1s --tpids $tpids \
+        --tid $tid --t1s ${t1s[@]} --tpids ${tpids[@]} \
+        --py $python \
         ${POSITIONAL_FASTSURFER[@]}"
 RunIt "$cmd" $LF
 
 ################################### Run Base Seg ###################################
 
 # t1 for base/template processing:
-t1=$sd/$tid/mri/orig.mgz
+t1base=$sd/$tid/mri/orig.mgz
 cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid $tid --sd $sd --t1 $t1 \
+        --sid $tid --sd $sd --t1 $t1base \
         --seg_only --no_cereb --no_hypothal \
         ${POSITIONAL_FASTSURFER[@]}"
 RunIt "$cmd" $LF
