@@ -520,13 +520,6 @@ then
 fi
 
 # CHECKS
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
-then
-  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
-  echo "--t1 (absolute path and name) for generating the segmentation."
-  echo "NOTES: If running in a container, make sure symlinks are valid!"
-  exit 1;
-fi
 
 if [[ -z "${sd}" ]]
 then
@@ -743,6 +736,62 @@ then
     echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."
     exit 1;
   fi
+fi
+
+# checks and t1 setup for longitudinal pipeline
+# generally any t1 input per command line is overwritten here
+if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+then
+  echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
+  echo "before you can run any longitudinal time points."
+  exit 1;
+fi
+
+if [[ "$base" == "1" ]]
+then
+  if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $subject is either not found in SUBJECTS_DIR"
+    echo "or it is not a longitudinal template directory (base),"
+    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+  if [[ -z "$t1" ]] ; then
+    echo "WARNING: --t1 was passed but will be overwritten with T1 from base template."
+  fi
+  # base can only be run with the template image from base-setup:
+  t1=$sd/$subject/mri/orig.mgz 
+fi
+
+if [[ "$long" == "1" ]]
+then
+  if [ ! -f "$sd/$baseid/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $baseid is either not found in SUBJECTS_DIR"
+    echo "or it is not a longitudinal template directory (base),"
+    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+  if ! grep -Fxq "$subject" "$sd/$baseid/base-tps.fastsurfer" ; then
+    echo "ERROR: $subject id not found in base-tps.fastsurfer."
+    echo "Please ensure that this time point was included during creation"
+    echo " of the base (template)."
+    exit 1
+  fi
+  if [[ -z "$t1" ]] ; then
+    echo "WARNING: --t1 was passed but will be overwritten with T1 in base space."
+  fi
+  # this is the default longitudinal input from base directory:
+  t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
+fi
+
+
+if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
+then
+  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
+  echo "--t1 (absolute path and name) for generating the segmentation."
+  echo "NOTES: If running in a container, make sure symlinks are valid!"
+  exit 1;
 fi
 
 

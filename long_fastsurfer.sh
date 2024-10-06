@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 ###################################################################################################
 #
 #
@@ -130,9 +131,7 @@ esac
 done
 
 
-
-
-################################### CHECKS ###############################
+####################################### CHECKS ####################################
 
 if [ -z "$t1s" ]
  then
@@ -179,61 +178,49 @@ fi
 
 
 
-################################### Prepare Base ###################################
+################################### Prepare Base ##################################
 
+echo "Base Setup $tid"
 cmd="$reconsurfdir/long_prepare_template.sh \
         --tid $tid --t1s ${t1s[@]} --tpids ${tpids[@]} \
         --py $python \
         ${POSITIONAL_FASTSURFER[@]}"
 RunIt "$cmd" $LF
 
-################################### Run Base Seg ###################################
+################################### Run Base Seg ##################################
 
-# t1 for base/template processing:
-t1base=$sd/$tid/mri/orig.mgz
+echo "Base Seg $tid"
 cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid $tid --sd $sd --t1 $t1base \
-        --seg_only --no_cereb --no_hypothal \
+        --sid $tid --sd $sd --base \
+        --seg_only \
         ${POSITIONAL_FASTSURFER[@]}"
 RunIt "$cmd" $LF
 
+################################### Run Base Surf #################################
 
-################################### Run Base Surf ###################################
-
+echo "Base Surf $tid"
 cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
         --sid $tid --sd $sd \
         --surf_only --base \
         ${POSITIONAL_FASTSURFER[@]}"
 RunIt "$cmd" $LF
 
+################################### Run Long Seg ##################################
 
-################################### Run Long Seg ###################################
-
-
-# This can run in parallel with base segd and surf steps above
-
-# file name for longitudinal inputs (paths need to be prepended later)
-extension=".nii.gz"
-t1lfn="long_conform${extension}"
+# This can run in parallel with base seg and surf steps above
 for ((i=0;i<${#tpids[@]};++i)); do
-  #printf "%s with T1 %s\n" "${tpids[i]}" "${t1s[i]}"
-  echo "Seg: ${tpids[i]} with T1 ${t1s[i]}\n"
-  mdir="$sd/$tid/long-inputs/${tpids[i]}"
-  # segment orig in base space
+  echo "Long Seg: ${tpids[i]} with T1 ${t1s[i]}\n"
   cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid ${tpids[i]} --t1 $mdir/$t1lfn --sd $sd \
+        --sid ${tpids[i]} --sd $sd \
         --seg_only --long $tid \
         ${POSITIONAL_FASTSURFER[@]}"
   RunIt "$cmd" $LF
 done
 
-
-################################### Run Long Surf ###################################
+################################### Run Long Surf #################################
 
 for ((i=0;i<${#tpids[@]};++i)); do
-  #printf "%s with T1 %s\n" "${tpids[i]}" "${t1s[i]}"
-  echo "Surf: ${tpids[i]} with T1 ${t1s[i]}\n"
-   # segment orig in base space
+  echo "Long Surf: ${tpids[i]} with T1 ${t1s[i]}\n"
   cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
         --sid ${tpids[i]} --sd $sd \
         --surf_only --long $tid \
