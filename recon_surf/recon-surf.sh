@@ -264,6 +264,24 @@ then
   export PYTHONUNBUFFERED=0
 fi
 
+if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+then
+  echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
+  echo "before you can run any longitudinal time points."
+  exit 1;
+fi
+
+if [[ "$base" == "1" ]]
+then
+  if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $subject is either not found in SUBJECTS_DIR"
+    echo "or it is not a longitudinal template directory (base),"
+    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+fi
+
 basedir=""
 if [ "$long" == "1" ]
 then
