@@ -26,6 +26,8 @@
 #  4. Run Long Segmentation (can be in parallel with 2 and 3 above)
 #  5. Run Long Surface creation (depends on all previous steps)
 #
+#  Note, that of course 2 and 3, as well as 4 and 5 can be run in a single run_fastsurfer call.
+#  Also note, that 4 (long seg) can be run in parallel to the base runs (2 and 3).
 #
 ###################################################################################################
 
@@ -66,9 +68,10 @@ cat << EOF
 
 Usage: long_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
 
-long_fastsurfer.sh takes a list of T1 full head image and creates:
+long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
      (i)   a template subject directory 
-     (ii)  directories for each processed time point
+     (ii)  directories for each processed time point in template space,
+           here you find the final longitudinal results
 
 FLAGS:
 
