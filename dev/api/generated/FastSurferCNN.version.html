@@ -448,7 +448,7 @@ be missing depending on the content of the file.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The git status string filtered to exclude lines containing “__pycache__”.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The git status string filtered to exclude lines containing “__pycache__”.</p>
 </dd>
 </dl>
 </dd>
@@ -476,7 +476,7 @@ be missing depending on the content of the file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>Whether git commands on the FastSurfer dir likely work.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>Whether git commands on the FastSurfer dir likely work.</p>
 </dd>
 </dl>
 </dd>
@@ -511,29 +511,29 @@ file’s directory.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>sections</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>String describing which sections the output should include. Can be ‘all’ or a
+<dt><strong>sections</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>String describing which sections the output should include. Can be ‘all’ or a
 concatenated list of ‘+branch’, ‘+checkpoints’, ‘+git’, and ‘+pip’, e.g.
 ‘+git+checkpoints’.
 The order does not matter, ‘+checkpoints’, ‘+git’ or ‘+pip’ also implicitly
 activate ‘+branch’.</p>
 </dd>
-<dt><strong>project_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to read the projects toml file, with the ‘[project]’ section
+<dt><strong>project_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to read the projects toml file, with the ‘[project]’ section
 with a ‘version’ attribute. Defaults to $PROJECT_ROOT/pyproject.toml.</p>
 </dd>
-<dt><strong>build_cache</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">False</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to read cached version information, the format should be
+<dt><strong>build_cache</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">False</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to read cached version information, the format should be
 formatted like the output of <a class="reference internal" href="#FastSurferCNN.version.main" title="FastSurferCNN.version.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>. Defaults to $PROJECT_ROOT/BUILD.info.
 If build_cache is False, it is ignored.</p>
 </dd>
-<dt><strong>file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to write the output to, defaults to stdout if None or not
+<dt><strong>file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to write the output to, defaults to stdout if None or not
 passed.</p>
 </dd>
-<dt><strong>prefer_cache</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether to prefer information from the <code class="xref py py-obj docutils literal notranslate"><span class="pre">build_cache</span></code> over online generation.</p>
+<dt><strong>prefer_cache</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether to prefer information from the <code class="xref py py-obj docutils literal notranslate"><span class="pre">build_cache</span></code> over online generation.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>Returns 0, if the function was successful, or an error message.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>Returns 0, if the function was successful, or an error message.</p>
 </dd>
 </dl>
 </dd>
@@ -547,7 +547,7 @@ passed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a></dt><dd><p>The argument parser for the version script.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a></dt><dd><p>The argument parser for the version script.</p>
 </dd>
 </dl>
 </dd>
@@ -563,7 +563,7 @@ output of the <a class="reference internal" href="#FastSurferCNN.version.main" t
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>build_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>File-like object, will be closed.</p>
+<dt><strong>build_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>File-like object, will be closed.</p>
 </dd>
 </dl>
 </dd>
@@ -587,19 +587,19 @@ be missing depending on the content of the file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>version</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The version number to print.</p>
+<dt><strong>version</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The version number to print.</p>
 </dd>
-<dt><strong>git_hash</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The git hash associated with the build, may be empty.</p>
+<dt><strong>git_hash</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The git hash associated with the build, may be empty.</p>
 </dd>
-<dt><strong>git_branch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The git branch associated with the build, may be empty.</p>
+<dt><strong>git_branch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The git branch associated with the build, may be empty.</p>
 </dd>
-<dt><strong>git_status</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The md5sums of the checkpoint files, leave empty to skip.</p>
+<dt><strong>git_status</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The md5sums of the checkpoint files, leave empty to skip.</p>
 </dd>
-<dt><strong>checkpoints</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The md5sums of the checkpoint files, leave empty to skip.</p>
+<dt><strong>checkpoints</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The md5sums of the checkpoint files, leave empty to skip.</p>
 </dd>
-<dt><strong>pypackages</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The md5sums of the checkpoint files, leave empty to skip.</p>
+<dt><strong>pypackages</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The md5sums of the checkpoint files, leave empty to skip.</p>
 </dd>
-<dt><strong>file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to write the build file to, default: stdout.</p>
+<dt><strong>file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A file-like object to write the build file to, default: stdout.</p>
 </dd>
 </dl>
 </dd>
@@ -616,13 +616,13 @@ be missing depending on the content of the file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>project_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Project file.</p>
+<dt><strong>project_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Project file.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The version read from the pyproject file.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The version read from the pyproject file.</p>
 </dd>
 </dl>
 </dd>
@@ -641,13 +641,13 @@ time.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>project_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a></span></dt><dd><p>File pointer to the project file to read from.</p>
+<dt><strong>project_file</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/io.html#io.TextIOBase" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextIO</span></code></a></span></dt><dd><p>File pointer to the project file to read from.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The version string.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The version string.</p>
 </dd>
 </dl>
 </dd>
@@ -663,13 +663,13 @@ time.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>arg</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The input string to be validated.</p>
+<dt><strong>arg</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The input string to be validated.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The validated sections string.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The validated sections string.</p>
 </dd>
 </dl>
 </dd>

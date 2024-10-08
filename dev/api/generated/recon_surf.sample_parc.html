@@ -416,7 +416,7 @@ adj.data = np.ones(adj.data.shape).</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>surf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a></span></dt><dd><p>Surface as returned by nibabel fs.read_geometry, where:
+<dt><strong>surf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a></span></dt><dd><p>Surface as returned by nibabel fs.read_geometry, where:
 surf[0] is the np.array of (n, 3) vertex coordinates and
 surf[1] is the np.array of (m, 3) triangle indices.</p>
 </dd>
@@ -443,7 +443,7 @@ nibabel fs.read_annot.</p>
 <dl class="field-list">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>options</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.Namespace</span></code></a></span></dt><dd><p>Namespace object holding options.</p>
+<dt><strong>options</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.Namespace</span></code></a></span></dt><dd><p>Namespace object holding options.</p>
 </dd>
 </dl>
 </dd>
@@ -459,9 +459,9 @@ nibabel fs.read_annot.</p>
 <dd class="field-odd"><dl>
 <dt><strong>img_labels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>(n,)</span></dt><dd><p>Array with image label ids.</p>
 </dd>
-<dt><strong>img_lut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for image label look up table.</p>
+<dt><strong>img_lut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for image label look up table.</p>
 </dd>
-<dt><strong>surf_lut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for surface label look up table.</p>
+<dt><strong>surf_lut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for surface label look up table.</p>
 </dd>
 </dl>
 </dd>
@@ -471,7 +471,7 @@ nibabel fs.read_annot.</p>
 </dd>
 <dt><strong>surf_ctab</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code>(m,4)</span></dt><dd><p>Surface color table (RGBA).</p>
 </dd>
-<dt><strong>surf_names</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>] <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code>(m,)</span></dt><dd><p>Names of label regions.</p>
+<dt><strong>surf_names</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>] <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code>(m,)</span></dt><dd><p>Names of label regions.</p>
 </dd>
 </dl>
 </dd>
@@ -485,19 +485,19 @@ nibabel fs.read_annot.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>surf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface as returned by nibabel fs.read_geometry, where:
+<dt><strong>surf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface as returned by nibabel fs.read_geometry, where:
 surf[0] is the np.array of (n, 3) vertex coordinates and
 surf[1] is the np.array of (m, 3) triangle indices.
 If type is str, read surface from file.</p>
 </dd>
-<dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.image</span></code> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Image to sample.
+<dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.image</span></code> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Image to sample.
 If type is str, read image from file.</p>
 </dd>
-<dt><strong>cortex</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of cortex label or np.array with cortex indices.</p>
+<dt><strong>cortex</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of cortex label or np.array with cortex indices.</p>
 </dd>
-<dt><strong>projmm</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Sample projmm mm along the surface vertex normals (default=0).</p>
+<dt><strong>projmm</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Sample projmm mm along the surface vertex normals (default=0).</p>
 </dd>
-<dt><strong>radius</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>If given and if the sample is equal to zero, then consider
+<dt><strong>radius</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>If given and if the sample is equal to zero, then consider
 all voxels inside this radius to find a non-zero value.</p>
 </dd>
 </dl>
@@ -520,9 +520,9 @@ all voxels inside this radius to find a non-zero value.</p>
 <dd class="field-odd"><dl>
 <dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.image</span></code></span></dt><dd><p>Image to sample. Voxels need to be isotropic.</p>
 </dd>
-<dt><strong>vox_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code>(n,3)</span></dt><dd><p>Coordinates in voxel space around which to search.</p>
+<dt><strong>vox_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code>(n,3)</span></dt><dd><p>Coordinates in voxel space around which to search.</p>
 </dd>
-<dt><strong>radius</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> 3.0</span></dt><dd><p>Consider all voxels inside this radius to find a non-zero value.</p>
+<dt><strong>radius</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> 3.0</span></dt><dd><p>Consider all voxels inside this radius to find a non-zero value.</p>
 </dd>
 </dl>
 </dd>
@@ -542,25 +542,25 @@ all voxels inside this radius to find a non-zero value.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>surf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface as returned by nibabel fs.read_geometry, where:
+<dt><strong>surf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface as returned by nibabel fs.read_geometry, where:
 surf[0] is the np.array of (n, 3) vertex coordinates and
 surf[1] is the np.array of (m, 3) triangle indices.
 If type is str, read surface from file.</p>
 </dd>
-<dt><strong>seg</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.image</span></code> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Image to sample.
+<dt><strong>seg</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.image</span></code> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Image to sample.
 If type is str, read image from file.</p>
 </dd>
-<dt><strong>imglut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for image label look up table.</p>
+<dt><strong>imglut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for image label look up table.</p>
 </dd>
-<dt><strong>surflut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for surface label look up table.</p>
+<dt><strong>surflut</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for surface label look up table.</p>
 </dd>
-<dt><strong>outaparc</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for output surface parcellation.</p>
+<dt><strong>outaparc</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename for output surface parcellation.</p>
 </dd>
-<dt><strong>cortex</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of cortex label or np.ndarray with cortex indices.</p>
+<dt><strong>cortex</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of cortex label or np.ndarray with cortex indices.</p>
 </dd>
-<dt><strong>projmm</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Sample projmm mm along the surface vertex normals (default=0).</p>
+<dt><strong>projmm</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Sample projmm mm along the surface vertex normals (default=0).</p>
 </dd>
-<dt><strong>radius</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>If given and if the sample is equal to zero, then consider
+<dt><strong>radius</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>If given and if the sample is equal to zero, then consider
 all voxels inside this radius to find a non-zero value.</p>
 </dd>
 </dl>

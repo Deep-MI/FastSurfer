@@ -406,14 +406,14 @@ In case these do not match, the function returns False (otherwise True).</p>
 <dd class="field-odd"><dl>
 <dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.Nifti1Image</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.Nifti2Image</span></code>]</span></dt><dd><p>Loaded nifti-image.</p>
 </dd>
-<dt><strong>logger</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.Logger</span></code></a>]</span></dt><dd><p>Logger object or None (default) to log or print an info message to
+<dt><strong>logger</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.Logger</span></code></a>]</span></dt><dd><p>Logger object or None (default) to log or print an info message to
 stdout (for None).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>False, if voxel sizes in affine and header differ.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>False, if voxel sizes in affine and header differ.</p>
 </dd>
 </dl>
 </dd>
@@ -432,7 +432,7 @@ into UCHAR, reslices images to standard position, fills up slices to standard
 <dd class="field-odd"><dl>
 <dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.analyze.SpatialImage</span></code></span></dt><dd><p>Loaded source image.</p>
 </dd>
-<dt><strong>order</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic).</p>
+<dt><strong>order</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Interpolation order (0=nearest,1=linear(default),2=quadratic,3=cubic).</p>
 </dd>
 <dt><strong>conform_vox_size</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VoxSizeOption</span></code></span></dt><dd><p>Conform image the image to voxel size 1. (default), a
 specific smaller voxel size (0-1, for high-res), or automatically
@@ -441,10 +441,10 @@ This assumes the smallest of the three voxel sizes.</p>
 </dd>
 <dt><strong>dtype</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Type</span></code>]</span></dt><dd><p>The dtype to enforce in the image (default: UCHAR, as mri_convert -c).</p>
 </dd>
-<dt><strong>conform_to_1mm_threshold</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>The threshold above which the image is conformed to 1mm
+<dt><strong>conform_to_1mm_threshold</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>The threshold above which the image is conformed to 1mm
 (default: ignore).</p>
 </dd>
-<dt><strong>criteria</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>[<a class="reference internal" href="#FastSurferCNN.data_loader.conform.Criteria" title="FastSurferCNN.data_loader.conform.Criteria"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Criteria</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">in</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_CRITERIA</span></code></span></dt><dd><p>Whether to force the conforming to include a LIA data layout, an image size
+<dt><strong>criteria</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>[<a class="reference internal" href="#FastSurferCNN.data_loader.conform.Criteria" title="FastSurferCNN.data_loader.conform.Criteria"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Criteria</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">in</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_CRITERIA</span></code></span></dt><dd><p>Whether to force the conforming to include a LIA data layout, an image size
 requirement and/or a voxel size requirement.</p>
 </dd>
 </dl>
@@ -472,15 +472,15 @@ the scale factor from the input to increase similarity.</p>
 <dd class="field-odd"><dl>
 <dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.analyze.SpatialImage</span></code></span></dt><dd><p>Loaded source image.</p>
 </dd>
-<dt><strong>vox_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The target voxel size in mm.</p>
+<dt><strong>vox_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The target voxel size in mm.</p>
 </dd>
-<dt><strong>min_dim</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Minimal image dimension in voxels (default 256).</p>
+<dt><strong>min_dim</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Minimal image dimension in voxels (default 256).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></dt><dd><p>The number of voxels needed to cover field of view.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></dt><dd><p>The number of voxels needed to cover field of view.</p>
 </dd>
 </dl>
 </dd>
@@ -498,13 +498,13 @@ the scale factor from the input to increase similarity.</p>
 <dd class="field-odd"><dl>
 <dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.analyze.SpatialImage</span></code></span></dt><dd><p>Loaded source image.</p>
 </dd>
-<dt><strong>max_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Maximal voxel size in mm (default: 1.0).</p>
+<dt><strong>max_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Maximal voxel size in mm (default: 1.0).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Rounded minimal voxel size.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Rounded minimal voxel size.</p>
 </dd>
 </dl>
 </dd>
@@ -523,20 +523,20 @@ the scale factor from the input to increase similarity.</p>
 <dd class="field-odd"><dl>
 <dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.analyze.SpatialImage</span></code></span></dt><dd><p>Loaded source image.</p>
 </dd>
-<dt><strong>conform_vox_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, “min”</span></dt><dd><p>The voxel size parameter to use: either a voxel size as float, or the string
+<dt><strong>conform_vox_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, “min”</span></dt><dd><p>The voxel size parameter to use: either a voxel size as float, or the string
 “min” to automatically find a suitable voxel size (smallest per-dimension voxel
 size).</p>
 </dd>
-<dt><strong>conform_to_1mm_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The threshold for which image voxel size should be conformed to 1mm instead of
+<dt><strong>conform_to_1mm_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The threshold for which image voxel size should be conformed to 1mm instead of
 conformed to the smallest voxel size (default: None, never apply).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>conformed_vox_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The determined voxel size to conform the image to.</p>
+<dt><strong>conformed_vox_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The determined voxel size to conform the image to.</p>
 </dd>
-<dt><strong>conformed_img_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The size of the image adjusted to the conformed voxel size.</p>
+<dt><strong>conformed_img_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The size of the image adjusted to the conformed voxel size.</p>
 </dd>
 </dl>
 </dd>
@@ -553,21 +553,21 @@ conformed to the smallest voxel size (default: None, never apply).</p>
 <dd class="field-odd"><dl>
 <dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
 </dd>
-<dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
+<dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
 </dd>
-<dt><strong>dst_max</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future maximal intensity value.</p>
+<dt><strong>dst_max</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future maximal intensity value.</p>
 </dd>
-<dt><strong>f_low</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.0</span></dt><dd><p>Robust cropping at low end (0.0=no cropping).</p>
+<dt><strong>f_low</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.0</span></dt><dd><p>Robust cropping at low end (0.0=no cropping).</p>
 </dd>
-<dt><strong>f_high</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.999</span></dt><dd><p>Robust cropping at higher end (0.999=crop one thousandth of highest intensity).</p>
+<dt><strong>f_high</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.999</span></dt><dd><p>Robust cropping at higher end (0.999=crop one thousandth of highest intensity).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">src_min</span></code></dt><dd><p>(adjusted) offset.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">src_min</span></code></dt><dd><p>(adjusted) offset.</p>
 </dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Scale factor.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Scale factor.</p>
 </dd>
 </dl>
 </dd>
@@ -588,22 +588,22 @@ conformed to the smallest voxel size (default: None, never apply).</p>
 1.0 or ‘min’ check, whether the image is conformed to the minimal voxels size, 
 i.e. conforming to smaller, but isotropic voxel sizes for high-res.</p>
 </dd>
-<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-06</span></dt><dd><p>Allowed deviation from zero for LIA orientation check.
+<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-06</span></dt><dd><p>Allowed deviation from zero for LIA orientation check.
 Small inaccuracies can occur through the inversion operation. Already conformed
 images are thus sometimes not correctly recognized. The epsilon accounts for
 these small shifts.</p>
 </dd>
-<dt><strong>check_dtype</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Specifies whether the UCHAR dtype condition is checked for;
+<dt><strong>check_dtype</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Specifies whether the UCHAR dtype condition is checked for;
 this is not done when the input is a segmentation.</p>
 </dd>
 <dt><strong>dtype</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Type</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Specifies the intended target dtype (default or None: uint8 = UCHAR).</p>
 </dd>
-<dt><strong>verbose</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True, details of which conformance conditions are violated (if any)
+<dt><strong>verbose</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True, details of which conformance conditions are violated (if any)
 are displayed.</p>
 </dd>
-<dt><strong>conform_to_1mm_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Above this threshold the image is conformed to 1mm (default or None: ignore).</p>
+<dt><strong>conform_to_1mm_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Above this threshold the image is conformed to 1mm (default or None: ignore).</p>
 </dd>
-<dt><strong>criteria</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>[<a class="reference internal" href="#FastSurferCNN.data_loader.conform.Criteria" title="FastSurferCNN.data_loader.conform.Criteria"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Criteria</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">in</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_CRITERIA</span></code></span></dt><dd><p>An enum/set of criteria to check.</p>
+<dt><strong>criteria</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>[<a class="reference internal" href="#FastSurferCNN.data_loader.conform.Criteria" title="FastSurferCNN.data_loader.conform.Criteria"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Criteria</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">in</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_CRITERIA</span></code></span></dt><dd><p>An enum/set of criteria to check.</p>
 </dd>
 </dl>
 </dd>
@@ -627,16 +627,16 @@ are displayed.</p>
 <dd class="field-odd"><dl>
 <dt><strong>affine</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The affine to check.</p>
 </dd>
-<dt><strong>strict</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Whether the orientation should be “exactly” LIA or just similar to LIA (i.e.
+<dt><strong>strict</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Whether the orientation should be “exactly” LIA or just similar to LIA (i.e.
 it is more LIA than other directions).</p>
 </dd>
-<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>The threshold in strict mode.</p>
+<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>The threshold in strict mode.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>Whether the affine is LIA-oriented.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>Whether the affine is LIA-oriented.</p>
 </dd>
 </dl>
 </dd>
@@ -652,13 +652,13 @@ it is more LIA than other directions).</p>
 <dd class="field-odd"><dl>
 <dt><strong>vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The affine matrix.</p>
 </dd>
-<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>The epsilon for the affine check.</p>
+<dt><strong>eps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>The epsilon for the affine check.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>The result.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>The result.</p>
 </dd>
 </dl>
 </dd>
@@ -676,11 +676,11 @@ it is more LIA than other directions).</p>
 </dd>
 <dt><strong>out_affine</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Trg image affine.</p>
 </dd>
-<dt><strong>out_shape</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The trg shape information.</p>
+<dt><strong>out_shape</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The trg shape information.</p>
 </dd>
 <dt><strong>ras2ras</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>An additional mapping that should be applied (default=id to just reslice).</p>
 </dd>
-<dt><strong>order</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=1</span></dt><dd><p>Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).</p>
+<dt><strong>order</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=1</span></dt><dd><p>Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).</p>
 </dd>
 <dt><strong>dtype</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Type</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Target dtype of the resulting image (relevant for reorientation,
 default=keep dtype of img).</p>
@@ -719,13 +719,13 @@ default=keep dtype of img).</p>
 <dd class="field-odd"><dl>
 <dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
 </dd>
-<dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
+<dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
 </dd>
-<dt><strong>dst_max</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future maximal intensity value.</p>
+<dt><strong>dst_max</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future maximal intensity value.</p>
 </dd>
-<dt><strong>f_low</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.0</span></dt><dd><p>Robust cropping at low end (0.0=no cropping).</p>
+<dt><strong>f_low</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.0</span></dt><dd><p>Robust cropping at low end (0.0=no cropping).</p>
 </dd>
-<dt><strong>f_high</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.999</span></dt><dd><p>Robust cropping at higher end (0.999=crop one thousandth of highest intensity).</p>
+<dt><strong>f_high</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.999</span></dt><dd><p>Robust cropping at higher end (0.999=crop one thousandth of highest intensity).</p>
 </dd>
 </dl>
 </dd>
@@ -747,13 +747,13 @@ default=keep dtype of img).</p>
 <dd class="field-odd"><dl>
 <dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
 </dd>
-<dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
+<dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
 </dd>
-<dt><strong>dst_max</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future maximal intensity value.</p>
+<dt><strong>dst_max</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future maximal intensity value.</p>
 </dd>
-<dt><strong>src_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Minimal value to consider from source (crops below).</p>
+<dt><strong>src_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Minimal value to consider from source (crops below).</p>
 </dd>
-<dt><strong>scale</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Scale value by which source will be shifted.</p>
+<dt><strong>scale</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Scale value by which source will be shifted.</p>
 </dd>
 </dl>
 </dd>

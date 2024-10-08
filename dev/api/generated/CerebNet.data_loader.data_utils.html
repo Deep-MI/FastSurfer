@@ -398,7 +398,7 @@
 </dd>
 <dt><strong>class_wise_weights</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A 1D array where each element is the weight corresponding to a class in the label map.</p>
 </dd>
-<dt><strong>max_edge_weight</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=5</span></dt><dd><p>The maximum weight to be applied at the edges in the label map to emphasize boundaries.</p>
+<dt><strong>max_edge_weight</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=5</span></dt><dd><p>The maximum weight to be applied at the edges in the label map to emphasize boundaries.</p>
 </dd>
 </dl>
 </dd>
@@ -412,13 +412,13 @@
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>data_dict</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a></span></dt><dd><p>A dictionary containing all volumes that need to be filtered.</p>
+<dt><strong>data_dict</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a></span></dt><dd><p>A dictionary containing all volumes that need to be filtered.</p>
 </dd>
-<dt><strong>img_key</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”img”</span></dt><dd><p>Name of the key with the image.</p>
+<dt><strong>img_key</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”img”</span></dt><dd><p>Name of the key with the image.</p>
 </dd>
-<dt><strong>lbl_key</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”label”</span></dt><dd><p>Name of the key with the target label.</p>
+<dt><strong>lbl_key</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”label”</span></dt><dd><p>Name of the key with the target label.</p>
 </dd>
-<dt><strong>threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=10</span></dt><dd><p>Threshold for number of voxels so this slice is included (or filtered).</p>
+<dt><strong>threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=10</span></dt><dd><p>Threshold for number of voxels so this slice is included (or filtered).</p>
 </dd>
 </dl>
 </dd>
@@ -455,7 +455,7 @@ full label space used by coronal and axial networks.</p>
 <dd class="field-odd"><dl>
 <dt><strong>prediction_sag</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Sagittal prediction (labels).</p>
 </dd>
-<dt><strong>lbl_type</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Type of label.</p>
+<dt><strong>lbl_type</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Type of label.</p>
 </dd>
 </dl>
 </dd>
@@ -477,7 +477,7 @@ full label space used by coronal and axial networks.</p>
 <dd class="field-odd"><dl>
 <dt><strong>lbl_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>An array of label data.</p>
 </dd>
-<dt><strong>label_type</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”cereb_subseg”</span></dt><dd><p>A string identifier for the type of labels to map to.</p>
+<dt><strong>label_type</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”cereb_subseg”</span></dt><dd><p>A string identifier for the type of labels to map to.</p>
 </dd>
 </dl>
 </dd>
@@ -501,7 +501,7 @@ full label space used by coronal and axial networks.</p>
 </dd>
 <dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The data array of shape [plane, Channels, H, W].</p>
 </dd>
-<dt><strong>thick_slices</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">False</span></code></a></span></dt><dd><p>Whether the channels are thick slices and should also be flipped.</p>
+<dt><strong>thick_slices</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">False</span></code></a></span></dt><dd><p>Whether the channels are thick slices and should also be flipped.</p>
 </dd>
 </dl>
 </dd>
@@ -526,7 +526,7 @@ full label space used by coronal and axial networks.</p>
 </dd>
 <dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The data array of shape [plane, Channels, H, W].</p>
 </dd>
-<dt><strong>thick_slices</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether the channels are thick slices and should also be flipped.</p>
+<dt><strong>thick_slices</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether the channels are thick slices and should also be flipped.</p>
 </dd>
 </dl>
 </dd>
@@ -549,7 +549,7 @@ full label space used by coronal and axial networks.</p>
 <dd class="field-odd"><dl>
 <dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image volume to transform.</p>
 </dd>
-<dt><strong>coronal2axial</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">True</span></code></a></span></dt><dd><p>If True (default), transforms from coronal to axial.
+<dt><strong>coronal2axial</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">True</span></code></a></span></dt><dd><p>If True (default), transforms from coronal to axial.
 If False, transforms from axial to coronal.</p>
 </dd>
 </dl>
@@ -572,7 +572,7 @@ If False, transforms from axial to coronal.</p>
 <dd class="field-odd"><dl>
 <dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
 </dd>
-<dt><strong>axial2sagittal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True (default), transforms from axial to sagittal.
+<dt><strong>axial2sagittal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True (default), transforms from axial to sagittal.
 If False, transforms from sagittal to axial.</p>
 </dd>
 </dl>
@@ -595,7 +595,7 @@ If False, transforms from sagittal to axial.</p>
 <dd class="field-odd"><dl>
 <dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
 </dd>
-<dt><strong>axial2coronal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True (default), transforms from axial to coronal.
+<dt><strong>axial2coronal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True (default), transforms from axial to coronal.
 If False, transforms from coronal to axial.</p>
 </dd>
 </dl>
@@ -618,7 +618,7 @@ If False, transforms from coronal to axial.</p>
 <dd class="field-odd"><dl>
 <dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
 </dd>
-<dt><strong>coronal2sagittal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">True</span></code></a></span></dt><dd><p>If True (default), transforms from coronal to sagittal.
+<dt><strong>coronal2sagittal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">True</span></code></a></span></dt><dd><p>If True (default), transforms from coronal to sagittal.
 If False, transforms from sagittal to coronal.</p>
 </dd>
 </dl>

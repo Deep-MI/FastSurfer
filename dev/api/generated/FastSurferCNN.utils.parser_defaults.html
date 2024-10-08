@@ -445,7 +445,7 @@
 <p class="rubric">Notes</p>
 <p>Important:
 Data Types of fields should stay <code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional[&lt;TYPE&gt;]</span></code> and not be replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">&lt;TYPE&gt;</span> <span class="pre">|</span> <span class="pre">None</span></code>, so the Parser can use
-the type in argparse as the value for <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">parser.add_argument()</span></code> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code> is a callable, while <code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code> is
+the type in argparse as the value for <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">parser.add_argument()</span></code> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code> is a callable, while <code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code> is
 not).</p>
 </dd></dl>
 
@@ -458,7 +458,7 @@ not).</p>
 <dd class="field-odd"><dl>
 <dt><strong>parser</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">T_AddArgs</span></code></span></dt><dd><p>The parser to add flags to.</p>
 </dd>
-<dt><strong>flags</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Iterable</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>The flags to add from ‘device’, ‘viewagg_device’.</p>
+<dt><strong>flags</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Iterable</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>The flags to add from ‘device’, ‘viewagg_device’.</p>
 </dd>
 </dl>
 </dd>
@@ -470,7 +470,7 @@ not).</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If parser does not support a call to add_argument.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If parser does not support a call to add_argument.</p>
 </dd>
 </dl>
 </dd>
@@ -486,20 +486,20 @@ and the values is the file name (relative for path relative to FASTSURFER_HOME.<
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>parser</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a></span></dt><dd><p>The parser to add flags to.</p>
+<dt><strong>parser</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a></span></dt><dd><p>The parser to add flags to.</p>
 </dd>
 <dt><strong>configtype</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Literal</span></code>[“checkpoint”, “config”]</span></dt><dd><p>The type of files (for help text and prefix from “checkpoint” and “config”.
 “checkpoint” will lead to flags like “–ckpt_{plane}”, “config” to “–cfg_{plane}”.</p>
 </dd>
-<dt><strong>files</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Plane</span></code>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root directory.</p>
+<dt><strong>files</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Plane</span></code>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>A dictionary of plane to filename. Relative files are assumed to be relative to the FastSurfer root directory.</p>
 </dd>
-<dt><strong>defaults_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>A path to the file to load defaults from.</p>
+<dt><strong>defaults_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>A path to the file to load defaults from.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a></dt><dd><p>The parser object.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code></a></dt><dd><p>The parser object.</p>
 </dd>
 </dl>
 </dd>

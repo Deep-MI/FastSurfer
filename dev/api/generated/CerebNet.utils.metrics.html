@@ -441,7 +441,7 @@ initialized and available, device is set to <code class="xref py py-obj docutils
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>output</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Tuple of predictions and labels.</p>
+<dt><strong>output</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Tuple of predictions and labels.</p>
 </dd>
 </dl>
 </dd>
@@ -470,12 +470,12 @@ into binary: background where 0, object everywhere else.</p>
 <dt><strong>reference</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.1)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
 into binary: background where 0, object everywhere else.</p>
 </dd>
-<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.12)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
+<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.13)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
 along each dimension. If a sequence, must be of length equal to
 the input rank; if a single number, this is used for all axes. If
 not specified, a grid spacing of unity is implied.</p>
 </dd>
-<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
+<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
 of the binary objects. This value is passed to
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.morphology.generate_binary_structure</span></code> and should usually be <span class="math notranslate nohighlight">\(&gt; 1\)</span>.
 Note that the connectivity influences the result in the case of the Hausdorff distance.</p>
@@ -484,13 +484,13 @@ Note that the connectivity influences the result in the case of the Hausdorff di
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>hd</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The symmetric Hausdorff Distance between the object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">result</span></code> and the
+<dt><strong>hd</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The symmetric Hausdorff Distance between the object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">result</span></code> and the
 object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">reference</span></code>. The distance unit is the same as for the spacing of
 elements along each dimension, which is usually given in mm.</p>
 </dd>
-<dt><strong>hd50</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 50th percentile of the Hausdorff Distance.</p>
+<dt><strong>hd50</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 50th percentile of the Hausdorff Distance.</p>
 </dd>
-<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the Hausdorff Distance.</p>
+<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the Hausdorff Distance.</p>
 </dd>
 </dl>
 </dd>
@@ -524,12 +524,12 @@ into binary: background where 0, object everywhere else.</p>
 <dt><strong>reference</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.1)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
 into binary: background where 0, object everywhere else.</p>
 </dd>
-<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.12)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
+<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.13)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
 along each dimension. If a sequence, must be of length equal to
 the input rank; if a single number, this is used for all axes. If
 not specified, a grid spacing of unity is implied.</p>
 </dd>
-<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
+<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
 of the binary objects. This value is passed to
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.morphology.generate_binary_structure</span></code> and should usually be <span class="math notranslate nohighlight">\(&gt; 1\)</span>.
 Note that the connectivity influences the result in the case of the Hausdorff distance.</p>
@@ -538,7 +538,7 @@ Note that the connectivity influences the result in the case of the Hausdorff di
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the symmetric Hausdorff Distance between the object(s) in <code class="docutils literal notranslate"><span class="pre">`result`</span></code> and the
+<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the symmetric Hausdorff Distance between the object(s) in <code class="docutils literal notranslate"><span class="pre">`result`</span></code> and the
 object(s) in <code class="docutils literal notranslate"><span class="pre">`reference`</span></code>. The distance unit is the same as for the spacing of
 elements along each dimension, which is usually given in mm.</p>
 </dd>
