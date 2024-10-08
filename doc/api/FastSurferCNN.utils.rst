@@ -15,6 +15,7 @@ FastSurferCNN.utils
     lr_scheduler
     mapper
     meters
+    metrics
     misc
     parser_defaults
     run_tools
