@@ -89,6 +89,39 @@ FLAGS:
 
 With the exception of --t1, --t2, --sid, --seg_only and --surf_only, all
 run_fastsurfer.sh options are supported, see 'run_fastsurfer.sh --help'.
+
+
+REFERENCES:
+
+If you use this for research publications, please cite:
+
+Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
+ fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
+ (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+
+Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
+ Resolution-Independence into Deep Learning Segmentation Methods - A Solution
+ for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
+ http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+
+For cerebellum sub-segmentation:
+Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
+ reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
+ NeuroImage 264 (2022), 119703.
+ https://doi.org/10.1016/j.neuroimage.2022.119703
+
+For hypothalamus sub-segemntation:
+Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
+ FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
+ structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
+ https://doi.org/10.1162/imag_a_00034
+
+For longitudinal processing:
+Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
+ for unbiased longitudinal image analysis, NeuroImage 61:4 (2012).
+ https://doi.org/10.1016/j.neuroimage.2012.02.084
+
+
 EOF
 }
 
