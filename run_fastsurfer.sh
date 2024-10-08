@@ -73,6 +73,10 @@ threads="1"
 python="python3.10 -s"
 allow_root=()
 version_and_quit=""
+base=0                # flag for longitudinal template (base) run
+long=0                # flag for longitudinal time point run
+baseid=""             # baseid for logitudinal time point run
+
 
 function usage()
 {
@@ -258,6 +262,24 @@ Resource Options:
                             segmentation stats!
   --allow_root            Allow execution as root user.
 
+ Longitudinal Flags (non-expert users should use long_fastsurfers.sh for
+                     sequential processing of longitudinal data):
+  --base                  Longitudinal template (base) processing.
+                            Only ASEGDKT in segmentation and differences in the
+                            surface module. Requires longitudinal template
+                            preparation (recon-surf/long_prepare_template.sh) to
+                            be completed beforehand! No T2 can be passed. Also
+                            no T1 is explicitly passed, as it is taken from
+                            within the prepared template directory.
+  --long <baseid>         Longitudinal time point processing.
+                            Requires the base (template) already exists in the
+                            same SUBJECTS_DIR under the SID <baseid>.
+                            Processing is identical to the regular cross-sectional
+                            pipeline for segmentation. Surface module skips
+                            many steps and initializes from subject template.
+                            No T2 can be passed. Also no T1 is explicitly passed,
+                            as it is taken from the prepared template directory.
+
 
 REFERENCES:
 
@@ -283,6 +305,11 @@ Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
  FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
  structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
  https://doi.org/10.1162/imag_a_00034
+
+For longitudinal processing:
+Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
+ for unbiased longitudinal image analysis, NeuroImage 61:4 (2012).
+ https://doi.org/10.1016/j.neuroimage.2012.02.084
 
 EOF
 }
@@ -446,6 +473,13 @@ case $key in
   --segstats_legacy)
     surf_flags=("${surf_flags[@]}" "$key")
     ;;
+
+  ##############################################################
+  # longitudinal options
+  ##############################################################
+  --base) base=1 ; run_cereb_module="0" ; run_hypvinn_module="0" ; surf_flags=("${surf_flags[@]}" "--base") ;;
+  --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
+
   *)    # unknown option
     # if not empty arguments, error & exit
     if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
@@ -498,13 +532,6 @@ then
 fi
 
 # CHECKS
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
-then
-  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
-  echo "--t1 (absolute path and name) for generating the segmentation."
-  echo "NOTES: If running in a container, make sure symlinks are valid!"
-  exit 1;
-fi
 
 if [[ -z "${sd}" ]]
 then
@@ -721,6 +748,59 @@ then
     echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."
     exit 1;
   fi
+fi
+
+# checks and t1 setup for longitudinal pipeline
+# generally any t1 input per command line is overwritten here
+if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+then
+  echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
+  echo "  before you can run any longitudinal time points."
+  exit 1;
+fi
+
+if [[ "$base" == "1" ]]
+then
+  if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $subject is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
+    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "  the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+  if [[ -z "$t1" ]] ; then
+    echo "WARNING: --t1 was passed but will be overwritten with T1 from base template."
+  fi
+  # base can only be run with the template image from base-setup:
+  t1=$sd/$subject/mri/orig.mgz 
+fi
+
+if [[ "$long" == "1" ]]
+then
+  if [ ! -f "$sd/$baseid/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $baseid is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
+    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "  the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+  if ! grep -Fxq "$subject" "$sd/$baseid/base-tps.fastsurfer" ; then
+    echo "ERROR: $subject id not found in base-tps.fastsurfer. Please ensure that this time point"
+    echo "  was included during creation of the base (template)."
+    exit 1
+  fi
+  if [[ -z "$t1" ]] ; then
+    echo "WARNING: --t1 was passed but will be overwritten with T1 in base space."
+  fi
+  # this is the default longitudinal input from base directory:
+  t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
+fi
+
+
+if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
+then
+  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (full head) via "
+  echo "--t1 (absolute path and name) for generating the segmentation."
+  echo "NOTES: If running in a container, make sure symlinks are valid!"
+  exit 1;
 fi
 
 
@@ -956,6 +1036,7 @@ then
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
+  echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
        "${surf_flags[@]}" "${allow_root[@]}")

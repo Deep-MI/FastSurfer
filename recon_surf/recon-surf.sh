@@ -190,7 +190,8 @@ case $key in
     if [ -f "$1" ]; then
       export FS_LICENSE="$1"
     else
-      echo "Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name. Exiting..."
+      echo "ERROR: Provided FreeSurfer license file $1 could not be found."
+      echo "Make sure to provide the full path and name. Exiting..."
       exit 1;
     fi
     shift # past value
@@ -218,8 +219,8 @@ echo ""
 # Warning if run as root user
 if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
 then
-  echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
-  echo "because it will lead to files and folders created as root."
+  echo "ERROR: you are trying to run '$0' as root. We advice to avoid running"
+  echo "FastSurfer as root, because it will lead to files and folders created as root."
   echo "If you are running FastSurfer in a docker container, you can specify the user with "
   echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
   echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
@@ -228,13 +229,15 @@ fi
 
 if [ -z "$SUBJECTS_DIR" ]
 then
-  echo "\$SUBJECTS_DIR not set. Either set it via the shell prior to running recon-surf.sh or supply it via the --sd flag."
+  echo "ERROR: \$SUBJECTS_DIR not set. Either set it via the shell prior to"
+  echo "running recon-surf.sh or supply it via the --sd flag."
   exit 1
 fi
 
 if [ -z "$FREESURFER_HOME" ]
 then
-  echo "Did not find \$FREESURFER_HOME. A working version of FreeSurfer $FS_VERSION_SUPPORT is needed to run recon-surf locally."
+  echo "ERROR: Did not find \$FREESURFER_HOME. A working version of "
+  echo "FreeSurfer $FS_VERSION_SUPPORT is needed to run recon-surf locally."
   echo "Make sure to export and source FreeSurfer before running recon-surf.sh: "
   echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
   echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
@@ -261,19 +264,39 @@ then
   export PYTHONUNBUFFERED=0
 fi
 
+if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+then
+  echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
+  echo "before you can run any longitudinal time points."
+  exit 1;
+fi
+
+if [[ "$base" == "1" ]]
+then
+  if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $subject is either not found in SUBJECTS_DIR"
+    echo "or it is not a longitudinal template directory (base),"
+    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+fi
+
 basedir=""
 if [ "$long" == "1" ]
 then
   basedir="$SUBJECTS_DIR/$baseid"
   if [ ! -f "$basedir/base-tps.fastsurfer" ] ; then
-    echo "$baseid is either not found in SUBJECTS_DIR or it is not a longitudinal template"
-    echo "directory, which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "ERROR: $baseid is either not found in SUBJECTS_DIR"
+    echo "or it is not a longitudinal template directory,"
+    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
     echo "the base (template) has been created when running with --long flag."
     exit 1
   fi
-  if [ ! grep -Fxq $basedir/base-tps.fastsurfer $subject ] ; then
-    echo "$subject id not found in base-tps.fastsurfer. Please ensure that this time point"
-    echo "was included during creation of the base (template)."
+  if ! grep -Fxq "$subject" "$basedir/base-tps.fastsurfer" ; then
+    echo "ERROR: $subject id not found in base-tps.fastsurfer."
+    echo "Please ensure that this time point was included during creation"
+    echo " of the base (template)."
     exit 1
   fi
 fi
