@@ -6,16 +6,12 @@ After building the Singularity image (see [these instructions](SINGULARITY.md)),
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following commands from a directory where you want to store singularity images. This will create a singularity image from our Dockerhub image and execute it:
 
 ```bash
-# 1. Build the singularity image (if it does not exist)
-singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer
-
-# 2. Run command
 singularity exec --nv \
                  --no-home \
-                 -B /home/user/my_mri_data:/data \
-                 -B /home/user/my_fastsurfer_analysis:/output \
-                 -B /home/user/my_fs_license_dir:/fs_license \
-                 ./fastsurfer-gpu.sif \
+                 -B /path/to/my/mri_data \
+                 -B /path/to/my/fastsurfer_analysis \
+                 -B /path/to/my/fs_license \
+                 /path/to/fastsurfer-image.sif \
                  /fastsurfer/run_fastsurfer.sh \
                  --fs_license /fs_license/license.txt \
                  --t1 /data/subjectX/t1-weighted.nii.gz \
@@ -30,15 +26,15 @@ singularity exec --nv \
 
 ### FastSurfer Flags
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
-* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
+* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /path/to/my/mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
-* The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
+* The `--sd` points to the output directory (its mounted name inside docker: /path/to/my/fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
 * The `--3T` changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments (part after colon).
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to /path/to/my/fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image and excluding the `--nv` argument in your Singularity exec command. Also append `--device cpu` as a FastSurfer flag.
 
@@ -52,9 +48,9 @@ To run FastSurfer on a given subject using the provided GPU-Docker, execute the 
 docker pull deepmi/fastsurfer 
 
 # 2. Run command
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
+docker run --gpus all -v /path/to/my/mri_data:/data \
+                      -v /path/to/my/fastsurfer_analysis:/output \
+                      -v /path/to/my/fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
@@ -70,15 +66,15 @@ Docker Flags:
 
 FastSurfer Flag:
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
-* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
+* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /path/to/my/mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
-* The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
+* The `--sd` points to the output directory (its mounted name inside docker: /path/to/my/fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
 * The `--3T` changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments (part after colon). 
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory if it does not exist. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory if it does not exist. So in this example output will be written to /path/to/my/fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 If you do not have a GPU, you can also run our CPU-Docker by dropping the `--gpus all` flag and specifying `--device cpu` at the end as a FastSurfer flag, see also [FastSurfer's docker documentation](../../Docker/README.md) for more details.
 
@@ -93,7 +89,7 @@ git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 ```
 
 More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [Installation guide](INSTALL.md).
-Given you want to analyze data for subject which is stored on your computer under /home/user/my_mri_data/subjectX/t1-weighted.nii.gz, run the following command from the console (do not forget to source FreeSurfer!):
+Given you want to analyze data for subject which is stored on your computer under /path/to/my/mri_data/subjectX/t1-weighted.nii.gz, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
 # Source FreeSurfer
@@ -101,8 +97,8 @@ export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
-datadir=/home/user/my_mri_data
-fastsurferdir=/home/user/my_fastsurfer_analysis
+datadir=/path/to/my/mri_data
+fastsurferdir=/path/to/my/fastsurfer_analysis
 
 # Run FastSurfer
 ./run_fastsurfer.sh --t1 $datadir/subjectX/t1-weighted-nii.gz \
@@ -130,9 +126,9 @@ The `brun_fastsurfer.sh` script can then be invoked in docker, singularity or on
 
 ### Docker
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
+docker run --gpus all -v /path/to/my/mri_data:/data \
+                      -v /path/to/my/fastsurfer_analysis:/output \
+                      -v /path/to/my/fs_license_dir:/fs_license \
                       --entrypoint "/fastsurfer/brun_fastsurfer.sh" \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
@@ -143,9 +139,9 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 ```bash
 singularity exec --nv \
                  --no-home \
-                 -B /home/user/my_mri_data:/data \
-                 -B /home/user/my_fastsurfer_analysis:/output \
-                 -B /home/user/my_fs_license_dir:/fs_license \
+                 -B /path/to/my/mri_data:/data \
+                 -B /path/to/my/fastsurfer_analysis:/output \
+                 -B /path/to/my/fs_license_dir:/fs_license \
                  ./fastsurfer-gpu.sif \
                  /fastsurfer/brun_fastsurfer.sh \
                  --fs_license /fs_license/license.txt \
@@ -159,8 +155,8 @@ export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 cd /home/user/FastSurfer
-datadir=/home/user/my_mri_data
-fastsurferdir=/home/user/my_fastsurfer_analysis
+datadir=/path/to/my/mri_data
+fastsurferdir=/path/to/my/fastsurfer_analysis
 
 # Run FastSurfer
 ./brun_fastsurfer.sh --subject_list $datadir/subjects_list.txt \

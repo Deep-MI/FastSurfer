@@ -53,8 +53,8 @@ Given you already ran the segmentation pipeline, and want to just run the surfac
 docker pull deepmi/fastsurfer:cpu-v?.?.?
 
 # 2. Run command
-docker run -v /home/user/my_fastsurfer_analysis:/output \
-           -v /home/user/my_fs_license_dir:/fs_license \
+docker run -v /path/to/my/fastsurfer_analysis:/output \
+           -v /path/to/my/fs_license_dir:/fs_license \
            --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v?.?.? \
            --fs_license /fs_license/license.txt \
            --sid subjectX --sd /output --3T --surf_only
@@ -65,7 +65,7 @@ Docker Flags:
 * The `-v` commands mount your output, and directory with the FreeSurfer license file into the Docker container. Inside the container these are visible under the name following the colon (in this case /output and /fs_license). 
 
 This essentially calls the run_fastsurfer.sh script as entry point and starts only the surface module. It assumes that this case `subjectX` exists already and that the output files of the segmentation module are 
-available in the subjectX/mri directory (e.g. `/home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz`, `mask.mgz`, `orig.mgz` etc.). The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). It is possible to modify the entry point during the docker call and directly run recon-surf.sh, as we will demonstrate with the Singularity example next.
+available in the subjectX/mri directory (e.g. `/path/to/my/fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz`, `mask.mgz`, `orig.mgz` etc.). The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). It is possible to modify the entry point during the docker call and directly run recon-surf.sh, as we will demonstrate with the Singularity example next.
 
 ## Example 2: recon-surf inside Singularity
 Singularity can be used instead of Docker to run the full pipeline or individual modules. In this example we change the entrypoint to `recon-surf.sh` instead of the standard
@@ -78,8 +78,8 @@ singularity build fastsurfer-cpu-v?.?.?.sif docker://deepmi/fastsurfer:cpu-v?.?.
 
 # 2. Run command
 singularity exec --no-home \
-                 -B /home/user/my_fastsurfer_analysis:/output \
-                 -B /home/user/my_fs_license_dir:/fs_license \
+                 -B /path/to/my/fastsurfer_analysis:/output \
+                 -B /path/to/my/fs_license_dir:/fs_license \
                   ./fastsurfer-cpu-?.?.?.sif \
                   /fastsurfer/recon_surf/recon-surf.sh \
                   --fs_license /fs_license/license.txt \
@@ -100,7 +100,7 @@ and labels file (equivalent to a FreeSurfer recon-all run).
 
 ## Example 3: Native installation - recon-surf on a single subject (subjectX)
 
-Given you want to analyze data for subjectX which is stored on your computer under `/home/user/my_mri_data/subjectX/orig.mgz`, 
+Given you want to analyze data for subjectX which is stored on your computer under `/path/to/my/mri_data/subjectX/orig.mgz`, 
 run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
@@ -109,9 +109,9 @@ export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
-datadir=/home/user/my_mri_data
-segdir=/home/user/my_segmentation_data
-targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECTS_DIR
+datadir=/path/to/my/mri_data
+segdir=/path/to/my/segmentation_data
+targetdir=/path/to/my/recon_surf_output  # equivalent to FreeSurfer's SUBJECTS_DIR
 
 # Run recon-surf
 ./recon-surf.sh --sid subjectX \
@@ -123,8 +123,8 @@ targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECTS
 ```
 
 The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the segmentation module. Also other files from that pipeline
-will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`, i.e. under `/home/user/my_fastsurfeer_analysis/subjectX/mri/mask.mgz`). The `subjectX` directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
-The script will generate a bias-field corrected image at `/home/user/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz`, if this did not already exist.
+will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`, i.e. under `/path/to/my/fastsurfeer_analysis/subjectX/mri/mask.mgz`). The `subjectX` directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
+The script will generate a bias-field corrected image at `/path/to/my/fastsurfeer_analysis/subjectX/mri/orig_nu.mgz`, if this did not already exist.
 
 ### Example 4: recon-surf on multiple subjects
 
@@ -138,9 +138,9 @@ Invoke the following command (make sure you have enough resources to run the giv
 
 ```bash
 singularity exec --no-home \
-            -B /home/user/my_fastsurfer_analysis:/output \
+            -B /path/to/my/fastsurfer_analysis:/output \
             -B /home/user/subjects_lists/:/lists \
-            -B /home/user/my_fs_license_dir:/fs_license \
+            -B /path/to/my/fs_license_dir:/fs_license \
             ./fastsurfer.sif \
             /fastsurfer/brun_fastsurfer.sh \
             --surf_only \

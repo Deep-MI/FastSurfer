@@ -1,20 +1,26 @@
 # FastSurfer Docker Support
 ## Pull FastSurfer from DockerHub
 
-We provide pre-built Docker images with support for nVidia GPU-acceleration and for CPU-only use on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags). 
+We provide pre-built Docker images with support for nVidia GPU-acceleration, AMD GPU-acceleration and for CPU-only use on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags?page_size=&ordering=&name={{STABLE_VERSION}}). 
+To obtain the correct image, find the correct image for your Hardware. For this, go 
+
 In order to quickly get the latest Docker image, simply execute:
 
 ```bash 
-docker pull deepmi/fastsurfer
+docker pull deepmi/fastsurfer:cpu-v{{STABLE_VERSION}}
 ```
 
 This will download the newest, official FastSurfer image with support for nVidia GPUs.
 
-Image are named and tagged as follows: `deepmi/fastsurfer:<support>-<version>`, where `<support>` is `gpu` for support of nVidia GPUs and `cpu` without hardware acceleration (the latter is smaller and thus faster to download).
-Similarly, `<version>` can be a version string (`latest` or `v#.#.#`, where `#` are digits, for example `v2.2.2`), for example:
+Image are named and tagged following the pattern `deepmi/fastsurfer:<support>-v<version>`.
+
+Here, `<support>` is `cu124` for support of nVidia GPUs (using CUDA 12.4), `rocm6.1` for support of AMD GPUs (using rocm6.1) and `cpu` without hardware acceleration (the latter is smaller and thus faster to download).
+Similarly, `<version>` is the version `#.#.#` (`#` are digits, for example `{{VERSION_STABLE}}`), for example:
+
+
 
 ```bash 
-docker pull deepmi/fastsurfer:cpu-v2.2.2
+docker pull deepmi/fastsurfer:cpu-v{{VERSION_STABLE}}
 ```
 
 ### Running the official Docker Image
@@ -42,9 +48,9 @@ docker run --gpus all \
 
 
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
+docker run --gpus all -v /path/to/my/mri_data:/data \
+                      -v /path/to/my/fastsurfer_analysis:/output \
+                      -v /path/to/my/fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
@@ -64,14 +70,14 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 
 #### FastSurfer Flags
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the `my_fs_license_dir` that was mapped above. 
-* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
+* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /path/to/my/mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
-* The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
+* The `--sd` points to the output directory (its mounted name inside docker: /path/to/my/fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to /path/to/my/fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 All other available flags are identical to the ones explained on the main page [README](../README.md).
 
@@ -120,9 +126,9 @@ python build.py --device cuda --tag my_fastsurfer:cuda
 
 For running the analysis, the command is the same as above for the prebuild option:
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
+docker run --gpus all -v /path/to/my/mri_data:/data \
+                      -v /path/to/my/fastsurfer_analysis:/output \
+                      -v /path/to/my/fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
@@ -142,9 +148,9 @@ python build.py --device cpu --tag my_fastsurfer:cpu
 
 For running the analysis, the command is basically the same as above for the GPU option:
 ```bash
-docker run -v /home/user/my_mri_data:/data \
-           -v /home/user/my_fastsurfer_analysis:/output \
-           -v /home/user/my_fs_license_dir:/fs_license \
+docker run -v /path/to/my/mri_data:/data \
+           -v /path/to/my/fastsurfer_analysis:/output \
+           -v /path/to/my/fs_license_dir:/fs_license \
            --rm --user $(id -u):$(id -g) my_fastsurfer:cpu \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/t1-weighed.nii.gz \
@@ -172,8 +178,8 @@ and run segmentation only:
 ```bash
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
-	   -v /home/user/my_mri_data:/data \
-	   -v /home/user/my_fastsurfer_analysis:/output \
+	   -v /path/to/my/mri_data:/data \
+	   -v /path/to/my/fastsurfer_analysis:/output \
 	   my_fastsurfer:rocm \
 	   --t1 /data/subjectX/t1-weighted.nii.gz \
 	   --sid subjectX --sd /output 
@@ -186,8 +192,8 @@ Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](
 ```bash
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video --group-add render \
-	   -v /home/user/my_mri_data:/data \
-	   -v /home/user/my_fastsurfer_analysis:/output \
+	   -v /path/to/my/mri_data:/data \
+	   -v /path/to/my/fastsurfer_analysis:/output \
 	   -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
 	   my_fastsurfer:rocm \
 	   --t1 /data/subjectX/t1-weighted.nii.gz \

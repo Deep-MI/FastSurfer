@@ -13,6 +13,8 @@ import sys
 import os
 from pathlib import Path
 
+from FastSurferCNN.version import read_version_and_close
+
 # here i added the relative path because sphinx was not able
 # to locate FastSurferCNN module directly for autosummary
 sys.path.append(os.path.dirname(__file__) + "/..")
@@ -24,6 +26,12 @@ author = "FastSurfer Developers"
 copyright = f"2020, {author}"
 gh_url = "https://github.com/deep-mi/FastSurfer"
 
+try:
+    version = read_version_and_close()
+except IOError:
+    version = "version unknown"
+# TODO: read github.com/DeepMI/FastSurfer/releases to determine version number
+stable_version = "2.3.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -257,6 +265,11 @@ def linkcode_resolve(domain, info):
 
 # Which domains to search in to create links in markdown texts
 # myst_ref_domains = ["myst", "std", "py"]
+
+# myst substitutions (in the md files {{STABLE_VERSION}}
+myst_substitutions = {
+    "STABLE_VERSION": stable_version,
+}
 
 
 _re_script_dirs = "fastsurfercnn|cerebnet|recon_surf|hypvinn"

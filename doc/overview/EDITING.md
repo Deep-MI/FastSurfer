@@ -37,8 +37,8 @@ that was provided from the first run. This can help brighten up some regions and
    source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
    # Define data directory
-   datadir=/home/user/my_mri_data
-   fastsurferdir=/home/user/my_fastsurfer_analysis
+   datadir=/path/to/my/mri_data
+   fastsurferdir=/path/to/my/fastsurfer_analysis
 
    # Run FastSurfer
    ./run_fastsurfer.sh --t1 $datadir/subjectX/t1-weighted-nii.gz \
@@ -83,8 +83,8 @@ You can manually edit ```aparc.DKTatlas+aseg.deep.mgz```. This is similar to ase
    source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
    # Define data directory
-   datadir=/home/user/my_mri_data
-   fastsurferdir=/home/user/my_fastsurfer_analysis
+   datadir=/path/to/my/mri_data
+   fastsurferdir=/path/to/my/fastsurfer_analysis
 
    # Run FastSurfer
    ./run_fastsurfer.sh --t1 $datadir/subjectX/t1-weighted-nii.gz \
@@ -109,8 +109,8 @@ When surfaces go out too far, e.g. they grab dura, you can tighten the mask dire
    source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
    # Define data directory
-   datadir=/home/user/my_mri_data
-   fastsurferdir=/home/user/my_fastsurfer_analysis
+   datadir=/path/to/my/mri_data
+   fastsurferdir=/path/to/my/fastsurfer_analysis
 
    # Run FastSurfer
    ./run_fastsurfer.sh --t1 $datadir/subjectX/t1-weighted-nii.gz \

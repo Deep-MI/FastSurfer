@@ -8,8 +8,8 @@ User Guide
     INSTALL.md
     EXAMPLES.md
     OUTPUT_FILES.md
-    docker
     SINGULARITY.md
+    docker
     EDITING.md
     SECURITY.md
     CODE_OF_CONDUCT.md
