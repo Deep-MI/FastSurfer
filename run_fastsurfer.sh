@@ -262,18 +262,23 @@ Resource Options:
                             segmentation stats!
   --allow_root            Allow execution as root user.
 
- Longitudinal Helper Flags (only to-be-used indirectly via long_fastsurfer.sh,
-                            non-expert users should use long_fastsurfers.sh):
-  --base                  (Expert Usage) Longitudinal template (base) creation.
+ Longitudinal Flags (non-expert users should use long_fastsurfers.sh for
+                     sequential processing of longitudinal data):
+  --base                  Longitudinal template (base) processing.
                             Only ASEGDKT in segmentation and differences in the
-                            surface module. Requires logitudinal preparation
-                            (long_prepare_template.sh).
-  --long <baseid>         (Expert Usage) Longitudinal time point creation.
+                            surface module. Requires longitudinal template
+                            preparation (recon-surf/long_prepare_template.sh) to
+                            be completed beforehand! No T2 can be passed. Also
+                            no T1 is explicitly passed, as it is taken from
+                            within the prepared template directory.
+  --long <baseid>         Longitudinal time point processing.
                             Requires the base (template) already exists in the
-                            same subjects_dir under the SID <baseid>.
+                            same SUBJECTS_DIR under the SID <baseid>.
                             Processing is identical to the regular cross-sectional
-                            pipeline for segmentation, surface module skips
+                            pipeline for segmentation. Surface module skips
                             many steps and initializes from subject template.
+                            No T2 can be passed. Also no T1 is explicitly passed,
+                            as it is taken from the prepared template directory.
 
 
 REFERENCES:
@@ -300,6 +305,11 @@ Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
  FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
  structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
  https://doi.org/10.1162/imag_a_00034
+
+For longitudinal processing:
+Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
+ for unbiased longitudinal image analysis, NeuroImage 61:4 (2012).
+ https://doi.org/10.1016/j.neuroimage.2012.02.084
 
 EOF
 }
