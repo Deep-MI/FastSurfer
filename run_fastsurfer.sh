@@ -241,17 +241,6 @@ Resource Options:
                             Default: "$python"
                             (-s: do no search for packages in home directory)
 
- Longitudinal Flags:
-  --base                  For longitudinal template (base) creation. Will switch
-                            off all segmentation modules except ASEGDKT and run a
-                            few steps differently in the surface module.
-  --long <baseid>         For longitudinal time point creation, pass the ID of
-                            the base (template) which needs to exist already in
-                            the same subjects_dir. For segmentation modules this
-                            is identical to regular processing, for surface
-                            module skip many steps and initialize from subject
-                            template.
-
  Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will terminate if the supported version
@@ -272,6 +261,19 @@ Resource Options:
                             speeds up processing if you e.g. just need the
                             segmentation stats!
   --allow_root            Allow execution as root user.
+
+ Longitudinal Helper Flags (only to-be-used indirectly via long_fastsurfer.sh,
+                            non-expert users should use long_fastsurfers.sh):
+  --base                  (Expert Usage) Longitudinal template (base) creation.
+                            Only ASEGDKT in segmentation and differences in the
+                            surface module. Requires logitudinal preparation
+                            (long_prepare_template.sh).
+  --long <baseid>         (Expert Usage) Longitudinal time point creation.
+                            Requires the base (template) already exists in the
+                            same subjects_dir under the SID <baseid>.
+                            Processing is identical to the regular cross-sectional
+                            pipeline for segmentation, surface module skips
+                            many steps and initializes from subject template.
 
 
 REFERENCES:
@@ -743,17 +745,16 @@ fi
 if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
-  echo "before you can run any longitudinal time points."
+  echo "  before you can run any longitudinal time points."
   exit 1;
 fi
 
 if [[ "$base" == "1" ]]
 then
   if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
-    echo "ERROR: $subject is either not found in SUBJECTS_DIR"
-    echo "or it is not a longitudinal template directory (base),"
-    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
-    echo "the base (template) has been created with long_prepare_template.sh."
+    echo "ERROR: $subject is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
+    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "  the base (template) has been created with long_prepare_template.sh."
     exit 1
   fi
   if [[ -z "$t1" ]] ; then
@@ -766,16 +767,14 @@ fi
 if [[ "$long" == "1" ]]
 then
   if [ ! -f "$sd/$baseid/base-tps.fastsurfer" ] ; then
-    echo "ERROR: $baseid is either not found in SUBJECTS_DIR"
-    echo "or it is not a longitudinal template directory (base),"
-    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
-    echo "the base (template) has been created with long_prepare_template.sh."
+    echo "ERROR: $baseid is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
+    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "  the base (template) has been created with long_prepare_template.sh."
     exit 1
   fi
   if ! grep -Fxq "$subject" "$sd/$baseid/base-tps.fastsurfer" ; then
-    echo "ERROR: $subject id not found in base-tps.fastsurfer."
-    echo "Please ensure that this time point was included during creation"
-    echo " of the base (template)."
+    echo "ERROR: $subject id not found in base-tps.fastsurfer. Please ensure that this time point"
+    echo "  was included during creation of the base (template)."
     exit 1
   fi
   if [[ -z "$t1" ]] ; then
