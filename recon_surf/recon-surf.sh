@@ -175,7 +175,7 @@ case $key in
     shift # past value
     ;;
   --vol_segstats)
-    echo "WARNING: the --vol_segstats flag is obsolete and will be removed, --vol_segstats ignored."
+    echo "WARNING: The --vol_segstats flag is obsolete and will be removed, --vol_segstats ignored."
     ;;
   --segstats_legacy) segstats_legacy="true" ;;
   --fstess) fstess=1 ;;
@@ -191,7 +191,7 @@ case $key in
       export FS_LICENSE="$1"
     else
       echo "ERROR: Provided FreeSurfer license file $1 could not be found."
-      echo "Make sure to provide the full path and name. Exiting..."
+      echo "  Make sure to provide the full path and name. Exiting..."
       exit 1;
     fi
     shift # past value
@@ -219,28 +219,28 @@ echo ""
 # Warning if run as root user
 if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
 then
-  echo "ERROR: you are trying to run '$0' as root. We advice to avoid running"
-  echo "FastSurfer as root, because it will lead to files and folders created as root."
-  echo "If you are running FastSurfer in a docker container, you can specify the user with "
-  echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-  echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
+  echo "ERROR: You are trying to run '$0' as root. We advice to avoid running FastSurfer "
+  echo "  as root, because it will lead to files and folders created as root."
+  echo "  If you are running FastSurfer in a docker container, you can specify the user with"
+  echo "  '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
+  echo "  If you want to force running as root, you may pass --allow_root to recon-surf.sh."
   exit 1;
 fi
 
 if [ -z "$SUBJECTS_DIR" ]
 then
   echo "ERROR: \$SUBJECTS_DIR not set. Either set it via the shell prior to"
-  echo "running recon-surf.sh or supply it via the --sd flag."
+  echo "  running recon-surf.sh or supply it via the --sd flag."
   exit 1
 fi
 
 if [ -z "$FREESURFER_HOME" ]
 then
-  echo "ERROR: Did not find \$FREESURFER_HOME. A working version of "
-  echo "FreeSurfer $FS_VERSION_SUPPORT is needed to run recon-surf locally."
-  echo "Make sure to export and source FreeSurfer before running recon-surf.sh: "
-  echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
-  echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
+  echo "ERROR: Did not find \$FREESURFER_HOME. A working version of FreeSurfer $FS_VERSION_SUPPORT"
+  echo "  is needed to run recon-surf locally."
+  echo "  Make sure to export and source FreeSurfer before running recon-surf.sh: "
+  echo "  export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
+  echo "  source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
   exit 1
 fi
 # needed in FS72 due to a bug in recon-all --fill using FREESURFER instead of FREESURFER_HOME
@@ -251,10 +251,11 @@ then
   if grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
   then
     echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat "$FREESURFER_HOME/build-stamp.txt")."
-    echo "We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT"
-    echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surf.sh: "
-    echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
-    echo "source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
+    echo "  We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT"
+    echo "  Therefore, make sure to export and source the correct FreeSurfer version"
+    echo "  before running recon-surf.sh: "
+    echo "  export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
+    echo "  source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
     exit 1
   fi
 fi
@@ -287,23 +288,22 @@ if [ "$long" == "1" ]
 then
   basedir="$SUBJECTS_DIR/$baseid"
   if [ ! -f "$basedir/base-tps.fastsurfer" ] ; then
-    echo "ERROR: $baseid is either not found in SUBJECTS_DIR"
-    echo "or it is not a longitudinal template directory,"
-    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
-    echo "the base (template) has been created when running with --long flag."
+    echo "ERROR: $baseid is either not found in \$SUBJECTS_DIR or it is not a longitudinal"
+    echo "  template directory, which needs to contain base-tps.fastsurfer file. Please"
+    echo "  ensure that the base (template) has been created when running with --long flag."
     exit 1
   fi
   if ! grep -Fxq "$subject" "$basedir/base-tps.fastsurfer" ; then
-    echo "ERROR: $subject id not found in base-tps.fastsurfer."
-    echo "Please ensure that this time point was included during creation"
-    echo " of the base (template)."
+    echo "ERROR: $subject id not found in base-tps.fastsurfer. Please ensure that this time"
+    echo "  point was included during creation of the base (template)."
     exit 1
   fi
 fi
 
 if [ -z "$t1" ] || [ ! -f "$t1" ]
 then
-  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input (conformed, full head) via --t1 (absolute path and name)."
+  echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input"
+  echo "  (conformed, full head) via --t1 (absolute path and name)."
   # needed to create orig.mgz and to get file name. This will eventually be changed.
   exit 1
 fi
@@ -324,7 +324,9 @@ if [ ! -f "$asegdkt_segfile" ]
 then
   # No segmentation found, exit with error
   echo "ERROR: Segmentation ($asegdkt_segfile) could not be found! "
-  echo "Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via --asegdkt_segfile."
+  echo "  Segmentation must either exist in default location (\$SUBJECTS_DIR/\$SID/mri/"
+  echo "  aparc.DKTatlas+aseg.deep.mgz) or you must supply the absolute path and name via"
+  echo "  --asegdkt_segfile <filename>."
   exit 1
 fi
 
@@ -341,16 +343,17 @@ fi
 
 if [ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]
 then
-  echo "ERROR: subject directory path is very long."
-  echo "This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
-  echo "--sd + --sid should be less than 185 characters long."
+  echo "ERROR: Subject directory path is very long."
+  echo "  This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
+  echo "  --sd + --sid should be less than 185 characters long."
   exit 1
 fi
 
 # Check if running on an existing subject directory
-if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ] ; then
-  echo "ERROR: running on top of an existing subject directory!"
-  echo "The output directory must not contain data from a previous invocation of recon-surf."
+if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]
+then
+  echo "ERROR: Running on top of an existing subject directory!"
+  echo "  The output directory must not contain data from a previous invocation of recon-surf."
   exit 1
 fi
 
@@ -427,9 +430,6 @@ cmd="$python $FASTSURFER_HOME/FastSurferCNN/quick_qc.py --asegdkt_segfile $asegd
 RunIt "$cmd" "$LF"
 echo "" | tee -a "$LF"
 
-
-
-
 ########################################## START ########################################################
 
 {
@@ -504,6 +504,9 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
     echo " "
     echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ==============="
     echo " "
+    echo "WARNING: mri/mask.mgz or mri/aseg.auto_noCCseg.mgz are missing, but these files are"
+    echo "  required in recon-surf.sh and always created in the segmentation pipeline run."
+    echo "  It is recommended to transfer these files from there!"
   } | tee -a "$LF"
 
   # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
@@ -602,8 +605,8 @@ fi
 } | tee -a $LF
 
 # create norm by masking nu
-cmd="mri_mask $mdir/nu.mgz $mdir/mask.mgz $mdir/norm.mgz"
-RunIt "$cmd" "$LF"
+cmd=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
+RunIt "${cmd[*]}" "$LF"
 if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
@@ -620,11 +623,11 @@ then
   #  base_flags="-w $mdir/ctrl_vol.mgz $mdir/bias_vol.mgz"
   #fi
   # cmd="mri_normalize -g 1 -seed 1234 -mprage $base_flags $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
-  cmd="mri_normalize -g 1 -seed 1234 -mprage $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
-  RunIt "$cmd" "$LF"
+  cmd=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" $noconform_if_hires)
+  RunIt "${cmd[*]}" "$LF"
   # create brainmask by masking T1
-  cmd="mri_mask $mdir/T1.mgz $mdir/mask.mgz $mdir/brainmask.mgz"
-  RunIt "$cmd" "$LF"
+  cmd=(mri_mask "$mdir/T1.mgz" "$mask" "$mdir/brainmask.mgz")
+  RunIt "${cmd[*]}" "$LF"
 else
   # create brainmask by linkage to norm.mgz (masked nu.mgz)
   pushd "$mdir" > /dev/null || ( echo "Could not cd to $mdir" ; exit 1 )
@@ -915,7 +918,7 @@ for hemi in lh rh ; do
     #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
     #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
     #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
- 
+
     else # longitudinal
 
       # SPHERE (mapping with minimal distortion) we copy it from base:
@@ -998,7 +1001,7 @@ for hemi in lh rh ; do
   echo "pushd $mdir > /dev/null" >> "$CMDF"
 
   # CREATE WHITE SURFACE:
-  # 4 min compute white :  
+  # 4 min compute white :
   inputsurf="../surf/$hemi.white.preaparc"
   longmaxdist=""
   if [ "$long" == "1" ] ; then
@@ -1008,7 +1011,7 @@ for hemi in lh rh ; do
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i $inputsurf --o ../surf/${hemi}.white --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc $longmaxdist"
   RunIt "$cmd" "$LF" "$CMDF"
 
-  # CREAT PIAL SURFACE  
+  # CREAT PIAL SURFACE
   # 4 min compute pial :
   inputsurf="../surf/$hemi.white"
   longmaxdist=""
@@ -1018,7 +1021,7 @@ for hemi in lh rh ; do
   fi
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i $inputsurf --o ../surf/${hemi}.pial.T1 --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white $longmaxdist"
   RunIt "$cmd" "$LF" "$CMDF"
-  
+
   echo "popd > /dev/null" >> "$CMDF"
 
   # Here insert DoT2Pial  later --> if T2pial is not run, need to softlink pial.T1 to pial!
@@ -1040,7 +1043,7 @@ for hemi in lh rh ; do
   cmd="mris_place_surface --thickness ../surf/$hemi.white ../surf/$hemi.pial 20 5 ../surf/$hemi.thickness"
   RunIt "$cmd" "$LF" "$CMDF"
   echo "popd > /dev/null" >> "$CMDF"
- 
+
 
 
 # ============================= CURVSTATS ===============================================
