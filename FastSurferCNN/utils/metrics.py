@@ -109,17 +109,20 @@ class DiceScore:
     """
     Accumulating the component of the dice coefficient i.e. the union and intersection.
 
-    Args:
-        op (callable): a callable to update accumulator. Method's signature is `(accumulator, output)`.
-            For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
-        output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
-            form expected by the metric. This can be useful if, for example, you have a multi-output model and
-            you want to compute the metric with respect to one of the outputs.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+    Parameters
+    ----------
+    op : callable
+        A callable to update the accumulator. Method's signature is `(accumulator, output)`.
+        For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
+    output_transform : callable, optional
+        A callable that is used to transform the :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+        form expected by the metric. This can be useful if, for example, you have a multi-output model and
+        you want to compute the metric with respect to one of the outputs.
+    device : str or torch.device, optional
+        Device specification in case of distributed computation usage.
+        In most cases, it can be defined as "cuda:local_rank" or "cuda"
+        if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
+        initialized and available, the device is set to `cuda`.
     """
     def __init__(
         self,
@@ -154,8 +157,8 @@ class DiceScore:
         """
         Check the type of the output and raise an error if it doesn't match expectations.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         output : tuple
             The output to be checked, expected to be a tuple.
         """
@@ -168,8 +171,8 @@ class DiceScore:
         """
         Update the union and intersection matrices based on batch predictions and labels.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         batch_output : torch.Tensor
             Batch predictions from the model.
 
