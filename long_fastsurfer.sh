@@ -57,6 +57,7 @@ tid=""
 sd="$SUBJECTS_DIR"
 tpids=()
 t1s=()
+log=""
 python="python3.10 -s" # avoid user-directory package inclusion
 
 
@@ -226,33 +227,39 @@ then
   exit 1
 fi
 
+if [[ -z "$LF" ]]
+then
+  LF="$sd/$tid/scripts/long_fastsurfer.log"
+fi
+
 
 ################################### Prepare Base ##################################
 
-echo "Base Setup $tid"
-cmd="$reconsurfdir/long_prepare_template.sh \
-     --tid $tid --t1s ${t1s[*]} --tpids ${tpids[*]} \
-     --py $(echo_quoted "$python")
-     ${POSITIONAL_FASTSURFER[*]}"
-RunIt "$cmd" "$LF"
+ echo "Base Setup $tid"
+ cmda=("$reconsurfdir/long_prepare_template.sh"
+      --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
+      --py "$python"
+      "${POSITIONAL_FASTSURFER[@]}")
+ run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Seg ##################################
 
-echo "Base Seg $tid"
-cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid $tid --sd $sd --base \
-        --seg_only \
-        ${POSITIONAL_FASTSURFER[*]}"
-RunIt "$cmd" "$LF"
+ echo "Base Seg $tid"
+ cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
+         --sid "$tid" --sd "$sd" --base
+         --seg_only --py "$python"
+         "${POSITIONAL_FASTSURFER[@]}")
+ run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Surf #################################
 
 echo "Base Surf $tid"
-cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid $tid --sd $sd \
-        --surf_only --base \
-        ${POSITIONAL_FASTSURFER[*]}"
-RunIt "$cmd" "$LF"
+cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
+        --sid "$tid" --sd "$sd"
+        --surf_only --base --py "$python"
+        "${POSITIONAL_FASTSURFER[@]}")
+  run_it "$LF" "${cmda[@]}"
+
 
 ################################### Run Long Seg ##################################
 
