@@ -20,6 +20,7 @@ FS_VERSION_SUPPORT="7.4.1"
 # Regular flags default
 t1=""                 # Path and name of T1 input
 asegdkt_segfile=""    # Path and name of segmentation
+mask=""               # Path and name of the brainmask (defaults to $SUBJECTS_DIR/$SID/mri/mask.mgz)
 subject=""            # Subject name
 fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
 fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
@@ -29,6 +30,8 @@ python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
 allow_root=""         # flag for allowing execution as root user
+edits="false"         # flag for inclusion/exclusion of edits
+                      #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
 segstats_legacy="false" # flag to enable segstats legacy mode
 base=0                # flag for longitudinal template (base) run
@@ -972,24 +975,29 @@ for hemi in lh rh ; do
 
   # CREATE WHITE SURFACE:
   # 4 min compute white :
-  inputsurf="../surf/$hemi.white.preaparc"
-  longmaxdist=""
-  if [ "$long" == "1" ] ; then
-    inputsurf="../surf/$hemi.orig_white"
-    longmaxdist="--max-cbv-dist 3.5"
+  cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
+    --threads $threads --wm $wm_file --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
+    --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label \
+    --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc"
+  if [ "$long" == "0" ] ; then # cross/regular/base
+    cmd="$cmd --i ../surf/$hemi.white.preaparc"
+  else  # longitudinal processing ; also adds longmaxdist
+    cmd="$cmd --i ../surf/$hemi.orig_white --max-cbv-dist 3.5"
   fi
-  cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i $inputsurf --o ../surf/${hemi}.white --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc $longmaxdist"
   RunIt "$cmd" "$LF" "$CMDF"
 
   # CREAT PIAL SURFACE
   # 4 min compute pial :
-  inputsurf="../surf/$hemi.white"
-  longmaxdist=""
-  if [ "$long" == "1" ] ; then
-    inputsurf="../surf/$hemi.orig_pial"
-    longmaxdist="--max-cbv-dist 3.5 --blend-surf .25 ../surf/$hemi.white"
+  cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
+    --threads $threads --wm $wm_file --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.pial.T1 \
+    --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label \
+    --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc \
+    --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white"
+  if [ "$long" == "0" ] ; then # cross/regular/base
+    cmd="$cmd --i ../surf/$hemi.white"
+  else  # longitudinal processing ; also adds longmaxdist
+    cmd="$cmd --i ../surf/$hemi.orig_pial --max-cbv-dist 3.5 --blend-surf .25 ../surf/$hemi.white"
   fi
-  cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --i $inputsurf --o ../surf/${hemi}.pial.T1 --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white $longmaxdist"
   RunIt "$cmd" "$LF" "$CMDF"
 
   echo "popd > /dev/null" >> "$CMDF"

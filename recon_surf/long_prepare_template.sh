@@ -234,7 +234,7 @@ then
 fi
 
 # check that SUBJECTS_DIR exists
-if [[ -z "${sd}" ]]
+if [[ -z "$SUBJECTS_DIR" ]]
 then
   echo "ERROR: No subject directory defined via --sd. This is required!"
   exit 1;
@@ -242,11 +242,11 @@ fi
 if [[ ! -d "${sd}" ]]
 then
   echo "INFO: The subject directory did not exist, creating it now."
-  if ! mkdir -p "$sd" ; then echo "ERROR: directory creation failed" ; exit 1; fi
+  if ! mkdir -p "$SUBJECTS_DIR" ; then echo "ERROR: directory creation failed" ; exit 1; fi
 fi
-if [[ "$(stat -c "%u:%g" "$sd")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$(stat -c "%a" "$sd" | tail -c 2)" -lt 6 ]]
+if [[ "$(stat -c "%u:%g" "$SUBJECTS_DIR")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$(stat -c "%a" "$SUBJECTS_DIR" | tail -c 2)" -lt 6 ]]
 then
-  echo "ERROR: The subject directory ($sd) is owned by root and is not writable. FastSurfer cannot write results! "
+  echo "ERROR: The subject directory ($SUBJECTS_DIR) is owned by root and is not writable. FastSurfer cannot write results! "
   echo "This can happen if the directory is created by docker. Make sure to create the directory before invoking docker!"
   exit 1;
 fi
@@ -264,6 +264,12 @@ if [[ -f "$LF" ]]; then log_existed="true"
 else log_existed="false"
 fi
 
+version_args=()
+if [[ -f "$FASTSURFER_HOME/BUILD.info" ]]
+then
+  version_args=(--build_cache "$FASTSURFER_HOME/BUILD.info" --prefer_cache)
+fi
+
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
 echo "Version: $VERSION" | tee -a "$LF"
 echo "Log file for long_prepare_template" >> "$LF"
@@ -271,14 +277,14 @@ echo "Log file for long_prepare_template" >> "$LF"
 echo "" | tee -a "$LF"
 echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a "$LF"
 echo "cd `pwd`" | tee -a "$LF"
-echo $0 ${inputargs[*]} | tee -a $LF
+echo "$0 ${inputargs[*]}" | tee -a $LF
 echo "" | tee -a "$LF"
-cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a "$LF"
+cat "$FREESURFER_HOME/build-stamp.txt" 2>&1 | tee -a "$LF"
 uname -a  2>&1 | tee -a "$LF"
 
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
-trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$LF\" ; }" SIGINT SIGTERM
+trap "{ echo \"long_prepare_template.sh terminated via signal at \$(date -R)!\" >> \"$LF\" ; }" SIGINT SIGTERM
 
 
 # check that all t1s exist and that geo is the same (after log setup to keep this info in log file)
@@ -286,7 +292,7 @@ geodiff=0
 for s in "${t1s[@]}"
 do
   # check if input exist
-  if [ ! -f $s ]
+  if [ ! -f "$s" ]
   then
     echo "ERROR: Input T1 $s does not exist!" | tee -a "$LF"
     exit 1
@@ -296,7 +302,7 @@ do
   then
     cmd="mri_diff --notallow-pix --notallow-geo $s ${t1s[0]}"
     RunIt "$cmd" $LF
-    if [ $status ]
+    if [ "${PIPESTATUS[0]}" -ne 0 ]
     then
       geodiff=1
     fi
@@ -366,12 +372,12 @@ for ((i=0;i<${#tpids[@]};++i)); do
   run_it "$LF" "${cmd[@]}"
 
   # remove mri subdirectory (run_prediction creates 001 there)
-  cmd="rm -rf $mdir/mri"
-  RunIt "$cmd" $LF
+  cmd=(rm -rf "$mdir/mri")
+  run_it "$LF" "${cmd[@]}"
   
   # mask is binary, we need to use on conformed image:
-  cmd="mri_mask $conformed_name $mask_name $mdir/cross_brainmask${extension}"
-  RunIt "$cmd" $LF
+  cmd=(mri_mask "$conformed_name" "$mask_name" "$mdir/cross_brainmask${extension}")
+  run_it "$LF" "${cmd[@]}"
 done
 
 # skip intensity normalization or bias field removal for now
@@ -419,12 +425,12 @@ then
   # 1. make the norm upright (base space)
   cmd="make_upright ${normInVols[0]} \
        ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension} ${ltaXforms[0]}"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
   # 2. create the upright orig volume
   cmd="mri_convert -rt cubic \
        -at ${ltaXforms[0]} ${subjInVols[0]} ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
 else #more than 1 time point:
 
@@ -435,7 +441,7 @@ else #more than 1 time point:
   cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   cmd="$cmd --average ${robust_template_avg_arg}"
   cmd="$cmd --sat 4.685"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
   # create the 'mean/median' input (orig) volume:
   cmd="mri_robust_template --mov ${subjInVols[@]}"
@@ -444,7 +450,7 @@ else #more than 1 time point:
   cmd="$cmd --noit"
   t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
   cmd="$cmd --template $t1"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 
 fi # more than one time point
 
@@ -458,7 +464,7 @@ do
   cmd="$cmd $odir/${s}_to_${tid}.lta"
   cmd="$cmd identity.nofile"
   cmd="$cmd $odir/${tid}_to_${s}.lta"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 done
 
 # finally map inputs to template space for each time point
@@ -467,7 +473,7 @@ do
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
   # map orig to base space
   cmd="mri_convert -at ${ltaXforms[$i]} -rt $interpol $mdir/cross_input${extension} $mdir/long_conform${extension}"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 done
 
 
