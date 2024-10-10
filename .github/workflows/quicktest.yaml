@@ -1,4 +1,4 @@
-name: quicktest
+name: quicktest-runner
 
 # File: quicktest.yaml
 # Author: Taha Abdullah
@@ -16,19 +16,25 @@ name: quicktest
 #  - FS_LICENSE: Path to the FreeSurfer license file.
 
 on:
-#  pull_request:
-#    branches:
-#      - dev
-#      - stable
+  pull_request:
+    branches:
+      - dev
+      - stable
   workflow_dispatch:
 
 jobs:
-  run-quicktest:
+  # Checkout repo
+  checkout:
     runs-on: self-hosted
     steps:
-    # Checkout fastsurfer
     - uses: actions/checkout@v2
-    # Check if the Environment Variables used in further steps are present
+
+  # Create conda environment, install packages, and run Fastsurfer
+  run-fastsurfer:
+    runs-on: self-hosted
+    needs: checkout
+    steps:
+      # Check if the Environment Variables used in further steps are present
     - name: Check Environment Variables
       run: |
         REQUIRED_ENV_VARS=(
@@ -65,11 +71,16 @@ jobs:
         export THIS_RUN_OUTDIR=${GITHUB_SHA:0:7}
         mkdir -p $SUBJECTS_DIR/$THIS_RUN_OUTDIR
         export TEST_DIR=$THIS_RUN_OUTDIR
-        export TQDM_DISABLE=1
         ./brun_fastsurfer.sh --subject_list $RUNNER_FS_MRI_DATA/subjects_list.txt \
                              --sd $SUBJECTS_DIR/$THIS_RUN_OUTDIR \
                              --parallel --threads 4 --3T --parallel_subjects surf
-    # run pytest checks for data consistency/quality
+
+  # Test fastsurfer output
+  run-pytest:
+    runs-on: self-hosted
+    if: always()
+    needs: run-fastsurfer
+    steps:
     - name: Run pytest
       run: |
         source /venv-pytest/bin/activate
