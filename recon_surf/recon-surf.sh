@@ -87,6 +87,12 @@ FLAGS:
                             that segmentations produced otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --mask_name <mask_file> Path to the brainmask file to use. Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/mask.mgz
+  --edits                 Disable the check for existing recon-surf.sh run, replace
+                            <asegdkt_segfile> by its manedit-suffixed version,
+                            includes wm.mgz and brain.finalsurfs.mgz edits,
+                            and enables FreeSurfer-style WM control points.
   --fstess                Revert to FreeSurfer mri_tesselate for surface creation
                             (default: mri_mc)
   --fsqsphere             Revert to FreeSurfer iterative inflation for qsphere
@@ -146,6 +152,7 @@ EOF
 
 # Load the RunIt and the RunBatchJobs functions, also sets up timecmd
 source "$binpath/functions.sh"
+if [ -t "$timecmd" ] ; then timecmd="" ; fi # set timecmd to empty to fix SC2154
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -175,9 +182,11 @@ case $key in
     asegdkt_segfile="$1"
     shift # past value
     ;;
+  --mask_name) mask="$1" ; shift ;;
   --vol_segstats)
     echo "WARNING: The --vol_segstats flag is obsolete and will be removed, --vol_segstats ignored."
     ;;
+  --edits) edits="true" ;;
   --segstats_legacy) segstats_legacy="true" ;;
   --fstess) fstess=1 ;;
   --fsqsphere) fsqsphere=1 ;;
@@ -340,19 +349,28 @@ fi
 # Check if running on an existing subject directory
 if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]
 then
-  echo "ERROR: Running on top of an existing subject directory!"
-  echo "  The output directory must not contain data from a previous invocation of recon-surf."
-  exit 1
+  on_existing_run="true"
+  if [[ "$edits" == "true" ]]
+  then
+    echo "INFO: Running on top of an existing subject directory, but edits is $edits."
+  else
+    echo "ERROR: Running on top of an existing subject directory!"
+    echo "  The output directory must not contain data from a previous invocation of recon-surf."
+    exit 1
+  fi
+else
+  on_existing_run="false"
 fi
 
 # collect info
 StartTime=$(date)
 tSecStart=$(date '+%s')
-year=$(date +%Y)
-month=$(date +%m)
-day=$(date +%d)
-hour=$(date +%H)
-min=$(date +%M)
+# unused
+# year=$(date +%Y)
+# month=$(date +%m)
+# day=$(date +%d)
+# hour=$(date +%H)
+# min=$(date +%M)
 
 
 # Setup dirs
@@ -368,14 +386,16 @@ sdir="$SUBJECTS_DIR/$subject/surf"
 statsdir="$SUBJECTS_DIR/$subject/stats"
 ldir="$SUBJECTS_DIR/$subject/label"
 
-mask="$mdir/mask.mgz"
-
+# set default mask and make mask absolute
+if [[ -z "$mask" ]] ; then mask="$mdir/mask.mgz"
+elif [[ "${mask:0:1}" != "/" ]] ; then mask="$SUBJECTS_DIR/$subject/$mask"
+fi
 
 # Set up log file
 DoneFile="$SUBJECTS_DIR/$subject/scripts/recon-surf.done"
 if [ "$DoneFile" != /dev/null ] ; then  rm -f "$DoneFile" ; fi
 LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
-if [ "$LF" != /dev/null ] ; then  rm -f "$LF" ; fi
+if [ "$LF" != /dev/null ]  && [[ "$edits" != "true" ]]; then  rm -f "$LF" ; fi
 echo "Log file for recon-surf.sh" >> "$LF"
 { # all output tee -a "$LF"
   date 2>&1
@@ -387,13 +407,16 @@ echo "Log file for recon-surf.sh" >> "$LF"
   cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
   echo "$VERSION"
   uname -a 2>&1
+  if [[ "$on_existing_run" == "true" ]]
+  then
+    echo "Running on top of an existing subject directory with edits=$edits!"
+  fi
   echo " "
   if [ "$base" == "1" ] ; then
     echo " "
     echo "================== BASE - Longitudinal Template Creation ========================="
     echo " "
-  fi
-  if [ "$long" == "1" ] ; then
+  elif [ "$long" == "1" ] ; then
     echo " "
     echo "================== LONG - Longitudinal Timpe Point Creation ======================"
     echo "long: using template directory (base) $baseid"
@@ -447,12 +470,12 @@ if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
 then
   echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." | tee -a "$LF"
   hiresflag="-hires"
-  noconform_if_hires=" -noconform"
+  noconform_if_hires=("-noconform")
   hires_surface_suffix=".predec"
 else
   echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." | tee -a "$LF"
   hiresflag=""
-  noconform_if_hires=""
+  noconform_if_hires=()
   hires_surface_suffix=""
 fi
 
@@ -461,6 +484,12 @@ fi
 cmd="mri_convert $t1 $mdir/orig.mgz"
 RunIt "$cmd" "$LF"
 
+asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
+# do not add a second manedit
+if [[ ! "$asegdkt_segfile_manedit" =~ (\.manedit){2,}\. ]] && [[ -f "$asegdkt_segfile_manedit" ]]
+then
+    asegdkt_segfile="$asegdkt_segfile_manedit" # use the manedit file
+fi
 cmd="mri_convert $asegdkt_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" "$LF"
 
@@ -485,13 +514,15 @@ if [ "$long" == "1" ] ; then
   run_it "$LF" "${cmda[@]}"
 fi
 
-if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
+aseg_nocc="aseg.auto_noCCseg.mgz"
+if [ ! -f "$mask" ] || [ ! -f "$mdir/$aseg_nocc" ] ; then
+  # independently of the existence of manedit files, generate the baseline files.
+  # Mask or aseg.auto_noCCseg not found; create them from aparc.DKTatlas+aseg
   {
-    # Mask or aseg.auto_noCCseg not found; create them from aparc.DKTatlas+aseg
     echo " "
     echo "============= Creating aseg.auto_noCCseg (map aparc labels back) ==============="
     echo " "
-    echo "WARNING: mri/mask.mgz or mri/aseg.auto_noCCseg.mgz are missing, but these files are"
+    echo "WARNING: $mask or mri/$aseg_nocc are missing, but these files are"
     echo "  required in recon-surf.sh and always created in the segmentation pipeline run."
     echo "  It is recommended to transfer these files from there!"
   } | tee -a "$LF"
@@ -513,6 +544,13 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
   run_it "$LF" "${cmda[@]}"
 fi
 
+# replace mask by manedit-ed mask
+mask_manedit="$(add_file_suffix "$mask" "manedit")"
+if [[ "$edits" == "true" ]] && [[ -e "$mask_manedit" ]]
+then
+  echo "INFO: mri/$mask_manedit detected, supersedes mri/$mask in recon_surf.sh."
+  mask="$mask_manedit"
+fi
 
 # ============================= NU BIAS CORRECTION =======================================
 
@@ -550,6 +588,7 @@ if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/tala
   cmda=("$binpath/talairach-reg.sh" "$LF"
         --dir "$mdir" --conformed_name "$mdir/orig.mgz" --norm_name "$mdir/orig_nu.mgz")
   if [[ "$long" == "1" ]] ; then cmda+=(--long "$basedir") ; fi
+  if [[ "$edits" == "1" ]] ; then cmda+=(--edits) ; fi
   if [[ "$atlas3T" == "true" ]] ; then cmda+=(--3T) ; fi
 
   {
@@ -570,7 +609,7 @@ fi
 } | tee -a $LF
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
-# create norm by masking nu
+# create norm by masking nu (supports manedit-ed mask)
 cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
 if [ "$get_t1" == "1" ]
@@ -589,9 +628,9 @@ then
   #  base_flags="-w $mdir/ctrl_vol.mgz $mdir/bias_vol.mgz"
   #fi
   # cmd="mri_normalize -g 1 -seed 1234 -mprage $base_flags $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
-  cmda=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" $noconform_if_hires)
+  cmda=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" "${noconform_if_hires[@]}")
   run_it "$LF" "${cmda[@]}"
-  # create brainmask by masking T1
+  # create brainmask by masking T1 (supports manedit-ed mask)
   cmda=(mri_mask "$mdir/T1.mgz" "$mask" "$mdir/brainmask.mgz")
   run_it "$LF" "${cmda[@]}"
 else
@@ -608,11 +647,11 @@ fi
   echo " "
   echo "============ Creating and adding CC Segmentation ============"
   echo " "
-} | tee -a $LF
+} | tee -a "$LF"
 # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
 # Note: if original input segmentation already contains CC, this will exit with ERROR
 # in the future maybe check and skip this step (and next)
-cmd="mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
+cmd="mri_cc -aseg $aseg_nocc -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
 RunIt "$cmd" "$LF"
 # add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
 cmd="$python ${binpath}paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
@@ -725,11 +764,11 @@ for hemi in lh rh ; do
 
     # here we skip most steps above (and some below) and copy surfaces from base for initialization of placement later
     cmd="cp $basedir/surf/${hemi}.white $sdir/${hemi}.orig_white"
-    RunIt "$cmd" $LF
+    RunIt "$cmd" "$LF"
     cmd="cp $basedir/surf/${hemi}.white $sdir/${hemi}.orig"
-    RunIt "$cmd" $LF
+    RunIt "$cmd" "$LF"
     cmd="cp $basedir/surf/${hemi}.pial $sdir/${hemi}.orig_pial"
-    RunIt "$cmd" $LF
+    RunIt "$cmd" "$LF"
 
   fi # end LONG
 
