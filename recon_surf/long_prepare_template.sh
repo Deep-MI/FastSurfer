@@ -363,7 +363,7 @@ for ((i=0;i<${#tpids[@]};++i)); do
          --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "${tpids[i]}"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
          --viewagg_device "$viewagg" --device "$device")
-  RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+  run_it "$LF" "${cmd[@]}"
 
   # remove mri subdirectory (run_prediction creates 001 there)
   cmd="rm -rf $mdir/mri"

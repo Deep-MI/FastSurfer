@@ -217,15 +217,7 @@ echo ""
 
 
 # Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
-then
-  echo "ERROR: You are trying to run '$0' as root. We advice to avoid running FastSurfer "
-  echo "  as root, because it will lead to files and folders created as root."
-  echo "  If you are running FastSurfer in a docker container, you can specify the user with"
-  echo "  '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-  echo "  If you want to force running as root, you may pass --allow_root to recon-surf.sh."
-  exit 1;
-fi
+check_allow_root
 
 if [ -z "$SUBJECTS_DIR" ]
 then
@@ -494,8 +486,8 @@ popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 
 if [ "$long" == "1" ] ; then
   # for long we copy mask from base
-  cmd=(cp "$basedir/mri/mask.mgz" "$mask")
-  RunIt "${cmd[*]}" "$LF"
+  cmda=(cp "$basedir/mri/mask.mgz" "$mask")
+  run_it "$LF" "${cmda[@]}"
 fi
 
 if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
@@ -511,8 +503,8 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
 
   # reduce labels to aseg, then create mask (dilate 5, erode 4, largest component), also mask aseg to remove outliers
   # output will be uchar (else mri_cc will fail below)
-  cmd=($python "$FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py" -i "$mdir/aparc.DKTatlas+aseg.orig.mgz"
-       -o "$mdir/aseg.auto_noCCseg.mgz" --fixwm)
+  cmda=($python "$FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py" -i "$mdir/aparc.DKTatlas+aseg.orig.mgz"
+        -o "$mdir/$aseg_nocc" --fixwm)
 
   if [ "$base" == "1" ] && [ ! -f "$mask" ] ; then
     # for base we build union of mapped masks beforehand so it should be available
@@ -520,10 +512,10 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/aseg.auto_noCCseg.mgz" ] ; then
     exit 1
   elif [ "$long" != "1" ] && [ "$base" != 1 ] ; then
     # cross-sectional processing, add outmask to cmd (not for or base long stream)
-    cmd+=(--outmask "$mask")
+    cmda+=(--outmask "$mask")
   fi
 
-  RunIt "${cmd[*]}" "$LF"
+  run_it "$LF" "${cmda[@]}"
 fi
 
 
@@ -605,8 +597,8 @@ fi
 } | tee -a $LF
 
 # create norm by masking nu
-cmd=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
-RunIt "${cmd[*]}" "$LF"
+cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
+run_it "$LF" "${cmda[@]}"
 if [ "$get_t1" == "1" ]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
@@ -623,11 +615,11 @@ then
   #  base_flags="-w $mdir/ctrl_vol.mgz $mdir/bias_vol.mgz"
   #fi
   # cmd="mri_normalize -g 1 -seed 1234 -mprage $base_flags $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
-  cmd=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" $noconform_if_hires)
-  RunIt "${cmd[*]}" "$LF"
+  cmda=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" $noconform_if_hires)
+  run_it "$LF" "${cmda[@]}"
   # create brainmask by masking T1
-  cmd=(mri_mask "$mdir/T1.mgz" "$mask" "$mdir/brainmask.mgz")
-  RunIt "${cmd[*]}" "$LF"
+  cmda=(mri_mask "$mdir/T1.mgz" "$mask" "$mdir/brainmask.mgz")
+  run_it "$LF" "${cmda[@]}"
 else
   # create brainmask by linkage to norm.mgz (masked nu.mgz)
   pushd "$mdir" > /dev/null || ( echo "Could not cd to $mdir" ; exit 1 )
@@ -1198,37 +1190,37 @@ if [ "$base" != "1" ] ; then
     # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
     # cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
     if [[ "$segstats_legacy" == "true" ]] ; then
-      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py"
-           --subject "$subject")
-      RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+      cmda=($python "$FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py"
+            --subject "$subject")
+      run_it "$LF" "${cmda[@]}"
 
-      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py" --seed 1234
-           --seg "$mdir/aseg.mgz" --sum "$statsdir/aseg.stats" --pv "$mdir/norm.mgz"
-           "--in-intensity-name" norm "--in-intensity-units" MR --subject "$subject"
-           --surf-wm-vol --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --etiv
-           --threads "$threads")
+      cmda=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py" --seed 1234
+            --seg "$mdir/aseg.mgz" --sum "$statsdir/aseg.stats" --pv "$mdir/norm.mgz"
+            "--in-intensity-name" norm "--in-intensity-units" MR --subject "$subject"
+            --surf-wm-vol --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --etiv
+            --threads "$threads")
 #      cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
     else
       # calculate brainvol stats and aseg stats with segstats.py
-      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-         --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
-         --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
-         # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
-         --excludeid 0 2 3 41 42
-         --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
-         measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
-                            "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
-                            "rhCerebralWhiteMatter" "CerebralWhiteMatter"
-                            "SubCortGray" "TotalGray" "SupraTentorial"
-                            "SupraTentorialNotVent" "Mask($mdir/mask.mgz)"
-                            "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
+      cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+            --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
+            --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
+            # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
+            --excludeid 0 2 3 41 42
+            --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
+            measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
+                               "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
+                               "rhCerebralWhiteMatter" "CerebralWhiteMatter"
+                               "SubCortGray" "TotalGray" "SupraTentorial"
+                               "SupraTentorialNotVent" "Mask($mask)"
+                               "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
       if [ "$long" == "0" ] ; then
         # in long we do not have orig_nofix for surface hole computation as surfaces
         # are inherited from base/template
-        cmd+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles")
+        cmda+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles")
       fi
-      cmd+=("EstimatedTotalIntraCranialVol")
-      RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+      cmda+=("EstimatedTotalIntraCranialVol")
+      run_it "$LF" "${cmda[@]}"
       echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
       # ... so stats/brainvol.stats also exists (but it is slightly different
 #      cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
@@ -1236,18 +1228,18 @@ if [ "$base" != "1" ] ; then
 
       # this call is only "required" to "compute" brainvol.stats, so --normfile/--pvfile
       # are not required
-      cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-           --segfile "$mdir/aseg.mgz" --pvfile "$mdir/norm.mgz"
-           --measure_only --threads "$threads" --segstatsfile "$statsdir/brainvol.stats"
-           measures --file "$statsdir/aseg.stats"
-                    --import "BrainSeg" "BrainSegNotVent" "SupraTentorial"
-                             "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
-                             "Cortex" "TotalGray" "lhCerebralWhiteMatter"
-                             "rhCerebralWhiteMatter" "CerebralWhiteMatter" "Mask"
-                    --compute "SupraTentorialNotVentVox" "BrainSegNotVentSurf"
-                              "VentricleChoroidVol")
+      cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+            --segfile "$mdir/aseg.mgz" --pvfile "$mdir/norm.mgz"
+            --measure_only --threads "$threads" --segstatsfile "$statsdir/brainvol.stats"
+            measures --file "$statsdir/aseg.stats"
+                     --import "BrainSeg" "BrainSegNotVent" "SupraTentorial"
+                              "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
+                              "Cortex" "TotalGray" "lhCerebralWhiteMatter"
+                              "rhCerebralWhiteMatter" "CerebralWhiteMatter" "Mask"
+                     --compute "SupraTentorialNotVentVox" "BrainSegNotVentSurf"
+                               "VentricleChoroidVol")
     fi
-    RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+    run_it "$LF" "${cmda[@]}"
   fi
 
 # ============================= MAPPED-WMPARC =========================================
@@ -1261,25 +1253,25 @@ if [ "$base" != "1" ] ; then
     # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and
     # hypos) difference between this and the surface improved one above are probably tiny, so the surface improvement
     # above can probably be skipped to save time
-    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py" --seed 1234
-         --seg "$mdir/aseg.presurf.hypos.mgz" --sum "$statsdir/aseg.presurf.hypos.stats"
-         --pv "$mdir/norm.mgz" --empty --brainmask "$mdir/brainmask.mgz"
-         --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray
-         "--in" "$mdir/norm.mgz" "--in-intensity-name" norm "--in-intensity-units" MR
-         --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler
-         --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --subject "$subject")
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py" --seed 1234
+          --seg "$mdir/aseg.presurf.hypos.mgz" --sum "$statsdir/aseg.presurf.hypos.stats"
+          --pv "$mdir/norm.mgz" --empty --brainmask "$mdir/brainmask.mgz"
+          --brain-vol-from-seg --excludeid 0 --excl-ctxgmwm --supratent --subcortgray
+          "--in" "$mdir/norm.mgz" "--in-intensity-name" norm "--in-intensity-units" MR
+          --etiv --surf-wm-vol --surf-ctx-vol --totalgray --euler
+          --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --subject "$subject")
   else
     # segstats.py version of the mri_segstats call
-    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
-         --segfile "$mdir/aseg.presurf.hypos.mgz" --normfile "$mdir/norm.mgz"
-         --pvfile "$mdir/norm.mgz" --segstatsfile "$statsdir/aseg.presurf.hypos.stats"
-         # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
-         --excludeid 0 2 3 41 42
-         --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads" --empty
-         --volume_precision 1
-         measures --file "$statsdir/aseg.stats" --import "all")
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+          --segfile "$mdir/aseg.presurf.hypos.mgz" --normfile "$mdir/norm.mgz"
+          --pvfile "$mdir/norm.mgz" --segstatsfile "$statsdir/aseg.presurf.hypos.stats"
+          # --excl-ctxgmwm: exclude Left/Right WM / Cortex despite ASegStatsLUT.txt
+          --excludeid 0 2 3 41 42
+          --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads" --empty
+          --volume_precision 1
+          measures --file "$statsdir/aseg.stats" --import "all")
   fi
-  RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+  run_it "$LF" "${cmda[@]}"
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF"
@@ -1287,26 +1279,26 @@ if [ "$base" != "1" ] ; then
   # takes a few mins
   #cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   if [[ "$segstats_legacy" == "true" ]] ; then
-    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py"
-         --seed 1234 --seg "$mdir/wmparc.DKTatlas.mapped.mgz"
-         --sum "$statsdir/wmparc.DKTatlas.mapped.stats" --pv "$mdir/norm.mgz"
-         --excludeid 0 --brainmask "$mdir/brainmask.mgz" "--in" "$mdir/norm.mgz"
-         "--in-intensity-name" norm "--in-intensity-units" MR
-         --subject "$subject" --surf-wm-vol
-         --ctab "$FREESURFER_HOME/WMParcStatsLUT.txt")
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py"
+          --seed 1234 --seg "$mdir/wmparc.DKTatlas.mapped.mgz"
+          --sum "$statsdir/wmparc.DKTatlas.mapped.stats" --pv "$mdir/norm.mgz"
+          --excludeid 0 --brainmask "$mdir/brainmask.mgz" "--in" "$mdir/norm.mgz"
+          "--in-intensity-name" norm "--in-intensity-units" MR
+          --subject "$subject" --surf-wm-vol
+          --ctab "$FREESURFER_HOME/WMParcStatsLUT.txt")
   else
     #
-    cmd=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py"
-         --sid "$subject" --sd "$SUBJECTS_DIR" --pvfile "$mdir/norm.mgz"
-         --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
-         --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
-         --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats" --empty
-         --volume_precision 1
-         measures --file "$statsdir/brainvol.stats" --import "Mask"
-                  "VentricleChoroidVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
-                  "CerebralWhiteMatter")
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py"
+          --sid "$subject" --sd "$SUBJECTS_DIR" --pvfile "$mdir/norm.mgz"
+          --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
+          --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
+          --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats" --empty
+          --volume_precision 1
+          measures --file "$statsdir/brainvol.stats" --import "Mask"
+                   "VentricleChoroidVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
+                   "CerebralWhiteMatter")
   fi
-  RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+  run_it "$LF" "${cmda[@]}"
 
 
 # ============================= FASTSURFER - SYMLINKS =========================================

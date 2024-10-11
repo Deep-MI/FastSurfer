@@ -492,6 +492,12 @@ else
 fi
 
 ########################################## VERSION AND QUIT HERE ########################################
+# make sure the python  executable is valid and found
+if [[ -z "$(which "${python/ */}")" ]]; then
+  echo "Cannot find the python interpreter ${python/ */}."
+  exit 1
+fi
+
 version_args=()
 if [[ -f "$FASTSURFER_HOME/BUILD.info" ]]
 then
@@ -509,22 +515,10 @@ then
   exit
 fi
 
-# make sure the python  executable is valid and found
-if [[ -z "$(which "${python/ */}")" ]]; then
-  echo "Cannot find the python interpreter ${python/ */}."
-  exit 1
-fi
+source "${reconsurfdir}/functions.sh"
 
 # Warning if run as root user
-if [[ "${#allow_root}" == 0 ]] && [[ "$(id -u)" == "0" ]]
-then
-  echo "ERROR: You are trying to run '$0' as root. We advice to avoid running FastSurfer"
-  echo "  as root, because it will lead to files and folders created as root."
-  echo "  If you are running FastSurfer in a docker container, you can specify the user"
-  echo "  with '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-  echo "  If you want to force running as root, you may pass --allow_root to run_fastsurfer.sh."
-  exit 1
-fi
+check_allow_root
 
 # CHECKS
 
@@ -748,7 +742,6 @@ fi
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
 
-source "${reconsurfdir}/functions.sh"
 
 if [[ -f "$seg_log" ]]; then log_existed="true"
 else log_existed="false"
