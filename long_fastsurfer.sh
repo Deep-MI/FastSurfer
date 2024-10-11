@@ -57,6 +57,7 @@ tid=""
 sd="$SUBJECTS_DIR"
 tpids=()
 t1s=()
+parallel=0
 log=""
 python="python3.10 -s" # avoid user-directory package inclusion
 
@@ -81,6 +82,7 @@ FLAGS:
   --tpids <tID1> >tID2> ..  IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
   --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
+  --parallel_long           (Experimental) Parallelize the long script
   --py <python_cmd>         Command for python, used in both pipelines.
                               Default: "$python"
                               (-s: do no search for packages in home directory)
@@ -159,6 +161,7 @@ case $key in
     done
     ;;
   --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
+  --parallel_long) parallel=1 ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --sid|--t1|--t2)
@@ -238,19 +241,19 @@ fi
 
 echo "Base Setup $tid"
 cmda=("$reconsurfdir/long_prepare_template.sh"
-    --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
-    --py "$python"
-    "${POSITIONAL_FASTSURFER[@]}")
+     --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
+     --py "$python"
+     "${POSITIONAL_FASTSURFER[@]}")
 run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Seg ##################################
 
- echo "Base Seg $tid"
- cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
-         --sid "$tid" --sd "$sd" --base
-         --seg_only --py "$python"
-         "${POSITIONAL_FASTSURFER[@]}")
- run_it "$LF" "${cmda[@]}"
+echo "Base Seg $tid"
+cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
+        --sid "$tid" --sd "$sd" --base
+        --seg_only --py "$python"
+        "${POSITIONAL_FASTSURFER[@]}")
+run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Surf #################################
 
@@ -259,28 +262,95 @@ cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
         --sid "$tid" --sd "$sd"
         --surf_only --base --py "$python"
         "${POSITIONAL_FASTSURFER[@]}")
-run_it "$LF" "${cmda[@]}"
+if [[ "$parallel" == "1" ]] ; then
+  base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
+  base_surf_cmdf_log="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf.log"
+  {
+    echo "Log file of base surface pipeline"
+    date
+  } > "$base_surf_cmdf_log"
+  echo "#/bin/bash" > "$base_surf_cmdf"
+  run_it_cmdf "$LF" "$base_surf_cmdf" "${cmda[@]}"
+  bash "$base_surf_cmdf" 2>&1 >> "$base_surf_cmdf_log" &
+  base_surf_pid=$!
+  trap "if [[ -n \"\$(ps --no-headers $base_surf_pid)\" ]] ; then kill $base_surf_pid ; fi" EXIT
+else
+  run_it "$LF" "${cmda[@]}"
+fi
 
 
 ################################### Run Long Seg ##################################
 
 # This can run in parallel with base seg and surf steps above
+time_points=()
 for ((i=0;i<${#tpids[@]};++i)); do
-  echo "Long Seg: ${tpids[i]} with T1 ${t1s[i]}"
-  cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid ${tpids[i]} --sd $sd \
-        --seg_only --long $tid \
-        ${POSITIONAL_FASTSURFER[*]}"
-  RunIt "$cmd" "$LF"
+  time_points+=("${tpids[$i]}=from-base")
 done
+cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --seg_only --long "$tid"
+      "${POSITIONAL_FASTSURFER[@]}")
+
+if [[ "$parallel" == "1" ]] ; then
+  long_seg_cmdf="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf"
+  long_seg_cmdf_log="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf.log"
+  {
+    echo "Log file of longitudinal segmentation pipeline"
+    date
+  } > "$long_seg_cmdf_log"
+  echo "#/bin/bash" > "$long_seg_cmdf"
+  run_it_cmdf "$LF" "$long_seg_cmdf" "${cmda[@]}"
+  # at the end of the job below, the gpu can be released (for tight management of resources, run
+  # Surfaces in different jobs. Alternative, add a command to "$long_seg_cmdf" that releases the gpu or
+  # triggers the next "subject"
+  #TQDM_DISABLE=1
+  bash "$long_seg_cmdf" 2>&1 >> "$long_seg_cmdf_log" &
+  long_seg_pid=$!
+  trap "if [[ -n \"\$(ps --no-headers $long_seg_pid)\" ]] ; then kill $long_seg_pid ; fi" EXIT
+else
+  run_it "$LF" "${cmda[@]}"
+fi
 
 ################################### Run Long Surf #################################
 
-for ((i=0;i<${#tpids[@]};++i)); do
-  echo "Long Surf: ${tpids[i]} with T1 ${t1s[i]}"
-  cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid ${tpids[i]} --sd $sd \
-        --surf_only --long $tid \
-        ${POSITIONAL_FASTSURFER[*]}"
-  RunIt "$cmd" "$LF"
-done
+cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --surf_only --long "$tid"
+      "${POSITIONAL_FASTSURFER[@]}")
+if [[ "$parallel" == "1" ]] ; then
+  cmda+=("--parallel_subjects")
+
+  what_failed=()
+  wait $base_surf_pid
+  success1=$?
+  {
+    echo "Base Surface pipeline Log:"
+    echo "======================================="
+    cat "$base_surf_cmdf_log"
+    if [ "$success1" -ne 0 ] ; then
+      echo "Base Surface pipeline terminated with error: $success1"
+      what_failed+=("Base Surface Pipeline")
+    else
+      echo "Base Surface pipeline finished successful!"
+      rm "$base_surf_cmdf_log" # the content of this file is transferred to LF
+    fi
+    echo "======================================="
+  } | tee -a "$LF"
+  wait $long_seg_pid
+  success2=$?
+  {
+    echo "Longitudinal Segmentation pipeline Log:"
+    echo "======================================="
+    cat "$long_seg_cmdf_log"
+    if [ "$success2" -ne 0 ] ; then
+      echo "Longitudinal Segmentation pipeline terminated with error: $success2"
+      what_failed+=("Longitudinal Segmentation Pipeline")
+    else
+      echo "Longitudinal Segmentation pipeline finished successful!"
+      rm "$long_seg_cmdf_log" # the content of this file is transferred to LF
+    fi
+    echo "======================================="
+  if [[ "$success1" -ne 0 ]] || [[ "$success2" -ne 0 ]] ; then
+    echo "Terminating because ${what_failed[*]} failed!"
+    exit 1
+  fi
+  } | tee -a "$LF"
+fi
+
+run_it "$LF" "${cmda[@]}"
