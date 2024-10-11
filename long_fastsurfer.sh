@@ -241,9 +241,9 @@ fi
 
 echo "Base Setup $tid"
 cmda=("$reconsurfdir/long_prepare_template.sh"
-     --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
-     --py "$python"
-     "${POSITIONAL_FASTSURFER[@]}")
+    --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
+    --py "$python"
+    "${POSITIONAL_FASTSURFER[@]}")
 run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Seg ##################################
