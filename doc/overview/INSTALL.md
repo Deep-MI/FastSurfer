@@ -4,7 +4,7 @@ FastSurfer is a pipeline for the segmentation of human brain MRI data. It consis
 
 The preferred way of installing and running FastSurfer is via Singularity or Docker containers on a Linux host system (with a GPU). We provide pre-build images at Dockerhub for various application cases: i) for only the segmentation (both GPU and CPU), ii) for only the CPU-based recon-surf pipeline, and iii) for the full pipeline (GPU or CPU). 
 
-We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 22.04 via our provided Docker images.
+We also provide information on a native installation on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 22.04 via our provided Docker images.
 
 
 ## Linux
@@ -15,19 +15,19 @@ Minimum System Spec: 8 GB system memory (this requires running FastSurfer on the
 
 Non-NVIDIA GPU architectures (AMD) are experimental and not officially supported, but seem to work well also. 
 
-### Singularity
+### Singularity (Linux)
 
 Assuming you have singularity installed already (by a system admin), you can build a Singularity image easily from our Dockerhub images. Run this command from a directory where you want to store singularity images:
 
 ```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 ```
-Additionally, [the Singularity README](../../Singularity/README.md) contains detailed directions for building your own Singularity images from Docker.
+Additionally, [the Singularity README](README.md) contains detailed directions for building your own Singularity images from Docker.
 
-[Example 2](EXAMPLES.md#example-2-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../Docker/README.md) and [Singularity](../../Singularity/README.md). 
+[Example 1](EXAMPLES.md#example-1-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../Docker/README.md) and [Singularity](README.md). 
 
 
-### Docker
+### Docker (Linux)
 
 This is very similar to Singularity. Assuming you have Docker installed (by a system admin) you just need to pull one of our pre-build Docker images from dockerhub:
 
@@ -35,12 +35,14 @@ This is very similar to Singularity. Assuming you have Docker installed (by a sy
 docker pull deepmi/fastsurfer:latest
 ```
 
-[Example 1](EXAMPLES.md#example-1-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md). 
+[Example 2](EXAMPLES.md#example-2-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md). 
 
 
-### Native (Ubuntu 20.04 or Ubuntu 22.04)
+### Native (Linux)
 
-In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need.
+Other Linux distributions should also work, if the 
+
+For a native installation you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need.
 
 #### 1. System Packages
 
@@ -120,7 +122,7 @@ To run the full pipeline, you will need to install FreeSurfer (we recommend and 
 
 Make sure, the `${FREESURFER_HOME}` environment variable is set, so FastSurfer finds the FreeSurfer binaries.
 
-### AMD GPUs (experimental)
+### AMD GPUs (Linux, experimental)
 
 We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using ROCm. For this to work you need to make sure you are using a supported (or semi-supported) GPU and the correct kernel version. AMD kernel modules need to be installed on the host system according to ROCm installation instructions and additional groups need to be setup and your user added to them, see https://docs.amd.com/bundle/ROCm-Installation-Guide-v5.2.3/page/Introduction_to_AMD_ROCm_Installation_Guide_for_Linux.html .
 
@@ -130,12 +132,12 @@ Build the Docker container with ROCm support.
 python Docker/build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
-You will need to add a couple of flags to your docker run command for AMD, see [Example 1](EXAMPLES.md#example-1-fastsurfer-docker) for `**other-docker-flags**` or `**fastsurfer-flags**`:
+You will need to add a couple of flags to your docker run command for AMD, see [Example 2](EXAMPLES.md#example-2-fastsurfer-docker) for `**other-docker-flags**` or `*<*fastsurfer-flags*>*`:
 ```bash
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/kfd \
         --device=/dev/dri --group-add video --ipc=host --shm-size 8G \
         **other-docker-flags** my_fastsurfer:rocm \
-                **fastsurfer-flags**
+                *<*fastsurfer-flags*>*
 ```
 Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.
 
@@ -147,7 +149,7 @@ Recommended System Spec: Mac with Apple Silicon M-Chip and 16 GB system memory.
 
 For older Intel CPUs, we only support cpu-only, which will be 2-4 times slower. 
 
-### Docker (currently only supported for Intel CPUs)
+### Docker (MacOS, currently only supported for Intel CPUs)
 
 Docker can be used on Intel Macs as it should be similarly fast as a native install there. It would allow you to run the full pipeline.
 
@@ -160,10 +162,10 @@ Second, pull one of our Docker containers. Open a terminal window and run:
 docker pull deepmi/fastsurfer:latest
 ```
 
-Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker). 
+Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker). 
 
 
-### Native
+### Native (MacOS)
 
 On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. Access to the built-in AI accelerator (MPS) is also only available on native installations. A native installation also works on older Intel chips.
 
@@ -228,7 +230,7 @@ This will be at least twice as fast as `--device cpu`. Currently setting the fal
 
 ## Windows
 
-### Docker (CPU version)
+### Docker (Windows)
 
 In order to run FastSurfer on your Windows system using docker make sure that you have:
 * [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
@@ -239,10 +241,10 @@ installed and running.
 After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on [dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) what version tag is most recent for cpu):
 
 ```bash
-docker pull deepmi/fastsurfer:cpu-latest
+docker pull deepmi/fastsurfer:cpu-v{{FASTSURFER_VERSION}}
 ```
 
-Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker) for the CPU build, for example:
+Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker) for the CPU build, for example:
 ```bash
 docker run -v C:/Users/user/my_mri_data:/data \
            -v C:/Users/user/my_fastsurfer_analysis:/output \
@@ -274,7 +276,7 @@ After everything is installed, start Windows PowerShell and run the following co
 docker pull deepmi/fastsurfer:latest
 ```
 
-Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker), for example:
+Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker), for example:
 ```bash
 docker run --gpus all
            -v C:/Users/user/my_mri_data:/data \

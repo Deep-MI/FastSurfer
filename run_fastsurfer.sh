@@ -126,10 +126,10 @@ FLAGS:
                             (smallest per-direction voxel size) in the T1w
                             image:
                               If the minimal voxel size is bigger than 0.98mm,
-                                the image is conformed to 1mm isometric.
+                                the image is conformed to 1mm isotropic.
                               If the minimal voxel size is smaller or equal to
                                 0.98mm, the T1w image will be conformed to
-                                isometric voxels of that voxel size.
+                                isotropic voxels of that voxel size.
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.

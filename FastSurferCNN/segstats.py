@@ -1174,10 +1174,10 @@ def write_statsfile(
         import os
         import sys
 
-        from FastSurferCNN.version import read_and_close_version
+        from FastSurferCNN.version import read_version_and_close
         file.write(
             "# generating_program segstats.py\n"
-            "# FastSurfer_version " + read_and_close_version() + "\n"
+            "# FastSurfer_version " + read_version_and_close() + "\n"
             "# cmdline " + " ".join(sys.argv) + "\n"
         )
         if os.name == 'posix':
