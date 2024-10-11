@@ -208,14 +208,14 @@ done
 
 ################################## CHECKS ##############################
 
-if [ -z "$t1s" ]
- then
+if [ "${#t1s[@]}" -lt 1 ]
+then
   echo "ERROR: must supply T1 inputs (full head) via --t1s"
   exit 1
 fi
 
-if [ -z "$tpids" ]
- then
+if [ "${#tpids[@]}" -lt 1 ]
+then
   echo "ERROR: must supply time points ids via --tpids"
   exit 1
 fi
