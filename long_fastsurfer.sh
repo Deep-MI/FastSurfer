@@ -60,8 +60,6 @@ t1s=()
 python="python3.10 -s" # avoid user-directory package inclusion
 
 
-source "${reconsurfdir}/functions.sh"
-
 function usage()
 {
 cat << EOF
@@ -180,6 +178,12 @@ done
 
 
 ####################################### CHECKS ####################################
+
+
+source "${reconsurfdir}/functions.sh"
+
+# Warning if run as root user
+check_allow_root
 
 if [ "${#t1s[@]}" -lt 1 ]
  then
