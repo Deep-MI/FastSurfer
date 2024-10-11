@@ -151,6 +151,29 @@ def read_colortables(
     return all_ids, all_names, all_cols
 
 
+def parse_version(fs_version_str):
+    """
+    A function to parse fs_version with . as separator (in case like 7.4.1).
+
+    Parameters
+    ----------
+    fs_version_str : str
+        The full freesurfer version string including platform, date a git hash.
+
+    Returns
+    -------
+    tuple[int, int, int], str
+        Version numbers or string.
+    """
+    fs_version = fs_version_str.split('-')[3]
+    try:
+        version_parts = fs_version.split(".")
+        return tuple(map(int, version_parts))
+    except ValueError:
+        return fs_version
+
+
+
 if __name__ == "__main__":
 
     stream = os.popen("date")
@@ -179,11 +202,27 @@ if __name__ == "__main__":
     if options.fsaverage is None:
         options.fsaverage = os.path.join(fshome, "subjects", "fsaverage")
 
+    # check build-stamp.txt file for version
+    buildstamp = os.path.join(fshome, "build-stamp.txt")
+    if os.path.exists(buildstamp):
+        with open(buildstamp) as f:
+            version = parse_version(f.read().strip())
+            print(f"FreeSurfer version: {version if isinstance(version, str) else '.'.join(map(str, version))}")
+    else:
+        sys.exit(f"ERROR: {buildstamp} not found.")
+
     # read and stack colortable labels
     ba = os.path.join(fshome, "average", "colortable_BA.txt")
     vpnl = os.path.join(fshome, "average", "colortable_vpnl.txt")
     colnames = [ba, ba, vpnl]
-    colappend = ["", ".thresh", ".mpm.vpnl"]
+    # freesurfer changed the format of average/colortable_vpnl.txt in versions 7.5
+    # See also : https://github.com/freesurfer/freesurfer/commit/59a63453ac3d8c400b49c730218bd9f3bf7bb501
+    if version == "dev" or (isinstance(version, tuple) and version >= (7, 5)):
+        colappend = ["", ".thresh", ""]
+        print("VERSION 7.5 or later detected")
+    else:
+        colappend = ["", ".thresh", ".mpm.vpnl"]
+        print("VERSION 7.4 or earlier detected")
     annotnames = ["BA_exvivo", "BA_exvivo.thresh", "mpm.vpnl"]
     label_ids, label_names, label_cols = read_colortables(colnames, colappend)
 
