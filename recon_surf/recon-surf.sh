@@ -793,9 +793,9 @@ for hemi in lh rh ; do
     cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig --backup $sdir/$hemi.orig.noorient"
     RunIt "$cmd" "$LF" "$CMDF"
 
-  # create first WM surface white.preaparc from topo fixed orig surf
-  cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" "$LF" "$CMDF"
+    # create first WM surface white.preaparc from topo fixed orig surf
+    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning $hiresflag $fsthreads"
+    RunIt "$cmd" "$LF" "$CMDF"
 
   else # longitudinal
 
