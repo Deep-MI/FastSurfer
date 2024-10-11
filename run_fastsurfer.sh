@@ -830,7 +830,10 @@ then
 
     if [[ "$run_talairach_registration" == "true" ]]
     then
-      cmd=("$reconsurfdir/talairach-reg.sh" "$sd/$subject/mri" "$atlas3T" "$seg_log")
+      cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log"
+           --dir "$sd/$subject/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
+      if [[ "$long" == "1" ]] ; then cmd+=(--long "$basedir") ; fi
+      if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
       {
         echo "INFO: Running talairach registration..."
         echo_quoted "${cmd[@]}"
