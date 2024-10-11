@@ -143,6 +143,7 @@ key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 shift # past argument
 case $key in
   --tid) tid="$1" ; shift ;;
+  --log) LF="$1" ; shift ;;
   --tpids)
     while [[ $# -gt 0 ]] && [[ $1 != -* ]] 
     do
@@ -235,12 +236,12 @@ fi
 
 ################################### Prepare Base ##################################
 
- echo "Base Setup $tid"
- cmda=("$reconsurfdir/long_prepare_template.sh"
-      --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
-      --py "$python"
-      "${POSITIONAL_FASTSURFER[@]}")
- run_it "$LF" "${cmda[@]}"
+echo "Base Setup $tid"
+cmda=("$reconsurfdir/long_prepare_template.sh"
+    --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
+    --py "$python"
+    "${POSITIONAL_FASTSURFER[@]}")
+run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Seg ##################################
 
@@ -258,7 +259,7 @@ cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
         --sid "$tid" --sd "$sd"
         --surf_only --base --py "$python"
         "${POSITIONAL_FASTSURFER[@]}")
-  run_it "$LF" "${cmda[@]}"
+run_it "$LF" "${cmda[@]}"
 
 
 ################################### Run Long Seg ##################################
