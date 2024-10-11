@@ -166,7 +166,7 @@ case $key in
     ;;
   --seg_only|--surf_only)
     echo "ERROR: --seg_only and --surf_only are not supported by long_fastsurfer.sh, only a full"
-    ehco "  pipeline run is a valid longitudinal run!"
+    echo "  pipeline run is a valid longitudinal run!"
     exit 1
     ;;
   *)    # unknown option

@@ -221,14 +221,14 @@ if [ -z "$tpids" ]
 fi
 
 if [ -z "$tid" ]
- then
+then
   echo "ERROR: must supply subject template name via --tid"
   exit 1
 fi
 
 # check that t1s list is same length as tpids
 if [ "${#tpids[@]}" -ne "${#t1s[@]}" ]
- then
+then
   echo "ERROR: length of tpids must equal t1s"
   exit 1
 fi
@@ -418,7 +418,7 @@ then
 
   # 1. make the norm upright (base space)
   cmd="make_upright ${normInVols[0]} \
-       ${SUBJECTS_DIR}/$tid/mri/base_brainmaks${extension} ${ltaXforms[0]}"
+       ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension} ${ltaXforms[0]}"
   RunIt "$cmd" $LF
 
   # 2. create the upright orig volume

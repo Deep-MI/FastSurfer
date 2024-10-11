@@ -191,7 +191,7 @@ case $key in
       export FS_LICENSE="$1"
     else
       echo "ERROR: Provided FreeSurfer license file $1 could not be found."
-      echo "  Make sure to provide the full path and name. Exiting..."
+      echo "  Make sure to provide the full path and name."
       exit 1;
     fi
     shift # past value
@@ -243,7 +243,7 @@ then
   if grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
   then
     echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat "$FREESURFER_HOME/build-stamp.txt")."
-    echo "  We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT"
+    echo "  We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT."
     echo "  Therefore, make sure to export and source the correct FreeSurfer version"
     echo "  before running recon-surf.sh: "
     echo "  export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
@@ -483,7 +483,6 @@ popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 
 # ============================= MASK & ASEG_noCC ========================================
 
-
 if [ "$long" == "1" ] ; then
   # for long we copy mask from base
   cmda=(cp "$basedir/mri/mask.mgz" "$mask")
@@ -630,21 +629,21 @@ RunIt "$cmd" "$LF"
   echo " "
   echo "========= Creating filled from brain (brainfinalsurfs, wm.asegedit, wm)  ======="
   echo " "
-} | tee -a $LF
+} | tee -a "$LF"
 
 if [ "$long" == "1" ] ; then
   # in long we can skip fill as surfaces come from base
   # it would be great to also skip WM, but it is needed in place_surface to clip bright
   # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation $hiresflag $fsthreads"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
   # copy over filled from base for stop-edits to transfer to long (a bit of a hack)
   cmd="cp $basedir/mri/filled.mgz $mdir/filled.mgz"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 else # cross and base
   # filled is needed to generate initial WM surfaces
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill $hiresflag $fsthreads"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
 fi
 
 
@@ -776,20 +775,20 @@ for hemi in lh rh ; do
   # In Long stream we skip topo fix
   if [ "$long" == "0" ] ; then
 
-  {
-    echo "echo \"\""
-    echo "echo \"=================== Creating surfaces $hemi - fix ========================\""
-    echo "echo \"\""
-  } | tee -a "$CMDF"
+    {
+      echo "echo \"\""
+      echo "echo \"=================== Creating surfaces $hemi - fix ========================\""
+      echo "echo \"\""
+    } | tee -a "$CMDF"
 
-  cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" $LF $CMDF
+    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
+    RunIt "$cmd" "$LF" "$CMDF"
 
-  # fix the surfaces if they are corrupt
-  cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"
-  RunIt "$cmd" $LF $CMDF
-  cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig --backup $sdir/$hemi.orig.noorient"
-  RunIt "$cmd" $LF $CMDF
+    # fix the surfaces if they are corrupt
+    cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"
+    RunIt "$cmd" "$LF" "$CMDF"
+    cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig --backup $sdir/$hemi.orig.noorient"
+    RunIt "$cmd" "$LF" "$CMDF"
 
   # create first WM surface white.preaparc from topo fixed orig surf
   cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning $hiresflag $fsthreads"
@@ -803,7 +802,7 @@ for hemi in lh rh ; do
 
     # for place_surfaces white.preparc we need to directly call it with special long parameter:
     # cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning $hiresflag $fsthreads"
-    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
+    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/$wm_file --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
     RunIt "$cmd" "$LF" "$CMDF"
 
   fi # long
