@@ -77,7 +77,6 @@ base=0                # flag for longitudinal template (base) run
 long=0                # flag for longitudinal time point run
 baseid=""             # baseid for logitudinal time point run
 
-
 function usage()
 {
 #  --merged_segfile <filename>
@@ -543,7 +542,7 @@ fi
 
 if [[ -z "$subject" ]]
 then
-  echo "ERROR: must supply subject name via --sid"
+  echo "ERROR: You must supply a subject name via --sid!"
   exit 1
 fi
 
@@ -566,9 +565,9 @@ if [[ -z "$build_log" ]] ; then build_log="${sd}/${subject}/scripts/build.log" ;
 if [[ -n "$t2" ]]
 then
   if [[ ! -f "$t2" ]]
-    then
-      echo "ERROR: T2 file $t2 does not exist!"
-      exit 1
+  then
+    echo "ERROR: T2 file $t2 does not exist!"
+    exit 1
   fi
   copy_name_T2="${sd}/${subject}/mri/orig/T2.001.mgz"
 fi
@@ -603,7 +602,7 @@ fi
 #    echo "ERROR: Specified segmentation outputs do not have same file type."
 #    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --merged_segfile ${merged_segfile}."
 #    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
-#    exit 1;
+#    exit 1
 #fi
 
 if [[ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]]
@@ -643,8 +642,8 @@ then
   if [[ ! -f "$asegdkt_segfile" ]]
   then
     echo "ERROR: To run the cerebellum segmentation but no asegdkt, the aseg segmentation must already exist."
-    echo "You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
-    echo "If the segmentation is not saved in the default location ($asegdkt_segfile_default), specify the absolute path and name via --asegdkt_segfile"
+    echo "  You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
+    echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
     exit 1
   fi
 fi
@@ -653,7 +652,7 @@ fi
 if [[ "$run_surf_pipeline" == "0" ]] && [[ "$run_seg_pipeline" == "0" ]]
 then
   echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
-  echo "To run the whole FastSurfer pipeline, omit both flags."
+  echo "  To run the whole FastSurfer pipeline, omit both flags."
   exit 1
 fi
 
@@ -662,22 +661,22 @@ then
   msg="The surface pipeline and the talairach-registration in the segmentation pipeline require a FreeSurfer License"
   if [[ -z "$FS_LICENSE" ]]
   then
-    msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable."
+    msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
     if [[ "$DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME" != "true" ]] && [[ -n "$FREESURFER_HOME" ]]
     then
-      echo "WARNING: $msg Checking common license files in \$FREESURFER_HOME."
+      echo "WARNING: $msg. Checking common license files in \$FREESURFER_HOME."
       for filename in "license.dat" "license.txt" ".license"
       do
         if [[ -f "$FREESURFER_HOME/$filename" ]]
         then
-          echo "Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite."
+          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite."
           export FS_LICENSE="$FREESURFER_HOME/$filename"
           break
         fi
       done
       if [[ -z "$FS_LICENSE" ]]; then echo "ERROR: No license found..." ; exit 1 ; fi
     else
-      echo "ERROR: $msg"
+      echo "ERROR: $msg."
       exit 1
     fi
   elif [[ ! -f "$FS_LICENSE" ]]
@@ -693,7 +692,7 @@ if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
   echo "  before you can run any longitudinal time points."
-  exit 1;
+  exit 1
 fi
 
 if [[ "$base" == "1" ]]
@@ -817,8 +816,8 @@ then
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
-           --rescale "$norm_name" --aseg "$asegdkt_segfile" --threads "$threads")
-      echo "INFO: Running N4 bias-field correction"
+           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads")
+      echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
     } | tee -a "$seg_log"

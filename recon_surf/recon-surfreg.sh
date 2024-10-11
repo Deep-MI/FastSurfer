@@ -157,9 +157,9 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # CHECKS
-echo
-echo sid $subject
-echo
+echo " "
+echo "sid $subject"
+echo " "
 
 
 # Warning if run as root user
