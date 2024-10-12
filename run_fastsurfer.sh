@@ -57,6 +57,7 @@ norm_name_t2=""
 seg_log=""
 run_talairach_registration="false"
 atlas3T="false"
+edits="false"
 viewagg="auto"
 device="auto"
 batch_size="1"
@@ -73,6 +74,8 @@ threads="1"
 python="python3.10 -s"
 allow_root=()
 version_and_quit=""
+warn_seg_only=()
+warn_base=()
 base=0                # flag for longitudinal template (base) run
 long=0                # flag for longitudinal time point run
 baseid=""             # baseid for logitudinal time point run
@@ -132,6 +135,12 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
+  --edits                 Enables manual edits by replacing select intermediate/
+                            result files by manedit substitutes (*.manedit.<ext>).
+                            Segmentation: <asegdkt_segfile> and <mask_name>.
+                            Surface: Disables check for existing recon-surf.sh run;
+                              edits of mri/wm.mgz and brain.finalsurfs.mgz
+                              as well as FreeSurfer-style WM control points.
   --version <info>        Print version information and exit; <info> is optional.
                             <info> may be empty, just prints the version number,
                             +git_branch also prints the current branch, and any
@@ -161,7 +170,8 @@ SEGMENTATION PIPELINE:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
   --tal_reg               Perform the talairach registration for eTIV estimates
                             in --seg_only stream and stats files (is affected by
-                            the --3T flag, see below).
+                            the --3T flag, see below). Manual talairach
+                            registrations are not replaced in --edits mode.
 
   MODULES:
   By default, all modules are run.
@@ -354,8 +364,8 @@ case $key in
   --t1) t1="$1" ; shift ;;
   --t2) t2="$1" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
-  --conformed_name) conformed_name="$1" ; shift ;;
-  --norm_name) norm_name="$1" ; shift ;;
+  --conformed_name) conformed_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
+  --norm_name) norm_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name_t2) norm_name_t2="$1" ; shift ;;
   --seg|--asegdkt_segfile|--aparc_aseg_segfile)
     if [[ "$key" != "--asegdkt_segfile" ]]
@@ -368,6 +378,7 @@ case $key in
   --vox_size) vox_size="$1" ; shift ;;
   # --3t: both for surface pipeline and the --tal_reg flag
   --3t) surf_flags+=("--3T") ; atlas3T="true" ;;
+  --edits) surf_flags+=("$key") ; edits="true" ;;
   --threads) threads="$1" ; shift ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
@@ -429,7 +440,7 @@ case $key in
     ;;
   --asegdkt_statsfile) asegdkt_statsfile="$1" ; shift ;;
   --aseg_segfile) aseg_segfile="$1" ; shift ;;
-  --mask_name) mask_name="$1" ; shift ;;
+  --mask_name) mask_name="$1" ; warn_seg_only+=("$key" "$1") ; warn_base+=("$key" "$1") ; shift ;;
   --merged_segfile) merged_segfile="$1" ; shift ;;
 
   # cereb module options
@@ -546,6 +557,13 @@ then
   exit 1
 fi
 
+if [[ "${#warn_seg_only[@]}" -gt 0 ]] && [[ "$run_surf_pipeline" == "1" ]]
+then
+  echo "WARNING: Specifying '${warn_seg_only[*]}' only affects the segmentation "
+  echo "  pipeline and not the surface pipeline. It can therefore have unexpected consequences"
+  echo "  on surface processing."
+fi
+
 # DEFAULT FILE NAMES
 if [[ -z "$merged_segfile" ]] ; then merged_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz" ; fi
 if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
@@ -644,6 +662,7 @@ then
     echo "ERROR: To run the cerebellum segmentation but no asegdkt, the aseg segmentation must already exist."
     echo "  You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
     echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
+    echo "  specify the absolute path and name via --asegdkt_segfile"
     exit 1
   fi
 fi
@@ -708,7 +727,10 @@ then
   fi
   # base can only be run with the template image from base-setup:
   t1="$sd/$subject/mri/orig.mgz"
-
+  if [[ "${#warn_base[@]}" -gt 0 ]] ; then
+    echo "ERROR: Specifying '${warn_base[*]}' is not supported for base (template) creation."
+    exit 1
+  fi
 fi
 
 if [[ "$long" == "1" ]]
@@ -765,6 +787,7 @@ then
   } | tee -a "$seg_log"
 fi
 
+asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 
 if [[ "$run_seg_pipeline" == "1" ]]
 then
@@ -793,6 +816,34 @@ then
     then
       echo "ERROR: FastSurfer asegdkt segmentation failed." | tee -a "$seg_log"
       exit 1
+    fi
+    if [[ -e "$asegdkt_segfile_manedit" ]]
+    then
+      if [[ "$edits" == "true" ]]
+      then
+        {
+          echo "INFO: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected,"
+          echo "  supersedes $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile"
+          echo "  and $mask_name!"
+        } | tee -a "$seg_log"
+        asegdkt_segfile="$asegdkt_segfile_manedit"
+        cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"
+             --outmask "$mask_name" --fixwm)
+        echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+        "${cmd[@]}" | tee -a "$seg_log"
+        exit_code="${PIPESTATUS[0]}"
+        if [[ "${exit_code}" -ne 0 ]]
+        then
+          echo "ERROR: Reduction of asegdkt to aseg failed." | tee -a "$seg_log"
+          exit 1
+        fi
+      else
+        {
+          echo "ERROR: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected,"
+          echo "  but edit was not passed. Please delete $asegdkt_segfile_manedit, or add --edits!"
+        } | tee -a "$seg_log"
+        exit 1
+      fi
     fi
   fi
   if [[ -n "$t2" ]]
@@ -833,6 +884,7 @@ then
       cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log"
            --dir "$sd/$subject/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
       if [[ "$long" == "1" ]] ; then cmd+=(--long "$basedir") ; fi
+      if [[ "$edits" == "1" ]] ; then cmd+=(--edits) ; fi
       if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
       {
         echo "INFO: Running talairach registration..."
@@ -848,6 +900,8 @@ then
 
     if [[ "$run_asegdkt_module" ]]
     then
+      mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
+      if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
       cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
            --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
            --threads "$threads" "${allow_root[@]}" --empty --excludeid 0
@@ -974,6 +1028,10 @@ then
 #      then
 #        ln -s -r "$asegdkt_segfile" "$merged_segfile"
 #    fi
+else # not running segmentation pipeline
+  # Replace asegdkt_segfile and aseg_segfile variables with manedit file here,
+  # if the manedit exists, so recon-surf uses the manedit file.
+  if [[ -e "$asegdkt_segfile_manedit" ]] ; then asegdkt_segfile="$asegdkt_segfile_manedit" ; fi
 fi
 
 if [[ "$run_surf_pipeline" == "1" ]]
@@ -982,7 +1040,7 @@ then
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
   echo "cd $reconsurfdir" | tee -a "$seg_log"
-  cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
+  cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
        "${surf_flags[@]}" "${allow_root[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"

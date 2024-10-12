@@ -191,3 +191,24 @@ function echo_quoted()
   done
   echo ""
 }
+
+function add_file_suffix()
+{
+  # params:
+  # 1: filename
+  # 2: suffix to add
+
+  # example: add_file_suffix /path/to/file.nii.gz suffix -> /path/to/file.suffix.nii.gz
+
+  # file extensions supported:
+  file_extensions=(nii.gz nii mgz stats annot ctab label log txt lta xfm yaml)
+  for extension in "${file_extensions[@]}"
+  do
+    pattern="\.${extension//./\\.}$"
+    if [[ "$1" =~ $pattern ]]
+    then
+      length=$((${#1} - ${#extension}))
+      echo "${1:0:$length}$2.$extension"
+    fi
+  done
+}
