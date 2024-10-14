@@ -508,7 +508,6 @@ def format_cmdline_args(args: object) -> list[str]:
         if (value := getattr(args, name, None)) is not None:
             arglist.extend([flag, str(value)])
 
-    _append_storetrue("allow_root")
     _append_storetrue("legacy_freesurfer")
     _extend_arg("segfile")
     _extend_arg("normfile")

@@ -28,7 +28,6 @@ fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this
 python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
-allow_root=""         # flag for allowing execution as root user
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
 segstats_legacy="false" # flag to enable segstats legacy mode
 
@@ -117,7 +116,6 @@ Dev Flags:
                             cross-subject correspondence). Not recommended, but
                             speeds up processing if you just need the stats and
                             don't want to do thickness analysis on the cortex.
-  --allow_root            Allow execution as root user
 
 REFERENCES:
 
@@ -190,7 +188,6 @@ case $key in
     ;;
   --ignore_fs_version) check_version=0 ;;
   --no_fs_t1 ) get_t1=0 ;;
-  --allow_root) allow_root="--allow_root" ;;
   -h|--help) usage ; exit ;;
   # unknown option
   *) echo "ERROR: Flag $key unrecognized." ; exit 1 ;;
@@ -204,18 +201,6 @@ echo "sid $subject"
 echo "T1  $t1"
 echo "asegdkt_segfile $asegdkt_segfile"
 echo ""
-
-
-# Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
-then
-  echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
-  echo "because it will lead to files and folders created as root."
-  echo "If you are running FastSurfer in a docker container, you can specify the user with "
-  echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-  echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
-  exit 1;
-fi
 
 if [ -z "$SUBJECTS_DIR" ]
 then

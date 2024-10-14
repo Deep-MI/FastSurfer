@@ -322,7 +322,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         help="Keep ids for the table that do not exist in the segmentation "
              "(default: drop).",
     )
-    advanced = add_arguments(advanced, ["device", "sid", "sd", "allow_root"])
+    advanced = add_arguments(advanced, ["device", "sid", "sd"])
     advanced.add_argument(
         "--lut",
         type=Path,
@@ -760,7 +760,6 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
 
     start = perf_counter_ns()
-    getattr(args, "allow_root", False) or assert_no_root()
 
     subjects_dir = getattr(args, "out_dir", None)
     if subjects_dir is not None:
