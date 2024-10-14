@@ -594,7 +594,6 @@ def make_parser():
             "batch_size",
             "async_io",
             "threads",
-            "allow_root",
         ],
     )
     return parser
@@ -612,7 +611,6 @@ def main(
         cfg_cor: Path,
         qc_log: str = "",
         log_name: str = "",
-        allow_root: bool = False,
         conf_name: str = "mri/orig.mgz",
         in_dir: Optional[Path] = None,
         sid: Optional[str] = None,
@@ -631,8 +629,6 @@ def main(
         conform_to_1mm_threshold: float = 0.95,
         **kwargs,
 ) -> Literal[0] | str:
-    # Warning if run as root user
-    allow_root or assert_no_root()
 
     if len(kwargs) > 0:
         LOGGER.warning(f"Unknown arguments {list(kwargs.keys())} in {__file__}:main.")

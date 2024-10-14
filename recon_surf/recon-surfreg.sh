@@ -22,7 +22,6 @@ subject=""; # Subject name
 python="python3.10" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
-allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -77,7 +76,6 @@ Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will otherwise terminate if $FS_VERSION_SUPPORT is
                             not sourced. Can be used for testing dev versions.
-  --allow_root            Allow execution as root user
 
 REFERENCES:
 
@@ -243,18 +241,6 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 echo
 echo sid $subject
 echo
-
-
-# Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
-  then
-    echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
-    echo "because it will lead to files and folders created as root."
-    echo "If you are running FastSurfer in a docker container, you can specify the user with "
-    echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-    echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
-    exit 1;
-fi
 
 if [ "$subject" == "subject" ]
 then

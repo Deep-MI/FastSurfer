@@ -136,7 +136,7 @@ def option_parse() -> argparse.ArgumentParser:
     advanced = parser.add_argument_group(title="Advanced options")
     parser_defaults.add_arguments(
         advanced,
-        ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
+        ["device", "viewagg_device", "threads", "batch_size", "async_io"],
     )
 
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
@@ -174,7 +174,6 @@ def main(
         cfg_sag: Path,
         hypo_segfile: str = HYPVINN_SEG_NAME,
         hypo_maskfile: str = HYPVINN_MASK_NAME,
-        allow_root: bool = False,
         qc_snapshots: bool = False,
         reg_mode: Literal["coreg", "robust", "none"] = "coreg",
         threads: int = -1,
@@ -212,8 +211,6 @@ def main(
         The name of the hypothalamus segmentation file. Default is {HYPVINN_SEG_NAME}.
     hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
         The name of the hypothalamus mask file. Default is {HYPVINN_MASK_NAME}.
-    allow_root : bool, default=False
-        Whether to allow running as root user. Default is False.
     qc_snapshots : bool, optional
         Whether to create QC snapshots. Default is False.
     reg_mode : "coreg", "robust", "none", default="coreg"
@@ -248,8 +245,6 @@ def main(
     t2_path = t2
     subject_name = sid
     subject_dir = out_dir / sid
-    # Warning if run as root user
-    allow_root or assert_no_root()
     start = time()
     try:
         # Set up logging
