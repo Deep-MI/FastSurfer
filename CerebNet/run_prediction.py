@@ -81,7 +81,7 @@ def setup_options():
     advanced = parser.add_argument_group(title="Advanced options")
     parser_defaults.add_arguments(
         advanced,
-        ["device", "viewagg_device", "threads", "batch_size", "async_io", "allow_root"],
+        ["device", "viewagg_device", "threads", "batch_size", "async_io"],
     )
 
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
@@ -131,9 +131,6 @@ def main(args: argparse.Namespace) -> int | str:
     cfg = get_config(args)
     cfg.TEST.ENABLE = True
     cfg.TRAIN.ENABLE = False
-
-    # Warning if run as root user
-    getattr(args, "allow_root", False) or assert_no_root()
 
     # Set up logging
     from FastSurferCNN.utils.logging import setup_logging

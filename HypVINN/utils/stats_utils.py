@@ -56,7 +56,7 @@ def compute_stats(
     args = namedtuple(
         "ArgNamespace",
         ["normfile", "i", "o", "excludedid", "ids", "merged_labels",
-         "robust", "threads", "patch_size", "device", "lut", "allow_root"])
+         "robust", "threads", "patch_size", "device", "lut"])
 
     labels = [v for v in FS_CLASS_NAMES.values() if v != 0]
 
@@ -71,7 +71,4 @@ def compute_stats(
     args.patch_size = 32
     args.device = "auto"
     args.lut = FASTSURFER_ROOT / "FastSurferCNN/config/FreeSurferColorLUT.txt"
-    # We check for this in the parent code
-    # TODO: it would be better to populate this properly
-    args.allow_root = True
     return main(args)

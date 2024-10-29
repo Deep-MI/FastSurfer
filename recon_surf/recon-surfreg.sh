@@ -22,7 +22,6 @@ subject=""; # Subject name
 python="python3.10" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
-allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -68,7 +67,6 @@ Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will otherwise terminate if $FS_VERSION_SUPPORT is
                             not sourced. Can be used for testing dev versions.
-  --allow_root            Allow execution as root user
 
 REFERENCES:
 
@@ -160,10 +158,6 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 echo " "
 echo "sid $subject"
 echo " "
-
-
-# Warning if run as root user
-check_allow_root
 
 if [ "$subject" == "subject" ]
 then

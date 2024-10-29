@@ -29,7 +29,6 @@ fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this
 python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
 threads="1"           # number of threads to use for running FastSurfer
-allow_root=""         # flag for allowing execution as root user
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
@@ -127,7 +126,6 @@ Dev Flags:
                             cross-subject correspondence). Not recommended, but
                             speeds up processing if you just need the stats and
                             don't want to do thickness analysis on the cortex.
-  --allow_root            Allow execution as root user
 
 REFERENCES:
 
@@ -201,7 +199,6 @@ case $key in
     ;;
   --ignore_fs_version) check_version=0 ;;
   --no_fs_t1 ) get_t1=0 ;;
-  --allow_root) allow_root="--allow_root" ;;
   --base) base=1 ;;
   --long) long=1 ; baseid="$1" ; shift ;;
   -h|--help) usage ; exit ;;
@@ -217,10 +214,6 @@ echo "sid $subject"
 echo "T1  $t1"
 echo "asegdkt_segfile $asegdkt_segfile"
 echo ""
-
-
-# Warning if run as root user
-check_allow_root
 
 if [ -z "$SUBJECTS_DIR" ]
 then

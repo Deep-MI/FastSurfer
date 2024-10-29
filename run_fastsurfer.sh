@@ -779,7 +779,7 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device" "${allow_root[@]}")
+         --viewagg_device "$viewagg" --device "$device")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
@@ -850,7 +850,7 @@ then
     then
       cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
            --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
-           --threads "$threads" "${allow_root[@]}" --empty --excludeid 0
+           --threads "$threads" --empty --excludeid 0
            --sd "${sd}" --sid "${subject}"
            --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
                  49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
@@ -930,7 +930,7 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --cereb_segfile "$cereb_segfile" --seg_log "$seg_log" --async_io
          --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
-         --threads "$threads" "${cereb_flags[@]}" "${allow_root[@]}")
+         --threads "$threads" "${cereb_flags[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
@@ -946,7 +946,7 @@ then
   then
         # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" "${allow_root[@]}" --threads "$threads" --async_io
+         "${hypvinn_flags[@]}" --threads "$threads" --async_io
          --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
          --viewagg_device "$viewagg" --t1)
     if [[ "$run_biasfield" == "1" ]]
@@ -984,7 +984,7 @@ then
   echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
-       "${surf_flags[@]}" "${allow_root[@]}")
+       "${surf_flags[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${cmd[@]}"
   if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
