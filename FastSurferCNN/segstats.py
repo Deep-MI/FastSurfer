@@ -752,7 +752,6 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
 
     from FastSurferCNN.data_loader.data_utils import read_classes_from_lut
     from FastSurferCNN.utils.brainvolstats import ImageTuple, Manager, read_volume_file
-    from FastSurferCNN.utils.common import assert_no_root
 
     start = perf_counter_ns()
 

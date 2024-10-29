@@ -27,7 +27,7 @@ from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from FastSurferCNN.utils.common import SubjectList, assert_no_root
+from FastSurferCNN.utils.common import SubjectList
 
 logger = logging.get_logger(__name__)
 DEFAULT_CEREBELLUM_STATSFILE = Path("stats/cerebellum.CerebNet.stats")

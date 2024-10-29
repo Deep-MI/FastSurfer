@@ -54,7 +54,6 @@ from FastSurferCNN.utils.common import (
     SerialExecutor,
     SubjectDirectory,
     SubjectList,
-    assert_no_root,
     find_device,
     handle_cuda_memory_exception,
     pipeline,

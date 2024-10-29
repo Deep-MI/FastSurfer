@@ -30,7 +30,7 @@ from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from FastSurferCNN.utils.common import SerialExecutor, assert_no_root
+from FastSurferCNN.utils.common import SerialExecutor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
