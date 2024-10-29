@@ -426,7 +426,7 @@ Data- and subject-related options:
   Note: files will be copied here only after all jobs have finished, so most IO happens on
   a work directory, which can use IO-optimized cluster storage (see --work).
 --work: directory with fast filesystem on cluster
-  (default: $HPCWORK/fastsurfer-processing/20241029-130320)
+  (default: $HPCWORK/fastsurfer-processing/20241108-095037)
   NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
   No modifications should be made to the directory after the job is started until it is
   finished (if the job fails, cleanup of this directory may be necessary) and it should be
@@ -490,7 +490,7 @@ SLURM-related options:
      (one of the above).
   default: slurm default partition
 --time: a per-subject time limit for individual steps, must be number in minutes:
-   --time seg=&lt;timelimit&gt;: time limit for the segmentation pipeline (per subject), default: seg=5 (5min).
+   --time seg=&lt;timelimit&gt;: time limit for the segmentation pipeline (per subject), default: seg=10 (10min).
    --time surf=&lt;timelimit&gt;: time limit for the surface reconstruction (per subject), default: surf=180 (180min)
 --email: email address to send slurm status updates.
 
