@@ -995,11 +995,12 @@ fi
          measures --file "$statsdir/aseg.stats" --import "all")
   fi
   RunIt "$(echo_quoted "${cmd[@]}")" "$LF"
+
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF"
 
-  # takes a few mins
+  # stats of the wmparc DKTatlas mapped
   #cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
   if [[ "$segstats_legacy" == "true" ]] ; then
     cmd=($python "$FASTSURFER_HOME/FastSurferCNN/mri_segstats.py"
@@ -1015,7 +1016,7 @@ fi
          --sid "$subject" --sd "$SUBJECTS_DIR" --pvfile "$mdir/norm.mgz"
          --segfile "$mdir/wmparc.DKTatlas.mapped.mgz" --normfile "$mdir/norm.mgz"
          --lut "$FREESURFER_HOME/WMParcStatsLUT.txt" --threads "$threads"
-         --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats" --empty
+         --segstatsfile "$statsdir/wmparc.DKTatlas.mapped.stats"
          --volume_precision 1
          measures --file "$statsdir/brainvol.stats" --import "Mask"
                   "VentricleChoroidVol" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter"
