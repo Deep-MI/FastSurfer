@@ -66,7 +66,8 @@ function usage()
 {
 cat << EOF
 
-Usage: long_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
+Usage: long_fastsurfer.sh --tid <tid> --t1s <T1_1> <T1_2> .. \
+                          --tpids <tID1> <tID2> .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
      (i)   a template subject directory 
@@ -82,7 +83,7 @@ FLAGS:
   --tpids <tID1> >tID2> ..  IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
   --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
-  --parallel_long           (Experimental) Parallelize the long script
+  --parallel_long           (Highly Experimental) Parallelize the long script
   --py <python_cmd>         Command for python, used in both pipelines.
                               Default: "$python"
                               (-s: do no search for packages in home directory)
@@ -96,6 +97,7 @@ REFERENCES:
 
 If you use this for research publications, please cite:
 
+For FastSurfer (both):
 Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
  fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
  (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
@@ -104,6 +106,11 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  Resolution-Independence into Deep Learning Segmentation Methods - A Solution
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
  http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+
+And for longitudinal processing:
+Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
+ for unbiased longitudinal image analysis, NeuroImage 61:4 (2012).
+ https://doi.org/10.1016/j.neuroimage.2012.02.084
 
 For cerebellum sub-segmentation:
 Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
@@ -116,12 +123,6 @@ Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
  FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
  structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
  https://doi.org/10.1162/imag_a_00034
-
-For longitudinal processing:
-Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
- for unbiased longitudinal image analysis, NeuroImage 61:4 (2012).
- https://doi.org/10.1016/j.neuroimage.2012.02.084
-
 
 EOF
 }
