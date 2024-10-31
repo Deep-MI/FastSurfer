@@ -1199,7 +1199,7 @@ if [ "$base" != "1" ] ; then
     fi
     cmda+=("EstimatedTotalIntraCranialVol")
     run_it "$LF" "${cmda[@]}"
-    
+
     echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
     # ... so stats/brainvol.stats also exists (but it is slightly different
 #    cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
