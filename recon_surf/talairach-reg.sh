@@ -181,12 +181,12 @@ fi
 pushd "$mdir/transforms" > /dev/null || ( echo "ERROR: Could not change to the transforms directory $mdir/transforms!" | tee -a "$LF" ; exit 1 )
   {
     if [[ ! -e talairach_with_skull.lta ]] ; then
-      cmd=(softlink_or_copy -sf talairach.xfm.lta talairach_with_skull.lta)
+      cmd=(softlink_or_copy talairach.xfm.lta talairach_with_skull.lta)
       echo_quoted "${cmd[@]}"
       "${cmd[@]}"
     fi
     if [[ ! -e talairach.lta ]] ; then
-      cmd=(softlink_or_copy -sf talairach.xfm.lta talairach.lta)
+      cmd=(softlink_or_copy talairach.xfm.lta talairach.lta)
       echo_quoted "${cmd[@]}"
       "${cmd[@]}"
     fi
