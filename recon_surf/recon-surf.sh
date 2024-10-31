@@ -262,7 +262,7 @@ fi
 
 if [[ "$base" == "1" ]]
 then
-  if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
+  if [ ! -f "$SUBJECTS_DIR/$subject/base-tps.fastsurfer" ] ; then
     echo "ERROR: $subject is either not found in SUBJECTS_DIR"
     echo "or it is not a longitudinal template directory (base),"
     echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
