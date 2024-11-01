@@ -278,10 +278,20 @@ else
   run_it "$LF" "${cmda[@]}"
 fi
 
-
 ################################### Run Long Seg ##################################
 
 # This can run in parallel with base seg and surf steps above
+for ((i=0;i<${#tpids[@]};++i)); do
+  echo "Long Seg: ${tpids[i]} with T1 ${t1s[i]}"
+  cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
+        --sid ${tpids[i]} --sd $sd \
+        --seg_only --long $tid \
+        ${POSITIONAL_FASTSURFER[*]}"
+  RunIt "$cmd" "$LF"
+done
+
+# skip this for now as brun does not even have the --long flag yet
+if false ; then
 time_points=()
 for ((i=0;i<${#tpids[@]};++i)); do
   time_points+=("${tpids[$i]}=from-base")
@@ -308,9 +318,21 @@ if [[ "$parallel" == "1" ]] ; then
 else
   run_it "$LF" "${cmda[@]}"
 fi
+fi # comment block
 
 ################################### Run Long Surf #################################
 
+for ((i=0;i<${#tpids[@]};++i)); do
+  echo "Long Surf: ${tpids[i]} with T1 ${t1s[i]}"
+  cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
+        --sid ${tpids[i]} --sd $sd \
+        --surf_only --long $tid \
+        ${POSITIONAL_FASTSURFER[*]}"
+  RunIt "$cmd" "$LF"
+done
+
+# skip this for now as brun does not even have the --long flag yet
+if false ; then
 cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --surf_only --long "$tid"
       "${POSITIONAL_FASTSURFER[@]}")
 if [[ "$parallel" == "1" ]] ; then
@@ -352,5 +374,6 @@ if [[ "$parallel" == "1" ]] ; then
   fi
   } | tee -a "$LF"
 fi
-
 run_it "$LF" "${cmda[@]}"
+fi # comment block
+
