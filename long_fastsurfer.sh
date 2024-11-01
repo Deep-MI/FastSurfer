@@ -66,8 +66,7 @@ function usage()
 {
 cat << EOF
 
-Usage: long_fastsurfer.sh --tid <tid> --t1s <T1_1> <T1_2> .. \
-                          --tpids <tID1> <tID2> .. [OPTIONS]
+Usage: long_fastsurfer.sh --tid <tid> --t1s <T1_1> <T1_2> .. --tpids <tID1> <tID2> .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
      (i)   a template subject directory 

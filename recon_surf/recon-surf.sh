@@ -798,7 +798,7 @@ for hemi in lh rh ; do
 
     # for place_surfaces white.preparc we need to directly call it with special long parameter:
     # cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning $hiresflag $fsthreads"
-    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/$wm_file --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
+    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
     RunIt "$cmd" "$LF" "$CMDF"
 
   fi # long
@@ -969,7 +969,7 @@ for hemi in lh rh ; do
   # CREATE WHITE SURFACE:
   # 4 min compute white :
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
-    --threads $threads --wm $wm_file --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
+    --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
     --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label \
     --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc"
   if [ "$long" == "0" ] ; then # cross/regular/base
@@ -982,7 +982,7 @@ for hemi in lh rh ; do
   # CREAT PIAL SURFACE
   # 4 min compute pial :
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
-    --threads $threads --wm $wm_file --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.pial.T1 \
+    --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.pial.T1 \
     --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label \
     --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc \
     --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white"
