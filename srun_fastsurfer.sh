@@ -43,7 +43,7 @@ subject_list_awk_code_sid="\$1"
 subject_list_awk_code_args="\$2"
 subject_list_delim="="
 jobarray=""
-timelimit_seg=5
+timelimit_seg=10
 # 1mm can take 1h per hemi plus 1h extra on a single core (depending on cpu speed)
 timelimit_surf=$((4 * 60))
 
@@ -150,7 +150,7 @@ SLURM-related options:
      (one of the above).
   default: slurm default partition
 --time: a per-subject time limit for individual steps, must be number in minutes:
-   --time seg=<timelimit>: time limit for the segmentation pipeline (per subject), default: seg=5 (5min).
+   --time seg=<timelimit>: time limit for the segmentation pipeline (per subject), default: seg=10 (10min).
    --time surf=<timelimit>: time limit for the surface reconstruction (per subject), default: surf=180 (180min)
 --email: email address to send slurm status updates.
 
