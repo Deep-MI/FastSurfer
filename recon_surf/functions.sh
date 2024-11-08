@@ -191,3 +191,16 @@ function echo_quoted()
   done
   echo ""
 }
+
+function check_is_template()
+{
+  # params:
+  # 1: subjects_dir
+  # 2: subject_if
+  if [ ! -f "$1/$2/base-tps.fastsurfer" ] ; then
+    echo "ERROR: $2 is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
+    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
+    echo "  the base (template) has been created with long_prepare_template.sh."
+    exit 1
+  fi
+}

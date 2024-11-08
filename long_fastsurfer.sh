@@ -165,6 +165,7 @@ case $key in
   --parallel_long) parallel=1 ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
+  --remove_suffix) echo "ERROR: The --remove_suffix option is not supported by long_prepare_template.sh" ; exit 1 ;;
   --sid|--t1|--t2)
     echo "ERROR: --sid, --t1 and --t2 are not valid for long_fastsurfer.sh, these values are"
     echo "  populated via --tpids, --tid and --t1s, respectively."

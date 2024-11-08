@@ -697,12 +697,7 @@ fi
 
 if [[ "$base" == "1" ]]
 then
-  if [ ! -f "$sd/$subject/base-tps.fastsurfer" ] ; then
-    echo "ERROR: $subject is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
-    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
-    echo "  the base (template) has been created with long_prepare_template.sh."
-    exit 1
-  fi
+  check_is_template "$sd" "$subject"
   if [[ -n "$t1" ]] && [[ "$t1" != "from-base" ]]; then
     echo "WARNING: --t1 was passed but will be overwritten with T1 from base template."
   fi
@@ -713,12 +708,7 @@ fi
 
 if [[ "$long" == "1" ]]
 then
-  if [ ! -f "$sd/$baseid/base-tps.fastsurfer" ] ; then
-    echo "ERROR: $baseid is either not found in \$SUBJECTS_DIR or it is not a longitudinal template"
-    echo "  directory (base), which needs to contain base-tps.fastsurfer file. Please ensure that"
-    echo "  the base (template) has been created with long_prepare_template.sh."
-    exit 1
-  fi
+  check_is_template "$sd" "$baseid"
   if ! grep -Fxq "$subject" "$sd/$baseid/base-tps.fastsurfer" ; then
     echo "ERROR: $subject id not found in base-tps.fastsurfer. Please ensure that this time point"
     echo "  was included during creation of the base (template)."
