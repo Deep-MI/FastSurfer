@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>FastSurferCNN: run_model.py - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -451,29 +455,29 @@
 <section id="example-command-training-default-fastsurfervinn">
 <h2>Example Command: Training Default FastSurferVINN<a class="headerlink" href="#example-command-training-default-fastsurfervinn" title="Link to this heading">¶</a></h2>
 <p>Trains FastSurferVINN on multi-resolution images in the coronal plane:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_model</span><span class="o">.</span><span class="n">py</span> \
-<span class="o">--</span><span class="n">cfg</span> <span class="o">./</span><span class="n">config</span><span class="o">/</span><span class="n">FastSurferVINN</span><span class="o">.</span><span class="n">yaml</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--cfg<span class="w"> </span>./config/FastSurferVINN.yaml
 </pre></div>
 </div>
 </section>
 <section id="example-command-training-fastsurfervinn-single-resolution">
 <h2>Example Command: Training FastSurferVINN (Single Resolution)<a class="headerlink" href="#example-command-training-fastsurfervinn-single-resolution" title="Link to this heading">¶</a></h2>
 <p>Trains FastSurferVINN on single-resolution images in the sagittal plane by overriding the NUM_CLASSES, SIZES, PATH_HDF5_TRAIN, and PATH_HDF5_VAL options:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_model</span><span class="o">.</span><span class="n">py</span> \
-<span class="o">--</span><span class="n">cfg</span> <span class="o">./</span><span class="n">config</span><span class="o">/</span><span class="n">FastSurferVINN</span><span class="o">.</span><span class="n">yaml</span> \
-<span class="n">MODEL</span><span class="o">.</span><span class="n">NUM_CLASSES</span> <span class="mi">51</span> \
-<span class="n">DATA</span><span class="o">.</span><span class="n">SIZES</span> <span class="mi">256</span> \
-<span class="n">DATA</span><span class="o">.</span><span class="n">PATH_HDF5_TRAIN</span> <span class="o">./</span><span class="n">hdf5_sets</span><span class="o">/</span><span class="n">training_sagittal_single_resolution</span><span class="o">.</span><span class="n">hdf5</span> \
-<span class="n">DATA</span><span class="o">.</span><span class="n">PATH_HDF5_VAL</span> <span class="o">./</span><span class="n">hdf5_sets</span><span class="o">/</span><span class="n">validation_sagittal_single_resolution</span><span class="o">.</span><span class="n">hdf5</span> \
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--cfg<span class="w"> </span>./config/FastSurferVINN.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>MODEL.NUM_CLASSES<span class="w"> </span><span class="m">51</span><span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>DATA.SIZES<span class="w"> </span><span class="m">256</span><span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>DATA.PATH_HDF5_TRAIN<span class="w"> </span>./hdf5_sets/training_sagittal_single_resolution.hdf5<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>DATA.PATH_HDF5_VAL<span class="w"> </span>./hdf5_sets/validation_sagittal_single_resolution.hdf5<span class="w"> </span><span class="se">\</span>
 </pre></div>
 </div>
 </section>
 <section id="example-command-training-fastsurfercnn">
 <h2>Example Command: Training FastSurferCNN<a class="headerlink" href="#example-command-training-fastsurfercnn" title="Link to this heading">¶</a></h2>
 <p>Trains FastSurferCNN using a provided configuration file and specifying no augmentations:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_model</span><span class="o">.</span><span class="n">py</span> \
-<span class="o">--</span><span class="n">cfg</span> <span class="n">custom_configs</span><span class="o">/</span><span class="n">FastSurferCNN</span><span class="o">.</span><span class="n">yaml</span> \
-<span class="o">--</span><span class="n">aug</span> <span class="kc">None</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--cfg<span class="w"> </span>custom_configs/FastSurferCNN.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--aug<span class="w"> </span>None
 </pre></div>
 </div>
 </section>

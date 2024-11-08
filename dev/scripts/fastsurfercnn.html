@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>FastSurferCNN: run_prediction.py - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <h1>FastSurferCNN: run_prediction.py<a class="headerlink" href="#fastsurfercnn-run-prediction-py" title="Link to this heading">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>We recommend to run the surface pipeline with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interfaces!</p>
+<p>We recommend running the segmentation with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interface!</p>
 </div>
 <p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in <strong>requirements.txt</strong>. The main script is called <strong>run_prediction.py</strong> within which certain options can be selected and set via the command line:</p>
 <section id="general">
@@ -435,10 +439,11 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
 <section id="example-command-evaluation-single-subject">
 <h2>Example Command: Evaluation Single Subject<a class="headerlink" href="#example-command-evaluation-single-subject" title="Link to this heading">¶</a></h2>
 <p>To run the network on MRI-volumes of subjectX in ./data (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g. ./data/subjectX/t1-weighted.nii.gz), change into the <em>FastSurferCNN</em> directory and run the following commands:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">t1</span> <span class="o">../</span><span class="n">data</span><span class="o">/</span><span class="n">subjectX</span><span class="o">/</span><span class="n">t1</span><span class="o">-</span><span class="n">weighted</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-<span class="o">--</span><span class="n">sd</span> <span class="o">../</span><span class="n">output</span> \
-<span class="o">--</span><span class="n">t</span> <span class="n">subjectX</span> \
-<span class="o">--</span><span class="n">seg_log</span> <span class="o">../</span><span class="n">output</span><span class="o">/</span><span class="n">temp_Competitive</span><span class="o">.</span><span class="n">log</span> \
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--t1<span class="w"> </span>../data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--t<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--seg_log<span class="w"> </span>../output/temp_Competitive.log
 </pre></div>
 </div>
 <p>The output will be stored in:</p>
@@ -452,9 +457,10 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
 <section id="example-command-evaluation-whole-directory">
 <h2>Example Command: Evaluation whole directory<a class="headerlink" href="#example-command-evaluation-whole-directory" title="Link to this heading">¶</a></h2>
 <p>To run the network on all subjects MRI-volumes in ./data, change into the <em>FastSurferCNN</em> directory and run the following command:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">in_dir</span> <span class="o">../</span><span class="n">data</span> \
-<span class="o">--</span><span class="n">sd</span> <span class="o">../</span><span class="n">output</span> \
-<span class="o">--</span><span class="n">seg_log</span> <span class="o">../</span><span class="n">output</span><span class="o">/</span><span class="n">temp_Competitive</span><span class="o">.</span><span class="n">log</span> \
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--in_dir<span class="w"> </span>../data<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--seg_log<span class="w"> </span>../output/temp_Competitive.log
 </pre></div>
 </div>
 <p>The output will be stored in:</p>

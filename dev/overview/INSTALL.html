@@ -3,11 +3,11 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Examples" href="EXAMPLES.html" /><link rel="prev" title="Introduction to FastSurfer" href="intro.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Examples" href="EXAMPLES.html" /><link rel="prev" title="Quick Start" href="QUICKSTART.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>Installation - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -594,8 +598,7 @@ pip3<span class="w"> </span>install<span class="w"> </span>--no-binary<span clas
 <span class="w">           </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--device<span class="w"> </span>cpu<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--parallel
+<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
 </pre></div>
 </div>
 <p>Note, the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer#system-requirements">system requirements</a> of at least 8GB of RAM for the CPU version. If the process fails, check if your <a class="reference external" href="https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/">WSL2 distribution has enough memory reserved</a>.</p>
@@ -623,8 +626,7 @@ pip3<span class="w"> </span>install<span class="w"> </span>--no-binary<span clas
 <span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--parallel
+<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
 </pre></div>
 </div>
 <p>Note the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer#system-requirements">system requirements</a> of at least 8 GB system memory and 2 GB graphics memory for the GPU version. If the process fails, check if your <a class="reference external" href="https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/">WSL2 distribution has enough memory reserved</a>.</p>
@@ -646,14 +648,14 @@ pip3<span class="w"> </span>install<span class="w"> </span>--no-binary<span clas
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="intro.html">
+          <a class="prev-page" href="QUICKSTART.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Introduction to FastSurfer</div>
+                <div class="title">Quick Start</div>
                 
               </div>
             </a>

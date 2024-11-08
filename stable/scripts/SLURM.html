@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>SLURM: srun_fastsurfer.sh - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -399,11 +403,12 @@ srun_fastsurfer.sh [--data &lt;directory to search images&gt;]
                                            [--subject_list_delim &lt;delimiter&gt;]
                                            [--subject_list_awk_code_sid &lt;subject_id code&gt;]
                                            [--subject_list_awk_code_t1 &lt;image_path code&gt;])
-    [--singularity_image &lt;path to fastsurfer singularity image&gt;]
-    [--extra_singularity_options [(seg|surf)=]&lt;singularity option string&gt;] [--num_cases_per_task &lt;number&gt;]
-    [--num_cpus_per_task &lt;number of cpus to allocate for seg&gt;] [--cpu_only] [--time (surf|seg)=&lt;timelimit&gt;]
-    [--partition [(surf|seg)=]&lt;slurm partition&gt;] [--slurm_jobarray &lt;jobarray specification&gt;] [--skip_cleanup]
-    [--email &lt;email address&gt;] [--debug] [--dry] [--help]
+    [--singularity_image &lt;path to fastsurfer singularity image&gt;] [--extra_singularity_options &lt;singularity options&gt;]
+    [--extra_singularity_options_seg &lt;singularity options&gt;] [--extra_singularity_options_surf &lt;singularity options&gt;]
+    [--num_cases_per_task &lt;number&gt;] [--cpu_only] [--num_cpus_per_task &lt;number of cpus to allocate for seg&gt;]
+    [--time_seg &lt;timelimit&gt;] [--time_surf &lt;timelimit&gt;] [--mem_seg &lt;number (GB)&gt;] [--mem_surf &lt;number (GB)&gt;]
+    [--partition &lt;slurm partition&gt;] [--partition_seg &lt;slurm partition&gt;] [--partition_surf &lt;slurm partition&gt;]
+    [--slurm_jobarray &lt;jobarray specification&gt;] [--skip_cleanup] [--email &lt;email address&gt;] [--debug] [--dry] [--help]
     [&lt;additional fastsurfer options&gt;]
 
 Author:   David Kügler, david.kuegler@dzne.de
@@ -426,14 +431,14 @@ Data- and subject-related options:
   Note: files will be copied here only after all jobs have finished, so most IO happens on
   a work directory, which can use IO-optimized cluster storage (see --work).
 --work: directory with fast filesystem on cluster
-  (default: $HPCWORK/fastsurfer-processing/20241108-095037)
+  (default: $HPCWORK/fastsurfer-processing/&lt;date as YYMMDD-HHMMSS&gt;)
   NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
   No modifications should be made to the directory after the job is started until it is
   finished (if the job fails, cleanup of this directory may be necessary) and it should be
   empty!
 --data: (root) directory to search in for t1 files (default: current work directory).
 --pattern: glob string to find image files in &#39;data directory&#39; (default: *.{nii,nii.gz,mgz}),
-   for example --data /data/ --pattern \*/\*/mri/t1.nii.gz
+   for example &#39;--data /data/ --pattern &quot;*/*/mri/t1.nii.gz&quot;&#39;
    will find all images of format /data/&lt;somefolder&gt;/&lt;otherfolder&gt;/mri/t1.nii.gz
 --subject_list: alternative way to define cases to process, files are of format:
   subject_id1=/path/to/t1.mgz
@@ -465,33 +470,34 @@ FastSurfer options:
 Singularity-related options:
 --singularity_image: Path to the singularity image to use for segmentation and surface
   reconstruction (default: $HOME/singularity-images/fastsurfer.sif).
---extra_singularity_options: Extra options for singularity, needs to be double quoted to allow quoted strings,
-  e.g. --extra_singularity_options &quot;-B /$(echo \&quot;/path-to-weights\&quot;):/fastsurfer/checkpoints&quot;.
-  Supports two formats similar to --partition: --extra_singularity_options &lt;option string&gt; and
-  --extra_singularity_options seg=&lt;option string&gt; and --extra_singularity_options surf=&lt;option string&gt;.
+--extra_singularity_options &lt;extra-options&gt;,
+--extra_singularity_options_seg &lt;extra-options&gt;, and
+--extra_singularity_options_surf &lt;extra-option&gt;: Extra options to the Singularity exec call, needs to be double quoted
+  to allow quoted strings, e.g. --extra_singularity_options &quot;-B /$(echo \&quot;/path-to-weights\&quot;):/fastsurfer/checkpoints&quot;.
 
 SLURM-related options:
 --cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
 --num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
   (default: 16).
---num_cases_per_task: number of cases batched into one job (slurm jobarray), will process
-  in cases in parallel, id num_cases_per_task is smaller than the total number of cases,
-  (default: 16).
+--num_cpus_per_case_surf: number of cpus to request for surface pipeline of FastSurfer (--surf_only),
+  (default: 2).
+--num_cases_per_task: number of cases batched into one job (slurm jobarray), will process cases
+  in parallel, if num_cases_per_task is smaller than the total number of cases (default: 16).
 --skip_cleanup: Do not schedule step 3, cleanup (which moves the data from --work to --sd, etc.,
   default: do the cleanup).
 --slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
   that have failed, for example &#39;--slurm_jobarray 4,7&#39; would only run the cases associated with a
   (previous) run of srun_fastsurfer.sh, where log files &#39;&lt;sd&gt;/logs/seg_*_{4,7}.log&#39; indicate failure.
---partition: (comma-separated list of) partition(s), supports 2 formats (and their combination):
-   --partition seg=&lt;slurm partition&gt;,&lt;other slurm partition&gt;: will schedule the segmentation job on
-     listed slurm partitions. It is recommended to select nodes/partitions with GPUs here.
-   --partition surf=&lt;partitions&gt;: will schedule surface reconstruction jobs on listed partitions
-   --partition &lt;slurm partition&gt;: default partition to used, if specific partition is not given
-     (one of the above).
-  default: slurm default partition
---time: a per-subject time limit for individual steps, must be number in minutes:
-   --time seg=&lt;timelimit&gt;: time limit for the segmentation pipeline (per subject), default: seg=10 (10min).
-   --time surf=&lt;timelimit&gt;: time limit for the surface reconstruction (per subject), default: surf=180 (180min)
+--partition &lt;comma-separated-list-of-partitions&gt;,
+--partition_seg &lt;comma-separated-list-of-partitions&gt;, and
+--partition_surf &lt;...list&gt;: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
+  It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
+--time_seg &lt;timelimit&gt;, and
+--time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation and surface reconstruction steps,
+  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 10min, surf: 240min.
+--mem_seg &lt;number (GB)&gt;, and
+--mem_surf &lt;number (GB)&gt;: the memory to allocate for GPU/CPU-based segmentation (default: 10/7 GB),
+  and surface reconstruction (default: 6).
 --email: email address to send slurm status updates.
 
 Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the

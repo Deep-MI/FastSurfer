@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>CerebNet.utils.meters - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <span id="cerebnet-utils-meters"></span><h1>CerebNet.utils.meters<a class="headerlink" href="#module-CerebNet.utils.meters" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.utils.meters.</span></span><span class="sig-name descname"><span class="pre">Meter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_epoch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L146-L344"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.utils.meters.</span></span><span class="sig-name descname"><span class="pre">Meter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_epoch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L144-L335"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter" title="Link to this definition">¶</a></dt>
 <dd><p>Meter class.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -421,7 +425,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.log_epoch">
-<span class="sig-name descname"><span class="pre">log_epoch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L314-L344"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.log_epoch" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">log_epoch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L305-L335"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.log_epoch" title="Link to this definition">¶</a></dt>
 <dd><p>Log mean Dice score and confusion matrix at the end of each epoch.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -441,7 +445,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.log_iter">
-<span class="sig-name descname"><span class="pre">log_iter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_iter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L266-L295"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.log_iter" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">log_iter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_iter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L264-L286"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.log_iter" title="Link to this definition">¶</a></dt>
 <dd><p>Log training or validation progress at each iteration.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -457,7 +461,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.log_lr">
-<span class="sig-name descname"><span class="pre">log_lr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L297-L312"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.log_lr" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">log_lr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L288-L303"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.log_lr" title="Link to this definition">¶</a></dt>
 <dd><p>Log learning rate at each step.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -475,7 +479,7 @@ number is used.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.prediction_visualize">
-<span class="sig-name descname"><span class="pre">prediction_visualize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_iter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_batch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L239-L264"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.prediction_visualize" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">prediction_visualize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_iter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_batch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L237-L262"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.prediction_visualize" title="Link to this definition">¶</a></dt>
 <dd><p>Visualize prediction results for current iteration and epoch.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -497,13 +501,13 @@ number is used.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.reset">
-<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L198-L203"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.reset" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L196-L201"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.reset" title="Link to this definition">¶</a></dt>
 <dd><p>Reset function.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.update_stats">
-<span class="sig-name descname"><span class="pre">update_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L205-L222"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.update_stats" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">update_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L203-L220"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.update_stats" title="Link to this definition">¶</a></dt>
 <dd><p>Update stats.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -521,7 +525,7 @@ number is used.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.Meter.write_summary">
-<span class="sig-name descname"><span class="pre">write_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss_dict</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L224-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.write_summary" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">write_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss_dict</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L222-L235"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.Meter.write_summary" title="Link to this definition">¶</a></dt>
 <dd><p>Write summary.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -537,7 +541,7 @@ number is used.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.TestMeter">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.utils.meters.</span></span><span class="sig-name descname"><span class="pre">TestMeter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classname_to_ids</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L32-L143"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.TestMeter" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.utils.meters.</span></span><span class="sig-name descname"><span class="pre">TestMeter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classname_to_ids</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L30-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.TestMeter" title="Link to this definition">¶</a></dt>
 <dd><p>TestMeter class.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -551,7 +555,7 @@ number is used.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.utils.meters.TestMeter.metrics_per_class">
-<span class="sig-name descname"><span class="pre">metrics_per_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L99-L143"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.TestMeter.metrics_per_class" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">metrics_per_class</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/meters.py#L97-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.meters.TestMeter.metrics_per_class" title="Link to this definition">¶</a></dt>
 <dd><p>Compute metrics for each class in the predicted and ground truth segmentation maps.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

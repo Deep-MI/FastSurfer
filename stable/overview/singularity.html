@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>Singularity Support - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -413,7 +417,7 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <p>After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. This is not necessary if you want to run the segmentation only.</p>
 <p>To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-home<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs<span class="w"> </span><span class="se">\</span>
@@ -422,14 +426,15 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <span class="w">                 </span>--fs_license<span class="w"> </span>/fs/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--parallel<span class="w"> </span>--3T
+<span class="w">                 </span>--3T
 </pre></div>
 </div>
 <section id="singularity-flags">
 <h3>Singularity Flags<a class="headerlink" href="#singularity-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--nv</span></code>: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no-home</span></code>: This flag tells singularity to not mount the home directory inside the singularity image (see <a class="reference internal" href="#"><span class="doc std std-ref">Best Practice</span></a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code>: Do not transfer the environment variables from the host to the container.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see <a class="reference internal" href="#"><span class="doc std std-ref">Best Practice</span></a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-B</span></code>: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs).</p></li>
 </ul>
 </section>
@@ -440,7 +445,6 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data =&gt; /data)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis =&gt; /output)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--parallel</span></code> activates processing left and right hemisphere in parallel</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> switches to the 3T atlas instead of the 1.5T atlas for Talairach registration.</p></li>
 </ul>
 <p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-B</span></code> arguments.</p>
@@ -461,7 +465,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">                  </span>--fs_license<span class="w"> </span>/fs/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                  </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">                  </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--parallel<span class="w"> </span>--3T
+<span class="w">                  </span>--3T
 </pre></div>
 </div>
 </section>
@@ -472,7 +476,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <h3>Mounting Home<a class="headerlink" href="#mounting-home" title="Link to this heading">¶</a></h3>
 <p>Do not mount the user home directory into the singularity container as the home directory.</p>
 <p>Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span> <span class="pre">...</span> <span class="pre">--version</span> <span class="pre">+pip</span></code> outputs the FastSurfer version including a full list of python packages.</p>
-<p>How? Singularity automatically mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-home</span></code>.</p>
+<p>How? Singularity automatically mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>.</p>
 </section>
 </section>
 </section>

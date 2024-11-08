@@ -3,11 +3,11 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Installation" href="INSTALL.html" /><link rel="prev" title="User Guide" href="index.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Quick Start" href="QUICKSTART.html" /><link rel="prev" title="User Guide" href="index.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>Introduction to FastSurfer - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -387,69 +391,25 @@
         <article role="main" id="furo-main-content">
           <section id="introduction-to-fastsurfer">
 <h1>Introduction to FastSurfer<a class="headerlink" href="#introduction-to-fastsurfer" title="Link to this heading">¶</a></h1>
-<section id="getting-started">
-<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h2>
-<section id="installation">
-<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
-<p>There are two ways to run FastSurfer (links are to installation instructions):</p>
-<ol class="arabic simple">
-<li><p>In a container (<a class="reference internal" href="INSTALL.html#singularity"><span class="std std-ref">Singularity</span></a> or <a class="reference internal" href="INSTALL.html#docker"><span class="std std-ref">Docker</span></a>) (OS: <a class="reference internal" href="INSTALL.html#linux"><span class="std std-ref">Linux</span></a>, <a class="reference internal" href="INSTALL.html#windows"><span class="std std-ref">Windows</span></a>, <a class="reference internal" href="INSTALL.html#docker-currently-only-supported-for-intel-cpus"><span class="std std-ref">MacOS on Intel</span></a>),</p></li>
-<li><p>As a <a class="reference internal" href="INSTALL.html#native-ubuntu-20-04-or-ubuntu-22-04"><span class="std std-ref">native install</span></a> (all OS for segmentation part).</p></li>
-</ol>
-<p>We recommended you use Singularity or Docker on a Linux host system with a GPU. The images we provide on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer">DockerHub</a> conveniently include everything needed for FastSurfer. You will also need a <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/License">FreeSurfer license</a> file for the <a class="reference internal" href="../index.html"><span class="doc std std-ref">Surface pipeline</span></a>. We have detailed per-OS Installation instructions in the <a class="reference internal" href="INSTALL.html"><span class="std std-doc">INSTALL.md</span></a> file.</p>
-</section>
-<section id="usage">
-<h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
-<p>All installation methods use the <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> call interface (replace <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> with <a class="reference internal" href="FLAGS.html#required-arguments"><span class="std std-ref">FastSurfer flags</span></a>), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:</p>
-<ol class="arabic">
-<li><p>For container installations, you need to define the hardware and mount the folders with the input (<code class="docutils literal notranslate"><span class="pre">/data</span></code>) and output data (<code class="docutils literal notranslate"><span class="pre">/output</span></code>):
-(a) For <strong>singularity</strong>, the syntax is</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">singularity</span> <span class="n">exec</span> <span class="o">--</span><span class="n">nv</span> \
-                 <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">home</span> \
-                 <span class="o">-</span><span class="n">B</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">user</span><span class="o">/</span><span class="n">my_mri_data</span><span class="p">:</span><span class="o">/</span><span class="n">data</span> \
-                 <span class="o">-</span><span class="n">B</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">user</span><span class="o">/</span><span class="n">my_fastsurfer_analysis</span><span class="p">:</span><span class="o">/</span><span class="n">output</span> \
-                 <span class="o">-</span><span class="n">B</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">user</span><span class="o">/</span><span class="n">my_fs_license_dir</span><span class="p">:</span><span class="o">/</span><span class="n">fs_license</span> \
-                 <span class="o">./</span><span class="n">fastsurfer</span><span class="o">-</span><span class="n">gpu</span><span class="o">.</span><span class="n">sif</span> \
-                 <span class="o">/</span><span class="n">fastsurfer</span><span class="o">/</span><span class="n">run_fastsurfer</span><span class="o">.</span><span class="n">sh</span>
-                 <span class="o">*</span><span class="n">fastsurfer</span><span class="o">-</span><span class="n">flags</span><span class="o">*</span>
-</pre></div>
-</div>
-<p>The <code class="docutils literal notranslate"><span class="pre">--nv</span></code> flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">--no-home</span></code> flag tells singularity to not mount the home directory (see <a class="reference internal" href="singularity.html"><span class="doc std std-ref">Singularity documentation</span></a> for more info).</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">-B</span></code> flag is used to tell singularity, which folders FastSurfer can read and write to.</p>
-<p>See also <strong><a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-singularity"><span class="std std-ref">Example 2</span></a></strong> for a full singularity FastSurfer run command and <a class="reference internal" href="singularity.html"><span class="doc std std-ref">the Singularity documentation</span></a> for details on more singularity flags.</p>
-<p>(b) For <strong>docker</strong>, the syntax is</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>docker run --gpus all \
-           -v /home/user/my_mri_data:/data \
-           -v /home/user/my_fastsurfer_analysis:/output \
-           -v /home/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) \
-           deepmi/fastsurfer:latest \
-           *fastsurfer-flags*
-</pre></div>
-</div>
-<p>The <code class="docutils literal notranslate"><span class="pre">--gpus</span></code> flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">-v</span></code> flag is used to tell docker, which folders FastSurfer can read and write to.</p>
-<p>See also <strong><a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a></strong> for a full FastSurfer run inside a Docker container and <a class="reference internal" href="docker.html"><span class="doc std std-ref">the Docker documentation</span></a> for more details on the docker flags including <code class="docutils literal notranslate"><span class="pre">--rm</span></code> and <code class="docutils literal notranslate"><span class="pre">--user</span></code>.</p>
-</li>
-<li><p>For a <strong>native install</strong>, you need to activate your FastSurfer environment (e.g. <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">activate</span> <span class="pre">fastsurfer_gpu</span></code>) and make sure you have added the FastSurfer path to your <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> variable, e.g. <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">PYTHONPATH=$(pwd)</span></code>.</p>
-<p>You will then be able to run fastsurfer with <code class="docutils literal notranslate"><span class="pre">./run_fastsurfer.sh</span> <span class="pre">*fastsurfer-flags*</span></code>.</p>
-<p>See also <a class="reference internal" href="EXAMPLES.html#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis"><span class="std std-ref">Example 3</span></a> for an illustration of the commands to run the entire FastSurfer pipeline (FastSurferCNN + recon-surf) natively.</p>
-</li>
-</ol>
-</section>
-</section>
-<section id="requirements-to-input-images">
-<h2>Requirements to input images<a class="headerlink" href="#requirements-to-input-images" title="Link to this heading">¶</a></h2>
-<p>All pipeline parts and modules require good quality MRI images, preferably from a 3T MR scanner.
-FastSurfer expects a similar image quality as FreeSurfer, so what works with FreeSurfer should also work with FastSurfer.
-Notwithstanding module-specific limitations, resolution should be between 1mm and 0.7mm isotropic (slice thickness should not exceed 1.5mm). Preferred sequence is Siemens MPRAGE or multi-echo MPRAGE. GE SPGR should also work. See <code class="docutils literal notranslate"><span class="pre">--vox_size</span></code> flag for high-res behaviour.</p>
-</section>
+<p>We are excited that you are here. In this documentation we will help you get started with FastSurfer!</p>
+<p>FastSurfer is an open-source AI software tool to extract quantiative measurements from human brain MRI (T1-weighted) images.
+You will learn about it’s different segmentation and surface modules and how to install and run it natively or in the
+recommended Docker or Singularity images. But first let us tell you why we think FastSurfer is great:</p>
+<ul class="simple">
+<li><p>FastSurfer uses dedicated and fast AI methods (developed in-house).</p></li>
+<li><p>It is thoroughly validated across different scanners, field-strenghts, T1 sequences, ages, diesease, …</p></li>
+<li><p>FastSurfer is fully open-source using a permissive Apache license.</p></li>
+<li><p>It is compatible with FreeSurfer, enabling FreeSurfer downstream tools to work directly.</p></li>
+<li><p>It is much faster and provides increased reliability and sensitivity of the derived measures.</p></li>
+<li><p>It natively supports high-resolution images (down to around 0.7mm) at high accuracy.</p></li>
+<li><p>It has modules for full-brain (aseg+aparcDKT), cerebellum and hypothalamic sub-segmentations.</p></li>
+<li><p>The segmentation modules run within minutes and provide partial-volume corrected stats.</p></li>
+<li><p>It has an optimized surface stream for cortical thickness analysis and improved correspondence.</p></li>
+</ul>
+<p>So, there is really no reason why you should not try this out!</p>
 <section id="system-requirements">
 <h2>System Requirements<a class="headerlink" href="#system-requirements" title="Link to this heading">¶</a></h2>
-<p>Recommendation: At least 8 GB system memory and 8 GB NVIDIA graphics memory <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">gpu</span></code></p>
-<p>Minimum: 7 GB system memory and 2 GB graphics memory <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">cpu</span> <span class="pre">--vox_size</span> <span class="pre">1</span></code></p>
-<p>Minimum CPU-only: 8 GB system memory (much slower, not recommended) <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span> <span class="pre">--vox_size</span> <span class="pre">1</span></code></p>
+<p><strong>Recommendation: At least 8 GB system memory and 8 GB NVIDIA graphics memory</strong></p>
 <section id="minimum-requirements">
 <h3>Minimum Requirements:<a class="headerlink" href="#minimum-requirements" title="Link to this heading">¶</a></h3>
 <div class="table-wrapper colwidths-auto docutils container">
@@ -472,16 +432,6 @@ Notwithstanding module-specific limitations, resolution should be between 1mm an
 <td class="text-right"><p>2</p></td>
 <td class="text-right"><p>7</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>0.8mm</p></td>
-<td><p>gpu</p></td>
-<td class="text-right"><p>8</p></td>
-<td class="text-right"><p>6</p></td>
-</tr>
-<tr class="row-odd"><td class="text-left"><p>0.8mm</p></td>
-<td><p>cpu</p></td>
-<td class="text-right"><p>3</p></td>
-<td class="text-right"><p>9</p></td>
-</tr>
 <tr class="row-even"><td class="text-left"><p>0.7mm</p></td>
 <td><p>gpu</p></td>
 <td class="text-right"><p>8</p></td>
@@ -492,9 +442,15 @@ Notwithstanding module-specific limitations, resolution should be between 1mm an
 <td class="text-right"><p>3</p></td>
 <td class="text-right"><p>9</p></td>
 </tr>
+<tr class="row-even"><td class="text-left"><p>0.7mm</p></td>
+<td><p>–device cpu</p></td>
+<td class="text-right"><p>0</p></td>
+<td class="text-right"><p>9</p></td>
+</tr>
 </tbody>
 </table>
 </div>
+<p>The default device is the GPU. The view-aggregation device can be switched to CPU and requires less GPU memory. CPU-only processing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code> is much slower and not recommended.</p>
 </section>
 </section>
 <section id="expert-usage">
@@ -538,12 +494,12 @@ This is documented in READMEs in subfolders, for example: <a class="reference in
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="INSTALL.html">
+          <a class="next-page" href="QUICKSTART.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Installation</div>
+                <div class="title">Quick Start</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -595,12 +551,6 @@ This is documented in READMEs in subfolders, for example: <a class="reference in
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Introduction to FastSurfer</a><ul>
-<li><a class="reference internal" href="#getting-started">Getting started</a><ul>
-<li><a class="reference internal" href="#installation">Installation</a></li>
-<li><a class="reference internal" href="#usage">Usage</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#requirements-to-input-images">Requirements to input images</a></li>
 <li><a class="reference internal" href="#system-requirements">System Requirements</a><ul>
 <li><a class="reference internal" href="#minimum-requirements">Minimum Requirements:</a></li>
 </ul>

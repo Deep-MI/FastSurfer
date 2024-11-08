@@ -6,8 +6,8 @@
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Output files" href="OUTPUT_FILES.html" /><link rel="prev" title="Examples" href="EXAMPLES.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
-        <title>Flags - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+        <title>FastSurfer Flags - FastSurfer</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Flags</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -385,16 +389,16 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="flags">
-<h1>Flags<a class="headerlink" href="#flags" title="Link to this heading">¶</a></h1>
-<p>Next, you will need to select the <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> and replace <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> with your options. Please see the Examples below for some example flags.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> will usually include the subject directory (<code class="docutils literal notranslate"><span class="pre">--sd</span></code>; Note, this will be the mounted path - <code class="docutils literal notranslate"><span class="pre">/output</span></code> - for containers), the subject name/id (<code class="docutils literal notranslate"><span class="pre">--sid</span></code>) and the path to the input image (<code class="docutils literal notranslate"><span class="pre">--t1</span></code>). For example:</p>
+          <section id="fastsurfer-flags">
+<h1>FastSurfer Flags<a class="headerlink" href="#fastsurfer-flags" title="Link to this heading">¶</a></h1>
+<p>Next, you will learn hot wo specify the <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> by replacing <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> with your specific options.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> will usually at least include the subject directory (<code class="docutils literal notranslate"><span class="pre">--sd</span></code>; Note, this will be the mounted path - <code class="docutils literal notranslate"><span class="pre">/output</span></code> - for containers), the subject name/id (<code class="docutils literal notranslate"><span class="pre">--sid</span></code>) and the path to the input image (<code class="docutils literal notranslate"><span class="pre">--t1</span></code>). For example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>...<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span>--sid<span class="w"> </span>test_subject<span class="w"> </span>--t1<span class="w"> </span>/data/test_subject_t1.nii.gz<span class="w"> </span>--3T
 </pre></div>
 </div>
-<p>Additionally, you can use <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> or <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> to only run a part of the pipeline or <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>, <code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code> and <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code> to switch off some segmentation modules (see above).
-Here, we have also added the <code class="docutils literal notranslate"><span class="pre">--3T</span></code> flag, which tells fastsurfer to register against the 3T atlas for ICV estimation (eTIV).</p>
-<p>In the following, we give an overview of the most important options, but you can view a full list of options with</p>
+<p>Additionally, you can use <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> or <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> to only run a part of the pipeline or <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>, <code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code> and <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code> to switch off individual segmentation modules.
+Here, we have also added the <code class="docutils literal notranslate"><span class="pre">--3T</span></code> flag, which tells FastSurfer to register against the 3T atlas which is only relevant for the ICV estimation (eTIV).</p>
+<p>In the following, we give an overview of the most important options. You can view a <a class="reference internal" href="#full-list-of-flags"><span class="std std-ref">full list of options</span></a> with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--help
 </pre></div>
 </div>
@@ -403,45 +407,44 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Output directory $SUBJECTS_DIR (equivalent to FreeSurfer setup –&gt; $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf … will be created).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--sid</span></code>: Subject ID for directory inside $SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/…)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: T1 full head input (not bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 1-0.7 mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. Note, outputs will be in the conformed space (as in FreeSurfer).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: T1 full head input (does not need to be bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 0.7mm - 1mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. Note, outputs will be in the conformed space (following the FreeSurfer standard).</p></li>
 </ul>
 </section>
 <section id="required-for-docker-when-running-surface-module">
-<h2>Required for docker when running surface module<a class="headerlink" href="#required-for-docker-when-running-surface-module" title="Link to this heading">¶</a></h2>
+<h2>Required for Docker when running surface module<a class="headerlink" href="#required-for-docker-when-running-surface-module" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>: Path to FreeSurfer license key file (only needed for the surface module). Register (for free) at https://surfer.nmr.mgh.harvard.edu/registration.html to obtain it if you do not have FreeSurfer installed so far. Strictly necessary if you use Docker, optional for local install (your local FreeSurfer license will automatically be used). The license file is usually located in $FREESURFER_HOME/license.txt or $FREESURFER_HOME/.license .</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>: Path to FreeSurfer license key file (needed for the surface module and, if activated, the talairach registration <code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> in the segmentation). For local installs, your local FreeSurfer license will automatically be detected (usually <code class="docutils literal notranslate"><span class="pre">$FREESURFER_HOME/license.txt</span></code> or <code class="docutils literal notranslate"><span class="pre">$FREESURFER_HOME/.license</span></code>). Use this flag if autodetection fails or if you use Docker with the surface module. To get a license, <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register (for free)</a>.</p></li>
 </ul>
 </section>
 <section id="segmentation-pipeline-arguments-optional">
 <h2>Segmentation pipeline arguments (optional)<a class="headerlink" href="#segmentation-pipeline-arguments-optional" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>: only run FastSurferCNN (generate segmentation, do not run the surface pipeline)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: Name and location for the log-file for the segmentation (FastSurferCNN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span></code>: Define where the view aggregation should be run on. Can be “auto” or a device (see –device). By default, the program checks if you have enough memory to run the view aggregation on the gpu. The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting with “cpu” view agg is run on the cpu. Equivalently, if you pass a different device, view agg will be run on that device (no memory check will be done).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--device</span></code>: Select device for NN segmentation (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>, <em>mps</em>), where cuda means Nvidia GPU, you can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU. “mps” is for native MAC installs to use the Apple silicon (M-chip) GPU.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>: Only run the brain segmentation pipeline and skip the surface pipeline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: Name and location for the log-file for the segmentation. Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span></code>: Define where the view aggregation should be run on. Can be “auto” or a device (see –device). By default, the program checks if you have enough memory to run the view aggregation on the GPU. The total memory is considered for this decision. If this fails, or you actively specify “cpu” view aggregation is run on the CPU. Equivalently, if you pass a different device, view aggregation will be run on that device (no memory check will be done).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--device</span></code>: Select device for neural network segmentation (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>, <em>mps</em>), where cuda means Nvidia GPU, you can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU. “mps” is for native MAC installs to use the Apple silicon (M-chip) GPU.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--asegdkt_segfile</span></code>: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code>: Switch of the cerebellum sub-segmentation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code>: Switch off the cerebellum sub-segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see –main_segfile <filename>). Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the calculation of partial volume-corrected statistics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.</p></li>
 </ul>
 </section>
 <section id="surface-pipeline-arguments-optional">
 <h2>Surface pipeline arguments (optional)<a class="headerlink" href="#surface-pipeline-arguments-optional" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>: only run the surface pipeline recon_surf. The segmentation created by FastSurferCNN must already exist in this case.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--3T</span></code>: for Talairach registration, use the 3T atlas instead of the 1.5T atlas (which is used if the flag is not provided). This gives better (more consistent with FreeSurfer) ICV estimates (eTIV) for 3T and better Talairach registration matrices, but has little impact on standard volume or surface stats.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--fstess</span></code>: Use mri_tesselate instead of marching cube (default) for surface creation</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--fsqsphere</span></code>: Use FreeSurfer default instead of novel spectral spherical projection for qsphere</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>: Only run the surface pipeline. The segmentation created by FastSurferVINN must already exist in this case.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--3T</span></code>: Only affects Talairach registration: use the 3T atlas instead of the 1.5T atlas (which is used if the flag is not provided). This gives better (more consistent with FreeSurfer) ICV estimates (eTIV) for 3T and better Talairach registration matrices, but has little impact on standard volume or surface stats.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--fstess</span></code>: Use mri_tesselate instead of marching cube (default) for surface creation (not recommended, but more similar to FreeSurfer)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--fsqsphere</span></code>: Use FreeSurfer default instead of novel spectral spherical projection for qsphere (also not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--fsaparc</span></code>: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--parallel</span></code>: Run both hemispheres in parallel</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no_fs_T1</span></code>: Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves 1:30 min.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no_surfreg</span></code>: Skip the surface registration (<code class="docutils literal notranslate"><span class="pre">sphere.reg</span></code>), which is generated automatically by default. To safe time, use this flag to turn this off.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no_fs_T1</span></code>: Skip generation of <code class="docutils literal notranslate"><span class="pre">T1.mgz</span></code> (normalized <code class="docutils literal notranslate"><span class="pre">nu.mgz</span></code> included in standard FreeSurfer output) and create <code class="docutils literal notranslate"><span class="pre">brainmask.mgz</span></code> directly from <code class="docutils literal notranslate"><span class="pre">norm.mgz</span></code> instead. Saves 1:30 min.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no_surfreg</span></code>: Skip the surface registration (which creates <code class="docutils literal notranslate"><span class="pre">sphere.reg</span></code>) to safe time. Note, <code class="docutils literal notranslate"><span class="pre">sphere.reg</span></code> will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis.</p></li>
 </ul>
 </section>
-<section id="other">
-<h2>Other<a class="headerlink" href="#other" title="Link to this heading">¶</a></h2>
+<section id="some-other-flags-optional">
+<h2>Some other flags (optional)<a class="headerlink" href="#some-other-flags-optional" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code>: Target number of threads for all modules (segmentation, surface pipeline), <code class="docutils literal notranslate"><span class="pre">1</span></code> (default) forces FastSurfer to only really use one core. Note, that the default value may change in the future for better performance on multi-core architectures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code>, <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>: Target number of threads for all modules, segmentation, and surface pipeline. The default (<code class="docutils literal notranslate"><span class="pre">1</span></code>) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--vox_size</span></code>: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
 If “min” is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
 If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isometric.
@@ -449,9 +452,241 @@ If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be c
 The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--py</span></code>: Command for python, used in both pipelines. Default: python3.10</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: Name of the file in which the conformed input image will be saved. Default location: $SUBJECTS_DIR/$sid/mri/orig.mgz</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ignore_fs_version</span></code>: Switch on to avoid check for FreeSurfer version. Program will terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code>: Prints help text</p></li>
 </ul>
+</section>
+<section id="full-list-of-flags">
+<h2>Full list of flags<a class="headerlink" href="#full-list-of-flags" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./run_fastsurfer.sh --help
+Setting ENV variable FASTSURFER_HOME to script directory /home/runner/work/FastSurfer/FastSurfer/src. 
+Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)
+
+Usage: run_fastsurfer.sh --sid &lt;sid&gt; --sd &lt;sdir&gt; --t1 &lt;t1_input&gt; [OPTIONS]
+
+run_fastsurfer.sh takes a T1 full head image and creates:
+     (i)  a segmentation using FastSurferVINN (equivalent to FreeSurfer
+          aparc.DKTatlas+aseg.mgz)
+     (ii) surfaces, thickness etc as a FS subject dir using recon-surf
+
+FLAGS:
+
+  --fs_license &lt;license&gt;  Path to FreeSurfer license key file. Register at
+                            https://surfer.nmr.mgh.harvard.edu/registration.html
+                            for free to obtain it if you do not have FreeSurfer
+                            installed already
+  --sid &lt;subjectID&gt;       Subject ID to create directory inside $SUBJECTS_DIR
+  --sd  &lt;subjects_dir&gt;    Output directory $SUBJECTS_DIR (or pass via env var)
+  --t1  &lt;T1_input&gt;        T1 full head input (not bias corrected). Requires an
+                            ABSOLUTE Path!
+  --asegdkt_segfile &lt;filename&gt;
+                          Name of the segmentation file, which includes the
+                          aparc+DKTatlas-aseg segmentations.
+                          Requires an ABSOLUTE Path! Default location:
+                          $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --vox_size &lt;0.7-1|min&gt;  Forces processing at a specific voxel size.
+                            If a number between 0.7 and 1 is specified (below
+                            is experimental) the T1w image is conformed to
+                            that voxel size and processed.
+                            If &quot;min&quot; is specified (default), the voxel size is
+                            read from the size of the minimal voxel size
+                            (smallest per-direction voxel size) in the T1w
+                            image:
+                              If the minimal voxel size is bigger than 0.98mm,
+                                the image is conformed to 1mm isometric.
+                              If the minimal voxel size is smaller or equal to
+                                0.98mm, the T1w image will be conformed to
+                                isometric voxels of that voxel size.
+                            The voxel size (whether set manually or derived)
+                            determines whether the surfaces are processed with
+                            highres options (below 1mm) or not.
+  --edits                 Enables manual edits by replacing select intermediate/
+                            result files by manedit substitutes (*.manedit.&lt;ext&gt;).
+                            Segmentation: &lt;asegdkt_segfile&gt; and &lt;mask_name&gt;.
+                            Surface: Disables check for existing recon-surf.sh run;
+                              edits of mri/wm.mgz and brain.finalsurfs.mgz
+                              as well as FreeSurfer-style WM control points.
+  --version &lt;info&gt;        Print version information and exit; &lt;info&gt; is optional.
+                            &lt;info&gt; may be empty, just prints the version number,
+                            +git_branch also prints the current branch, and any
+                            combination of +git, +checkpoints, +pip to print
+                            additional for the git status, the checkpoints and
+                            installed python packages.
+  -h --help               Print Help
+
+  PIPELINES:
+  By default, both the segmentation and the surface pipelines are run.
+
+SEGMENTATION PIPELINE:
+  --seg_only              Run only FastSurferVINN (generate segmentation, do not
+                            run surface pipeline)
+  --seg_log &lt;seg_log&gt;     Log-file for the segmentation (FastSurferVINN, CerebNet,
+                            HypVINN)
+                            Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
+  --conformed_name &lt;conf.mgz&gt;
+                          Name of the file in which the conformed input
+                            image will be saved. Requires an ABSOLUTE Path!
+                            Default location:
+                            $SUBJECTS_DIR/$sid/mri/orig.mgz.
+  --no_biasfield          Create a bias field corrected image and enable the
+                            calculation of partial volume-corrected stats-files.
+  --norm_name             Name of the biasfield corrected image
+                            Default location:
+                            $SUBJECTS_DIR/$sid/mri/orig_nu.mgz
+  --tal_reg               Perform the talairach registration for eTIV estimates
+                            in --seg_only stream and stats files (is affected by
+                            the --3T flag, see below). Manual talairach
+                            registrations are not replaced in --edits mode.
+
+  MODULES:
+  By default, all modules are run.
+
+  ASEGDKT MODULE:
+  --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
+  --asegdkt_segfile &lt;filename&gt;
+                          Name of the segmentation file, which includes the
+                            aseg+aparc/DKTatlas segmentations.
+                            Requires an ABSOLUTE Path! Default location:
+                            $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --no_biasfield          Deactivate the calculation of partial volume-corrected
+                            statistics.
+
+  CEREBELLUM MODULE:
+  --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
+  --asegdkt_segfile &lt;seg_input&gt;
+                          Name of the segmentation file (similar to aparc+aseg)
+                            for cerebellum localization (typically the output of the
+                            APARC module (see above). Requires an ABSOLUTE Path!
+                            Default location:
+                            $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+  --cereb_segfile &lt;seg_output&gt;
+                          Name of DL-based segmentation file of the cerebellum.
+                            This segmentation is always at 1mm isotropic
+                            resolution, since inference is always based on a
+                            1mm conformed image, if the conformed image is *NOT*
+                            already an 1mm image, an additional conformed image
+                            at 1mm will be stored at the --conformed_name, but
+                            with an additional file suffix of &quot;.1mm&quot;.
+                            Requires an ABSOLUTE Path! Default location:
+                            $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz
+  --no_biasfield          Deactivate the calculation of partial volume-corrected
+                            statistics.
+
+  HYPOTHALAMUS MODULE (HypVINN):
+  --no_hypothal           Skip the hypothalamus segmentation.
+  --no_biasfield          This option implies --no_hypothal, as the hypothalamus
+                            sub-segmentation requires biasfield-corrected images.
+  --t2 &lt;T2_input&gt;         *Optional* T2 full head input (does not have to be bias
+                            corrected, a mandatory biasfield correction step is
+                            performed). Requires an ABSOLUTE Path!
+  --reg_mode &lt;none|coreg|robust&gt;
+                          Ignored, if no T2 image is passed.
+                            Specifies the registration method used to register T1
+                            and T2 images. Options are &#39;coreg&#39; (default) for
+                            mri_coreg, &#39;robust&#39; for mri_robust_register, and &#39;none&#39;
+                            to skip registration (this requires T1 and T2 are
+                            externally co-registered).
+  --qc_snap               Create QC snapshots in $SUBJECTS_DIR/$sid/qc_snapshots
+                            to simplify the QC process.
+
+SURFACE PIPELINE:
+  --surf_only             Run surface pipeline only. The segmentation input has
+                            to exist already in this case.
+  --3T                    Use the 3T atlas for talairach registration (gives better
+                            etiv estimates for 3T MR images, default: 1.5T atlas).
+
+Resource Options:
+  --device                Set device on which inference should be run (&quot;cpu&quot; for
+                            CPU, &quot;cuda&quot; for Nvidia GPU, or pass specific device,
+                            e.g. cuda:1), default check GPU and then CPU.
+  --viewagg_device &lt;str&gt;  Define where the view aggregation should be run on.
+                            Can be &quot;auto&quot; or a device (see --device). By default,
+                            the program checks if you have enough memory to run
+                            the view aggregation on the gpu. The total memory is
+                            considered for this decision. If this fails, or you
+                            actively overwrote the check with setting with &quot;cpu&quot;
+                            view agg is run on the cpu. Equivalently, if you
+                            pass a different device, view agg will be run on that
+                            device (no memory check will be done).
+  --threads &lt;int&gt;         Set openMP and ITK threads to &lt;int&gt; or &quot;max&quot;, also
+  --threads_seg &lt;int&gt;       for definition of threads specific to segmentation
+  --threads_surf &lt;int&gt;      and surface reconstruction (parallel hemispheres if
+                            at number of threads for surfaces &gt;=2, default: 1).
+  --batch &lt;batch_size&gt;    Batch size for inference (default: 1).
+  --py &lt;python_cmd&gt;       Command for python, used in both pipelines.
+                            Default: &quot;python3.10 -s&quot;
+                            (-s: do no search for packages in home directory)
+
+ Dev Flags:
+  --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
+                            Program will terminate if the supported version
+                            (see recon-surf.sh) is not sourced. Can be used for
+                            testing dev versions.
+  --fstess                Switch on mri_tesselate for surface creation (default:
+                            mri_mc).
+  --fsqsphere             Use FreeSurfer iterative inflation for qsphere
+                            (default: spectral spherical projection).
+  --fsaparc               Additionally create FS aparc segmentations and ribbon.
+                            Skipped by default (--&gt; DL prediction is used which
+                            is faster, and usually these mapped ones are fine).
+  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
+                            standard FreeSurfer output) and create brainmask.mgz
+                            directly from norm.mgz instead. Saves 1:30 min.
+  --no_surfreg             Do not run Surface registration with FreeSurfer (for
+                            cross-subject correspondence), Not recommended, but
+                            speeds up processing if you e.g. just need the
+                            segmentation stats!
+  --allow_root            Allow execution as root user.
+
+ Longitudinal Flags (non-expert users should use long_fastsurfers.sh for
+                     sequential processing of longitudinal data):
+  --base                  Longitudinal template (base) processing.
+                            Only ASEGDKT in segmentation and differences in the
+                            surface module. Requires longitudinal template
+                            preparation (recon-surf/long_prepare_template.sh) to
+                            be completed beforehand! No T2 can be passed. Also
+                            no T1 is explicitly passed, as it is taken from
+                            within the prepared template directory.
+  --long &lt;baseid&gt;         Longitudinal time point processing.
+                            Requires the base (template) already exists in the
+                            same SUBJECTS_DIR under the SID &lt;baseid&gt;.
+                            Processing is identical to the regular cross-sectional
+                            pipeline for segmentation. Surface module skips
+                            many steps and initializes from subject template.
+                            No T2 can be passed. Also no T1 is explicitly passed,
+                            as it is taken from the prepared template directory.
+
+
+REFERENCES:
+
+If you use this for research publications, please cite:
+
+Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
+ fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
+ (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+
+Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
+ Resolution-Independence into Deep Learning Segmentation Methods - A Solution
+ for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
+ http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+
+For cerebellum sub-segmentation:
+Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
+ reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
+ NeuroImage 264 (2022), 119703.
+ https://doi.org/10.1016/j.neuroimage.2022.119703
+
+For hypothalamus sub-segemntation:
+Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
+ FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
+ structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
+ https://doi.org/10.1162/imag_a_00034
+
+For longitudinal processing:
+Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
+ for unbiased longitudinal image analysis, NeuroImage 61:4 (2012).
+ https://doi.org/10.1016/j.neuroimage.2012.02.084
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -516,12 +751,13 @@ The voxel size (whether set manually or derived) determines whether the surfaces
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Flags</a><ul>
+<li><a class="reference internal" href="#">FastSurfer Flags</a><ul>
 <li><a class="reference internal" href="#required-arguments">Required arguments</a></li>
-<li><a class="reference internal" href="#required-for-docker-when-running-surface-module">Required for docker when running surface module</a></li>
+<li><a class="reference internal" href="#required-for-docker-when-running-surface-module">Required for Docker when running surface module</a></li>
 <li><a class="reference internal" href="#segmentation-pipeline-arguments-optional">Segmentation pipeline arguments (optional)</a></li>
 <li><a class="reference internal" href="#surface-pipeline-arguments-optional">Surface pipeline arguments (optional)</a></li>
-<li><a class="reference internal" href="#other">Other</a></li>
+<li><a class="reference internal" href="#some-other-flags-optional">Some other flags (optional)</a></li>
+<li><a class="reference internal" href="#full-list-of-flags">Full list of flags</a></li>
 </ul>
 </li>
 </ul>

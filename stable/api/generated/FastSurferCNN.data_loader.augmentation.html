@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>FastSurferCNN.data_loader.augmentation - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <span id="fastsurfercnn-data-loader-augmentation"></span><h1>FastSurferCNN.data_loader.augmentation<a class="headerlink" href="#module-FastSurferCNN.data_loader.augmentation" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.AddGaussianNoise">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">AddGaussianNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L292-L344"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.AddGaussianNoise" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">AddGaussianNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L293-L345"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.AddGaussianNoise" title="Link to this definition">¶</a></dt>
 <dd><p>Add gaussian noise to sample.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -418,7 +422,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.AugmentationPadImage">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">AugmentationPadImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pad_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">((16,</span> <span class="pre">16),</span> <span class="pre">(16,</span> <span class="pre">16))</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'edge'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L347-L414"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.AugmentationPadImage" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">AugmentationPadImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pad_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">((16,</span> <span class="pre">16),</span> <span class="pre">(16,</span> <span class="pre">16))</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'edge'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L348-L415"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.AugmentationPadImage" title="Link to this definition">¶</a></dt>
 <dd><p>Pad Image with either zero padding or reflection padding of img, label and weight.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -450,7 +454,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.AugmentationRandomCrop">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">AugmentationRandomCrop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Random'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L417-L481"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.AugmentationRandomCrop" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">AugmentationRandomCrop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Random'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L418-L482"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.AugmentationRandomCrop" title="Link to this definition">¶</a></dt>
 <dd><p>Randomly Crop Image to given size.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -466,7 +470,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.ToTensor">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensor</span></span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L150-L196"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ToTensor" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensor</span></span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L151-L197"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ToTensor" title="Link to this definition">¶</a></dt>
 <dd><p>Convert ndarrays in sample to Tensors.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -482,7 +486,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.ToTensorTest">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensorTest</span></span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L27-L61"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ToTensorTest" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensorTest</span></span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L28-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ToTensorTest" title="Link to this definition">¶</a></dt>
 <dd><p>Convert np.ndarrays in sample to Tensors.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -498,7 +502,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.ZeroPad2D">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ZeroPad2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top_left'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L199-L289"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ZeroPad2D" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ZeroPad2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top_left'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L200-L290"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ZeroPad2D" title="Link to this definition">¶</a></dt>
 <dd><p>Pad the input with zeros to get output size.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -530,7 +534,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.augmentation.ZeroPad2DTest">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ZeroPad2DTest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top_left'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L64-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ZeroPad2DTest" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ZeroPad2DTest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top_left'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/data_loader/augmentation.py#L65-L145"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.augmentation.ZeroPad2DTest" title="Link to this definition">¶</a></dt>
 <dd><p>Pad the input with zeros to get output size.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">

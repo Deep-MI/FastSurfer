@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>Contributing to FastSurfer - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -416,7 +420,7 @@
 <li><p>Explain the behavior you would expect and the actual behavior.</p></li>
 <li><p>Please provide as much context as possible and describe the <em>reproduction steps</em> that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.</p></li>
 <li><p>Provide the information you collected in the previous section.</p></li>
-<li><p>Also provide the $subjid/scripts/recon-surf.log (if existent) and in the case of a parallel run, also the $subjid/scripts/[l/r]h.processing.cmdf.log (if existent).</p></li>
+<li><p>Also provide the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/recon-surf.log</span></code> (if existent) and in the case of a parallel run, also the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/[l/r]h.processing.cmdf.log</span></code> (if existent).</p></li>
 </ul>
 <p>Once it’s filed:</p>
 <ul class="simple">
@@ -461,14 +465,14 @@
 <li><p>Create your feature branch from dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">my-new-feature</span></code>)</p></li>
 <li><p>Commit your changes (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-am</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">feature'</span></code>)</p></li>
 <li><p>Push to the branch to your github (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Create new pull request on github web interface from that branch into Deep-NI <strong>dev branch</strong> (not into stable, which is default)</p></li>
+<li><p>Create new pull request on github web interface from that branch into Deep-NI <strong>dev branch</strong> (not into stable)</p></li>
 </ol>
 <p>If lots of things changed in the meantime or the pull request is showing conflicts you should rebase your branch to the current upstream dev.
 This is the preferred way, but only possible if you are the sole develop or your branch:</p>
 <ol class="arabic simple" start="10">
 <li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
 <li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">chekcout</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
 <li><p>Rebase your branch onto dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">dev</span></code>), resolve conflicts and continue until complete</p></li>
 <li><p>Force push the updated feature branch to your gihub (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">-f</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
 </ol>
@@ -477,7 +481,7 @@ Instead you need to merge upstream dev into your branch:</p>
 <ol class="arabic simple" start="10">
 <li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
 <li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">chekcout</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
 <li><p>Merge dev into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">merge</span> <span class="pre">dev</span></code>), resolve conflicts and commit</p></li>
 <li><p>Push to origin (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
 </ol>

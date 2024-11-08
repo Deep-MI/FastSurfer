@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>HypVINN.run_prediction - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <span id="hypvinn-run-prediction"></span><h1>HypVINN.run_prediction<a class="headerlink" href="#module-HypVINN.run_prediction" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.run_prediction.get_prediction">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">get_prediction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modalities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_zoom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view_opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'t1t2'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L545-L615"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.get_prediction" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">get_prediction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modalities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_zoom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view_opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'t1t2'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L558-L620"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.get_prediction" title="Link to this definition">¶</a></dt>
 <dd><p>Run the prediction for the Hypothalamus Segmentation model.</p>
 <p>This function sets up the prediction process for the Hypothalamus Segmentation model. It runs the model for each
 plane (axial, coronal, sagittal), accumulates the prediction probabilities, and then generates the final prediction.</p>
@@ -425,10 +429,11 @@ plane (axial, coronal, sagittal), accumulates the prediction probabilities, and 
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.run_prediction.load_volumes">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">load_volumes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L434-L542"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.load_volumes" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">load_volumes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L445-L555"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.load_volumes" title="Link to this definition">¶</a></dt>
 <dd><p>Load the volumes of T1 and T2 images.</p>
-<p>This function loads the T1 and T2 images, checks their compatibility based on the mode, and returns the loaded
-volumes along with their affine transformations, headers, zoom levels, and sizes.</p>
+<p>This function loads the T1 and T2 images, checks their compatibility based
+on the mode, and returns the loaded volumes along with their affine
+transformations, headers, zoom levels, and sizes.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
@@ -443,7 +448,7 @@ volumes along with their affine transformations, headers, zoom levels, and sizes
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
 <dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a></dt><dd><p>A tuple containing the following elements:
-- modalities: A dictionary with keys ‘t1’ and/or ‘t2’ and values being the corresponding loaded and rescaled images.
+- modalities: A dictionary of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarrays</span></code> of rescaled images for keys ‘t1’ and/or ‘t2’.
 - affine: The affine transformation of the loaded image(s).
 - header: The header of the loaded image(s).
 - zoom: The zoom level of the loaded image(s).
@@ -453,7 +458,8 @@ volumes along with their affine transformations, headers, zoom levels, and sizes
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If the mode is inconsistent with the provided image paths, or if the number of dimensions of the data is invalid.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If the mode is inconsistent with the provided image paths,
+or if the number of dimensions of the data is invalid.</p>
 </dd>
 <dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the mode is invalid, or if a header is missing.</p>
 </dd>
@@ -465,8 +471,66 @@ volumes along with their affine transformations, headers, zoom levels, and sizes
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="HypVINN.run_prediction.main">
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_cor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_sag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_cor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_sag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hypo_segfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hypothalamus.HypVINN.nii.gz'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hypo_maskfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hypothalamus_mask.HypVINN.nii.gz'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qc_snapshots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_io</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">viewagg_device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L174-L418"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.main" title="Link to this definition">¶</a></dt>
+<dd><p>Main function of the hypothalamus segmentation module.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>out_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The output directory where the results will be stored.</p>
+</dd>
+<dt><strong>t2</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The path to the T2 image to process.</p>
+</dd>
+<dt><strong>orig_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The path to the T1 image to process or FastSurfer orig image.</p>
+</dd>
+<dt><strong>sid</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The subject ID.</p>
+</dd>
+<dt><strong>ckpt_ax</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the axial checkpoint file.</p>
+</dd>
+<dt><strong>ckpt_cor</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the coronal checkpoint file.</p>
+</dd>
+<dt><strong>ckpt_sag</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the sagittal checkpoint file.</p>
+</dd>
+<dt><strong>cfg_ax</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the axial configuration file.</p>
+</dd>
+<dt><strong>cfg_cor</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the coronal configuration file.</p>
+</dd>
+<dt><strong>cfg_sag</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the sagittal configuration file.</p>
+</dd>
+<dt><strong>hypo_segfile</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”hypothalamus.HypVINN.nii.gz”</span></dt><dd><p>The name of the hypothalamus segmentation file. Default is hypothalamus.HypVINN.nii.gz.</p>
+</dd>
+<dt><strong>hypo_maskfile</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”hypothalamus_mask.HypVINN.nii.gz”</span></dt><dd><p>The name of the hypothalamus mask file. Default is hypothalamus_mask.HypVINN.nii.gz.</p>
+</dd>
+<dt><strong>qc_snapshots</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Whether to create QC snapshots. Default is False.</p>
+</dd>
+<dt><strong>reg_mode</strong><span class="classifier">“coreg”, “robust”, “none”, default=”coreg”</span></dt><dd><p>The registration mode to use. Default is “coreg”.</p>
+</dd>
+<dt><strong>threads</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=-1</span></dt><dd><p>The number of threads to use. Default is -1, which uses all available threads.</p>
+</dd>
+<dt><strong>batch_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=1</span></dt><dd><p>The batch size to use. Default is 1.</p>
+</dd>
+<dt><strong>async_io</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether to use asynchronous I/O. Default is False.</p>
+</dd>
+<dt><strong>device</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”auto”</span></dt><dd><p>The device to use. Default is “auto”, which automatically selects the device.</p>
+</dd>
+<dt><strong>viewagg_device</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”auto”</span></dt><dd><p>The view aggregation device to use. Default is “auto”, which automatically 
+selects the device.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>0, if successful, an error message describing the cause for the
+failure otherwise.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.run_prediction.option_parse">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">option_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L76-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.option_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">option_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L75-L160"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.option_parse" title="Link to this definition">¶</a></dt>
 <dd><p>A function to create an ArgumentParser object and parse the command line arguments.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -480,7 +544,7 @@ volumes along with their affine transformations, headers, zoom levels, and sizes
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.run_prediction.optional_path">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">optional_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L55-L73"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.optional_path" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">optional_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L54-L72"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.optional_path" title="Link to this definition">¶</a></dt>
 <dd><p>Convert a string to a Path object or None.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -500,7 +564,7 @@ volumes along with their affine transformations, headers, zoom levels, and sizes
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.run_prediction.prepare_checkpoints">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">prepare_checkpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt_ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_cor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_sag</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L410-L431"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.prepare_checkpoints" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">prepare_checkpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt_ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_cor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_sag</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L421-L442"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.prepare_checkpoints" title="Link to this definition">¶</a></dt>
 <dd><p>Prepare the checkpoints for the Hypothalamus Segmentation model.</p>
 <p>This function checks if the checkpoint files for the axial, coronal, and sagittal planes exist.
 If they do not exist, it downloads them from the default URLs specified in the configuration file.</p>
@@ -520,7 +584,7 @@ If they do not exist, it downloads them from the default URLs specified in the c
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.run_prediction.set_up_cfgs">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">set_up_cfgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L621-L658"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.set_up_cfgs" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">set_up_cfgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/run_prediction.py#L626-L659"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.run_prediction.set_up_cfgs" title="Link to this definition">¶</a></dt>
 <dd><p>Set up the configuration for the Hypothalamus Segmentation model.</p>
 <p>This function loads the configuration, sets the output directory and batch size, and adjusts the output tensor
 dimensions based on the padded size specified in the configuration.</p>
@@ -610,6 +674,7 @@ dimensions based on the padded size specified in the configuration.</p>
 <li><a class="reference internal" href="#">HypVINN.run_prediction</a><ul>
 <li><a class="reference internal" href="#HypVINN.run_prediction.get_prediction"><code class="docutils literal notranslate"><span class="pre">get_prediction()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.run_prediction.load_volumes"><code class="docutils literal notranslate"><span class="pre">load_volumes()</span></code></a></li>
+<li><a class="reference internal" href="#HypVINN.run_prediction.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.run_prediction.option_parse"><code class="docutils literal notranslate"><span class="pre">option_parse()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.run_prediction.optional_path"><code class="docutils literal notranslate"><span class="pre">optional_path()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.run_prediction.prepare_checkpoints"><code class="docutils literal notranslate"><span class="pre">prepare_checkpoints()</span></code></a></li>

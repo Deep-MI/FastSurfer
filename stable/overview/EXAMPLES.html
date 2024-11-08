@@ -3,11 +3,11 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Flags" href="FLAGS.html" /><link rel="prev" title="Installation" href="INSTALL.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="FastSurfer Flags" href="FLAGS.html" /><link rel="prev" title="Installation" href="INSTALL.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>Examples - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h1>
 <section id="example-1-fastsurfer-docker">
 <h2>Example 1: FastSurfer Docker<a class="headerlink" href="#example-1-fastsurfer-docker" title="Link to this heading">¶</a></h2>
-<p>After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run <em><strong>more than just the segmentation CNN</strong></em>, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license for free. The directory containing the license needs to be mounted and passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our run_fastsurfer.sh script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).</p>
+<p>After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run <em><strong>more than just the segmentation CNN</strong></em>, you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a valid license for free. The directory containing the license needs to be mounted and passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).</p>
 <p>To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. get the fastsurfer docker image (if it does not exist yet)</span>
 docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer<span class="w"> </span>
@@ -402,7 +406,8 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--parallel<span class="w"> </span>--3T
+<span class="w">                      </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 <p>Docker Flags:</p>
@@ -418,8 +423,8 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data =&gt; /data)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis =&gt; /output)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--parallel</span></code> activates processing left and right hemisphere in parallel</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--threads</span></code> tells FastSurfer to use that many threads in segmentation and surface reconstruction. <code class="docutils literal notranslate"><span class="pre">max</span></code> will auto-detect the number of threads available, i.e. <code class="docutils literal notranslate"><span class="pre">16</span></code> on an 8-core system with hypterthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.</p></li>
 </ul>
 <p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-v</span></code> arguments (part after colon).</p>
 <p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory if it does not exist. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files.</p>
@@ -443,7 +448,8 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--parallel<span class="w"> </span>--3T
+<span class="w">                 </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 <section id="singularity-flags">
@@ -461,8 +467,8 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data =&gt; /data)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis =&gt; /output)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--parallel</span></code> activates processing left and right hemisphere in parallel</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--threads</span></code> tells FastSurfer to use that many threads in segmentation and surface reconstruction. <code class="docutils literal notranslate"><span class="pre">max</span></code> will auto-detect the number of threads available, i.e. <code class="docutils literal notranslate"><span class="pre">16</span></code> on an 8-core system with hypterthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.</p></li>
 </ul>
 <p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-v</span></code> arguments (part after colon).</p>
 <p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files.</p>
@@ -488,10 +494,10 @@ Given you want to analyze data for subject which is stored on your computer unde
 <span class="c1"># Run FastSurfer</span>
 ./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$datadir</span>/subjectX/t1-weighted-nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">                    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$fastsurferdir</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--parallel<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
+<span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
 </pre></div>
 </div>
-<p>The output will be stored in the $fastsurferdir (including the aparc.DKTatlas+aseg.deep.mgz segmentation under $fastsurferdir/subjectX/mri (default location)). Processing of the hemispheres will be run in parallel (–parallel flag) to significantly speed-up surface creation. Omit this flag to run the processing sequentially, e.g. if you want to save resources on a compute cluster.</p>
+<p>The output will be stored in the $fastsurferdir (including the <code class="docutils literal notranslate"><span class="pre">aparc.DKTatlas+aseg.deep.mgz</span></code> segmentation under <code class="docutils literal notranslate"><span class="pre">$fastsurferdir/subjectX/mri</span></code> (default location)). Processing of the hemispheres will be run in parallel (–threads 4 &gt;= 2) to significantly speed-up surface creation. Omit this flag to run the processing sequentially, e.g. if you want to save resources on a compute cluster.</p>
 </section>
 <section id="example-4-fastsurfer-on-multiple-subjects">
 <h2>Example 4: FastSurfer on multiple subjects<a class="headerlink" href="#example-4-fastsurfer-on-multiple-subjects" title="Link to this heading">¶</a></h2>
@@ -515,7 +521,8 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 <span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--sd<span class="w"> </span>/output<span class="w"> </span>--subject_list<span class="w"> </span>/data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--parallel<span class="w"> </span>--3T
+<span class="w">                      </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
@@ -531,7 +538,8 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 <span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--subject_list<span class="w"> </span>/data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--parallel<span class="w"> </span>--3T
+<span class="w">                 </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
@@ -547,18 +555,13 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 <span class="c1"># Run FastSurfer</span>
 ./brun_fastsurfer.sh<span class="w"> </span>--subject_list<span class="w"> </span><span class="nv">$datadir</span>/subjects_list.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                     </span>--sd<span class="w"> </span><span class="nv">$fastsurferdir</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--parallel<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
+<span class="w">                     </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
 </pre></div>
 </div>
 </section>
 <section id="flags">
 <h3>Flags<a class="headerlink" href="#flags" title="Link to this heading">¶</a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> script accepts almost all <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> flags (exceptions are <code class="docutils literal notranslate"><span class="pre">--t1</span></code> and <code class="docutils literal notranslate"><span class="pre">--sid</span></code>). In addition,</p>
-<ul class="simple">
-<li><p>the <code class="docutils literal notranslate"><span class="pre">--parallel_subjects</span></code> runs all subjects in parallel (experimental, parameter may change in future releases). This is particularly useful for surfaces computation <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>.</p></li>
-<li><p>to run segmentation in series, but surfaces in parallel, you may use <code class="docutils literal notranslate"><span class="pre">--parallel_subjects</span> <span class="pre">surf</span></code>.</p></li>
-<li><p>these options are in contrast (and in addition) to <code class="docutils literal notranslate"><span class="pre">--parallel</span></code>, which just parallelizes the hemispheres of one case.</p></li>
-</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> script accepts almost all <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> flags (exceptions are <code class="docutils literal notranslate"><span class="pre">--t1</span></code> and <code class="docutils literal notranslate"><span class="pre">--sid</span></code>). In addition, it has <a class="reference internal" href="../scripts/BATCH.html#parallelization-with-brun-fastsurfer-sh"><span class="std std-ref">powerful parallelization options</span></a>.</p>
 </section>
 </section>
 <section id="example-5-quick-segmentation">
@@ -567,7 +570,7 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$datadir</span>/subject1/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">                    </span>--asegdkt_segfile<span class="w"> </span><span class="nv">$outputdir</span>/subject1/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">                    </span>--conformed_name<span class="w"> </span><span class="nv">$outputdir</span>/subject1/conformed.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--seg_only<span class="w"> </span>--no_cereb
+<span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--seg_only<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
 <p>This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
@@ -614,7 +617,7 @@ There are many intricacies and options, so it is advised to use <code class="doc
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Flags</div>
+                <div class="title">FastSurfer Flags</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

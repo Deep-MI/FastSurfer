@@ -3,11 +3,11 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="SLURM: srun_fastsurfer.sh" href="SLURM.html" /><link rel="prev" title="Scripts" href="index.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="SLURM: srun_fastsurfer.sh" href="SLURM.html" /><link rel="prev" title="LONG: long_fastsurfer.sh" href="long_fastsurfer.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>BATCH: brun_fastsurfer.sh - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -400,7 +404,7 @@ OR
 brun_fastsurfer.sh [other options]
 
 Other options:
-brun_fastsurfer.sh [...] [--batch &quot;&lt;i&gt;/&lt;n&gt;&quot;] [--parallel_subjects [surf=][&lt;N&gt;]]
+brun_fastsurfer.sh [...] [--batch &quot;&lt;i&gt;/&lt;n&gt;&quot;] [--parallel &lt;N&gt;|max] [--parallel_seg &lt;N&gt;|max] [--parallel_surf &lt;N&gt;|max]
     [--run_fastsurfer &lt;script to run fastsurfer&gt;] [--statusfile &lt;filename&gt;] [--debug] [--help]
     [&lt;additional run_fastsurfer.sh options&gt;]
 
@@ -424,20 +428,25 @@ iii. a list of subjects directly passed (this does not support subject-specific 
   Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
   according to $SLURM_ARRAY_TASK_ID and $SLURM_ARRAY_TASK_COUNT (unless values are specifically
   assigned with the --batch argument).
---parallel_subjects [surf=][&lt;n&gt;]: parallel execution of &lt;n&gt; or all (if &lt;n&gt; is not provided) subjects,
-  specifically interesting for the surface pipeline (--surf_only) (default: serial execution, or
-  &#39;--parallel_subjects 1&#39;). (Note, that currently only n=1 and n=-1 (no limit) are implemented.)
-  Note, it is not recommended to parallelize the segmentation using --parallel_subjects on gpus,
-  as that will cause out-of-memory errors, use --parallel_subjects surf=&lt;n&gt; to process segmentation
-  in series and surfaces of &lt;n&gt; subjects in parallel.
-  Note, that --parallel_subjects surf=&lt;n&gt; is not compatible with either --seg_only or --surf_only.
-  The script will print the output of individual subjects interleaved, but prepend the subject_id.
+--parallel &lt;n&gt;|max: parallel execution of run_fastsurfer for &lt;n&gt; images. Creates &lt;n&gt; processes with
+  each process performing segmentation and surface reconstruction. The default is this serial execution
+  mode with n=1: &#39;--parallel 1&#39;.
+--parallel_seg &lt;n&gt;|max and
+--parallel_surf &lt;m&gt;|max: activate independent segmentation and surface reconstruction pipelines.
+  Segmentation and Surface reconstruction have independent processing queues. After successful
+  segmentation (&lt;n&gt; parallel processes), cases are transferred into the surface queue (&lt;m&gt; parallel
+  processes). Together max. m+n processes will run. Logfiles unchanged, console output for individual
+  subjects is interleaved with subject_id prepended.
 --run_fastsurfer &lt;path/command&gt;: This option enables the startup of fastsurfer in a more controlled
   manner, for example to delegate the fastsurfer run to container:
-  --run_fastsurfer &quot;singularity exec --nv --no-home -B &lt;dir&gt;:/data /fastsurfer/run_fastsurfer.sh&quot;
+  --run_fastsurfer &quot;singularity exec --nv --no-mount home,cwd -e -B &lt;dir&gt;:/data /fastsurfer/run_fastsurfer.sh&quot;
   Note, paths to files and --sd have to be defined in the container file system in this case.
 --statusfile &lt;filename&gt;: a file to document which subject ran successfully. Also used to skip
   surface recon, if the previous segmentation failed.
+--threads &lt;n&gt;,
+--threads_seg &lt;n&gt;, and
+--threads_surf &lt;n&gt;: specify number of threads for each parallel &quot;process&quot;, i.e.
+  total_threads=num_seg_processes * num_seg_threads + num_surf_processes * num_surf_threads.
 --debug: Additional debug output.
 --help: print this help.
 
@@ -447,6 +456,71 @@ With the exception of --t1 and --sid, all run_fastsurfer.sh options are supporte
 This tool requires functions in stools.sh (expected in same folder as this script).
 </pre></div>
 </div>
+</section>
+<section id="subject-lists">
+<h2>Subject Lists<a class="headerlink" href="#subject-lists" title="Link to this heading">¶</a></h2>
+<p>The input files and options may be specified in three ways:</p>
+<ol class="arabic simple">
+<li><p>By writing them into the console (or by piping them in) (default) (one case per line),</p></li>
+<li><p>by passing a subject list file <code class="docutils literal notranslate"><span class="pre">--subject_list</span> <span class="pre">&lt;filename&gt;</span></code> (one case per line), or</p></li>
+<li><p>by passing them on the command line <code class="docutils literal notranslate"><span class="pre">--subjects</span> <span class="pre">&quot;&lt;subject_id&gt;=&lt;t1</span> <span class="pre">file&gt;&quot;</span> <span class="pre">[more</span> <span class="pre">cases]</span></code> (no additional options
+supported).</p></li>
+</ol>
+<p>These files/input options will usually be in the format <code class="docutils literal notranslate"><span class="pre">&lt;subject_id&gt;=&lt;t1</span> <span class="pre">file&gt;</span> <span class="pre">[additional</span> <span class="pre">options]</span></code>, where additional
+options are optional and enable passing options different to the “general options” given on the command line to
+<code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code>. One example for such a case-specific option is an optional T2w image (e.g. for the
+<a class="reference internal" href="../overview/OUTPUT_FILES.html#hypvinn-module"><span class="std std-ref">HypVINN</span></a>). An example subject list file might look like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">001</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mf">001.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">001.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
+<span class="mi">002</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mf">002.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">002.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
+<span class="mi">002</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mi">003</span><span class="o">-</span><span class="n">alt</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">003.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
+<span class="o">...</span> 
+</pre></div>
+</div>
+</section>
+<section id="parallelization-with-brun-fastsurfer-sh">
+<h2>Parallelization with <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code><a class="headerlink" href="#parallelization-with-brun-fastsurfer-sh" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> has powerful builtin parallel processing capabilities. These are hidden underneath the
+<code class="docutils literal notranslate"><span class="pre">--parallel*</span> <span class="pre">&lt;n&gt;|max</span></code> and the <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;device&gt;</span></code> as well as <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;device&gt;</span></code> flags.
+One of the core properties of FastSurfer is the split into the segmentation (which uses Deep Learning and therefore
+benefits from GPUs) and the surface pipeline (which does not benefit from GPUs). For ideal batch processing, we want
+different resource scheduling.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--parallel*</span></code> allows three parallel batch processing modes: serial, single parallel pipeline and dual parallel pipeline.</p>
+<section id="serial-processing-default">
+<h3>Serial processing (default)<a class="headerlink" href="#serial-processing-default" title="Link to this heading">¶</a></h3>
+<p>Each case/image is processed after the other fully, i.e. surface reconstruction of case 1 is fully finished before
+segmentation of case 2 is started. This setting is the default and represents the manual flags <code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">1</span></code>.</p>
+</section>
+<section id="single-parallel-pipeline">
+<h3>Single parallel pipeline<a class="headerlink" href="#single-parallel-pipeline" title="Link to this heading">¶</a></h3>
+<p>This mode is ideal for CPU-based processing for segmentation. It will process segmentations and surfaces in series
+in the same process, but multiple cases are processed at the same time.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span>--parallel<span class="w"> </span><span class="m">4</span><span class="w"> </span>--threads<span class="w"> </span><span class="m">2</span>
+</pre></div>
+</div>
+<p>will start 4 segmentations (and surface reconstructions) at the same time, and will start a fifth, when the surface
+processing of one of the four first cases is finished (<code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">4</span></code>). It will try to use 2 threads per case
+(<code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">2</span></code>) and perform reconstruction of left and right hemispheres in parallel (<code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">2</span></code>, 2 &gt;= 2).
+<code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">max</span></code> will remove the limit and start all cases at the same time (each with the target number of threads
+given by <code class="docutils literal notranslate"><span class="pre">--threads</span></code>).</p>
+</section>
+<section id="dual-parallel-pipeline">
+<h3>Dual parallel pipeline<a class="headerlink" href="#dual-parallel-pipeline" title="Link to this heading">¶</a></h3>
+<p>This is ideal for GPU-based processing for segmentation. It will process segmentations and surfaces in separate
+pipelines, which is useful for optimized GPU loading. Multiple cases may be processed at the same time.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span>--device<span class="w"> </span>cuda:0-1<span class="w"> </span>--parallel_seg<span class="w"> </span><span class="m">2</span><span class="w"> </span>--parallel_surf<span class="w"> </span>max<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--threads_seg<span class="w"> </span><span class="m">8</span><span class="w"> </span>--threads_surf<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>will start 2 parallel segmentations (<code class="docutils literal notranslate"><span class="pre">--parallel_seg</span> <span class="pre">2</span></code>) using GPU 0 for case 1 and GPU 1 for case 2
+(<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda:0-1</span></code> – same as <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda:0,1</span></code>). After one of these segmentations is finished, the segmentation of
+case 3 will start on that same device as well as the surface reconstruction (without putting a limit on parallel
+surface reconstructions, <code class="docutils literal notranslate"><span class="pre">--parallel_surf</span> <span class="pre">max</span></code>). Each segmentation process will aim to use 8 threads/cores
+(<code class="docutils literal notranslate"><span class="pre">--threads_seg</span> <span class="pre">8</span></code>) and each surface reconstruction process will aim to use 4 threads (<code class="docutils literal notranslate"><span class="pre">--threads_surf</span> <span class="pre">4</span></code>) with both
+hemispheres processed in parallel (<code class="docutils literal notranslate"><span class="pre">--threads_surf</span> <span class="pre">4</span></code>, 4 &gt;= 2, so right hemisphere will use 2 threads and left as well).</p>
+<p>Note, if your GPU has sufficient <a class="reference internal" href="../overview/intro.html#system-requirements"><span class="std std-ref">video memory</span></a>, two parallel segmentations
+can run on the same GPU, but the script cannot schedule more than one process per GPU for multiple GPUs, i.e.
+<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda:0,1</span> <span class="pre">--parallel_seg</span> <span class="pre">4</span></code> is not supported.</p>
+</section>
 </section>
 <section id="questions">
 <h2>Questions<a class="headerlink" href="#questions" title="Link to this heading">¶</a></h2>
@@ -472,14 +546,14 @@ This tool requires functions in stools.sh (expected in same folder as this scrip
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="index.html">
+          <a class="prev-page" href="long_fastsurfer.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Scripts</div>
+                <div class="title">LONG: long_fastsurfer.sh</div>
                 
               </div>
             </a>
@@ -521,6 +595,13 @@ This tool requires functions in stools.sh (expected in same folder as this scrip
             <ul>
 <li><a class="reference internal" href="#">BATCH: brun_fastsurfer.sh</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#subject-lists">Subject Lists</a></li>
+<li><a class="reference internal" href="#parallelization-with-brun-fastsurfer-sh">Parallelization with <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code></a><ul>
+<li><a class="reference internal" href="#serial-processing-default">Serial processing (default)</a></li>
+<li><a class="reference internal" href="#single-parallel-pipeline">Single parallel pipeline</a></li>
+<li><a class="reference internal" href="#dual-parallel-pipeline">Dual parallel pipeline</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#questions">Questions</a></li>
 </ul>
 </li>

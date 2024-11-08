@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>recon_surf.map_surf_label - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <span id="recon-surf-map-surf-label"></span><h1>recon_surf.map_surf_label<a class="headerlink" href="#module-recon_surf.map_surf_label" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.map_surf_label.getSurfCorrespondence">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">getSurfCorrespondence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_sphere</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sphere</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L149-L198"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.getSurfCorrespondence" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">getSurfCorrespondence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_sphere</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sphere</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L144-L193"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.getSurfCorrespondence" title="Link to this definition">¶</a></dt>
 <dd><p>For each vertex in src_sphere find the closest vertex in trg_sphere.</p>
 <p>src_sphere and trg_sphere are Nx3 arrays of coordinates on the sphere
 (usually radius R=100 FS format). They also be a filenames of the corresponding
@@ -398,10 +402,10 @@ cases where src moves around and trg stays fixed.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>src_sphere</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tuple</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>Either filepath (as str) or surface vertices
+<dt><strong>src_sphere</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tuple</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>Either filepath (as str) or surface vertices
 of source sphere.</p>
 </dd>
-<dt><strong>trg_sphere</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tuple</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>Either filepath (as str) or surface vertices
+<dt><strong>trg_sphere</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tuple</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>Either filepath (as str) or surface vertices
 of target sphere.</p>
 </dd>
 <dt><strong>tree</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">KDTree</span></code>]</span></dt><dd><p>Defaults to None.</p>
@@ -410,9 +414,9 @@ of target sphere.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>mapping</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Surface mapping of the trg surface.</p>
+<dt><strong>mapping</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Surface mapping of the trg surface.</p>
 </dd>
-<dt><strong>distances</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Surface distance of the trg surface.</p>
+<dt><strong>distances</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Surface distance of the trg surface.</p>
 </dd>
 <dt><strong>tree</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KDTree</span></code></span></dt><dd><p>KDTree of the trg surface.</p>
 </dd>
@@ -423,7 +427,7 @@ of target sphere.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.map_surf_label.mapSurfLabel">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">mapSurfLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_label_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_label_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rev_mapping</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L201-L261"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.mapSurfLabel" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">mapSurfLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_label_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_label_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rev_mapping</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L196-L254"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.mapSurfLabel" title="Link to this definition">¶</a></dt>
 <dd><p>Map a label from src surface according to the correspondence.</p>
 <p>trg_surf is passed so that the label file will list the
 correct coordinates (usually the white surface), can be vetrices or filename.</p>
@@ -434,20 +438,20 @@ correct coordinates (usually the white surface), can be vetrices or filename.</p
 </dd>
 <dt><strong>out_label_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to label file of output.</p>
 </dd>
-<dt><strong>trg_surf</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>Numpy array of vertex coordinates or filepath to target surface.</p>
+<dt><strong>trg_surf</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>Numpy array of vertex coordinates or filepath to target surface.</p>
 </dd>
 <dt><strong>trg_sid</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Subject id of the target subject (as stored in the output label file header).</p>
 </dd>
-<dt><strong>rev_mapping</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A mapping from target to source, listing the corresponding src vertex 
+<dt><strong>rev_mapping</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A mapping from target to source, listing the corresponding src vertex 
 for each vertex on the trg surface.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>trg_label</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Target labels.</p>
+<dt><strong>trg_label</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Target labels.</p>
 </dd>
-<dt><strong>trg_values</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Target values.</p>
+<dt><strong>trg_values</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Target values.</p>
 </dd>
 </dl>
 </dd>
@@ -462,7 +466,7 @@ for each vertex on the trg surface.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.map_surf_label.options_parse">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L61-L92"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.options_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L60-L91"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.options_parse" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 <dl class="field-list">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -476,7 +480,7 @@ for each vertex on the trg surface.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.map_surf_label.writeSurfLabel">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">writeSurfLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L95-L146"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.writeSurfLabel" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.map_surf_label.</span></span><span class="sig-name descname"><span class="pre">writeSurfLabel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/map_surf_label.py#L94-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.map_surf_label.writeSurfLabel" title="Link to this definition">¶</a></dt>
 <dd><p>Write a FS surface label file to filename (e.g. lh.labelname.label).</p>
 <p>Stores sid string in the header, then number of vertices
 and table of vertex index, RAS wm-surface coords (taken from surf)

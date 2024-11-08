@@ -5,6 +5,7 @@ User Guide
     :maxdepth: 2
 
     intro
+    QUICKSTART.md
     INSTALL.md
     EXAMPLES.md
     FLAGS.md
@@ -12,6 +13,7 @@ User Guide
     docker
     singularity
     EDITING.md
+    LONG.md
     SECURITY.md
     CODE_OF_CONDUCT.md
     CONTRIBUTING.md

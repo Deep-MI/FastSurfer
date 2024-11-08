@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>FastSurferCNN.quick_qc - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -394,7 +398,7 @@
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>asegdkt_segfile</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The segmentation file.</p>
+<dt><strong>asegdkt_segfile</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The segmentation file.</p>
 </dd>
 <dt><strong>voxvol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The volume of a voxel.</p>
 </dd>
@@ -412,13 +416,45 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.quick_qc.get_region_bg_intersection_mask">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">get_region_bg_intersection_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'Left-Lateral-Ventricle':</span> <span class="pre">4,</span> <span class="pre">'Left-choroid-plexus':</span> <span class="pre">31,</span> <span class="pre">'Right-Lateral-Ventricle':</span> <span class="pre">43,</span> <span class="pre">'Right-choroid-plexus':</span> <span class="pre">63}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/quick_qc.py#L101-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.get_region_bg_intersection_mask" title="Link to this definition">¶</a></dt>
+<dd><p>Return a mask of the intersection between the voxels of a given region and background voxels.</p>
+<p>This is obtained by dilating the region by 1 voxel and computing the intersection with the
+background mask.</p>
+<p>The region can be defined by passing in the region_labels dict.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>seg_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Segmentation array.</p>
+</dd>
+<dt><strong>region_labels</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>, default=&lt;dict VENT_LABELS&gt;</span></dt><dd><p>Dictionary whose values correspond to the desired region’s labels (see Note).</p>
+</dd>
+<dt><strong>bg_label</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>,  <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">as</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">in</span></code> &lt;BG_LABEL&gt;</span></dt><dd><p>Label id of the background.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>bg_intersect</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Region and background intersection mask array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>VENT_LABELS is a dictionary containing labels for four regions related to the ventricles:
+“Left-Lateral-Ventricle”, “Right-Lateral-Ventricle”, “Left-choroid-plexus”, 
+“Right-choroid-plexus” along with their corresponding integer label values 
+(see also FreeSurferColorLUT.txt).</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.quick_qc.get_ventricle_bg_intersection_volume">
 <span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">get_ventricle_bg_intersection_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxvol</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/quick_qc.py#L154-L173"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.get_ventricle_bg_intersection_volume" title="Link to this definition">¶</a></dt>
 <dd><p>Return a volume estimate for the intersection of ventricle voxels with background voxels.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>seg_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Segmentation array.</p>
+<dt><strong>seg_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Segmentation array.</p>
 </dd>
 <dt><strong>voxvol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Voxel volume.</p>
 </dd>
@@ -512,6 +548,7 @@
             <ul>
 <li><a class="reference internal" href="#">FastSurferCNN.quick_qc</a><ul>
 <li><a class="reference internal" href="#FastSurferCNN.quick_qc.check_volume"><code class="docutils literal notranslate"><span class="pre">check_volume()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.quick_qc.get_region_bg_intersection_mask"><code class="docutils literal notranslate"><span class="pre">get_region_bg_intersection_mask()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.quick_qc.get_ventricle_bg_intersection_volume"><code class="docutils literal notranslate"><span class="pre">get_ventricle_bg_intersection_volume()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.quick_qc.options_parse"><code class="docutils literal notranslate"><span class="pre">options_parse()</span></code></a></li>
 </ul>

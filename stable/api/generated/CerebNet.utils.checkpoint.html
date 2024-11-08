@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>CerebNet.utils.checkpoint - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -388,8 +392,75 @@
           <section id="module-CerebNet.utils.checkpoint">
 <span id="cerebnet-utils-checkpoint"></span><h1>CerebNet.utils.checkpoint<a class="headerlink" href="#module-CerebNet.utils.checkpoint" title="Link to this heading">¶</a></h1>
 <dl class="py function">
+<dt class="sig sig-object py" id="CerebNet.utils.checkpoint.create_checkpoint_dir">
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">create_checkpoint_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expr_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expr_num</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L133-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.create_checkpoint_dir" title="Link to this definition">¶</a></dt>
+<dd><p>Create the checkpoint dir if not exists.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>expr_dir</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">os.PathLike</span></code></a>]</span></dt><dd><p>Directory to create.</p>
+</dd>
+<dt><strong>expr_num</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Experiment number.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint_dir</span></code></dt><dd><p>Directory of the checkpoint.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="CerebNet.utils.checkpoint.get_checkpoint">
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">get_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L154-L174"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.get_checkpoint" title="Link to this definition">¶</a></dt>
+<dd><p>Find the standardizes checkpoint name for the checkpoint in the directory
+ckpt_dir for the given epoch.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>ckpt_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Checkpoint directory.</p>
+</dd>
+<dt><strong>epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of the epoch.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint_dir</span></code></dt><dd><p>Standardizes checkpoint name.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="CerebNet.utils.checkpoint.get_checkpoint_path">
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">get_checkpoint_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resume_experiment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L177-L203"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.get_checkpoint_path" title="Link to this definition">¶</a></dt>
+<dd><p>Find the paths to checkpoints from the experiment directory.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>log_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Experiment directory.</p>
+</dd>
+<dt><strong>resume_experiment</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>]</span></dt><dd><p>Sub-experiment to search in for a model (Default value = None).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>prior_model_paths</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MutableSequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></dt><dd><p>A list of filenames for checkpoints.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.checkpoint.is_checkpoint_epoch">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">is_checkpoint_epoch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L37-L49"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.is_checkpoint_epoch" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">is_checkpoint_epoch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L48-L60"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.is_checkpoint_epoch" title="Link to this definition">¶</a></dt>
 <dd><p>Check if checkpoint need to be saved.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -397,6 +468,66 @@
 <dt><strong>cfg</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">yacs.config.CfgNode</span></code></span></dt><dd><p>The config node.</p>
 </dd>
 <dt><strong>cur_epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The current epoch number to check if this is the last epoch.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="CerebNet.utils.checkpoint.load_from_checkpoint">
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">load_from_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpoint_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fine_tune</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_classifier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L206-L257"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.load_from_checkpoint" title="Link to this definition">¶</a></dt>
+<dd><p>Load the model from the given experiment number.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>checkpoint_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the checkpoint.</p>
+</dd>
+<dt><strong>model</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></span></dt><dd><p>Network model.</p>
+</dd>
+<dt><strong>optimizer</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.optim.Optimizer</span></code>]</span></dt><dd><p>Network optimizer (Default value = None).</p>
+</dd>
+<dt><strong>scheduler</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Scheduler</span></code>]</span></dt><dd><p>Network scheduler (Default value = None).</p>
+</dd>
+<dt><strong>fine_tune</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Whether to fine tune or not (Default value = False).</p>
+</dd>
+<dt><strong>drop_classifier</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Whether to drop the classifier or not (Default value = False).</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>loaded_epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Epoch number.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="CerebNet.utils.checkpoint.save_checkpoint">
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.checkpoint.</span></span><span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpoint_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_gpus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/utils/checkpoint.py#L260-L314"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.checkpoint.save_checkpoint" title="Link to this definition">¶</a></dt>
+<dd><p>Save the state of training for resume or fine-tune.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>checkpoint_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the checkpoint directory.</p>
+</dd>
+<dt><strong>epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Current epoch.</p>
+</dd>
+<dt><strong>best_metric</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">best_metric</span></code></span></dt><dd><p>Best calculated metric.</p>
+</dd>
+<dt><strong>num_gpus</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of used gpus.</p>
+</dd>
+<dt><strong>cfg</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">yacs.config.CfgNode</span></code></span></dt><dd><p>Configuration node.</p>
+</dd>
+<dt><strong>model</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></span></dt><dd><p>Used network model.</p>
+</dd>
+<dt><strong>optimizer</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.optim.Optimizer</span></code></span></dt><dd><p>Used network optimizer.</p>
+</dd>
+<dt><strong>scheduler</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Scheduler</span></code>]</span></dt><dd><p>Used network scheduler. Optional (Default value = None).</p>
+</dd>
+<dt><strong>best</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether this was the best checkpoint so far (Default value = False).</p>
 </dd>
 </dl>
 </dd>
@@ -467,7 +598,12 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">CerebNet.utils.checkpoint</a><ul>
+<li><a class="reference internal" href="#CerebNet.utils.checkpoint.create_checkpoint_dir"><code class="docutils literal notranslate"><span class="pre">create_checkpoint_dir()</span></code></a></li>
+<li><a class="reference internal" href="#CerebNet.utils.checkpoint.get_checkpoint"><code class="docutils literal notranslate"><span class="pre">get_checkpoint()</span></code></a></li>
+<li><a class="reference internal" href="#CerebNet.utils.checkpoint.get_checkpoint_path"><code class="docutils literal notranslate"><span class="pre">get_checkpoint_path()</span></code></a></li>
 <li><a class="reference internal" href="#CerebNet.utils.checkpoint.is_checkpoint_epoch"><code class="docutils literal notranslate"><span class="pre">is_checkpoint_epoch()</span></code></a></li>
+<li><a class="reference internal" href="#CerebNet.utils.checkpoint.load_from_checkpoint"><code class="docutils literal notranslate"><span class="pre">load_from_checkpoint()</span></code></a></li>
+<li><a class="reference internal" href="#CerebNet.utils.checkpoint.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">save_checkpoint()</span></code></a></li>
 </ul>
 </li>
 </ul>

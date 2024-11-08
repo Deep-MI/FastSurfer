@@ -7,7 +7,7 @@
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>CerebNet.datasets.utils - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -389,7 +393,7 @@
 <span id="cerebnet-datasets-utils"></span><h1>CerebNet.datasets.utils<a class="headerlink" href="#module-CerebNet.datasets.utils" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.LTADict">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">LTADict</span></span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L64-L87"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.LTADict" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">LTADict</span></span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L65-L88"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.LTADict" title="Link to this definition">¶</a></dt>
 <dd><p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -434,21 +438,21 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.bounding_volume_offset">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">bounding_volume_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_img_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L188-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.bounding_volume_offset" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">bounding_volume_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_img_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L189-L226"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.bounding_volume_offset" title="Link to this definition">¶</a></dt>
 <dd><p>Find the center of the non-zero values in img and returns offsets so this center is in the center of a bounding
 volume of size target_img_size.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.crop_transform">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">crop_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L545-L650"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.crop_transform" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">crop_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L547-L652"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.crop_transform" title="Link to this definition">¶</a></dt>
 <dd><p>Perform a crop transform of the last N dimensions on the image data.
 Cropping does not interpolate the image, but “just removes” border pixels/voxels.
 Negative offsets lead to padding.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Image of size […, D_1, D_2, …, D_N], where D_1, D_2, …, D_N are the N
+<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Image of size […, D_1, D_2, …, D_N], where D_1, D_2, …, D_N are the N
 image dimensions.</p>
 </dd>
 <dt><strong>offsets</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Offset of the cropped region for the last N dimensions (default: center crop
@@ -460,7 +464,7 @@ the shape is derived by subtracting 2x the dimension-specific offset).
 target_shape should have the same number of elements as offsets.
 May be implicitly defined by out.</p>
 </dd>
-<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Array to store the cropped image in (optional), can be a view on image for
+<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Array to store the cropped image in (optional), can be a view on image for
 memory-efficiency.</p>
 </dd>
 <dt><strong>pad</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=0/zero-pad</span></dt><dd><p>Padding strategy to use when padding is required, if int, pad with that value.</p>
@@ -469,7 +473,7 @@ memory-efficiency.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>The image (stack) cropped in the last N dimensions by offsets to the shape
+<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>The image (stack) cropped in the last N dimensions by offsets to the shape
 target_shape, or if target_shape is not given image.shape[i+2] - 2*offset[i].</p>
 </dd>
 </dl>
@@ -491,7 +495,7 @@ inconsistent.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html#numpy.pad" title="(in NumPy v2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.pad</span></code></a></dt><dd><p>For additional information refer to numpy.pad function.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html#numpy.pad" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.pad</span></code></a></dt><dd><p>For additional information refer to numpy.pad function.</p>
 </dd>
 </dl>
 </div>
@@ -501,7 +505,7 @@ inconsistent.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.filter_blank_slices_thick">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L297-L311"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L298-L312"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
 <dd><p>Function to filter blank slices from the volume using the label volume
 :param dict data_dict: dictionary containing all volumes need to be filtered
 :return:</p>
@@ -509,19 +513,19 @@ inconsistent.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.map_label2subseg">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cereb_subseg'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L314-L323"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_label2subseg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cereb_subseg'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L315-L324"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_label2subseg" title="Link to this definition">¶</a></dt>
 <dd><p>Function to perform look-up table mapping from label space to subseg space</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.map_size">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L101-L132"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L102-L133"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_size" title="Link to this definition">¶</a></dt>
 <dd><p>Resize the image to base_shape.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.read_lta">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">read_lta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L356-L423"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.read_lta" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">read_lta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L357-L425"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.read_lta" title="Link to this definition">¶</a></dt>
 <dd><p>Read the LTA info.</p>
 </dd></dl>
 

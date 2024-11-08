@@ -3,11 +3,11 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="FastSurferCNN: run_model.py" href="fastsurfercnn.run_model.html" /><link rel="prev" title="FastSurfer Utilities" href="util.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="FastSurferCNN: run_model.py" href="fastsurfercnn.run_model.html" /><link rel="prev" title="FastSurferCNN: download_checkpoints.py" href="fastsurfercnn.download_checkpoints.html" />
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>FastSurferCNN: generate_hdf5.py - FastSurfer</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -203,13 +203,15 @@
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of User Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/CONTRIBUTING.html">Contributing to FastSurfer</a></li>
@@ -217,6 +219,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Advanced scripts</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -228,6 +231,7 @@
 </ul>
 </li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of FastSurfer Utilities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -387,80 +391,6 @@
         <article role="main" id="furo-main-content">
           <section id="fastsurfercnn-generate-hdf5-py">
 <h1>FastSurferCNN: generate_hdf5.py<a class="headerlink" href="#fastsurfercnn-generate-hdf5-py" title="Link to this heading">¶</a></h1>
-<p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in <strong>requirements.txt</strong>. The main script is called <strong>run_prediction.py</strong> within which certain options can be selected and set via the command line:</p>
-<section id="general">
-<h2>General<a class="headerlink" href="#general" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--csv_file</span></code>: Path to csv-file listing input volume directories</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: name of the T1-weighted MRI_volume (like mri_volume.mgz, <strong>default: orig.mgz</strong>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and the result is saved under the given name, <strong>default: orig.mgz</strong>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t</span></code>: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*…)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Path to output directory (where should predictions be saved). Will be created if it does not already exist.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved in the same directory as the predictions.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--strip</span></code>: strip suffix from path definition of input file to yield correct subject name. (Optional, if full path is defined for <code class="docutils literal notranslate"><span class="pre">--t1</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--lut</span></code>: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg</span></code>: Name of intermediate DL-based segmentation file (similar to aparc+aseg).</p></li>
-</ul>
-</section>
-<section id="checkpoints-and-configs">
-<h2>Checkpoints and configs<a class="headerlink" href="#checkpoints-and-configs" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_sag</span></code>: path to sagittal network checkpoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_cor</span></code>: path to coronal network checkpoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_ax</span></code>: path to axial network checkpoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_cor</span></code>: Path to the coronal config file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_sag</span></code>: Path to the axial config file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_ax</span></code>: Path to the sagittal config file</p></li>
-</ul>
-</section>
-<section id="optional-commands">
-<h2>Optional commands<a class="headerlink" href="#optional-commands" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--clean</span></code>: clean up segmentation after running it (optional)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;str&gt;</span></code>:Device for processing (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>), where cuda means Nvidia GPU; you can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;str&gt;</span></code>: Define where the view aggregation should be run on.
-Can be <em>auto</em> or a device (see –device).
-By default (<em>auto</em>), the program checks if you have enough memory to run the view aggregation on the gpu.
-The total memory is considered for this decision.
-If this fails, or you actively overwrote the check with setting <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">cpu</span></code>, view agg is run on the cpu.
-Equivalently, if you define <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">gpu</span></code>, view agg will be run on the gpu (no memory check will be done).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>: Batch size for inference. Default=1</p></li>
-</ul>
-</section>
-<section id="example-command-evaluation-single-subject">
-<h2>Example Command: Evaluation Single Subject<a class="headerlink" href="#example-command-evaluation-single-subject" title="Link to this heading">¶</a></h2>
-<p>To run the network on MRI-volumes of subjectX in ./data (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g. ./data/subjectX/t1-weighted.nii.gz), change into the <em>FastSurferCNN</em> directory and run the following commands:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">t1</span> <span class="o">../</span><span class="n">data</span><span class="o">/</span><span class="n">subjectX</span><span class="o">/</span><span class="n">t1</span><span class="o">-</span><span class="n">weighted</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-<span class="o">--</span><span class="n">sd</span> <span class="o">../</span><span class="n">output</span> \
-<span class="o">--</span><span class="n">t</span> <span class="n">subjectX</span> \
-<span class="o">--</span><span class="n">seg_log</span> <span class="o">../</span><span class="n">output</span><span class="o">/</span><span class="n">temp_Competitive</span><span class="o">.</span><span class="n">log</span> \
-</pre></div>
-</div>
-<p>The output will be stored in:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
-</ul>
-<p>Here the logfile “temp_Competitive.log” will include the logfiles of all subjects. If left out, the logs will be written to stdout</p>
-</section>
-<section id="example-command-evaluation-whole-directory">
-<h2>Example Command: Evaluation whole directory<a class="headerlink" href="#example-command-evaluation-whole-directory" title="Link to this heading">¶</a></h2>
-<p>To run the network on all subjects MRI-volumes in ./data, change into the <em>FastSurferCNN</em> directory and run the following command:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">in_dir</span> <span class="o">../</span><span class="n">data</span> \
-<span class="o">--</span><span class="n">sd</span> <span class="o">../</span><span class="n">output</span> \
-<span class="o">--</span><span class="n">seg_log</span> <span class="o">../</span><span class="n">output</span><span class="o">/</span><span class="n">temp_Competitive</span><span class="o">.</span><span class="n">log</span> \
-</pre></div>
-</div>
-<p>The output will be stored in:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
-<li><p>and the log in <code class="docutils literal notranslate"><span class="pre">../output/temp_Competitive.log</span></code></p></li>
-</ul>
-</section>
 <section id="full-commandline-interface-of-fastsurfercnn-generate-hdf5-py">
 <h2>Full commandline interface of FastSurferCNN/generate_hdf5.py<a class="headerlink" href="#full-commandline-interface-of-fastsurfercnn-generate-hdf5-py" title="Link to this heading">¶</a></h2>
 <p><p>HDF5-Creation</p>
@@ -582,14 +512,14 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="util.html">
+          <a class="prev-page" href="fastsurfercnn.download_checkpoints.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">FastSurfer Utilities</div>
+                <div class="title">FastSurferCNN: download_checkpoints.py</div>
                 
               </div>
             </a>
@@ -630,11 +560,6 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">FastSurferCNN: generate_hdf5.py</a><ul>
-<li><a class="reference internal" href="#general">General</a></li>
-<li><a class="reference internal" href="#checkpoints-and-configs">Checkpoints and configs</a></li>
-<li><a class="reference internal" href="#optional-commands">Optional commands</a></li>
-<li><a class="reference internal" href="#example-command-evaluation-single-subject">Example Command: Evaluation Single Subject</a></li>
-<li><a class="reference internal" href="#example-command-evaluation-whole-directory">Example Command: Evaluation whole directory</a></li>
 <li><a class="reference internal" href="#full-commandline-interface-of-fastsurfercnn-generate-hdf5-py">Full commandline interface of FastSurferCNN/generate_hdf5.py</a><ul>
 <li><a class="reference internal" href="#FastSurferCNN.generate_hdf5-make_parser-named-arguments">Named Arguments</a></li>
 </ul>
