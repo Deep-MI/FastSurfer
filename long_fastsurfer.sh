@@ -59,6 +59,7 @@ tpids=()
 t1s=()
 parallel=0
 log=""
+brun_flags=()
 python="python3.10 -s" # avoid user-directory package inclusion
 
 
@@ -174,6 +175,7 @@ case $key in
     echo "  pipeline run is a valid longitudinal run!"
     exit 1
     ;;
+  --debug) brun_flags+=("$key") ;;
   *)    # unknown option
     POSITIONAL_FASTSURFER[i]=$key
     i=$((i + 1))
@@ -235,29 +237,32 @@ if [[ -z "$LF" ]]
 then
   LF="$sd/$tid/scripts/long_fastsurfer.log"
 fi
+function log () { echo "$1" | tee -a "$LF" ; }
 
 
 ################################### Prepare Base ##################################
 
-echo "Base Setup $tid"
+log "Base Setup $tid"
 cmda=("$reconsurfdir/long_prepare_template.sh"
      --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
      --py "$python"
      "${POSITIONAL_FASTSURFER[@]}")
+# run_it will exit the bash script if the command fails (with exit code 1)
 run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Seg ##################################
 
-echo "Base Seg $tid"
+log "Base Segmentation $tid"
 cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
         --sid "$tid" --sd "$sd" --base
         --seg_only --py "$python"
         "${POSITIONAL_FASTSURFER[@]}")
+# run_it will exit the bash script if the command fails (with exit code 1)
 run_it "$LF" "${cmda[@]}"
 
 ################################### Run Base Surf #################################
 
-echo "Base Surf $tid"
+log "Base Surface reconstruction $tid"
 cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
         --sid "$tid" --sd "$sd"
         --surf_only --base --py "$python"
@@ -271,8 +276,9 @@ if [[ "$parallel" == "1" ]] ; then
   } > "$base_surf_cmdf_log"
   echo "#/bin/bash" > "$base_surf_cmdf"
   run_it_cmdf "$LF" "$base_surf_cmdf" "${cmda[@]}"
-  bash "$base_surf_cmdf" 2>&1 >> "$base_surf_cmdf_log" &
+  bash "$base_surf_cmdf" >> "$base_surf_cmdf_log" 2>&1 &
   base_surf_pid=$!
+  # shellcheck disable=SC2064
   trap "if [[ -n \"\$(ps --no-headers $base_surf_pid)\" ]] ; then kill $base_surf_pid ; fi" EXIT
 else
   run_it "$LF" "${cmda[@]}"
@@ -280,24 +286,13 @@ fi
 
 ################################### Run Long Seg ##################################
 
-# This can run in parallel with base seg and surf steps above
-for ((i=0;i<${#tpids[@]};++i)); do
-  echo "Long Seg: ${tpids[i]} with T1 ${t1s[i]}"
-  cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid ${tpids[i]} --sd $sd \
-        --seg_only --long $tid \
-        ${POSITIONAL_FASTSURFER[*]}"
-  RunIt "$cmd" "$LF"
-done
-
 # skip this for now as brun does not even have the --long flag yet
-if false ; then
 time_points=()
 for ((i=0;i<${#tpids[@]};++i)); do
   time_points+=("${tpids[$i]}=from-base")
 done
 cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --seg_only --long "$tid"
-      "${POSITIONAL_FASTSURFER[@]}")
+      "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
 
 if [[ "$parallel" == "1" ]] ; then
   long_seg_cmdf="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf"
@@ -312,68 +307,53 @@ if [[ "$parallel" == "1" ]] ; then
   # Surfaces in different jobs. Alternative, add a command to "$long_seg_cmdf" that releases the gpu or
   # triggers the next "subject"
   #TQDM_DISABLE=1
-  bash "$long_seg_cmdf" 2>&1 >> "$long_seg_cmdf_log" &
+  bash "$long_seg_cmdf" >> "$long_seg_cmdf_log" 2>&1 &
   long_seg_pid=$!
+  # shellcheck disable=SC2064
   trap "if [[ -n \"\$(ps --no-headers $long_seg_pid)\" ]] ; then kill $long_seg_pid ; fi" EXIT
 else
   run_it "$LF" "${cmda[@]}"
 fi
-fi # comment block
 
 ################################### Run Long Surf #################################
 
-for ((i=0;i<${#tpids[@]};++i)); do
-  echo "Long Surf: ${tpids[i]} with T1 ${t1s[i]}"
-  cmd="$FASTSURFER_HOME/run_fastsurfer.sh \
-        --sid ${tpids[i]} --sd $sd \
-        --surf_only --long $tid \
-        ${POSITIONAL_FASTSURFER[*]}"
-  RunIt "$cmd" "$LF"
-done
-
-# skip this for now as brun does not even have the --long flag yet
-if false ; then
 cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --surf_only --long "$tid"
-      "${POSITIONAL_FASTSURFER[@]}")
+      "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
 if [[ "$parallel" == "1" ]] ; then
   cmda+=("--parallel_subjects")
 
+  # Append the base surface and longitudinal segmentation logs, exit if either failed
   what_failed=()
-  wait $base_surf_pid
+  wait "$base_surf_pid"
   success1=$?
-  {
-    echo "Base Surface pipeline Log:"
-    echo "======================================="
-    cat "$base_surf_cmdf_log"
-    if [ "$success1" -ne 0 ] ; then
-      echo "Base Surface pipeline terminated with error: $success1"
-      what_failed+=("Base Surface Pipeline")
-    else
-      echo "Base Surface pipeline finished successful!"
-      rm "$base_surf_cmdf_log" # the content of this file is transferred to LF
-    fi
-    echo "======================================="
-  } | tee -a "$LF"
-  wait $long_seg_pid
+  log "Base Surface pipeline Log:"
+  log "======================================="
+  tee -a "$LF" < "$base_surf_cmdf_log"
+  if [ "$success1" -ne 0 ] ; then
+    log "Base Surface pipeline terminated with error: $success1"
+    what_failed+=("Base Surface Pipeline")
+  else
+    log "Base Surface pipeline finished successful!"
+    rm "$base_surf_cmdf_log" # the content of this file is transferred to LF
+  fi
+  log "======================================="
+  wait "$long_seg_pid"
   success2=$?
-  {
-    echo "Longitudinal Segmentation pipeline Log:"
-    echo "======================================="
-    cat "$long_seg_cmdf_log"
-    if [ "$success2" -ne 0 ] ; then
-      echo "Longitudinal Segmentation pipeline terminated with error: $success2"
-      what_failed+=("Longitudinal Segmentation Pipeline")
-    else
-      echo "Longitudinal Segmentation pipeline finished successful!"
-      rm "$long_seg_cmdf_log" # the content of this file is transferred to LF
-    fi
-    echo "======================================="
+  log "Longitudinal Segmentation pipeline Log:"
+  log "======================================="
+  tee -a "$LF" < "$long_seg_cmdf_log"
+  if [ "$success2" -ne 0 ] ; then
+    log "Longitudinal Segmentation pipeline terminated with error: $success2"
+    what_failed+=("Longitudinal Segmentation Pipeline")
+  else
+    log "Longitudinal Segmentation pipeline finished successful!"
+    rm "$long_seg_cmdf_log" # the content of this file is transferred to LF
+  fi
+  log "======================================="
   if [[ "$success1" -ne 0 ]] || [[ "$success2" -ne 0 ]] ; then
-    echo "Terminating because ${what_failed[*]} failed!"
+    log "Terminating because ${what_failed[*]} failed!"
     exit 1
   fi
-  } | tee -a "$LF"
 fi
 run_it "$LF" "${cmda[@]}"
-fi # comment block
 

@@ -158,7 +158,8 @@ i=0
 while [[ $# -gt 0 ]]
 do
 # make key lowercase
-key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+arg="$1"
+key=$(echo "$arg" | tr '[:upper:]' '[:lower:]')
 
 shift # past argument
 case $key in
@@ -194,8 +195,8 @@ case $key in
     esac
     shift # past value
     ;;
-  *)    # unknown option get ignored
-    POSITIONAL_FASTSURFER[i]=$key
+  *)    # unknown options get forwarded to run_fastsurfer (or ignored)
+    POSITIONAL_FASTSURFER[i]="$arg"
     i=$((i + 1))
     ;;
   #*)    # unknown option
@@ -273,14 +274,17 @@ fi
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
 echo "Version: $VERSION" | tee -a "$LF"
 echo "Log file for long_prepare_template" >> "$LF"
-{ date 2>&1 ; echo "" ; } | tee -a "$LF"
-echo "" | tee -a "$LF"
-echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a "$LF"
-echo "cd `pwd`" | tee -a "$LF"
-echo "$0 ${inputargs[*]}" | tee -a $LF
-echo "" | tee -a "$LF"
-cat "$FREESURFER_HOME/build-stamp.txt" 2>&1 | tee -a "$LF"
-uname -a  2>&1 | tee -a "$LF"
+{
+  date 2>&1
+  echo ""
+  echo ""
+  echo "export SUBJECTS_DIR=$SUBJECTS_DIR"
+  echo "cd `pwd`"
+  echo "$0 ${inputargs[*]}"
+  echo ""
+  cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
+  uname -a  2>&1
+} | tee -a "$LF"
 
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
@@ -343,11 +347,11 @@ for ((i=0;i<${#tpids[@]};++i)); do
   #printf "%s with T1 %s\n" "${tpids[i]}" "${t1s[i]}"
   echo "${tpids[i]} with T1 ${t1s[i]}" | tee -a "$LF"
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
-  mkdir -p $mdir
+  mkdir -p "$mdir"
   # Import (copy) raw inputs (convert to extension format)
   t1input=$mdir/cross_input${extension}
   cmd="mri_convert ${t1s[i]} $t1input"
-  RunIt "$cmd" $LF
+  RunIt "$cmd" "$LF"
   
   # conform !!!!!!! should we conform to some common value, determined from all time points?? !!!!!!
   # this is relevant if input resolutions differe (which they should not), currently conform min may not work as expected
@@ -364,7 +368,8 @@ for ((i=0;i<${#tpids[@]};++i)); do
   mask_name="$mdir/cross_mask${extension}"
   aseg_segfile="$mdir/cross_aseg.auto_noCCseg${extension}"
   seg_log="/dev/null"
-  cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1input"
+  cmd=($python "$fastsurfercnndir/run_prediction.py"
+         "${POSITIONAL_FASTSURFER[@]}" --t1 "$t1input"
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "${tpids[i]}"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
