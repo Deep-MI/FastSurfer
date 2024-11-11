@@ -809,6 +809,7 @@ for hemi in lh rh ; do
 
   # In Long stream we skip topo fix
   if [ "$long" == "0" ] ; then
+    # longitudinal base and cross-sectional
 
     {
       echo "echo \"\""
@@ -829,7 +830,8 @@ for hemi in lh rh ; do
     cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
-  else # longitudinal
+  else # longitudinal stream
+    # ... we skip topo fix
 
     # in long we don't use orig.premesh (so switch off remesh for autodetgwstat)
     cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -no-remesh -no-isrunning $hiresflag $fsthreads"
