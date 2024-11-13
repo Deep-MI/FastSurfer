@@ -497,10 +497,10 @@ if [[ -z "$(which "${python/ */}")" ]]; then
   exit 1
 fi
 
-version_args=()
+version_cache_args=()
 if [[ -f "$FASTSURFER_HOME/BUILD.info" ]]
 then
-  version_args=(--build_cache "$FASTSURFER_HOME/BUILD.info" --prefer_cache)
+  version_cache_args=(--build_cache "$FASTSURFER_HOME/BUILD.info" --prefer_cache)
 fi
 
 if [[ -n "$version_and_quit" ]]
@@ -508,9 +508,9 @@ then
   # if version_and_quit is 1, it should only print the version number+git branch
   if [[ "$version_and_quit" != "1" ]]
   then
-    version_args=("${version_args[@]}" --sections "$version_and_quit")
+    version_cache_args=("${version_cache_args[@]}" --sections "$version_and_quit")
   fi
-  $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}"
+  $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}"
   exit
 fi
 
@@ -747,15 +747,16 @@ if [[ -f "$seg_log" ]]; then log_existed="true"
 else log_existed="false"
 fi
 
-VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
+VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}")
 echo "Version: $VERSION" | tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" ; }" SIGINT SIGTERM
 
 # create the build log, file with all version info in parallel
+# uses ${version_cache_args}, which is filled exactly if a build_cache file exists
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
-$python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" --prefer_cache &
+$python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}" &
 
 if [[ "$run_seg_pipeline" != "1" ]]
 then
