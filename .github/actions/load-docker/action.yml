@@ -1,0 +1,36 @@
+name: 'Load a docker image'
+description: 'Load a docker image from an artifact'
+
+inputs:
+  docker-image:
+    type: string
+    description: "The fastsurfer image to use (default: use cached image from prior build-docker build)"
+    default: 'build-cached'
+  target:
+    type: string
+    default: 'runtime'
+outputs:
+  image-name:
+    description: 'the name of the image that was imported'
+    value: ${{ steps.load.outputs.IMAGE_NAME }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore docker image from an artifact
+      if: inputs.docker-image == 'build-cached'
+      uses: actions/download-artifact@v4
+      with:
+        name: fastsurfer-${{ github.sha }}-${{ inputs.target }}
+        path: /tmp
+    - name: Load cached docker image and save IMAGE_NAME in environment
+      id: load
+      shell: bash
+      run: |
+        if [[ "${{ inputs.docker-image }}" == "build-cached" ]] ; then
+          cat /tmp/image_name.env >> $GITHUB_OUTPUT
+          docker load -i /tmp/docker-image.tar
+          rm /tmp/docker-image.tar
+        else
+          echo "IMAGE_NAME=${{ inputs.docker-image }}" >> $GITHUB_OUTPUT
+        fi

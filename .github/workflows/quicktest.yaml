@@ -1,4 +1,4 @@
-name: quicktest
+name: MAN quicktest
 
 # File: quicktest.yaml
 # Author: Taha Abdullah
@@ -7,70 +7,166 @@ name: quicktest
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
 # Usage: This workflow is triggered on a pull request to the dev and main branch. It can also be triggered manually
 #  with workflow-dispatch.
-# Expected/Used Environment Variables:
-#  - MAMBAPATH: Path to the micromamba binary.
-#  - MAMBAROOT: Root path for micromamba.
-#  - RUNNER_FS_OUTPUT: Path to the directory where FastSurfer output is stored.
-#  - RUNNER_FS_MRI_DATA: Path to the directory where MRI data is stored.
-#  - FREESURFER_HOME: Path to the freesurfer directory.
-#  - FS_LICENSE: Path to the FreeSurfer license file.
+# Expected Secrets:
+#  - IMAGE_HREF_08mm: URL to a sample 0.8mm image
+#  - IMAGE_HREF_1mm: URL to a sample 1mm image
+#  - CASE_HREF_08mm: URL to the reference processing of the sample 0.8mm image
+#  - CASE_HREF_1mm: URL to the reference processing of the sample 1mm image
+#  - LICENSE: content of a FreeSurfer license file
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
 
 on:
-#  pull_request:
-#    branches:
-#      - dev
-#      - stable
+  pull_request:
+    types: [labeled, unlabeled]
   workflow_dispatch:
+    inputs:
+      docker-image:
+        name: 'Docker image to run with'
+        description: 'Which docker image should be used to run this test (build-cached => build from git)'
+        default: build-cached
+        type: string
+
+env:
+  SUBJECTS_DIR: /tmp/subjects
+  REFERENCE_DIR: /tmp/reference
 
 jobs:
-  run-quicktest:
-    runs-on: self-hosted
+  parse-action:
+    name: 'Check whether the quicktest should run'
+    runs-on: ubuntu-latest
+    outputs:
+      continue: ${{ steps.parse.CONTINUE }}
+      docker-image: ${{ steps.parse.DOCKER_IMAGE }}
+      extra-args: ${{ steps.parse.EXTRA_ARGS }}
     steps:
-    # Checkout fastsurfer
-    - uses: actions/checkout@v2
-    # Check if the Environment Variables used in further steps are present
-    - name: Check Environment Variables
-      run: |
-        REQUIRED_ENV_VARS=(
-          "MAMBAPATH"
-          "MAMBAROOT"
-          "RUNNER_FS_OUTPUT"
-          "RUNNER_FS_MRI_DATA"
-          "FREESURFER_HOME"
-          "FS_LICENSE"
-        )
-        
-        for VAR_NAME in "${REQUIRED_ENV_VARS[@]}"; do
-          if [ -z "${!VAR_NAME}" ]; then
-            echo "Error: Required environment variable $VAR_NAME is not set"
+      - name: 'Check whether the tests should run'
+        id: parse
+        shell: bash
+        run: |
+          h1="Accept: application/vnd.github+json"
+          h2="X-GitHub-Api-Version: 2022-11-28"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]
+          then
+            if [[ "${{ github.event.action }}" == "labeled" ]] || [[ "${{ github.event.action }}" == "unlabeled" ]]
+            then
+              # not a label-related action, should not be triggered
+              echo "The Workflow '${{ github.workflow }}' was triggered by 'pull_request' of type"
+              echo "  '${{ github.event.action }}' but should only be triggered by 'labeled' or 'unlabeled' actions."
+              exit 1
+            elif [[ "${{ github.event.label.name }}" == "quicktest" ]]
+            then
+              echo "CONTINUE=true" > $GITHUB_OUTPUT
+            else
+              echo "This is a different label that was attached."
+              echo "CONTINUE=false" > $GITHUB_OUTPUT
+            fi
+            echo "DOCKER_IMAGE=build-cached" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
+          then
+            {
+              echo "CONTINUE=true"
+              if [[ "${{ inputs }}" == "{}" ]] || "${{ inputs.docker-image }}" == "" ]] ; then
+                echo "DOCKER_IMAGE=build-cached"
+              else
+                echo "DOCKER_IMAGE=${{ inputs.docker-image }}"
+              fi
+            } > $GITHUB_OUTPUT
+          else #  this event has no specific rules
+            echo "This workflow is not defind for the event ${{ github.event_name }}!"
             exit 1
           fi
-        done
-        
-        if [ ! -f "$FS_LICENSE" ]; then
-          echo "Error: FreeSurfer license file does not exist at $FS_LICENSE"
-          exit 1
-        fi
-        
-        if [ ! -d "$FREESURFER_HOME" ]; then
-          echo "Error: FreeSurfer installation directory does not exist at $FREESURFER_HOME"
-          exit 1
-        fi
-    # Run FastSurfer on test subjects
-    - name: Run FastSurfer
-      run: |
-        echo "Running FastSurfer..."
-        echo "Output will be saved in data/${GITHUB_SHA:0:7}"
-        export FASTSURFER_HOME=$(pwd)
-        export THIS_RUN_OUTDIR=${GITHUB_SHA:0:7}
-        mkdir -p $SUBJECTS_DIR/$THIS_RUN_OUTDIR
-        export TEST_DIR=$THIS_RUN_OUTDIR
-        export TQDM_DISABLE=1
-        ./brun_fastsurfer.sh --subject_list $RUNNER_FS_MRI_DATA/subjects_list.txt \
-                             --sd $SUBJECTS_DIR/$THIS_RUN_OUTDIR \
-                             --parallel --threads 4 --3T --parallel_subjects surf
-    # run pytest checks for data consistency/quality
-    - name: Run pytest
-      run: |
-        source /venv-pytest/bin/activate
-        python -m pytest test/quick_test
+          if ! gh api -H "$h1" -H "$h2" /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}
+          then
+            echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
+            echo "CONTINUE=false" > $GITHUB_OUTPUT
+            exit 1
+          fi
+          # later, we might want to extract additional run options from the pr text or issue comments
+          # these should just be added here 
+          # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}
+          # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}/comments
+          # this may also need adaptations in the test script at the bottom
+          echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
+  build-docker-latest:
+    name: 'Build the current docker image'
+    needs: parse-action
+    runs-on: ubuntu-latest
+    if: ${{ jobs.parse-action.outputs.continue == 'true' }}
+    timeout-minutes: 180
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: ./.github/actions/build-docker@dev
+        # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})
+        with:
+          fastsurfer-home: .
+          # currently, this image has to be updated and used to circumvent storage limitations in github actions
+          # and it is also faster to use this prebuilt, reduced-size freesurfer distribution
+          freesurfer-build-image: dkuegler/fastsurfer:fs741-build-image
+  run-1mm:
+    name: 'Run FastSurfer on the 1mm sample image'
+    needs: build-docker-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+      - name: Run FastSurfer with the previously created docker container
+        uses: ./.github/actions/run-fastsurfer@dev
+        with:
+          subject-id: 1.0mm
+          file-extension: ".mgz"
+          image-href: ${{ secrets.IMAGE_HREF_1mm }}
+          license: ${{ secrets.LICENSE }}
+          docker-image: ${{ jobs.parse-action.outputs.docker-image }}
+          extra-args: ${{ jobs.parse-action.outputs.extra-args }}
+  run-08mm:
+    name: Run FastSurfer on the 0.8mm sample image
+    needs: build-docker-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+      - name: Run FastSurfer with the previously created docker container
+        uses: ./.github/actions/run-fastsurfer@dev
+        with:
+          subject-id: 0.8mm
+          file-extension: ".nii.gz"
+          image-href: ${{ secrets.IMAGE_HREF_08mm }}
+          license: ${{ secrets.LICENSE }}
+          docker-image: ${{ jobs.parse-action.outputs.docker-image }}
+          extra-args: ${{ jobs.parse-action.outputs.extra-args }}
+  run-tests-1mm:
+    name: Download data and perform tests (1.0mm)
+    needs: run-1mm
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests for the 1.0mm dataset
+        uses: ./.github/actions/run-tests@dev
+        with:
+          subject-id: "1.0mm"
+          subjects-dir: ${{ env.SUBJECTS_DIR }}
+          reference-dir: ${{ env.REFERENCE_DIR }}
+          case-href: ${{ secrets.CASE_HREF_1mm }}
+  run-tests-08mm:
+    name: Download data and perform tests (0.8mm)
+    needs: run-08mm
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests for the 0.8mm dataset
+        uses: ./.github/actions/run-tests@dev
+        with:
+          subject-id: "0.8mm"
+          subjects-dir: ${{ env.SUBJECTS_DIR }}
+          reference-dir: ${{ env.REFERENCE_DIR }}
+          case-href: ${{ secrets.CASE_HREF_08mm }}

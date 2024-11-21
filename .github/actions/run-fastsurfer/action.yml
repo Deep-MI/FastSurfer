@@ -1,0 +1,93 @@
+# This workflow file is a reusable workflow that will process a single T1 image with docker.
+# The docker image can be built by workflow build-docker or on dockerhub (input image).
+# The image will be downloaded
+# The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
+
+name: 'Run Fastsurfer'
+description: 'Runs FastSurfer'
+
+inputs:
+  docker-image:
+    type: string
+    description: "The fastsurfer image to use (default: use cached image from prior build-docker build)"
+    default: "build-cached"
+  subject-id:
+    type: string
+    description: "The name of the case folder"
+    required: true
+  file-extension:
+    type: string
+    description: "The file extension of the image file to use (default: .nii.gz)."
+    # Should start with "."
+    default: ".nii.gz"
+  extra-args:
+    type: string
+    description: "Extra FastSurfer arguments"
+    default: ""
+  image-href:
+    required: true
+    description: "The url to the file to download for processing"
+  license:
+    required: true
+    description: "The FreeSurfer license"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Load the docker image
+      id: load-docker
+      uses: ./.github/actions/load-docker
+      with:
+        docker-image: ${{ inputs.docker-image }}
+    - name: Set up FreeSurfer License and download T1 image
+      shell: bash
+      env:
+        IMAGE_HREF: ${{ inputs.image-href }}
+        EXTRA_ARGS: ${{ inputs.extra-args }}
+      run: |
+        echo "::group::Check arguments and prepare directories"
+        DATA_DIR=$(dirname $(pwd))/data
+        echo "DATA_DIR=$DATA_DIR" >> $GITHUB_ENV  # DATA_DIR is used in the next 2 steps as well
+        mkdir -p $DATA_DIR
+        echo "${{ inputs.license }}" > $DATA_DIR/.fs_license
+        curl -k "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
+        if [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--threads/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--parallel/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--fs_license/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sd/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sid/}" ]] ; then
+          echo "--threads, --parallel, --fs_license, --sid, --sd are not allowed in extra-args!"
+          exit 1
+        elif [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--surf_only/}" ]] && [[ ! -d "$DATA_DIR/${{ inputs.subject-id }}/mri" ]] ; then
+          echo "Could not find subject folder for ${{ inputs.subject-id }}!"
+          exit 1
+        fi
+        echo "::endgroup::"
+    - name: FastSurfer Segmentation pipeline
+      shell: bash
+      if: ${{ ! contains( inputs.extra-args, '--surf_only' ) }}
+      env:
+        IMAGE_NAME: ${{ steps.load-docker.outputs.image-name }}
+      run: |
+        echo "::group::FastSurfer Segmentation"
+        docker run --rm -t -v "$DATA_DIR:/data" -u $(id -u):$(id -g) --env TQDM_DISABLE=1 "$IMAGE_NAME" \
+          --fs_license /data/.fs_license --t1 /data/T1${{ inputs.file-extension }} --sid "${{ inputs.subject-id }}" \
+          --sd /data --threads $(nproc) --seg_only ${{ inputs.extra-args }}
+        echo "::endgroup::"
+    - name: FastSurfer Surface pipeline
+      shell: bash
+      if: ${{ ! contains( inputs.extra-args, '--seg_only' ) }}
+      env:
+        IMAGE_NAME: ${{ steps.load-docker.outputs.image-name }}
+      run: |
+        echo "::group::FastSurfer Surface reconstruction"
+        docker run --rm -t -v "$DATA_DIR:/data" -u $(id -u):$(id -g) --env TQDM_DISABLE=1 "$IMAGE_NAME" \
+          --fs_license /data/.fs_license --t1 /data/T1${{ inputs.file-extension }} --sid "${{ inputs.subject-id }}" \
+          --sd /data --parallel --threads 1 --surf_only ${{ inputs.extra-args }}
+        echo "::endgroup::"
+    - name: Create archive of Processed subject-data
+      shell: bash
+      run: |
+        echo "::group::Save ${{ inputs.subject-id }} as artifact"
+        tar cfz "$DATA_DIR/${{ inputs.subject-id }}.tar.gz" -C "$DATA_DIR" "${{ inputs.subject-id }}"
+    - name: Save processed data
+      uses: actions/upload-artifact@v4
+      with:
+        name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
+        path: ${{ env.DATA_DIR }}/${{ inputs.subject-id }}.tar.gz

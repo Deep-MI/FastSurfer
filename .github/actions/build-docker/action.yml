@@ -1,0 +1,67 @@
+# This workflow file is a reusable workflow that will create a docker container from the currently
+# selected branch and crates a docker image in an artifact (fastsurfer-<github-sha>-docker)
+# The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
+
+name: 'Build a FastSurfer docker image'
+description: 'Build a FastSurfer image'
+
+inputs:
+  fastsurfer-home:
+    description: "Path to the FastSurfer checkout directory"
+    default: "."
+    type: string
+  tag:
+    description: "Name to tag the resulting image"
+    default: "auto"
+    type: string
+  freesurfer-build-image:
+    description: "Name of the freesurfer build image"
+    default: "rebuild"
+    type: string
+  target:
+    description: "Name of the target"
+    default: "runtime"
+    type: string
+outputs:
+  image-name:
+    description: "Name of the image in docker"
+    value: ${{ steps.build.outputs.IMAGE_NAME }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Recover freesurfer build image
+      if: ${{ startsWith( inputs.freesurfer-build-image, 'fastsurfer:') }}
+      uses: ./.github/actions/load-docker
+      with:
+        docker-image: ${{ inputs.freesurfer-build-image }}
+        target: build_freesurfer
+    - name: Build FastSurfer Image
+      id: build
+      shell: bash
+      env:
+        FASTSURFER_HOME: ${{ inputs.fastsurfer-home }}
+      run: |
+        echo "::group::Build FastSurfer Image"
+        if [[ "${{ inputs.tag }}" != "auto" ]] ; then image_name="${{ inputs.tag }}" 
+        else v="$(bash $FASTSURFER_HOME/run_fastsurfer.sh --version)" ; image_name="fastsurfer:cpu-${v/+/_}" 
+        fi
+        cmd="python $FASTSURFER_HOME/Docker/build.py --device cpu --tag $image_name --target ${{ inputs.target }}"
+        if [[ "${{ inputs.freesurfer-build-image }}" != "rebuild" ]] ; then 
+          cmd="$cmd --freesurfer_build_image ${{ inputs.freesurfer-build-image }}"
+        fi
+        $cmd
+        echo "::endgroup::"
+        echo "::group::Save image as artifact"
+        echo "IMAGE_NAME=$image_name" | tee /tmp/image_name.env >> $GITHUB_OUTPUT
+        # Export image
+        docker save $image_name -o /tmp/docker-image.tar
+    - name: Save docker image
+      uses: actions/upload-artifact@v4
+      with:
+        name: fastsurfer-${{ github.sha }}-${{ inputs.target }}
+        path: |
+          /tmp/docker-image.tar
+          /tmp/image_name.env

@@ -1,0 +1,70 @@
+# This workflow file is a reusable workflow that will process a single T1 image with docker.
+# The docker image can be built by workflow build-docker or on dockerhub (input image).
+# The image will be downloaded
+# The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
+
+name: 'Run Fastsurfer'
+description: 'Runs FastSurfer'
+
+inputs:
+  subject-id:
+    type: string
+    description: "The name of the case folder"
+    required: true
+  subjects-dir:
+    type: string
+    description: "Path to the subjects-dir"
+    default: "/tmp/subjects"
+  reference-dir:
+    type: string
+    description: "Path to the reference-dir"
+    default: "/tmp/reference"
+  case-href:
+    required: true
+    type: string
+    description: "The url to the reference file to download for comparison"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        architecture: 'x64'
+        cache: 'pip' # caching pip dependencies
+    - name: Install dependencies
+      shell: bash
+      run: |
+        echo "::group::Create python environment"
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off .[quicktest]
+        echo "::endgroup::"
+    - name: Download reference data
+      shell: bash
+      env:
+        CASE_HREF: ${{ inputs.case-href }}
+        REF_DIR: ${{ inputs.reference-dir }}
+      run: |
+        echo "::group::Prepare processed and reference data"
+        mkdir -p $REF_DIR
+        echo "REF_DIR=$REF_DIR" >> $GITHUB_ENV
+        curl -k "$CASE_HREF" | tar xf --directory "$REF_DIR"
+    - name: Recover Case data
+      uses: ./.github/actions/load-processed
+      with:
+        subject-id: ${{ inputs.subject-id }}
+        subjects-dir: ${{ inputs.subjects-dir }}
+    # run pytest checks for data consistency/quality
+    - name: Run pytest
+      env:
+        PYTHON_PATH: .
+        FASTSURFER_HOME: ${{ github.workspace }}
+        REF_DIR: ${{ inputs.reference-dir }}
+      shell: bash
+      run: |
+        echo "::endgroup::"
+        echo "::group::Run tests"
+        python -m pytest test/quick_test
+

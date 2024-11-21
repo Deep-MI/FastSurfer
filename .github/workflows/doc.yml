@@ -1,4 +1,4 @@
-name: doc
+name: AUTO doc
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
