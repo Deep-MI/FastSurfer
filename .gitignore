@@ -1,4 +1,5 @@
 /BUILD.info
+/Docker/BUILD.info
 /.idea/**
 /rough_work/**
 
@@ -6,4 +7,4 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+*/stub
