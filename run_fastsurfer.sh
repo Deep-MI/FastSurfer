@@ -737,8 +737,15 @@ if [[ -f "$seg_log" ]]; then log_existed="true"
 else log_existed="false"
 fi
 
-VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}")
-echo "Version: $VERSION" | tee -a "$seg_log"
+{
+  echo "========================================================="
+  echo "Start of the log for a new run_fastsurfer.sh invocation
+  echo "========================================================="
+  VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}")
+  echo "Version: $VERSION"
+  date 2>&1
+  echo ""
+} | tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" ; }" SIGINT SIGTERM
@@ -762,7 +769,6 @@ then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
   echo "Log file for segmentation FastSurferCNN/run_prediction.py" >> "$seg_log"
-  { date 2>&1 ; echo "" ; } | tee -a "$seg_log"
 
   if [[ "$run_asegdkt_module" == "1" ]]
   then
