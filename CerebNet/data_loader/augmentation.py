@@ -369,8 +369,8 @@ def sample_intensity_stats_from_image(
     n_classes = len(unique_classes)
     if not np.array_equal(unique_classes, np.arange(n_classes)):
         raise ValueError(
-            "classes_list should only contain values between 0 and K-1, "
-            "where K is the total number of classes. Here K = %d" % n_classes
+            f"classes_list should only contain values between 0 and K-1, "
+            f"where K is the total number of classes. Here K = {n_classes}"
         )
     if len(image.shape) == 4:
         h, w, d, n_slices = image.shape
