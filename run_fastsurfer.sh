@@ -739,12 +739,13 @@ fi
 
 {
   echo "========================================================="
-  echo "Start of the log for a new run_fastsurfer.sh invocation
+  echo "Start of the log for a new run_fastsurfer.sh invocation"
   echo "========================================================="
   VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}")
   echo "Version: $VERSION"
   date 2>&1
   echo ""
+  echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
 } | tee -a "$seg_log"
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
@@ -763,12 +764,25 @@ then
   } | tee -a "$seg_log"
 fi
 
+pushd "${sd}/${subject}" || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
+  content_of_subject_dir="$(find "." -type f)"
+popd || exit 1
+num_files_in_subject_dir="$(echo "$content_of_subject_dir" | wc -l)"
+if [[ "$num_files_in_subject_dir" -gt 1 ]] ; then
+  {
+    echo "Found $num_files_in_subject_dir in subject directory \$SUBJECTS_DIR/$subject"
+    # if [[ "$num_files_in_subject_dir" -gt 6 ]] ; then
+    #   echo "$content_of_subject_dir" | head -n 4 ; echo "..." ; echo "$content_of_subject_dir" | tail -n 2
+    # else echo "$content_of_subject_dir"
+    # fi
+    # echo ""
+  } | tee -a "$seg_log"
+fi
 
 if [[ "$run_seg_pipeline" == "1" ]]
 then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
-  echo "Log file for segmentation FastSurferCNN/run_prediction.py" >> "$seg_log"
 
   if [[ "$run_asegdkt_module" == "1" ]]
   then
