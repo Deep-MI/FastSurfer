@@ -43,7 +43,7 @@ FastSurfer supports the following edits:
 Note, as FastSurfer's surface pipeline is derived from FreeSurfer, some edit options and corresponding naming schemes are inherited from FreeSurfer.
 
 ## General process
-Edits in this list require an update of the subject directory and "re-processing" with the `--edits` flag of `run_fastsurfer.sh`.
+To use the `--edits` flag with `run_fastsurfer.sh`, you must first update the images in the subject directory that require editing, and then reprocess the updated directory using the --edits option.
 
 For example (including setup for native processing, see [Examples](EXAMPLES.md) for other processing options):
 
@@ -124,9 +124,9 @@ In particular, over- and under-segmentation of the brainmask, gray matter over s
 In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz`, `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
 
 ### What to do
-1. Copy `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
-2. Open and edit `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` fixing any errors.
-3. [Re-run FastSurfer](#general-process) to update `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
+1.Copy the file `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to the same directory with a different name, `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
+2. Open and edit `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` and fix any errors you find.
+3. [Re-run FastSurfer](#general-process) to apply the changes you made and update `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
 
 ## Talairach registration
 
@@ -134,7 +134,7 @@ In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg
 The estimated total intracranial volume is inaccurate.
 
 ### What to do 
-1. Copy and edit `<subject_dir>/mri/transforms/talairach.xfm` replacing the old file.
+1. Open and edit `<subject_dir>/mri/transforms/talairach.xfm` and replace the edited version with the old file.
 2. [Re-run FastSurfer](#general-process) to update the eTIV value in all stats files.
 
 See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach>
@@ -145,7 +145,9 @@ See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach>
 Over- and/or under-segmentation of the white matter: voxels that should be white matter are excluded, or those that should not are included.
 
 ### What to do
-Often, these errors should be fixed in [#asegdkt_segfile] `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not possible, `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz` can be edited to fix the initial white matter surface.
+Often, these errors should be fixed in [#asegdkt_segfile] `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not possible: 
+1. Open and edit  `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz` and replace the edited version with the old file.
+2. [Re-run FastSurfer](#general-process) to apply the changes .
 
 The manual label 255 indicates a voxel should be included in the white matter and a voxel labeled 1 should not.
 
@@ -159,7 +161,7 @@ Over- and/or under-segmentation of the cortical gray matter: voxels that should 
 This explicitly 
 
 ### What to do
-Often, these errors should be fixed in <#asegdkt_segfile> `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not possible, `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`) can be edited to fix the pial surface.
+Often, these errors should be fixed in <#asegdkt_segfile> `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not possible, `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`) can be edited and then [Re-run FastSurfer](#general-process) to fix the pial surface. 
 The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.
 
 See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz>
