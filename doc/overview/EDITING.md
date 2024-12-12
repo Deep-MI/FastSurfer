@@ -1,11 +1,17 @@
 # Manual Edits
 
 We have noticed that FastSurfer segmentations and surface results are very robust and rarely require any manual edits. 
-However, for your convenience, we allow manual edits in various stages of the FastSurfer pipeline.
+However, for your convenience, we allow manual edits in various stages of the FastSurfer pipeline to fix errors or inaccuracies in FastSurfer results.
 These editing options include approaches that are inherited from FreeSurfer as well as some FastSurfer-specific editing options.
 
 The provided editing options may be changed or extended in the future, also depending on requests from the community.
 Furthermore, we invite users to [contribute](CONTRIBUTING.md) such changes and/or datasets of paired MRI images and edited files to improve FastSurfer's neural networks.  
+
+## What are Edits?
+
+Edits are manual interventions into the pipeline that change intermediate results.
+By "editing" intermediate results, later steps operate on updated information.
+While rarely necessary, some errors of the pipeline (see below) can be addressed and the quality of results can be improved.
 
 ## What can be edited?
 
@@ -43,9 +49,12 @@ FastSurfer supports the following edits:
 Note, as FastSurfer's surface pipeline is derived from FreeSurfer, some edit options and corresponding naming schemes are inherited from FreeSurfer.
 
 ## General process
-To use the `--edits` flag with `run_fastsurfer.sh`, you must first update the images in the subject directory that require editing, and then reprocess the updated directory using the --edits option.
+Most editing options require that you have processed the case and you are able to access and modify the files in that image's directory, i.e. `<subject_dir>`.
+Based on a quality inspection of results, segmentations and surfaces, one of the edits (see above) is chosen and performed.
+Then, the case is re-processed using the `--edits` flag, i.e. `run_fastsurfer.sh` is re-run (same FastSurfer command and FastSurfer version as before, but add `--edits`).
+Finally, you would check in another quality inspection, if the quality issues are resolved.
 
-For example (including setup for native processing, see [Examples](EXAMPLES.md) for other processing options):
+For example (including the setup for native processing, see [Examples](EXAMPLES.md) for other processing options):
 
 ```bash
 # Setup FASTSURFER and FREESURFER
@@ -124,9 +133,9 @@ In particular, over- and under-segmentation of the brainmask, gray matter over s
 In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz`, `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
 
 ### What to do
-1.Copy the file `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to the same directory with a different name, `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
-2. Open and edit `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` and fix any errors you find.
-3. [Re-run FastSurfer](#general-process) to apply the changes you made and update `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
+1. Copy the file `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to the same directory and name it `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
+2. Open `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` (for example using Freeview) and resolve all errors/quality issues.
+3. [Re-run FastSurfer](#general-process) to propagate the changes into other results. Among others, this updates `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
 
 ## Talairach registration
 
@@ -134,8 +143,9 @@ In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg
 The estimated total intracranial volume is inaccurate.
 
 ### What to do 
-1. Open and edit `<subject_dir>/mri/transforms/talairach.xfm` and replace the edited version with the old file.
-2. [Re-run FastSurfer](#general-process) to update the eTIV value in all stats files.
+1. Copy `<subject_dir>/mri/transforms/talairach.auto.xfm` to `<subject_dir>/mri/transforms/talairach.xfm`, replace the symlink that is already there.
+2. Edit `<subject_dir>/mri/transforms/talairach.xfm` to have the intended talairach matrix, see the [FreeSurfer tutorial for details](https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach).
+3. [Re-run FastSurfer](#general-process) to update the eTIV value in all stats files.
 
 See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach>
 
@@ -145,9 +155,9 @@ See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach>
 Over- and/or under-segmentation of the white matter: voxels that should be white matter are excluded, or those that should not are included.
 
 ### What to do
-Often, these errors should be fixed in [#asegdkt_segfile] `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not possible: 
-1. Open and edit  `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz` and replace the edited version with the old file.
-2. [Re-run FastSurfer](#general-process) to apply the changes .
+Often, these errors should be fixed by [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not successful: 
+1. Open and edit  `<subject_dir>/mri/wm.mgz` and/or `<subject_dir>/mri/filled.mgz`.
+2. [Re-run FastSurfer](#general-process) to propagate the edits.
 
 The manual label 255 indicates a voxel should be included in the white matter and a voxel labeled 1 should not.
 
@@ -161,7 +171,10 @@ Over- and/or under-segmentation of the cortical gray matter: voxels that should 
 This explicitly 
 
 ### What to do
-Often, these errors should be fixed in <#asegdkt_segfile> `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not possible, `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`) can be edited and then [Re-run FastSurfer](#general-process) to fix the pial surface. 
+Often, these errors should be fixed in [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not successful:
+1. Open end edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
+2. [Re-run FastSurfer](#general-process) to fix the pial surface. 
+3. 
 The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.
 
 See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz>
@@ -169,7 +182,7 @@ See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz>
 ## Side effects of edits
 
 Technically, all edits are changes to the processing pipeline and may cause systematic effects in the analysis.
-Computational edits (e.g. [Bias Field Correction](#bias-field-correction)) should be integrated systematically.
+Computational edits (e.g. [Bias Field Correction](#bias-field-correction)) should be integrated for all cases of an analysis.
 Other effects are impossible to avoid (edit carefully), often very small and hard to account for. 
 It is recommended to analyze whether files with edits distort results in a specific direction, i.e. how do effect sizes change if manually edited cases are excluded?
 
