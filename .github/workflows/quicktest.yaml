@@ -75,7 +75,7 @@ jobs:
               fi
             } > $GITHUB_OUTPUT
           else #  this event has no specific rules
-            echo "This workflow is not defind for the event ${{ github.event_name }}!"
+            echo "This workflow is not defined for the event ${{ github.event_name }}!"
             exit 1
           fi
           if ! gh api -H "$h1" -H "$h2" /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}
