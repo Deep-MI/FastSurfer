@@ -104,7 +104,7 @@ jobs:
       - name: Get the FreeSurfer version
         shell: bash
         run: |
-          # get the FreeSurfer verson from install_fs_pruned.sh
+          # get the FreeSurfer version from install_fs_pruned.sh
           {
             eval "$(grep "^fslink=" ./Docker/install_fs_pruned.sh)"
             fs_version="$(basename "$(dirname "$fslink")")"
