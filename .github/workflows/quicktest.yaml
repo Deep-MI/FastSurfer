@@ -24,9 +24,11 @@ on:
   workflow_dispatch:
     inputs:
       docker-image:
-        name: 'Docker image to run with'
         description: 'Which docker image should be used to run this test (build-cached => build from git)'
         default: build-cached
+        type: string
+      freesurfer_build_image:
+        description: 'FreeSurfer build image to build with'
         type: string
 
 env:
@@ -99,13 +101,29 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Get the FreeSurfer version
+        shell: bash
+        run: |
+          # get the FreeSurfer verson from install_fs_pruned.sh
+          {
+            eval "$(grep "^fslink=" ./Docker/install_fs_pruned.sh)"
+            fs_version="$(basename "$(dirname "$fslink")")"
+            fs_version_short="${fs_version//\./}"
+            echo "FS_VERSION=$fs_version"
+            echo "FS_VERSION_SHORT=$fs_version_short"
+            if [[ -n "${{ inputs.freesurfer_build_image }}" ]] ; then
+              echo "FS_BUILD_IMAGE=${{ inputs.freesurfer_build_image }}"
+            else
+              echo "FS_BUILD_IMAGE=deepmi/fastsurfer-build:freesurfer$fs_version_short"
+            fi
+          } > $GITHUB_ENV
       - uses: ./.github/actions/build-docker@dev
         # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})
         with:
           fastsurfer-home: .
           # currently, this image has to be updated and used to circumvent storage limitations in github actions
           # and it is also faster to use this prebuilt, reduced-size freesurfer distribution
-          freesurfer-build-image: dkuegler/fastsurfer:fs741-build-image
+          freesurfer-build-image: "${{ env.FS_BUILD_IMAGE }}"
   run-1mm:
     name: 'Run FastSurfer on the 1mm sample image'
     needs: build-docker-latest

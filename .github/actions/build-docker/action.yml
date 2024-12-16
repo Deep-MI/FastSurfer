@@ -33,7 +33,7 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     - name: Recover freesurfer build image
-      if: ${{ startsWith( inputs.freesurfer-build-image, 'fastsurfer:') }}
+      if: ${{ contains( inputs.freesurfer-build-image, 'fastsurfer-build:freesurfer') }}
       uses: ./.github/actions/load-docker
       with:
         docker-image: ${{ inputs.freesurfer-build-image }}
@@ -46,18 +46,18 @@ runs:
       run: |
         echo "::group::Build FastSurfer Image"
         if [[ "${{ inputs.tag }}" != "auto" ]] ; then image_name="${{ inputs.tag }}" 
-        else v="$(bash $FASTSURFER_HOME/run_fastsurfer.sh --version)" ; image_name="fastsurfer:cpu-${v/+/_}" 
+        else v="$(bash "$FASTSURFER_HOME/run_fastsurfer.sh" --version)" ; image_name="fastsurfer:cpu-${v/+/_}" 
         fi
-        cmd="python $FASTSURFER_HOME/Docker/build.py --device cpu --tag $image_name --target ${{ inputs.target }}"
+        cmd=(python "$FASTSURFER_HOME/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
         if [[ "${{ inputs.freesurfer-build-image }}" != "rebuild" ]] ; then 
-          cmd="$cmd --freesurfer_build_image ${{ inputs.freesurfer-build-image }}"
+          cmd+=(--freesurfer_build_image "${{ inputs.freesurfer-build-image }}")
         fi
-        $cmd
+        "${cmd[@]}"
         echo "::endgroup::"
         echo "::group::Save image as artifact"
         echo "IMAGE_NAME=$image_name" | tee /tmp/image_name.env >> $GITHUB_OUTPUT
         # Export image
-        docker save $image_name -o /tmp/docker-image.tar
+        docker save "$image_name" -o /tmp/docker-image.tar
     - name: Save docker image
       uses: actions/upload-artifact@v4
       with:
