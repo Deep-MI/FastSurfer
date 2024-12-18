@@ -1073,9 +1073,12 @@ fi # skip in base
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
   if [ "$fsaparc" == "1" ] ; then
+
+   for hemi in lh rh ; do
+
     {
       echo ""
-      echo "============= Creating surfaces - other FS asegdkt_segfile and stats ======================="
+      echo "============= Creating surfaces $hemi - fsaparc annot a2009s and DKTaparc ======================="
       echo ""
     } | tee -a "$LF"
 
@@ -1107,6 +1110,8 @@ fi # skip in base
     RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
     # removed -segstats here (now part of mri_segstats.py/segstats.py
+
+   done # hemi loop
   fi  # (FS-APARC)
 
 
