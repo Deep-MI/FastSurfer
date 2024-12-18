@@ -1106,12 +1106,16 @@ fi # skip in base
     cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $annot"
     RunIt "$cmd" "$LF"
 
+   done # hemi loop
+
+   # skip in base
+   if [ "$base" != "1" ] ; then
     cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
     # removed -segstats here (now part of mri_segstats.py/segstats.py
+   fi # (if not base)
 
-   done # hemi loop
   fi  # (FS-APARC)
 
 
