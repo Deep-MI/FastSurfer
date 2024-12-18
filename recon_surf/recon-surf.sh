@@ -1050,12 +1050,11 @@ if [ "$DoParallel" == 1 ] ; then
   RunBatchJobs "$LF" "${CMDFS[@]}"
 fi
 
-# Skip rest in case we have a base run, we are done here (probably we can skip stuff already in surface creation above)
-if [ "$base" != "1" ] ; then
-
 
 # ============================= RIBBON ===============================================
 
+# Skip RIBBON in base
+if [ "$base" != "1" ] ; then
 
 {
   echo ""
@@ -1069,6 +1068,7 @@ if [ "$base" != "1" ] ; then
   cmd="recon-all -subject $subject -cortribbon $hiresflag $fsthreads"
   RunIt "$cmd" "$LF"
 
+fi # skip in base
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
@@ -1109,6 +1109,9 @@ if [ "$base" != "1" ] ; then
     # removed -segstats here (now part of mri_segstats.py/segstats.py
   fi  # (FS-APARC)
 
+
+# Skip rest in case we have a base run, we are done here (probably we can skip stuff already in surface creation above)
+if [ "$base" != "1" ] ; then
 
 # ============================= MAPPED SURF-STATS =========================================
 
