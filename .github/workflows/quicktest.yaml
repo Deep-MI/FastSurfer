@@ -1,4 +1,4 @@
-name: MAN quicktest
+name: PR quicktest
 
 # File: quicktest.yaml
 # Author: Taha Abdullah
@@ -15,6 +15,9 @@ name: MAN quicktest
 #  - LICENSE: content of a FreeSurfer license file
 
 concurrency:
+  # maybe the group here should actually not depend on the ref (only number would mean there are
+  # not concurrent runs of the same pr) -- but then we should probably add the branch name (for
+  # manually triggered workflows)
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
 
@@ -31,51 +34,61 @@ on:
         description: 'FreeSurfer build image to build with'
         type: string
 
+permissions: read-all
+
 env:
   SUBJECTS_DIR: /tmp/subjects
   REFERENCE_DIR: /tmp/reference
 
 jobs:
-  parse-action:
-    name: 'Check whether the quicktest should run'
+  build-docker-latest:
+    name: 'Check and build the current docker image'
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     outputs:
-      continue: ${{ steps.parse.CONTINUE }}
-      docker-image: ${{ steps.parse.DOCKER_IMAGE }}
-      extra-args: ${{ steps.parse.EXTRA_ARGS }}
+      continue: ${{ steps.parse.outputs.CONTINUE }}
+      docker-image: ${{ steps.parse.outputs.DOCKER_IMAGE }}
+      extra-args: ${{ steps.parse.outputs.EXTRA_ARGS }}
+      fs-build-image: ${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}
+      fs-version: ${{ steps.parse-version.outputs.FS_VERSION }}
+      fs-version-short: ${{ steps.parse-version.outputs.FS_VERSION_SHORT }}
+      fastsurfer-home: ${{ steps.parse-version.outputs.FASTSURFER_HOME }}
     steps:
       - name: 'Check whether the tests should run'
         id: parse
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           h1="Accept: application/vnd.github+json"
           h2="X-GitHub-Api-Version: 2022-11-28"
           if [[ "${{ github.event_name }}" == "pull_request" ]]
           then
-            if [[ "${{ github.event.action }}" == "labeled" ]] || [[ "${{ github.event.action }}" == "unlabeled" ]]
+            if [[ "${{ github.event.action }}" != "labeled" ]] && [[ "${{ github.event.action }}" != "unlabeled" ]]
             then
               # not a label-related action, should not be triggered
               echo "The Workflow '${{ github.workflow }}' was triggered by 'pull_request' of type"
               echo "  '${{ github.event.action }}' but should only be triggered by 'labeled' or 'unlabeled' actions."
-              exit 1
+              echo "CONTINUE=false" > $GITHUB_OUTPUT
+              exit
             elif [[ "${{ github.event.label.name }}" == "quicktest" ]]
             then
               echo "CONTINUE=true" > $GITHUB_OUTPUT
             else
               echo "This is a different label that was attached."
               echo "CONTINUE=false" > $GITHUB_OUTPUT
+              exit
             fi
             echo "DOCKER_IMAGE=build-cached" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
           then
-            {
-              echo "CONTINUE=true"
-              if [[ "${{ inputs }}" == "{}" ]] || "${{ inputs.docker-image }}" == "" ]] ; then
-                echo "DOCKER_IMAGE=build-cached"
-              else
-                echo "DOCKER_IMAGE=${{ inputs.docker-image }}"
-              fi
-            } > $GITHUB_OUTPUT
+            if [[ "${{ inputs }}" == "{}" ]] || "${{ inputs.docker-image }}" == "" ]] ; then
+              echo "DOCKER_IMAGE=build-cached" > $GITHUB_OUTPUT
+            else
+              echo "DOCKER_IMAGE=${{ inputs.docker-image }}" > $GITHUB_OUTPUT
+            fi
+            echo "CONTINUE=true" >> $GITHUB_OUTPUT
+            exit
           else #  this event has no specific rules
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
             exit 1
@@ -83,8 +96,8 @@ jobs:
           if ! gh api -H "$h1" -H "$h2" /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}
           then
             echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
-            echo "CONTINUE=false" > $GITHUB_OUTPUT
-            exit 1
+            echo "CONTINUE=false" >> $GITHUB_OUTPUT
+            exit
           fi
           # later, we might want to extract additional run options from the pr text or issue comments
           # these should just be added here 
@@ -92,17 +105,13 @@ jobs:
           # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}/comments
           # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
-  build-docker-latest:
-    name: 'Build the current docker image'
-    needs: parse-action
-    runs-on: ubuntu-latest
-    if: ${{ jobs.parse-action.outputs.continue == 'true' }}
-    timeout-minutes: 180
-    steps:
       - name: Checkout repository
+        if: ${{ steps.parse.outputs.continue && steps.parse.outputs.docker-image == 'build-cached' }}
         uses: actions/checkout@v4
       - name: Get the FreeSurfer version
+        if: ${{ steps.parse.outputs.continue && steps.parse.outputs.docker-image == 'build-cached' }}
         shell: bash
+        id: parse-version
         run: |
           # get the FreeSurfer version from install_fs_pruned.sh
           {
@@ -116,75 +125,67 @@ jobs:
             else
               echo "FS_BUILD_IMAGE=deepmi/fastsurfer-build:freesurfer$fs_version_short"
             fi
-          } > $GITHUB_ENV
-      - uses: ./.github/actions/build-docker@dev
+            echo "FASTSURFER_HOME=$(pwd)"
+          } > $GITHUB_OUTPUT
+      - uses: Deep-MI/FastSurfer/.github/actions/build-docker@dev
+        if: ${{ steps.parse.outputs.continue && steps.parse.outputs.docker-image == 'build-cached' }}
         # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})
         with:
-          fastsurfer-home: .
+          fastsurfer-home: ${{ steps.parse-version.outputs.FASTSURFER_HOME }}
           # currently, this image has to be updated and used to circumvent storage limitations in github actions
           # and it is also faster to use this prebuilt, reduced-size freesurfer distribution
-          freesurfer-build-image: "${{ env.FS_BUILD_IMAGE }}"
-  run-1mm:
-    name: 'Run FastSurfer on the 1mm sample image'
+          freesurfer-build-image: "${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}"
+  fastsurfer:
+    name: 'Run FastSurfer on sample images'
     needs: build-docker-latest
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    strategy:
+      # the following matrix strategy will result in one run per subject as matrix is "one-dimensional".
+      # Additional parameters under "include" are then added as additional (dependent) information
+      matrix:
+        subject-id: [0.8mm, 1.0mm]
+        include:
+          - subject-id: 1.0mm
+            file-extension: ".mgz"
+            image-key: IMAGE_HREF_1mm
+          - subject-id: 0.8mm
+            file-extension: ".nii.gz"
+            image-key: IMAGE_HREF_08mm
     steps:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: .github/actions
-      - name: Run FastSurfer with the previously created docker container
-        uses: ./.github/actions/run-fastsurfer@dev
+      - name: Run FastSurfer for ${{ matrix.subject-id }} with the previously created docker container
+        uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
-          subject-id: 1.0mm
-          file-extension: ".mgz"
-          image-href: ${{ secrets.IMAGE_HREF_1mm }}
+          subject-id: ${{ matrix.subject-id }}
+          file-extension: ${{ matrix.file-extension }}
+          image-href: ${{ secrets[matrix.image-key] }}
           license: ${{ secrets.LICENSE }}
-          docker-image: ${{ jobs.parse-action.outputs.docker-image }}
-          extra-args: ${{ jobs.parse-action.outputs.extra-args }}
-  run-08mm:
-    name: Run FastSurfer on the 0.8mm sample image
-    needs: build-docker-latest
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/actions
-      - name: Run FastSurfer with the previously created docker container
-        uses: ./.github/actions/run-fastsurfer@dev
-        with:
-          subject-id: 0.8mm
-          file-extension: ".nii.gz"
-          image-href: ${{ secrets.IMAGE_HREF_08mm }}
-          license: ${{ secrets.LICENSE }}
-          docker-image: ${{ jobs.parse-action.outputs.docker-image }}
-          extra-args: ${{ jobs.parse-action.outputs.extra-args }}
-  run-tests-1mm:
+          docker-image: ${{ needs.build-docker-latest.outputs.docker-image }}
+          extra-args: ${{ needs.build-docker-latest.outputs.extra-args }}
+  tests:
     name: Download data and perform tests (1.0mm)
-    needs: run-1mm
+    needs: fastsurfer
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      # the following matrix strategy will result in one run per subject as matrix is "one-dimensional".
+      # Additional parameters under "include" are then added as additional (dependent) information
+      matrix:
+        subject-id: [0.8mm, 1.0mm]
+        include:
+          - subject-id: 0.8mm
+            case-key: CASE_HREF_08mm
+          - subject-id: 1.0mm
+            case-key: CASE_HREF_1mm
     steps:
       - uses: actions/checkout@v4
-      - name: Run tests for the 1.0mm dataset
-        uses: ./.github/actions/run-tests@dev
+      - name: Run tests
+        uses: Deep-MI/FastSurfer/.github/actions/run-tests@dev
         with:
-          subject-id: "1.0mm"
+          subject-id: ${{ matrix.subject-id }}
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
-          case-href: ${{ secrets.CASE_HREF_1mm }}
-  run-tests-08mm:
-    name: Download data and perform tests (0.8mm)
-    needs: run-08mm
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run tests for the 0.8mm dataset
-        uses: ./.github/actions/run-tests@dev
-        with:
-          subject-id: "0.8mm"
-          subjects-dir: ${{ env.SUBJECTS_DIR }}
-          reference-dir: ${{ env.REFERENCE_DIR }}
-          case-href: ${{ secrets.CASE_HREF_08mm }}
+          case-href: ${{ secrets[matrix.case-href] }}

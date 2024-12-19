@@ -50,7 +50,7 @@ runs:
         echo "DATA_DIR=$DATA_DIR" >> $GITHUB_ENV  # DATA_DIR is used in the next 2 steps as well
         mkdir -p $DATA_DIR
         echo "${{ inputs.license }}" > $DATA_DIR/.fs_license
-        curl -k "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
+        curl -L -k "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
         if [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--threads/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--parallel/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--fs_license/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sd/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sid/}" ]] ; then
           echo "--threads, --parallel, --fs_license, --sid, --sd are not allowed in extra-args!"
           exit 1
