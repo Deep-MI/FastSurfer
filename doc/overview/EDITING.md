@@ -74,7 +74,7 @@ $FASTSURFER_HOME/run_fastsurfer.sh \
 ```
 
 Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the [asegdkt_segfile](#asegdkt_segfile) was edited.
-There, we can usually skip the segmentation step with
+Therefore, in most cases, we can skip the segmentation step with
 ```bash
 # Setup FASTSURFER and FREESURFER ... (see above)
 
@@ -168,13 +168,11 @@ See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/WhiteMatterEdits
 ### When to use
 Over- and/or under-segmentation of the cortical gray matter: voxels that should be gray matter are excluded, or those that should not are included.
 
-This explicitly 
 
 ### What to do
 Often, these errors should be fixed in [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not successful:
 1. Open end edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
 2. [Re-run FastSurfer](#general-process) to fix the pial surface. 
-3. 
 The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.
 
 See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz>
