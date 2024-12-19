@@ -87,7 +87,7 @@ FLAGS:
                             that segmentations produced otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --mask_name <mask_file> Path to the brainmask file to use. Default location:
+  --mask_name <mask_file> Path to the brain mask file to use. Default location:
                             \$SUBJECTS_DIR/\$sid/mri/mask.mgz
   --edits                 Disable the check for existing recon-surf.sh run, replace
                             <asegdkt_segfile> by its manedit-suffixed version,
