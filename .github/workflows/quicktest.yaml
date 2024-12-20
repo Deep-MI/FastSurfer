@@ -8,11 +8,11 @@ name: PR quicktest
 # Usage: This workflow is triggered on a pull request to the dev and main branch. It can also be triggered manually
 #  with workflow-dispatch.
 # Expected Secrets:
-#  - IMAGE_HREF_08mm: URL to a sample 0.8mm image
-#  - IMAGE_HREF_1mm: URL to a sample 1mm image
-#  - CASE_HREF_08mm: URL to the reference processing of the sample 0.8mm image
-#  - CASE_HREF_1mm: URL to the reference processing of the sample 1mm image
-#  - LICENSE: content of a FreeSurfer license file
+#  - QUICKTEST_IMAGE_HREF_08mm: URL to a sample 0.8mm image
+#  - QUICKTEST_IMAGE_HREF_1mm: URL to a sample 1mm image
+#  - QUICKTEST_TARGET_HREF_08mm: URL to the reference processing of the sample 0.8mm image
+#  - QUICKTEST_TARGET_HREF_1mm: URL to the reference processing of the sample 1mm image
+#  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
   # maybe the group here should actually not depend on the ref (only number would mean there are
@@ -148,10 +148,10 @@ jobs:
         include:
           - subject-id: 1.0mm
             file-extension: ".mgz"
-            image-key: IMAGE_HREF_1mm
+            image-key: QUICKTEST_IMAGE_HREF_1mm
           - subject-id: 0.8mm
             file-extension: ".nii.gz"
-            image-key: IMAGE_HREF_08mm
+            image-key: QUICKTEST_IMAGE_HREF_08mm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -162,7 +162,7 @@ jobs:
           subject-id: ${{ matrix.subject-id }}
           file-extension: ${{ matrix.file-extension }}
           image-href: ${{ secrets[matrix.image-key] }}
-          license: ${{ secrets.LICENSE }}
+          license: ${{ secrets.QUICKTEST_LICENSE }}
           docker-image: ${{ needs.build-docker-latest.outputs.docker-image }}
           extra-args: ${{ needs.build-docker-latest.outputs.extra-args }}
   tests:
@@ -177,9 +177,9 @@ jobs:
         subject-id: [0.8mm, 1.0mm]
         include:
           - subject-id: 0.8mm
-            case-key: CASE_HREF_08mm
+            case-key: QUICKTEST_TARGET_HREF_08mm
           - subject-id: 1.0mm
-            case-key: CASE_HREF_1mm
+            case-key: QUICKTEST_TARGET_HREF_1mm
     steps:
       - uses: actions/checkout@v4
       - name: Run tests
