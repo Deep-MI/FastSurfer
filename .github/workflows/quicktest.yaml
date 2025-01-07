@@ -75,7 +75,7 @@ jobs:
           ENDOFINPUTS
           
           gh_header=(-H "Accept: application/vnd.github+json"
-                    (-H "X-GitHub-Api-Version: 2022-11-28")
+                     -H "X-GitHub-Api-Version: 2022-11-28")
           if [[ "${{ github.event_name }}" == "pull_request" ]]
           then
             if [[ "${{ github.event.action }}" != "labeled" ]] && [[ "${{ github.event.action }}" != "unlabeled" ]]
