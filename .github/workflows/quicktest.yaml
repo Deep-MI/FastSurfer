@@ -61,21 +61,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "::group::Debug information"
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Action: ${{ github.event.action }}"
-          if [[ "${{ github.event_name }}" == "pull_request" ]]
-            echo "PR: ${{ github.event.number }}"
-            echo "Event Triggered by: ${{ github.event.sender.login }}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
-            echo "Inputs"
-            cat <<EOF
-            ${{ toJSON(inputs) }}
-            EOF
-          fi
-          echo "::endgroup::"
-          h1="Accept: application/vnd.github+json"
-          h2="X-GitHub-Api-Version: 2022-11-28"
+          # Debug information
+          # Workflow: ${{ github.workflow }}
+          # Event Name: ${{ github.event_name }} 
+          # Action: ${{ github.event.action }}
+          # pull_request-Event
+          # PR: ${{ github.event.number }}
+          # Event Triggered by: ${{ github.event.sender.login }}
+          # workflow_dispatch-Event
+          # Inputs:
+          cat > /dev/null <<ENDOFINPUTS
+          ${{ toJSON(inputs) }}
+          ENDOFINPUTS
+          
+          gh_header=(-H "Accept: application/vnd.github+json"
+                    (-H "X-GitHub-Api-Version: 2022-11-28")
           if [[ "${{ github.event_name }}" == "pull_request" ]]
           then
             if [[ "${{ github.event.action }}" != "labeled" ]] && [[ "${{ github.event.action }}" != "unlabeled" ]]
@@ -94,8 +94,8 @@ jobs:
             echo "DOCKER_IMAGE=build-cached" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
           then
-            # the inputs context is only useful/set in the workflow dispatch event case 
-            if [[ "${{ toJSON(inputs) }}" == "{}" ]] || [[ "${{ inputs.docker-image }}" == "" ]] ; then
+            # the inputs context is only useful/set in the workflow dispatch event case
+            if [[ "${{ inputs.docker-image }}" == "" ]] ; then
               echo "DOCKER_IMAGE=build-cached" > $GITHUB_OUTPUT
             else
               echo "DOCKER_IMAGE=${{ inputs.docker-image }}" > $GITHUB_OUTPUT
@@ -105,7 +105,7 @@ jobs:
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
             exit 1
           fi
-          if ! gh api -H "$h1" -H "$h2" /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}
+          if ! gh api "${gh_header[@]}" /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}
           then
             echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
             echo "CONTINUE=false" >> $GITHUB_OUTPUT

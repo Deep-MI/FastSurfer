@@ -94,7 +94,7 @@ COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /instal
 ARG DEBUG=false
 RUN python /install/install_env.py -m base -i /install/fastsurfer.yml \
       -o /install/base-env.yml && \
-    mamba env create -f "/install/base-env.yml" | tee /install/env-create.log ; \
+    mamba env create -qy -f "/install/base-env.yml" | tee /install/env-create.log ; \
     if [ "${DEBUG}" != "true" ]; then \
       rm /install/base-env.yml ; \
     fi
@@ -106,12 +106,12 @@ ARG DEVICE=cu118
 # install additional packages for cuda/rocm/cpu
 RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml \
       -o /install/${DEVICE}-env.yml && \
-    mamba env update -n "fastsurfer" -f "/install/${DEVICE}-env.yml" \
+    mamba env update -q -n "fastsurfer" -f "/install/${DEVICE}-env.yml" \
       | tee /install/env-update.log && \
     /install/conda_pack.sh "fastsurfer" && \
     echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /install/build_conda.args ;  \
     if [ "${DEBUG}" != "true" ]; then \
-      mamba env remove -n "fastsurfer" && \
+      mamba env remove -qy -n "fastsurfer" && \
       rm -R /install ; \
     fi
 
