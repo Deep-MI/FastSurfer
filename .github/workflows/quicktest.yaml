@@ -42,7 +42,7 @@ env:
   REFERENCE_DIR: /tmp/reference
 
 jobs:
-  build-docker-latest:
+  build-docker:
     name: 'Check and build the current docker image'
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -117,10 +117,10 @@ jobs:
           # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
       - name: Checkout repository
-        if: ${{ steps.parse.outputs.CONTINUE && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
+        if: ${{ steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
         uses: actions/checkout@v4
       - name: Get the FreeSurfer version
-        if: ${{ steps.parse.outputs.CONTINUE && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
+        if: ${{ steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
         shell: bash
         id: parse-version
         run: |
@@ -139,7 +139,7 @@ jobs:
             echo "FASTSURFER_HOME=$(pwd)"
           } > $GITHUB_OUTPUT
       - uses: Deep-MI/FastSurfer/.github/actions/build-docker@dev
-        if: ${{ steps.parse.outputs.CONTINUE && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
+        if: ${{ steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
         # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})
         with:
           fastsurfer-home: ${{ steps.parse-version.outputs.FASTSURFER_HOME }}
@@ -148,10 +148,10 @@ jobs:
           freesurfer-build-image: "${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}"
   fastsurfer:
     name: 'Run FastSurfer on sample images'
-    needs: build-docker-latest
+    needs: build-docker
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    if: needs.build-docker-latest.outputs.continue
+    if: needs.build-docker.outputs.continue == 'true'
     strategy:
       # the following matrix strategy will result in one run per subject as matrix is "one-dimensional".
       # Additional parameters under "include" are then added as additional (dependent) information
@@ -175,8 +175,8 @@ jobs:
           file-extension: ${{ matrix.file-extension }}
           image-href: ${{ secrets[matrix.image-key] }}
           license: ${{ secrets.QUICKTEST_LICENSE }}
-          docker-image: ${{ needs.build-docker-latest.outputs.docker-image }}
-          extra-args: ${{ needs.build-docker-latest.outputs.extra-args }}
+          docker-image: ${{ needs.build-docker.outputs.docker-image }}
+          extra-args: ${{ needs.build-docker.outputs.extra-args }}
   tests:
     name: 'Download data and perform tests'
     needs: fastsurfer
