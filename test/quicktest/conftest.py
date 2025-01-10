@@ -13,9 +13,11 @@ import pytest
 from .common import SubjectDefinition
 
 __all__ = [
-    "subjects_dir",
-    "reference_dir",
+    "pytest_addoption",
     "ref_subject",
+    "ref_subjects",
+    "reference_dir",
+    "subjects_dir",
 ]
 
 env: dict[str, Path] = {}
@@ -32,10 +34,12 @@ for required_env_variable in ["REF_DIR", "SUBJECTS_DIR"]:
 Folder with reference data (defined in environment variable).
 """
 reference_dir: Path = env["REF_DIR"]
+__subjects = (p for p in reference_dir.iterdir() if p.is_dir() and p.name not in ("logs", "slurm"))
+__max_subjects = int(os.environ.get("MAX_SUBJECTS", -1))
 """
 Load the test subjects from the reference path (one subject per folder).
 """
-ref_subjects: list[Path] = [p for p in reference_dir.iterdir() if p.is_dir()]
+ref_subjects: list[Path] = [p for i, p in enumerate(__subjects) if i < __max_subjects or __max_subjects < 0]
 
 assert len(ref_subjects) > 0, "No test subjects found!"
 
@@ -62,3 +66,14 @@ def ref_subject(request: pytest.FixtureRequest) -> SubjectDefinition:
 @pytest.fixture(scope="session")
 def test_subject(ref_subject: SubjectDefinition, subjects_dir: Path) -> SubjectDefinition:
     return ref_subject.with_subjects_dir(subjects_dir)
+
+
+def pytest_addoption(parser):
+    # the following options is for are for test_images and test_stats only
+    parser.addoption(
+        "--collect_csv",
+        action="store",
+        default=None,
+        type=Path,
+        help="Directory to store csv files that will collect all differences between reference and test.",
+    )

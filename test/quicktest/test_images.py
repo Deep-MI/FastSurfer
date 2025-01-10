@@ -10,24 +10,24 @@ import yaml
 
 from FastSurferCNN.utils.metrics import dice_score
 
-from .common import SubjectDefinition, Tolerances
+from .common import SubjectDefinition, Tolerances, write_table_file
+from .helper import assert_same_headers, Approx
 
 logger = getLogger(__name__)
-
 
 
 @pytest.fixture(scope='module')
 def segmentation_tolerances(segmentation_image: str) -> Tolerances:
 
-    thresholds_file = Path(__file__).parent / f"data/thresholds/{segmentation_image}.yaml"
+    thresholds_file = Path(__file__).parent / f"data/{segmentation_image}.yaml"
     assert thresholds_file.exists(), f"The thresholds file {thresholds_file} does not exist!"
     return Tolerances(thresholds_file)
 
 
 @lru_cache
-def read_image_type() -> dict:
-    with open(Path(__file__).parent / "data/image.type.yaml") as fp:
-        return yaml.safe_load(fp)
+def read_image_intensity_thresholds() -> dict:
+    with open(Path(__file__).parent / "data/image.intensity.yaml") as fp:
+        return yaml.safe_load(fp)["thresholds"]
 
 
 def compute_dice_score(test_data, reference_data, labels: dict[int, str]) -> tuple[float, dict[int, float]]:
@@ -50,11 +50,12 @@ def compute_dice_score(test_data, reference_data, labels: dict[int, str]) -> tup
     dict[int, float]
         Dice scores for each class.
     """
-    dice_scores = {}
-    logger.debug("Dice scores:")
-    for _, (label, lname) in enumerate(labels.items()):
-        dice_scores[label] = dice_score(np.equal(reference_data, label), np.equal(test_data, label), validate=False)
-        logger.debug(f"Label {lname}: {dice_scores[label]:.4f}")
+
+    def __calc_dice(label: int) -> float:
+        return dice_score(np.equal(reference_data, label), np.equal(test_data, label), validate=False)
+
+    label_iter = labels.keys() if isinstance(labels, dict) else labels
+    dice_scores = {label: __calc_dice(label) for label in label_iter}
     mean_dice_score = np.asarray(list(dice_scores.values())).mean()
     return mean_dice_score, dice_scores
 
@@ -80,15 +81,10 @@ def test_image_headers(test_subject: SubjectDefinition, ref_subject: SubjectDefi
 
     # Load images
     test_file, test_img = test_subject.load_image(image)
+    reference_file, reference_img = ref_subject.load_image("")
     reference_file, reference_img = ref_subject.load_image(image)
 
-    # Get the image headers
-    headers = [test_img.header, reference_img.header]
-
-    # Check the image headers
-    header_diff = nibabel.cmdline.diff.get_headers_diff(headers)
-    assert header_diff == OrderedDict(), f"Image headers do not match: {header_diff}"
-    logger.debug("Image headers are same!")
+    assert_same_headers(test_img.header, reference_img.header)
 
 
 def test_segmentation_image(
@@ -96,6 +92,7 @@ def test_segmentation_image(
         ref_subject: SubjectDefinition,
         segmentation_image: str,
         segmentation_tolerances: Tolerances,
+        pytestconfig: pytest.Config,
 ):
     """
     Test the segmentation data by calculating and comparing dice scores.
@@ -110,6 +107,8 @@ def test_segmentation_image(
         Name of the segmentation image file.
     segmentation_tolerances: Tolerances
         Object to provide the relevant tolerances for the respective segmentation_image.
+    pytestconfig : pytest.Config
+        The sessions config object.
 
     Raises
     ------
@@ -122,20 +121,33 @@ def test_segmentation_image(
     reference_file, reference_img = ref_subject.load_image(segmentation_image)
     reference_data = np.asarray(reference_img.dataobj)
 
-    label_segids = np.unique([reference_data, test_data])
+    label_segids = np.unique([reference_data, test_data]).tolist()
     labels_lnames_tols = {lbl: segmentation_tolerances.threshold(lbl) for lbl in label_segids}
     labels_lnames = {k: v for k, (v, _) in labels_lnames_tols.items()}
+
+    def is_low_dice(label: int, score: float) -> bool:
+        return not np.isclose(score, 0, atol=labels_lnames_tols[label][1])
 
     # Compute the dice score
     mean_dice, dice_scores = compute_dice_score(test_data, reference_data, labels_lnames)
 
-    failed_labels = (i for i, dice in dice_scores.items() if not np.isclose(dice, 0, atol=labels_lnames_tols[i][1]))
-    dice_exceeding_threshold = [f"Label {labels_lnames[lbl]}: {1-dice_scores[lbl]}" for lbl in failed_labels]
-    assert [] == dice_exceeding_threshold, f"Dice scores in {segmentation_image} are not within range!"
+    delta_dir: Path = pytestconfig.getoption("--collect_csv")
+    if delta_dir:
+        delta_dir.mkdir(parents=True, exist_ok=True)
+        write_table_file(delta_dir / "dice.csv", test_subject.name, segmentation_image, dice_scores)
+
+    failed_labels = ((i, labels_lnames_tols[i]) for i, dice in dice_scores.items() if is_low_dice(i, dice))
+    dice_exceeding_threshold = [f"{lname}: {1-dice_scores[lbl]} (abs>{tol:.2e})" for lbl, (lname, tol) in failed_labels]
+    assert dice_exceeding_threshold == [], f"Dice scores in {segmentation_image} are not within range!"
     logger.debug("Dice scores are within range for all classes")
 
 
-def test_intensity_image(test_subject: SubjectDefinition, ref_subject: SubjectDefinition, intensity_image: str):
+def test_intensity_image(
+        test_subject: SubjectDefinition,
+        ref_subject: SubjectDefinition,
+        intensity_image: str,
+        pytestconfig: pytest.Config,
+):
     """
     Test the intensity data by calculating and comparing the mean square error.
 
@@ -147,6 +159,8 @@ def test_intensity_image(test_subject: SubjectDefinition, ref_subject: SubjectDe
         Definition of the reference subject.
     intensity_image : str
         Name of the image file.
+    pytestconfig : pytest.Config
+        The sessions config object.
 
     Raises
     ------
@@ -158,21 +172,41 @@ def test_intensity_image(test_subject: SubjectDefinition, ref_subject: SubjectDe
     test_data = test_img.get_fdata()
     reference_file, reference_img = ref_subject.load_image(intensity_image)
     reference_data = reference_img.get_fdata()
+
+    delta_dir = pytestconfig.getoption("--collect_csv")
+    if delta_dir:
+        delta_dir.mkdir(parents=True, exist_ok=True)
+        # this analysis will write not only the max (tested below, but also mean, mse and some percentiles)
+        absdelta = np.abs(test_data - reference_data)
+        scores = {p: v for p, v in zip(("median", "95th", "99th"), np.percentile(absdelta, (50, 95, 99)), strict=True)}
+        scores.update(mean=absdelta.mean(), max=np.max(absdelta))
+        reldelta = absdelta / np.maximum(np.maximum(abs(reference_data), abs(test_data)), 1e-8)
+        scores.update(rel=reldelta.mean(), relmax=np.max(reldelta))
+        write_table_file(delta_dir / "intensity.csv", test_subject.name, intensity_image, scores)
+
+    rtol = read_image_intensity_thresholds()[intensity_image]
     # Check the image data
-    np.testing.assert_allclose(test_data, reference_data, rtol=1e-4, err_msg="Image intensity data do not match!")
+    assert test_data == Approx(reference_data, rel=rtol), "Image intensity data do not match!"
 
     logger.debug("Image data matches!")
 
 
-def pytest_generate_tests(metafunc):
-    images_by_type = {}
-    if any(f in metafunc.fixturenames for f in ("intensity_image", "segmentation_image", "image")):
-        images_by_type = read_image_type()
+def pytest_generate_tests(metafunc: pytest.Metafunc):
+    intensity_files = []
+    if any(f in metafunc.fixturenames for f in ("intensity_image", "image")):
+        intensity_thresholds = read_image_intensity_thresholds()
+        intensity_files = list(intensity_thresholds.keys())
+        if "intensity_image" in metafunc.fixturenames:
+            metafunc.parametrize("intensity_image", intensity_files, scope="module")
 
-    for typ in ["intensity", "segmentation"]:
-        if f"{typ}_image" in metafunc.fixturenames:
-            metafunc.parametrize(f"{typ}_image", images_by_type[typ], scope="module")
+    segmentation_files = []
+    if any(f in metafunc.fixturenames for f in ("segmentation_image", "image")):
+        __files = (Path(__file__).parent / "data").glob("*.yaml")
+        segmentation_files = [f.stem for f in __files if f.stem.endswith((".nii", ".nii.gz", ".mgz"))]
+        if "segmentation_image" in metafunc.fixturenames:
+            metafunc.parametrize("segmentation_image", segmentation_files, scope="module")
+
     if "image" in metafunc.fixturenames:
         from itertools import chain
-        all_images = chain(images_by_type["intensity"], images_by_type["segmentation"])
+        all_images = chain(intensity_files, segmentation_files)
         metafunc.parametrize("image", all_images, scope="module")
