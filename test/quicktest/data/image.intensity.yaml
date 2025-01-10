@@ -1,0 +1,3 @@
+thresholds:
+  orig.mgz: 0.02
+  orig_nu.mgz: 0.01
