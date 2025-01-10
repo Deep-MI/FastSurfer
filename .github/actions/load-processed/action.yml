@@ -1,4 +1,5 @@
 name: 'Load processed data'
+author: 'David Kuegler'
 description: 'Load a docker image from an artifact'
 
 inputs:

@@ -1,51 +1,38 @@
 from collections import OrderedDict
+from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 
-import nibabel as nib
 import nibabel.cmdline.diff
 import numpy as np
 import pytest
+import yaml
 
 from FastSurferCNN.utils.metrics import dice_score
 
-from .common import load_test_subjects
+from .common import SubjectDefinition, Tolerances
 
 logger = getLogger(__name__)
 
-image_types = {
-    "seg": ["aseg.mgz", "aparc.DKTatlas+aseg.deep.mgz", "cerebellum.CerebNet.nii.gz", "hypothalamus.HypVINN.nii.gz",
-            "wmparc.DKTatlas.mapped.mgz"],
-    "int": ["orig.mgz", "orig_nu.mgz"]
-}
 
 
-def load_image(subject_path: Path, image_name: Path):
+@pytest.fixture(scope='module')
+def segmentation_tolerances(segmentation_image: str) -> Tolerances:
+
+    thresholds_file = Path(__file__).parent / f"data/thresholds/{segmentation_image}.yaml"
+    assert thresholds_file.exists(), f"The thresholds file {thresholds_file} does not exist!"
+    return Tolerances(thresholds_file)
+
+
+@lru_cache
+def read_image_type() -> dict:
+    with open(Path(__file__).parent / "data/image.type.yaml") as fp:
+        return yaml.safe_load(fp)
+
+
+def compute_dice_score(test_data, reference_data, labels: dict[int, str]) -> tuple[float, dict[int, float]]:
     """
-    Load the image data using nibabel.
-
-    Parameters
-    ----------
-    subject_path : Path
-        Path to the subject directory.
-    image_name : Path
-        Name of the image file.
-
-    Returns
-    -------
-    nibabel.nifti1.Nifti1Image
-        Image data.
-    """
-
-    image_path = subject_path / "mri" / image_name
-    image = nib.load(image_path)
-
-    return image
-
-
-def compute_dice_score(test_data, reference_data, labels):
-    """
-    Compute the dice score for each class.
+    Compute the dice score for each class (0 = no difference).
 
     Parameters
     ----------
@@ -58,77 +45,32 @@ def compute_dice_score(test_data, reference_data, labels):
 
     Returns
     -------
-    np.ndarray
+    float
+        The average dice score for all classes.
+    dict[int, float]
         Dice scores for each class.
     """
-    # Ensure the numpy arrays have the native byte order
-    # test_data = test_data.astype(test_data.dtype.newbyteorder("="))
-    # reference_data = reference_data.astype(reference_data.dtype.newbyteorder("="))
-    #
-    # # Convert numpy arrays to torch tensors
-    # test_tensor = torch.from_numpy(test_data, dtype=torch.int)
-    # reference_tensor = torch.from_numpy(reference_data, dtype=torch.int)
-    #
-    # # Initialize DiceMetric
-    # dice_metric = DiceMetric(include_background=False, get_not_nans=False, ignore_empty=True, num_classes=len(labels))
-    #
-    # # Compute Dice score
-    # dice_metric(y_pred=test_tensor.unsqueeze(0), y=reference_tensor.unsqueeze(0))
-    # dscore = dice_metric.aggregate().cpu().numpy()
-
-    dice = np.zeros(len(labels))
-    for idx, label in enumerate(labels):
-
-        dice[idx] = dice_score(test_data == label, reference_data == label, validate=False)
-
-    dscore = np.mean(dice)
-
-    logger.debug("\nDice score: ", dscore)
-
-    return dscore
+    dice_scores = {}
+    logger.debug("Dice scores:")
+    for _, (label, lname) in enumerate(labels.items()):
+        dice_scores[label] = dice_score(np.equal(reference_data, label), np.equal(test_data, label), validate=False)
+        logger.debug(f"Label {lname}: {dice_scores[label]:.4f}")
+    mean_dice_score = np.asarray(list(dice_scores.values())).mean()
+    return mean_dice_score, dice_scores
 
 
-def compute_mean_square_error(test_data, reference_data):
-    """
-    Compute the mean square error between the test and reference data.
-
-    Parameters
-    ----------
-    test_data : np.ndarray
-        Test image data.
-    reference_data : np.ndarray
-        Reference image data.
-
-    Returns
-    -------
-    float
-        Mean square error.
-    """
-
-    mse = ((test_data - reference_data) ** 2).mean()
-    logger.debug("\nMean square error: ", mse)
-
-    return mse
-
-
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_image_headers(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
+def test_image_headers(test_subject: SubjectDefinition, ref_subject: SubjectDefinition, image: str):
     """
     Test the image headers by comparing the headers of the test and reference images.
 
     Parameters
     ----------
-    subjects_dir : Path
-        Path to the subjects directory.
-        Filled by pytest fixture from conftest.py.
-    test_dir : Path
-        Name of test directory.
-        Filled by pytest fixture from conftest.py.
-    reference_dir: Path
-        Name of reference directory.
-        Filled by pytest fixture from conftest.py.
-    test_subject : Path
-        Name of the test subject.
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    image: str
+        Name image file to check the headers of.
 
     Raises
     ------
@@ -137,80 +79,73 @@ def test_image_headers(subjects_dir: Path, test_dir: Path, reference_dir: Path, 
     """
 
     # Load images
-    test_subject = subjects_dir / test_dir / test_subject
-    test_image = load_image(test_subject, "brain.mgz")
-
-    reference_subject = subjects_dir / reference_dir / test_subject
-    reference_image = load_image(reference_subject, "brain.mgz")
+    test_file, test_img = test_subject.load_image(image)
+    reference_file, reference_img = ref_subject.load_image(image)
 
     # Get the image headers
-    headers = [test_image.header, reference_image.header]
+    headers = [test_img.header, reference_img.header]
 
     # Check the image headers
     header_diff = nibabel.cmdline.diff.get_headers_diff(headers)
     assert header_diff == OrderedDict(), f"Image headers do not match: {header_diff}"
-    logger.debug("Image headers are correct")
+    logger.debug("Image headers are same!")
 
 
-@pytest.mark.parametrize("image_name", image_types["seg"])
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_seg_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, image_name: str | Path):
+def test_segmentation_image(
+        test_subject: SubjectDefinition,
+        ref_subject: SubjectDefinition,
+        segmentation_image: str,
+        segmentation_tolerances: Tolerances,
+):
     """
     Test the segmentation data by calculating and comparing dice scores.
 
     Parameters
     ----------
-    test_file : Path
-        Path to the test file.
-    reference_file : Path
-        Path to the reference file.
-    image_name : str | Path
-        Name of the image file.
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    segmentation_image : str
+        Name of the segmentation image file.
+    segmentation_tolerances: Tolerances
+        Object to provide the relevant tolerances for the respective segmentation_image.
 
     Raises
     ------
     AssertionError
         If the dice score is not 0 for all classes
     """
+    test_file, test_img = test_subject.load_image(segmentation_image)
+    assert np.issubdtype(test_img.get_data_dtype(), np.integer), f"The image {segmentation_image} is not integer!"
+    test_data = np.asarray(test_img.dataobj)
+    reference_file, reference_img = ref_subject.load_image(segmentation_image)
+    reference_data = np.asarray(reference_img.dataobj)
 
-    test_file = subjects_dir / test_dir / test_subject
-    reference_file = subjects_dir / reference_dir / test_subject
-
-    test_image = load_image(test_file, image_name)
-    reference_image = load_image(reference_file, image_name)
-
-    labels = np.unique([np.asarray(reference_image.dataobj), np.asarray(test_image.dataobj)])
-
-    # Get the image data
-    test_data = np.asarray(test_image.dataobj)
-    reference_data = np.asarray(reference_image.dataobj)
+    label_segids = np.unique([reference_data, test_data])
+    labels_lnames_tols = {lbl: segmentation_tolerances.threshold(lbl) for lbl in label_segids}
+    labels_lnames = {k: v for k, (v, _) in labels_lnames_tols.items()}
 
     # Compute the dice score
-    dscore = compute_dice_score(test_data, reference_data, labels)
+    mean_dice, dice_scores = compute_dice_score(test_data, reference_data, labels_lnames)
 
-    # Check the dice score
-    np.testing.assert_allclose(
-        dscore, 0, atol=1e-6, rtol=1e-6, err_msg="Dice scores are not within range for all classes"
-    )
-
-    # assert dscore == 1, "Dice scores are not 1 for all classes"
-
+    failed_labels = (i for i, dice in dice_scores.items() if not np.isclose(dice, 0, atol=labels_lnames_tols[i][1]))
+    dice_exceeding_threshold = [f"Label {labels_lnames[lbl]}: {1-dice_scores[lbl]}" for lbl in failed_labels]
+    assert [] == dice_exceeding_threshold, f"Dice scores in {segmentation_image} are not within range!"
     logger.debug("Dice scores are within range for all classes")
 
 
-@pytest.mark.parametrize("image_name", image_types["int"])
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_int_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, image_name: str | Path):
+def test_intensity_image(test_subject: SubjectDefinition, ref_subject: SubjectDefinition, intensity_image: str):
     """
     Test the intensity data by calculating and comparing the mean square error.
 
     Parameters
     ----------
-    test_file : Path
-        Path to the test file.
-    reference_file : Path
-        Path to the reference file.
-    image_name : str | Path
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    intensity_image : str
         Name of the image file.
 
     Raises
@@ -218,20 +153,26 @@ def test_int_data(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_
     AssertionError
         If the mean square error is not 0
     """
-
-    test_file = subjects_dir / test_dir / test_subject
-    reference_file = subjects_dir / reference_dir / test_subject
-
-    test_image = load_image(test_file, image_name)
-    reference_image = load_image(reference_file, image_name)
-
     # Get the image data
-    test_data = test_image.get_fdata()
-    reference_data = reference_image.get_fdata()
-
-    mse = compute_mean_square_error(test_data, reference_data)
-
+    test_file, test_img = test_subject.load_image(intensity_image)
+    test_data = test_img.get_fdata()
+    reference_file, reference_img = ref_subject.load_image(intensity_image)
+    reference_data = reference_img.get_fdata()
     # Check the image data
-    assert mse == 0, "Mean square error is not 0"
+    np.testing.assert_allclose(test_data, reference_data, rtol=1e-4, err_msg="Image intensity data do not match!")
 
-    logger.debug("\nImage data matches")
+    logger.debug("Image data matches!")
+
+
+def pytest_generate_tests(metafunc):
+    images_by_type = {}
+    if any(f in metafunc.fixturenames for f in ("intensity_image", "segmentation_image", "image")):
+        images_by_type = read_image_type()
+
+    for typ in ["intensity", "segmentation"]:
+        if f"{typ}_image" in metafunc.fixturenames:
+            metafunc.parametrize(f"{typ}_image", images_by_type[typ], scope="module")
+    if "image" in metafunc.fixturenames:
+        from itertools import chain
+        all_images = chain(images_by_type["intensity"], images_by_type["segmentation"])
+        metafunc.parametrize("image", all_images, scope="module")

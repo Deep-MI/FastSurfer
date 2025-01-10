@@ -23,6 +23,7 @@ import os.path
 from collections.abc import Callable, Collection, Hashable, Iterable, Iterator, Mapping, Sequence
 from functools import partial, partialmethod, reduce
 from numbers import Integral, Number
+from pathlib import Path
 from typing import (
     Any,
     Generic,
@@ -30,6 +31,7 @@ from typing import (
     TextIO,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -364,28 +366,29 @@ class Mapper(Generic[KT, VT]):
             _internal_map(image, out)
             return out
 
-    def __call__(
-        self, image: AT, label_image: npt.NDArray[KT] | torch.Tensor
-    ) -> tuple[AT, npt.NDArray | torch.Tensor]:
+    @overload
+    def __call__(self, label_image: npt.NDArray[KT]) -> npt.NDArray[VT]:
+        ...
+
+    @overload
+    def __call__(self, label_image: torch.Tensor) -> torch.Tensor:
+        ...
+
+    def __call__(self, label_image: npt.NDArray[KT] | torch.Tensor):
         """
-        Transform a dataset from prediction to internal space for sets of image and segmentation.
+        Transform a label image from prediction to the target space.
 
         Parameters
         ----------
-        image : AT
-            Image - will stay same.
-        label_image : Union[npt.NDArray[KT], torch.Tensor]
-            Data to map to internal space
-            Returns two `numpy.ndarray`s with image and mapped values.
+        label_image : npt.NDArray[KT], torch.Tensor
+            Label image to map to the target space.
 
         Returns
         -------
-        image : image
-            Image.
-        Union[npt.NDArray, torch.Tensor]
-            Mapped values.
+        npt.NDArray[VT], torch.Tensor
+            Mapped values in target space .
         """
-        return image, self.map(label_image)
+        return self.map(label_image)
 
     def reversed_dict(self) -> Mapping[VT, KT]:
         """
@@ -432,7 +435,7 @@ class Mapper(Generic[KT, VT]):
         return self._map_dict.__contains__(item)
 
     def chain(
-        self, other_mapper: "Mapper[VT, T_OtherValue]"
+        self, other_mapper: "Mapper[VT, T_OtherValue]",
     ) -> "Mapper[KT, T_OtherValue]":
         """
         Chain the current mapper with the `other_mapper`.
@@ -506,8 +509,8 @@ class Mapper(Generic[KT, VT]):
 
         Returns
         -------
-        "Mapper[int, int]"
-        A Mapper object that provides a mapping from one label space to another.
+        Mapper[int, int]
+            A Mapper object that provides a mapping from one label space to another.
 
         Raises
         ------
@@ -616,7 +619,10 @@ class Mapper(Generic[KT, VT]):
 
 class ColorLookupTable(Generic[KT]):
     """
-    This class provides utility in creating color palettes from colormaps.
+    This class provides utility in creating color palettes from colormaps. It will map from class
+    (see :func:`ColorLookupTable.__init__`) to color/other info.
+
+    If you want a mapping from the class (typically the labelname to id), see :func:`ColorLookupTable.labelname2index`.
     """
 
     _color_palette: npt.NDArray[float] | None
@@ -745,14 +751,17 @@ class ColorLookupTable(Generic[KT]):
         Parameters
         ----------
         key : KT
-        The key for which the information is to be retrieved.
+            The key for which the information is to be retrieved.
 
         Raises
         -------
-        ValueError
+        KeyError
             If key is not in _classes.
         """
-        index = self._classes.index(key)
+        try:
+            index = self._classes.index(key)
+        except ValueError:
+            raise KeyError(f"The class/key '{key}' (e.g. {self._classes[0]}) was not found in {self._name}!") from None
         return self.getitem_by_index(index)
 
     def getitem_by_index(
@@ -950,7 +959,7 @@ class TSVLookupTable(ColorLookupTable[str]):
         self,
         file_or_buffer,
         name: str | None = None,
-        header: bool = False,
+        header: bool | None = None,
         add_background: bool = True,
     ) -> None:
         """
@@ -961,24 +970,25 @@ class TSVLookupTable(ColorLookupTable[str]):
         file_or_buffer :
             A `pandas`-compatible object to read from. Refer to :func:`pandas.read_csv` for additional
             documentation.
-        name : str, Optional
+        name : str, optional
             Name for messages (default: fallback to file_or_buffer, if possible).
-        header : bool
+        header : bool, optional
             Whether the TSV file has a header line (default: False).
-        add_background : bool
-            Whether to add a label for background (default: True).
+        add_background : bool, default=True
+            Whether to add a label for background.
         """
+        if isinstance(file_or_buffer, str):
+            file_or_buffer = Path(file_or_buffer)
         if name is None:
-            if isinstance(file_or_buffer, str):
-                if not os.path.exists(file_or_buffer):
-                    name = "unnamed buffer string"
-                else:
-                    name = os.path.basename(file_or_buffer)
+            if isinstance(file_or_buffer, Path):
+                name = "unnamed buffer string" if file_or_buffer.is_file() else file_or_buffer.name
             else:
                 name = "unnamed stream"
+        if header is None:
+            header = isinstance(file_or_buffer, Path) and file_or_buffer.name == "FastSurfer_ColorLut.txt"
 
+        COMMENT = "#"
         names = {
-            "ID": "int",
             "Label name": "str",
             "Red": "int",
             "Green": "int",
@@ -988,17 +998,17 @@ class TSVLookupTable(ColorLookupTable[str]):
 
         self._data = pandas.read_csv(
             file_or_buffer,
-            sep='\s+',
+            sep='\\s+',
             index_col=0,
             skip_blank_lines=True,
-            comment="#",
+            comment=COMMENT,
             header=int(header),
             names=names.keys(),
             dtype=names,
         )
-        if not (self._data.index == 0).any():
+        if (self._data.index != 0).all() and add_background:
             df = pandas.DataFrame.from_dict(
-                {k: [v] for k, v in zip(names.keys(), [0, "Unknown", 0, 0, 0, 0], strict=False)}
+                {k: [v] for k, v in zip(names.keys(), ["Unknown", 0, 0, 0, 0], strict=False)}
             )
             self._data = pandas.concat([df, self._data])
         classes = self._data["Label name"].tolist()

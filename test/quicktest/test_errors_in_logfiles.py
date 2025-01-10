@@ -4,115 +4,130 @@ from pathlib import Path
 import pytest
 import yaml
 
-from .common import load_test_subjects
+from .common import SubjectDefinition
 
 logger = getLogger(__name__)
 
-
-def load_errors():
+class LogFile:
     """
-    Load the errors and whitelist strings from ./data/logfile.errors.yaml.
+    Class to handle log files.
 
-    Returns
-    -------
+    Attributes
+    ----------
+    path: Path
+        The path to the logfile read.
+    contents: list[str]
+        The content of the logfile.
     errors : list[str]
         List of errors.
     whitelist : list[str]
         List of whitelisted errors.
     """
 
-    # Open the error_file_path and read the errors and whitelist into arrays
+    path: Path
+    contents: list[str]
+    errors: list[str]
+    whitelist: list[str]
 
-    error_file_path = Path(__file__).parent / "data" / "logfile.errors.yaml"
+    def __init__(self, logfile: Path):
+        """
+        Create a LogFile object.
 
-    with open(error_file_path) as file:
-        data = yaml.safe_load(file)
-        errors = data.get("errors", [])
-        whitelist = data.get("whitelist", [])
+        Parameters
+        ----------
+        logfile : Path
+            The path to the logfile.
+        """
+        self.path = logfile
+        self.contents = list(logfile.read_text().splitlines())
 
-    return errors, whitelist
+    @property
+    def errors(self):
+        if not hasattr(self, '_errors'):
+            self.__get_config()
+        return self._errors
+
+    @property
+    def whitelist(self):
+        if not hasattr(self, '_whitelist'):
+            self.__get_config()
+        return self._whitelist
+
+    @classmethod
+    def __get_config(cls):
+        # Open the error_file_path and read the errors and whitelist into arrays
+        error_config_path = Path(__file__).parent / "data/logfile.errors.yaml"
+        # Load the errors and whitelist strings from ./data/logfile.errors.yaml.
+        with open(error_config_path) as file:
+            data = yaml.safe_load(file)
+            cls._errors = data.get("errors", [])
+            cls._whitelist = data.get("whitelist", [])
+
+    def find_error_lines(self) -> list[int]:
+        def check_line(lline: str) -> bool:
+            return any(error in lline for error in self.errors) and not any(white in lline for white in self.whitelist)
+
+        return list(i for i, line in enumerate(self.contents) if check_line(line.lower()))
 
 
-def load_log_files(test_subject: Path):
+@pytest.fixture(scope="module")
+def logfile(request: pytest.FixtureRequest, test_subject: SubjectDefinition) -> LogFile:
     """
-    Retrieve the log files in the given log directory.
+    Reads the logfile defined via test_subject and the param.
 
     Parameters
     ----------
-    test_subject : Path
-        Subject directory to test.
+    request : pytest.FixtureRequest
+        Request for a filename.
+    test_subject : SubjectDefinition
+        Definition of the Subject and its directory.
 
     Returns
     -------
-    log_files : list[Path]
-        List of log files in the given log directory.
+    LogFile
+        The LogFile object.
     """
-
-    # Retrieve the log files in given log directory
-
-    log_directory = test_subject / "scripts"
-    log_files = [file for file in Path(log_directory).iterdir() if file.suffix == ".log"]
-
-    return log_files
+    logfile = test_subject.path / "scripts" / request.param
+    assert logfile.exists(), f"{logfile.relative_to(test_subject.path)} does not exist!"
+    return LogFile(logfile)
 
 
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_errors(subjects_dir: Path, test_dir: Path, test_subject: Path):
+@pytest.mark.parametrize("logfile", ["deep-seg.log", "recon-surf.log"], indirect=True)
+def test_errors_in_logfiles(logfile: LogFile, subjects_dir: Path):
     """
     Test if there are any errors in the log files.
 
     Parameters
     ----------
-    subjects_dir : Path
-        Subjects directory.
-        Filled by pytest fixture from conftest.py.
-    test_dir : Path
-        Tests directory.
-        Filled by pytest fixture from conftest.py.
-    test_subject : Path
-        Subject to test.
+    logfile : LogFile
+        A LogFile object to get the log contents from.
 
     Raises
     ------
     AssertionError
         If any of the keywords are in the log files.
     """
-
-    test_subject = subjects_dir / test_dir / test_subject
-    log_files = load_log_files(test_subject)
-
-    error_flag = False
-
-    errors, whitelist = load_errors()
-
-    files_with_errors = {}
-
     # Check if any of the keywords are in the log files
-    for log_file in log_files:
-        rel_path = log_file.relative_to(subjects_dir)
-        logger.debug(f"Checking file: {rel_path}")
-        try:
-            with log_file.open("r") as file:
-                lines = file.readlines()
-                lines_with_errors = []
-                for _line_number, line in enumerate(lines, start=1):
-                    if any(error in line.lower() for error in errors):
-                        if not any(white in line.lower() for white in whitelist):
-                            # Get two lines before and after the current line
-                            context = lines[max(0, _line_number - 2) : min(len(lines), _line_number + 3)]
-                            lines_with_errors.append((_line_number, context))
-                            # print(lines_with_errors)
-                            files_with_errors[rel_path] = lines_with_errors
-                            error_flag = True
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Log file not found at path: {log_file}") from None
+    lines_with_errors = logfile.find_error_lines()
 
-    # Print the lines and context with errors for each file
-    for file, lines in files_with_errors.items():
-        logger.debug(f"\nFile {file}, in line {files_with_errors[file][0][0]}:")
-        for _line_number, line in lines:
-            logger.debug(*line, sep="")
+    rel_path = logfile.path.relative_to(subjects_dir)
+    if len(lines_with_errors) > 0:
+        import numpy as np
 
-    # Assert that there are no lines with any of the keywords
-    assert not error_flag, f"Found errors in the following files: {files_with_errors}"
-    logger.debug("\nNo errors found in any log files.")
+        def fmt_line(index):
+            error_line = index in lines_with_errors
+            fill0 = "*" if error_line else " "
+            fill1 = "**: " if error_line else ":   "
+            return f"{index + 1:{fill0}>4d}{fill1}{logfile.contents[index]}"
+
+        # Print the lines and context with errors for each file
+        logger.debug(f"Errors found in file {rel_path}:")
+        lines_to_report = np.unique((np.asarray(lines_with_errors)[None] + np.arange(-2, 3)[:, None]).flat)
+        lines_to_report = lines_to_report[lines_to_report > -1]
+        lines_diff_highlighted = list(map(fmt_line, lines_to_report))
+        lines_diff_same = list(map(fmt_line, (line for line in lines_to_report if line not in lines_with_errors)))
+        logger.debug("\n".join(lines_diff_highlighted))
+        # Assert that there are no lines with any of the keywords
+        assert lines_diff_same == lines_diff_highlighted, f"Found {len(lines_with_errors)} errors in {rel_path}!"
+    else:
+        logger.debug(f"No errors found in log file {rel_path}.")

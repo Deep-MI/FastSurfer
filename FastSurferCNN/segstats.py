@@ -42,7 +42,7 @@ from numpy import typing as npt
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as robust_threshold
 from FastSurferCNN.utils.arg_types import int_ge_zero as id_type
 from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size_type
-from FastSurferCNN.utils.brainvolstats import Manager
+from FastSurferCNN.utils.brainvolstats import Manager, MeasureTuple, read_measure_file
 from FastSurferCNN.utils.parser_defaults import add_arguments
 from FastSurferCNN.utils.threads import get_num_threads
 
@@ -1046,6 +1046,10 @@ def table_to_dataframe(
     -------
     pandas.DataFrame
         The DataFrame object of all columns and rows in table.
+
+    See Also
+    --------
+    dataframe_to_table : Reverse operation translating a :class:`pandas.DataFrame` into a list of :class:`PVStats`.
     """
     df = pd.DataFrame(table, index=np.arange(len(table)))
     if not report_empty:
@@ -1056,6 +1060,37 @@ def table_to_dataframe(
     df = df.sort_values("SegId")
     df.index = np.arange(1, len(df) + 1)
     return df
+
+
+def dataframe_to_table(dataframe: pd.DataFrame) -> list[PVStats]:
+    """
+    Convert the dataframe into a list of PVStats.
+
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        The dataframe to convert.
+
+    Returns
+    -------
+    list[PVStats]
+        The list of one stats line per entry.
+
+    See Also
+    --------
+    table_to_dataframe : Reverse operation translating a list of :class:`PVStats` into a :class:`pandas.DataFrame`.
+    """
+    # Step 1: make sure the required columns exist
+    required_cols = tuple(PVStats.__required_keys__)
+    missing_cols = [required_col for required_col in required_cols if required_col not in dataframe.columns]
+    if bool(missing_cols):
+        raise ValueError("Dataframe is missing columns", missing_cols)
+
+    # Step 2: Find optional columns
+    possible_cols = (prefix + opt_col for opt_col, prefix in product(PVStats.__optional_keys__, ("", "norm")))
+    optional_cols = tuple(optional_col for optional_col in possible_cols if optional_col in dataframe.columns)
+
+    return [{c: row[c] for c in required_cols + optional_cols} for _, row in dataframe.iterrows()]
 
 
 def update_structnames(
@@ -1346,6 +1381,54 @@ def write_statsfile(
             dataframe = index_df.join(dataframe)
         _table_header(fp, dataframe)
         _table_body(fp, dataframe)
+
+
+def read_statsfile(path: Path) -> tuple[dict[str, MeasureTuple | str], pd.DataFrame]:
+    """
+    Read the stats table of a stats file. The file must have columns (')
+
+    Parameters
+    ----------
+    path : Path
+        The path to the file to read.
+
+    Returns
+    -------
+    pd.DataFrame
+        The dataframe object with the table.
+    """
+    measures = read_measure_file(path)
+    annotations = {}
+    from re import compile
+    split_pattern = compile("\\s+")
+    table_header = {"index": [], "key": [], "value": []}
+    with open(path) as fp:
+        for line in fp:
+            if line.startswith("#") and line[1:].lstrip():
+                if line.startswith("# TableCol"):
+                    _, *vals = split_pattern.split(line[1:].strip(), 3)
+                    for k, t, v in zip(("index", "key", "value"), (int, str, str), vals, strict=False):
+                        table_header[k].append(t(v))
+                elif not line.startswith("# Measure"):
+                    key, value = line[1:].strip().split(" ", 1)
+                    annotations[key] = value
+    annotations.update(measures)
+    columns = []
+    if table_header["index"]:
+        table_info_as_dataframe = pd.DataFrame.from_dict(table_header)
+        pivot = table_info_as_dataframe.pivot_table(values="value", index="index", columns="key", aggfunc=lambda x: x)
+        columns: list[dict[str, str]] = [row.to_dict() for _, row in pivot.sort_index().iterrows()]
+        annotations["Column_Info"] = columns
+
+    if columns:
+        kwargs = {"names": [col["ColHeader"] for col in columns]}
+    else:
+        try:
+            kwargs = {"names": list(annotations.pop("ColHeaders").strip().split(" "))}
+        except IndexError:
+            kwargs = {"header": 'infer'}
+    dataframe = pd.read_csv(path, sep="\\s+", comment="#", **kwargs)
+    return annotations, dataframe
 
 
 def preproc_image(

@@ -4,6 +4,7 @@
 # The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
 
 name: 'Run Fastsurfer'
+author: 'David Kuegler'
 description: 'Runs FastSurfer'
 
 inputs:
@@ -23,6 +24,10 @@ inputs:
     required: true
     type: string
     description: "The url to the reference file to download for comparison"
+  junit-file:
+    default: /tmp/quicktest.junit.xml
+    type: string
+    description: "The path where the JUnit-XML file should be saved"
 
 runs:
   using: "composite"
@@ -67,6 +72,15 @@ runs:
       shell: bash
       run: |
         echo "::group::Run tests"
-        python -m pytest test/quicktest
+        flags=("--junit-xml=${{ inputs.junit-file }}")
+        if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
+        then 
+          flags+=(-vv --log_cli_level=DEBUG)
+        fi
+        python -m pytest "${flags[@]}" test/quicktest
         echo "::endgroup::"
-
+    - name: Upload the the JUnit XML file as an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: fastsurfer-${{ github.sha }}-junit-${{ inputs.subject-id }}
+        path: ${{ inputs.junit-file }}

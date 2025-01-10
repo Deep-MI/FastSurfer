@@ -1,242 +1,288 @@
-import os
+from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 
-import pandas as pd
+import numpy as np
 import pytest
-import yaml
 
-from .common import load_test_subjects
+from FastSurferCNN.segstats import PVStats
+
+from .common import ApproxAndLog, SubjectDefinition, Tolerances
 
 logger = getLogger(__name__)
 
-file_types = ["aseg.stats", "aseg+DKT.stats", "aseg.presurf.hypos.stats", "cerebellum.CerebNet.stats",
-              "hypothalamus.HypVINN.stats", "wmparc.DKTatlas.mapped.stats"]
+@lru_cache
+def read_stats_files() -> list[str]:
+    return [file.name[:-5] for file in (Path(__file__).parent / "data").glob("*.stats.yaml")]
 
-@pytest.fixture
-def thresholds(file_type):
+
+class MeasureTolerances(Tolerances):
+
+    def __check_measure_thresholds(self) -> bool:
+        if not (is_dict := isinstance(self.config["measure_thresholds"], dict)):
+            logger.warning(f"measure_thresholds for {self.config_file} are not a dictionary!")
+        return is_dict
+
+    def measures(self) -> list[str]:
+        if self.__check_measure_thresholds():
+            return list(self.config["measure_thresholds"].keys())
+        else:
+            return []
+
+    def threshold(self, measure: str) -> float:
+
+        if self.__check_measure_thresholds():
+            try:
+                return self.config["measure_thresholds"][measure]
+            except KeyError:
+                pass
+        return self.config["default_threshold"]
+
+
+@pytest.fixture(scope="module")
+def measure_tolerances(stats_file: str) -> MeasureTolerances:
+    """
+    Read the expected measures for the given stats file.
+
+    Parameters
+    ----------
+    stats_file : str
+        The name of the stats file.
+
+    Returns
+    -------
+    MeasureTolerances
+        The list of measures expected for this file.
+    """
+    thresholds_file = Path(__file__).parent / f"data/thresholds/{stats_file}.yaml"
+    assert Path(thresholds_file).is_file(), f"The threshold file {thresholds_file} does not exist!"
+    return MeasureTolerances(thresholds_file)
+
+@pytest.fixture(scope="module")
+def stats_tolerances(stats_file: str) -> Tolerances:
     """
     Load the thresholds from the given file path.
 
-    Returns
-    -------
-    default_threshold : float
-        Default threshold value.
-    thresholds : dict
-        Dictionary containing the thresholds
-    """
-
-    # Load the thresholds file
-    thresholds_file = Path(__file__).parent / "data/thresholds" / f"{file_type}.yaml"
-
-    # Open the file_path and read the thresholds into a dictionary
-    with open(thresholds_file) as file:
-        data = yaml.safe_load(file)
-        default_threshold = data.get("default_threshold")
-        thresholds = data.get("thresholds", {})
-
-    return default_threshold, thresholds
-
-
-def load_stats_file(test_subject: Path, file_type: Path):
-    """
-    Load the stats file from the given file path.
-
     Parameters
     ----------
-    test_subject : Path
-        Path to the test subject.
+    stats_file : str
+        The name of the stats file.
 
     Returns
     -------
-    stats_file : Path
+    Tolerances
+        Per-structure tolerances object
     """
-
-    files = os.listdir(test_subject / "stats")
-
-    if "aseg.stats" in files:
-        return test_subject / "stats" / "aseg.stats"
-    elif "aparc+DKT.stats" in files:
-        return test_subject / "stats" / "aparc+DKT.stats"
-    else:
-        raise ValueError("Unknown stats file")
+    thresholds_file = Path(__file__).parent / f"data/thresholds/{stats_file}.yaml"
+    assert Path(thresholds_file).is_file(), f"The threshold file {thresholds_file} does not exist!"
+    return Tolerances(thresholds_file)
 
 
-def read_measure_stats(file_path: Path):
-    """
-    Read the measure stats from the given file path.
-
-    Parameters
-    ----------
-    file_path : Path
-        Path to the stats file.
-
-    Returns
-    -------
-    measure : list
-        List of measures.
-    measurements : dict
-        Dictionary containing the measurements.
-    """
-
-    measure = []
-    measurements = {}
-
-    # Retrieve lines starting with "# Measure" from the stats file
-    with open(file_path) as file:
-        # Read each line in the file
-        for _i, line in enumerate(file, 1):
-            # Check if the line starts with "# ColHeaders"
-            if line.startswith("# ColHeaders"):
-                line.removeprefix("# ColHeaders").strip().split(" ")
-
-            # Check if the line starts with "# Measure"
-            if line.startswith("# Measure"):
-                # Strip "# Measure" from the line
-                line = line.removeprefix("# Measure").strip()
-                # Append the measure to the list
-                line = line.split(", ")
-                measure.append(line[1])
-                measurements[line[1]] = float(line[3])
-
-    return measure, measurements
-
-
-def read_table(file_path: Path, file_type: Path):
-    """
-    Read the table from the given file path.
-
-    Parameters
-    ----------
-    file_path : Path
-        Path to the stats file.
-    file_type : Path
-        Type of the file.
-
-    Returns
-    -------
-    table : pandas.DataFrame
-        Table containing the
-    """
-
-    table_start = 0
-    columns = []
-
-    file_path = file_path / "stats" / file_type
-
-    # Retrieve stats table from the stats file
-    with open(file_path) as file:
-        # Read each line in the file
-        for i, line in enumerate(file, 1):
-            # Check if the line starts with "# ColHeaders"
-            if line.startswith("# ColHeaders"):
-                table_start = i
-                columns = line.removeprefix("# ColHeaders").strip().split(" ")
-
-    # Read the reference table into a pandas dataframe
-    table = pd.read_table(file_path, skiprows=table_start, sep="\s+", header=None)
-    table.columns = columns
-    table.set_index(columns[0], inplace=True)
-
-    return table
-
-
-@pytest.mark.parametrize("file_type", file_types)
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_measure_exists(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, file_type: Path):
+def test_measure_exists(
+        test_subject: SubjectDefinition,
+        stats_file: str,
+        measure_tolerances: MeasureTolerances,
+):
     """
     Test if the measure exists in the stats file.
 
     Parameters
     ----------
-    subjects_dir : Path
-        Path to the subjects directory.
-    test_dir : Path
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    stats_file : str
         Name of the test directory.
-    test_subject : Path
-        Name of the test subject.
+    measure_tolerances : MeasureTolerances
+        The object to provide the measure tolerances for stats_file.
 
     Raises
     ------
     AssertionError
         If the measure does not exist in the stats file.
     """
+    _, annotations, _ = test_subject.load_stats_file(stats_file)
+    expected_measures = measure_tolerances.measures()
 
-    test_subject = subjects_dir / test_dir / test_subject
-    test_file = test_subject / "stats" / file_type
-
-    reference_subject = subjects_dir / reference_dir / test_subject
-    reference_file = reference_subject / "stats" / file_type
-
-    test_data = read_measure_stats(test_file)
-    ref_data = read_measure_stats(reference_file)
-    errors = []
-
-    for struct in ref_data[1]:
-        if struct not in test_data[1]:
-            print("\nstruct:", struct)
-            errors.append(
-                f"for struct {struct} the value {test_data[1].get(struct)} is not close to {ref_data[1].get(struct)}"
-            )
+    if not expected_measures:
+        # no expected measures, skip
+        pytest.skip(f"No measures expected for {stats_file}.")
+        return
+    # measures are missing => None => not a tuple
+    # measures are not a tuple => not a tuple
+    missing_invalid_measures = [m for m in expected_measures if not isinstance(annotations.get(m, None), tuple)]
 
     # Check if all measures exist in stats file
-    assert len(errors) == 0, ", ".join(errors)
+    assert [] == missing_invalid_measures, f"Some Measures are missing in {test_subject}: {stats_file}!"
 
 
-@pytest.mark.parametrize("file_type", file_types)
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_tables(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path, thresholds,
-                 file_type: Path):
+def test_measure_meta(
+        test_subject: SubjectDefinition,
+        ref_subject: SubjectDefinition,
+        stats_file: str,
+        measure_tolerances: MeasureTolerances,
+):
     """
-    Test if the tables are within the threshold.
+    Test if the measure meta-information is correct in stats_file.
 
     Parameters
     ----------
-    subjects_dir : Path
-        Path to the subjects directory.
-    test_dir : Path
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    stats_file : str
         Name of the test directory.
-    reference_dir : Path
-        Name of the reference directory.
-    test_subject : Path
-        Name of the test subject.
-    thresholds : tuple
-        Tuple containing the default threshold and the thresholds.
+    measure_tolerances : MeasureTolerances
+        The object to provide the measure tolerances for stats_file.
+
+    Raises
+    ------
+    AssertionError
+        If the measure is not within the defined threshold in the stats file.
+    """
+    _, test_annots, _ = test_subject.load_stats_file(stats_file)
+    _, ref_annots, _ = ref_subject.load_stats_file(stats_file)
+
+    expected_measures = measure_tolerances.measures()
+    if not expected_measures:
+        # no expected measures, skip
+        pytest.skip(f"No measures expected for {stats_file}.")
+        return
+    _expected_meta = {k: ref_annots[k][:2] + (None,) + ref_annots[k][3:] for k in expected_measures}
+    _actual_meta = {k: test_annots[k][:2] + (None,) + test_annots[k][3:] for k in expected_measures}
+
+    assert _expected_meta == _actual_meta, f"Some Measure meta-information is wrong for {test_subject} in {stats_file}!"
+
+
+def test_measure_thresholds(
+        test_subject: SubjectDefinition,
+        ref_subject: SubjectDefinition,
+        stats_file: str,
+        measure_tolerances: MeasureTolerances,
+):
+    """
+    Test if the measure is within thresholds in stats_file.
+
+    Parameters
+    ----------
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    stats_file : str
+        Name of the test directory.
+    measure_tolerances : MeasureTolerances
+        The object to provide the measure tolerances for stats_file.
+
+    Raises
+    ------
+    AssertionError
+        If the measure is not within the defined threshold in the stats file.
+    """
+    _, expected_annots, _ = ref_subject.load_stats_file(stats_file)
+    _, actual_annots, _ = test_subject.load_stats_file(stats_file)
+
+    expected_measures = measure_tolerances.measures()
+    if not expected_measures:
+        # no expected measures, skip
+        pytest.skip(f"No measures expected for {stats_file}.")
+        return
+    # the more pytest-way to evaluate the thresholds would be
+    # assert expected_measures == pytest.approx(actual_measures), (f"Some Measures are outside of the threshold in"
+    #                                                              f"{test_subject}: {stats_file}!")
+    # but this does not work because we have different thresholds for different measures.
+
+    from FastSurferCNN.utils.brainvolstats import MeasureTuple
+    def check_measure(measure: str) -> bool:
+        expected: MeasureTuple = expected_annots[measure]
+        actual: MeasureTuple = actual_annots[measure]
+        return expected == ApproxAndLog(actual, rel=measure_tolerances.threshold(measure))
+
+    failed_measures = (m for m in expected_measures if not check_measure(m))
+    measures_outside_spec = [f"Measure {m}: {expected_annots[m][2]} <> {actual_annots[m][2]}" for m in failed_measures]
+    assert [] == measures_outside_spec, f"Some Measures are outside of the threshold in {test_subject}: {stats_file}!"
+
+
+def test_table_structs(
+        test_subject: SubjectDefinition,
+        ref_subject: SubjectDefinition,
+        stats_file: str,
+):
+    """
+    Test if the structs (and potentially SegId information) are in stats_file.
+
+    Parameters
+    ----------
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    stats_file : str
+        Name of the test directory.
 
     Raises
     ------
     AssertionError
         If the table values are not within the threshold.
     """
+    _, _, expected_table = ref_subject.load_stats_file(stats_file)
+    _, _, actual_table = test_subject.load_stats_file(stats_file)
+    # make sure there is no duplicates in expected and the same number of rows
+    expected_num = np.unique([e["SegId"] for e in expected_table]).shape[0]
+    assert len(expected_table) == expected_num, f"The number of rows in {stats_file} is not the expected!"
+    # check if the same SegIds and StructName pairs are in the table
+    expected_segids_structs = {stats["SegId"]: stats.get("StructName", None) for stats in expected_table}
+    actual_segids_structs = {stats["SegId"]: stats.get("StructName", None) for stats in actual_table}
+    assert expected_segids_structs == actual_segids_structs, f"The segid-struct pairs in {stats_file} are different!"
 
-    # Load the test and reference tables
-    test_file = subjects_dir / test_dir / test_subject
-    test_table = read_table(test_file, file_type)
 
-    reference_subject = subjects_dir / reference_dir / test_subject
-    ref_table = read_table(reference_subject, file_type)
+def test_stats_table(
+        test_subject: SubjectDefinition,
+        ref_subject: SubjectDefinition,
+        stats_file: str,
+        stats_tolerances: Tolerances,
+):
+    """
+    Test if the tables are within the threshold.
 
-    # Load the thresholds
-    default_threshold, thresholds = thresholds
+    Parameters
+    ----------
+    test_subject : SubjectDefinition
+        Definition of the test subject.
+    ref_subject : SubjectDefinition
+        Definition of the reference subject.
+    stats_file : str
+        Name of the test directory.
+    stats_tolerances : Tolerances
+        The object to provide the tolerances for stats_file.
 
-    variations = {}
+    Raises
+    ------
+    AssertionError
+        If the table values are not within the threshold.
+    """
+    _, _, expected_table = ref_subject.load_stats_file(stats_file)
+    _, _, actual_table = test_subject.load_stats_file(stats_file)
+    actual_segids = [stats["SegId"] for stats in actual_table]
 
-    # Check if table values are within the threshold
-    for i in ref_table.index:
-        struct = ref_table.loc[i, "StructName"]
-        for j in ref_table.columns:
-            if j == "StructName":
-                continue
-            threshold = default_threshold
-            if ref_table.loc[i, j] == 0:
-                continue
-            variation = (test_table.loc[i, j] / ref_table.loc[i, j]) - 1
-            if abs(variation) > threshold:
-                variations[struct] = {j: abs(variation)}
+    def filter_keys(stats: PVStats) -> dict[str, int | float]:
+        return {k: v for k, v in stats.items() if k not in ["SegId", "StructName"]}
 
-    if variations:
-        logger.debug("\nVariations greater than threshold:")
-        for key, value in variations.items():
-            logger.debug(key, value)
+    expected_different = []
+    actual_different = []
+    for expected in expected_table:
+        expected_segid = expected["SegId"]
+        _expected = filter_keys(expected)
+        actual = actual_table[actual_segids.index(expected_segid)]
+        _actual = filter_keys(actual)
+        if not _expected == ApproxAndLog(_actual, abs=stats_tolerances.threshold(expected_segid)):
+            expected_different.append(expected)
+            actual_different.append(actual)
 
-    return variations
+    assert expected_different == actual_different, f"The tables of some structures in {stats_file} are 'too' different!"
+
+
+def pytest_generate_tests(metafunc):
+    # populate the stats_file fixture
+    if "stats_file" in metafunc.fixturenames:
+        metafunc.parametrize("stats_file", read_stats_files(), scope="module")

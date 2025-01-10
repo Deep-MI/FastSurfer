@@ -28,11 +28,11 @@ on:
   workflow_dispatch:
     inputs:
       docker-image:
-        description: 'Which docker image should be used to run this test (build-cached => build from git)'
+        description: 'Which docker image should be used to run this test (build-cached => build from git, also pr/<#no>)'
         default: build-cached
         type: string
       freesurfer-build-image:
-        description: 'FreeSurfer build image to build with (default="": deep MI/fastsurfer-build:freesurferXXX; extract version from Docker/install_fs_pruned.sh)'
+        description: 'FreeSurfer build image to build with ("" (default) => deepmi/fastsurfer-build:freesurferXXX; extract version from Docker/install_fs_pruned.sh)'
         type: string
 
 permissions: read-all
@@ -117,16 +117,26 @@ jobs:
           # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
       - name: Checkout repository
-        if: ${{ steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
+        # DOCKER_IMAGE is build-cached => we want to build, check this repository out to build the docker image
+        if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         uses: actions/checkout@v4
+      - name: Checkout repository
+        # DOCKER_IMAGE starts with pr/*** => we want to build, check the PR out to build the docker image
+        if: steps.parse.outputs.CONTINUE == 'true' && startsWith(steps.parse.outputs.DOCKER_IMAGE, 'pr/')
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.parse.outputs.DOCKER_IMAGE }}
       - name: Get the FreeSurfer version
-        if: ${{ steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
+        # we want to build the docker image, get what we want to do for freesurfer (read fslink from install_pruned.sh,
+        if: steps.parse.outputs.CONTINUE == 'true' && (steps.parse.outputs.DOCKER_IMAGE == 'build-cached' || startsWith(steps.parse.outputs.DOCKER_IMAGE, 'pr/'))
         shell: bash
         id: parse-version
         run: |
           # get the FreeSurfer version from install_fs_pruned.sh
           {
-            eval "$(grep "^fslink=" ./Docker/install_fs_pruned.sh)"
+            fslink="$(grep "^fslink=" ./Docker/install_fs_pruned.sh)"
+            fslink="${fslink:7}"
+            if [[ "${fslink:0:1}" == '"' ]] || [[ "${fslink:0:1}" == "'" ]] ; then fslink="${fslink:1:-1}" ; fi
             fs_version="$(basename "$(dirname "$fslink")")"
             fs_version_short="${fs_version//\./}"
             echo "FS_VERSION=$fs_version"
@@ -139,15 +149,15 @@ jobs:
             echo "FASTSURFER_HOME=$(pwd)"
           } > $GITHUB_OUTPUT
       - uses: Deep-MI/FastSurfer/.github/actions/build-docker@dev
-        if: ${{ steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached' }}
+        if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})
         with:
           fastsurfer-home: ${{ steps.parse-version.outputs.FASTSURFER_HOME }}
           # currently, this image has to be updated and used to circumvent storage limitations in github actions
           # and it is also faster to use this prebuilt, reduced-size freesurfer distribution
           freesurfer-build-image: "${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}"
-  fastsurfer:
-    name: 'Run FastSurfer on sample images'
+  fastsurfer-test:
+    name: 'Run FastSurfer on sample images and perform tests'
     needs: build-docker
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -161,13 +171,14 @@ jobs:
           - subject-id: 1.0mm
             file-extension: ".mgz"
             image-key: QUICKTEST_IMAGE_HREF_1mm
+            case-key: QUICKTEST_TARGET_HREF_1mm
           - subject-id: 0.8mm
             file-extension: ".nii.gz"
             image-key: QUICKTEST_IMAGE_HREF_08mm
+            case-key: QUICKTEST_TARGET_HREF_08mm
     steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/actions
+      - name: Check out the repository that is to be tested
+        uses: actions/checkout@v4
       - name: Run FastSurfer for ${{ matrix.subject-id }} with the previously created docker container
         uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
@@ -177,23 +188,7 @@ jobs:
           license: ${{ secrets.QUICKTEST_LICENSE }}
           docker-image: ${{ needs.build-docker.outputs.docker-image }}
           extra-args: ${{ needs.build-docker.outputs.extra-args }}
-  tests:
-    name: 'Download data and perform tests'
-    needs: fastsurfer
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    strategy:
-      # the following matrix strategy will result in one run per subject as matrix is "one-dimensional".
-      # Additional parameters under "include" are then added as additional (dependent) information
-      matrix:
-        subject-id: [0.8mm, 1.0mm]
-        include:
-          - subject-id: 0.8mm
-            case-key: QUICKTEST_TARGET_HREF_08mm
-          - subject-id: 1.0mm
-            case-key: QUICKTEST_TARGET_HREF_1mm
-    steps:
-      - uses: actions/checkout@v4
+          cleanup: 'true'
       - name: Run tests
         uses: Deep-MI/FastSurfer/.github/actions/run-tests@dev
         with:
@@ -201,3 +196,21 @@ jobs:
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
           case-href: ${{ secrets[matrix.case-key] }}
+          junit-file: /tmp/fastsurfer-quicktest-${{ matrix.subject-id }}.junit.xml
+  annotation:
+    name: Annotate test results as checks
+    runs-on: ubuntu-latest
+    needs: [fastsurfer-test, build-docker]
+    if: always() && needs.build-docker.outputs.continue == 'true'
+    steps:
+      - name: Retrieve test JUnit files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fastsurfer-${{ github.sha }}-junit-*
+          merge-multiple: 'true'
+          path: /tmp
+      - name: Write the results into the check
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: /tmp/fastsurfer-quicktest-*.junit.xml
+          check_name: Annotate the test results as checks
