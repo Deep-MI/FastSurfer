@@ -16,8 +16,8 @@
 # IMPORTS
 import numpy as np
 import torch
-from scipy.ndimage import _ni_support
-from scipy.ndimage.morphology import (
+from scipy.ndimage import (
+    _ni_support,
     binary_erosion,
     distance_transform_edt,
     generate_binary_structure,
@@ -247,7 +247,7 @@ class DiceScore:
 
 def dice_score(pred, gt, validate=True):
     """
-    Calculates the Dice Similarity between pred and gt.
+    Calculates the Dice Dissimilarity between pred and gt (best 0).
 
     Parameters
     ----------

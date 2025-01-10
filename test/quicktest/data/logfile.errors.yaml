@@ -1,9 +1,13 @@
+errors_comment: |
+  Errors contains the keywords that are 'required' to classify a line in the logfile to indicate a failed
+  status. Examples are Traceback, which indicates a python call ended uncontrolled.
 errors:
  - "error"
- - "error:"
  - "exception"
  - "traceback"
 
+whitelist_comment:
+  Whitelist entries are entries that mark a logline as 'not failed' despite finding a hit with (above) errors
 whitelist:
   - "without error"
   - "not included"

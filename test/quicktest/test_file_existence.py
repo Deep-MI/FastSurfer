@@ -2,53 +2,49 @@ from logging import getLogger
 from pathlib import Path
 
 import pytest
+import yaml
 
-from .common import load_test_subjects
+from .common import SubjectDefinition
 
 logger = getLogger(__name__)
 
 
-def get_files_from_folder(folder_path: Path):
+@pytest.fixture(scope="session")
+def expected_files() -> set[str]:
+    with open(Path(__file__).parent / "data/expected-files.yaml") as fp:
+        return set(yaml.safe_load(fp)["files"])
+
+
+@pytest.fixture(scope="session")
+def files_for_test_subject(test_subject: SubjectDefinition) -> set[str]:
     """
     Get the list of files in the directory relative to the folder path.
 
     Parameters
     ----------
-    folder_path : Path
-        Path to the folder.
+    test_subject : SubjectDefinition
+        Folder definition of a subject.
 
     Returns
     -------
-    list
-        List of files in the directory.
+    set
+        A list of all files in the subject directory.
     """
-
     # Get a list of all files in the folder recursively
-    filenames = []
-    for file in Path(folder_path).rglob("*"):
-        filenames.append(str(file.relative_to(folder_path)))
-
-    return filenames
+    all_files_in_subject_dir = Path(test_subject.path).rglob("*")
+    return set(str(file.relative_to(test_subject.path)) for file in all_files_in_subject_dir if file.is_file())
 
 
-@pytest.mark.parametrize("test_subject", load_test_subjects())
-def test_file_existence(subjects_dir: Path, test_dir: Path, reference_dir: Path, test_subject: Path):
+def test_file_existence(files_for_test_subject: set[str], expected_files: set[str]):
     """
-    Test the existence of files in the folder.
+    Test the existence of files for the subject test_subject.
 
     Parameters
     ----------
-    subjects_dir : Path
-        Path to the subjects directory.
-        Filled by pytest fixture from conftest.py.
-    test_dir : Path
-        Name of the test directory.
-        Filled by pytest fixture from conftest.py.
-    reference_dir : Path
-        Name of the reference directory.
-        Filled by pytest fixture from conftest.py.
-    test_subject : Path
-        Name of the test subject.
+    files_for_test_subject : set of str
+        The set of files to present in the subject test_subject.
+    expected_files : set of str
+        The set of files expected to be present in the subject.
 
     Raises
     ------
@@ -56,16 +52,8 @@ def test_file_existence(subjects_dir: Path, test_dir: Path, reference_dir: Path,
         If a file in the reference list does not exist in the test list.
     """
 
-    # Get reference files from the reference subject directory
-    reference_subject = subjects_dir / reference_dir / test_subject
-    reference_files = get_files_from_folder(reference_subject)
-
-    # Get test list of files in the test subject directory
-    test_subject = subjects_dir / test_dir / test_subject
-    test_files = get_files_from_folder(test_subject)
-
     # Check if each file in the reference list exists in the test list
-    missing_files = [file for file in reference_files if file not in test_files]
-    assert not missing_files, f"Files '{missing_files}' do not exist in test subject."
+    missing_files = expected_files - files_for_test_subject
+    assert expected_files <= files_for_test_subject, f"Files {tuple(missing_files)} do not exist in test subject."
 
-    logger.debug("\nAll files present.")
+    logger.debug("All files present.")

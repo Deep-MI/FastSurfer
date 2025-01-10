@@ -257,10 +257,10 @@ class SubjectDirectory:
     _segfile: str
     _asegdkt_segfile: str
     _main_segfile: str
-    _subject_dir: str
+    _subject_dir: Path
     _id: str
 
-    def __init__(self, **kwargs):
+    def __init__(self, subject_dir: str | Path | None = None, **kwargs):
         """
         Create a subject, supports generic attributes.
 
@@ -278,17 +278,18 @@ class SubjectDirectory:
             Relative or absolute filename of the main segmentation filename.
         asegdkt_segfile : str
             Relative or absolute filename of the aparc+aseg segmentation filename.
-        subject_dir : Path
-            Path to the subjects directory (containing subject folders).
+        subject_dir : Path, optional
+            The Path to the subjects directory (containing subject folders, defaults to current working directory).
         """
+        self._subject_dir = Path.cwd() if subject_dir is None else Path(subject_dir)
         for k, v in kwargs.items():
-            if k == "subject_dir":
-                v = Path(v)
+            if subject_dir is None and not Path(v).is_absolute() and not k == "id":
+                raise ValueError(f"subject/out directory not defined, but {k} ('{v}') is relative!")
             setattr(self, "_" + k, v)
 
     def filename_in_subject_folder(self, filepath: str | Path) -> Path:
         """
-        Return the full path to the file.
+        Construct a full absolute path from the subject directory and the passed filepath.
 
         Parameters
         ----------
@@ -298,7 +299,7 @@ class SubjectDirectory:
         Returns
         -------
         Path
-            Path to the file.
+            The path to the file in the subject folder.
         """
         if Path(filepath).is_absolute():
             return Path(filepath)
@@ -970,10 +971,7 @@ class SubjectList:
         Try to create the subject directory.
         """
         if self._out_dir is None:
-            LOGGER.info(
-                "No Subjects directory found, absolute paths for filenames are "
-                "required."
-            )
+            LOGGER.info("No Subjects directory found, absolute paths for filenames are required.")
             return
 
         LOGGER.info(f"Output will be stored in Subjects Directory: {self._out_dir}")
@@ -1008,11 +1006,7 @@ class SubjectList:
             # subject is always an absolute path (or relative to the working directory)
             # ... of the input file
             subject = self._subjects[item]
-            sid = (
-                Path(str(subject).removesuffix(self._remove_suffix)).name
-                if self._sid is None
-                else self._sid
-            )
+            sid = Path(str(subject).removesuffix(self._remove_suffix)).name if self._sid is None else self._sid
         elif isinstance(item, str):
             subject = Path(item)
             sid = item
@@ -1021,16 +1015,8 @@ class SubjectList:
 
         # Set subject and load orig
         special_rules = ["orig_name"]
-        subject_parameters = {
-            v: getattr(self, f"_{v}_")
-            for v in self.__attr_assign.keys()
-            if v not in special_rules
-        }
-        orig_name = (
-            subject
-            if subject.is_file()
-            else subject / self._orig_name_
-        )
+        subject_parameters = {v: getattr(self, f"_{v}_") for v in self.__attr_assign.keys() if v not in special_rules}
+        orig_name = subject if subject.is_file() else subject / self._orig_name_
         return SubjectDirectory(
             subject_dir=self._out_dir,
             id=sid,

@@ -277,11 +277,7 @@ class Inference:
         """
 
         def _get_ids_startswith(_label_map: dict[int, str], prefix: str) -> list[int]:
-            return [
-                id
-                for id, name in _label_map.items()
-                if name.startswith(prefix) and not name.endswith("Medullare")
-            ]
+            return [id for id, name in _label_map.items() if name.startswith(prefix) and not name.endswith("Medullare")]
 
         freesurfer_id2cereb_name = self.cereb_name2fs_id.__reversed__()
         freesurfer_id2name = self.freesurfer_name2id.__reversed__()
@@ -291,10 +287,7 @@ class Inference:
             47: ("Right", "Right-Cerebellum-Cortex"),
             632: ("Vermis", "Cbm_Vermis"),
         }
-        merge_map = {
-            id: _get_ids_startswith(label_map, prefix=prefix)
-            for id, (prefix, _) in meta_labels.items()
-        }
+        merge_map = {id: _get_ids_startswith(label_map, prefix=prefix) for id, (prefix, _) in meta_labels.items()}
 
         # calculate PVE
         from FastSurferCNN.segstats import pv_calc
@@ -504,9 +497,8 @@ class Inference:
                         )
 
                     logger.info(
-                        f"Subject {idx + 1}/{len(subject_dirs)} with id "
-                        f"'{subject.id}' processed in {pred_time - start_time :.2f} "
-                        f"sec."
+                        f"Subject {idx + 1}/{len(subject_dirs)} with id '{subject.id}' processed in "
+                        f"{pred_time - start_time :.2f} sec."
                     )
                 except Exception as e:
                     logger.exception(e)

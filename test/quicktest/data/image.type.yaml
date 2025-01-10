@@ -1,0 +1,10 @@
+segmentation:
+  - aseg.mgz
+  - aparc.DKTatlas+aseg.deep.mgz
+  - cerebellum.CerebNet.nii.gz
+  - hypothalamus.HypVINN.nii.gz
+  - wmparc.DKTatlas.mapped.mgz
+
+intensity:
+  - orig.mgz
+  - orig_nu.mgz

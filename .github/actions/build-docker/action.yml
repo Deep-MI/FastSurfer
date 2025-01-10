@@ -3,6 +3,7 @@
 # The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
 
 name: 'Build a FastSurfer docker image'
+author: 'David Kuegler'
 description: 'Build a FastSurfer image'
 
 inputs:
