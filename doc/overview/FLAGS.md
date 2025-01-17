@@ -21,7 +21,7 @@ In the following, we give an overview of the most important options. You can vie
 * `--t1`: T1 full head input (does not need to be bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 0.7mm - 1mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. Note, outputs will be in the conformed space (following the FreeSurfer standard).
 
 ## Required for Docker when running surface module
-* `--fs_license`: Path to FreeSurfer license key file (only needed for the surface module). Register (for free) at [https://surfer.nmr.mgh.harvard.edu/registration.html](https://surfer.nmr.mgh.harvard.edu/registration.html) to obtain it, if you do not have FreeSurfer installed so far. This is strictly necessary if you use Docker and want to run the surface module. For local installs, your local FreeSurfer license will automatically be used. The license file is usually located in $FREESURFER_HOME/license.txt or $FREESURFER_HOME/.license . 
+* `--fs_license`: Path to FreeSurfer license key file (needed for the surface module and, if activated, the talairach registration `--tal_reg` in the segmentation). For local installs, your local FreeSurfer license will automatically be detected (usually `$FREESURFER_HOME/license.txt` or `$FREESURFER_HOME/.license`). Use this flag if autodetection fails or if you use Docker with the surface module. To get a license, [register (for free)](https://surfer.nmr.mgh.harvard.edu/registration.html).
 
 ## Segmentation pipeline arguments (optional)
 * `--seg_only`: Only run FastSurferVINN to generate the full brain segmentation and skip the surface pipeline.
