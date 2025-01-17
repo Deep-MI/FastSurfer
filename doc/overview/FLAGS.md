@@ -31,7 +31,7 @@ In the following, we give an overview of the most important options. You can vie
 * `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * `--no_cereb`: Switch off the cerebellum sub-segmentation.
 * `--cereb_segfile`: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
-* `--no_biasfield`: Deactivate the calculation of partial volume-corrected statistics in the segmentation modules.
+* `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.
 
 ## Surface pipeline arguments (optional)
 * `--surf_only`: only run the surface pipeline recon_surf. The segmentation created by FastSurferVINN must already exist in this case.
