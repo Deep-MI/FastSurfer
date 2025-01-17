@@ -43,7 +43,7 @@ In the following, we give an overview of the most important options. You can vie
 * `--no_fs_T1`: Skip generation of `T1.mgz` (normalized `nu.mgz` included in standard FreeSurfer output) and create `brainmask.mgz` directly from `norm.mgz` instead. Saves 1:30 min.
 * `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis. 
 
-## Other
+## Some other flags (optional)
 * `--threads`: Target number of threads for all modules (segmentation, surface pipeline), `1` (default) forces FastSurfer to only really use one core. Note, that the default value may change in the future for better performance on multi-core architectures.
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed. 
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
@@ -52,5 +52,4 @@ In the following, we give an overview of the most important options. You can vie
   The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.
 * `--py`: Command for python, used in both pipelines. Default: python3.10
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
-* `--ignore_fs_version`: Expert Option: Avoid check for FreeSurfer version. Program will otherwise terminate if the supported version (see recon-surf.sh) is not sourced. Can be used for testing dev versions (not recommended).
 * `-h`, `--help`: Prints help text
