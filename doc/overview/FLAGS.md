@@ -25,7 +25,7 @@ In the following, we give an overview of the most important options. You can vie
 
 ## Segmentation pipeline arguments (optional)
 * `--seg_only`: Only run the brain segmentation pipeline and skip the surface pipeline.
-* `--seg_log`: Name and location for the log-file for the segmentation (FastSurferVINN). Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
+* `--seg_log`: Name and location for the log-file for the segmentation. Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the GPU. The total memory is considered for this decision. If this fails, or you actively specify "cpu" view aggregation is run on the CPU. Equivalently, if you pass a different device, view aggregation will be run on that device (no memory check will be done).
 * `--device`: Select device for neural network segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_, _mps_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU. "mps" is for native MAC installs to use the Apple silicon (M-chip) GPU. 
 * `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
