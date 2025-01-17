@@ -16,7 +16,7 @@ recommended Docker or Singularity images. But first let us tell you why we think
 * It natively supports high-resolution images (down to around 0.7mm) at high accuracy.
 * It has modules for full-brain (aseg+aparcDKT), cerebellum and hypothalamic sub-segmentations.
 * The segmentation modules run within minutes and provide partial-volume corrected stats.
-* It has an optimized surface stream for cortical thickness analysis and impoved correspondence.
+* It has an optimized surface stream for cortical thickness analysis and improved correspondence.
 
 So, there is really no reason why you should not try this out!
 
