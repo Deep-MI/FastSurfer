@@ -56,7 +56,7 @@ further defined and clarified by project maintainers.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported by contacting the project team at any of the mail addresses listed 
-here: https://deep-mi.org/members/ (e.g. leonie.henschel (at) dzne.de and 
+here: [https://deep-mi.org/members/](https://deep-mi.org/members/) (e.g. 
 martin.reuter (at) dzne.de). All complaints will be reviewed and 
 investigated and will result in a response that is deemed necessary and 
 appropriate to the circumstances. The project team is obligated to maintain 
