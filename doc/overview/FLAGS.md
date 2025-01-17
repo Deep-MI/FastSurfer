@@ -40,7 +40,7 @@ In the following, we give an overview of the most important options. You can vie
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere (also not recommended)
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
 * `--parallel`: Run both hemispheres in parallel
-* `--no_fs_T1`: Do not generate T1.mgz (normalized nu.mgz included in standard FreeSurfer output) and create brainmask.mgz directly from norm.mgz instead. Saves 1:30 min.
+* `--no_fs_T1`: Skip generation of `T1.mgz` (normalized `nu.mgz` included in standard FreeSurfer output) and create `brainmask.mgz` directly from `norm.mgz` instead. Saves 1:30 min.
 * `--no_surfreg`: Skip the surface registration (`sphere.reg`), which is generated automatically by default. To safe time, use this flag to turn this off, but sphere.reg will be needed for any cross-subject statistical analysis of thickness maps. 
 
 ## Other
