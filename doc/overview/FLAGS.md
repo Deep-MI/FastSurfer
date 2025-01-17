@@ -34,14 +34,14 @@ In the following, we give an overview of the most important options. You can vie
 * `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.
 
 ## Surface pipeline arguments (optional)
-* `--surf_only`: only run the surface pipeline recon_surf. The segmentation created by FastSurferVINN must already exist in this case.
-* `--3T`: for Talairach registration, use the 3T atlas instead of the 1.5T atlas (which is used if the flag is not provided). This gives better (more consistent with FreeSurfer) ICV estimates (eTIV) for 3T and better Talairach registration matrices, but has little impact on standard volume or surface stats.
+* `--surf_only`: Only run the surface pipeline. The segmentation created by FastSurferVINN must already exist in this case.
+* `--3T`: Only affects Talairach registration: use the 3T atlas instead of the 1.5T atlas (which is used if the flag is not provided). This gives better (more consistent with FreeSurfer) ICV estimates (eTIV) for 3T and better Talairach registration matrices, but has little impact on standard volume or surface stats.
 * `--fstess`: Use mri_tesselate instead of marching cube (default) for surface creation (not recommended, but more similar to FreeSurfer)
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere (also not recommended)
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
 * `--parallel`: Run both hemispheres in parallel
 * `--no_fs_T1`: Skip generation of `T1.mgz` (normalized `nu.mgz` included in standard FreeSurfer output) and create `brainmask.mgz` directly from `norm.mgz` instead. Saves 1:30 min.
-* `--no_surfreg`: Skip the surface registration (`sphere.reg`), which is generated automatically by default. To safe time, use this flag to turn this off, but sphere.reg will be needed for any cross-subject statistical analysis of thickness maps. 
+* `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis. 
 
 ## Other
 * `--threads`: Target number of threads for all modules (segmentation, surface pipeline), `1` (default) forces FastSurfer to only really use one core. Note, that the default value may change in the future for better performance on multi-core architectures.
