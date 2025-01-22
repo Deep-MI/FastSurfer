@@ -205,7 +205,7 @@ Do not edit the following files. These edits may not work as you expect and are 
 2. The brainmask: `<subject_dir>/mri/brainmask.mgz`
 3. WM control points: `<subject_dir>/tmp/control.dat`
 4. Seed points: `<subject_dir>/scripts/seed-(pons|cc|lh|rh|ws).crs.man.dat`
-5. The subcortical segmentation: `<subject_dir>/mri/aseg.presurf.mgz`
+5. The downstream subcortical segmentation: `<subject_dir>/mri/aseg.presurf.mgz`
 
 We hope that this will help with (some of) your editing needs. 
 Thanks for using FastSurfer. 
