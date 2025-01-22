@@ -70,7 +70,7 @@ singularity exec --nv \
      --i1s <T1_1> <T1_2> ... \
      --tpids <tID1> <tID2>
    ```
-  This will register (align) all time point images into the unbiased mid-space using `mri_robust_template`, after an initial segmentation and skull stripping. It will also create the template image. 
+   This will register (align) all time point images into the unbiased mid-space using `mri_robust_template`, after an initial segmentation and skull stripping. It will also create the template image. 
 2. Next, the template image will be segmented via a call to `run_fastsurfer.sh --sid <templateID> --base --seg_only ...` where the `--base` flag indicates that the input image will be taken from the already existing template directory. 
 3. This is followed by the surface processing of the template  `run_fastsurfer.sh --sid <templateID> --base --surf_only ...`, which can be combined with the previous step.
 4. Next, the segmentations of each time points, which can theoretically run in parallel with the previous two steps, is performed `run_fastsurfer.sh --sid <tIDn> --long <templateID> --seg_only ...`,
