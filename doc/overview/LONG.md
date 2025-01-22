@@ -10,7 +10,7 @@ Generally the idea is to:
 - Align images across time robustly into an unbiased mid-space (Reuter et al. [2010](https://doi.org/10.1016/j.neuroimage.2010.07.020)).
 - Construct a template image for each participant (called within-subject template).
 - Process the template image, e.g. to generate initial WM and GM surfaces.
-- Process each time point, initializing or re-using results from the template, yet allowing enough freedom for results to evolve. 
+- Process each time point, initializing or reusing results from the template, yet allowing enough freedom for results to evolve. 
 
 This approach is used in FreeSurfer and in FastSurfer and it avoids multiple issues that are inherent to other approaches:
 - It avoids the introduction of processing bias (Reuter, Fischl [2011](https://doi.org/10.1016/j.neuroimage.2011.02.076)) by treating all time points the same.
@@ -72,8 +72,8 @@ singularity exec --nv \
    ```
   This will register (align) all time point images into the unbiased mid-space using `mri_robust_template`, after an initial segmentation and skull stripping. It will also create the template image. 
 2. Next, the template image will be segmented via a call to `run_fastsurfer.sh --sid <templateID> --base --seg_only ...` where the `--base` flag indicates that the input image will be taken from the already existing template directory. 
-3. This is followd by the surface processing of the template  `run_fastsurfer.sh --sid <templateID> --base --surf_only ...`, which can be combined with the previous step.
-4. Next, the segmentations of each time points, which can theoretically run in parallel with the previous two steps, is perfomed `run_fastsurfer.sh --sid <tIDn> --long <templateID> --seg_only ...`,
+3. This is followed by the surface processing of the template  `run_fastsurfer.sh --sid <templateID> --base --surf_only ...`, which can be combined with the previous step.
+4. Next, the segmentations of each time points, which can theoretically run in parallel with the previous two steps, is performed `run_fastsurfer.sh --sid <tIDn> --long <templateID> --seg_only ...`,
 5. again followed by the surface processing for each time point: `run_fastsurfer.sh --<id <tIDn> --long <templateID> --surf_only`. This step needs to wait until 3. and 4. are finished. 
 
 Internally we use `brun_fastsurfer.sh` as a helper script to process multiple time points (in 4. and 5.) in parallel (if experimental `--parallel_long` is passed to `long_fastsurfer.sh`). 
