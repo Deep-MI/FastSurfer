@@ -23,7 +23,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 import FastSurferCNN.utils.logging as logging
-from FastSurferCNN.data_loader.augmentation import ToTensorTest, ZeroPad2DTest
+from FastSurferCNN.data_loader.augmentation import ToTensorTest
 from FastSurferCNN.utils.common import find_device
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
