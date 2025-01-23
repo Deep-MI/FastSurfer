@@ -1,4 +1,4 @@
-name: deploy-docker
+name: MAN deploy-docker
 
 on:
 #  release:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy-gpu:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - name: Checkout repository
@@ -52,4 +52,4 @@ jobs:
           docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-latest
       - name: Push Docker image CPU
         run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
-        
+
