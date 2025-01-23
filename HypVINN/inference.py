@@ -389,14 +389,7 @@ class Inference:
             orig_zoom,
             self.cfg,
             mode=mode,
-            transforms=transforms.Compose(
-                [
-                    ZeroPad2DTest(
-                        (self.cfg.DATA.PADDED_SIZE, self.cfg.DATA.PADDED_SIZE),
-                    ),
-                    ToTensorTest(),
-                ],
-            ),
+            transforms=transforms.Compose([ToTensorTest()]),
         )
 
         test_data_loader = DataLoader(

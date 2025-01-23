@@ -599,9 +599,10 @@ def get_prediction(
     #  FastSurferVINN takes 7-8s vs. HypVINN 10+s per slicing direction.
     #  Solution: make this script/function more similar to the optimized FastSurferVINN
     device, viewagg_device = model.get_device()
-    dim = model.get_max_size()
 
-    pred_shape = (dim, dim, dim, model.get_num_classes())
+    h, w, d = target_shape
+
+    pred_shape = (h,w,d, model.get_num_classes())
     # Set up tensor to hold probabilities and run inference
     pred_prob = torch.zeros(pred_shape, dtype=torch.float, device=viewagg_device)
     for plane, opts in view_opts.items():
@@ -609,15 +610,6 @@ def get_prediction(
         model.set_model(opts["cfg"])
         model.load_checkpoint(opts["ckpt"])
         pred_prob += model.run(subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
-
-    # Post processing
-    h, w, d = target_shape  # final prediction shape equivalent to input ground truth shape
-
-    if np.any(target_shape < pred_prob.shape[:3]):
-        # if orig was padded before running through model (difference in
-        # aseg_size and pred_shape), select slices of interest only.
-        # This currently works only for "top_left" padding (see augmentation)
-        pred_prob = pred_prob[0:h, 0:w, 0:d, :]
 
     # Get hard predictions and map to freesurfer label space
     _, pred_classes = torch.max(pred_prob, 3)
@@ -661,13 +653,9 @@ def set_up_cfgs(
     cfg.OUT_LOG_DIR = str(out_dir or cfg.LOG_DIR)
     cfg.TEST.BATCH_SIZE = batch_size
 
-    out_dims = cfg.DATA.PADDED_SIZE
-    if out_dims > cfg.DATA.PADDED_SIZE:
-        cfg.MODEL.OUT_TENSOR_WIDTH = out_dims
-        cfg.MODEL.OUT_TENSOR_HEIGHT = out_dims
-    else:
-        cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
-        cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
+    cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
+    cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
+
     return cfg
 
 
