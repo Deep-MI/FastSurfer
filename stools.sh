@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# script for functions used by srun_fastsurfer.sh and srun_freesufer.sh
+# script for functions used by srun_fastsurfer.sh and brun_freesufer.sh
 
 function read_cases ()
 {

@@ -190,7 +190,7 @@ class Inference:
 
         Parameters
         ----------
-        ckpt : Union[str, os.PathLike]
+        ckpt : str, os.PathLike
             String or os.PathLike object containing the name to the checkpoint file.
         """
         logger.info(f"Loading checkpoint {ckpt}")
@@ -285,20 +285,6 @@ class Inference:
         """
         return self.cfg.MODEL.WIDTH
 
-    def get_max_size(self) -> int | tuple[int, int]:
-        """
-        Return the max size.
-
-        Returns
-        -------
-        int | tuple[int, int]
-            The maximum size, either a single value or a tuple (width, height).
-        """
-        if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
-            return self.cfg.MODEL.OUT_TENSOR_WIDTH
-        else:
-            return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
-
     def get_device(self) -> torch.device:
         """
         Return the device.
@@ -386,7 +372,7 @@ class Inference:
                     start_index = end_index
 
             except:
-                logger.exception(f"Exception in batch {log_batch_idx + 1} of {plane} inference.")
+                logger.error(f"Exception in batch {log_batch_idx + 1} of {plane} inference.")
                 raise
             else:
                 logger.info(f"Inference on {log_batch_idx + 1} batches for {plane} successful")
