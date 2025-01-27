@@ -69,7 +69,8 @@ vox_size="min"
 run_asegdkt_module="1"
 run_cereb_module="1"
 run_hypvinn_module="1"
-threads="1"
+threads_seg="1"
+threads_surf="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
 allow_root=()
@@ -244,7 +245,8 @@ Resource Options:
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
   --parallel              Run both hemispheres in parallel
-  --threads <int>         Set openMP and ITK threads to <int>
+  --threads <int>         Set openMP and ITK threads to <int>, also
+                            --threads surf=<int> or --threads seg=<int>.
   --batch <batch_size>    Batch size for inference. Default: 1
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
@@ -379,7 +381,28 @@ case $key in
   # --3t: both for surface pipeline and the --tal_reg flag
   --3t) surf_flags+=("--3T") ; atlas3T="true" ;;
   --edits) surf_flags+=("$key") ; edits="true" ;;
-  --threads) threads="$1" ; shift ;;
+  --threads)
+    lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$lower_value" =~ ^surf(=-[0-9]*|=max)?$ ]]
+    then # parameter is surf=max or surf=<negative number> or surf
+      threads_surf="max"
+    elif [[ "$lower_value" =~ ^surf=[0-9]*$ ]]
+    then # parameter is surf=<positive number>
+      threads_surf="${lower_value:5}"
+    elif [[ "$lower_value" =~ ^seg(=-[0-9]*|=max)?$ ]]
+    then # parameter is seg=max or surf=<negative number> or surf
+      threads_seg="max"
+    elif [[ "$lower_value" =~ ^seg=[0-9]*$ ]]
+    then # parameter is seg=<positive number>
+      threads_seg="${lower_value:5}"
+    elif [[ "$lower_value" =~ ^(-[0-9]+|max)$ ]] ; then threads_seg="max"; threads_surf="max"
+    elif [[ "$lower_value" =~ ^[0-9]+$ ]] ; then threads_seg="$1"; threads_surf="$1"
+    else
+      echo "Invalid option for --parallel_subjects: $1"
+      exit 1
+    fi
+    shift
+    ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
@@ -751,6 +774,8 @@ then
   exit 1
 fi
 
+if [[ "$threads_seg" == "max" ]] ; then threads_seg="$(nproc)" ; fi
+
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
 
@@ -786,18 +811,16 @@ then
   } | tee -a "$seg_log"
 fi
 
-pushd "${sd}/${subject}" || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
-  content_of_subject_dir="$(find "." -type f)"
-popd || exit 1
-num_files_in_subject_dir="$(echo "$content_of_subject_dir" | wc -l)"
-if [[ "$num_files_in_subject_dir" -gt 1 ]] ; then
+pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
+  mapfile -t content_of_subject_dir < <(find "." -type f)
+popd > /dev/null || exit 1
+if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
+  if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
   {
-    echo "Found $num_files_in_subject_dir in subject directory \$SUBJECTS_DIR/$subject"
-    # if [[ "$num_files_in_subject_dir" -gt 6 ]] ; then
-    #   echo "$content_of_subject_dir" | head -n 4 ; echo "..." ; echo "$content_of_subject_dir" | tail -n 2
-    # else echo "$content_of_subject_dir"
-    # fi
-    # echo ""
+    echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
+    files=("${content_of_subject_dir[@]:0:6}")
+    if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
+    echo " Potentially Overwriting: ${files[*]}"
   } | tee -a "$seg_log"
 fi
 
@@ -814,7 +837,7 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device")
+         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
@@ -880,7 +903,7 @@ then
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
-           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads")
+           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads_seg")
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
@@ -916,7 +939,7 @@ then
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
       cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
            --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
-           --threads "$threads" --empty --excludeid 0
+           --threads "$threads_seg" --empty --excludeid 0
            --sd "${sd}" --sid "${subject}"
            --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
                  49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
@@ -954,7 +977,7 @@ then
     then
       # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2"
-           --out "$norm_name_t2" --threads "$threads" --uchar)
+           --out "$norm_name_t2" --threads "$threads_seg" --uchar)
       {
         echo "INFO: Running N4 bias-field correction of the t2..."
         echo_quoted "${cmd[@]}"
@@ -996,7 +1019,7 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --cereb_segfile "$cereb_segfile" --seg_log "$seg_log" --async_io
          --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
-         --threads "$threads" "${cereb_flags[@]}")
+         --threads "$threads_seg" "${cereb_flags[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
@@ -1012,7 +1035,7 @@ then
   then
         # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" --threads "$threads" --async_io
+         "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io
          --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
          --viewagg_device "$viewagg" --t1)
     if [[ "$run_biasfield" == "1" ]]
@@ -1048,13 +1071,20 @@ fi
 
 if [[ "$run_surf_pipeline" == "1" ]]
 then
+  if [[ "$threads_surf" == "max" ]]; then
+    threads_surf="$(nproc)"
+  else
+    for flag in "${surf_flags[@]}" ; do
+      if [[ "$flag" == "--parallel" ]] ; then threads_surf=$((threads_surf / 2)); break ; fi
+    done
+  fi
+  if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
   echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
-       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
-       "${surf_flags[@]}")
+       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${cmd[@]}"
   if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi

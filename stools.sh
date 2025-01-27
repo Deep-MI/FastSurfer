@@ -403,11 +403,8 @@ function print_status ()
   local info=$2
   local retval=$3
   local text
-  if [[ "$retval" != "0" ]]
-  then
-    text="Failed $info with exit code $retval"
-  else
-    text="Finished $info successfully"
+  if [[ "$retval" != "0" ]] ; then text="Failed $info with exit code $retval"
+  else text="Finished $info successfully"
   fi
   echo "$subject_id: $text"
 }
@@ -415,8 +412,10 @@ function prepend ()
 {
   #param1 string to prepend to every line
   # https://serverfault.com/questions/72744/command-to-prepend-string-to-each-line
-  while read -r line;
-  do
-    echo "${1}${line}"
-  done
+  while read -r line ; do echo "${1}${line}" ; done
+}
+function append ()
+{
+  #param1 string to append to every line
+  while read -r line ; do echo "${line}$1" ; done
 }
