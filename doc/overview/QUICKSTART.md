@@ -34,7 +34,7 @@ singularity exec --nv \
 ```
 
 That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes). 
-We also switched off the bias field correction, which is used to compute partial volume estimates in the statsfiles, so you might want to switch in on again.
+We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```test-case/stats```).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with 
 ```--tal_reg``` in the segmentation module. For the full surface stream, just remove the ```--seg_only``` and you need a FreeSurfer license file and pass it into the container, as described in more detail later.
 
@@ -60,7 +60,7 @@ docker run --gpus all -v $PWD:/data \
                       --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
-You will find the full brain segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), just run:
+You will find the full brain segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), just run
 
 ```bash
 # Convert mgz to nifti
@@ -70,6 +70,15 @@ singularity exec --nv \
                  ./fastsurfer-gpu.sif \
                  nib-convert /data/test-case/mri/aparc.DKTatlas+aseg.deep.mgz /data/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz
 ```
+
+and find the segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
+
+```bash
+# FreeView
+freeview -v 140_orig.mgz test-case/mri/aparc.DKTatlas+aseg.deep.mgz:colormap=lut:opacity=0.2
+```
+
+Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 seconds** in total with a GPU, CPU-only takes 5 minutes longer on my machine).
 
 ## Google Colab
 
