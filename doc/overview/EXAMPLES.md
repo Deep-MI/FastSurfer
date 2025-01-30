@@ -168,10 +168,7 @@ fastsurferdir=/home/user/my_fastsurfer_analysis
 ```
 
 ### Flags
-The `brun_fastsurfer.sh` script accepts almost all `run_fastsurfer.sh` flags (exceptions are `--t1` and `--sid`). In addition, 
-* the `--parallel_subjects` runs all subjects in parallel (experimental, parameter may change in future releases). This is particularly useful for surfaces computation `--surf_only`.
-* to run segmentation in series, but surfaces in parallel, you may use `--parallel_subjects surf`.
-* these options are in contrast (and in addition) to `--parallel`, which just parallelizes the hemispheres of one case.
+The `brun_fastsurfer.sh` script accepts almost all `run_fastsurfer.sh` flags (exceptions are `--t1` and `--sid`). In addition, it has [powerful parallelization options](../scripts/BATCH.md#parallelization-with-brun_fastsurfersh).
 
 ## Example 5: Quick Segmentation
 
@@ -181,7 +178,7 @@ For many applications you won't need the surfaces. You can run only the aparc+DK
 ./run_fastsurfer.sh --t1 $datadir/subject1/t1-weighted.nii.gz \
                     --asegdkt_segfile $outputdir/subject1/aparc.DKTatlas+aseg.deep.mgz \
                     --conformed_name $outputdir/subject1/conformed.mgz \
-                    --threads 4 --seg_only --no_cereb
+                    --threads 4 --seg_only --no_cereb --no_hypothal
 ```
 
 This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
