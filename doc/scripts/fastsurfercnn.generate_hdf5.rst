@@ -1,7 +1,8 @@
 FastSurferCNN: generate_hdf5.py
 ================================
 
-.. include:: ../../FastSurferCNN/README.md
+..
+   .. include:: ../../FastSurferCNN/README.md
    :parser: fix_links.parser
    :relative-docs: .
    :relative-images:
