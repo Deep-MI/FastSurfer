@@ -24,12 +24,11 @@ curl -k https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/t
 # 3. Run FastSurfer (full brain segmentation only)
 singularity exec --nv \
                  --no-home \
-                 -B $PWD:/data \
-                 -B $PWD:/output \
+                 -B "$PWD" \
                  ./fastsurfer-gpu.sif \
                  /fastsurfer/run_fastsurfer.sh \
-                 --t1 /data/140_orig.mgz \
-                 --sid test-case --sd /output \
+                 --t1 "$PWD/140_orig.mgz" \
+                 --sid test-case --sd "$PWD" \
                  --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
@@ -51,12 +50,11 @@ cd fastsurfer-test
 curl -k https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz -o "./140_orig.mgz"
 
 # 2. Run FastSurfer (full brain segmentation only)
-docker run --gpus all -v $PWD:/data \
-                      -v $PWD:/output \
+docker run --gpus all -v "$PWD:$PWD" \
                       --rm --user $(id -u):$(id -g) \
                       deepmi/fastsurfer:latest \
-                      --t1 /data/140_orig.mgz \
-                      --sid test-case --sd /output \
+                      --t1 "$PWD/140_orig.mgz" \
+                      --sid test-case --sd "$PWD" \
                       --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
@@ -66,9 +64,9 @@ You will find the full brain segmentation in ```./test-case/mri/aparc.DKTatlas+a
 # Convert mgz to nifti
 singularity exec --nv \
                  --no-home \
-                 -B $PWD:/data \
+                 -B "$PWD" \
                  ./fastsurfer-gpu.sif \
-                 nib-convert /data/test-case/mri/aparc.DKTatlas+aseg.deep.mgz /data/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz
+                 nib-convert "$PWD/test-case/mri/aparc.DKTatlas+aseg.deep.mgz" "$PWD/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 ```
 
 and find the segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
@@ -78,7 +76,7 @@ and find the segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz`
 freeview -v 140_orig.mgz test-case/mri/aparc.DKTatlas+aseg.deep.mgz:colormap=lut:opacity=0.2
 ```
 
-Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 seconds** in total with a GPU, CPU-only takes 5 minutes longer on my machine).
+Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 sec** in total with a GeForce RTX 4080, **40 sec** with a Quadro RTX 400, CPU-only takes **5 minutes** longer on my machine).
 
 ## Google Colab
 
