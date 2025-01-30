@@ -5,8 +5,8 @@ FastSurferCNN: generate_hdf5.py
    :parser: fix_links.parser
    :relative-docs: .
    :relative-images:
-   :start-after: <!-- after inference heading -->
-   :end-before: <!-- before generate_hdf5 -->
+   :start-after: <!-- after generate_hdf5 heading -->
+   :end-before: <!-- before training -->
 
 Full commandline interface of FastSurferCNN/generate_hdf5.py
 ------------------------------------------------------------

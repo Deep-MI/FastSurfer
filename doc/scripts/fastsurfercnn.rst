@@ -2,7 +2,7 @@ FastSurferCNN: run_prediction.py
 ================================
 
 .. note::
-   We recommend to run the surface pipeline with the standard `run_fastsurfer.sh` interfaces!
+   We recommend running the segmentation with the standard `run_fastsurfer.sh` interface!
 
 .. include:: ../../FastSurferCNN/README.md
    :parser: fix_links.parser
