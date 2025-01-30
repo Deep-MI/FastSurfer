@@ -4,28 +4,28 @@ channels:
   - conda-forge
 
 dependencies:
-- h5py=3.11.0
-- lapy=1.1.0
-- matplotlib=3.9.2
-- nibabel=5.2.1
-- numpy=1.26.4
-- pandas=2.2.2
-- pillow=10.4.0
-- pip=24.2
+- h5py==3.12.1
+- lapy==1.2.0
+- matplotlib==3.10.0
+- nibabel==5.3.2
+- numpy==1.26.4
+- pandas==2.2.3
+- pillow==11.1.0
+- pip==25.0
 - python=3.10
-- python-dateutil=2.9.0
-- pyyaml=6.0.2
-- requests=2.32.3
-- scikit-image=0.24.0
-- scikit-learn=1.5.1
-- scipy=1.14.1
-- setuptools=72.2.0
-- tensorboard=2.17.1
-- tqdm=4.66.5
-- yacs=0.1.8
+- python-dateutil==2.9.0.post0
+- pyyaml==6.0.2
+- requests==2.32.3
+- scikit-image==0.25.1
+- scikit-learn==1.6.1
+- scipy==1.15.1
+- setuptools==75.8.0
+- tensorboard==2.18.0
+- tqdm==4.67.1
+- yacs==0.1.8
 - pip:
-  - --extra-index-url https://download.pytorch.org/whl/cu124
-  - simpleitk==2.4.0
-  - torch==2.4.0+cu124
-  - torchio==0.19.9
-  - torchvision==0.19.0+cu124
+  - --extra-index-url https://download.pytorch.org/whl/cu126
+  - simpleitk==2.4.1
+  - torch==2.6.0+cu126
+  - torchio==0.20.4
+  - torchvision==0.21.0+cu126
