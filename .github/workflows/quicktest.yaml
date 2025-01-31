@@ -172,10 +172,12 @@ jobs:
             file-extension: ".mgz"
             image-key: QUICKTEST_IMAGE_HREF_1mm
             case-key: QUICKTEST_TARGET_HREF_1mm
+            extra-args: ""
           - subject-id: 0.8mm
             file-extension: ".nii.gz"
             image-key: QUICKTEST_IMAGE_HREF_08mm
             case-key: QUICKTEST_TARGET_HREF_08mm
+            extra-args: "--3T"
     steps:
       - name: Check out the repository that is to be tested
         uses: actions/checkout@v4
@@ -187,7 +189,7 @@ jobs:
           image-href: ${{ secrets[matrix.image-key] }}
           license: ${{ secrets.QUICKTEST_LICENSE }}
           docker-image: ${{ needs.build-docker.outputs.docker-image }}
-          extra-args: ${{ needs.build-docker.outputs.extra-args }}
+          extra-args: ${{ matrix.extra-args }} ${{ needs.build-docker.outputs.extra-args }}
           cleanup: 'true'
       - name: Run tests
         uses: Deep-MI/FastSurfer/.github/actions/run-tests@dev
