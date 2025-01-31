@@ -48,7 +48,6 @@ fi
 
 
 # Paths
-fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
 
 
@@ -58,7 +57,7 @@ sd="$SUBJECTS_DIR"
 tpids=()
 t1s=()
 parallel=0
-log=""
+LF=""
 brun_flags=()
 python="python3.10 -s" # avoid user-directory package inclusion
 
@@ -271,6 +270,9 @@ cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
 if [[ "$parallel" == "1" ]] ; then
   base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
   base_surf_cmdf_log="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf.log"
+  log "Starting base surface reconstruction, logs temporarily diverted to $base_surf_cmdf_log..."
+  log "======================================="
+
   {
     echo "Log file of base surface pipeline"
     date
@@ -298,6 +300,9 @@ cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd 
 if [[ "$parallel" == "1" ]] ; then
   long_seg_cmdf="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf"
   long_seg_cmdf_log="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf.log"
+  log "Starting longitudinal segmentations, logs temporarily diverted to $long_seg_cmdf_log..."
+  log "======================================="
+
   {
     echo "Log file of longitudinal segmentation pipeline"
     date
@@ -325,8 +330,11 @@ if [[ "$parallel" == "1" ]] ; then
 
   # Append the base surface and longitudinal segmentation logs, exit if either failed
   what_failed=()
+  log "======================================="
+  log "Waiting for base surface reconstruction and longitudinal segmentations to finish..."
   wait "$base_surf_pid"
   success1=$?
+  log "done."
   log "Base Surface pipeline Log:"
   log "======================================="
   tee -a "$LF" < "$base_surf_cmdf_log"
