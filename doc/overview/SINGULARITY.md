@@ -21,7 +21,7 @@ To create a Singularity image from the official FastSurfer image hosted on Docke
 ```bash
 singularity build /home/user/my_singlarity_images/fastsurfer-latest.sif docker://deepmi/fastsurfer:latest
 ```
-Singularity images are files - usually with the extension `.sif`. Here, we save the image in `/homer/user/my_singlarity_images`.
+Singularity images are files - usually with the extension `.sif`. Here, we save the image in `/home/user/my_singlarity_images`.
 If you want to pick a specific FastSurfer version, you can also change the tag (`latest`) in `deepmi/fastsurfer:latest` to any tag. For example to use the cpu image hosted on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) use the tag `cpu-latest`.
 
 ## Building your own FastSurfer Singularity Image

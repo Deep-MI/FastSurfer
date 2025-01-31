@@ -22,9 +22,9 @@ Assuming you have singularity installed already (by a system admin), you can bui
 ```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 ```
-Additionally, [the Singularity README](README.md) contains detailed directions for building your own Singularity images from Docker.
+Additionally, [the Singularity documentation](SINGULARITY.md) contains detailed directions for building your own Singularity images from Docker.
 
-[Example 1](EXAMPLES.md#example-1-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../Docker/README.md) and [Singularity](README.md). 
+[Example 1](EXAMPLES.md#example-1-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../Docker/README.md) and [Singularity](SINGULARITY.md). 
 
 
 ### Docker
@@ -35,7 +35,7 @@ This is very similar to Singularity. Assuming you have Docker installed (by a sy
 docker pull deepmi/fastsurfer:latest
 ```
 
-[Example 2](EXAMPLES.md#example-2-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md). 
+[Example 2](EXAMPLES.md#example-2-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](https://github.com/Deep-MI/FastSurfer/blob/dev/ME.md). 
 
 
 ### Native (Ubuntu 20.04 or Ubuntu 22.04)
@@ -212,7 +212,7 @@ You can also download all network checkpoint files at this point already:
 python3.10 FastSurferCNN/download_checkpoints.py --all
 ```
 
-Once all dependencies are installed, you can run the FastSurfer segmentation only by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
+Once all dependencies are installed, you can run the FastSurfer segmentation only by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../scripts/RUN_FASTSURFER.md). 
 
 To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it will be slow due to the emulation. This is why we recommend using a Linux host system to run FastSurfer on larger datasets.
 
