@@ -171,7 +171,7 @@ python3 generate_hdf5.py \
 As an example, imagine you have 19 FreeSurfer processed subjects labeled subject1 to subject19 in the ../data directory:
 
 ```
-/home/user/FastSurfer/data
+$HOME/FastSurfer/data
 ├── subject1
 ├── subject2
 ├── subject3

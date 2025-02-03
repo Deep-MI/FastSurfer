@@ -63,7 +63,7 @@ export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory
-export SUBJECTS_DIR=/home/user/my_fastsurfer_analysis
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 
 # Run FastSurfer
 $FASTSURFER_HOME/run_fastsurfer.sh \
