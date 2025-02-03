@@ -445,8 +445,12 @@ function run_single()
   then
     cmd=("${run_fastsurfer[@]}" --t1 "$image_path" "${POSITIONAL_FASTSURFER[@]}" "${args[@]}")
     if [[ "$debug" == "true" ]] ; then echo "DEBUG:" "${cmd[@]}" ; fi
-    parallel="$((parallel_pipelines + num_parallel_seg + num_parallel_surf))"
-    if [[ "$parallel" -gt 3 ]] ; then "${cmd[@]}" | prepend "$subject_id: " ; else "${cmd[@]}" ; fi
+    # multiple subjects in parallel is possible, then parallel = 1, else parallel = 0
+    if [[ "$num_parallel_seg" == "max" ]] || [[ "$parallel_pipelines" == 2 ]] && [[ "$num_parallel_surf" == "max" ]]
+    then parallel=1 # one of "running pipeline" is max
+    else parallel=$([[ $((num_parallel_seg + (parallel_pipelines - 1) * num_parallel_surf)) == 2 ]] && echo 0 || echo 1)
+    fi
+    if [[ "$parallel" == 1 ]] ; then "${cmd[@]}" | prepend "$subject_id: " ; else "${cmd[@]}" ; fi
     returncode="${PIPESTATUS[0]}"
     if [[ -n "$statusfile" ]] ; then print_status "$subject_id" "$mode" "$returncode" >> "$statusfile"; fi
     if [[ "$returncode" != 0 ]]; then echo "WARNING: $subject_id finished with exit code $returncode!" ; fi

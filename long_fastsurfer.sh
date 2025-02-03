@@ -342,7 +342,7 @@ if [[ "$parallel" == "1" ]] ; then
     log "Base Surface pipeline terminated with error: $success1"
     what_failed+=("Base Surface Pipeline")
   else
-    log "Base Surface pipeline finished successful!"
+    log "Base Surface pipeline finished successfully!"
     rm "$base_surf_cmdf_log" # the content of this file is transferred to LF
   fi
   log "======================================="
@@ -355,7 +355,7 @@ if [[ "$parallel" == "1" ]] ; then
     log "Longitudinal Segmentation pipeline terminated with error: $success2"
     what_failed+=("Longitudinal Segmentation Pipeline")
   else
-    log "Longitudinal Segmentation pipeline finished successful!"
+    log "Longitudinal Segmentation pipeline finished successfully!"
     rm "$long_seg_cmdf_log" # the content of this file is transferred to LF
   fi
   log "======================================="
