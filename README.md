@@ -107,13 +107,11 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
  
       __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)__ also details a full FastSurfer run inside a Docker container and [the Docker documentation](Docker/README.md#docker-flags) for more details on `*docker flags*` and the naming of docker images (`<device>-v<version>`).
 
-2. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python/conda environment needs to be [set up](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204) and activated. Also make sure that the `PYTHONPATH` variable includes the FastSurfer path.
+2. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python/conda environment needs to be [set up](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204) and activated.
    
    ```bash
    # activate fastsurfer environment
    conda activate fastsurfer
-   # set PYTHONPATH to the FastSurfer directory
-   export PYTHONPATH=/path/to/fastsurfer
    
    /path/to/fastsurfer/run_fastsurfer.sh <*fastsurfer-flags*>
    ```

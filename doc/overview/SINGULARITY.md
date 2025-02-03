@@ -4,7 +4,8 @@
 ## Sandbox
 
 Containerization tools like Singularity (or Apptainer) and Docker provide several advantages.
-
+Most importantly, they allow for exactly same setup across different machines and even data centers and compute clusters. They thus increase reproducibility by reducing software differences between evaluations.
+Additionally, errors and unexpected behavior is easier to track down, since 
 
 ## 
 

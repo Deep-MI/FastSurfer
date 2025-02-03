@@ -42,9 +42,9 @@ docker run --gpus all \
 
 
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
+docker run --gpus all -v $HOME/my_mri_data:/data \
+                      -v $HOME/my_fastsurfer_analysis:/output \
+                      -v $HOME/my_fs_license_dir:/fs_license \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
@@ -64,14 +64,14 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 
 #### FastSurfer Flags
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the `my_fs_license_dir` that was mapped above. 
-* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
+* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: $HOME/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
-* The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
+* The `--sd` points to the output directory (its mounted name inside docker: $HOME/my_fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to $HOME/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
 All other available flags are identical to the ones explained on the main page [README](../README.md).
 
@@ -102,7 +102,7 @@ Also note, in order to run our Docker containers on a Mac, users need to increas
 The build script `build.py` supports additional args, targets and options, see `python Docker/build.py --help`.
 
 Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
-In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of `FastSurferCNN` must be possible) and we only support Python 3.10.
+In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, we only support Python 3.10.
 
 By default, the build script will tag your image as `"fastsurfer:[{device}-]{version_tag}"`, where `{version_tag}` is `{version-identifer from pyproject.toml}_{current git-hash}` and `{device}` is the value to `--device` (omitted for `cuda`), but a custom tag can be specified by `--tag {tag_name}`. 
 
@@ -114,20 +114,20 @@ Note, we recommend using BuildKit to build docker images (e.g. `DOCKER_BUILDKIT=
 In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command after traversing into the *Docker* directory: 
 
 ```bash
-PYTHONPATH=<FastSurferRoot>
-python build.py --device cuda --tag my_fastsurfer:cuda
+python Docker/build.py --device cuda --tag my_fastsurfer:cuda
 ```
 
 For running the analysis, the command is the same as above for the prebuild option:
 ```bash
-docker run --gpus all -v /home/user/my_mri_data:/data \
-                      -v /home/user/my_fastsurfer_analysis:/output \
-                      -v /home/user/my_fs_license_dir:/fs_license \
-                      --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
-                      --fs_license /fs_license/license.txt \
-                      --t1 /data/subjectX/t1-weighted.nii.gz \
-                      --sid subjectX --sd /output \
-                      --parallel
+docker run --gpus all \
+           -v $HOME/my_mri_data:$HOME/my_mri_data \
+           -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
+           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+               --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
+               --fs_license $HOME/my_fs_license.txt \
+               --t1 $HOME/my_mri_data/subjectX/t1-weighed.nii.gz \
+               --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+               --parallel
 ```
 
 
@@ -136,21 +136,20 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
-PYTHONPATH=<FastSurferRoot>
-python build.py --device cpu --tag my_fastsurfer:cpu
+python Docker/build.py --device cpu --tag my_fastsurfer:cpu
 ```
 
 For running the analysis, the command is basically the same as above for the GPU option:
 ```bash
-docker run -v /home/user/my_mri_data:/data \
-           -v /home/user/my_fastsurfer_analysis:/output \
-           -v /home/user/my_fs_license_dir:/fs_license \
+docker run -v $HOME/my_mri_data:$HOME/my_mri_data \
+           -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
+           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
            --rm --user $(id -u):$(id -g) my_fastsurfer:cpu \
-           --fs_license /fs_license/license.txt \
-           --t1 /data/subjectX/t1-weighed.nii.gz \
-           --device cpu \
-           --sid subjectX --sd /output \
-           --parallel
+               --fs_license $HOME/my_fs_license.txt \
+               --t1 $HOME/my_mri_data/subjectX/t1-weighed.nii.gz \
+               --device cpu \
+               --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+               --parallel
 ```
 
 As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the `--device cpu` flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
@@ -163,8 +162,7 @@ your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to w
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html
 
 ```bash
-PYTHONPATH=<FastSurferRoot>
-python build.py --device rocm --tag my_fastsurfer:rocm
+python Docker/build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
 and run segmentation only:
@@ -172,11 +170,15 @@ and run segmentation only:
 ```bash
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
-	   -v /home/user/my_mri_data:/data \
-	   -v /home/user/my_fastsurfer_analysis:/output \
-	   my_fastsurfer:rocm \
-	   --t1 /data/subjectX/t1-weighted.nii.gz \
-	   --sid subjectX --sd /output 
+	       -v $HOME/my_mri_data:$HOME/my_mri_data \
+           -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
+           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           --rm --user $(id -u):$(id -g) my_fastsurfer:rocm \
+               --fs_license $HOME/my_fs_license.txt \
+               --t1 $HOME/my_mri_data/subjectX/t1-weighed.nii.gz \
+               --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+               --parallel \
+               # alternatively: --device cuda is also possible (or --device cuda:0 to specify the GPU
 ```
 
 In conflict with the official ROCm documentation (above), we also needed to add the group render `--group-add render` (in addition to `--group-add video`).
@@ -186,12 +188,16 @@ Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](
 ```bash
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video --group-add render \
-	   -v /home/user/my_mri_data:/data \
-	   -v /home/user/my_fastsurfer_analysis:/output \
-	   -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
-	   my_fastsurfer:rocm \
-	   --t1 /data/subjectX/t1-weighted.nii.gz \
-	   --sid subjectX --sd /output 
+	       -v $HOME/my_mri_data:$HOME/my_mri_data \
+           -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
+           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
+           --rm --user $(id -u):$(id -g) my_fastsurfer:rocm \
+               --fs_license $HOME/my_fs_license.txt \
+               --t1 $HOME/my_mri_data/subjectX/t1-weighed.nii.gz \
+               --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+               --parallel \
+               # alternatively: --device cuda is also possible (or --device cuda:0 to specify the GPU
 ```
 
 ## Build docker image with attestation and provenance

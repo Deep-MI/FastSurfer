@@ -98,20 +98,11 @@ conda activate fastsurfer
 If you do not have an NVIDIA GPU, you can create appropriate ymls on the fly with `python ./Docker/install_env.py -m $MODE -i ./env/FastSurfer.yml -o ./fastsurfer_$MODE.yml`. Here `$MODE` can be for example `cpu`, see also `python ./Docker/install_env.py --help` for other options like rocm or cuda versions. Finally, replace `./env/fastsurfer.yml`  with your custom environment file `./fastsurfer_$MODE.yml`.
 If you only want to run the surface pipeline, use `./env/fastsurfer_reconsurf.yml`.
 
-Next, add the fastsurfer directory to the python path (make sure you have changed into it already):
-```bash
-export PYTHONPATH="${PYTHONPATH}:$PWD"
-```
-
-This will need to be done every time you want to run FastSurfer, or you need to add this line to your `~/.bashrc` if you are using bash, for example:
-```bash
-echo "export PYTHONPATH=\"\${PYTHONPATH}:$PWD\"" >> ~/.bashrc
-```
-
 You can also download all network checkpoint files (this should be done if you are installing for multiple users):
 ```bash
-python3 FastSurferCNN/download_checkpoints.py --all
+PYTHONPATH=. python3 FastSurferCNN/download_checkpoints.py --all
 ```
+Note: Setting the PYTHONPATH variable explicitly (such as for this call, is required for all calls to python scripts, i.e. only for expert users).
 
 Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```./run_fastsurfer.sh --seg_only ....``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
 
@@ -190,7 +181,6 @@ Clone FastSurfer:
 ```sh
 git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
-export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
 
 Install the FastSurfer requirements
