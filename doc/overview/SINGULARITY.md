@@ -3,12 +3,14 @@
 
 ## Sandbox
 
+Containerization tools like Singularity (or Apptainer) and Docker provide several advantages.
+
 
 ## 
 
 `<*singularity-flags*>` includes flags that set up the singularity container:
 - `--nv`: enable nVidia GPUs in Singularity (otherwise FastSurfer will run on the CPU),
-- `-B <path>`: is used to share data between the host and Singularity (only paths listed here will be available to FastSurfer, see [Singularity documentation](doc/overview/README.md#sandbox) for more info).
+- `-B <path>`: is used to share data between the host and Singularity (only paths listed here will be available to FastSurfer, see [Singularity documentation](SINGULARITY.md#sandbox) for more info).
   This should specifically include the "Subject Directory". If two paths are given like `-B /my/path/host:/other`, this means `/my/path/host/somefile` will be accessible inside Singularity in directory as `/other/somefile`.  
       
 
@@ -62,7 +64,7 @@ singularity exec --nv \
 
 ### FastSurfer Flags
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above, if you want to run the full surface analysis. 
-* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
+* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside Docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
 * The `--parallel` activates processing left and right hemisphere in parallel

@@ -41,7 +41,9 @@ List them by running the following command:
 * `--no_surfreg`: Skip surface registration with FreeSurfer (if only stats are needed)
 * `--fs_license`: Path to FreeSurfer license key file. Register at https://surfer.nmr.mgh.harvard.edu/registration.html for free to obtain it if you do not have FreeSurfer installed already
 
-For more details see `--help`.
+For more details on arguments see `--help`.
+
+`recon-surf.sh` also supports [processing with edits](../doc/overview/EDITING.md).
 
 ### Example 1: Surface module inside Docker
 
@@ -49,23 +51,20 @@ Docker can be used to simplify the installation (no FreeSurfer on system require
 Given you already ran the segmentation pipeline, and want to just run the surface pipeline on top of it 
 (i.e. on a different cluster), the following command can be used:
 ```bash
-# 1. Pull the docker image (if it does not exist locally)
-docker pull deepmi/fastsurfer:cpu-v?.?.?
-
-# 2. Run command
-docker run -v /home/user/my_fastsurfer_analysis:/output \
-           -v /home/user/my_fs_license_dir:/fs_license \
-           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v?.?.? \
-           --fs_license /fs_license/license.txt \
-           --sid subjectX --sd /output --3T --surf_only
+# Run command
+docker run -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
+           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }} \
+           --fs_license $HOME/my_fs_license.txt \
+           --sid subjectX --sd $HOME/my_fastsurfer_analysis --3T --surf_only
 ```
-Check [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find out the latest release version and replace the "?". 
+Note: Go to [deepmi on Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find the latest release version (automatically detected as `deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}`). 
 
 Docker Flags: 
 * The `-v` commands mount your output, and directory with the FreeSurfer license file into the Docker container. Inside the container these are visible under the name following the colon (in this case /output and /fs_license). 
 
 This essentially calls the run_fastsurfer.sh script as entry point and starts only the surface module. It assumes that this case `subjectX` exists already and that the output files of the segmentation module are 
-available in the subjectX/mri directory (e.g. `/home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz`, `mask.mgz`, `orig.mgz` etc.). The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). It is possible to modify the entry point during the docker call and directly run recon-surf.sh, as we will demonstrate with the Singularity example next.
+available in the subjectX/mri directory (e.g. `$HOME/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz`, `mask.mgz`, `orig.mgz` etc.). The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). It is possible to modify the entry point during the docker call and directly run recon-surf.sh, as we will demonstrate with the Singularity example next.
 
 ## Example 2: recon-surf inside Singularity
 Singularity can be used instead of Docker to run the full pipeline or individual modules. In this example we change the entrypoint to `recon-surf.sh` instead of the standard
@@ -73,26 +72,26 @@ Singularity can be used instead of Docker to run the full pipeline or individual
 Given you already ran the segmentation pipeline, and want to just run 
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:
 ```bash
-# 1. Build the singularity image (if it does not exist)
-singularity build fastsurfer-cpu-v?.?.?.sif docker://deepmi/fastsurfer:cpu-v?.?.?
+# 1. Build the singularity image (only if it does not exist)
+singularity build fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 
 # 2. Run command
 singularity exec --no-home \
-                 -B /home/user/my_fastsurfer_analysis:/output \
-                 -B /home/user/my_fs_license_dir:/fs_license \
-                  ./fastsurfer-cpu-?.?.?.sif \
+                 -B $HOME/my_fastsurfer_analysis \
+                 -B $HOME/my_fs_license.txt \
+                  ./fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
                   /fastsurfer/recon_surf/recon-surf.sh \
-                  --fs_license /fs_license/license.txt \
-                  --sid subjectX --sd /output --3T \
-                  --t1 <path_to>/subjectX/mri/orig.mgz \
-                  --asegdkt_segfile <path_to>/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
+                  --fs_license $HOME/fs_license/license.txt \
+                  --sid subjectX --sd $HOME/my_fastsurfer_analysis --3T \
+                  --t1 $HOME/my_fastsurfer_analysis/subjectX/mri/orig.mgz \
+                  --asegdkt_segfile $HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
 ```
-Check [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find out the latest release version and replace the "?". 
+Note: Go to [deepmi on Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find the latest release version (automatically detected as `docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}`). 
 
 ### Singularity Flags: 
 * The `-B` commands mount your output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 
-* The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../doc/overview/README.md#mounting-home))
+* The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../doc/overview/SINGULARITY.md#mounting-home))
 
 The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the segmentation module. Also other files from that pipeline
 will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`). The subject directory will then be populated with the FreeSurfer file structure, including surfaces, statistics 
@@ -100,31 +99,26 @@ and labels file (equivalent to a FreeSurfer recon-all run).
 
 ## Example 3: Native installation - recon-surf on a single subject (subjectX)
 
-Given you want to analyze data for subjectX which is stored on your computer under `/home/user/my_mri_data/subjectX/orig.mgz`, 
+Given you want to analyze data for subjectX which is stored on your computer under `$HOME/my_mri_data/subjectX/orig.mgz`, 
 run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
-# Source FreeSurfer
+# Source FreeSurfer, defining FREESURFER_HOME will usually enable aut-detection in native installations
 export FREESURFER_HOME=/path/to/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
-# Define data directory
-datadir=/home/user/my_mri_data
-segdir=/home/user/my_segmentation_data
-targetdir=/home/user/my_recon_surf_output  # equivalent to FreeSurfer's SUBJECTS_DIR
-
 # Run recon-surf
 ./recon-surf.sh --sid subjectX \
-                --sd $targetdir \
+                --sd $HOME/my_fastsurfer_analysis \
                 --py python3.10 \
                 --3T \
-                --t1 <path_to>/subjectX/mri/orig.mgz \
-                --asegdkt_segfile <path_to>/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
+                --t1 $HOME/my_fastsurfer_analysis/subjectX/mri/orig.mgz \
+                --asegdkt_segfile $HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
 ```
 
 The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the segmentation module. Also other files from that pipeline
-will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`, i.e. under `/home/user/my_fastsurfeer_analysis/subjectX/mri/mask.mgz`). The `subjectX` directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
-The script will generate a bias-field corrected image at `/home/user/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz`, if this did not already exist.
+will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`, i.e. under `$HOME/my_fastsurfeer_analysis/subjectX/mri/mask.mgz`). The `subjectX` directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). 
+The script will generate a bias-field corrected image at `$HOME/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz`, if this did not already exist.
 
 ### Example 4: recon-surf on multiple subjects
 
@@ -138,16 +132,16 @@ Invoke the following command (make sure you have enough resources to run the giv
 
 ```bash
 singularity exec --no-home \
-            -B /home/user/my_fastsurfer_analysis:/output \
-            -B /home/user/subjects_lists/:/lists \
-            -B /home/user/my_fs_license_dir:/fs_license \
-            ./fastsurfer.sif \
+            -B $HOME/my_fastsurfer_analysis \
+            -B $HOME/subjects_lists/ \
+            -B $HOME/my_fs_license.txt \
+            ./fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
             /fastsurfer/brun_fastsurfer.sh \
             --surf_only \
-            --subjects_list /lists/subjects_list.txt \
+            --subjects_list $HOME/subjects_lists//subjects_list.txt \
             --parallel_subjects \
-            --sd /output \
-            --fs_license /fs_license/license.txt \
+            --sd $HOME/my_fastsurfer_analysis \
+            --fs_license $HOME/my_fs_license.txt \
             --3T
 ```
 
@@ -157,50 +151,3 @@ mask and segmentations (as output by our FastSurfer segmentation networks, i.e. 
 The directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run). The script will also generate a bias-field corrected image at `$subjects_dir/$subject_id/mri/orig_nu.mgz`, if this did not already exist.   
 
 The logs of individual subject's processing can be found in `$subjects_dir/$subject_id/scripts`. On the standard out (e.g. the console), the output from multiple subjects will be interleaved, but each line prepended by the subject id. 
-
-
-# Manual Edits
-
-## Brainmask Edits
-
-Currently, FastSurfer has only very limited functionality for manual edits due to missing entrypoints into the recon-surf script. Starting with FastSurfer v2 one frequently requested edit type (brainmask editing) is now possible, as the initial mask is created in the first segmentation stage. By running segmentation and surface processing in two steps, the mask can be edited in-between.
-
-For a **Docker setup** one can:
-
-1. Run segmentation only:
-    ```bash
-    docker run --gpus=all --rm --name $CONTAINER_NAME \
-                          -v $PATH_TO_IMAGE_DIR:$IMAGE_DIR \
-                          -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
-                          --user $UID:$GID deepmi/fastsurfer:gpu-v?.?.? \
-                          --t1 $IMAGE_DIR/input.mgz \
-                          --sd $OUTPUT_DIR \
-                          --sid $SUBJECT_ID \
-                          --seg_only
-    ```
-2. Modify the ```$PATH_TO_OUTPUT_DIR/$SUBJECT_ID/mri/mask.mgz``` file as required.
-3. Run the following Docker command to run the surface processing pipeline (remove `--3T` if you are working with 1.5T data):
-    ```bash
-    docker run --rm --name $CONTAINER_NAME \
-               -v $PATH_TO_OUTPUT_DIR:$OUTPUT_DIR \
-               -v $PATH_TO_FS_LICENSE_DIR:$FS_LICENSE_DIR \
-               --user $UID:$GID deepmi/fastsurfer:gpu-v?.?.? \
-               --sid $SUBJECT_ID  \
-               --sd $OUTPUT_DIR/$SUBJECT_ID \
-               --surf_only --3T \
-               --fs_license $FS_LICENSE_DIR/license_file
-    ```
-
-For a **local install** you can similarly:
-
-1. Go to the FastSurfer directory, source FreeSurfer and run the segmentation step:
-    ```bash
-    cd $FASTSURFER_HOME
-    source $FREESURFER_HOME/SetUpFreeSurfer.sh
-    ./run_fastsurfer.sh --t1 $IMAGE_DIR/input.mgz --sd $OUTPUT_DIR --sid $SUBJECT_ID --seg_only
-    ```
-2. Modify the ```$OUTPUT_DIR/$SUBJECT_ID/mri/mask.mgz``` file.
-3. Run the surface pipeline (remove `--3T` if you are working with 1.5T data):
-    ```bash
-    ./run_fastsurfer.sh --sd $OUTPUT_DIR --sid $SUBJECT_ID --fs_license $FS_LICENSE_DIR/license_file --surf_only --3T
-    ```

@@ -13,6 +13,12 @@ import sys
 import os
 from pathlib import Path
 
+try:
+    from FastSurferCNN.version import read_and_close_version as read_version
+except ImportError:
+    def read_version(project_file):
+        return "undefined"
+
 # here i added the relative path because sphinx was not able
 # to locate FastSurferCNN module directly for autosummary
 sys.path.append(os.path.dirname(__file__) + "/..")
@@ -72,6 +78,17 @@ suppress_warnings = [
 
 # create anchors for which headings?
 myst_heading_anchors = 7
+
+# myst extensions
+myst_enable_extensions = {
+    "substitution",
+}
+
+# configure substitutions
+myst_substitutions = {
+    # for now, the FASTSURFER_VERSION is hard-coded to 2.4.0
+    "FASTSURFER_VERSION": read_version(Path(__file__).resolve().parents[1] / "pyproject.toml"),
+}
 
 templates_path = ["_templates"]
 exclude_patterns = [
