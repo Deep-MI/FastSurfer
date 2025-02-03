@@ -517,12 +517,8 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # make sure FastSurfer is in the PYTHONPATH
-if [[ "$PYTHONPATH" == "" ]]
-then
-  export PYTHONPATH="$FASTSURFER_HOME"
-else
-  export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
-fi
+export PYTHONPATH
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
 
 ########################################## VERSION AND QUIT HERE ########################################
 # make sure the python  executable is valid and found

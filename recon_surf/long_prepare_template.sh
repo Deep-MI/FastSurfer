@@ -260,6 +260,9 @@ fi
 LF="$SUBJECTS_DIR/$tid/scripts/long_prepare_template.log"
 mkdir -p "$(dirname "$LF")"
 
+export PYTHONPATH
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$FASTSURFER_HOME" ]] && echo ":$PYTHONPATH")"
+
 
 if [[ -f "$LF" ]]; then log_existed="true"
 else log_existed="false"
@@ -272,6 +275,8 @@ then
 fi
 
 VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_args[@]}")
+code="$?"
+if [[ "$code" != 0 ]] ; then echo "ERROR: Getting the version failed (code=$code), terminating..." ; exit 1 ; fi
 echo "Version: $VERSION" | tee -a "$LF"
 echo "Log file for long_prepare_template" >> "$LF"
 {
