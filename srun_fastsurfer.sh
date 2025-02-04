@@ -46,6 +46,13 @@ jobarray=""
 timelimit_seg=10
 # 1mm can take 1h per hemi plus 1h extra on a single core (depending on cpu speed)
 timelimit_surf=$((4 * 60))
+# the memory required for the surface and the segmentation pipeline depends on the
+# voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1mm)
+mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
+mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
+mem_surf_parallel=6 # in GB, hemi in parallel
+mem_surf_noparallel=4 # in GB, hemi in series
+num_cpus_surf=1 # base number of cpus to use for surfaces (doubled if --parallel)
 
 function usage()
 {
@@ -59,11 +66,12 @@ srun_fastsurfer.sh [--data <directory to search images>]
                                            [--subject_list_delim <delimiter>]
                                            [--subject_list_awk_code_sid <subject_id code>]
                                            [--subject_list_awk_code_t1 <image_path code>])
-    [--singularity_image <path to fastsurfer singularity image>]
-    [--extra_singularity_options [(seg|surf)=]<singularity option string>] [--num_cases_per_task <number>]
-    [--num_cpus_per_task <number of cpus to allocate for seg>] [--cpu_only] [--time (surf|seg)=<timelimit>]
-    [--partition [(surf|seg)=]<slurm partition>] [--slurm_jobarray <jobarray specification>] [--skip_cleanup]
-    [--email <email address>] [--debug] [--dry] [--help]
+    [--singularity_image <path to fastsurfer singularity image>] [--extra_singularity_options <singularity options>]
+    [--extra_singularity_options_seg <singularity options>] [--extra_singularity_options_surf <singularity options>]
+    [--num_cases_per_task <number>] [--cpu_only] [--num_cpus_per_task <number of cpus to allocate for seg>]
+    [--time_seg <timelimit>] [--time_surf <timelimit>] [--mem_seg <number (GB)>] [--mem_surf <number (GB)>]
+    [--partition <slurm partition>] [--partition_seg <slurm partition>] [--partition_surf <slurm partition>]
+    [--slurm_jobarray <jobarray specification>] [--skip_cleanup] [--email <email address>] [--debug] [--dry] [--help]
     [<additional fastsurfer options>]
 
 Author:   David Kügler, david.kuegler@dzne.de
@@ -125,10 +133,10 @@ FastSurfer options:
 Singularity-related options:
 --singularity_image: Path to the singularity image to use for segmentation and surface
   reconstruction (default: \$HOME/singularity-images/fastsurfer.sif).
---extra_singularity_options: Extra options for singularity, needs to be double quoted to allow quoted strings,
-  e.g. --extra_singularity_options "-B /\$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
-  Supports two formats similar to --partition: --extra_singularity_options <option string> and
-  --extra_singularity_options seg=<option string> and --extra_singularity_options surf=<option string>.
+--extra_singularity_options <extra-options>,
+--extra_singularity_options_seg <extra-options>, and
+--extra_singularity_options_surf <extra-option>: Extra options to the Singularity exec call, needs to be double quoted
+  to allow quoted strings, e.g. --extra_singularity_options "-B /\$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
 
 SLURM-related options:
 --cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
@@ -142,16 +150,16 @@ SLURM-related options:
 --slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
   that have failed, for example '--slurm_jobarray 4,7' would only run the cases associated with a
   (previous) run of srun_fastsurfer.sh, where log files '<sd>/logs/seg_*_{4,7}.log' indicate failure.
---partition: (comma-separated list of) partition(s), supports 2 formats (and their combination):
-   --partition seg=<slurm partition>,<other slurm partition>: will schedule the segmentation job on
-     listed slurm partitions. It is recommended to select nodes/partitions with GPUs here.
-   --partition surf=<partitions>: will schedule surface reconstruction jobs on listed partitions
-   --partition <slurm partition>: default partition to used, if specific partition is not given
-     (one of the above).
-  default: slurm default partition
---time: a per-subject time limit for individual steps, must be number in minutes:
-   --time seg=<timelimit>: time limit for the segmentation pipeline (per subject), default: seg=10 (10min).
-   --time surf=<timelimit>: time limit for the surface reconstruction (per subject), default: surf=180 (180min)
+--partition <comma-separated-list-of-partitions>,
+--partition_seg <comma-separated-list-of-partitions>, and
+--partition_surf <...list>: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
+  It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
+--time_seg <timelimit>, and
+--time_surf <timelimit>: a per-image time limit for individual the segmentation and surface reconstruction steps,
+  respectively. <timelimit> must be a number in minutes, default seg: ${timelimit_seg}min, surf: ${timelimit_surf}min.
+--mem_seg <number (GB)>, and
+--mem_surf <number (GB)>: the memory to allocate for GPU/CPU-based segmentation (default: $mem_seg_cpu/$mem_seg_gpu GB),
+  and surface reconstruction (default: $mem_surf_noparallel, and $mem_surf_parallel for parallel hemisphere processing).
 --email: email address to send slurm status updates.
 
 Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the
@@ -176,14 +184,6 @@ folder as this script) in addition to the fastsurfer singularity image.
 EOF
 }
 
-# the memory required for the surface and the segmentation pipeline depends on the
-# voxel size of the image, here we use values proven to work for 0.7mm (and also 0.8 and 1mm)
-mem_seg_cpu=10 # in GB, seg on cpu, actually required: 9G
-mem_seg_gpu=7 # in GB, seg on gpu, actually required: 6G
-mem_surf_parallel=6 # in GB, hemi in parallel
-mem_surf_noparallel=4 # in GB, hemi in series
-num_cpus_surf=1 # base number of cpus to use for surfaces (doubled if --parallel)
-
 do_parallel="false"
 
 # PRINT USAGE if called without params
@@ -193,15 +193,15 @@ then
   exit
 fi
 
-if [ -z "${BASH_SOURCE[0]}" ]; then
-    THIS_SCRIPT="$0"
-else
-    THIS_SCRIPT="${BASH_SOURCE[0]}"
+if [ -z "${BASH_SOURCE[0]}" ]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 
 set -e
 
 source "$(dirname "$THIS_SCRIPT")/stools.sh"
+
+function warn_old() { echo "WARNING: The syntax to $1 is outdated and will be removed in FastSurfer 3!" ; }
 
 # PARSE Command line
 inputargs=("$@")
@@ -237,46 +237,36 @@ case $key in
   --partition)
     # make key lowercase
     lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_value" =~ seg=* ]]
-    then
-      partition_seg=${1:4}
-    elif [[ "$lower_value" =~ surf=* ]]
-    then
-      partition_surf=${1:5}
-    else
-      partition=$1
+    if [[ "$lower_value" =~ seg=* ]] ; then partition_seg=${1:4} ; warn_old --partition
+    elif [[ "$lower_value" =~ surf=* ]] ; then partition_surf=${1:5} ; warn_old --partition
+    else partition=$1
     fi
     shift
     ;;
+  --partition_seg) partition_seg="$1" ; shift ;;
+  --partition_surf) partition_surf="$1" ; shift ;;
   --extra_singularity_options)
     # make key lowercase
     lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_value" =~ seg=* ]]
-    then
-      extra_singularity_options_seg=${1:4}
-    elif [[ "$lower_value" =~ surf=* ]]
-    then
-      extra_singularity_options_surf=${1:5}
-    else
-      extra_singularity_options=$1
+    if [[ "$lower_value" =~ seg=* ]] ; then extra_singularity_options_seg=${1:4} ; warn_old --extra_singularity_options
+    elif [[ "$lower_value" =~ surf=* ]] ; then extra_singularity_options_surf=${1:5} ; warn_old --extra_singularity_options
+    else extra_singularity_options=$1
     fi
     shift
     ;;
+  --extra_singularity_options_seg) extra_singularity_options_seg=$1 ; shift ;;
+  --extra_singularity_options_surf) extra_singularity_options_surf=$1 ; shift ;;
   --time)
     # make key lowercase
-    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_value" =~ ^seg=[0-9]+ ]]
-    then
-      timelimit_seg=${1:4}
-    elif [[ "$lower_value" =~ surf=([0-9]+|[0-9]{0,1}(:[0-9]{2}){0,1}) ]]
-    then
-      timelimit_surf=${1:5}
-    else
-      echo "Invalid parameter to --time: $1, must be seg|surf=<integer (minutes)>"
-      exit 1
+    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]') ; warn_old --time
+    if [[ "$lower_value" =~ ^seg=[0-9]+ ]] ; then timelimit_seg=${1:4}
+    elif [[ "$lower_value" =~ surf=([0-9]+|[0-9]{0,1}(:[0-9]{2}){0,1}) ]] ; then timelimit_surf=${1:5}
+    else echo "Invalid parameter to --time: $1, must be seg|surf=<integer (minutes)>" ; exit 1
     fi
     shift
     ;;
+  --time_seg) timelimit_seg=$1 ; shift ;;
+  --time_surf) timelimit_surf=$1 ; shift ;;
   --email) email="$1" ; shift ;;
   --dry) submit_jobs="false" ;;
   --debug) debug="true" ;;
@@ -284,21 +274,15 @@ case $key in
   --help) usage ; exit ;;
   --mem)
     # make key lowercase
-    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_value" =~ ^seg=[0-9]+$ ]]
-    then
-      mem_seg_cpu=${1:4}
-      mem_seg_gpu=${1:4}
-    elif [[ "$lower_value" =~ ^surf=[0-9]+$ ]]
-    then
-      mem_surf_parallel=${1:5}
-      mem_surf_noparallel=${1:5}
-    else
-      echo "Invalid parameter to --mem: $1, must be seg|surf=<integer (GigaBytes)>"
-      exit 1
+    lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]') ; warn_old --mem
+    if [[ "$lower_value" =~ ^seg=[0-9]+$ ]] ; then mem_seg_cpu=${1:4} ; mem_seg_gpu=${1:4}
+    elif [[ "$lower_value" =~ ^surf=[0-9]+$ ]] ; then mem_surf_parallel=${1:5} ; mem_surf_noparallel=${1:5}
+    else echo "Invalid parameter to --mem: $1, must be seg|surf=<integer (GigaBytes)>" ; exit 1
     fi
     shift
     ;;
+  --mem_seg) mem_seg_cpu=$1 ; mem_seg_gpu=$1 ; shift ;;
+  --mem_surf) mem_surf_parallel=$1 ; mem_surf_noparallel=$1 ; shift ;;
   *)    # unknown option
     POSITIONAL_FASTSURFER[i]=$KEY
     i=$((i + 1))

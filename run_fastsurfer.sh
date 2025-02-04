@@ -17,10 +17,8 @@
 VERSION='$Id$'
 
 # Set default values for arguments
-if [[ -z "${BASH_SOURCE[0]}" ]]; then
-    THIS_SCRIPT="$0"
-else
-    THIS_SCRIPT="${BASH_SOURCE[0]}"
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
@@ -73,7 +71,6 @@ threads_seg="1"
 threads_surf="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
-allow_root=()
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
@@ -245,8 +242,9 @@ Resource Options:
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
   --parallel              Run both hemispheres in parallel
-  --threads <int>         Set openMP and ITK threads to <int>, also
-                            --threads surf=<int> or --threads seg=<int>.
+  --threads <int>         Set openMP and ITK threads to <int> or "max", also
+  --threads_seg <int>       for definition of threads specific to segmentation
+  --threads_surf <int>      and surface reconstruction.
   --batch <batch_size>    Batch size for inference. Default: 1
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
@@ -332,6 +330,16 @@ then
   exit
 fi
 
+function verify_threads() {
+  # 1: flag, 2: value
+  value="$(echo "$2" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value=$(nproc)
+  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$value"
+  else echo "ERROR: Invalid value for $1: '$2', must be integer or 'max'." ; exit 1
+  fi
+  export verify_value
+}
+
 # PARSE Command line
 inputargs=("$@")
 POSITIONAL=()
@@ -359,7 +367,7 @@ case $key in
 
   # options that *just* set a flag
   #=============================================================
-  --allow_root) allow_root=("--allow_root") ;;
+  --allow_root) ;; # nothing required to do check by check_allow_root
   # options that set a variable
   --sid) subject="$1" ; shift ;;
   --sd) sd="$1" ; shift ;;
@@ -381,28 +389,9 @@ case $key in
   # --3t: both for surface pipeline and the --tal_reg flag
   --3t) surf_flags+=("--3T") ; atlas3T="true" ;;
   --edits) surf_flags+=("$key") ; edits="true" ;;
-  --threads)
-    lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
-    if [[ "$lower_value" =~ ^surf(=-[0-9]*|=max)?$ ]]
-    then # parameter is surf=max or surf=<negative number> or surf
-      threads_surf="max"
-    elif [[ "$lower_value" =~ ^surf=[0-9]*$ ]]
-    then # parameter is surf=<positive number>
-      threads_surf="${lower_value:5}"
-    elif [[ "$lower_value" =~ ^seg(=-[0-9]*|=max)?$ ]]
-    then # parameter is seg=max or surf=<negative number> or surf
-      threads_seg="max"
-    elif [[ "$lower_value" =~ ^seg=[0-9]*$ ]]
-    then # parameter is seg=<positive number>
-      threads_seg="${lower_value:5}"
-    elif [[ "$lower_value" =~ ^(-[0-9]+|max)$ ]] ; then threads_seg="max"; threads_surf="max"
-    elif [[ "$lower_value" =~ ^[0-9]+$ ]] ; then threads_seg="$1"; threads_surf="$1"
-    else
-      echo "Invalid option for --parallel_subjects: $1"
-      exit 1
-    fi
-    shift
-    ;;
+  --threads) verify_threads "$key" "$1" ; threads_seg="$verify_value" ; threads_surf="$verify_value" ; shift ;;
+  --threads_seg) verify_threads "$key" "$1" ; threads_seg="$verify_value" ; shift ;;
+  --threads_surf) verify_threads "$key" "$1" ; threads_surf="$verify_value" ; shift ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
@@ -413,9 +402,7 @@ case $key in
       case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         all) version_and_quit="+checkpoints+git+pip" ;;
         +*) version_and_quit="$1" ;;
-        *) echo "ERROR: Invalid option for --version: '$1', must be 'all' or [+checkpoints][+git][+pip]"
-          exit 1
-          ;;
+        *) echo "ERROR: Invalid option for --version: '$1', must be 'all' or [+checkpoints][+git][+pip]" ; exit 1 ;;
       esac
       shift
     fi
@@ -481,11 +468,8 @@ case $key in
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
   --reg_mode)
     mode=$(echo "$1" | tr "[:upper:]" "[:lower:]")
-    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then
-      hypvinn_flags+=(--regmode "$mode")
-    else
-      echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'."
-      exit 1
+    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then hypvinn_flags+=(--regmode "$mode")
+    else echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'." ; exit 1
     fi
     shift # past value
     ;;

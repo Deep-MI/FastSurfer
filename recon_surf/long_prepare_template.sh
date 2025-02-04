@@ -161,25 +161,12 @@ key=$(echo "$arg" | tr '[:upper:]' '[:lower:]')
 shift # past argument
 case $key in
   --tid) tid="$1" ; shift ;;
-  --tpids)
-    while [[ $# -gt 0 ]] && [[ $1 != -* ]] 
-    do
-      tpids+=("$1")
-      shift  # past value
-    done
-    ;;
-  --t1s)
-    while [[ $# -gt 0 ]] && [[ $1 != -* ]] 
-    do
-      t1s+=("$1")
-      shift  # past value
-    done
-    ;;
+  --tpids) while [[ $# -gt 0 ]] && [[ $1 != -* ]] ; do tpids+=("$1") ; shift ; done ;;
+  --t1s) while [[ $# -gt 0 ]] && [[ $1 != -* ]] ; do t1s+=("$1") ; shift ; done ;;
   --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
   # these flags are passed through to run_prediction.py
-  --vox_size|--device|--viewagg_device|--conform_to_1mm_threshold)
-    run_pred_flags+=("$key" "$1") ; shift ;;
-  --threads) if [[ "$1" =~ ^(seg=)?([0-9]+) ]] ; then run_pred_flags+=("$key" "${BASH_REMATCH[2]}") ; fi ; shift ;;
+  --vox_size|--device|--viewagg_device|--conform_to_1mm_threshold) run_pred_flags+=("$key" "$1") ; shift ;;
+  --threads|--threads_seg) run_pred_flags+=("--threads" "$1") ; shift ;;
   --batch) run_pred_flags+=("--batch_size" "$1") ; shift ;;
   # these known arguments get ignored
   --aseg_name|--conformed_name|--asegdkt_segfile|--brainmask_name|--seg_log|--qc_log) shift ;;

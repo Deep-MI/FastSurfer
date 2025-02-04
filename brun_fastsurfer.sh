@@ -67,15 +67,14 @@ iii. a list of subjects directly passed (this does not support subject-specific 
   Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
   according to \$SLURM_ARRAY_TASK_ID and \$SLURM_ARRAY_TASK_COUNT (unless values are specifically
   assigned with the --batch argument).
---parallel_subjects [surf=|seg=][<n>]: parallel execution multiple subjects.
-  * --parallel_subjects [<n>]: a total of n parallel processes (or num_subjects, if <n> is not
-    provided). The default is serial execution, or '--parallel_subjects 1'.
-  * --parallel_subjects seg=[<m>]: activate parallel execution of segmentation.
-  * --parallel_subjects surf=[<n>]: activate parallel execution of surface reconstruction.
-    Note, to avoid out-of-memory errors when parallelizing the segmentation using
-    --parallel_subjects on gpus, calculate the "safe" number of concurrent segmentations and
-    specify "<m>" with the flag '--parallel_subjects seg=<m>' in addition to
-    '--parallel_subjects surf=<n>' (together max. m+n processes will run, n/m may be "max").
+--parallel_subjects <n>|max: parallel execution of run_fastsurfer for <n> images. Creates <n>
+  processes with each process performing segmentation and surface reconstruction. The default
+  is this serial execution mode with n=1: '--parallel_subjects 1'.
+--parallel_subjects_seg <n>|max and
+--parallel_subjects_surf <m>|max: activate independent segmentation and surface reconstruction
+  pipelines. Segmentation and Surface reconstruction have independent processing queues. After
+  successful segmentation (<n> parallel processes), cases are transferred into the surface queue
+  (<m> parallel processes). Together max. m+n processes will run.
   Logfiles unchanged, console output for individual subjects is interleaved with subject_id prepended.
 --run_fastsurfer <path/command>: This option enables the startup of fastsurfer in a more controlled
   manner, for example to delegate the fastsurfer run to container:
@@ -83,8 +82,10 @@ iii. a list of subjects directly passed (this does not support subject-specific 
   Note, paths to files and --sd have to be defined in the container file system in this case.
 --statusfile <filename>: a file to document which subject ran successfully. Also used to skip
   surface recon, if the previous segmentation failed.
---threads <n>|seg=<n>|surf=<n>: specify number of threads for each parallel "processes", e.g.
-  --parallel_subjects seg=2 --threads seg=2 will start 2 parallel processes with 2 threads each.
+--threads <n>,
+--threads_seg <n>, and
+--threads_surf <n>: specify number of threads for each parallel "process", i.e.
+  total_threads=num_seg_processes * num_seg_threads + num_surf_processes * num_surf_threads.
 --debug: Additional debug output.
 --help: print this help.
 
@@ -105,6 +106,18 @@ then
   usage
   exit
 fi
+
+function verify_parallel() {
+  # 1: flag, 2: value
+  value="$(echo "$2" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value=max
+  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$value"
+  else echo "ERROR: Invalid value for $1: '$2', must be integer or 'max'." ; exit 1
+  fi
+  export verify_value
+}
+
+function warn_old() { echo "WARNING: The syntax to --parallel_subjects is outdated and will be removed in FastSurfer 3!" ; }
 
 # PARSE Command line
 inputargs=("$@")
@@ -134,47 +147,33 @@ case $key in
     subjects_stdin="false"
     shift # past value
     ;;
-  --subjects)
-    subjects_stdin="false"
-    while [[ ! "$1" =~ ^-- ]] ; do subjects+=("$1") ; shift ; done
-    ;;
+  --subjects) subjects_stdin="false" ; while [[ ! "$1" =~ ^-- ]] ; do subjects+=("$1") ; shift ; done ;;
   # brun_fastsurfer-specific/custom options
   #===================================================
   --batch) task_count=$(echo "$1" | cut -f2 -d/) ;  task_id=$(echo "$1" | cut -f1 -d/) ; shift ;;
   --run_fastsurfer) run_fastsurfer=($1) ; shift ;;
   --parallel_subjects)
     if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]
-    then # no additional parameter to --parallel_subjects, the next cmd args is unrelated
-      parallel_pipelines="1"
-      num_parallel_surf="max"
-      num_parallel_seg="max"
+    then parallel_pipelines="1" ; num_parallel_surf="max" ; num_parallel_seg="max" ; warn_old
     else # has parameter
-      lower_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
-      if [[ "$lower_value" =~ ^surf(=-[0-9]*|=max)?$ ]]
-      then # parameter is surf=max or surf=<negative number> or surf
-        num_parallel_surf="max"
-        parallel_pipelines="2"
-      elif [[ "$lower_value" =~ ^surf=[0-9]*$ ]]
-      then # parameter is surf=<positive number>
-        num_parallel_surf="${lower_value:5}"
-        parallel_pipelines="2"
-      elif [[ "$lower_value" =~ ^seg(=-[0-9]*|=max)?$ ]]
-      then # parameter is seg=max or surf=<negative number> or surf
-        num_parallel_seg="max"
-        parallel_pipelines="2"
-      elif [[ "$lower_value" =~ ^seg=[0-9]*$ ]]
-      then # parameter is seg=<positive number>
-        num_parallel_seg="${lower_value:4}"
-        parallel_pipelines="2"
-      elif [[ "$lower_value" =~ ^(-[0-9]+|max)$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="max"
-      elif [[ "$lower_value" =~ ^[0-9]+$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="$lower_value"
-      elif [[ "$lower_value" =~ ^[0-9]+/[-9]+$ ]] ; then parallel_pipelines=2
-        num_parallel_seg="$(echo "$lower_value" | cut -d/ -f1)" ; num_parallel_surf="$(echo "$lower_value" | cut -d/ -f2)"
+      value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+      if [[ "$value" =~ ^surf(=-[0-9]*|=max)?$ ]] ; then num_parallel_surf="max" ; parallel_pipelines="2" ; warn_old
+      elif [[ "$value" =~ ^surf=[0-9]*$ ]] ; then  num_parallel_surf="${value:5}" ; parallel_pipelines="2" ; warn_old
+      elif [[ "$value" =~ ^seg(=-[0-9]*|=max)?$ ]] ; then num_parallel_seg="max" ; parallel_pipelines="2" ; warn_old
+      elif [[ "$value" =~ ^seg=[0-9]*$ ]] ; then num_parallel_seg="${value:4}" ; parallel_pipelines="2" ; warn_old
+      elif [[ "$value" =~ ^(-[0-9]+|max)$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="max"
+      elif [[ "$value" =~ ^[0-9]+$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="$value"
+      elif [[ "$value" =~ ^[0-9]+/[-9]+$ ]] ; then parallel_pipelines=2
+        num_parallel_seg="$(echo "$value" | cut -d/ -f1)" ; num_parallel_surf="$(echo "$value" | cut -d/ -f2)"
       else echo "Invalid option for --parallel_subjects: $1" ; exit 1
       fi
       shift
     fi
     ;;
+  --parallel_subjects_seg)
+    parallel_pipelines=2 ; verify_parallel "$key" "$1" ; num_parallel_seg="$verify_value"; shift ;;
+  --parallel_subjects_surf)
+    parallel_pipelines=2 ; verify_parallel "$key" "$1" ; num_parallel_surf="$verify_value" ; shift ;;
   --statusfile) statusfile="$1" ; shift ;;
   --debug) debug="true" ;;
   --help) usage ; exit ;;
@@ -198,10 +197,6 @@ done
  # restore positional parameters
 if [[ "${#POSITIONAL[@]}" -gt 0 ]] ; then set -- "${POSITIONAL[@]}" ; fi
 
-echo "$THIS_SCRIPT ${inputargs[*]}"
-date -R
-echo ""
-
 source "$(dirname "$THIS_SCRIPT")/stools.sh"
 
 if [[ -n "$SLURM_ARRAY_TASK_ID" ]]
@@ -221,15 +216,16 @@ function get_device_list()
     IFS="," ; host=${1:0:5}
     for i in ${1:5} ; do IFS="-" ; list+=",$(seq -s, $i)" ; done
   else
-    echo "ERROR: Invalid format for device|viewagg_device: $1 must be auto|cpu|mps|cuda[:X[,Y][-Z]...]" >&2
+    echo "ERROR: Invalid format for device|viewagg_device: $1 must be auto|cpu|mps|cuda[:X[,Y][-Z]...]"
     exit 1
   fi
   IFS=","
   for i in ${list:1} ; do
-    if [[ "${out/$i/}" != "$out" ]] ; then echo "WARNING: Duplicate device $i in $1!" >&2 ; fi
+    if [[ "${out/$i/}" != "$out" ]] ; then echo "WARNING: Duplicate device $i in $1!" ; fi
     if [[ -n "$i" ]] ; then out+=",$i" ; fi
-    done
-  echo "$host${out:1}"  # remove leading ","
+  done
+  device_value="$host${out:1}"  # remove leading ","
+  export device_value
 }
 
 # we do not know here, whether a gpu is available, so even if we have none or one, give a warning message.
@@ -239,10 +235,8 @@ then
   echo "WARNING: --device '$res_device' only uses the first gpu for parallel processing in the segmentation pipeline"
   echo "  (--parallel_subjects seg=2+)! Manually specify --device cuda:0 or --device:0-3 (to use multiple gpus)."
 fi
-{
-  if [[ -n "$res_device" ]] ; then res_device="$(get_device_list "$res_device")" ; fi
-  if [[ -n "$res_viewagg_device" ]] ; then res_viewagg_device="$(get_device_list "$res_viewagg_device")" ; fi
-} 2>&1 # forwards stderr or get_device_list to stdout
+if [[ -n "$res_device" ]] ; then get_device_list "$res_device" ; res_device="$device_value" ; fi
+if [[ -n "$res_viewagg_device" ]] ; then get_device_list "$res_viewagg_device" ; res_viewagg_device="$device_value" ; fi
 if [[ "$subjects_stdin" == "true" ]]
 then
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
@@ -250,6 +244,10 @@ then
   fi
   mapfile -t -O ${#subjects[@]} subjects < <(sed "$SED_CLEANUP_SUBJECTS")
 fi
+
+echo "$THIS_SCRIPT ${inputargs[*]}"
+date -R
+echo ""
 
 if [[ "$debug" == "true" ]]
 then

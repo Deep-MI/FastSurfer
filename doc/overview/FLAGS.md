@@ -44,7 +44,7 @@ In the following, we give an overview of the most important options. You can vie
 * `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis. 
 
 ## Some other flags (optional)
-* `--threads`: Target number of threads for all modules (segmentation, surface pipeline), `1` (default) forces FastSurfer to only really use one core. Note, that the default value may change in the future for better performance on multi-core architectures.
+* `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. The default (`1`) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures.
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed. 
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isometric.

@@ -65,13 +65,13 @@ pipelines, which is useful for optimized GPU loading. Multiple cases may be proc
 
 ```bash
 $FASTSURFER_HOME/brun_fastsurfer.sh --device cuda:0-1 --parallel_subjects seg=2 --parallel_subjects surf=max \
-  --threads seg=8 --threads surf=2 --parallel
+  --threads_seg 8 --threads_surf 2 --parallel
 ```
 will start 2 parallel segmentations (`--parallel_subjects seg=2`) using GPU 0 for case 1 and GPU for case 2 
 (`--device cuda:0-1` -- same as `--device cuda:0,1`). After one of these segmentations 1 is finished, segmentation of 
 case 3 will start on that same device as well as the surface reconstruction (without putting a limit on parallel 
 surface reconstructions, `--parallel_subjects surf=max`). Each segmentation process will aim to use 8 threads/cores
-(`--threads seg=8`) and each surface reconstruction process will aim to use 2 threads (`--threads surf=2`) with both
+(`--threads_seg 8`) and each surface reconstruction process will aim to use 2 threads (`--threads_surf 2`) with both
 hemispheres processed in parallel (`--parallel`).
 
 Note, if your GPU has sufficient [video memory](../overview/intro.rst#system-requirements), two parallel segmentations
