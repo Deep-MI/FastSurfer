@@ -34,12 +34,12 @@ Parallelization with `brun_fastsurfer.sh`
 -----------------------------------------
 
 `brun_fastsurfer.sh` has powerful builtin parallel processing capabilities. These are hidden underneath the 
-`--parallel_subjects [seg=|surf=][<n>]` and the `--device <device>` as well as `--viewagg_device <device>` flags.
+`--parallel_subjects* <n>|max` and the `--device <device>` as well as `--viewagg_device <device>` flags.
 One of the core properties of FastSurfer is the split into the segmentation (which uses Deep Learning and therefore 
 benefits from GPUs) and the surface pipeline (which does not benefit from GPUs). For ideal batch processing, we want 
 different resource scheduling.
 
-`--parallel_subjects` allows three parallel batch processing modes: serial, single parallel pipeline and dual parallel
+`--parallel_subjects*` allows three parallel batch processing modes: serial, single parallel pipeline and dual parallel
 pipeline. 
 
 ### Serial processing (default)
@@ -64,19 +64,19 @@ This is ideal for GPU-based processing for segmentation. It will process segment
 pipelines, which is useful for optimized GPU loading. Multiple cases may be processed at the same time.
 
 ```bash
-$FASTSURFER_HOME/brun_fastsurfer.sh --device cuda:0-1 --parallel_subjects seg=2 --parallel_subjects surf=max \
+$FASTSURFER_HOME/brun_fastsurfer.sh --device cuda:0-1 --parallel_subjects_seg 2 --parallel_subjects_surf max \
   --threads_seg 8 --threads_surf 2 --parallel
 ```
-will start 2 parallel segmentations (`--parallel_subjects seg=2`) using GPU 0 for case 1 and GPU for case 2 
-(`--device cuda:0-1` -- same as `--device cuda:0,1`). After one of these segmentations 1 is finished, segmentation of 
+will start 2 parallel segmentations (`--parallel_subjects_seg 2`) using GPU 0 for case 1 and GPU 1 for case 2 
+(`--device cuda:0-1` -- same as `--device cuda:0,1`). After one of these segmentations is finished, the segmentation of 
 case 3 will start on that same device as well as the surface reconstruction (without putting a limit on parallel 
-surface reconstructions, `--parallel_subjects surf=max`). Each segmentation process will aim to use 8 threads/cores
+surface reconstructions, `--parallel_subjects_surf max`). Each segmentation process will aim to use 8 threads/cores
 (`--threads_seg 8`) and each surface reconstruction process will aim to use 2 threads (`--threads_surf 2`) with both
 hemispheres processed in parallel (`--parallel`).
 
 Note, if your GPU has sufficient [video memory](../overview/intro.rst#system-requirements), two parallel segmentations
 can run on the same GPU, but the script cannot schedule more than one process per GPU for multiple GPUs, i.e.
-`--device cuda:0,1 --parallel_subjects seg=4` is not supported.
+`--device cuda:0,1 --parallel_subjects_seg 4` is not supported.
 
 Questions
 ---------
