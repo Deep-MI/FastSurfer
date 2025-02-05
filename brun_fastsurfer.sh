@@ -78,7 +78,7 @@ iii. a list of subjects directly passed (this does not support subject-specific 
   Logfiles unchanged, console output for individual subjects is interleaved with subject_id prepended.
 --run_fastsurfer <path/command>: This option enables the startup of fastsurfer in a more controlled
   manner, for example to delegate the fastsurfer run to container:
-  --run_fastsurfer "singularity exec --nv --no-home -B <dir>:/data /fastsurfer/run_fastsurfer.sh"
+  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B <dir>:/data /fastsurfer/run_fastsurfer.sh"
   Note, paths to files and --sd have to be defined in the container file system in this case.
 --statusfile <filename>: a file to document which subject ran successfully. Also used to skip
   surface recon, if the previous segmentation failed.
@@ -210,7 +210,7 @@ function get_device_list()
 {
   # outputs device list numbers separated with "," to stdout
   # error messages are sent to stderr
-  local list="" host="" out="" i
+  local list="" host="" out="" i prev_ifs="$IFS"
   if [[ "$1" =~ ^(cpu|mps|auto|cuda)$ ]] || [[ "$1" =~ ^cuda:[0-9]+(,[0-9]+)*$ ]] ; then list=",$1"
   elif [[ "$1" =~ ^cuda:[0-9]+([-,][0-9]+(-[0-9]+)?)* ]] ; then
     IFS="," ; host=${1:0:5}
@@ -224,6 +224,7 @@ function get_device_list()
     if [[ "${out/$i/}" != "$out" ]] ; then echo "WARNING: Duplicate device $i in $1!" ; fi
     if [[ -n "$i" ]] ; then out+=",$i" ; fi
   done
+  IFS="$prev_ifs"
   device_value="$host${out:1}"  # remove leading ","
   export device_value
 }
@@ -267,6 +268,7 @@ then
     echo "parallelization: Independent segmentation and surface parallelization:"
     echo "  segmentation: $num_parallel_seg parallel subjects, surface: $num_parallel_surf parallel subjects"
   fi
+  IFS=" "
   if [[ "${run_fastsurfer[*]}" == "" ]] ;  then echo "running default run_fastsurfer"
   else echo "running ${run_fastsurfer[*]}"
   fi
@@ -419,8 +421,7 @@ function run_single()
   then
     ## if status in statusfile is "Failed" last, skip this
     IFS=" "
-    set -x
-    while read -r line ; do
+    while IFS='' read -r line ; do
       subject="$(echo "$line" | cut -d" " -f1)"
       if [[ "$subject" == "$subject_id:" ]] ; then
         statustext="${line:$((${#subject} + 1))}"
@@ -430,7 +431,6 @@ function run_single()
         fi
       fi
     done < "$statusfile"
-    set +x
     if [[ "$status" == "failed" ]]
     then
       echo "INFO: Skipping $subject_id's surface recon because the segmentation failed."
@@ -479,9 +479,11 @@ function process_by_token()
 
   local subject_id max_processes subject_buffer=() read_in=1 returncode spawn_task=1 mode="$1" line device_ready=0
   local timeout_read_token="$2" debug="$3" statusfile="$4" parallel_pipelines="$5" num_parallel_seg="$6" this_args=()
-  local num_parallel_surf="$7" device=() vdevice=() regx="^cuda:[0-9]+," parallel_warn=0 res_args=()
-  if [[ "$8" =~ $regx ]] ; then IFS="," ; for e in ${8:5} ; do device+=("${8:0:5}$e") ; done ; else device=("$8") ; fi
-  if [[ "$9" =~ $regx ]] ; then IFS="," ; for e in ${9:5} ; do vdevice+=("${9:0:5}$e") ; done ; else vdevice=("$9") ; fi
+  local num_parallel_surf="$7" device=() vdevice=() regx="^cuda:[0-9]+," parallel_warn=0 res_args=() prev_ifs="$IFS"
+  IFS=","
+  if [[ "$8" =~ $regx ]] ; then for e in ${8:5} ; do device+=("${8:0:5}$e") ; done ; else device=("$8") ; fi
+  if [[ "$9" =~ $regx ]] ; then for e in ${9:5} ; do vdevice+=("${9:0:5}$e") ; done ; else vdevice=("$9") ; fi
+  IFS="$prev_ifs"
 
   for run in {1..9}; do shift ; done
   local run_single_args=("$debug" "$statusfile" "$parallel_pipelines" "$num_parallel_seg" "$num_parallel_surf" "$@")
@@ -576,9 +578,9 @@ function process_by_token()
   # wait for jobs to finish
   if [[ "$debug" == "true" ]]
   then
-    echo "DEBUG: Finished scheduling $mode-jobs... waiting for ${#running_jobs} jobs to finish"
-    echo "${running_jobs[@]}"
-    jobs -pr
+    echo "DEBUG: Finished scheduling $mode-jobs... waiting for ${#running_jobs} jobs to finish:"
+    IFS=" "
+    echo "       ${running_jobs[*]}"
     wait "${running_jobs[@]}"
     echo "DEBUG: All $mode-jobs finished!"
   else
@@ -588,7 +590,7 @@ function process_by_token()
 
 function filter_token()
 {
-  while read -r line ; do if [[ "${line:0:17}" != "#@#!NEXT-SUBJECT:" ]] ; then echo "$line" ; fi ; done
+  while IFS='' read -r line ; do if [[ "${line:0:17}" != "#@#!NEXT-SUBJECT:" ]] ; then echo "$line" ; fi ; done
 }
 
 
