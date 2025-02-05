@@ -33,10 +33,8 @@
 
 
 # Set default values for arguments
-if [[ -z "${BASH_SOURCE[0]}" ]]; then
-    THIS_SCRIPT="$0"
-else
-    THIS_SCRIPT="${BASH_SOURCE[0]}"
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
@@ -239,6 +237,8 @@ then
 fi
 function log () { echo "$1" | tee -a "$LF" ; }
 
+log "Logging outputs of $THIS_SCRIPT to $LF"
+log "======================================="
 
 ################################### Prepare Base ##################################
 
@@ -270,15 +270,15 @@ cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
 if [[ "$parallel" == "1" ]] ; then
   base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
   base_surf_cmdf_log="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf.log"
-  log "Starting base surface reconstruction, logs temporarily diverted to $base_surf_cmdf_log..."
-  log "======================================="
-
   {
     echo "Log file of base surface pipeline"
     date
   } > "$base_surf_cmdf_log"
   echo "#/bin/bash" > "$base_surf_cmdf"
   run_it_cmdf "$LF" "$base_surf_cmdf" "${cmda[@]}"
+  log "Starting base surface reconstruction, logs temporarily diverted to $base_surf_cmdf_log..."
+  log "Output from this process will be delayed to when it has finished."
+  log "======================================="
   bash "$base_surf_cmdf" >> "$base_surf_cmdf_log" 2>&1 &
   base_surf_pid=$!
   # shellcheck disable=SC2064
@@ -300,15 +300,15 @@ cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd 
 if [[ "$parallel" == "1" ]] ; then
   long_seg_cmdf="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf"
   long_seg_cmdf_log="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf.log"
-  log "Starting longitudinal segmentations, logs temporarily diverted to $long_seg_cmdf_log..."
-  log "======================================="
-
   {
     echo "Log file of longitudinal segmentation pipeline"
     date
   } > "$long_seg_cmdf_log"
   echo "#/bin/bash" > "$long_seg_cmdf"
   run_it_cmdf "$LF" "$long_seg_cmdf" "${cmda[@]}"
+  log "Starting longitudinal segmentations, logs temporarily diverted to $long_seg_cmdf_log..."
+  log "Output from this process will be delayed to when it has finished."
+  log "======================================="
   # at the end of the job below, the gpu can be released (for tight management of resources, run
   # Surfaces in different jobs. Alternative, add a command to "$long_seg_cmdf" that releases the gpu or
   # triggers the next "subject"
@@ -331,7 +331,7 @@ if [[ "$parallel" == "1" ]] ; then
   # Append the base surface and longitudinal segmentation logs, exit if either failed
   what_failed=()
   log "======================================="
-  log "Waiting for base surface reconstruction and longitudinal segmentations to finish..."
+  log "Waiting for base surface reconstruction and longitudinal segmentations to finish... (this may take 30+ minutes)"
   wait "$base_surf_pid"
   success1=$?
   log "done."
@@ -366,3 +366,5 @@ if [[ "$parallel" == "1" ]] ; then
 fi
 run_it "$LF" "${cmda[@]}"
 
+log "======================================="
+log "Full longitudinal processing for $tid finished!"
