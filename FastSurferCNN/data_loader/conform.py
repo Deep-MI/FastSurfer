@@ -26,18 +26,10 @@ import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 
-from FastSurferCNN.utils.arg_types import (
-    VoxSizeOption,
-)
-from FastSurferCNN.utils.arg_types import (
-    float_gt_zero_and_le_one as __conform_to_one_mm,
-)
-from FastSurferCNN.utils.arg_types import (
-    target_dtype as __target_dtype,
-)
-from FastSurferCNN.utils.arg_types import (
-    vox_size as __vox_size,
-)
+from FastSurferCNN.utils.arg_types import VoxSizeOption
+from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one_mm
+from FastSurferCNN.utils.arg_types import target_dtype as __target_dtype
+from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 
 HELPTEXT = """
 Script to conform an MRI brain image to UCHAR, RAS orientation, 
@@ -760,7 +752,7 @@ def is_conform(
     This function only needs the header (not the data).
     """
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
-        img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold
+        img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold,
     )
 
     ishape = img.shape
@@ -768,9 +760,7 @@ def is_conform(
     if len(ishape) > 3 and ishape[3] != 1:
         raise ValueError(f"ERROR: Multiple input frames ({ishape[3]}) not supported!")
 
-    checks = {
-        "Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
-    }
+    checks = {"Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")}
     # check dimensions
     if Criteria.FORCE_IMG_SIZE in criteria:
         img_size_criteria = f"Dimensions {'x'.join([str(conformed_img_size)] * 3)}"
@@ -811,15 +801,14 @@ def is_conform(
     _is_conform = all(map(lambda x: x[0], checks.values()))
 
     if verbose:
+        logger = logging.getLogger(__name__)
         if not _is_conform:
-            print("The input image is not conformed.")
+            logger.info("The input image is not conformed.")
 
-        conform_str = (
-            "conformed" if conform_vox_size == 1.0 else f"{conform_vox_size}-conformed"
-        )
-        print(f"A {conform_str} image must satisfy the following criteria:")
+        conform_str = "conformed" if conform_vox_size == 1.0 else f"{conform_vox_size}-conformed"
+        logger.info(f"A {conform_str}conformed image must satisfy the following criteria:")
         for condition, (value, message) in checks.items():
-            print(f" - {condition:<30}: {value if value else 'BUT ' + message}")
+            logger.info(f" - {condition:<30}: {value if value else 'BUT ' + message}")
     return _is_conform
 
 
