@@ -460,11 +460,11 @@ if [ "$CONFORM_LF" != /dev/null ] ; then  rm -f "$CONFORM_LF" ; fi
 echo "Log file for Conform test" > "$CONFORM_LF"
 
 # check for input conformance
-cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
-RunIt "$cmd" "$LF" 2>&1 | tee -a "$CONFORM_LF"
+cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose --log $CONFORM_LF"
+RunIt "$cmd" "$LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
-vox_size=$(grep -E " - Voxel Size " "$CONFORM_LF" | cut -d' ' -f5 | cut -d'x' -f1)
+vox_size=$(grep -oP '(?<= - Voxel Size )[0-9\.]+' "$CONFORM_LF")
 # remove the temporary conform_log (all info is also in the recon-surf logfile)
 if [ -f "$CONFORM_LF" ]; then rm -f "$CONFORM_LF" ; fi
 

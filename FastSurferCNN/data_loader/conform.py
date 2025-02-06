@@ -16,7 +16,6 @@
 
 # IMPORTS
 import argparse
-import logging
 import sys
 from collections.abc import Iterable
 from enum import Enum
@@ -26,6 +25,7 @@ import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 
+from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.arg_types import VoxSizeOption
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one_mm
 from FastSurferCNN.utils.arg_types import target_dtype as __target_dtype
@@ -72,14 +72,14 @@ DEFAULT_CRITERIA_DICT = {
 DEFAULT_CRITERIA = frozenset(DEFAULT_CRITERIA_DICT.values())
 
 
-def options_parse():
+def make_parser() -> argparse.ArgumentParser:
     """
-    Command line option parser.
+    Create an Argument parser for the conform script.
 
     Returns
     -------
-    options
-        Object holding options.
+    argparse.ArgumentParser
+        The parser object.
     """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
@@ -172,7 +172,25 @@ def options_parse():
         action="store_true",
         help="If verbose, more specific messages are printed",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--log",
+        dest="logfile",
+        default="",
+        action="store",
+        help="If specified, a log file that is written to",
+    )
+    return parser
+
+def options_parse():
+    """
+    Command line option parser.
+
+    Returns
+    -------
+    options
+        Object holding options.
+    """
+    args = make_parser().parse_args()
     if args.input is None:
         raise RuntimeError("ERROR: Please specify input image")
     if not args.check_only and args.output is None:
@@ -972,6 +990,8 @@ if __name__ == "__main__":
         options = options_parse()
     except RuntimeError as e:
         sys.exit(*e.args)
+
+    logging.setup_logging(options.logfile) # logging to only the console
 
     print(f"Reading input: {options.input} ...")
     image = nib.load(options.input)
