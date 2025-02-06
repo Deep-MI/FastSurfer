@@ -51,10 +51,10 @@ To run the network on MRI-volumes of subjectX in ./data (specified by `--t1` fla
 
 ```bash
 python3 run_prediction.py \
-  --t1 ../data/subjectX/t1-weighted.nii.gz \
-  --sd ../output \
-  --t subjectX \
-  --seg_log ../output/temp_Competitive.log
+            --t1 ../data/subjectX/t1-weighted.nii.gz \
+            --sd ../output \
+            --t subjectX \
+            --seg_log ../output/temp_Competitive.log
 ```
 
 The output will be stored in:
@@ -71,9 +71,9 @@ To run the network on all subjects MRI-volumes in ./data, change into the *FastS
 
 ```bash
 python3 run_prediction.py \
-  --in_dir ../data \
-  --sd ../output \
-  --seg_log ../output/temp_Competitive.log
+            --in_dir ../data \
+            --sd ../output \
+            --seg_log ../output/temp_Competitive.log
 ```
 
 The output will be stored in:
@@ -143,8 +143,8 @@ python3 generate_hdf5.py \
           --gt_nocc mri/aseg.auto_noCCseg.mgz
           --max_w 5 \
           --edge_w 4 \
-  -        -hires_w 4 \
-  -        -sizes 256
+          --hires_w 4 \
+          --sizes 256
 ```
 
 ## Example Command: Coronal (Single Resolution)
