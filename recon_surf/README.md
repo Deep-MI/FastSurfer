@@ -18,17 +18,14 @@ bias-field corrected image and the bias-field correction is skipped.
 Usage
 =====
 
-```
-{command-output} ./recon_surf.sh --help
-```
 The *recon_surf* directory contains scripts to run the analysis. In addition, a working installation of __FreeSurfer__ 
 (the supported version, usually the most recent) is needed for a native install (or use our Docker/Singularity images). 
 
 The main script is called `recon-surf.sh` which accepts certain arguments via the command line.
 List them by running the following command:
 
-```bash
-./recon-surf.sh --help
+```{command-output} ./recon-surf.sh --help
+:cwd: /../recon_surf/
 ```
 
 Required arguments
