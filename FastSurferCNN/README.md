@@ -35,22 +35,23 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * `--clean`: clean up segmentation after running it (optional)
 * `--device <str>`:Device for processing (_auto_, _cpu_, _cuda_, _cuda:<device_num>_), where cuda means Nvidia GPU; you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU
 * `--viewagg_device <str>`: Define where the view aggregation should be run on. 
-                    Can be _auto_ or a device (see --device).
-                    By default (_auto_), the program checks if you have enough memory to run the view aggregation on the gpu. 
-                    The total memory is considered for this decision. 
-                    If this fails, or you actively overwrote the check with setting `--viewagg_device cpu`, view agg is run on the cpu. 
-                    Equivalently, if you define `--viewagg_device gpu`, view agg will be run on the gpu (no memory check will be done).
+  Can be _auto_ or a device (see --device).
+  By default (_auto_), the program checks if you have enough memory to run the view aggregation on the gpu. 
+  The total memory is considered for this decision. 
+  If this fails, or you actively overwrote the check with setting `--viewagg_device cpu`, view agg is run on the cpu. 
+  Equivalently, if you define `--viewagg_device gpu`, view agg will be run on the gpu (no memory check will be done).
 * `--batch_size`: Batch size for inference. Default=1
 
 
 ## Example Command: Evaluation Single Subject
 To run the network on MRI-volumes of subjectX in ./data (specified by `--t1` flag; e.g. ./data/subjectX/t1-weighted.nii.gz), change into the *FastSurferCNN* directory and run the following commands: 
 
-```
-python3 run_prediction.py --t1 ../data/subjectX/t1-weighted.nii.gz \
---sd ../output \
---t subjectX \
---seg_log ../output/temp_Competitive.log \
+```bash
+python3 run_prediction.py \
+  --t1 ../data/subjectX/t1-weighted.nii.gz \
+  --sd ../output \
+  --t subjectX \
+  --seg_log ../output/temp_Competitive.log
 ```
 
 The output will be stored in:
@@ -65,10 +66,11 @@ Here the logfile "temp_Competitive.log" will include the logfiles of all subject
 ## Example Command: Evaluation whole directory
 To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
 
-```
-python3 run_prediction.py --in_dir ../data \
---sd ../output \
---seg_log ../output/temp_Competitive.log \
+```bash
+python3 run_prediction.py \
+  --in_dir ../data \
+  --sd ../output \
+  --seg_log ../output/temp_Competitive.log
 ```
 
 The output will be stored in:
@@ -77,6 +79,7 @@ The output will be stored in:
 - `../output/subjectX/mri/mask.mgz` (brain mask)
 - `../output/subjectX/mri/aseg_noCC.mgz` (reduced segmentation)
 - and the log in `../output/temp_Competitive.log`
+
 <!-- before generate_hdf5 -->
 
 # 2. Hdf5-Trainingset Generation
@@ -90,14 +93,15 @@ A list of python libraries used within the code can be found in __requirements.t
 * `--data_dir`: Directory with images to load. Default: /data
 * `--pattern`: Pattern to match only certain files in the directory
 * `--csv_file`: Csv-file listing subjects to load (can be used instead of data_dir; one complete path per line (up to the subject directory))
-              Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
-              
-              /dataset/D1/subject1
-              /dataset/D1/subject10
-              /dataset/D1/subject20
-              /dataset/D2/subject1
-              /dataset/D2/subject10
-              /dataset/D2/subject20
+  Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
+  ```
+  /dataset/D1/subject1
+  /dataset/D1/subject10
+  /dataset/D1/subject20
+  /dataset/D2/subject1
+  /dataset/D2/subject10
+  /dataset/D2/subject20
+  ```
 * --lut: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv
               
 The actual filename and segmentation ground truth name is specified via `--image_name` and `--gt_name` (e.g. the actual file could be sth. like /dataset/D1/subject1/mri_volume.mgz and /dataset/D1/subject1/segmentation.mgz)
@@ -121,55 +125,54 @@ The actual filename and segmentation ground truth name is specified via `--image
 * `--edge_w`: Weight for edges in weight mask. Default=5
 
 ## Example Command: Axial (Single Resolution)
-```
+```bash
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_axial.hdf5 \
---csv_file ../training_set_subjects_dirs.csv \
---thickness 3 \
---plane axial \
---image_name mri/orig.mgz \
---gt_name mri/aparc.DKTatlas+aseg.mgz \
---gt_nocc mri/aseg.auto_noCCseg.mgz
---max_w 5 \
---edge_w 4 \
---hires_w 4 \
---sizes 256
+  --hdf5_name ../data/training_set_axial.hdf5 \
+  --csv_file ../training_set_subjects_dirs.csv \
+  --thickness 3 \
+  --plane axial \
+  --image_name mri/orig.mgz \
+  --gt_name mri/aparc.DKTatlas+aseg.mgz \
+  --gt_nocc mri/aseg.auto_noCCseg.mgz
+  --max_w 5 \
+  --edge_w 4 \
+  --hires_w 4 \
+  --sizes 256
 ```
 
 ## Example Command: Coronal (Single Resolution)
-```
+```bash
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_coronal.hdf5 \
---csv_file ../training_set_subjects_dirs.csv \
---plane coronal \
---image_name mri/orig.mgz \
---gt_name mri/aparc.DKTatlas+aseg.mgz \
---gt_nocc mri/aseg.auto_noCCseg.mgz
---max_w 5 \
---edge_w 4 \
---hires_w 4 \
---sizes 256
+  --hdf5_name ../data/training_set_coronal.hdf5 \
+  --csv_file ../training_set_subjects_dirs.csv \
+  --plane coronal \
+  --image_name mri/orig.mgz \
+  --gt_name mri/aparc.DKTatlas+aseg.mgz \
+  --gt_nocc mri/aseg.auto_noCCseg.mgz
+  --max_w 5 \
+  --edge_w 4 \
+  --hires_w 4 \
+  --sizes 256
 ```
 
 ## Example Command: Sagittal (Multiple Resolutions)
-```
+```bash
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_sagittal.hdf5 \
---csv_file ../training_set_subjects_dirs.csv \
---plane sagittal \
---image_name mri/orig.mgz \
---gt_name mri/aparc.DKTatlas+aseg.mgz \
---gt_nocc mri/aseg.auto_noCCseg.mgz
---max_w 5 \
---edge_w 4 \
---hires_w 4 \
---sizes 256 311 320
+  --hdf5_name ../data/training_set_sagittal.hdf5 \
+  --csv_file ../training_set_subjects_dirs.csv \
+  --plane sagittal \
+  --image_name mri/orig.mgz \
+  --gt_name mri/aparc.DKTatlas+aseg.mgz \
+  --gt_nocc mri/aseg.auto_noCCseg.mgz
+  --max_w 5 \
+  --edge_w 4 \
+  --hires_w 4 \
+  --sizes 256 311 320
 ```
 
 ## Example Command: Sagittal using --data_dir instead of --csv_file
 `--data_dir` specifies the path in which the data is located, with `--pattern` we can select subjects from the specified path. By default the pattern is "*" meaning all subjects will be selected.
 As an example, imagine you have 19 FreeSurfer processed subjects labeled subject1 to subject19 in the ../data directory:
-
 ```
 /home/user/FastSurfer/data
 ├── subject1
@@ -178,33 +181,31 @@ As an example, imagine you have 19 FreeSurfer processed subjects labeled subject
 …
 │
 ├── subject19
-    ├── mri
-    │   ├── aparc.DKTatlas+aseg.mgz
-    │   ├── aseg.auto_noCCseg.mgz
-    │   ├── orig.mgz
-    │   ├── …
-    │   …
-    ├── scripts
-    ├── stats
-    ├── surf
-    ├── tmp
-    ├── touch
-    └── trash
+&nbsp;&nbsp;&nbsp;&nbsp;├── mri
+&nbsp;&nbsp;&nbsp;&nbsp;│   ├── aparc.DKTatlas+aseg.mgz
+&nbsp;&nbsp;&nbsp;&nbsp;│   ├── aseg.auto_noCCseg.mgz
+&nbsp;&nbsp;&nbsp;&nbsp;│   ├── orig.mgz
+&nbsp;&nbsp;&nbsp;&nbsp;│   ├── …
+&nbsp;&nbsp;&nbsp;&nbsp;│   …
+&nbsp;&nbsp;&nbsp;&nbsp;├── scripts
+&nbsp;&nbsp;&nbsp;&nbsp;├── stats
+&nbsp;&nbsp;&nbsp;&nbsp;├── surf
+&nbsp;&nbsp;&nbsp;&nbsp;├── tmp
+&nbsp;&nbsp;&nbsp;&nbsp;├── touch
+&nbsp;&nbsp;&nbsp;&nbsp;└── trash
 ```
 
 Setting `--pattern` "*" will select all 19 subjects (subject1, ..., subject19).
 Now, if only a subset should be used for the hdf5-file (e.g. subject 10 till subject19), this can be done by changing the `--pattern` flag to "subject1[0-9]": 
-
-```
+```bash
 python3 generate_hdf5.py \
---hdf5_name ../data/training_set_axial.hdf5 \
---data_dir ../data \
---pattern "subject1[0-9]" \
---plane sagittal \
---image_name mri/orig.mgz \
---gt_name mri/aparc.DKTatlas+aseg.mgz \
---gt_nocc mri/aseg.auto_noCCseg.mgz
- 
+  --hdf5_name ../data/training_set_axial.hdf5 \
+  --data_dir ../data \
+  --pattern "subject1[0-9]" \
+  --plane sagittal \
+  --image_name mri/orig.mgz \
+  --gt_name mri/aparc.DKTatlas+aseg.mgz \
+  --gt_nocc mri/aseg.auto_noCCseg.mgz
 ```
 <!-- before training -->
 # 3. Training
@@ -267,26 +268,26 @@ To train the network on a given hdf5-set, change into the *FastSurferCNN* direct
 
 ## Example Command: Training Default FastSurferVINN
 Trains FastSurferVINN on multi-resolution images in the coronal plane:
-```
+```bash
 python3 run_model.py \
---cfg ./config/FastSurferVINN.yaml
+  --cfg ./config/FastSurferVINN.yaml
 ```
 
 ## Example Command: Training FastSurferVINN (Single Resolution)
 Trains FastSurferVINN on single-resolution images in the sagittal plane by overriding the NUM_CLASSES, SIZES, PATH_HDF5_TRAIN, and PATH_HDF5_VAL options:
-```
+```bash
 python3 run_model.py \
---cfg ./config/FastSurferVINN.yaml \
-MODEL.NUM_CLASSES 51 \
-DATA.SIZES 256 \
-DATA.PATH_HDF5_TRAIN ./hdf5_sets/training_sagittal_single_resolution.hdf5 \
-DATA.PATH_HDF5_VAL ./hdf5_sets/validation_sagittal_single_resolution.hdf5 \
+  --cfg ./config/FastSurferVINN.yaml \
+    MODEL.NUM_CLASSES 51 \
+    DATA.SIZES 256 \
+    DATA.PATH_HDF5_TRAIN ./hdf5_sets/training_sagittal_single_resolution.hdf5 \
+    DATA.PATH_HDF5_VAL ./hdf5_sets/validation_sagittal_single_resolution.hdf5 \
 ```
 
 ## Example Command: Training FastSurferCNN
 Trains FastSurferCNN using a provided configuration file and specifying no augmentations:
-```
+```bash
 python3 run_model.py \
---cfg custom_configs/FastSurferCNN.yaml \
---aug None
+  --cfg custom_configs/FastSurferCNN.yaml \
+  --aug None
 ```
