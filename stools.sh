@@ -360,7 +360,7 @@ function make_copy_job ()
   fi
   {
     echo "#!/bin/bash"
-    echo "set -e"
+    echo "IFS=''"
     echo "mkdir -p $hpc_work/cases"
     echo "while read subject; do"
     echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
@@ -412,10 +412,12 @@ function prepend ()
 {
   #param1 string to prepend to every line
   # https://serverfault.com/questions/72744/command-to-prepend-string-to-each-line
+  IFS=""
   while read -r line ; do echo "${1}${line}" ; done
 }
 function append ()
 {
   #param1 string to append to every line
+  IFS=""
   while read -r line ; do echo "${line}$1" ; done
 }

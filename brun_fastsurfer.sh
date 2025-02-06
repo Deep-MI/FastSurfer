@@ -439,8 +439,9 @@ function run_single()
   elif [[ -n "$statusfile" ]] && [[ "$do_surf" == 1 ]] && [[ "$do_seg" == 0 ]]
   then
     ## if status in statusfile is "Failed" last, skip this
-    IFS=" "
-    while IFS='' read -r line ; do
+    prev_ifs="$IFS" ; IFS=''
+    while read -r line ; do
+      IFS=" "
       subject="$(echo "$line" | cut -d" " -f1)"
       if [[ "$subject" == "$subject_id:" ]] ; then
         statustext="${line:$((${#subject} + 1))}"
@@ -449,7 +450,9 @@ function run_single()
           status=success
         fi
       fi
+      IFS=""
     done < "$statusfile"
+    IFS="$prev_ifs"
     if [[ "$status" == "failed" ]]
     then
       echo "INFO: Skipping $subject_id's surface recon because the segmentation failed."
@@ -512,6 +515,7 @@ function process_by_token()
   do
     if [[ "$read_in" == 1 ]]
     then
+      IFS=""
       read -r -t "$timeout_read_token" line
       returncode="$?"
       if [[ "$returncode" == 1 ]] ; then read_in=0 # EOF, terminate looking at for input
@@ -609,7 +613,8 @@ function process_by_token()
 
 function filter_token()
 {
-  while IFS='' read -r line ; do if [[ "${line:0:17}" != "#@#!NEXT-SUBJECT:" ]] ; then echo "$line" ; fi ; done
+  IFS=""
+  while read -r line ; do if [[ "${line:0:17}" != "#@#!NEXT-SUBJECT:" ]] ; then echo "$line" ; fi ; done
 }
 
 
