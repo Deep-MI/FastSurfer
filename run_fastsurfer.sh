@@ -822,7 +822,16 @@ then
 fi
 
 pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
-  mapfile -t content_of_subject_dir < <(find "." -type f)
+  function filter_log_build()
+  {
+    # filter expected files $LF and scripts/BUILD.log
+    IFS=""
+    while read -r file ; do
+      if [[ "${sd}/${subject}/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+    done
+  }
+
+  mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
 popd > /dev/null || exit 1
 if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
   if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
