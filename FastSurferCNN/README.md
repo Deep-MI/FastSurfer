@@ -51,10 +51,10 @@ To run the network on MRI-volumes of subjectX in ./data (specified by `--t1` fla
 
 ```bash
 python3 run_prediction.py \
-            --t1 ../data/subjectX/t1-weighted.nii.gz \
-            --sd ../output \
-            --t subjectX \
-            --seg_log ../output/temp_Competitive.log
+          --t1 ../data/subjectX/t1-weighted.nii.gz \
+          --sd ../output \
+          --t subjectX \
+          --seg_log ../output/temp_Competitive.log
 ```
 
 The output will be stored in:
@@ -71,9 +71,9 @@ To run the network on all subjects MRI-volumes in ./data, change into the *FastS
 
 ```bash
 python3 run_prediction.py \
-            --in_dir ../data \
-            --sd ../output \
-            --seg_log ../output/temp_Competitive.log
+          --in_dir ../data \
+          --sd ../output \
+          --seg_log ../output/temp_Competitive.log
 ```
 
 The output will be stored in:
@@ -191,18 +191,18 @@ As an example, imagine you have 19 FreeSurfer processed subjects labeled subject
 …
 │
 ├── subject19
-&nbsp;&nbsp;&nbsp;&nbsp;├── mri
-&nbsp;&nbsp;&nbsp;&nbsp;│   ├── aparc.DKTatlas+aseg.mgz
-&nbsp;&nbsp;&nbsp;&nbsp;│   ├── aseg.auto_noCCseg.mgz
-&nbsp;&nbsp;&nbsp;&nbsp;│   ├── orig.mgz
-&nbsp;&nbsp;&nbsp;&nbsp;│   ├── …
-&nbsp;&nbsp;&nbsp;&nbsp;│   …
-&nbsp;&nbsp;&nbsp;&nbsp;├── scripts
-&nbsp;&nbsp;&nbsp;&nbsp;├── stats
-&nbsp;&nbsp;&nbsp;&nbsp;├── surf
-&nbsp;&nbsp;&nbsp;&nbsp;├── tmp
-&nbsp;&nbsp;&nbsp;&nbsp;├── touch
-&nbsp;&nbsp;&nbsp;&nbsp;└── trash
+    ├── mri
+    │   ├── aparc.DKTatlas+aseg.mgz
+    │   ├── aseg.auto_noCCseg.mgz
+    │   ├── orig.mgz
+    │   ├── …
+    │   …
+    ├── scripts
+    ├── stats
+    ├── surf
+    ├── tmp
+    ├── touch
+    └── trash
 ```
 
 Setting `--pattern` "*" will select all 19 subjects (subject1, ..., subject19).
