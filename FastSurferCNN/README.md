@@ -12,6 +12,7 @@ The network was trained with conformed images (UCHAR, 1-0.7 mm voxels and standa
 The *FastSurferCNN* directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __run_prediction.py__ within which certain options can be selected and set via the command line:
 
 ## General
+
 * `--in_dir`: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or 
 * `--csv_file`: Path to csv-file listing input volume directories
 * `--t1`: name of the T1-weighted MRI_volume (like mri_volume.mgz, __default: orig.mgz__)
@@ -24,6 +25,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * `--seg`: Name of intermediate DL-based segmentation file (similar to aparc+aseg).
 
 ## Checkpoints and configs
+
 * `--ckpt_sag`: path to sagittal network checkpoint
 * `--ckpt_cor`: path to coronal network checkpoint
 * `--ckpt_ax`: path to axial network checkpoint
@@ -32,6 +34,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 * `--cfg_ax`: Path to the sagittal config file
 
 ## Optional commands
+
 * `--clean`: clean up segmentation after running it (optional)
 * `--device <str>`:Device for processing (_auto_, _cpu_, _cuda_, _cuda:<device_num>_), where cuda means Nvidia GPU; you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU
 * `--viewagg_device <str>`: Define where the view aggregation should be run on. 
