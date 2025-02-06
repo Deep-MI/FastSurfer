@@ -2,7 +2,7 @@ LONG: long_fastsurfer.sh
 ========================
 
 .. note::
-   Please also see the documentation on longitudinal processing :doc:`overview/LONG`.
+   Please also see the documentation on longitudinal processing <overview/LONG.html>`__ .
 
 Usage help text
 ---------------
