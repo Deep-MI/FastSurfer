@@ -10,8 +10,9 @@ Surface pipeline: recon-surf.sh
    :relative-images:
    :heading-offset: 1
 
-Usage help text
----------------
-
-.. command-output:: ./recon_surf/recon-surf.sh --help
-   :cwd: /../
+..
+  Usage help text
+  ---------------
+  
+  .. command-output:: ./recon_surf/recon-surf.sh --help
+     :cwd: /../

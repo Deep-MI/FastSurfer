@@ -18,8 +18,8 @@ bias-field corrected image and the bias-field correction is skipped.
 Usage
 =====
 
-```{command-output} ./brun_fastsurfer.sh --help
-:cwd: /../
+```
+{command-output} ./recon_surf.sh --help
 ```
 The *recon_surf* directory contains scripts to run the analysis. In addition, a working installation of __FreeSurfer__ 
 (the supported version, usually the most recent) is needed for a native install (or use our Docker/Singularity images). 
