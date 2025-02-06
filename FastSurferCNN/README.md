@@ -89,6 +89,7 @@ The *FastSurferCNN* directory contains all the source code and modules needed to
 A list of python libraries used within the code can be found in __requirements.txt__. The main script is called __generate_hdf5.py__ within which certain options can be selected and set via the command line:
 
 ### General
+
 * `--hdf5_name`: Path and name of the to-be-created hdf5-file. Default: ../data/hdf5_set/Multires_coronal.hdf5
 * `--data_dir`: Directory with images to load. Default: /data
 * `--pattern`: Pattern to match only certain files in the directory
@@ -107,11 +108,13 @@ A list of python libraries used within the code can be found in __requirements.t
 The actual filename and segmentation ground truth name is specified via `--image_name` and `--gt_name` (e.g. the actual file could be sth. like /dataset/D1/subject1/mri_volume.mgz and /dataset/D1/subject1/segmentation.mgz)
 
 ## Image Names
+
 * `--image_name`: Default name of original images. FreeSurfer orig.mgz is default (mri/orig.mgz)
 * `--gt_name`: Default name for ground truth segmentations. Default: mri/aparc.DKTatlas+aseg.mgz.
 * `--gt_nocc`: Segmentation without corpus callosum (used to mask this segmentation in ground truth). For a normal FreeSurfer input, use mri/aseg.auto_noCCseg.mgz. 
 
 ## Image specific options
+
 * `--plane`: Which anatomical plane to use for slicing (axial, coronal or sagittal)
 * `--thickness`: Number of pre- and succeeding slices (we use 3 --> total of 7 slices is fed to the network; default: 3)
 * `--combi`: Suffixes of labels names to combine. Default: Left- and Right-
@@ -125,54 +128,58 @@ The actual filename and segmentation ground truth name is specified via `--image
 * `--edge_w`: Weight for edges in weight mask. Default=5
 
 ## Example Command: Axial (Single Resolution)
+
 ```bash
 python3 generate_hdf5.py \
-  --hdf5_name ../data/training_set_axial.hdf5 \
-  --csv_file ../training_set_subjects_dirs.csv \
-  --thickness 3 \
-  --plane axial \
-  --image_name mri/orig.mgz \
-  --gt_name mri/aparc.DKTatlas+aseg.mgz \
-  --gt_nocc mri/aseg.auto_noCCseg.mgz
-  --max_w 5 \
-  --edge_w 4 \
-  --hires_w 4 \
-  --sizes 256
+          --hdf5_name ../data/training_set_axial.hdf5 \
+          --csv_file ../training_set_subjects_dirs.csv \
+          --thickness 3 \
+          --plane axial \
+          --image_name mri/orig.mgz \
+          --gt_name mri/aparc.DKTatlas+aseg.mgz \
+          --gt_nocc mri/aseg.auto_noCCseg.mgz
+          --max_w 5 \
+          --edge_w 4 \
+  -        -hires_w 4 \
+  -        -sizes 256
 ```
 
 ## Example Command: Coronal (Single Resolution)
+
 ```bash
 python3 generate_hdf5.py \
-  --hdf5_name ../data/training_set_coronal.hdf5 \
-  --csv_file ../training_set_subjects_dirs.csv \
-  --plane coronal \
-  --image_name mri/orig.mgz \
-  --gt_name mri/aparc.DKTatlas+aseg.mgz \
-  --gt_nocc mri/aseg.auto_noCCseg.mgz
-  --max_w 5 \
-  --edge_w 4 \
-  --hires_w 4 \
-  --sizes 256
+          --hdf5_name ../data/training_set_coronal.hdf5 \
+          --csv_file ../training_set_subjects_dirs.csv \
+          --plane coronal \
+          --image_name mri/orig.mgz \
+          --gt_name mri/aparc.DKTatlas+aseg.mgz \
+          --gt_nocc mri/aseg.auto_noCCseg.mgz
+          --max_w 5 \
+          --edge_w 4 \
+          --hires_w 4 \
+          --sizes 256
 ```
 
 ## Example Command: Sagittal (Multiple Resolutions)
+
 ```bash
 python3 generate_hdf5.py \
-  --hdf5_name ../data/training_set_sagittal.hdf5 \
-  --csv_file ../training_set_subjects_dirs.csv \
-  --plane sagittal \
-  --image_name mri/orig.mgz \
-  --gt_name mri/aparc.DKTatlas+aseg.mgz \
-  --gt_nocc mri/aseg.auto_noCCseg.mgz
-  --max_w 5 \
-  --edge_w 4 \
-  --hires_w 4 \
-  --sizes 256 311 320
+          --hdf5_name ../data/training_set_sagittal.hdf5 \
+          --csv_file ../training_set_subjects_dirs.csv \
+          --plane sagittal \
+          --image_name mri/orig.mgz \
+          --gt_name mri/aparc.DKTatlas+aseg.mgz \
+          --gt_nocc mri/aseg.auto_noCCseg.mgz
+          --max_w 5 \
+          --edge_w 4 \
+          --hires_w 4 \
+          --sizes 256 311 320
 ```
 
 ## Example Command: Sagittal using --data_dir instead of --csv_file
 `--data_dir` specifies the path in which the data is located, with `--pattern` we can select subjects from the specified path. By default the pattern is "*" meaning all subjects will be selected.
 As an example, imagine you have 19 FreeSurfer processed subjects labeled subject1 to subject19 in the ../data directory:
+
 ```
 /home/user/FastSurfer/data
 ├── subject1
@@ -197,15 +204,16 @@ As an example, imagine you have 19 FreeSurfer processed subjects labeled subject
 
 Setting `--pattern` "*" will select all 19 subjects (subject1, ..., subject19).
 Now, if only a subset should be used for the hdf5-file (e.g. subject 10 till subject19), this can be done by changing the `--pattern` flag to "subject1[0-9]": 
+
 ```bash
 python3 generate_hdf5.py \
-  --hdf5_name ../data/training_set_axial.hdf5 \
-  --data_dir ../data \
-  --pattern "subject1[0-9]" \
-  --plane sagittal \
-  --image_name mri/orig.mgz \
-  --gt_name mri/aparc.DKTatlas+aseg.mgz \
-  --gt_nocc mri/aseg.auto_noCCseg.mgz
+          --hdf5_name ../data/training_set_axial.hdf5 \
+          --data_dir ../data \
+          --pattern "subject1[0-9]" \
+          --plane sagittal \
+          --image_name mri/orig.mgz \
+          --gt_name mri/aparc.DKTatlas+aseg.mgz \
+          --gt_nocc mri/aseg.auto_noCCseg.mgz
 ```
 <!-- before training -->
 # 3. Training
@@ -268,26 +276,29 @@ To train the network on a given hdf5-set, change into the *FastSurferCNN* direct
 
 ## Example Command: Training Default FastSurferVINN
 Trains FastSurferVINN on multi-resolution images in the coronal plane:
+
 ```bash
 python3 run_model.py \
-  --cfg ./config/FastSurferVINN.yaml
+          --cfg ./config/FastSurferVINN.yaml
 ```
 
 ## Example Command: Training FastSurferVINN (Single Resolution)
 Trains FastSurferVINN on single-resolution images in the sagittal plane by overriding the NUM_CLASSES, SIZES, PATH_HDF5_TRAIN, and PATH_HDF5_VAL options:
+
 ```bash
 python3 run_model.py \
-  --cfg ./config/FastSurferVINN.yaml \
-    MODEL.NUM_CLASSES 51 \
-    DATA.SIZES 256 \
-    DATA.PATH_HDF5_TRAIN ./hdf5_sets/training_sagittal_single_resolution.hdf5 \
-    DATA.PATH_HDF5_VAL ./hdf5_sets/validation_sagittal_single_resolution.hdf5 \
+          --cfg ./config/FastSurferVINN.yaml \
+            MODEL.NUM_CLASSES 51 \
+            DATA.SIZES 256 \
+            DATA.PATH_HDF5_TRAIN ./hdf5_sets/training_sagittal_single_resolution.hdf5 \
+            DATA.PATH_HDF5_VAL ./hdf5_sets/validation_sagittal_single_resolution.hdf5 \
 ```
 
 ## Example Command: Training FastSurferCNN
 Trains FastSurferCNN using a provided configuration file and specifying no augmentations:
+
 ```bash
 python3 run_model.py \
-  --cfg custom_configs/FastSurferCNN.yaml \
-  --aug None
+          --cfg custom_configs/FastSurferCNN.yaml \
+          --aug None
 ```
