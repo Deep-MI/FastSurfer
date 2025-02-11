@@ -656,7 +656,7 @@ then
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"
     echo "  ${fastsurfer_options[*]} ${fastsurfer_surf_options[*]}"
   } > "$surf_cmd_file"
-  surf_slurm_sched=("--mem-per-cpu=${mem_per_core}G" "--cpus-per-task=$cores_per_task"
+  surf_slurm_sched=("--mem-per-cpu=${mem_per_core}G" "--cpus-per-task=$num_cpus_surf"
                     "--ntasks=$real_num_cases_per_task"
                     "--nodes=1-$real_num_cases_per_task" "--hint=nomultithread"
                     "${jobarray_option[@]}" "$surf_depend"
