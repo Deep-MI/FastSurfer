@@ -45,10 +45,8 @@
 
 
 # Set default values for arguments
-if [[ -z "${BASH_SOURCE[0]}" ]]; then
-    THIS_SCRIPT="$0"
-else
-    THIS_SCRIPT="${BASH_SOURCE[0]}"
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
@@ -170,7 +168,7 @@ case $key in
   --batch) run_pred_flags+=("--batch_size" "$1") ; shift ;;
   # these known arguments get ignored
   --aseg_name|--conformed_name|--asegdkt_segfile|--brainmask_name|--seg_log|--qc_log|--parallel|--threads_surf) shift ;;
-  --no_cereb|--no_hypothal|--no_biasfield) shift ;;
+  --no_cereb|--no_hypothal|--no_biasfield|--3t) shift ;;
   --async_io) ;;
   --fs_license) export FS_LICENSE="$1" ; shift ;;
   --remove_suffix) echo "ERROR: The --remove_suffix option is not supported by long_prepare_template.sh" ; exit 1 ;;
@@ -232,7 +230,8 @@ then
   echo "INFO: The subject directory did not exist, creating it now."
   if ! mkdir -p "$SUBJECTS_DIR" ; then echo "ERROR: directory creation failed" ; exit 1; fi
 fi
-if [[ "$(stat -c "%u:%g" "$SUBJECTS_DIR")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$(stat -c "%a" "$SUBJECTS_DIR" | tail -c 2)" -lt 6 ]]
+if [[ "$(stat -c "%u:%g" "$SUBJECTS_DIR")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && \
+  [[ "$(stat -c "%a" "$SUBJECTS_DIR" | tail -c 2)" -lt 6 ]]
 then
   echo "ERROR: The subject directory ($SUBJECTS_DIR) is owned by root and is not writable."
   echo "  FastSurfer cannot write results! This can happen if the directory is created by"
@@ -249,12 +248,12 @@ LF="$SUBJECTS_DIR/$tid/scripts/long_prepare_template.log"
 mkdir -p "$(dirname "$LF")"
 
 export PYTHONPATH
-PYTHONPATH="$FASTSURFER_HOME$([[ -n "$FASTSURFER_HOME" ]] && echo ":$PYTHONPATH")"
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
 
+## make sure +eo are unset
+set +eo > /dev/null
 
-if [[ -f "$LF" ]]; then log_existed="true"
-else log_existed="false"
-fi
+if [[ -f "$LF" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
 version_args=()
 if [[ -f "$FASTSURFER_HOME/BUILD.info" ]]
@@ -286,26 +285,25 @@ trap "{ echo \"long_prepare_template.sh terminated via signal at \$(date -R)!\" 
 
 
 # check that all t1s exist and that geo is the same (after log setup to keep this info in log file)
-geodiff=0
+geodiff=""
 for s in "${t1s[@]}"
 do
   # check if input exist
-  if [ ! -f "$s" ]
+  if [[ ! -f "$s" ]]
   then
     echo "ERROR: Input T1 $s does not exist!" | tee -a "$LF"
     exit 1
   fi
   # check if geometry differs across time
-  if [ "$s" != "${t1s[0]}" ]
+  if [[ "$s" != "${t1s[0]}" ]]
   then
-    cmd="mri_diff --notallow-pix --notallow-geo $s ${t1s[0]}"
-    if ! RunIt "$cmd" $LF
-    then
-      geodiff=1
-    fi
+    cmda=(mri_diff --notallow-pix --notallow-geo "$s" "${t1s[0]}" --res-thresh "0.000001")
+    difftext=$("${cmda[@]}")
+    retcode=${PIPESTATUS[0]}
+    if [[ "$retcode" != 0 ]] ; then geodiff+="Comparing $s and ${t1s[0]} (code $retcode):\n$difftext\n" ; fi
   fi
 done
-if [ "$geodiff" == "1" ]
+if [[ -n "$geodiff" ]]
 then
   {
     echo " "
@@ -313,13 +311,17 @@ then
     echo "WARNING: Image parameters differ across time, maybe due to acquisition changes?"
     echo "         Consistent changes in, e.g., resolution can potentially bias a "
     echo "         longitudinal study! You can check image parameters by running mri_info"
-    echo "         on each input image. Will continue in 10 seconds ..."
+    echo "         on each input image."
+    echo "*******************************************************************************"
+    echo "$geodiff"
+    # if we are in a terminal (stdin is a terminal), wait 10 seconds
+    if [[ -t 0 ]] ; then echo "    Will continue in 10 seconds... (Abort with Ctrl+C)" ; fi
+    echo ""
     echo "*******************************************************************************"
     echo " "
   } | tee -a "$LF"
-  sleep 10
+  if [[ -t 0 ]] ; then sleep 10 ; fi
 fi
-
 
 
 ################################### MASK INPUTS ###################################

@@ -782,6 +782,9 @@ then
   exit 1
 fi
 
+## make sure +eo are unset
+set +eo > /dev/null
+
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
 

@@ -322,9 +322,8 @@ def main(
             futures["checkpoints"] = pool.submit(calculate_md5_for_checkpoints)
 
         if "+pip" in sections and not prefer_cache:
-            futures["pypackages"] = PyPopen(
-                ["-m", "pip", "list", "--verbose"], **kw_root
-            ).as_future(pool)
+            pip_command = "-m pip list --verbose --no-cache-dir --no-color --disable-pip-version-check"
+            futures["pypackages"] = PyPopen(pip_command.split(" "), **kw_root).as_future(pool)
 
     if build_cache_required and build_cache is not False:
         build_cache: VersionDict = futures.pop("build_cache").result()

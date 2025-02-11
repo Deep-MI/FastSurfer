@@ -238,11 +238,21 @@ then
   exit 1
 fi
 
-if [[ -z "$LF" ]]
+if [[ -z "$LF" ]] ; then LF="$sd/$tid/scripts/long_fastsurfer.log" ; fi
+# make sure the directory for the logfile exists, create automatically if the directory is not in $sd
+if [[ ! -d "$(dirname "$LF")" ]]
 then
-  LF="$sd/$tid/scripts/long_fastsurfer.log"
+  if [[ "${LF:0:${#sd}}" == "$sd" ]] ; then mkdir -p "$sd/$tid/scripts"
+  else
+    echo "ERROR: The directory for the logfile is outside of the SUBJECTS_DIR and did not exist, please"
+    echo "  create the directory $(dirname "$LF")!"
+    exit 1
+  fi
 fi
 function log () { echo "$1" | tee -a "$LF" ; }
+
+## make sure +eo are unset
+set +eo > /dev/null
 
 log "Logging outputs of $THIS_SCRIPT to $LF"
 log "======================================="
