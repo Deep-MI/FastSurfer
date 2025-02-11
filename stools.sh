@@ -44,40 +44,34 @@ function translate_cases ()
   #param4 optional, delimiter
   #param5 optional, awk snippets to modify the subject_id, default '$1'
   #param6 optional, awk snippets to modify the image_path, default '$2'
-  if [[ "$#" -gt 3 ]]
-  then
-    delimiter=$4
-  else
-    delimiter=","
-  fi
-  if [[ "$#" -gt 4 ]]
-  then
-    subid_awk="$5"
-  else
-    subid_awk='$1'
-  fi
-  if [[ "$#" -gt 5 ]]
-  then
-    subpath_awk="$6"
-  else
-    subpath_awk='$2'
-  fi
+  #param7 optional, second delimiter, default="[[:space::]]--t2[[:space:]]+"
+  #   this param only supports T2 right now!
+  source_dir="$([[ "$1" =~ ^(.*[^/])/+$ ]] && echo "${BASH_REMATCH[1]}" || echo "$1")"
+  target_dir="$([[ "$3" =~ ^(.*[^/])/+$ ]] && echo "${BASH_REMATCH[1]}" || echo "$3")"
+  # both source_dir and target_dir are without trailing /
+  delimiter=${4-,}
+  subid_awk="${5-\$1}"
+  subpath_awk="${6-\$2}"
+  t2_lookbehind="${7-[[:space:]]--[tT]2[[:space:]]+}"
   script="
   BEGIN {
-    regex=\"^(\" source_dir \"|\" target_dir \")\";
-    regex2=\",(\" source_dir \"|\" target_dir \")/*\";
+    regex=\"(\" source_dir \"|\" target_dir \")/+\";
   }
   length(\$NF) > 1 {
     subid=${subid_awk};
     subpath=${subpath_awk};
-    gsub(regex, \"\", subpath);
-    gsub(regex2, \",\" target_dir \"/\", subpath);
+    gsub(\"^\" regex, \"\", subpath);
+    gsub(\"$t2_lookbehind\" regex, \" --t2 \" target_dir \"/\", subpath);
+    gsub(\"/{2,}\", \"/\", subpath);
     print subid \"=\" target_dir \"/\" subpath;
   }"
-  #>&2 echo "awk -F \"$delimiter\" -v target_dir=\"$3\" -v source_dir=\"$1\" \"$script\" \"$2\""
-  #>&2 cat "$2"
-  #>&2 awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
-  awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
+  #  >&2 echo "DEBUG awk script"
+  #  >&2 echo "========="
+  #  >&2 echo "awk -F \"$delimiter\" -v target_dir=\"$target_dir\" -v source_dir=\"$source_dir\" \"$script\" \"$2\""
+  #  >&2 cat "$2"
+  #  >&2 awk -F "$delimiter" -v target_dir="$target_dir" -v source_dir="$source_dir" "$script" "$2"
+  #  >&2 echo "========="
+  awk -F "$delimiter" -v target_dir="$target_dir" -v source_dir="$source_dir" "$script" "$2"
 }
 
 # step zero: make directories
@@ -169,42 +163,58 @@ function check_seg_surf_only ()
 }
 function check_subject_images ()
 {
-  #param1 cases
-  if [[ "$#" -lt 1 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
+  #param1 data dir
+  #param2 cases
+  if [[ "$#" -lt 2 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
   missing_subject_ids=""
   missing_subject_imgs=""
-  for subject in $1
+  symlink_subject_imgs=""
+  data_dir="$1"
+  OLD_IFS=$IFS
+  IFS=$'\n'
+  for subject in $2
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
-    image_parameters=$(echo "$subject" | cut -d= -f2)
+    image_parameters=$(echo "$subject" | cut -d= -f2-1000)
     i=0
-    OLD_IFS=$IFS
-    IFS=","
+    first_img=1
+    IFS=" "
     for arg in $image_parameters
     do
-      if [[ "$i" == 0 ]]; then image_path="$arg"; fi
+      if [[ "$i" == 0 ]]
+      then
+        # expecting a path
+        if [[ ! -e "$arg" ]]
+        then
+          if [[ $first_img == 1 ]]; then missing_subject_ids+=", $subject_id" ; first_img=0 ; fi
+          missing_subject_imgs+=", $arg"
+          i=$((i + 1))
+          continue
+        fi
+        real_data="$(realpath "$data_dir")"
+        real_arg="$(realpath "$arg")"
+        arg0="${arg:0:${#data_dir}}"
+        if [[ "$real_data" != "$(realpath "$arg0")" ]] || [[ "${real_arg:${#real_data}}" != "${arg:${#data_dir}}" ]] # this is a symlink
+        then
+          echo ":$(realpath "$arg"):=?=:$arg:"
+          if [[ $first_img == 1 ]]; then missing_subject_ids+=", $subject_id" ; first_img=0 ; fi
+          symlink_subject_imgs+=", $arg => $(realpath "$arg")"
+        fi
+      elif [[ "$arg" == "--t2" ]] ; then i=-1 ;
+      fi
       i=$((i + 1))
     done
     IFS=$OLD_IFS
-    #TODO: also check here, if any of the folders up to the mounted dir leading to the file are symlinks
-    #TODO: if so, this will lead to problems
-    if [[ ! -e "$image_path" ]]
-    then
-      if [[ -n "$missing_subject_ids" ]]
-      then
-        missing_subject_ids="$missing_subject_ids, "
-        missing_subject_imgs="$missing_subject_imgs, "
-      fi
-      missing_subject_ids="$missing_subject_ids$subject_id"
-      missing_subject_imgs="$missing_subject_imgs$image_path"
-    fi
   done
   if [[ -n "$missing_subject_ids" ]]
   then
-    echo "ERROR: Some images are missing!"
-    echo "Subject IDs: $missing_subject_ids"
-    echo "Files: $missing_subject_imgs"
-    exit 1
+    condition=$([[ -n "$missing_subject_imgs" ]] && echo " or missing")
+    condition+=$([[ -n "$symlink_subject_imgs" ]] && echo " or symlinks")
+    echo "$([[ "${condition:4:1}" == m ]] && echo "ERROR" || echo "WARNING"): Some images are ${condition:4}!"
+    echo "Subject IDs: ${missing_subject_ids:2}"
+    if [[ -n "$missing_subject_imgs" ]] ; then echo "Missing files: ${missing_subject_imgs:2}" ; fi
+    if [[ -n "$symlink_subject_imgs" ]] ; then echo "Symlink files: ${symlink_subject_imgs:2}" ; fi
+    if [[ -n "$missing_subject_imgs" ]] ; then exit 1 ; fi
   fi
 }
 

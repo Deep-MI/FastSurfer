@@ -443,7 +443,7 @@ if [[ -n "$subject_list" ]]
 then
   # the test for files (check_subject_images) requires paths to be wrt
   cases=$(translate_cases "$in_dir" "$subject_list" "$in_dir" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}")
-  check_subject_images "$cases"
+  check_subject_images "$in_dir" "$cases"
   if [[ "$debug" == "true" ]]
   then
     log "Debug output of the parsed subject_list:"
