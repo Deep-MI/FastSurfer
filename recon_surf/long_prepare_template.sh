@@ -193,7 +193,7 @@ done
 if [[ "${#POSITIONAL_FASTSURFER[@]}" -gt 0 ]]
 then
   echo "WARNING: The arguments ${POSITIONAL_FASTSURFER[*]}"
-  echo "  are not recognized and therefore ignored!"
+  echo "  are not recognized and therefore ignored in this (sub-)script!"
 fi
 
 if [ "${#t1s[@]}" -lt 1 ]
@@ -299,8 +299,7 @@ do
   if [ "$s" != "${t1s[0]}" ]
   then
     cmd="mri_diff --notallow-pix --notallow-geo $s ${t1s[0]}"
-    RunIt "$cmd" $LF
-    if [ "${PIPESTATUS[0]}" -ne 0 ]
+    if ! RunIt "$cmd" $LF
     then
       geodiff=1
     fi
