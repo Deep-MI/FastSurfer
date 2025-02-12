@@ -262,7 +262,11 @@ class RunModelOnData:
             "sagittal": {"cfg": cfg_sag, "ckpt": ckpt_sag},
             "axial": {"cfg": cfg_ax, "ckpt": ckpt_ax},
         }
-        self.num_classes = max(view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values())
+        # self.num_classes = max(view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values() if view["cfg"])
+        # currently, num_classes must be 79 in all cases. This seems like it is a config option here, but in reality it
+        # is not, so we hard-code it here. Only sagittal has < 79 classes, but num_classes is only used to set the
+        # dimensions of the view aggregation tensor, which is after splitting the classes from sagittal to all.
+        self.num_classes = 79
         self.models = {}
         for plane, view in self.view_ops.items():
             if all(view[key] is not None for key in ("cfg", "ckpt")):
