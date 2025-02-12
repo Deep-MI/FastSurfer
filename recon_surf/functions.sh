@@ -122,23 +122,32 @@ function RunBatchJobs()
 
 function check_allow_root()
 {
-  # Will check, if --allow_root is in arguments (to this function or the parent script) and
-  # print an error message as well as exit.
+  # Will check, if --allow_root is in arguments (to this function) and print an error message
+  # as well as exit.
   # Examples:
   # check_allow_root --arg 0 -> message and exit
+  #
+  # If you want a script to check for allow_root, run `check_allow_root "$@"` inside that script
   # some_script_which_calls_check_allow_root_without_parameters --flag -> message and exit
+  #
+  # ```
+  # ...
+  # check_allow_root "$@"
+  # ...
+  # ```
 
   local allow_root="false"
-  for arg in "${BASH_ARGV[@]}" "$@" ; do if [[ "$arg" == "--allow_root" ]] ; then allow_root="true"; break ; fi ; done
+  for arg in "$@" ; do if [[ "$arg" == "--allow_root" ]] ; then allow_root="true"; break ; fi ; done
 
-  if [[ "$allow_root" != "true" ]] && [[ "$(id -u)" == "0" ]]
+  if [[ "$(id -u)" == "0" ]]
   then
-    echo "ERROR: You are trying to run '$BASH_ARGV0' as root. We advice to avoid running FastSurfer"
-    echo "  as root, because it will lead to files and folders created as root."
+    if [[ "$allow_root" == "true" ]] ; then LABEL="WARNING" ; else LABEL="ERROR" ; fi
+    echo "$LABEL: You are trying to run '$(basename "$BASH_ARGV0")' as root. We recommend to avoid"
+    echo "  running FastSurfer as root, because it will lead to files and folders created as root."
     echo "  If you are running FastSurfer in a docker container, you can specify the user"
     echo "  with '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-    echo "  If you want to force running as root, you may pass --allow_root to run_fastsurfer.sh."
-    exit 1
+    echo "  If you want to force running as root, you may pass --allow_root to $(basename "$BASH_ARGV0")."
+    if [[ "$allow_root" != "true" ]] ; then exit 1 ; fi
   fi
 }
 

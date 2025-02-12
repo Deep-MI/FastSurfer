@@ -180,7 +180,7 @@ case $key in
     echo "  pipeline run is a valid longitudinal run!"
     exit 1
     ;;
-  --debug) brun_flags+=("$key") ;;
+  --allow_root|--debug) brun_flags+=("$key") ;;  # --allow_root must be passed to brun
   *)    # unknown option
     POSITIONAL_FASTSURFER[i]=$key
     i=$((i + 1))
@@ -195,7 +195,7 @@ done
 source "${reconsurfdir}/functions.sh"
 
 # Warning if run as root user
-check_allow_root
+check_allow_root "${brun_flags[@]}" # --allow_root must be passed to brun
 
 if [ "${#t1s[@]}" -lt 1 ]
  then

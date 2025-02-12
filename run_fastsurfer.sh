@@ -72,6 +72,7 @@ threads_seg="1"
 threads_surf="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
+allow_root=()
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
@@ -368,7 +369,7 @@ case $key in
 
   # options that *just* set a flag
   #=============================================================
-  --allow_root) ;; # nothing required to do check by check_allow_root
+  --allow_root) allow_root=("$key") ;;
   # options that set a variable
   --sid) subject="$1" ; shift ;;
   --sd) sd="$1" ; shift ;;
@@ -533,7 +534,7 @@ fi
 source "${reconsurfdir}/functions.sh"
 
 # Warning if run as root user
-check_allow_root
+check_allow_root "${allow_root[@]}"
 
 # from now to the creation of the logfile, all messages are only written to the console and thus lost if the output is
 # lost. If the terminate the script (exit 1 or similar), this is fine and no log file is created. But if we continue,
