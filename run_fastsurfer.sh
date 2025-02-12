@@ -914,7 +914,7 @@ then
 
       echo "INFO: Robust scaling (partial conforming) of T2 image..."
       cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-           --no_vox_size --no_img_size "$t2" "$conformed_name_t2")
+           --no_iso_vox --no_img_size -i "$t2" -o "$conformed_name_t2")
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
       echo "Done."

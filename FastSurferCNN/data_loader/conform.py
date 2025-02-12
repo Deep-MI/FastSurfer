@@ -623,7 +623,6 @@ def conform(
     mdc_affine = mdc_affine / np.linalg.norm(mdc_affine, axis=1)
     h1["Mdc"] = np.linalg.inv(mdc_affine)
 
-    print(h1.get_zooms())
     h1["fov"] = max(i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms(), strict=False))
     center = np.asarray(img.shape[:3], dtype=float) / 2.0
     h1["Pxyz_c"] = img.affine.dot(np.hstack((center, [1.0])))[:3]
