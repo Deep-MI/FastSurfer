@@ -648,9 +648,10 @@ then
     echo "                --ntasks=1 --time=$timelimit_surf --nodes=1"
     echo "                --cpus-per-task=$num_cpus_surf --mem=${mem_surf}G"
     echo "                --hint=nomultithread"
-    echo "                singularity exec --no-home -B '$hpc_work:/data'"
+    echo "                singularity exec --no-mount home,cwd --cleanenv -B '$hpc_work:/data'"
+    echo "                  -B '$in_dir:/source:ro'"
     if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_surf" ]]; then
-      echo "                $extra_singularity_options $extra_singularity_options_surf"
+      echo "                  $extra_singularity_options $extra_singularity_options_surf"
     fi
     echo "                '$hpc_work/images/fastsurfer.sif'"
     echo "                /fastsurfer/run_fastsurfer.sh)"
