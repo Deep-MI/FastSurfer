@@ -146,8 +146,10 @@ function check_allow_root()
     echo "  running FastSurfer as root, because it will lead to files and folders created as root."
     echo "  If you are running FastSurfer in a docker container, you can specify the user"
     echo "  with '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-    echo "  If you want to force running as root, you may pass --allow_root to $(basename "$BASH_ARGV0")."
-    if [[ "$allow_root" != "true" ]] ; then exit 1 ; fi
+    if [[ "$allow_root" != "true" ]]; then
+      echo "  If you want to force running as root, you may pass --allow_root to $(basename "$BASH_ARGV0")."
+      exit 1
+    fi
   fi
 }
 
