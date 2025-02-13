@@ -124,7 +124,7 @@ Data- and subject-related options:
   --sid subject-101 --t1 <data-path>/raw/T1w-101A.nii.gz --vox_size 0.9
 
 FastSurfer options:
---fs_license: path to the freesurfer license (either absolute path or relative to pwd)
+--fs_license: path to the freesurfer license (either absolute path or relative to pwd, for surfaces & registration(s))
 --seg_only: only run the segmentation pipeline
 --surf_only: only run the surface pipeline (--sd must contain previous --seg_only processing)
 --***: also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
@@ -542,7 +542,8 @@ then
                           --statusfile /data/scripts/subject_success
                           # run_fastsurfer options (inside singularity)
                           --sd "/data/cases" --threads "$num_cpus_per_task"
-                          --seg_only "${POSITIONAL_FASTSURFER[@]}")
+                          --seg_only "${POSITIONAL_FASTSURFER[@]}"
+                          --fs_license /data/scripts/.fs_license)
 
   seg_cmd_filename=$hpc_work/scripts/slurm_cmd_seg.sh
   if [[ "$submit_jobs" == "true" ]]

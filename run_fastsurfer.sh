@@ -48,6 +48,7 @@ cereb_flags=()
 hypo_segfile=""
 hypo_statsfile=""
 hypvinn_flags=()
+hypvinn_regmode="coreg"
 conformed_name=""
 conformed_name_t2=""
 norm_name=""
@@ -470,7 +471,7 @@ case $key in
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
   --reg_mode)
     mode=$(echo "$1" | tr "[:upper:]" "[:lower:]")
-    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then hypvinn_flags+=(--regmode "$mode")
+    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then hypvinn_regmode="$mode"
     else echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'." ; exit 1
     fi
     shift # past value
@@ -707,9 +708,19 @@ then
   exit 1
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]] || [[ "$run_talairach_registration" == "true" ]]
+what_needs_license=""
+if [[ "$run_surf_pipeline" == 1 ]] ; then what_needs_license+=" and the surface pipeline" ; fi
+if [[ "$run_seg_pipeline" == 1 ]] ; then
+  if [[ "$run_biasfield" == 1 ]] && [[ "$run_talairach_registration" == "true" ]] ; then
+    what_needs_license+=" and the talairach-registration in the segmentation pipeline"
+  fi
+  if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
+    what_needs_license+=" and the T1-T2 registration in the segmentation pipeline"
+  fi
+fi
+if [[ -n "$what_needs_license" ]]
 then
-  msg="The surface pipeline and the talairach-registration in the segmentation pipeline require a FreeSurfer License"
+  msg="T${what_needs_license:6} require(s) a FreeSurfer License"
   if [[ -z "$FS_LICENSE" ]]
   then
     msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
@@ -1058,7 +1069,7 @@ then
   then
         # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io
+         "${hypvinn_flags[@]}" --regmode "$hypvinn_regmode" --threads "$threads_seg" --async_io
          --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
          --viewagg_device "$viewagg" --t1)
     if [[ "$run_biasfield" == "1" ]]
