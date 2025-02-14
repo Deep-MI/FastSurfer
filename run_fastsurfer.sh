@@ -613,20 +613,14 @@ if [[ -z "$norm_name" ]] ; then norm_name="${sd}/${subject}/mri/orig_nu.mgz" ; f
 if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="${sd}/${subject}/mri/T2_nu.mgz" ;  fi
 if [[ -z "$seg_log" ]] ; then seg_log="${sd}/${subject}/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="${sd}/${subject}/scripts/build.log" ; fi
-if [[ -n "$t2" ]]
+# T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
+if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == 1 ]]
 then
-  if [[ ! -f "$t2" ]]
-  then
-    echo "ERROR: T2 file $t2 does not exist!"
-    exit 1
-  fi
+  if [[ ! -f "$t2" ]] ; then echo "ERROR: T2 file $t2 does not exist!" ; exit 1 ; fi
   copy_name_T2="${sd}/${subject}/mri/orig/T2.001.mgz"
 fi
 
-if [[ -z "$PYTHONUNBUFFERED" ]]
-then
-  export PYTHONUNBUFFERED=0
-fi
+if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
 # check the vox_size setting
 if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
@@ -801,9 +795,7 @@ set +eo > /dev/null
 mkdir -p "$(dirname "$seg_log")"
 
 
-if [[ -f "$seg_log" ]]; then log_existed="true"
-else log_existed="false"
-fi
+if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
 {
   echo "========================================================="

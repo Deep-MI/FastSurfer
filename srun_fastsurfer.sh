@@ -546,12 +546,7 @@ then
                           --fs_license /data/scripts/.fs_license)
 
   seg_cmd_filename=$hpc_work/scripts/slurm_cmd_seg.sh
-  if [[ "$submit_jobs" == "true" ]]
-  then
-    seg_cmd_file=$seg_cmd_filename
-  else
-    seg_cmd_file=$(mktemp)
-  fi  # END OF NEW
+  if [[ "$submit_jobs" == "true" ]] ; then seg_cmd_file=$seg_cmd_filename ; else seg_cmd_file=$(mktemp) ; fi
 
   slurm_part_=$(first_non_empty_arg "$partition_seg" "$partition")
   if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
@@ -560,8 +555,11 @@ then
     echo "module load singularity"
     echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-mount home,cwd\\"
     echo "  --cleanenv --env TQDM_DISABLE=1 \\"
-    if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]]; then
-      echo "  $extra_singularity_options $extra_singularity_options_seg\\"
+    if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]] ; then
+      echo "  $extra_singularity_options $extra_singularity_options_seg \\"
+    fi
+    if [[ "$jobarray_size" -gt 1 ]] ; then
+      echo "  --env SLURM_ARRAY_TASK_ID=\$SLURM_ARRAY_TASK_ID --env SLURM_ARRAY_TASK_COUNT=\$SLURM_ARRAY_TASK_COUNT \\"
     fi
     echo "  $hpc_work/images/fastsurfer.sif \\"
     echo "  /data/$brun_fastsurfer ${fastsurfer_options[*]} ${fastsurfer_seg_options[*]}"
@@ -651,8 +649,10 @@ then
     echo "                singularity exec --no-mount home,cwd --cleanenv -B '$hpc_work:/data'"
     echo "                  -B '$in_dir:/source:ro'"
     if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_surf" ]]; then
-      echo "                  $extra_singularity_options $extra_singularity_options_surf"
+      echo "                  $extra_singularity_options $extra_singularity_options_surf \\"
     fi
+    # SLUM_ARRAY_TASK_ID (and SLURM_ARRAY_TASK_COUNT) are only needed, if brun_fastsurfer is run inside the container,
+    # but here it is run in the sbatch context
     echo "                '$hpc_work/images/fastsurfer.sif'"
     echo "                /fastsurfer/run_fastsurfer.sh)"
     echo "$hpc_work/$brun_fastsurfer --run_fastsurfer \"\${run_fastsurfer[*]}\" \\"

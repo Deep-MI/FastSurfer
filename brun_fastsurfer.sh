@@ -29,6 +29,7 @@ parallel_pipelines="1"
 num_parallel_surf="1"
 num_parallel_seg="1"
 statusfile=""
+python="python3.10 -s"
 
 function usage()
 {
@@ -111,7 +112,7 @@ function verify_parallel()
 {
   # 1: flag, 2: value
   value="$(echo "$2" | tr '[:upper:]' '[:lower:]')"
-  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value=max
+  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value="max"
   elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$value"
   else echo "ERROR: Invalid value for $1: '$2', must be integer or 'max'." ; exit 1
   fi
@@ -193,6 +194,7 @@ case $key in
   --parallel_surf)
     parallel_pipelines=2 ; verify_parallel "$key" "$1" ; num_parallel_surf="$verify_value" ; shift ;;
   --statusfile) statusfile="$1" ; shift ;;
+  --py) python="$1" ; POSITIONAL_FASTSURFER+=(--py "$1") ; shift ;; # this may be needed to get the device count
   --debug) debug="true" ;;
   --help) usage ; exit ;;
   # run_fastsurfer.sh options, with extra effect in brun_fastsurfer
@@ -233,7 +235,7 @@ function get_device_list()
   if [[ "$1" =~ ^(cpu|mps|auto|cuda)$ ]] || [[ "$1" =~ ^cuda:[0-9]+(,[0-9]+)*$ ]] ; then list=",$1"
   elif [[ "$1" =~ ^cuda:[0-9]+([-,][0-9]+(-[0-9]+)?)* ]] ; then
     IFS="," ; host=${1:0:5}
-    for i in ${1:5} ; do IFS="-" ; list+=",$(seq -s, $i)" ; done
+    for i in ${1:5} ; do IFS="-" ; v=($i) ; list+=",$(seq -s"," "${v[0]}" "$(("${v[1]}" - 1))")" ; done
   else
     echo "ERROR: Invalid format for device|viewagg_device: $1 must be auto|cpu|mps|cuda[:X[,Y][-Z]...]"
     exit 1
@@ -249,14 +251,26 @@ function get_device_list()
 }
 
 # we do not know here, whether a gpu is available, so even if we have none or one, give a warning message.
-if [[ "$num_parallel_seg" != 1 ]] &&  [[ "$res_device" =~ ^auto|cuda$ ]] && \
-  [[ "$(ls /dev/nvidia[0-9] | wc -w)" -gt 1 ]] && [[ "${CUDA_VISIBLE_DEVICES/,/}" != "$CUDA_VISIBLE_DEVICES" ]]
+if [[ "$num_parallel_seg" != 1 ]] && [[ "$surf_only" != "true" ]] && [[ "$res_device" =~ ^auto|cuda$ ]]
 then
-  echo "WARNING: --device '$res_device' only uses the first gpu for parallel processing in the segmentation pipeline"
-  echo "  (--parallel_seg 2+)! Manually specify --device cuda:0 or --device:0-3 (to use multiple gpus)."
+  # device is auto or cuda, auto-detect the device count and make it match with num_parallel_seg
+  detected_devices=$($python -c "import torch.cuda.device_count as d ; print(*range(d()), sep=',')")
+  _devices=($detected_devices)
+  num_devices="${#_devices[@]}"
+  echo "INFO: Auto-detecting CUDA-capable devices to parallelize segmentation, found $num_devices device(s)."
+  if [[ "${#detected_devices[@]}" -le 1 ]] ; then echo "  => No changes!" # keep auto/cuda
+  elif [[ "$num_parallel_seg" == "max" ]] || [[ "$num_parallel_seg" -gt "$num_devices" ]] ; then
+    res_device="cuda:$detected_devices"
+    num_parallel_seg=$num_devices
+    echo "  => Setting number of parallel segmentations to number of devices (one segmentation per device)."
+  else
+    res_device="cuda:$(seq -s"," 0 $((num_parallel_seg - 1)))"
+    echo "  => Limited by $num_parallel_seg parallel segmentations."
+  fi
+else
+  get_device_list "$res_device" ; res_device="$device_value"
+  get_device_list "$res_viewagg_device" ; res_viewagg_device="$device_value"
 fi
-if [[ -n "$res_device" ]] ; then get_device_list "$res_device" ; res_device="$device_value" ; fi
-if [[ -n "$res_viewagg_device" ]] ; then get_device_list "$res_viewagg_device" ; res_viewagg_device="$device_value" ; fi
 if [[ "$subjects_stdin" == "true" ]]
 then
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
@@ -601,7 +615,7 @@ function process_by_token()
   # wait for jobs to finish
   if [[ "$debug" == "true" ]]
   then
-    echo "DEBUG: Finished scheduling $mode-jobs... waiting for ${#running_jobs} jobs to finish:"
+    echo "DEBUG: Finished scheduling $mode-jobs... waiting for ${#running_jobs[@]} jobs to finish:"
     IFS=" "
     echo "       ${running_jobs[*]}"
     wait "${running_jobs[@]}"
