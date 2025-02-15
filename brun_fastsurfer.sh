@@ -180,8 +180,8 @@ case $key in
       elif [[ "$value" =~ ^surf=[0-9]*$ ]] ; then  num_parallel_surf="${value:5}" ; parallel_pipelines="2" ; warn_old
       elif [[ "$value" =~ ^seg(=-[0-9]*|=max)?$ ]] ; then num_parallel_seg="max" ; parallel_pipelines="2" ; warn_old
       elif [[ "$value" =~ ^seg=[0-9]*$ ]] ; then num_parallel_seg="${value:4}" ; parallel_pipelines="2" ; warn_old
-      elif [[ "$value" =~ ^(-[0-9]+|max)$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="max"
-      elif [[ "$value" =~ ^[0-9]+$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="$value"
+      elif [[ "$value" =~ ^(-[0-9]+|max)$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="max" ; num_parallel_surf="max"
+      elif [[ "$value" =~ ^[0-9]+$ ]] ; then parallel_pipelines=1 ; num_parallel_seg="$value" ; num_parallel_surf="$value"
       elif [[ "$value" =~ ^[0-9]+/[-9]+$ ]] ; then parallel_pipelines=2
         num_parallel_seg="$(echo "$value" | cut -d/ -f1)" ; num_parallel_surf="$(echo "$value" | cut -d/ -f2)"
       else echo "Invalid option for $key: $1" ; exit 1
