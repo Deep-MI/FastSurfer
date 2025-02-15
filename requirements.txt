@@ -88,7 +88,7 @@ requests==2.32.3
 rich==13.9.4
 scikit-image==0.25.1
 scikit-learn==1.6.1
-scikit-sparse==0.4.14
+scikit-sparse==0.4.15
 scipy==1.15.1
 setuptools==75.8.0
 shellingham==1.5.4
