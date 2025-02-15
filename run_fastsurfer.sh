@@ -1061,7 +1061,7 @@ then
   then
         # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" --regmode "$hypvinn_regmode" --threads "$threads_seg" --async_io
+         "${hypvinn_flags[@]}" --reg_mode "$hypvinn_regmode" --threads "$threads_seg" --async_io
          --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
          --viewagg_device "$viewagg" --t1)
     if [[ "$run_biasfield" == "1" ]]
