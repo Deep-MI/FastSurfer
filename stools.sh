@@ -103,6 +103,7 @@ function check_out_dir ()
     else exit 1; fi
   fi
 }
+
 function check_singularity_image ()
 {
   #param1 singularity_image
@@ -111,14 +112,25 @@ function check_singularity_image ()
     exit 1
   fi
 }
+
 function check_fs_license ()
 {
   #param1 fs_license
   if [[ -z "$1" ]] || [[ ! -f "$1" ]]; then
-    echo "Cannot find the FreeSurfer license (--fs_license, at \"$1\")"
-    exit 1
+    if [[ -f "$(dirname "${BASH_SOURCE[0]}")/recon_surf/functions.sh" ]]; then
+      echo "Searching for FreeSurfer license, cannot find the FreeSurfer license (--fs_license, at \"$1\")..."
+      source "$(dirname "${BASH_SOURCE[0]}")/recon_surf/functions.sh"
+      auto_detect_fs_license " and the SLURM script"
+      # lowercase fs_license => variable in srun_fastsurfer.sh; uppercase => environment and in auto_detect_fs_license
+      # shellcheck disable=SC2153
+      export fs_license="$FS_LICENSE"
+    else
+      echo "ERROR: Cannot find the FreeSurfer license (--fs_license, at \"$1\")!"
+      exit 1
+    fi
   fi
 }
+
 function check_cases_in_out_dir ()
 {
   #param1 out_dir
@@ -144,6 +156,7 @@ function check_cases_in_out_dir ()
     else exit 1; fi
   fi
 }
+
 function check_seg_surf_only ()
 {
   #param1 seg_only
@@ -153,6 +166,7 @@ function check_seg_surf_only ()
     exit 1
   fi
 }
+
 function check_subject_images ()
 {
   #param1 data dir
@@ -398,6 +412,7 @@ function first_non_empty_arg ()
   # returns the first argument to the function that was not empty
   for i in "$@" ; do if [[ -n "$i" ]] ; then echo "$i" ; break ; fi ; done
 }
+
 function print_status ()
 {
   #param1 subject_id
@@ -413,6 +428,7 @@ function print_status ()
   fi
   echo "$subject_id: $text"
 }
+
 function prepend ()
 {
   #param1 string to prepend to every line
@@ -420,6 +436,7 @@ function prepend ()
   IFS=""
   while read -r line ; do echo "${1}${line}" ; done
 }
+
 function append ()
 {
   #param1 string to append to every line

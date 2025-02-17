@@ -826,33 +826,8 @@ if [[ "$run_seg_pipeline" == "true" ]] ; then
 fi
 if [[ -n "$what_needs_license" ]]
 then
-  msg="T${what_needs_license:6} require(s) a FreeSurfer License"
-  if [[ -z "$FS_LICENSE" ]]
-  then
-    msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
-    if [[ "$DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME" != "true" ]] && [[ -n "$FREESURFER_HOME" ]]
-    then
-      echo "WARNING: $msg. Checking common license files in \$FREESURFER_HOME." | tee -a "$tmpLF"
-      for filename in "license.dat" "license.txt" ".license"
-      do
-        if [[ -f "$FREESURFER_HOME/$filename" ]]
-        then
-          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite." | \
-            tee -a "$tmpLF"
-          export FS_LICENSE="$FREESURFER_HOME/$filename"
-          break
-        fi
-      done
-      if [[ -z "$FS_LICENSE" ]]; then echo "ERROR: No license found..." ; exit 1 ; fi
-    else
-      echo "ERROR: $msg."
-      exit 1
-    fi
-  elif [[ ! -f "$FS_LICENSE" ]]
-  then
-    echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."
-    exit 1
-  fi
+  auto_detect_fs_license "$what_needs_license" | tee -a "$tmpLF";
+  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit "${PIPESTATUS[0]}" ; fi
 fi
 
 # checks and t1 setup for longitudinal pipeline
