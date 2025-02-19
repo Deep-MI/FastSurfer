@@ -55,7 +55,7 @@ singularity exec --nv \
                  --fs_license /fs_license/license.txt \
                  --tid <templateID> \
                  --t1s <T1_1> <T1_2> ... \
-                 --tpids <tID1> <tID2> ...
+                 --tpids <tID1> <tID2> ... \
                  --sd /output \
                  --3T
 ```
