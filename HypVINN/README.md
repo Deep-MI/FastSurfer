@@ -113,7 +113,6 @@ Note: These weights (version 1.1) are retrained compared to paper ([version 1.0]
 
 
 ### Developer
-
 Santiago Estrada : santiago.estrada@dzne.de
 
 ### Citation

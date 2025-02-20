@@ -1,15 +1,15 @@
-# Singularity Support
+Singularity Support
+===================
 
-
-## Containerization
-
+Containerization
+----------------
 Containerization tools like Singularity, or Apptainer or Docker provide several advantages.
 Most importantly, they allow for exactly same setup across different machines and even data centers and compute clusters. They thus increase reproducibility by reducing software differences between evaluations.
 Additionally, errors and unexpected behavior is easier to track down, since the setup is significantly easier to reproduce for developers.
 Finally, containers provide a security advantage, because the access to data is restricted to explicitly shared data reducing both the risk of data theft and data encryption attacks. This is strategy also called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)). 
 
-## Using Singularity (or Apptainer)
-
+Using Singularity (or Apptainer)
+--------------------------------
 In the following, we write "Singularity", but all steps work the same with the [open source Apptainer](https://apptainer.org).
 
 To execute code in a Singularity container, users have to:
@@ -18,7 +18,8 @@ To execute code in a Singularity container, users have to:
     
    We refer to these "options for the container" in `<*singularity-flags*>`. They are not options to FastSurfer (referred to as `<*fastsurfer-flags*>`), but to the "simulated computer" and define access to data, hardware (e.g. graphics cards), etc. 
 
-## Downloading the official FastSurfer image for Singularity
+Downloading the official FastSurfer image for Singularity
+---------------------------------------------------------
 Singularity uses its own image format, so we need to download and convert the official docker images available from [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags).
 
 To create an official FastSurfer Singularity image, run:
@@ -29,7 +30,8 @@ singularity build $HOME/my_singlarity_images/fastsurfer-|version|.sif docker://d
 Singularity images are files with extension `.sif`. Here, we save the image in `$HOME/my_singlarity_images`.
 If you want to pick a specific FastSurfer version, you can also change `cuda-v|version|` in the `<source>`. For example to use the [cpu image](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cpu) (`cpu-v|version|`) or a [specific CUDA version](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cu1) (check, which version is available the current FastSurfer version, for example `cu118-v2.4.2`).
 
-## Creating your own FastSurfer Singularity Image
+Creating your own FastSurfer Singularity image
+----------------------------------------------
 To build a custom FastSurfer Singularity image, the `Docker/build.py` script supports a flag for direct conversion.
 Simply add `--singularity $HOME/my_singlarity_images/fastsurfer-myimage.sif` to the call, which first builds the image with Docker and then converts the image to Singularity.
 
@@ -41,9 +43,9 @@ singularity build $HOME/my_singlarity_images/fastsurfer-myimage.sif docker-daemo
 
 For more information on how to create your own Docker images, see our [Docker guide](../../tools/Docker/README.md).
 
-## Starting FastSurfer with from a Singularity image
-
-After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
+Starting FastSurfer with from a Singularity image
+-------------------------------------------------
+After building the Singularity image, you need to [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the `--fs_license` flag. This is not necessary if you want to run the segmentation only.
 
 To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:
 
@@ -54,7 +56,7 @@ To run FastSurfer on a given subject using the Singularity image with GPU access
 
 ```bash
 singularity exec --nv \
-                 --no-mount home,cwd -e\
+                 --no-mount home,cwd -e \
                  -B $HOME/my_mri_data:/data \
                  -B $HOME/my_fastsurfer_analysis:/output \
                  -B $HOME/my_fs_license_dir:/fs \
@@ -68,7 +70,7 @@ singularity exec --nv \
 ### Singularity Flags
 * `--nv`: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer
 * `-e`: Do not transfer the environment variables from the host to the container.
-* `--no-mount home,cwd`: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see [Best Practice](#mounting-home-and-current-working-directory))
+* `--no-mount home,cwd`: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see [Best Practice](#best-practices))
 * `-B`: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs). 
 
 ### FastSurfer Flags
@@ -99,8 +101,8 @@ singularity exec --no-mount -e \
                      --3T --threads 4
 ```
 
-## Common problems
-
+Common problems
+---------------
 1. Slow processing despite GPUs, log says `UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version ...)`.
 
    Your NVIDIA drivers are too old for the CUDA version used in the image you created, try using a different image with a different cuda version, for example for [CUDA 11](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cu11), or specify a different `--device` option if you built the underlying Docker image yourself.
@@ -112,7 +114,8 @@ singularity exec --no-mount -e \
    ```
    - To solve this issue, you can export the image from docker with `docker save -o <docker file location> <image tag>` and then you can use singularity to build from that `singularity build <singularity file name> docker-archive:<docker file location>`. 
 
-## Singularity Best Practice
+Best Practices
+--------------
 
 ### Mounting Home and Current Working Directory
 Do not mount the user home directory into the singularity container as the home directory.
@@ -120,4 +123,3 @@ Do not mount the user home directory into the singularity container as the home 
 Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `singularity exec ... --version +pip` outputs the FastSurfer version including a full list of python packages. 
 
 How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. Additionally setting the `-e` flag will ensure that no environment variables will be passed from the host system into the container.
-

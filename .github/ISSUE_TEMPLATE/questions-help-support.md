@@ -4,9 +4,7 @@ about: Submit a request for support or a question
 title: ''
 labels: question
 assignees: ''
-
 ---
-
 **IMPORTANT**: Please make sure to fill out the information about your environment (see below). This is often critical information we need to help you.
 
 ## Question/Support Request
