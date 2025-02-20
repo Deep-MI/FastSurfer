@@ -3,14 +3,12 @@ BATCH: brun_fastsurfer.sh
 
 Usage
 -----
-
 ```{command-output} ./brun_fastsurfer.sh --help
 :cwd: /../
 ```
 
 Subject Lists
 -------------
-
 The input files and options may be specified in three ways:
 
 1. By writing them into the console (or by piping them in) (default) (one case per line),
@@ -32,7 +30,6 @@ options are optional and enable passing options different to the "general option
 
 Parallelization with `brun_fastsurfer.sh`
 -----------------------------------------
-
 `brun_fastsurfer.sh` has powerful builtin parallel processing capabilities. These are hidden underneath the 
 `--parallel* <n>|max` and the `--device <device>` as well as `--viewagg_device <device>` flags.
 One of the core properties of FastSurfer is the split into the segmentation (which uses Deep Learning and therefore 
@@ -83,5 +80,7 @@ Can I disable the progress bars in the output?
 
 > You can disable the progress bars by setting the TQDM_DISABLE environment variable to 1, if you have tqdm>=4.66.
 > 
-> For docker, this can be done with the flag `-e`, e.g. `docker run -e TQDM_DISABLE=1 ...`, for singularity with the flag `--env`, e.g. `singularity exec --env TQDM_DISABLE=1 ...` and for native installations by prepending, e.g. `TQDM_DISABLE=1 ./run_fastsurfer.sh ...`.
+> For docker, this can be done with the flag `-e`, e.g. `docker run -e TQDM_DISABLE=1 ...`, for singularity with the 
+> flag `--env`, e.g. `singularity exec --env TQDM_DISABLE=1 ...` and for native installations by prepending, e.g. 
+> `TQDM_DISABLE=1 ./run_fastsurfer.sh ...`.
 

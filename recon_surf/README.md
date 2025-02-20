@@ -35,7 +35,6 @@ Note that it is recommended to run the surface pipeline via `run_fastsurfer.sh -
 
 Example 1: Surface module inside Docker
 ---------------------------------------
-
 Docker can be used to simplify the installation (no FreeSurfer on system required). 
 Given you already ran the segmentation pipeline, and want to just run the surface pipeline on top of it 
 (i.e. on a different cluster), the following command can be used:
@@ -78,7 +77,7 @@ singularity exec --no-home \
                  -B $HOME/my_fs_license.txt \
                   ./fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
                   /fastsurfer/recon_surf/recon-surf.sh \
-                  --fs_license $HOME/fs_license/license.txt \
+                  --fs_license $HOME/my_fs_license.txt \
                   --sid subjectX --sd $HOME/my_fastsurfer_analysis --3T \
                   --t1 $HOME/my_fastsurfer_analysis/subjectX/mri/orig.mgz \
                   --asegdkt_segfile $HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
@@ -98,7 +97,6 @@ file (equivalent to a FreeSurfer recon-all run).
 
 Example 3: Native installation - recon-surf on a single subject (subjectX)
 --------------------------------------------------------------------------
-
 Given you want to analyze data for subjectX which is stored on your computer under `$HOME/my_mri_data/subjectX/orig.mgz`, 
 run the following command from the console (do not forget to source FreeSurfer!):
 
@@ -122,7 +120,6 @@ The script will generate a bias-field corrected image at `$HOME/my_fastsurfeer_a
 
 Example 4: recon-surf on multiple subjects
 ------------------------------------------
-
 Most of the recon_surf functionality can also be achieved by running `run_fastsurfer.sh` with the `--surf_only` flag. This means we can also use the `brun_fastsurfer.sh` command with `--surf_only` to achieve similar results (see also [Example 4](../doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects).
 
 There are however some small differences to be aware of:
@@ -139,7 +136,7 @@ singularity exec --no-mount home,cwd -e \
             ./fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
             /fastsurfer/brun_fastsurfer.sh \
             --surf_only \
-            --subjects_list $HOME/subjects_lists//subjects_list.txt \
+            --subjects_list $HOME/subjects_lists/subjects_list.txt \
             --parallel_surf max \
             --sd $HOME/my_fastsurfer_analysis \
             --fs_license $HOME/my_fs_license.txt \

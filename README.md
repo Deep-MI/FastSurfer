@@ -4,9 +4,11 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/stable/Tutorial/Complete_FastSurfer_Tutorial.ipynb)
 
 <!-- start of content -->
-# Welcome to FastSurfer!
-##  Overview
+Welcome to FastSurfer!
+======================
 
+Overview
+--------
 This README contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline. FastSurfer provides a fully compatible [FreeSurfer](https://freesurfer.net/) alternative for volumetric analysis (within minutes) and surface-based thickness analysis (within only around 1h run time). 
 FastSurfer is transitioning to sub-millimeter resolution support throughout the pipeline.
 
@@ -14,7 +16,6 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 
 - the segmentation sub-pipeline (`seg`) employs advanced deep learning networks for fast, accurate segmentation and volumetric calculation of the whole brain and selected substructures.
 - the surface sub-pipeline (`recon-surf`) reconstructs cortical surfaces, maps cortical labels and performs a traditional point-wise and ROI thickness analysis. 
-
 
 ### Segmentation Modules 
 - approximately 5 minutes (GPU), `--seg_only` only runs this part. 
@@ -52,7 +53,8 @@ Notwithstanding module-specific limitations, resolution should be between 1mm an
 ![](doc/images/teaser.png)
 
 <!-- start of getting started -->
-## Getting started
+Getting started
+---------------
 
 ### Installation 
 There are three ways to run FastSurfer (links are to installation instructions):
@@ -64,7 +66,6 @@ There are three ways to run FastSurfer (links are to installation instructions):
 The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/fswiki/License) file for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md](doc/overview/INSTALL.md) file.
 
 ### Usage
-
 All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<*fastsurfer-flags*>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
 
 1. For container installations, you need to set up the container (`<*singularity-flags*>` or `<*docker-flags*>`) in addition to the `<*fastsurfer-flags*>`:  
@@ -99,7 +100,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
                       --fs_license /software/freesurfer/license.txt
       ```
 
-      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#fastsurfer-singularity-image-usage) for details on more singularity flags and how to create the `fastsurfer.sif` file.  
+      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#fastsurfer-singularity-image-usage) for details on more singularity flags and how to create the `fastsurfer.sif` file.
 
    2. For __docker__, the syntax is
       ```bash
@@ -129,18 +130,18 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
    [Example 3](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) also illustrates the running the FastSurfer pipeline natively.
 
 <!-- start of examples -->
-## Examples
+Examples
+--------
 The documentation includes [6 detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer. 
-- [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity)
+- [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)
 - [Example 2: FastSurfer Docker](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)
 - [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
 - [Example 4: FastSurfer on multiple subjects](doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)
 - [Example 5: Quick Segmentation](doc/overview/EXAMPLES.md#example-5-quick-segmentation)
 - [Example 6: Running FastSurfer on a SLURM cluster via Singularity](doc/overview/EXAMPLES.md#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity)
 
-
-## Output files
-
+Output files
+------------
 Modules output can be found here: [FastSurfer_Output_Files](doc/overview/OUTPUT_FILES.md)
 - [Segmentation module](doc/overview/OUTPUT_FILES.md#segmentation-module)
 - [Corpus Callosum module](doc/overview/OUTPUT_FILES.md#corpus-callosum-module)
@@ -149,10 +150,10 @@ Modules output can be found here: [FastSurfer_Output_Files](doc/overview/OUTPUT_
 - [Surface module](doc/overview/OUTPUT_FILES.md#surface-module)
 
 <!-- start of system requirements -->
-## System Requirements
+System Requirements
+-------------------
 
-**Recommendation**
-
+### Recommendation
 - intel or AMD CPU (6 or more cores)
 - 16 GB system memory
 - nVidia graphics card (2016 or newer) 
@@ -170,30 +171,29 @@ option. These modes require different system and video memory capacities, see th
 
 The default device is the GPU. The view-aggregation device can be switched to CPU and requires less GPU memory. CPU-only processing ```--device cpu``` is much slower and not recommended.
 
-## Expert usage
+Expert usage
+------------
 Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation. 
 This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation](CerebNet/README.md), [hypothalamic sub-segmentation](HypVINN/README.md), [corpus callosum analysis](CorpusCallosum/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
 
 Specifically, the segmentation modules feature options for optimized parallelization of batch processing.
 
-
-## FreeSurfer Downstream Modules
-
+FreeSurfer Downstream Modules
+-----------------------------
 FreeSurfer provides several Add-on modules for downstream processing, such as subfield segmentation ( [hippocampus/amygdala](https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala), [brainstem](https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures), [thalamus](https://freesurfer.net/fswiki/ThalamicNuclei) and [hypothalamus](https://surfer.nmr.mgh.harvard.edu/fswiki/HypothalamicSubunits) ) as well as [TRACULA](https://surfer.nmr.mgh.harvard.edu/fswiki/Tracula). We now provide symlinks to the required files, as FastSurfer creates them with a different name (e.g. using "mapped" or "DKT" to make clear that these file are from our segmentation using the DKT Atlas protocol, and mapped to the surface). Most subfield segmentations require `wmparc.mgz` and work very well with FastSurfer,  so feel free to run those pipelines after FastSurfer. TRACULA requires `aparc+aseg.mgz` which we now link, but have not tested if it works, given that [DKT-atlas](https://mindboggle.readthedocs.io/en/latest/labels.html) merged a few labels. You should source FreeSurfer 7.3.2 to run these modules. 
 
 
-## Want to know more?
-
+Want to know more?
+------------------
 The DeepMI lab hosts an annual **FastSurfer course** at the German Center for Neurodegenerative Diseaes in Bonn, Germany. This is a 2.5-day, hands-on, introductory course on state-of-the-art deep-learning methods for fast and reliable neuroimage analysis. Participants will gain an understanding of modern methods for the analysis of structural brain images, learn how to run both the FastSurfer and FreeSurfer packages, and will know how to set up an analysis and work with the resulting outputs in the context of their own research projects. The course consists of lectures, demonstrations, practical exercises, and provides ample opportunities for discussions and informal exchange. The course typically takes place in **September**. Check out our [website](https://deep-mi.org/events) for details and current information!
 
-
-## Intended Use
-
+Intended Use
+------------
 This software can be used to compute statistics from an MR image for research purposes. Estimates can be used to aggregate population data, compare groups etc. The data should not be used for clinical decision support in individual cases and, therefore, does not benefit the individual patient. Be aware that for a single image, produced results may be unreliable (e.g. due to head motion, imaging artefacts, processing errors etc). We always recommend to perform visual quality checks on your data, as also your MR-sequence may differ from the ones that we tested. No contributor shall be liable to any damages, see also our software [LICENSE](LICENSE). 
 
 <!-- start of references -->
-## References
-
+References
+----------
 If you use this for research publications, please cite:
 
 _Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012_
@@ -207,8 +207,8 @@ _Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M
 Stay tuned for updates and follow us on [X/Twitter](https://twitter.com/deepmilab).
 
 <!-- start of acknowledgements -->
-## Acknowledgements
-
+Acknowledgements
+----------------
 This project is partially funded by:
 - [Chan Zuckerberg Initiative](https://chanzuckerberg.com/eoss/proposals/fastsurfer-ai-based-neuroimage-analysis-package/)
 - [German Federal Ministry of Education and Research](https://www.gesundheitsforschung-bmbf.de/de/deepni-innovative-deep-learning-methoden-fur-die-rechnergestutzte-neuro-bildgebung-10897.php)
