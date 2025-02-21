@@ -64,7 +64,7 @@ singularity exec --nv \
 
 Sometimes your longitduianl data set contains participants with only one time point, e.g. due to drop-out or QC exclusion. Instead of excluding single-time point cases completely (which may even bias results), you can include them for better statistics. While this obviously will not help to better estimate longitudinal slopes, linear mixed effects models (LMEs), for example, can include single time point data to obtain better estimates of cross-subject variance. 
 
-HOWEVER, this requires that you process these cases also through the longitudinal stream! This is very important, to ensure that they undergo the same processing steps as data from cases with multiple time points. Only then are the results comparable. The comand is the same as above, just specify only the single t1 and time point id. Could not be any easier. 
+HOWEVER, this requires that you process these cases also through the longitudinal stream! This is very important, to ensure that they undergo the same processing steps as data from cases with multiple time points. Only then are the results comparable. The command is the same as above, just specify only the single t1 and time point id. Could not be any easier. 
 
 ## Behind the Scenes
 
@@ -82,7 +82,7 @@ HOWEVER, this requires that you process these cases also through the longitudina
 4. [Long Seg] Next, the segmentation of each time point, which can theoretically run in parallel with the previous two steps, is performed `run_fastsurfer.sh --sid <tIDn> --long <templateID> --seg_only ...`,
 5. [Long Surf] Again followed by the surface processing for each time point: `run_fastsurfer.sh --<id <tIDn> --long <templateID> --surf_only`. This step needs to wait until 3. and 4. (for this time point) are finished.
 
-Internally we use `brun_fastsurfer.sh` as a helper script to process multiple time points in parallel (in the LONG steps 4. and 5.). Here `--parallel_seg` can be passed to `long_fastsurfer.sh` to specify the number of parallel runs during the segmentation step (4) which is usually limited by GPU memory, if run on the GPU. Further `--parallel_surf` specifies the number of parallel surface runs on the CPU and is most impactful. It can be combined with `--threads_surf 2` (or higher) to switch on parallization of the two hemispheres in each surface block. 
+Internally we use `brun_fastsurfer.sh` as a helper script to process multiple time points in parallel (in the LONG steps 4. and 5.). Here `--parallel_seg` can be passed to `long_fastsurfer.sh` to specify the number of parallel runs during the segmentation step (4) which is usually limited by GPU memory, if run on the GPU. Further `--parallel_surf` specifies the number of parallel surface runs on the CPU and is most impactful. It can be combined with `--threads_surf 2` (or higher) to switch on parallelization of the two hemispheres in each surface block. 
 
 ## Final Statistics:
 
