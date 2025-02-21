@@ -309,7 +309,6 @@
 <li class="toctree-l3"><a class="reference internal" href="api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -413,6 +412,8 @@
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/recon_surf.align_points.html#recon_surf.align_points.angles2rmat">angles2rmat() (in module recon_surf.align_points)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.apply_orientation">apply_orientation() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectList.are_all_subject_files">are_all_subject_files() (FastSurferCNN.utils.common.SubjectList method)</a>
 </li>
@@ -604,13 +605,6 @@
 </li>
         </ul></li>
         <li>
-    CerebNet.utils.metrics
-
-        <ul>
-          <li><a href="api/generated/CerebNet.utils.metrics.html#module-CerebNet.utils.metrics">module</a>
-</li>
-        </ul></li>
-        <li>
     CerebNet.utils.misc
 
         <ul>
@@ -683,17 +677,15 @@
           <li><a href="api/generated/FastSurferCNN.models.sub_module.html#FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput">(class in FastSurferCNN.models.sub_module)</a>
 </li>
         </ul></li>
-        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore.comput_dice_cnf">comput_dice_cnf() (FastSurferCNN.utils.metrics.DiceScore method)</a>
-</li>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.DiceScore.compute">compute() (CerebNet.utils.metrics.DiceScore method)</a>
-</li>
-        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore.compute_dsc">compute_dsc() (FastSurferCNN.utils.metrics.DiceScore method)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore.compute">compute() (FastSurferCNN.utils.metrics.DiceScore method)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectDirectory.conf_name">conf_name (FastSurferCNN.utils.common.SubjectDirectory property)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.conform">conform() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.run_prediction.html#FastSurferCNN.run_prediction.RunModelOnData.conform_and_save_orig">conform_and_save_orig() (FastSurferCNN.run_prediction.RunModelOnData method)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.conformed_vox_img_size">conformed_vox_img_size() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/recon_surf.sample_parc.html#recon_surf.sample_parc.construct_adj_cluster">construct_adj_cluster() (in module recon_surf.sample_parc)</a>
 </li>
@@ -727,8 +719,6 @@
 </li>
         <li><a href="api/generated/CerebNet.data_loader.data_utils.html#CerebNet.data_loader.data_utils.create_weight_mask2d">create_weight_mask2d() (in module CerebNet.data_loader.data_utils)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.Criteria">Criteria (class in FastSurferCNN.data_loader.conform)</a>
-</li>
         <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.crop_patch_to_mask">crop_patch_to_mask() (in module FastSurferCNN.segstats)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.models.interpolation_layer.html#FastSurferCNN.models.interpolation_layer.Zoom2d.crop_position">crop_position (FastSurferCNN.models.interpolation_layer.Zoom2d property)</a>
@@ -737,7 +727,7 @@
           <li><a href="api/generated/FastSurferCNN.models.interpolation_layer.html#FastSurferCNN.models.interpolation_layer.Zoom3d.crop_position">(FastSurferCNN.models.interpolation_layer.Zoom3d property)</a>
 </li>
         </ul></li>
-        <li><a href="api/generated/CerebNet.datasets.utils.html#CerebNet.datasets.utils.crop_transform">crop_transform() (in module CerebNet.datasets.utils)</a>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.crop_transform">crop_transform() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.models.losses.html#FastSurferCNN.models.losses.CrossEntropy2D">CrossEntropy2D (class in FastSurferCNN.models.losses)</a>
 </li>
@@ -755,27 +745,23 @@
           <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.TSVLookupTable.dataframe">(FastSurferCNN.utils.mapper.TSVLookupTable method)</a>
 </li>
         </ul></li>
+        <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.dataframe_to_table">dataframe_to_table() (in module FastSurferCNN.segstats)</a>
+</li>
         <li><a href="api/generated/CerebNet.utils.lr_scheduler.html#CerebNet.utils.lr_scheduler.CosineAnnealingWarmRestartsDecay.decay_base_lr">decay_base_lr() (CerebNet.utils.lr_scheduler.CosineAnnealingWarmRestartsDecay method)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.data_loader.data_utils.html#FastSurferCNN.data_loader.data_utils.deep_sulci_and_wm_strand_mask">deep_sulci_and_wm_strand_mask() (in module FastSurferCNN.data_loader.data_utils)</a>
 </li>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.dice_score">dice_score() (in module CerebNet.utils.metrics)</a>
-
-        <ul>
-          <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.dice_score">(in module FastSurferCNN.utils.metrics)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.dice_score">dice_score() (in module FastSurferCNN.utils.metrics)</a>
 </li>
-        </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.models.losses.html#FastSurferCNN.models.losses.DiceLoss">DiceLoss (class in FastSurferCNN.models.losses)</a>
 </li>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.DiceScore">DiceScore (class in CerebNet.utils.metrics)</a>
-
-        <ul>
-          <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore">(class in FastSurferCNN.utils.metrics)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore">DiceScore (class in FastSurferCNN.utils.metrics)</a>
 </li>
-        </ul></li>
         <li><a href="api/generated/FastSurferCNN.utils.meters.html#FastSurferCNN.utils.meters.Meter.disable_confusion_mat">disable_confusion_mat() (FastSurferCNN.utils.meters.Meter method)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.does_vox2vox_rot_require_interpolation">does_vox2vox_rot_require_interpolation() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.checkpoint.html#FastSurferCNN.utils.checkpoint.download_checkpoint">download_checkpoint() (in module FastSurferCNN.utils.checkpoint)</a>
 </li>
@@ -997,6 +983,8 @@
           <li><a href="api/generated/FastSurferCNN.utils.misc.html#module-FastSurferCNN.utils.misc">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     FastSurferCNN.utils.parser_defaults
 
@@ -1004,8 +992,6 @@
           <li><a href="api/generated/FastSurferCNN.utils.parser_defaults.html#module-FastSurferCNN.utils.parser_defaults">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     FastSurferCNN.utils.run_tools
 
@@ -1059,11 +1045,7 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.find_device">find_device() (in module FastSurferCNN.utils.common)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.find_img_size_by_fov">find_img_size_by_fov() (in module FastSurferCNN.data_loader.conform)</a>
-</li>
         <li><a href="api/generated/FastSurferCNN.utils.misc.html#FastSurferCNN.utils.misc.find_latest_experiment">find_latest_experiment() (in module FastSurferCNN.utils.misc)</a>
-</li>
-        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.find_min_size">find_min_size() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/recon_surf.align_points.html#recon_surf.align_points.find_rigid">find_rigid() (in module recon_surf.align_points)</a>
 </li>
@@ -1177,8 +1159,6 @@
           <li><a href="api/generated/FastSurferCNN.utils.load_config.html#FastSurferCNN.utils.load_config.get_config">(in module FastSurferCNN.utils.load_config)</a>
 </li>
         </ul></li>
-        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.get_conformed_vox_img_size">get_conformed_vox_img_size() (in module FastSurferCNN.data_loader.conform)</a>
-</li>
         <li><a href="api/generated/CerebNet.data_loader.loader.html#CerebNet.data_loader.loader.get_dataloader">get_dataloader() (in module CerebNet.data_loader.loader)</a>
 
         <ul>
@@ -1305,9 +1285,9 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.version.html#FastSurferCNN.version.has_git">has_git() (in module FastSurferCNN.version)</a>
 </li>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.hd">hd() (in module CerebNet.utils.metrics)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.hd">hd() (in module FastSurferCNN.utils.metrics)</a>
 </li>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.hd95">hd95() (in module CerebNet.utils.metrics)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.hd95">hd95() (in module FastSurferCNN.utils.metrics)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.HelpFormatter">HelpFormatter (class in FastSurferCNN.segstats)</a>
 </li>
@@ -1368,6 +1348,8 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectDirectory.id">id (FastSurferCNN.utils.common.SubjectDirectory property)</a>
 </li>
+        <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.img_size">img_size() (in module FastSurferCNN.utils.arg_types)</a>
+</li>
         <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.infer_labels_excludeid">infer_labels_excludeid() (in module FastSurferCNN.segstats)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.data_loader.data_utils.html#FastSurferCNN.data_loader.data_utils.infer_mapping_from_lut">infer_mapping_from_lut() (in module FastSurferCNN.data_loader.data_utils)</a>
@@ -1384,10 +1366,10 @@
         </ul></li>
         <li><a href="api/generated/FastSurferCNN.models.sub_module.html#FastSurferCNN.models.sub_module.InputDenseBlock">InputDenseBlock (class in FastSurferCNN.models.sub_module)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.int_ge_zero">int_ge_zero() (in module FastSurferCNN.utils.arg_types)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.int_ge_zero">int_ge_zero() (in module FastSurferCNN.utils.arg_types)</a>
+</li>
         <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.int_gt_zero">int_gt_zero() (in module FastSurferCNN.utils.arg_types)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.iou_score">iou_score() (in module FastSurferCNN.utils.metrics)</a>
@@ -1400,9 +1382,7 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.is_int">is_int() (in module FastSurferCNN.utils.mapper)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.is_lia">is_lia() (in module FastSurferCNN.data_loader.conform)</a>
-</li>
-        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.is_resampling_vox2vox">is_resampling_vox2vox() (in module FastSurferCNN.data_loader.conform)</a>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.is_orientation">is_orientation() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.iterate">iterate() (in module FastSurferCNN.utils.common)</a>
 </li>
@@ -1614,8 +1594,6 @@
 </li>
           <li><a href="api/generated/CerebNet.utils.meters.html#module-CerebNet.utils.meters">CerebNet.utils.meters</a>
 </li>
-          <li><a href="api/generated/CerebNet.utils.metrics.html#module-CerebNet.utils.metrics">CerebNet.utils.metrics</a>
-</li>
           <li><a href="api/generated/CerebNet.utils.misc.html#module-CerebNet.utils.misc">CerebNet.utils.misc</a>
 </li>
           <li><a href="api/generated/FastSurferCNN.data_loader.augmentation.html#module-FastSurferCNN.data_loader.augmentation">FastSurferCNN.data_loader.augmentation</a>
@@ -1787,6 +1765,8 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.orientation">orientation() (in module FastSurferCNN.utils.arg_types)</a>
+</li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectDirectory.orig_name">orig_name (FastSurferCNN.utils.common.SubjectDirectory property)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.models.sub_module.html#FastSurferCNN.models.sub_module.OutputDenseBlock">OutputDenseBlock (class in FastSurferCNN.models.sub_module)</a>
@@ -1825,14 +1805,14 @@
           <li><a href="api/generated/FastSurferCNN.utils.misc.html#FastSurferCNN.utils.misc.plot_confusion_matrix">(in module FastSurferCNN.utils.misc)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/CerebNet.utils.misc.html#CerebNet.utils.misc.plot_predictions">plot_predictions() (in module CerebNet.utils.misc)</a>
 
         <ul>
           <li><a href="api/generated/FastSurferCNN.utils.misc.html#FastSurferCNN.utils.misc.plot_predictions">(in module FastSurferCNN.utils.misc)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.run_prediction.html#FastSurferCNN.run_prediction.RunModelOnData.pool">pool (FastSurferCNN.run_prediction.RunModelOnData property)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.run_tools.html#FastSurferCNN.utils.run_tools.Popen">Popen (class in FastSurferCNN.utils.run_tools)</a>
@@ -1842,6 +1822,8 @@
         <li><a href="api/generated/CerebNet.utils.meters.html#CerebNet.utils.meters.Meter.prediction_visualize">prediction_visualize() (CerebNet.utils.meters.Meter method)</a>
 </li>
         <li><a href="api/generated/HypVINN.run_prediction.html#HypVINN.run_prediction.prepare_checkpoints">prepare_checkpoints() (in module HypVINN.run_prediction)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.prepare_mgh_header">prepare_mgh_header() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.preproc_image">preproc_image() (in module FastSurferCNN.segstats)</a>
 </li>
@@ -1882,6 +1864,8 @@
         <li><a href="api/generated/CerebNet.datasets.utils.html#CerebNet.datasets.utils.read_lta">read_lta() (in module CerebNet.datasets.utils)</a>
 </li>
         <li><a href="api/generated/recon_surf.create_annotation.html#recon_surf.create_annotation.read_multiple_labels">read_multiple_labels() (in module recon_surf.create_annotation)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.read_statsfile">read_statsfile() (in module FastSurferCNN.segstats)</a>
 </li>
         <li><a href="api/generated/recon_surf.N4_bias_correct.html#recon_surf.N4_bias_correct.read_talairach_xfm">read_talairach_xfm() (in module recon_surf.N4_bias_correct)</a>
 </li>
@@ -1943,6 +1927,8 @@
           <li><a href="api/generated/recon_surf.paint_cc_into_pred.html#module-recon_surf.paint_cc_into_pred">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     recon_surf.rewrite_mc_surface
 
@@ -1950,8 +1936,6 @@
           <li><a href="api/generated/recon_surf.rewrite_mc_surface.html#module-recon_surf.rewrite_mc_surface">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     recon_surf.rewrite_oriented_surface
 
@@ -2010,8 +1994,6 @@
         <li><a href="api/generated/CerebNet.utils.meters.html#CerebNet.utils.meters.Meter.reset">reset() (CerebNet.utils.meters.Meter method)</a>
 
         <ul>
-          <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.DiceScore.reset">(CerebNet.utils.metrics.DiceScore method)</a>
-</li>
           <li><a href="api/generated/FastSurferCNN.utils.meters.html#FastSurferCNN.utils.meters.Meter.reset">(FastSurferCNN.utils.meters.Meter method)</a>
 </li>
           <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore.reset">(FastSurferCNN.utils.metrics.DiceScore method)</a>
@@ -2131,6 +2113,8 @@
 </li>
         <li><a href="api/generated/CerebNet.utils.lr_scheduler.html#CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts.step">step() (CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts method)</a>
 </li>
+        <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.string_to_bool">string_to_bool() (in module FastSurferCNN.utils.arg_types)</a>
+</li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectDirectory.subject_dir">subject_dir (FastSurferCNN.utils.common.SubjectDirectory property)</a>
 </li>
         <li><a href="api/generated/CerebNet.data_loader.dataset.html#CerebNet.data_loader.dataset.SubjectDataset">SubjectDataset (class in CerebNet.data_loader.dataset)</a>
@@ -2165,7 +2149,11 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.inference.html#FastSurferCNN.inference.Inference.to">to() (FastSurferCNN.inference.Inference method)</a>
 </li>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.to_dtype">to_dtype() (in module FastSurferCNN.data_loader.conform)</a>
+</li>
         <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.to_same_type">to_same_type() (in module FastSurferCNN.utils.mapper)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.to_target_orientation">to_target_orientation() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
         <li><a href="api/generated/CerebNet.data_loader.augmentation.html#CerebNet.data_loader.augmentation.ToTensor">ToTensor (class in CerebNet.data_loader.augmentation)</a>
 
@@ -2173,14 +2161,14 @@
           <li><a href="api/generated/FastSurferCNN.data_loader.augmentation.html#FastSurferCNN.data_loader.augmentation.ToTensor">(class in FastSurferCNN.data_loader.augmentation)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/CerebNet.data_loader.augmentation.html#CerebNet.data_loader.augmentation.ToTensorTest">ToTensorTest (class in CerebNet.data_loader.augmentation)</a>
 
         <ul>
           <li><a href="api/generated/FastSurferCNN.data_loader.augmentation.html#FastSurferCNN.data_loader.augmentation.ToTensorTest">(class in FastSurferCNN.data_loader.augmentation)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.generate_hdf5.html#FastSurferCNN.generate_hdf5.H5pyDataset.transform">transform() (FastSurferCNN.generate_hdf5.H5pyDataset method)</a>
 </li>
         <li><a href="api/generated/CerebNet.data_loader.data_utils.html#CerebNet.data_loader.data_utils.transform_axial">transform_axial() (in module CerebNet.data_loader.data_utils)</a>
@@ -2223,11 +2211,9 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.unquote_str">unquote_str() (in module FastSurferCNN.utils.arg_types)</a>
 </li>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.DiceScore.update">update() (CerebNet.utils.metrics.DiceScore method)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.Mapper.update">update() (FastSurferCNN.utils.mapper.Mapper method)</a>
 
         <ul>
-          <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.Mapper.update">(FastSurferCNN.utils.mapper.Mapper method)</a>
-</li>
           <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.DiceScore.update">(FastSurferCNN.utils.metrics.DiceScore method)</a>
 </li>
         </ul></li>
@@ -2261,7 +2247,7 @@
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="api/generated/CerebNet.utils.metrics.html#CerebNet.utils.metrics.volume_similarity">volume_similarity() (in module CerebNet.utils.metrics)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.metrics.html#FastSurferCNN.utils.metrics.volume_similarity">volume_similarity() (in module FastSurferCNN.utils.metrics)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.arg_types.html#FastSurferCNN.utils.arg_types.vox_size">vox_size() (in module FastSurferCNN.utils.arg_types)</a>
 </li>

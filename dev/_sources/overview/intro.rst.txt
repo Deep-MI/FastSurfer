@@ -9,7 +9,7 @@ You will learn about it's different segmentation and surface modules and how to 
 recommended Docker or Singularity images. But first let us tell you why we think FastSurfer is great:
 
 * FastSurfer uses dedicated and fast AI methods (developed in-house).
-* It is thoroughly validated across different scanners, field-strenghts, T1 sequences, ages, diesease, ...
+* It is thoroughly validated across different scanners, field-strenghts, T1 sequences, ages, diseases, ...
 * FastSurfer is fully open-source using a permissive Apache license.
 * It is compatible with FreeSurfer, enabling FreeSurfer downstream tools to work directly.
 * It is much faster and provides increased reliability and sensitivity of the derived measures.

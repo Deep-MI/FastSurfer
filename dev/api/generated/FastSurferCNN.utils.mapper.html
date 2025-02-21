@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -395,8 +394,10 @@
 <p>Date: Aug-19-2022</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.ColorLookupTable">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">ColorLookupTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_palette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gist_ncar'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L617-L820"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable" title="Link to this definition">¶</a></dt>
-<dd><p>This class provides utility in creating color palettes from colormaps.</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">ColorLookupTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_palette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gist_ncar'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L620-L829"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable" title="Link to this definition">¶</a></dt>
+<dd><p>This class provides utility in creating color palettes from colormaps. It will map from class
+(see <code class="xref py py-func docutils literal notranslate"><span class="pre">ColorLookupTable.__init__()</span></code>) to color/other info.</p>
+<p>If you want a mapping from the class (typically the labelname to id), see <a class="reference internal" href="#FastSurferCNN.utils.mapper.ColorLookupTable.labelname2index" title="FastSurferCNN.utils.mapper.ColorLookupTable.labelname2index"><code class="xref py py-func docutils literal notranslate"><span class="pre">ColorLookupTable.labelname2index()</span></code></a>.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -437,25 +438,25 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.ColorLookupTable.colormap">
-<span class="sig-name descname"><span class="pre">colormap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L787-L795"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.colormap" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">colormap</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L796-L804"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.colormap" title="Link to this definition">¶</a></dt>
 <dd><p>Generate a Mapper object that maps classes to their corresponding colors.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.ColorLookupTable.get_color_by_index">
-<span class="sig-name descname"><span class="pre">get_color_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L767-L785"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.get_color_by_index" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_color_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L776-L794"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.get_color_by_index" title="Link to this definition">¶</a></dt>
 <dd><p>Return the color (r, g, b, a) tuple associated with the index in the passed base.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.ColorLookupTable.getitem_by_index">
-<span class="sig-name descname"><span class="pre">getitem_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L758-L765"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.getitem_by_index" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">getitem_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L767-L774"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.getitem_by_index" title="Link to this definition">¶</a></dt>
 <dd><p>Return index, key, colors and additional values for the key.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.ColorLookupTable.labelname2id">
-<span class="sig-name descname"><span class="pre">labelname2id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L808-L820"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.labelname2id" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">labelname2id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L817-L829"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.labelname2id" title="Link to this definition">¶</a></dt>
 <dd><p>Return a mapping between the key and the value it is associated with.</p>
 <dl class="simple">
 <dt>Mapper[KT, Any]</dt><dd><p>Not implemented in the base class.</p>
@@ -473,7 +474,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.ColorLookupTable.labelname2index">
-<span class="sig-name descname"><span class="pre">labelname2index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L797-L806"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.labelname2index" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">labelname2index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L806-L815"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.ColorLookupTable.labelname2index" title="Link to this definition">¶</a></dt>
 <dd><p>Return a mapping between the key and the (consecutive) index it is associated with.</p>
 <p>This is the inverse of ColorLookupTable.classes.</p>
 </dd></dl>
@@ -500,7 +501,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.JsonColorLookupTable">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">JsonColorLookupTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_or_buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_palette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gist_ncar'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L823-L939"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.JsonColorLookupTable" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">JsonColorLookupTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_or_buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_palette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gist_ncar'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L832-L948"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.JsonColorLookupTable" title="Link to this definition">¶</a></dt>
 <dd><p>This class extends the ColorLookupTable to handle JSON data.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -545,13 +546,13 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.JsonColorLookupTable.dataframe">
-<span class="sig-name descname"><span class="pre">dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L903-L908"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.JsonColorLookupTable.dataframe" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L912-L917"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.JsonColorLookupTable.dataframe" title="Link to this definition">¶</a></dt>
 <dd><p>Converts the labels from the internal data dictionary to a pandas DataFrame.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.JsonColorLookupTable.labelname2id">
-<span class="sig-name descname"><span class="pre">labelname2id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L920-L939"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.JsonColorLookupTable.labelname2id" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">labelname2id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L929-L948"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.JsonColorLookupTable.labelname2id" title="Link to this definition">¶</a></dt>
 <dd><p>Return a mapping between the key and the value it is associated with.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -573,7 +574,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">Mapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mappings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'undefined'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L121-L614"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">Mapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mappings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'undefined'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L123-L617"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper" title="Link to this definition">¶</a></dt>
 <dd><p>Map from one label space to a generic ‘label’-space.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -598,8 +599,8 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(image, label_image)</p></td>
-<td><p>Transform a dataset from prediction to internal space for sets of image and segmentation.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(label_image)</p></td>
+<td><p>Transform a label image from prediction to the target space.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#FastSurferCNN.utils.mapper.Mapper.chain" title="FastSurferCNN.utils.mapper.Mapper.chain"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chain</span></code></a>(other_mapper)</p></td>
 <td><p>Chain the current mapper with the <code class="xref py py-obj docutils literal notranslate"><span class="pre">other_mapper</span></code>.</p></td>
@@ -636,7 +637,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper.chain">
-<span class="sig-name descname"><span class="pre">chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other_mapper</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L434-L477"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.chain" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">chain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other_mapper</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L437-L480"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.chain" title="Link to this definition">¶</a></dt>
 <dd><p>Chain the current mapper with the <code class="xref py py-obj docutils literal notranslate"><span class="pre">other_mapper</span></code>.</p>
 <p>This effectively is an optimization to first applying this
 mapper and then applying the <code class="xref py py-obj docutils literal notranslate"><span class="pre">other_mapper</span></code>.</p>
@@ -659,13 +660,13 @@ the <code class="xref py py-obj docutils literal notranslate"><span class="pre">
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper.is_bijective">
-<span class="sig-name descname"><span class="pre">is_bijective</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L410-L414"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.is_bijective" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">is_bijective</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L413-L417"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.is_bijective" title="Link to this definition">¶</a></dt>
 <dd><p>Return, whether the Mapper is bijective.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper.make_classmapper">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_classmapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mappings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compress_out_space</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'undefined'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L479-L530"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.make_classmapper" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_classmapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mappings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compress_out_space</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'undefined'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L482-L533"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.make_classmapper" title="Link to this definition">¶</a></dt>
 <dd><p>Map from one label space (int) to another (also int) using a mappings function.</p>
 <p>Can also be used as a transform.</p>
 <p>Creates a <a class="reference internal" href="#FastSurferCNN.utils.mapper.Mapper" title="FastSurferCNN.utils.mapper.Mapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapper</span></code></a> object from a mappings dictionary and a
@@ -686,8 +687,8 @@ list of labels to keep.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt>“Mapper[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]”</dt><dd></dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">A</span></code> <a class="reference internal" href="#FastSurferCNN.utils.mapper.Mapper" title="FastSurferCNN.utils.mapper.Mapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapper</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">object</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">that</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">provides</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">a</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">mapping</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">from</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">one</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">label</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">space</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">to</span></code> another.</dt><dd></dd>
+<dt><a class="reference internal" href="#FastSurferCNN.utils.mapper.Mapper" title="FastSurferCNN.utils.mapper.Mapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapper</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</dt><dd><p>A Mapper object that provides a mapping from one label space to another.</p>
+</dd>
 </dl>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
@@ -701,7 +702,7 @@ list of labels to keep.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper.map">
-<span class="sig-name descname"><span class="pre">map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L239-L325"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.map" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L241-L327"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.map" title="Link to this definition">¶</a></dt>
 <dd><p>Forward map the labels from prediction to internal space.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -724,13 +725,13 @@ Returns an <a class="reference external" href="https://numpy.org/doc/stable/refe
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper.reversed_dict">
-<span class="sig-name descname"><span class="pre">reversed_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L390-L402"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.reversed_dict" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">reversed_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L393-L405"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.reversed_dict" title="Link to this definition">¶</a></dt>
 <dd><p>Map dictionary from the target space to the source space.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.Mapper.update">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L208-L235"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.update" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L210-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.Mapper.update" title="Link to this definition">¶</a></dt>
 <dd><p>Merge another map into this mapper.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -779,7 +780,7 @@ arrays expanded to tuples.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.TSVLookupTable">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">TSVLookupTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_or_buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L942-L1062"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">TSVLookupTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_or_buffer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_background</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L951-L1072"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable" title="Link to this definition">¶</a></dt>
 <dd><p>This class extends the ColorLookupTable to handle TSV (Tab Separated Values) data.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -824,13 +825,13 @@ arrays expanded to tuples.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.TSVLookupTable.dataframe">
-<span class="sig-name descname"><span class="pre">dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L1039-L1043"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable.dataframe" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L1049-L1053"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable.dataframe" title="Link to this definition">¶</a></dt>
 <dd><p>Return the raw panda data object.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.TSVLookupTable.getitem_by_index">
-<span class="sig-name descname"><span class="pre">getitem_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L1013-L1037"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable.getitem_by_index" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">getitem_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L1023-L1047"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable.getitem_by_index" title="Link to this definition">¶</a></dt>
 <dd><p>Find the Entry associated by a No.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -857,7 +858,7 @@ Returns a tuple of the index, the label, and a tuple of the RGBA color label.</p
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.TSVLookupTable.labelname2id">
-<span class="sig-name descname"><span class="pre">labelname2id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L1045-L1062"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable.labelname2id" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">labelname2id</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L1055-L1072"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.TSVLookupTable.labelname2id" title="Link to this definition">¶</a></dt>
 <dd><p>Return a Mapper between the key and the value it is associated with.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -880,7 +881,7 @@ class and data index.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.is_int">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">is_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_object</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L67-L92"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.is_int" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">is_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_object</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L69-L94"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.is_int" title="Link to this definition">¶</a></dt>
 <dd><p>Check whether the array_or_tensor is an integer.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -900,7 +901,7 @@ class and data index.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.mapper.to_same_type">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">to_same_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_hint</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L95-L118"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.to_same_type" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.mapper.</span></span><span class="sig-name descname"><span class="pre">to_same_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_hint</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/mapper.py#L97-L120"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.mapper.to_same_type" title="Link to this definition">¶</a></dt>
 <dd><p>Convert data to the same type as type_hint.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

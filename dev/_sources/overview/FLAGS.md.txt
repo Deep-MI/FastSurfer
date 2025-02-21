@@ -32,6 +32,7 @@ In the following, we give an overview of the most important options. You can vie
 * `--no_cereb`: Switch off the cerebellum sub-segmentation.
 * `--cereb_segfile`: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
 * `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.
+* `--native_image` or `--keepgeom`: **Only supported for `--seg_only`**, segment in native image space (keep orientation, image size and voxel size of the input image), this also includes experimental support for anisotropic images (no extreme anisotropy).
 
 ## Surface pipeline arguments (optional)
 * `--surf_only`: Only run the surface pipeline. The segmentation created by FastSurferVINN must already exist in this case.
@@ -46,8 +47,8 @@ In the following, we give an overview of the most important options. You can vie
 * `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. The default (`1`) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed. 
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
-  If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isometric.
-  If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isometric voxels of that voxel size.
+  If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
+  If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isotropic voxels of that voxel size.
   The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.
 * `--py`: Command for python, used in both pipelines. Default: python3.10
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz

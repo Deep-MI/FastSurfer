@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -417,7 +416,7 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <p>After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. This is not necessary if you want to run the segmentation only.</p>
 <p>To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="se">\</span>
+<span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs<span class="w"> </span><span class="se">\</span>
@@ -456,7 +455,7 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/home/user/my_singlarity_images
 singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:cpu-v#.#.#
 
-singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-home<span class="w"> </span><span class="se">\</span>
+singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs<span class="w"> </span><span class="se">\</span>
@@ -476,7 +475,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <h3>Mounting Home<a class="headerlink" href="#mounting-home" title="Link to this heading">¶</a></h3>
 <p>Do not mount the user home directory into the singularity container as the home directory.</p>
 <p>Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span> <span class="pre">...</span> <span class="pre">--version</span> <span class="pre">+pip</span></code> outputs the FastSurfer version including a full list of python packages.</p>
-<p>How? Singularity automatically mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>.</p>
+<p>How? Singularity automatically mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>. Additionally setting the <code class="docutils literal notranslate"><span class="pre">-e</span></code> flag will ensure that no environment variables will be passed from the host system into the container.</p>
 </section>
 </section>
 </section>

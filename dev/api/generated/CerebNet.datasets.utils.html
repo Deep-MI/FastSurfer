@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -444,66 +443,6 @@ volume of size target_img_size.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="CerebNet.datasets.utils.crop_transform">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">crop_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L547-L652"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.crop_transform" title="Link to this definition">¶</a></dt>
-<dd><p>Perform a crop transform of the last N dimensions on the image data.
-Cropping does not interpolate the image, but “just removes” border pixels/voxels.
-Negative offsets lead to padding.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Image of size […, D_1, D_2, …, D_N], where D_1, D_2, …, D_N are the N
-image dimensions.</p>
-</dd>
-<dt><strong>offsets</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Offset of the cropped region for the last N dimensions (default: center crop
-with less crop/pad towards index 0).</p>
-</dd>
-<dt><strong>target_shape</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>If defined, target_shape specifies the target shape of the “cropped region”,
-else the crop will be centered cropping offset[dim] voxels on each side (then
-the shape is derived by subtracting 2x the dimension-specific offset).
-target_shape should have the same number of elements as offsets.
-May be implicitly defined by out.</p>
-</dd>
-<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Array to store the cropped image in (optional), can be a view on image for
-memory-efficiency.</p>
-</dd>
-<dt><strong>pad</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=0/zero-pad</span></dt><dd><p>Padding strategy to use when padding is required, if int, pad with that value.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl>
-<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>The image (stack) cropped in the last N dimensions by offsets to the shape
-target_shape, or if target_shape is not given image.shape[i+2] - 2*offset[i].</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If neither offsets nor target_shape nor out are defined.</p>
-</dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If out is not target_shape.</p>
-</dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TypeError</span></code></a></dt><dd><p>If the type of image is not an np.ndarray or a torch.Tensor.</p>
-</dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If the dimensionality of image, out, offset or target_shape is invalid or
-inconsistent.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html#numpy.pad" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.pad</span></code></a></dt><dd><p>For additional information refer to numpy.pad function.</p>
-</dd>
-</dl>
-</div>
-<p class="rubric">Notes</p>
-<p>Either offsets, target_shape or out must be defined.</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.filter_blank_slices_thick">
 <span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L298-L312"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
 <dd><p>Function to filter blank slices from the volume using the label volume
@@ -595,7 +534,6 @@ inconsistent.</p>
 <li><a class="reference internal" href="#">CerebNet.datasets.utils</a><ul>
 <li><a class="reference internal" href="#CerebNet.datasets.utils.LTADict"><code class="docutils literal notranslate"><span class="pre">LTADict</span></code></a></li>
 <li><a class="reference internal" href="#CerebNet.datasets.utils.bounding_volume_offset"><code class="docutils literal notranslate"><span class="pre">bounding_volume_offset()</span></code></a></li>
-<li><a class="reference internal" href="#CerebNet.datasets.utils.crop_transform"><code class="docutils literal notranslate"><span class="pre">crop_transform()</span></code></a></li>
 <li><a class="reference internal" href="#CerebNet.datasets.utils.filter_blank_slices_thick"><code class="docutils literal notranslate"><span class="pre">filter_blank_slices_thick()</span></code></a></li>
 <li><a class="reference internal" href="#CerebNet.datasets.utils.map_label2subseg"><code class="docutils literal notranslate"><span class="pre">map_label2subseg()</span></code></a></li>
 <li><a class="reference internal" href="#CerebNet.datasets.utils.map_size"><code class="docutils literal notranslate"><span class="pre">map_size()</span></code></a></li>

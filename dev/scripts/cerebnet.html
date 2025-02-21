@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -413,6 +412,9 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
                                   <span class="p">[</span><span class="o">--</span><span class="n">viewagg_device</span> <span class="n">VIEWAGG_DEVICE</span><span class="p">]</span>
                                   <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span>
                                   <span class="p">[</span><span class="o">--</span><span class="n">batch_size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">async_io</span><span class="p">]</span>
+                                  <span class="p">[</span><span class="o">--</span><span class="n">orientation</span> <span class="p">{</span><span class="n">native</span><span class="p">,</span><span class="n">XXX</span><span class="p">,</span><span class="n">soft</span><span class="o">-</span><span class="n">XXX</span><span class="p">}]</span>
+                                  <span class="p">[</span><span class="o">--</span><span class="n">image_size</span> <span class="n">IMAGE_SIZE</span><span class="p">]</span>
+                                  <span class="p">[</span><span class="o">--</span><span class="n">vox_size</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="n">none</span><span class="p">}]</span>
                                   <span class="p">[</span><span class="o">--</span><span class="n">ckpt_ax</span> <span class="n">CKPT_AX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">ckpt_cor</span> <span class="n">CKPT_COR</span><span class="p">]</span>
                                   <span class="p">[</span><span class="o">--</span><span class="n">ckpt_sag</span> <span class="n">CKPT_SAG</span><span class="p">]</span>
                                   <span class="o">...</span>
@@ -500,6 +502,20 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <dt><kbd>--async_io</kbd></dt>
 <dd><p>Allow asynchronous file operations (default: off). Note, this may impact the order of messages in the log, but speed up the segmentation specifically for slow file systems.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+<dt><kbd>--orientation</kbd></dt>
+<dd><p>Possible choices: native, soft ras, soft rai, soft rps, soft rpi, soft las, soft lai, soft lps, soft lpi, soft rsa, soft rsp, soft ria, soft rip, soft lsa, soft lsp, soft lia, soft lip, soft ars, soft ari, soft als, soft ali, soft prs, soft pri, soft pls, soft pli, soft asr, soft asl, soft air, soft ail, soft psr, soft psl, soft pir, soft pil, soft sra, soft srp, soft sla, soft slp, soft ira, soft irp, soft ila, soft ilp, soft sar, soft sal, soft spr, soft spl, soft iar, soft ial, soft ipr, soft ipl, ras, rai, rps, rpi, las, lai, lps, lpi, rsa, rsp, ria, rip, lsa, lsp, lia, lip, ars, ari, als, ali, prs, pri, pls, pli, asr, asl, air, ail, psr, psl, pir, pil, sra, srp, sla, slp, ira, irp, ila, ilp, sar, sal, spr, spl, iar, ial, ipr, ipl</p>
+<p>Select the target affine format for output, native: input defined by input image, soft-XXX (e.g. soft-lia): store as XXX, but do not interpolate, XXX (e.g. lia): force XXX, affine is only 0 or +-1. Default: lia (required by the surface pipeline).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">lia</span></code></p>
+</dd>
+<dt><kbd>--image_size</kbd></dt>
+<dd><p>Select how the image should be conformed. A positive integer yields a cube of that size, ‘fov’ yields dimensions, so the field of view stays consistent, ‘auto’ yields a cube of dimensions fully containing the field of view (default).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">auto</span></code></p>
+</dd>
+<dt><kbd>--vox_size</kbd></dt>
+<dd><p>Possible choices: 1, 1.0, none</p>
+<p>Choose the voxelsize to process, CerebNet only supports 1 or ‘none’ to ignore the voxelsize.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
 </dd>
 <dt><kbd>--ckpt_ax</kbd></dt>
 <dd><p>axial checkpoint to load</p>

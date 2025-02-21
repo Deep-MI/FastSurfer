@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -571,13 +570,6 @@ python<span class="w"> </span>build.py<span class="w"> </span>--device<span clas
 <span class="w">  </span><span class="k">[[worker.containerd.gcpolicy]]</span>
 <span class="w">    </span><span class="n">all</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">    </span><span class="n">keepBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024000000</span>
-<span class="c1"># settings to push to a &quot;local&quot;, registry with self-signed certificates</span>
-<span class="c1"># see for example https://tech.paulcz.net/2016/01/secure-docker-with-tls/ https://github.com/paulczar/omgwtfssl</span>
-<span class="k">[registry.</span><span class="s2">&quot;host:5000&quot;</span><span class="k">]</span>
-<span class="w">  </span><span class="n">ca</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;/path/to/registry/ssl/ca.pem&quot;</span><span class="p">]</span>
-<span class="w">  </span><span class="k">[[registry.</span><span class="s2">&quot;landau.dzne.ds:5000&quot;</span><span class="k">.keypair]]</span>
-<span class="w">    </span><span class="n">key</span><span class="o">=</span><span class="s2">&quot;/path/to/registry/ssl/key.pem&quot;</span>
-<span class="w">    </span><span class="n">cert</span><span class="o">=</span><span class="s2">&quot;/path/to/registry/ssl/cert.pem&quot;</span>
 </pre></div>
 </div>
 </li>
@@ -600,6 +592,40 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 </li>
 <li><p>Finally, you can now build the FastSurfer image with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span></code>. This will add the additional flags to the docker build command.</p></li>
 </ol>
+</section>
+<section id="building-for-release">
+<h2>Building for release<a class="headerlink" href="#building-for-release" title="Link to this heading">¶</a></h2>
+<p>Make sure, you are building on a machine that has <a class="reference internal" href="#"><span class="doc std std-ref">containerd-storage and Buildkit</span></a>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># configuration</span>
+<span class="nv">build_dir</span><span class="o">=</span><span class="nv">$HOME</span>/FastSurfer-build
+<span class="nv">img</span><span class="o">=</span>deepmi/fastsurfer
+<span class="c1"># the version can be identified with: $build_dir/run_fastsurfer.sh --version</span>
+<span class="nv">version</span><span class="o">=</span><span class="m">2</span>.4.3
+<span class="c1"># the cuda and rocm version can be identified with: python $build_dir/Docker/build.py --help | grep -E ^[[:space:]]+--device</span>
+<span class="nv">cuda</span><span class="o">=</span><span class="m">126</span>
+<span class="nv">cudas</span><span class="o">=(</span><span class="s2">&quot;cuda118&quot;</span><span class="w"> </span><span class="s2">&quot;cuda124&quot;</span><span class="w"> </span><span class="s2">&quot;cuda</span><span class="nv">$cuda</span><span class="s2">&quot;</span><span class="o">)</span>
+<span class="nv">rocm</span><span class="o">=</span><span class="m">6</span>.2.4
+<span class="nv">rocms</span><span class="o">=(</span><span class="s2">&quot;rocm</span><span class="nv">$rocm</span><span class="s2">&quot;</span><span class="o">)</span>
+<span class="c1"># end of config</span>
+
+<span class="c1"># code</span>
+git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>--single-branch<span class="w"> </span>github.com/Deep-MI/FastSurfer<span class="w"> </span><span class="nv">$build_dir</span>
+<span class="nb">cd</span><span class="w"> </span><span class="nv">$build_dir</span>
+<span class="nv">all_tags</span><span class="o">=(</span><span class="s2">&quot;latest&quot;</span><span class="w"> </span><span class="s2">&quot;gpu-latest&quot;</span><span class="w"> </span><span class="s2">&quot;cuda-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;rocm-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;cpu-latest&quot;</span><span class="o">)</span>
+<span class="c1"># build all distinct images</span>
+<span class="k">for</span><span class="w"> </span>dev<span class="w"> </span><span class="k">in</span><span class="w"> </span>cpu<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">rocms</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudas</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="k">do</span>
+<span class="w">  </span>python3<span class="w"> </span>Docker/build.py<span class="w"> </span>--tag<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$dev</span>-v<span class="nv">$version</span><span class="w"> </span>--freesurfer_build_image<span class="w"> </span><span class="nv">$img</span>-build:freesurfer741<span class="w"> </span>--attest<span class="w"> </span>--device<span class="w"> </span><span class="nv">$dev</span>
+<span class="w">  </span><span class="nv">all_tags</span><span class="o">+=(</span><span class="s2">&quot;</span><span class="nv">$dev</span><span class="s2">-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="o">)</span>
+<span class="k">done</span>
+<span class="c1"># labels that are just references</span>
+docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</span>:rocm<span class="nv">$rocm</span>-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$img</span>:rocm-v<span class="nv">$version</span>
+docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</span>:cpu-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$img</span>:cpu-latest
+<span class="k">for</span><span class="w"> </span>tag<span class="w"> </span><span class="k">in</span><span class="w"> </span>cuda-v<span class="nv">$version</span><span class="w"> </span>gpu-latest<span class="w"> </span>latest<span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</span>:cu<span class="nv">$cuda</span>-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$img</span>:<span class="nv">$tag</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+<span class="c1"># push all labels</span>
+<span class="k">for</span><span class="w"> </span>tag<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">all_tags</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>docker<span class="w"> </span>push<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$tag</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -686,6 +712,7 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 </ul>
 </li>
 <li><a class="reference internal" href="#build-docker-image-with-attestation-and-provenance">Build docker image with attestation and provenance</a></li>
+<li><a class="reference internal" href="#building-for-release">Building for release</a></li>
 </ul>
 </li>
 </ul>

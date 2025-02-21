@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -391,8 +390,7 @@
         <article role="main" id="furo-main-content">
           <section id="module-FastSurferCNN.run_prediction">
 <span id="fastsurfercnn-run-prediction"></span><h1>FastSurferCNN.run_prediction<a class="headerlink" href="#module-FastSurferCNN.run_prediction" title="Link to this heading">¶</a></h1>
-<p>This is the FastSurfer/run_prediction.py script, the backbone for whole brain
-segmentation.</p>
+<p>This is the FastSurfer/run_prediction.py script, the backbone for whole brain segmentation.</p>
 <p>Usage:</p>
 <section id="see-also">
 <h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading">¶</a></h2>
@@ -401,7 +399,7 @@ segmentation.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">RunModelOnData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_sag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_sag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">viewagg_device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_io</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conform_to_1mm_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L152-L535"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">RunModelOnData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_sag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_sag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">viewagg_device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'min'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lia'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_io</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conform_to_1mm_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L148-L520"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData" title="Link to this definition">¶</a></dt>
 <dd><p>Run the model prediction on given data.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -419,7 +417,10 @@ segmentation.</p>
 <tr class="row-even"><td><p><strong>view_ops</strong></p></td>
 <td><p>(Dict[str, Dict[str, Any]])</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>conform_to_1mm_threshold</strong></p></td>
+<tr class="row-odd"><td><p><strong>orientation</strong></p></td>
+<td><p>(OrientationType)</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>conform_to_1mm_threshold</strong></p></td>
 <td><p>(float, optional) threshold until which the image will be conformed to 1mm res</p></td>
 </tr>
 </tbody>
@@ -467,7 +468,7 @@ segmentation.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.async_save_img">
-<span class="sig-name descname"><span class="pre">async_save_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_as</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L458-L487"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.async_save_img" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">async_save_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_as</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L445-L472"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.async_save_img" title="Link to this definition">¶</a></dt>
 <dd><p>Save the image asynchronously and return a concurrent.futures.Future to track,
 when this finished.</p>
 <dl class="field-list">
@@ -475,19 +476,17 @@ when this finished.</p>
 <dd class="field-odd"><dl>
 <dt><strong>save_as</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Filename to give the image.</p>
 </dd>
-<dt><strong>data</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code>]</span></dt><dd><p>Image data.</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Image data.</p>
 </dd>
 <dt><strong>orig</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.analyze.SpatialImage</span></code></span></dt><dd><p>Original Image.</p>
 </dd>
-<dt><strong>dtype</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Data type to use for saving the image. If None, the original data type is
-used.</p>
+<dt><strong>dtype</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Data type to use for saving the image. If None, the original data type is used.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">Future</span></code>[<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>]</dt><dd><p>A Future object to synchronize (and catch/handle exceptions in the save_img
-method).</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">Future</span></code>[<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>]</dt><dd><p>A Future object to synchronize (and catch/handle exceptions in the save_img method).</p>
 </dd>
 </dl>
 </dd>
@@ -496,7 +495,7 @@ method).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.conform_and_save_orig">
-<span class="sig-name descname"><span class="pre">conform_and_save_orig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L307-L356"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.conform_and_save_orig" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">conform_and_save_orig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L297-L338"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.conform_and_save_orig" title="Link to this definition">¶</a></dt>
 <dd><p>Conform and saves original image.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -516,7 +515,7 @@ method).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.get_num_classes">
-<span class="sig-name descname"><span class="pre">get_num_classes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L501-L510"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.get_num_classes" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_num_classes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L486-L495"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.get_num_classes" title="Link to this definition">¶</a></dt>
 <dd><p>Return the number of classes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -530,7 +529,7 @@ method).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.get_prediction">
-<span class="sig-name descname"><span class="pre">get_prediction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zoom</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L369-L414"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.get_prediction" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_prediction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zoom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">affine</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L351-L407"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.get_prediction" title="Link to this definition">¶</a></dt>
 <dd><p>Run and get prediction.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -540,6 +539,8 @@ method).</p>
 <dt><strong>orig_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Original image data.</p>
 </dd>
 <dt><strong>zoom</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a></span></dt><dd><p>Original zoom.</p>
+</dd>
+<dt><strong>affine</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>Original affine.</p>
 </dd>
 </dl>
 </dd>
@@ -554,7 +555,7 @@ method).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.pipeline_conform_and_save_orig">
-<span class="sig-name descname"><span class="pre">pipeline_conform_and_save_orig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subjects</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L512-L535"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.pipeline_conform_and_save_orig" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">pipeline_conform_and_save_orig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subjects</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L497-L520"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.pipeline_conform_and_save_orig" title="Link to this definition">¶</a></dt>
 <dd><p>Pipeline for conforming and saving original images asynchronously.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -574,7 +575,7 @@ method).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.save_img">
-<span class="sig-name descname"><span class="pre">save_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_as</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L416-L456"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.save_img" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">save_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_as</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L409-L443"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.save_img" title="Link to this definition">¶</a></dt>
 <dd><p>Save image as a file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -585,8 +586,7 @@ method).</p>
 </dd>
 <dt><strong>orig</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nib.analyze.SpatialImage</span></code></span></dt><dd><p>Original Image.</p>
 </dd>
-<dt><strong>dtype</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Data type to use for saving the image. If None, the original data type is
-used (Default value = None).</p>
+<dt><strong>dtype</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Data type to use for saving the image. If None, the original data type is used.</p>
 </dd>
 </dl>
 </dd>
@@ -595,7 +595,7 @@ used (Default value = None).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.set_model">
-<span class="sig-name descname"><span class="pre">set_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L358-L367"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.set_model" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L340-L349"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.set_model" title="Link to this definition">¶</a></dt>
 <dd><p>Set the current model for the specified plane.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -609,7 +609,7 @@ used (Default value = None).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.RunModelOnData.set_up_model_params">
-<span class="sig-name descname"><span class="pre">set_up_model_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L489-L499"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.set_up_model_params" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_up_model_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L474-L484"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.RunModelOnData.set_up_model_params" title="Link to this definition">¶</a></dt>
 <dd><p>Set up the model parameters from the configuration and checkpoint.</p>
 </dd></dl>
 
@@ -624,7 +624,7 @@ specified in __init__).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.args2cfg">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">args2cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg_ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_sag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L105-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.args2cfg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">args2cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg_ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_cor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg_sag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L101-L140"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.args2cfg" title="Link to this definition">¶</a></dt>
 <dd><p>Extract the configuration objects from the arguments.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -650,7 +650,7 @@ specified in __init__).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.make_parser">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L538-L598"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.make_parser" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L523-L557"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.make_parser" title="Link to this definition">¶</a></dt>
 <dd><p>Create the argparse object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -664,9 +664,8 @@ specified in __init__).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.run_prediction.set_up_cfgs">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">set_up_cfgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L75-L102"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.set_up_cfgs" title="Link to this definition">¶</a></dt>
-<dd><p>Set up configuration.</p>
-<p>Sets up configurations with given arguments inside the yaml file.</p>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.run_prediction.</span></span><span class="sig-name descname"><span class="pre">set_up_cfgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/run_prediction.py#L73-L98"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.run_prediction.set_up_cfgs" title="Link to this definition">¶</a></dt>
+<dd><p>Set up configuration with given arguments inside the yaml file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>

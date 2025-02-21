@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -410,7 +409,7 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
                                  <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">batch_size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">async_io</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">ckpt_ax</span> <span class="n">CKPT_AX</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">ckpt_cor</span> <span class="n">CKPT_COR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">ckpt_sag</span> <span class="n">CKPT_SAG</span><span class="p">]</span>
-                                 <span class="p">[</span><span class="o">--</span><span class="n">cfg_cor</span> <span class="n">CFG_COR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_ax</span> <span class="n">CFG_AX</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">cfg_ax</span> <span class="n">CFG_AX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_cor</span> <span class="n">CFG_COR</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">cfg_sag</span> <span class="n">CFG_SAG</span><span class="p">]</span>
 </pre></div>
 </div>
@@ -484,13 +483,13 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <dd><p>sagittal checkpoint to load</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/HypVINN_sagittal_v1.1.0.pkl</span></code></p>
 </dd>
-<dt><kbd>--cfg_cor</kbd></dt>
-<dd><p>Path to the coronal config file</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/HypVINN/config/HypVINN_coronal_v1.1.0.yaml</span></code></p>
-</dd>
 <dt><kbd>--cfg_ax</kbd></dt>
 <dd><p>Path to the axial config file</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/HypVINN/config/HypVINN_axial_v1.1.0.yaml</span></code></p>
+</dd>
+<dt><kbd>--cfg_cor</kbd></dt>
+<dd><p>Path to the coronal config file</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/HypVINN/config/HypVINN_coronal_v1.1.0.yaml</span></code></p>
 </dd>
 <dt><kbd>--cfg_sag</kbd></dt>
 <dd><p>Path to the sagittal config file</p>

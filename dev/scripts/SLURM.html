@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -494,7 +493,7 @@ SLURM-related options:
   It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
 --time_seg &lt;timelimit&gt;, and
 --time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 10min, surf: 240min.
+  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 15min, surf: 240min.
 --mem_seg &lt;number (GB)&gt;, and
 --mem_surf &lt;number (GB)&gt;: the memory to allocate for GPU/CPU-based segmentation (default: 10/7 GB),
   and surface reconstruction (default: 6).

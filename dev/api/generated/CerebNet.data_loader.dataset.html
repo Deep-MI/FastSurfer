@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -393,7 +392,7 @@
 <span id="cerebnet-data-loader-dataset"></span><h1>CerebNet.data_loader.dataset<a class="headerlink" href="#module-CerebNet.data_loader.dataset" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.dataset.CerebDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.dataset.</span></span><span class="sig-name descname"><span class="pre">CerebDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transforms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_aux_data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L47-L188"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.CerebDataset" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.dataset.</span></span><span class="sig-name descname"><span class="pre">CerebDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transforms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_aux_data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L48-L189"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.CerebDataset" title="Link to this definition">¶</a></dt>
 <dd><p>Class for loading aseg file with augmentations (transforms)</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper docutils container">
@@ -409,7 +408,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.dataset.SubjectDataset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.dataset.</span></span><span class="sig-name descname"><span class="pre">SubjectDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_org</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">brain_seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_thickness</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">primary_slice</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L228-L353"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.SubjectDataset" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.dataset.</span></span><span class="sig-name descname"><span class="pre">SubjectDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_org</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">brain_seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_thickness</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">primary_slice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L229-L342"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.SubjectDataset" title="Link to this definition">¶</a></dt>
 <dd><p>Single subject loader to load and prepare slices for network process.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -457,7 +456,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.data_loader.dataset.SubjectDataset.locate_mask_bbox">
-<span class="sig-name descname"><span class="pre">locate_mask_bbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L306-L318"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.SubjectDataset.locate_mask_bbox" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">locate_mask_bbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L297-L309"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.SubjectDataset.locate_mask_bbox" title="Link to this definition">¶</a></dt>
 <dd><p>Find the largest connected component of the mask.</p>
 <dl class="simple">
 <dt>Returns:</dt><dd><p>bbox of min0, min1, …, max0, max1, …</p>
@@ -467,7 +466,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CerebNet.data_loader.dataset.SubjectDataset.set_plane">
-<span class="sig-name descname"><span class="pre">set_plane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L326-L332"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.SubjectDataset.set_plane" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_plane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L317-L321"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.SubjectDataset.set_plane" title="Link to this definition">¶</a></dt>
 <dd><p>Set the active plane.</p>
 </dd></dl>
 
@@ -481,7 +480,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.dataset.TestLoader">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.dataset.</span></span><span class="sig-name descname"><span class="pre">TestLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transforms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L191-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.TestLoader" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.dataset.</span></span><span class="sig-name descname"><span class="pre">TestLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transforms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/dataset.py#L192-L226"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.dataset.TestLoader" title="Link to this definition">¶</a></dt>
 <dd><p class="rubric">Methods</p>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">

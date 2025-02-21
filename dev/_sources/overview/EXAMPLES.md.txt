@@ -25,7 +25,7 @@ Docker Flags:
 * The `--gpus` flag is used to allow Docker to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, _all_ will use all available GPUS. To use a single one (e.g. GPU 0), set `--gpus device=0`. To use multiple specific ones (e.g. GPU 0, 1 and 3), set `--gpus 'device=0,1,3'`.
 * The `-v` commands mount your data, output, and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 * The `--rm` flag takes care of removing the container once the analysis finished. 
-* The `--user $(id -u):$(id -g)` part automatically runs the container with your group- (id -g) and user-id (id -u). All generated files will then belong to the specified user. Without the flag, the docker container will be run as root which is discouraged.
+* The `--user $(id -u):$(id -g)` part automatically runs the container with your group- `id -g` and user-id `id -u`. All generated files will then belong to the specified user. Setting a user id is required! Running docker as root is discouraged. Note, that in the **rootless mode**, the operating system implements the translation to *your* user- and group id. Therefore, for rootless mode,  you must set `--user 0` and add the FastSurfer `--allow_root` flag!
 
 FastSurfer Flag:
 * The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above. 
@@ -200,7 +200,9 @@ docker run --gpus all -v $datadir:/data \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
                       --asegdkt_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                      --conformed_name $outputdir/subject1/conformed.mgz \
+                      --conformed_name /output/subject1/conformed.mgz \
+                      --sd /output \
+                      --sid  subject1 \
                       --threads 4 --seg_only --3T
 ```
 

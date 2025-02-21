@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -393,7 +392,7 @@
 <span id="cerebnet-run-prediction"></span><h1>CerebNet.run_prediction<a class="headerlink" href="#module-CerebNet.run_prediction" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.run_prediction.main">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.run_prediction.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/run_prediction.py#L107-L175"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.run_prediction.main" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.run_prediction.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/run_prediction.py#L121-L188"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.run_prediction.main" title="Link to this definition">¶</a></dt>
 <dd><p>Main function to run the inference based on the given command line arguments.
 This implementation is inspired by methods described in CerebNet for cerebellum
 sub-segmentation.</p>
@@ -406,9 +405,8 @@ sub-segmentation.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></dt><dd><p>Returns 0 upon successful execution to indicate success.</p>
-</dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>A message indicating the failure reason in case of an exception.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>Returns 0 upon successful execution to indicate success or
+a message indicating the failure reason in case of an exception.</p>
 </dd>
 </dl>
 </dd>
@@ -421,7 +419,7 @@ pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.run_prediction.setup_options">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.run_prediction.</span></span><span class="sig-name descname"><span class="pre">setup_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/run_prediction.py#L36-L104"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.run_prediction.setup_options" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.run_prediction.</span></span><span class="sig-name descname"><span class="pre">setup_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/run_prediction.py#L36-L118"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.run_prediction.setup_options" title="Link to this definition">¶</a></dt>
 <dd><p>Configure and return an argument parser for the segmentation script.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>

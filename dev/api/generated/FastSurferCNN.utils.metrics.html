@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -393,79 +392,62 @@
 <span id="fastsurfercnn-utils-metrics"></span><h1>FastSurferCNN.utils.metrics<a class="headerlink" href="#module-FastSurferCNN.utils.metrics" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.DiceScore">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">DiceScore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform=&lt;function</span> <span class="pre">DiceScore.&lt;lambda&gt;&gt;</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L104-L270"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore" title="Link to this definition">¶</a></dt>
-<dd><p>Accumulate the component of the dice coefficient i.e. the union and intersection.</p>
-<p class="rubric">Attributes</p>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><strong>op</strong></p></td>
-<td><p>(callable) A callable to update accumulator. Method’s signature is <code class="xref py py-obj docutils literal notranslate"><span class="pre">(accumulator,</span> <span class="pre">output)</span></code>. For example, to compute arithmetic mean value, <code class="xref py py-obj docutils literal notranslate"><span class="pre">op</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">a,</span> <span class="pre">x:</span> <span class="pre">a</span> <span class="pre">+</span> <span class="pre">x</span></code>.</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>output_transform</strong></p></td>
-<td><p>(callable, optional) A callable that is used to transform the <code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code>’s <code class="xref py py-obj docutils literal notranslate"><span class="pre">process_function</span></code>’s output into the form expected by the metric. This can be useful if, for example, you have a multi-output model and you want to compute the metric with respect to one of the outputs.</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>device</strong></p></td>
-<td><p>(str of torch.device, optional) Device specification in case of distributed computation usage. In most of the cases, it can be defined as “cuda:local_rank” or “cuda” if already set <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.cuda.set_device(local_rank)</span></code>. By default, if a distributed process group is initialized and available, device is set to <code class="xref py py-obj docutils literal notranslate"><span class="pre">cuda</span></code>.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">DiceScore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_ids=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">one_hot=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform=&lt;function</span> <span class="pre">DiceScore.&lt;lambda&gt;&gt;</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L108-L245"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore" title="Link to this definition">¶</a></dt>
+<dd><p>Accumulating the component of the dice coefficient i.e. the union and intersection.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>op</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">callable()</span></code></a></span></dt><dd><p>A callable to update the accumulator. Method’s signature is <code class="xref py py-obj docutils literal notranslate"><span class="pre">(accumulator,</span> <span class="pre">output)</span></code>.
+For example, to compute arithmetic mean value, <code class="xref py py-obj docutils literal notranslate"><span class="pre">op</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">a,</span> <span class="pre">x:</span> <span class="pre">a</span> <span class="pre">+</span> <span class="pre">x</span></code>.</p>
+</dd>
+<dt><strong>output_transform</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">callable()</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A callable that is used to transform the <code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code>’s <code class="xref py py-obj docutils literal notranslate"><span class="pre">process_function</span></code>’s output into the
+form expected by the metric. This can be useful if, for example, you have a multi-output model and
+you want to compute the metric with respect to one of the outputs.</p>
+</dd>
+<dt><strong>device</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.device</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Device specification in case of distributed computation usage.
+In most cases, it can be defined as “cuda:local_rank” or “cuda”
+if already set <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.cuda.set_device(local_rank)</span></code>. By default, if a distributed process group is
+initialized and available, the device is set to <code class="xref py py-obj docutils literal notranslate"><span class="pre">cuda</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.comput_dice_cnf" title="FastSurferCNN.utils.metrics.DiceScore.comput_dice_cnf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">comput_dice_cnf</span></code></a>()</p></td>
-<td><p>Compute the dice cnf.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.compute" title="FastSurferCNN.utils.metrics.DiceScore.compute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute</span></code></a>([per_class, class_idxs])</p></td>
+<td><p>Compute the Dice score.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.compute_dsc" title="FastSurferCNN.utils.metrics.DiceScore.compute_dsc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_dsc</span></code></a>()</p></td>
-<td><p>Compute the dice score.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.reset" title="FastSurferCNN.utils.metrics.DiceScore.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Reset the state of the object.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.reset" title="FastSurferCNN.utils.metrics.DiceScore.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
-<td><p>Reset the union and intersection matrices to zero.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.update" title="FastSurferCNN.utils.metrics.DiceScore.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(output, cnf_mat)</p></td>
-<td><p>Update the intersection.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.update" title="FastSurferCNN.utils.metrics.DiceScore.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>(output)</p></td>
+<td><p>Update the internal state based on the output.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <dl class="py method">
-<dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.DiceScore.comput_dice_cnf">
-<span class="sig-name descname"><span class="pre">comput_dice_cnf</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L233-L238"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.comput_dice_cnf" title="Link to this definition">¶</a></dt>
-<dd><p>Compute the dice cnf.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.DiceScore.compute_dsc">
-<span class="sig-name descname"><span class="pre">compute_dsc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L220-L231"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.compute_dsc" title="Link to this definition">¶</a></dt>
-<dd><p>Compute the dice score.</p>
-<dl class="field-list">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>dsc</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Dice score.</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.DiceScore.compute">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_class</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L221-L231"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.compute" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Dice score.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.DiceScore.reset">
-<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L140-L147"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.reset" title="Link to this definition">¶</a></dt>
-<dd><p>Reset the union and intersection matrices to zero.</p>
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L149-L154"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Reset the state of the object.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.DiceScore.update">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cnf_mat</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L196-L218"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.update" title="Link to this definition">¶</a></dt>
-<dd><p>Update the intersection.</p>
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L193-L219"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.DiceScore.update" title="Link to this definition">¶</a></dt>
+<dd><p>Update the internal state based on the output.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>output</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code>]</span></dt><dd><p>Network output tensor.</p>
-</dd>
-<dt><strong>cnf_mat</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Confusion matrix.</p>
+<dt><strong>output</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Tuple of predictions and labels.</p>
 </dd>
 </dl>
 </dd>
@@ -476,13 +458,131 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.dice_score">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">dice_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cm</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L273-L277"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.dice_score" title="Link to this definition">¶</a></dt>
-<dd><p>[MISSING].</p>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">dice_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L248-L276"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.dice_score" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the Dice Dissimilarity between pred and gt (best 0).</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>pred</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Predicted image.</p>
+</dd>
+<dt><strong>gt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Ground truth image.</p>
+</dd>
+<dt><strong>validate</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>If True, use the scipy implementation of the Dice Similarity. If False, use the numpy implementation.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Dice Similarity between pred and gt.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.hd">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">hd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxelspacing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L288-L337"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.hd" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the (symmetric) Hausdorff Distance (HD) between the binary objects in two
+images. It is defined as the maximum surface distance between the objects.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>result</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.2)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
+into binary: background where 0, object everywhere else.</p>
+</dd>
+<dt><strong>reference</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.2)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
+into binary: background where 0, object everywhere else.</p>
+</dd>
+<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.13)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
+along each dimension. If a sequence, must be of length equal to
+the input rank; if a single number, this is used for all axes. If
+not specified, a grid spacing of unity is implied.</p>
+</dd>
+<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
+of the binary objects. This value is passed to
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.morphology.generate_binary_structure</span></code> and should usually be <span class="math notranslate nohighlight">\(&gt; 1\)</span>.
+Note that the connectivity influences the result in the case of the Hausdorff distance.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>hd</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The symmetric Hausdorff Distance between the object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">result</span></code> and the
+object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">reference</span></code>. The distance unit is the same as for the spacing of
+elements along each dimension, which is usually given in mm.</p>
+</dd>
+<dt><strong>hd50</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 50th percentile of the Hausdorff Distance.</p>
+</dd>
+<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the Hausdorff Distance.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">assd</span></code></dt><dd><p>Average Symmetric Surface Distance, computes the average symmetric surface distance.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">asd</span></code></dt><dd><p>Average Surface Distance, computes the average surface distance.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>This is a real metric. The binary images can therefore be supplied in any order.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.hd95">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">hd95</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxelspacing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L340-L385"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.hd95" title="Link to this definition">¶</a></dt>
+<dd><p>Computes the 95th percentile of the Hausdorff Distance.</p>
+<p>Computes the 95th percentile of the (symmetric) Hausdorff Distance (HD) between the binary objects in two
+images. Compared to the Hausdorff Distance, this metric is slightly more stable to small outliers and is
+commonly used in Biomedical Segmentation challenges.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>result</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
+into binary: background where 0, object everywhere else.</p>
+</dd>
+<dt><strong>reference</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.2)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
+into binary: background where 0, object everywhere else.</p>
+</dd>
+<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.13)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
+along each dimension. If a sequence, must be of length equal to
+the input rank; if a single number, this is used for all axes. If
+not specified, a grid spacing of unity is implied.</p>
+</dd>
+<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
+of the binary objects. This value is passed to
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.morphology.generate_binary_structure</span></code> and should usually be <span class="math notranslate nohighlight">\(&gt; 1\)</span>.
+Note that the connectivity influences the result in the case of the Hausdorff distance.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl>
+<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the symmetric Hausdorff Distance between the object(s) in <code class="docutils literal notranslate"><span class="pre">`result`</span></code> and the
+object(s) in <code class="docutils literal notranslate"><span class="pre">`reference`</span></code>. The distance unit is the same as for the spacing of
+elements along each dimension, which is usually given in mm.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#FastSurferCNN.utils.metrics.hd" title="FastSurferCNN.utils.metrics.hd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hd</span></code></a></dt><dd><p>Computes the symmetric Hausdorff Distance.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>This is a real metric. The binary images can therefore be supplied in any order.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.iou_score">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">iou_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">true_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nclass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L27-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.iou_score" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">iou_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">true_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nclass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L31-L66"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.iou_score" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the intersection-over-union score.</p>
 <p>Both inputs should be categorical (as opposed to one-hot).</p>
 <dl class="field-list">
@@ -509,7 +609,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.precision_recall">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">precision_recall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">true_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nclass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L65-L101"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.precision_recall" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">precision_recall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">true_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nclass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L69-L105"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.precision_recall" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate recall (TP/(TP + FN) and precision (TP/(TP+FP) per class.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -533,6 +633,12 @@
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.utils.metrics.volume_similarity">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.metrics.</span></span><span class="sig-name descname"><span class="pre">volume_similarity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/metrics.py#L279-L284"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.metrics.volume_similarity" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the Volume Similarity between pred and gt.</p>
 </dd></dl>
 
 </section>
@@ -600,15 +706,17 @@
             <ul>
 <li><a class="reference internal" href="#">FastSurferCNN.utils.metrics</a><ul>
 <li><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore"><code class="docutils literal notranslate"><span class="pre">DiceScore</span></code></a><ul>
-<li><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.comput_dice_cnf"><code class="docutils literal notranslate"><span class="pre">DiceScore.comput_dice_cnf()</span></code></a></li>
-<li><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.compute_dsc"><code class="docutils literal notranslate"><span class="pre">DiceScore.compute_dsc()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.compute"><code class="docutils literal notranslate"><span class="pre">DiceScore.compute()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.reset"><code class="docutils literal notranslate"><span class="pre">DiceScore.reset()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.metrics.DiceScore.update"><code class="docutils literal notranslate"><span class="pre">DiceScore.update()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.metrics.dice_score"><code class="docutils literal notranslate"><span class="pre">dice_score()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.utils.metrics.hd"><code class="docutils literal notranslate"><span class="pre">hd()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.utils.metrics.hd95"><code class="docutils literal notranslate"><span class="pre">hd95()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.metrics.iou_score"><code class="docutils literal notranslate"><span class="pre">iou_score()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.metrics.precision_recall"><code class="docutils literal notranslate"><span class="pre">precision_recall()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.utils.metrics.volume_similarity"><code class="docutils literal notranslate"><span class="pre">volume_similarity()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -627,5 +735,6 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>
 </html>

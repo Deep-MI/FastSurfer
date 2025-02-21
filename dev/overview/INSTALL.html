@@ -311,7 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.meters.html">CerebNet.utils.meters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.metrics.html">CerebNet.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
@@ -415,6 +414,7 @@
 </pre></div>
 </div>
 <p><a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md">build your own image</a>.</p>
+<p>If you are using the <strong>rootless mode</strong>, you have to install the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA Container Toolkit</a> and follow the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode">configuration for the rootless mode</a>. Otherwise, running FastSurfer with Docker will give you this error message <code class="docutils literal notranslate"><span class="pre">docker:</span> <span class="pre">Error</span> <span class="pre">response</span> <span class="pre">from</span> <span class="pre">daemon:</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">select</span> <span class="pre">device</span> <span class="pre">driver</span> <span class="pre">&quot;&quot;</span> <span class="pre">with</span> <span class="pre">capabilities:</span> <span class="pre">[[gpu]]</span></code>.</p>
 </section>
 <section id="native-ubuntu-20-04-or-ubuntu-22-04">
 <h3>Native (Ubuntu 20.04 or Ubuntu 22.04)<a class="headerlink" href="#native-ubuntu-20-04-or-ubuntu-22-04" title="Link to this heading">¶</a></h3>
