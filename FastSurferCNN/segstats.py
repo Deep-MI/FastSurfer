@@ -1863,7 +1863,7 @@ def pv_calc(
 
         def get_std(lab: _IntType, nvox: int) -> float:
             # *std = sqrt((sum * (*mean) - 2 * (*mean) * sum + sum2) / (nvoxels - 1));
-            return np.sqrt((sums_2[lab] - means[lab] * sums[lab]) / (nvox - 1))
+            return np.sqrt((sums_2[lab] - means[lab] * sums[lab]) / max(1,(nvox - 1)))
 
         stds = {lab: get_std(lab, nvox) for lab, nvox in robust_vc_it if nvox > eps}
 
