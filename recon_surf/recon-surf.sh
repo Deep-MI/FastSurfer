@@ -28,6 +28,7 @@ fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from 
 fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
 python="python3.10"   # python version
 DoParallel=0          # if 1, run hemispheres in parallel
+DoParallelFlag=0      # 1, if --parallel passed
 threads="1"           # number of threads to use for running FastSurfer
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
@@ -108,8 +109,8 @@ FLAGS:
                             <hemi>.aparc.DKTatlas.mapped.stats
   --3T                    Use the 3T atlas for talairach registration (gives better
                             eTIV estimates for 3T MR images, default: 1.5T atlas).
-  --parallel              Run both hemispheres in parallel
-  --threads <int>         Set openMP and ITK threads to <int>
+  --threads <int>         Set openMP and ITK threads to <int>, parallelize
+                            hemispheres, if threads >= 2.
   --py <python_cmd>       Command for python, default ${python}
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
@@ -193,7 +194,7 @@ case $key in
   --fsaparc) fsaparc=1 ;;
   --no_surfreg) fssurfreg=0 ;;
   --3t) atlas3T="true" ;;
-  --parallel) DoParallel=1 ;;
+  --parallel) DoParallelFlag=1 ; echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3!" ;;
   --threads) threads="$1" ; shift ;;
   --py) python="$1" ; shift ;;
   --fs_license)
@@ -327,15 +328,20 @@ then
   exit 1
 fi
 
+if [[ "$DoParallelFlag" == 1 ]] ; then threads_hemi=$threads ; DoParallel=1
+elif [[ "$threads" -gt 1 ]]; then DoParallel=1 ; threads_hemi=$((threads / 2))
+else DoParallel=0 ; threads_hemi="$threads"
+fi
+
 # set threads for openMP and itk
 # if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
 # Therefore we set it to 1 as default above, if nothing is specified.
-fsthreads=""
 export OMP_NUM_THREADS=$threads
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
-if [ "$threads" -gt "1" ]
-then
-  fsthreads="-threads $threads -itkthreads $threads"
+
+# define the fsthreads variable for the joint section
+if [ "$threads" -gt "1" ] ; then fsthreads="-threads $threads -itkthreads $threads"
+else fsthreads=""
 fi
 
 if [ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]
@@ -454,11 +460,11 @@ if [ "$CONFORM_LF" != /dev/null ] ; then  rm -f "$CONFORM_LF" ; fi
 echo "Log file for Conform test" > "$CONFORM_LF"
 
 # check for input conformance
-cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
-RunIt "$cmd" "$LF" 2>&1 | tee -a "$CONFORM_LF"
+cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose --log $CONFORM_LF"
+RunIt "$cmd" "$LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
-vox_size=$(grep -E " - Voxel Size " "$CONFORM_LF" | cut -d' ' -f5 | cut -d'x' -f1)
+vox_size=$(grep -oP '(?<= - Voxel Size )[0-9\.]+' "$CONFORM_LF")
 # remove the temporary conform_log (all info is also in the recon-surf logfile)
 if [ -f "$CONFORM_LF" ]; then rm -f "$CONFORM_LF" ; fi
 
@@ -686,6 +692,20 @@ fi
 # ================================================== SURFACES ==============================================================
 # =======
 
+# set threads for openMP and itk
+# if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
+# Therefore we set it to 1 as default above, if nothing is specified.
+export OMP_NUM_THREADS=$threads_hemi
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi
+
+# define the fsthreads variable for the joint section
+if [ "$threads_hemi" -gt "1" ] ; then fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
+else fsthreads=""
+fi
+
+echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS for hemispheres"
+echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS for hemispheres"
+
 CMDFS=()
 
 for hemi in lh rh ; do
@@ -799,7 +819,7 @@ for hemi in lh rh ; do
     # (23sec)
     cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
     printf -v tmp %q "$python"
-    cmd="$cmd --subject $subject --threads=$threads --py ${tmp} --binpath ${binpath}"
+    cmd="$cmd --subject $subject --threads=$threads_hemi --py ${tmp} --binpath ${binpath}"
     RunIt "$cmd" "$LF" "$CMDF"
   fi
 
@@ -839,7 +859,7 @@ for hemi in lh rh ; do
 
     # for place_surfaces white.preparc we need to directly call it with special long parameter:
     # cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning $hiresflag $fsthreads"
-    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
+    cmd="mris_place_surface --adgws-in $sdir/autodet.gw.stats.$hemi.dat --wm $mdir/wm.mgz --threads $threads_hemi --invol $mdir/brain.finalsurfs.mgz --$hemi --i $sdir/$hemi.orig --o $sdir/${hemi}.white.preaparc --white --seg $mdir/aseg.presurf.mgz --max-cbv-dist 3.5"
     RunIt "$cmd" "$LF" "$CMDF"
 
   fi # long
@@ -937,7 +957,7 @@ for hemi in lh rh ; do
       # In long we initialize with sphere.reg from base template (which was also
       # copied to sphere above) and use -nosulc and -norot:
       cmd="mris_register -curv -nosulc -norot \
-           -threads $threads \
+           -threads $threads_hemi \
            $basedir/surf/${hemi}.sphere.reg \
            $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
            $sdir/${hemi}.sphere.reg"
@@ -1010,7 +1030,7 @@ for hemi in lh rh ; do
   # CREATE WHITE SURFACE:
   # 4 min compute white :
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
-    --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
+    --threads $threads_hemi --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
     --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label \
     --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc"
   if [ "$long" == "0" ] ; then # cross/regular/base
@@ -1023,7 +1043,7 @@ for hemi in lh rh ; do
   # CREAT PIAL SURFACE
   # 4 min compute pial :
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
-    --threads $threads --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.pial.T1 \
+    --threads $threads_hemi --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.pial.T1 \
     --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label \
     --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc \
     --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white"
@@ -1080,6 +1100,14 @@ for hemi in lh rh ; do
 
 done  # hemi loop ----------------------------------
 
+# set threads back for more serial processing
+export OMP_NUM_THREADS=$threads
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
+
+# define the fsthreads variable for the joint section (again)
+if [ "$threads" -gt "1" ] ; then fsthreads="-threads $threads -itkthreads $threads"
+else fsthreads=""
+fi
 
 
 if [ "$DoParallel" == 1 ] ; then
@@ -1113,9 +1141,10 @@ fi # skip in base
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
-  if [ "$fsaparc" == "1" ] ; then
+if [ "$fsaparc" == "1" ] ; then
 
-   for hemi in lh rh ; do
+    # this per-hemi section does not get parallelized
+  for hemi in lh rh ; do
 
     {
       echo ""
@@ -1147,17 +1176,17 @@ fi # skip in base
     cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $annot"
     RunIt "$cmd" "$LF"
 
-   done # hemi loop
+  done # hemi loop
 
-   # skip in base
-   if [ "$base" != "1" ] ; then
+  # skip in base
+  if [ "$base" != "1" ] ; then
     cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
     # removed -segstats here (now part of mri_segstats.py/segstats.py
-   fi # (if not base)
+  fi # (if not base)
 
-  fi  # (FS-APARC)
+fi  # (FS-APARC)
 
 
 # Skip rest in case we have a base run, we are done here (probably we can skip stuff already in surface creation above)
@@ -1165,18 +1194,17 @@ if [ "$base" != "1" ] ; then
 
 # ============================= MAPPED SURF-STATS =========================================
 
-{
-  echo ""
-  echo "===================== Creating surfaces - mapped stats ========================="
-  echo ""
-} | tee -a "$LF"
+  {
+    echo ""
+    echo "===================== Creating surfaces - mapped stats ========================="
+    echo ""
+  } | tee -a "$LF"
 
   # 2x18sec create stats from mapped aparc
   for hemi in lh rh ; do
     cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $statsdir/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
     RunIt "$cmd" "$LF"
   done
-
 
 # ============================= FASTSURFER - surfcon hypo stats =========================================
 
@@ -1230,7 +1258,7 @@ if [ "$base" != "1" ] ; then
           "--in-intensity-name" norm "--in-intensity-units" MR --subject "$subject"
           --surf-wm-vol --ctab "$FREESURFER_HOME/ASegStatsLUT.txt" --etiv
           --threads "$threads")
-#    cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
+  # cmd="$python $FASTSURFER_HOME/FastSurferCNN/mri_segstats.py --seed 1234 --seg $mdir/wmparc.mgz --sum $statsdir/wmparc.stats --pv $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt --etiv"
   else
     # calculate brainvol stats and aseg stats with segstats.py
     cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
@@ -1255,8 +1283,8 @@ if [ "$base" != "1" ] ; then
 
     echo "Extract the brainvol stats section from segstats output." | tee -a "$LF"
     # ... so stats/brainvol.stats also exists (but it is slightly different
-#    cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
-#    RunIt "$cmd" "$LF"
+    #cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
+    #RunIt "$cmd" "$LF"
     # this call is only "required" to "compute" brainvol.stats, so --normfile/--pvfile
     # are not required
     cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
@@ -1274,11 +1302,11 @@ if [ "$base" != "1" ] ; then
 
 
 # ============================= MAPPED-WMPARC =========================================
-{
-  echo ""
-  echo "===================== Creating wmparc from mapped ======================="
-  echo ""
-} | tee -a "$LF"
+  {
+    echo ""
+    echo "===================== Creating wmparc from mapped ======================="
+    echo ""
+  } | tee -a "$LF"
 
   if [[ "$segstats_legacy" == "true" ]] ; then
     # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and

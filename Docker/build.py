@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer',
                  'build_base', 'runtime_cuda']
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"]
-DeviceType = Literal["cpu", "cu118", "cu121", "cu124", "rocm6.1"]
+AllDeviceType = Literal["cpu", "cuda", "cu118", "cu124", "cu126", "rocm", "rocm6.2.4"]
+DeviceType = Literal["cpu", "cu118", "cu124", "cu126", "rocm6.2.4"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
 CONTAINERD_MESSAGE = (
@@ -59,10 +59,11 @@ class DEFAULTS:
     # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
     # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
+    # torch 2.6 comes compiled with cu118, cu124, cu126 and rocm6.2.4
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
-        rocm="rocm6.1",
-        cuda="cu124",
+        rocm="rocm6.2.4",
+        cuda="cu126",
     )
     BUILD_BASE_IMAGE = "ubuntu:22.04"
     RUNTIME_BASE_IMAGE = "ubuntu:22.04"
@@ -185,12 +186,12 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
-        choices=["cpu", "cuda", "cu118", "cu121", "cu124", "rocm", "rocm6.1"],
+        choices=["cpu", "cuda", "cu118", "cu124", "cu126", "rocm", "rocm6.2.4"],
         required=True,
         help="""selection of internal build stages to build for a specific platform.<br>
-                - cuda: defaults to cu124, cuda 12.4<br>
+                - cuda: defaults to cu126, cuda 12.6<br>
                 - cpu: only cpu support<br>
-                - rocm: defaults to rocm6.1 (experimental)""",
+                - rocm: defaults to rocm6.2.4 (experimental)""",
     )
     parser.add_argument(
         "--tag",

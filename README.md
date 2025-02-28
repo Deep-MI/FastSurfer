@@ -129,11 +129,7 @@ Modules output can be found here: [FastSurfer_Output_Files](doc/overview/OUTPUT_
 <!-- start of system requirements -->
 ## System Requirements
 
-Recommendation: At least 8 GB system memory and 8 GB NVIDIA graphics memory ``--viewagg_device gpu``  
-
-Minimum: 7 GB system memory and 2 GB graphics memory ``--viewagg_device cpu --vox_size 1``
-
-Minimum CPU-only: 8 GB system memory (much slower, not recommended) ``--device cpu --vox_size 1`` 
+**Recommendation: At least 8 GB system memory and 8 GB NVIDIA graphics memory**
 
 ### Minimum Requirements:
 
@@ -141,11 +137,11 @@ Minimum CPU-only: 8 GB system memory (much slower, not recommended) ``--device c
 |:------|------------------|----------------:|----------------:|
 | 1mm   | gpu              |               5 |               5 |
 | 1mm   | cpu              |               2 |               7 |
-| 0.8mm | gpu              |               8 |               6 |
-| 0.8mm | cpu              |               3 |               9 |
 | 0.7mm | gpu              |               8 |               6 |
 | 0.7mm | cpu              |               3 |               9 |
+| 0.7mm | --device cpu     |               0 |               9 |
 
+The default device is the GPU. The view-aggregation device can be switched to CPU and requires less GPU memory. CPU-only processing ```--device cpu``` is much slower and not recommended.
 
 ## Expert usage
 Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation. 

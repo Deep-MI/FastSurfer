@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-
 from CerebNet.utils.checkpoint import (
     YAML_DEFAULT as CEREBNET_YAML,
 )
@@ -50,7 +48,9 @@ class ConfigCache:
 defaults = ConfigCache()
 
 
-def make_arguments():
+def make_parser():
+    import argparse
+
     parser = argparse.ArgumentParser(
         description="Check and Download Network Checkpoints"
     )
@@ -95,7 +95,7 @@ def make_arguments():
         help="Checkpoint file paths to download, e.g. "
              "checkpoints/aparc_vinn_axial_v2.0.0.pkl ...",
     )
-    return parser.parse_args()
+    return parser
 
 
 def main(
@@ -158,5 +158,6 @@ if __name__ == "__main__":
     from logging import INFO, basicConfig
 
     basicConfig(stream=sys.stdout, level=INFO)
-    args = make_arguments()
+    parser = make_parser()
+    args = parser.parse_args()
     sys.exit(main(**vars(args)))

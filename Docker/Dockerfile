@@ -170,6 +170,7 @@ ENV OS=Linux \
     FREESURFER_HOME=/opt/freesurfer \
     PYTHONUNBUFFERED=0 \
     MPLCONFIGDIR=/tmp \
+    XDG_CACHE_HOME=/tmp/xdgcache \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
     MPLCONFIGDIR=/tmp/matplotlib-config \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"

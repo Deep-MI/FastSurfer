@@ -251,8 +251,7 @@ docker run -v C:/Users/user/my_mri_data:/data \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/orig.mgz \
            --device cpu \
-           --sid subjectX --sd /output \
-           --parallel
+           --sid subjectX --sd /output
 ```
 Note, the [system requirements](https://github.com/Deep-MI/FastSurfer#system-requirements) of at least 8GB of RAM for the CPU version. If the process fails, check if your [WSL2 distribution has enough memory reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
 
@@ -283,8 +282,7 @@ docker run --gpus all
            --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/orig.mgz \
-           --sid subjectX --sd /output \
-           --parallel
+           --sid subjectX --sd /output
 ```
 
 Note the [system requirements](https://github.com/Deep-MI/FastSurfer#system-requirements) of at least 8 GB system memory and 2 GB graphics memory for the GPU version. If the process fails, check if your [WSL2 distribution has enough memory reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).

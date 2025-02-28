@@ -179,18 +179,16 @@ fi
 
 # Since we do not run mri_em_register we sym-link other talairach transform files here
 pushd "$mdir/transforms" > /dev/null || ( echo "ERROR: Could not change to the transforms directory $mdir/transforms!" | tee -a "$LF" ; exit 1 )
-  {
-    if [[ ! -e talairach_with_skull.lta ]] ; then
-      cmd=(softlink_or_copy talairach.xfm.lta talairach_with_skull.lta)
-      echo_quoted "${cmd[@]}"
-      "${cmd[@]}"
-    fi
-    if [[ ! -e talairach.lta ]] ; then
-      cmd=(softlink_or_copy talairach.xfm.lta talairach.lta)
-      echo_quoted "${cmd[@]}"
-      "${cmd[@]}"
-    fi
-  } | tee -a "$LF"
+  if [[ ! -e talairach_with_skull.lta ]] ; then
+    cmd=(softlink_or_copy talairach.xfm.lta talairach_with_skull.lta "$LF")
+    echo_quoted "${cmd[@]}"
+    "${cmd[@]}"
+  fi
+  if [[ ! -e talairach.lta ]] ; then
+    cmd=(softlink_or_copy talairach.xfm.lta talairach.lta "$LF")
+    echo_quoted "${cmd[@]}"
+    "${cmd[@]}"
+  fi
 popd > /dev/null || exit 1
 
 # Add xfm to nu

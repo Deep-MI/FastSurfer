@@ -16,7 +16,6 @@
 
 # IMPORTS
 import argparse
-import logging
 import sys
 from collections.abc import Iterable
 from enum import Enum
@@ -26,18 +25,11 @@ import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 
-from FastSurferCNN.utils.arg_types import (
-    VoxSizeOption,
-)
-from FastSurferCNN.utils.arg_types import (
-    float_gt_zero_and_le_one as __conform_to_one_mm,
-)
-from FastSurferCNN.utils.arg_types import (
-    target_dtype as __target_dtype,
-)
-from FastSurferCNN.utils.arg_types import (
-    vox_size as __vox_size,
-)
+from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.arg_types import VoxSizeOption
+from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one_mm
+from FastSurferCNN.utils.arg_types import target_dtype as __target_dtype
+from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 
 HELPTEXT = """
 Script to conform an MRI brain image to UCHAR, RAS orientation, 
@@ -80,14 +72,14 @@ DEFAULT_CRITERIA_DICT = {
 DEFAULT_CRITERIA = frozenset(DEFAULT_CRITERIA_DICT.values())
 
 
-def options_parse():
+def make_parser() -> argparse.ArgumentParser:
     """
-    Command line option parser.
+    Create an Argument parser for the conform script.
 
     Returns
     -------
-    options
-        Object holding options.
+    argparse.ArgumentParser
+        The parser object.
     """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
@@ -180,7 +172,25 @@ def options_parse():
         action="store_true",
         help="If verbose, more specific messages are printed",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--log",
+        dest="logfile",
+        default="",
+        action="store",
+        help="If specified, a log file that is written to",
+    )
+    return parser
+
+def options_parse():
+    """
+    Command line option parser.
+
+    Returns
+    -------
+    options
+        Object holding options.
+    """
+    args = make_parser().parse_args()
     if args.input is None:
         raise RuntimeError("ERROR: Please specify input image")
     if not args.check_only and args.output is None:
@@ -613,7 +623,6 @@ def conform(
     mdc_affine = mdc_affine / np.linalg.norm(mdc_affine, axis=1)
     h1["Mdc"] = np.linalg.inv(mdc_affine)
 
-    print(h1.get_zooms())
     h1["fov"] = max(i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms(), strict=False))
     center = np.asarray(img.shape[:3], dtype=float) / 2.0
     h1["Pxyz_c"] = img.affine.dot(np.hstack((center, [1.0])))[:3]
@@ -760,7 +769,7 @@ def is_conform(
     This function only needs the header (not the data).
     """
     conformed_vox_size, conformed_img_size = get_conformed_vox_img_size(
-        img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold
+        img, conform_vox_size, conform_to_1mm_threshold=conform_to_1mm_threshold,
     )
 
     ishape = img.shape
@@ -768,9 +777,7 @@ def is_conform(
     if len(ishape) > 3 and ishape[3] != 1:
         raise ValueError(f"ERROR: Multiple input frames ({ishape[3]}) not supported!")
 
-    checks = {
-        "Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")
-    }
+    checks = {"Number of Dimensions 3": (len(ishape) == 3, f"image ndim {img.ndim}")}
     # check dimensions
     if Criteria.FORCE_IMG_SIZE in criteria:
         img_size_criteria = f"Dimensions {'x'.join([str(conformed_img_size)] * 3)}"
@@ -811,15 +818,14 @@ def is_conform(
     _is_conform = all(map(lambda x: x[0], checks.values()))
 
     if verbose:
+        logger = logging.getLogger(__name__)
         if not _is_conform:
-            print("The input image is not conformed.")
+            logger.info("The input image is not conformed.")
 
-        conform_str = (
-            "conformed" if conform_vox_size == 1.0 else f"{conform_vox_size}-conformed"
-        )
-        print(f"A {conform_str} image must satisfy the following criteria:")
+        conform_str = "conformed" if conform_vox_size == 1.0 else f"{conform_vox_size}-conformed"
+        logger.info(f"A {conform_str}conformed image must satisfy the following criteria:")
         for condition, (value, message) in checks.items():
-            print(f" - {condition:<30}: {value if value else 'BUT ' + message}")
+            logger.info(f" - {condition:<30}: {value if value else 'BUT ' + message}")
     return _is_conform
 
 
@@ -983,6 +989,8 @@ if __name__ == "__main__":
         options = options_parse()
     except RuntimeError as e:
         sys.exit(*e.args)
+
+    logging.setup_logging(options.logfile) # logging to only the console
 
     print(f"Reading input: {options.input} ...")
     image = nib.load(options.input)

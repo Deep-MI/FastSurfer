@@ -70,7 +70,7 @@ $FASTSURFER_HOME/run_fastsurfer.sh \
     --sd $SUBJECTS_DIR --sid case_with_edits \
     --t1 $SUBJECTS_DIR/case_with_edits/mri/orig/001.mgz \
     --fs_license $FREESURFER_HOME/.license \
-    --edits # more flags as needed, e.g. --parallel --3T --threads 4
+    --edits # more flags as needed, e.g. --3T --threads 4
 ```
 
 Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the [asegdkt_segfile](#asegdkt_segfile) was edited.
@@ -83,7 +83,7 @@ $FASTSURFER_HOME/run_fastsurfer.sh \
     --sd $SUBJECTS_DIR --sid case_with_edits \
     --t1 $SUBJECTS_DIR/case_with_edits/mri/orig/001.mgz \
     --fs_license $FREESURFER_HOME/.license \
-    --edits --surf_only # more flags as needed, e.g. --parallel --3T --threads 4
+    --edits --surf_only # more flags as needed, e.g. --3T --threads 4
 ```
 
 ## Bias field correction
@@ -118,7 +118,7 @@ For example:
   $FASTSURFER_HOME/run_fastsurfer.sh \
       --sd $SUBJECTS_DIR --sid case_bias_corrected \
       --t1 $SUBJECTS_DIR/case_bias_only/mri/orig_nu.mgz \
-      --fs_license $FREESURFER_HOME/.license # more flags as needed, e.g. --parallel --3T --threads 4
+      --fs_license $FREESURFER_HOME/.license # more flags as needed, e.g. --3T --threads 4
    ```
 - Step 3: Compare and check if bias field correction fixed the issues:
   ```bash

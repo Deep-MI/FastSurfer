@@ -224,6 +224,7 @@ copy_files="
   bin/isanalyze
   bin/isnifti
   bin/lta_convert
+  bin/make_upright
   bin/mpr2mni305
   bin/mri_add_xform_to_header
   bin/mri_annotation2label

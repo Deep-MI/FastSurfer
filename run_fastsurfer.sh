@@ -17,10 +17,8 @@
 VERSION='$Id$'
 
 # Set default values for arguments
-if [[ -z "${BASH_SOURCE[0]}" ]]; then
-    THIS_SCRIPT="$0"
-else
-    THIS_SCRIPT="${BASH_SOURCE[0]}"
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
@@ -50,6 +48,7 @@ cereb_flags=()
 hypo_segfile=""
 hypo_statsfile=""
 hypvinn_flags=()
+hypvinn_regmode="coreg"
 conformed_name=""
 conformed_name_t2=""
 norm_name=""
@@ -65,11 +64,13 @@ run_seg_pipeline="1"
 run_biasfield="1"
 run_surf_pipeline="1"
 surf_flags=()
+legacy_parallel_hemi=0
 vox_size="min"
 run_asegdkt_module="1"
 run_cereb_module="1"
 run_hypvinn_module="1"
-threads="1"
+threads_seg="1"
+threads_surf="1"
 # python3.10 -s excludes user-directory package inclusion
 python="python3.10 -s"
 allow_root=()
@@ -233,7 +234,7 @@ SURFACE PIPELINE:
 Resource Options:
   --device                Set device on which inference should be run ("cpu" for
                             CPU, "cuda" for Nvidia GPU, or pass specific device,
-                            e.g. cuda:1), default check GPU and then CPU
+                            e.g. cuda:1), default check GPU and then CPU.
   --viewagg_device <str>  Define where the view aggregation should be run on.
                             Can be "auto" or a device (see --device). By default,
                             the program checks if you have enough memory to run
@@ -243,9 +244,11 @@ Resource Options:
                             view agg is run on the cpu. Equivalently, if you
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
-  --parallel              Run both hemispheres in parallel
-  --threads <int>         Set openMP and ITK threads to <int>
-  --batch <batch_size>    Batch size for inference. Default: 1
+  --threads <int>         Set openMP and ITK threads to <int> or "max", also
+  --threads_seg <int>       for definition of threads specific to segmentation
+  --threads_surf <int>      and surface reconstruction (parallel hemispheres if
+                            at number of threads for surfaces >=2, default: 1).
+  --batch <batch_size>    Batch size for inference (default: 1).
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
                             (-s: do no search for packages in home directory)
@@ -256,12 +259,12 @@ Resource Options:
                             (see recon-surf.sh) is not sourced. Can be used for
                             testing dev versions.
   --fstess                Switch on mri_tesselate for surface creation (default:
-                            mri_mc)
+                            mri_mc).
   --fsqsphere             Use FreeSurfer iterative inflation for qsphere
-                            (default: spectral spherical projection)
+                            (default: spectral spherical projection).
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
-                            is faster, and usually these mapped ones are fine)
+                            is faster, and usually these mapped ones are fine).
   --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
                             standard FreeSurfer output) and create brainmask.mgz
                             directly from norm.mgz instead. Saves 1:30 min.
@@ -330,6 +333,16 @@ then
   exit
 fi
 
+function verify_threads() {
+  # 1: flag, 2: value
+  value="$(echo "$2" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value=$(nproc)
+  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$value"
+  else echo "ERROR: Invalid value for $1: '$2', must be integer or 'max'." ; exit 1
+  fi
+  export verify_value
+}
+
 # PARSE Command line
 inputargs=("$@")
 POSITIONAL=()
@@ -357,7 +370,7 @@ case $key in
 
   # options that *just* set a flag
   #=============================================================
-  --allow_root) allow_root=("--allow_root") ;;
+  --allow_root) allow_root=("$key") ;;
   # options that set a variable
   --sid) subject="$1" ; shift ;;
   --sd) sd="$1" ; shift ;;
@@ -379,7 +392,9 @@ case $key in
   # --3t: both for surface pipeline and the --tal_reg flag
   --3t) surf_flags+=("--3T") ; atlas3T="true" ;;
   --edits) surf_flags+=("$key") ; edits="true" ;;
-  --threads) threads="$1" ; shift ;;
+  --threads) verify_threads "$key" "$1" ; threads_seg="$verify_value" ; threads_surf="$verify_value" ; shift ;;
+  --threads_seg) verify_threads "$key" "$1" ; threads_seg="$verify_value" ; shift ;;
+  --threads_surf) verify_threads "$key" "$1" ; threads_surf="$verify_value" ; shift ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
@@ -390,9 +405,7 @@ case $key in
       case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         all) version_and_quit="+checkpoints+git+pip" ;;
         +*) version_and_quit="$1" ;;
-        *) echo "ERROR: Invalid option for --version: '$1', must be 'all' or [+checkpoints][+git][+pip]"
-          exit 1
-          ;;
+        *) echo "ERROR: Invalid option for --version: '$1', must be 'all' or [+checkpoints][+git][+pip]" ; exit 1 ;;
       esac
       shift
     fi
@@ -458,11 +471,8 @@ case $key in
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
   --reg_mode)
     mode=$(echo "$1" | tr "[:upper:]" "[:lower:]")
-    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then
-      hypvinn_flags+=(--regmode "$mode")
-    else
-      echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'."
-      exit 1
+    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then hypvinn_regmode="$mode"
+    else echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'." ; exit 1
     fi
     shift # past value
     ;;
@@ -474,7 +484,8 @@ case $key in
   ##############################################################
   --seg_only) run_surf_pipeline="0" ;;
   # several flag options that are *just* passed through to recon-surf.sh
-  --fstess|--fsqsphere|--fsaparc|--no_surfreg|--parallel|--ignore_fs_version) surf_flags+=("$key") ;;
+  --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
+  --parallel) legacy_parallel_hemi=1 ;;
   --no_fs_t1) surf_flags+=("--no_fs_T1") ;;
 
   # temporary segstats development flag
@@ -494,12 +505,8 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # make sure FastSurfer is in the PYTHONPATH
-if [[ "$PYTHONPATH" == "" ]]
-then
-  export PYTHONPATH="$FASTSURFER_HOME"
-else
-  export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
-fi
+export PYTHONPATH
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
 
 ########################################## VERSION AND QUIT HERE ########################################
 # make sure the python  executable is valid and found
@@ -528,9 +535,33 @@ fi
 source "${reconsurfdir}/functions.sh"
 
 # Warning if run as root user
-check_allow_root
+check_allow_root "${allow_root[@]}"
+
+# from now to the creation of the logfile, all messages are only written to the console and thus lost if the output is
+# lost. If the terminate the script (exit 1 or similar), this is fine and no log file is created. But if we continue,
+# we should temporarily save log messages and paste them to seg_log as well.
+# Create a temporary logfile now (really only a path right now) and tee messages into that file, so we can later append
+# it to the seg_log file.
+tmpLF=$(mktemp)
 
 # CHECKS
+
+if [[ "$legacy_parallel_hemi" == 1 ]] ; then
+  {
+    echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3."
+    echo "  Hemispheres are now automatically processed in parallel, if threads for surface "
+    echo "  reconstruction are more than 1 (defined via --threads 2 or --threads_surf 2)!"
+    echo "IMPORTANT NOTE: The threads behavior has also changed, --threads used to define the"
+    echo "  number of threads per hemisphere, it now defines the number of threads in total!"
+  } | tee -a "$tmpLF"
+  if [[ "$threads_surf" == 1 ]] ; then
+    threads_surf=2
+    {
+      echo "INFO: We have changed the requested number of threads from 1 to 2, to activate parallel"
+      echo "  hemisphere processing (as requested by --parallel for backwards compatibility)."
+    } | tee -a "$tmpLF"
+  fi
+fi
 
 if [[ -z "${sd}" ]]
 then
@@ -539,7 +570,7 @@ then
 fi
 if [[ ! -d "${sd}" ]]
 then
-  echo "INFO: The subject directory did not exist, creating it now."
+  echo "INFO: The subject directory did not exist, creating it now." | tee -a "$tmpLF"
   if ! mkdir -p "$sd" ; then echo "ERROR: Subject directory creation failed" ; exit 1 ; fi
 fi
 if [[ "$(stat -c "%u:%g" "$sd")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && \
@@ -559,9 +590,11 @@ fi
 
 if [[ "${#warn_seg_only[@]}" -gt 0 ]] && [[ "$run_surf_pipeline" == "1" ]]
 then
-  echo "WARNING: Specifying '${warn_seg_only[*]}' only affects the segmentation "
-  echo "  pipeline and not the surface pipeline. It can therefore have unexpected consequences"
-  echo "  on surface processing."
+  {
+    echo "WARNING: Specifying '${warn_seg_only[*]}' only affects the segmentation "
+    echo "  pipeline and not the surface pipeline. It can therefore have unexpected consequences"
+    echo "  on surface processing."
+  } | tee -a "$tmpLF"
 fi
 
 # DEFAULT FILE NAMES
@@ -580,20 +613,14 @@ if [[ -z "$norm_name" ]] ; then norm_name="${sd}/${subject}/mri/orig_nu.mgz" ; f
 if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="${sd}/${subject}/mri/T2_nu.mgz" ;  fi
 if [[ -z "$seg_log" ]] ; then seg_log="${sd}/${subject}/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="${sd}/${subject}/scripts/build.log" ; fi
-if [[ -n "$t2" ]]
+# T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
+if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == 1 ]]
 then
-  if [[ ! -f "$t2" ]]
-  then
-    echo "ERROR: T2 file $t2 does not exist!"
-    exit 1
-  fi
+  if [[ ! -f "$t2" ]] ; then echo "ERROR: T2 file $t2 does not exist!" ; exit 1 ; fi
   copy_name_T2="${sd}/${subject}/mri/orig/T2.001.mgz"
 fi
 
-if [[ -z "$PYTHONUNBUFFERED" ]]
-then
-  export PYTHONUNBUFFERED=0
-fi
+if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
 # check the vox_size setting
 if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
@@ -605,7 +632,7 @@ then
     exit 1
   elif (( $(echo "$vox_size < 0.7" | bc -l) ))
   then
-    echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental."
+    echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental." | tee -a "$tmpLF"
   fi
 elif [[ "$vox_size" != "min" ]]
 then
@@ -675,20 +702,30 @@ then
   exit 1
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]] || [[ "$run_talairach_registration" == "true" ]]
+what_needs_license=""
+if [[ "$run_surf_pipeline" == 1 ]] ; then what_needs_license+=" and the surface pipeline" ; fi
+if [[ "$run_seg_pipeline" == 1 ]] ; then
+  if [[ "$run_biasfield" == 1 ]] && [[ "$run_talairach_registration" == "true" ]] ; then
+    what_needs_license+=" and the talairach-registration in the segmentation pipeline"
+  fi
+  if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
+    what_needs_license+=" and the T1-T2 registration in the segmentation pipeline"
+  fi
+fi
+if [[ -n "$what_needs_license" ]]
 then
-  msg="The surface pipeline and the talairach-registration in the segmentation pipeline require a FreeSurfer License"
+  msg="T${what_needs_license:6} require(s) a FreeSurfer License"
   if [[ -z "$FS_LICENSE" ]]
   then
     msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
     if [[ "$DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME" != "true" ]] && [[ -n "$FREESURFER_HOME" ]]
     then
-      echo "WARNING: $msg. Checking common license files in \$FREESURFER_HOME."
+      echo "WARNING: $msg. Checking common license files in \$FREESURFER_HOME." | tee -a "$tmpLF"
       for filename in "license.dat" "license.txt" ".license"
       do
         if [[ -f "$FREESURFER_HOME/$filename" ]]
         then
-          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite."
+          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite." | tee -a "$tmpLF"
           export FS_LICENSE="$FREESURFER_HOME/$filename"
           break
         fi
@@ -718,7 +755,7 @@ if [[ "$base" == "1" ]]
 then
   check_is_template "$sd" "$subject"
   if [[ -n "$t1" ]] && [[ "$t1" != "from-base" ]]; then
-    echo "WARNING: --t1 was passed but will be overwritten with T1 from base template."
+    echo "WARNING: --t1 was passed but will be overwritten with T1 from base template." | tee -a "$tmpLF"
   fi
   # base can only be run with the template image from base-setup:
   t1="$sd/$subject/mri/orig.mgz"
@@ -737,7 +774,7 @@ then
     exit 1
   fi
   if [[ -n "$t1" ]] && [[ "$t1" != "from-base" ]] ; then
-    echo "WARNING: --t1 was passed but will be overwritten with T1 in base space."
+    echo "WARNING: --t1 was passed but will be overwritten with T1 in base space." | tee -a "$tmpLF"
   fi
   # this is the default longitudinal input from base directory:
   t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
@@ -751,13 +788,14 @@ then
   exit 1
 fi
 
+## make sure +eo are unset
+set +eo > /dev/null
+
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
 
 
-if [[ -f "$seg_log" ]]; then log_existed="true"
-else log_existed="false"
-fi
+if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
 {
   echo "========================================================="
@@ -770,8 +808,12 @@ fi
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
 } | tee -a "$seg_log"
 
+### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
+if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
+# from now on, we can and will log to LF directly
+
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
-trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" >> \"$seg_log\" ; }" SIGINT SIGTERM
+trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -a \"$seg_log\" ; }" SIGINT SIGTERM
 
 # create the build log, file with all version info in parallel
 # uses ${version_cache_args}, which is filled exactly if a build_cache file exists
@@ -786,18 +828,25 @@ then
   } | tee -a "$seg_log"
 fi
 
-pushd "${sd}/${subject}" || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
-  content_of_subject_dir="$(find "." -type f)"
-popd || exit 1
-num_files_in_subject_dir="$(echo "$content_of_subject_dir" | wc -l)"
-if [[ "$num_files_in_subject_dir" -gt 1 ]] ; then
+pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
+  function filter_log_build()
   {
-    echo "Found $num_files_in_subject_dir in subject directory \$SUBJECTS_DIR/$subject"
-    # if [[ "$num_files_in_subject_dir" -gt 6 ]] ; then
-    #   echo "$content_of_subject_dir" | head -n 4 ; echo "..." ; echo "$content_of_subject_dir" | tail -n 2
-    # else echo "$content_of_subject_dir"
-    # fi
-    # echo ""
+    # filter expected files $LF and scripts/BUILD.log
+    IFS=""
+    while read -r file ; do
+      if [[ "${sd}/${subject}/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+    done
+  }
+
+  mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
+popd > /dev/null || exit 1
+if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
+  if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
+  {
+    echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
+    files=("${content_of_subject_dir[@]:0:6}")
+    if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
+    echo " Potentially Overwriting: ${files[*]}"
   } | tee -a "$seg_log"
 fi
 
@@ -814,7 +863,7 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device")
+         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
@@ -868,7 +917,7 @@ then
 
       echo "INFO: Robust scaling (partial conforming) of T2 image..."
       cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-           --no_vox_size --no_img_size "$t2" "$conformed_name_t2")
+           --no_iso_vox --no_img_size -i "$t2" -o "$conformed_name_t2")
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
       echo "Done."
@@ -880,7 +929,7 @@ then
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
-           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads")
+           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads_seg")
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
@@ -916,7 +965,7 @@ then
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
       cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
            --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
-           --threads "$threads" --empty --excludeid 0
+           --threads "$threads_seg" --empty --excludeid 0
            --sd "${sd}" --sid "${subject}"
            --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
                  49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
@@ -954,7 +1003,7 @@ then
     then
       # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2"
-           --out "$norm_name_t2" --threads "$threads" --uchar)
+           --out "$norm_name_t2" --threads "$threads_seg" --uchar)
       {
         echo "INFO: Running N4 bias-field correction of the t2..."
         echo_quoted "${cmd[@]}"
@@ -996,7 +1045,7 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --cereb_segfile "$cereb_segfile" --seg_log "$seg_log" --async_io
          --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
-         --threads "$threads" "${cereb_flags[@]}")
+         --threads "$threads_seg" "${cereb_flags[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
@@ -1012,7 +1061,7 @@ then
   then
         # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" --threads "$threads" --async_io
+         "${hypvinn_flags[@]}" --reg_mode "$hypvinn_regmode" --threads "$threads_seg" --async_io
          --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
          --viewagg_device "$viewagg" --t1)
     if [[ "$run_biasfield" == "1" ]]
@@ -1048,13 +1097,14 @@ fi
 
 if [[ "$run_surf_pipeline" == "1" ]]
 then
+  if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
+  if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
   echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
-       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads" --py "$python"
-       "${surf_flags[@]}")
+       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${cmd[@]}"
   if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi

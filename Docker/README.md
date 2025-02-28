@@ -28,7 +28,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
                       --sid subjectX --sd /output \
-                      --parallel
+                      --threads 4 --3T # and more flags
 ```
 
 #### Docker Flags
@@ -46,7 +46,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
-* The `--parallel` activates processing left and right hemisphere in parallel
+* [more flags](../doc/overview/FLAGS.md#fastsurfer-flags)
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
@@ -97,6 +97,8 @@ PYTHONPATH=<FastSurferRoot>
 python build.py --device cuda --tag my_fastsurfer:cuda
 ```
 
+The build script allows more specific options, that specify different CUDA options as well (see `build.py --help`).
+
 For running the analysis, the command is the same as above for the prebuild option:
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \
@@ -105,8 +107,7 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
                       --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
                       --fs_license /fs_license/license.txt \
                       --t1 /data/subjectX/t1-weighted.nii.gz \
-                      --sid subjectX --sd /output \
-                      --parallel
+                      --sid subjectX --sd /output
 ```
 
 
@@ -119,7 +120,9 @@ PYTHONPATH=<FastSurferRoot>
 python build.py --device cpu --tag my_fastsurfer:cpu
 ```
 
-For running the analysis, the command is basically the same as above for the GPU option:
+As you can see, only the `--device` to the build command is changed from `cuda` to `cpu`. 
+
+For running the analysis, the command is basically the same as above, except for removing the `--gpus all` GPU option:
 ```bash
 docker run -v /home/user/my_mri_data:/data \
            -v /home/user/my_fastsurfer_analysis:/output \
@@ -127,18 +130,15 @@ docker run -v /home/user/my_mri_data:/data \
            --rm --user $(id -u):$(id -g) my_fastsurfer:cpu \
            --fs_license /fs_license/license.txt \
            --t1 /data/subjectX/t1-weighed.nii.gz \
-           --device cpu \
-           --sid subjectX --sd /output \
-           --parallel
+           --sid subjectX --sd /output
 ```
 
-As you can see, only the tag of the image is changed from gpu to cpu and the standard docker is used (no --gpus defined). In addition, the `--device cpu` flag is passed to explicitly turn on CPU usage inside FastSurferCNN.
-
+FastSurfer will automatically detect, that no GPU is available and use the CPU.
 
 ### Example 3: Experimental Build for AMD GPUs
 
 Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into 
-your host machine kernel (amdgpu-install --usecase=dkms) for the amd docker to work. For this follow:
+your host machine kernel (`amdgpu-install --usecase=dkms`) for the amd docker to work. For this follow:
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html
 
 ```bash

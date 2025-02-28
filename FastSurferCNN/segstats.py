@@ -1009,7 +1009,7 @@ def infer_merged_labels(
     Returns
     -------
     all_merged_labels : dict[int, Sequence[int]]
-        The dictionary of all merged labels (via :class:`PVMeasure`s as well as
+        The dictionary of all merged labels (via :class:`PVMeasures` as well as
         `merged_labels`).
     """
     _merged_labels = {}

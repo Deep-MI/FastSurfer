@@ -31,7 +31,7 @@ To run FastSurfer on a given subject using the Singularity image with GPU access
 
 ```bash
 singularity exec --nv \
-                 --no-home \
+                 --no-mount home,cwd -e\
                  -B /home/user/my_mri_data:/data \
                  -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs \
@@ -40,11 +40,12 @@ singularity exec --nv \
                  --fs_license /fs/license.txt \
                  --t1 /data/subjectX/orig.mgz \
                  --sid subjectX --sd /output \
-                 --parallel --3T
+                 --3T
 ```
 ### Singularity Flags
 * `--nv`: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer
-* `--no-home`: This flag tells singularity to not mount the home directory inside the singularity image (see [Best Practice](#mounting-home))
+* `-e`: Do not transfer the environment variables from the host to the container.
+* `--no-mount home,cwd`: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see [Best Practice](#mounting-home))
 * `-B`: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs). 
 
 ### FastSurfer Flags
@@ -52,7 +53,6 @@ singularity exec --nv \
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
-* The `--parallel` activates processing left and right hemisphere in parallel
 * The `--3T` switches to the 3T atlas instead of the 1.5T atlas for Talairach registration. 
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-B` arguments. 
@@ -75,7 +75,7 @@ singularity exec --no-home \
                   --fs_license /fs/license.txt \
                   --t1 /data/subjectX/orig.mgz \
                   --sid subjectX --sd /output \
-                  --parallel --3T
+                  --3T
 ```
 
 ## Singularity Best Practice
@@ -85,5 +85,5 @@ Do not mount the user home directory into the singularity container as the home 
   
 Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `singularity exec ... --version +pip` outputs the FastSurfer version including a full list of python packages. 
 
-How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-home`. 
+How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. 
 
