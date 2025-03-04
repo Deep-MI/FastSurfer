@@ -196,7 +196,6 @@ function check_subject_images ()
         arg0="${arg:0:${#data_dir}}"
         if [[ "$real_data" != "$(realpath "$arg0")" ]] || [[ "${real_arg:${#real_data}}" != "${arg:${#data_dir}}" ]] # this is a symlink
         then
-          echo ":$(realpath "$arg"):=?=:$arg:"
           if [[ $first_img == 1 ]]; then missing_subject_ids+=", $subject_id" ; first_img=0 ; fi
           symlink_subject_imgs+=", $arg => $(realpath "$arg")"
         fi
