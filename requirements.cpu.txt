@@ -39,7 +39,7 @@ imagecodecs==2024.12.30
 imageio==2.37.0
 importlib_metadata==8.6.1
 importlib_resources==6.5.2
-Jinja2==3.1.5
+Jinja2==3.1.6
 joblib==1.4.2
 kiwisolver==1.4.7
 lapy==1.2.0
