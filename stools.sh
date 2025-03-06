@@ -170,6 +170,8 @@ function check_subject_images ()
   missing_subject_imgs=""
   symlink_subject_imgs=""
   data_dir="$1"
+  #remove training /
+  while [[ "${data_dir:$((${#data_dir} - 1))}" == "/" ]] ; do data_dir=${data_dir:0:$((${#data_dir} - 1))} ; done
   OLD_IFS=$IFS
   IFS=$'\n'
   for subject in $2

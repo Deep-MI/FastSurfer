@@ -419,7 +419,7 @@ fi
 wait # for directories to be made
 
 # step one: copy singularity image to hpc
-all_cases_file="/$hpc_work/scripts/subject_list"
+all_cases_file="$hpc_work/scripts/subject_list"
 
 log "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
 script_dir="$(dirname "$THIS_SCRIPT")"
@@ -427,7 +427,7 @@ log "cp \"$script_dir/brun_fastsurfer.sh\" \"$script_dir/stools.sh\" \"$hpc_work
 log "cp \"$fs_license\" \"$hpc_work/scripts/.fs_license\""
 log "Create Status/Success file at $hpc_work/scripts/subject_success"
 
-tofile="cat"
+tofile=("cat")
 if [[ "$submit_jobs" == "true" ]]
 then
   cp "$singularity_image" "$hpc_work/images/fastsurfer.sif" &
@@ -435,7 +435,7 @@ then
   cp "$fs_license" "$hpc_work/scripts/.fs_license" &
   log "#Status/Success file of srun_fastsurfer-run $(date)" > "$hpc_work/scripts/subject_success" &
 
-  tofile="tee $all_cases_file"
+  tofile=("tee" "$all_cases_file")
 fi
 
 # step two: copy input data to hpc
@@ -451,9 +451,9 @@ then
     log ""
   fi
 
-  cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | $tofile)
+  cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | "${tofile[@]}")
 else
-  cases=$(read_cases "$in_dir" "$pattern" "/source" | $tofile)
+  cases=$(read_cases "$in_dir" "$pattern" "/source" | "${tofile[@]}")
 fi
 num_cases=$(echo "$cases" | wc -l)
 
@@ -548,6 +548,7 @@ then
   seg_cmd_filename=$hpc_work/scripts/slurm_cmd_seg.sh
   if [[ "$submit_jobs" == "true" ]] ; then seg_cmd_file=$seg_cmd_filename ; else seg_cmd_file=$(mktemp) ; fi
 
+  IFS=" "
   slurm_part_=$(first_non_empty_arg "$partition_seg" "$partition")
   if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
   {
