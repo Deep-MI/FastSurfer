@@ -43,7 +43,7 @@ subject_list_awk_code_sid="\$1"
 subject_list_awk_code_args="\$2"
 subject_list_delim="="
 jobarray=""
-timelimit_seg=10
+timelimit_seg=15
 # 1mm can take 1h per hemi plus 1h extra on a single core (depending on cpu speed)
 timelimit_surf=$((4 * 60))
 # the memory required for the surface and the segmentation pipeline depends on the
@@ -574,16 +574,12 @@ then
   fi
   # note that there can be a decent startup cost for each run, running multiple cases
   # per task significantly reduces this
-  seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task"
+  seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task" -J "FastSurfer-Seg-$USER"
                    --time=$((timelimit_seg * real_num_cases_per_task + 5))
-                   "${slurm_partition[@]}" "${slurm_email[@]}"
-                   "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER"
+                   "${slurm_partition[@]}" "${slurm_email[@]}" "${jobarray_option[@]}"
                    -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
-  if [[ "$cpu_only" == "true" ]]
-  then
-    debug "Schedule SLURM job without gpu"
-  else
-    seg_slurm_sched=(--gpus=1 "${seg_slurm_sched[@]}")
+  if [[ "$cpu_only" == "true" ]] ; then debug "Schedule SLURM job without gpu"
+  else seg_slurm_sched+=(--gpus-per-task=1)
   fi
   log "chmod +x $seg_cmd_filename"
   chmod +x "$seg_cmd_file"
@@ -631,13 +627,9 @@ then
                            "${fastsurfer_surf_options[@]}"
                            "${POSITIONAL_FASTSURFER[@]}")
   surf_cmd_filename=$hpc_work/scripts/slurm_cmd_surf.sh
-  if [[ "$submit_jobs" == "true" ]]; then surf_cmd_file=$surf_cmd_filename
-  else surf_cmd_file=$(mktemp)
-  fi
+  if [[ "$submit_jobs" == "true" ]]; then surf_cmd_file=$surf_cmd_filename ; else surf_cmd_file=$(mktemp) ; fi
   mem_per_core=$((mem_surf / num_cpus_surf))
-  if [[ "$mem_surf" -gt "$((mem_per_core * num_cpus_surf))" ]]; then
-    mem_per_core=$((mem_per_core+1))
-  fi
+  if [[ "$mem_surf" -gt "$((mem_per_core * num_cpus_surf))" ]]; then mem_per_core=$((mem_per_core+1)) ; fi
   slurm_part_=$(first_non_empty_arg "$partition_surf" "$partition")
   if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
   {
