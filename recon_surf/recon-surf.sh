@@ -464,7 +464,9 @@ cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --chec
 RunIt "$cmd" "$LF"
 
 # look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
-vox_size=$(grep -oP '(?<= - Voxel Size )[0-9\.]+' "$CONFORM_LF")
+vox_size_prefix=" - Voxel Size"
+vox_size=$(grep -oE "${vox_size_prefix} [0-9.]+" "$CONFORM_LF")
+vox_size="${vox_size:${#vox_size_prefix}}"
 # remove the temporary conform_log (all info is also in the recon-surf logfile)
 if [ -f "$CONFORM_LF" ]; then rm -f "$CONFORM_LF" ; fi
 
