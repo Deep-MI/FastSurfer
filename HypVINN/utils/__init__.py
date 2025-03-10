@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from yacs.config import CfgNode
 from numpy import ndarray
+from yacs.config import CfgNode
 
 from FastSurferCNN.utils import Plane
+
 
 class ViewOperationDefinition(TypedDict):
     cfg: CfgNode

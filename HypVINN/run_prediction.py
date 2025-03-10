@@ -289,7 +289,7 @@ def main(
                     f"Modality mode different between input arg {mode} and axial train cfg: {view_op['cfg'].MODEL.MODE}"
                 )
             _view_ops.append(view_op)
-        view_ops: ViewOperations = {k: ops for k, ops in zip(PLANES, _view_ops)}
+        view_ops: ViewOperations = {k: ops for k, ops in zip(PLANES, _view_ops, strict=False)}
 
         cfg_fin, ckpt_fin = view_ops["coronal"].values()
 
