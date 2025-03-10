@@ -1,10 +1,16 @@
-from typing import Any, Literal, Optional
+from pathlib import Path
+from typing import Literal, TypedDict
 
+from yacs.config import CfgNode
 from numpy import ndarray
 
 from FastSurferCNN.utils import Plane
 
-ViewOperations = dict[Plane, dict[Literal["cfg", "ckpt"], Any] | None]
+class ViewOperationDefinition(TypedDict):
+    cfg: CfgNode
+    ckpt: Path
+
+ViewOperations = dict[Plane, ViewOperationDefinition | None]
 ModalityMode = Literal["t1", "t2", "t1t2"]
 ModalityDict = dict[Literal["t1", "t2"], ndarray]
 RegistrationMode = Literal["robust", "coreg", "none"]
