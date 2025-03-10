@@ -953,11 +953,10 @@ then
 
   if [[ "$run_asegdkt_module" == "1" ]]
   then
-    cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1"
-         --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
-         --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
-         --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg")
+    cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1" --sid "$subject" --asegdkt_segfile "$asegdkt_segfile"
+         --conformed_name "$conformed_name" --brainmask_name "$mask_name" --seg_log "$seg_log" --vox_size "$vox_size"
+         --aseg_name "$aseg_segfile" --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
+         --threads "$threads_seg")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd") ; fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov) ; fi
@@ -1011,8 +1010,8 @@ then
       # do not terminate if this fails
 
       echo "INFO: Robust scaling (partial conforming) of T2 image..."
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-           --no_iso_vox --no_img_size -i "$t2" -o "$conformed_name_t2")
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia --no_iso_vox --no_img_size
+           -i "$t2" -o "$conformed_name_t2")
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}" 2>&1
       exit_code=$?
@@ -1026,8 +1025,8 @@ then
   then
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
-      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
-           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads_seg")
+      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name" --rescale "$norm_name"
+           --aseg "$aseg_segfile" --threads "$threads_seg")
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}" 2>&1
@@ -1119,8 +1118,8 @@ then
     if [[ "$run_biasfield" == "1" ]]
     then
       # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
-      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2"
-           --out "$norm_name_t2" --threads "$threads_seg" --uchar)
+      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2" --out "$norm_name_t2"
+           --threads "$threads_seg" --uchar)
       {
         echo "INFO: Running N4 bias-field correction of the t2..."
         echo_quoted "${cmd[@]}"
@@ -1242,11 +1241,9 @@ then
       } | tee -a "$seg_log"
     fi
 
-    cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1"
-         --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
-         --cereb_segfile "$cereb_segfile" --seg_log "$seg_log" --async_io
-         --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
-         --threads "$threads_seg" "${cereb_flags[@]}")
+    cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1" --asegdkt_segfile "$asegdkt_segfile" --seg_log "$seg_log"
+         --conformed_name "$conformed_name" --cereb_segfile "$cereb_segfile" --async_io --batch_size "$batch_size"
+         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg" "${cereb_flags[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
@@ -1262,21 +1259,20 @@ then
   if [[ "$run_hypvinn_module" == "1" ]]
   then
         # currently, the order of the T2 preprocessing only is registration to T1w
-    cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" --reg_mode "$hypvinn_regmode" --threads "$threads_seg" --async_io
-         --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
-         --viewagg_device "$viewagg" --t1)
+    cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
+         "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
+         --device "$device" --viewagg_device "$viewagg" --t1)
     if [[ "$run_biasfield" == "1" ]]
     then
       cmd+=("$norm_name")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2"); fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
     else
       {
         echo "WARNING: We strongly recommend to *not* exclude the biasfield (--no_biasfield)"
         echo "  with the hypothal module!"
       } | tee -a "$seg_log"
       cmd+=("$t1")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2") ; fi
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log
