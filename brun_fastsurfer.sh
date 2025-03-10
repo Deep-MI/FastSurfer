@@ -125,6 +125,17 @@ function warn_old()
   echo "  use --parallel <n>, --parallel_seg <n>, or --parallel_surf <n>!"
 }
 
+function fail_bash_version_lt4()
+{
+  if [[ ! "$(bash --version | head -n 1)" =~ [vV]ersion[[:space:]][4-9] ]]
+  then
+    echo "ERROR: The brun_fastsurfer script requires at minimum bash version 4 for the options --subject_list and"
+    echo "  subjects via stdin. Specifying a specific number of concurrent processes (--parallel <num>,"
+    echo "  --parallel_seg <num>, --parallel_surf <num>; num is a positive integer) also requires bash 4+."
+    exit 1
+  fi
+}
+
 # PARSE Command line
 inputargs=("$@")
 POSITIONAL=()
@@ -144,6 +155,7 @@ case $key in
   # parse/get the subjects to iterate over
   #===================================================
   --subject_list|--subjects_list)
+    fail_bash_version_lt4
     if [[ ! -f "$1" ]]
     then
       echo "ERROR: Could not find the subject list $1!"
@@ -273,6 +285,7 @@ else
 fi
 if [[ "$subjects_stdin" == "true" ]]
 then
+  fail_bash_version_lt4
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
     echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
   fi
@@ -546,6 +559,7 @@ function process_by_token()
     # check job count
     if [[ "$max_processes" == "max" ]] ; then spawn_task=1
     else
+      fail_bash_version_lt4
       mapfile -t running_jobs < <(jobs -pr)
       if [[ "${#running_jobs[@]}" -lt "$max_processes" ]] ; then spawn_task=1
       elif [[ "$read_in" == 0 ]] ; then wait "${running_jobs[@]}" # wait for any task to finish (std is already closed)
@@ -611,7 +625,9 @@ function process_by_token()
       fi
     fi
   done
-  mapfile -t running_jobs < <(jobs -pr)
+  if [[ "$(bash --version | head -n 1)" =~ [vV]ersion[[:space:]][4-9] ]] ; then mapfile -t running_jobs < <(jobs -pr)
+  else running_jobs=()
+  fi
   # wait for jobs to finish
   if [[ "$debug" == "true" ]]
   then
@@ -642,11 +658,13 @@ if [[ "$parallel_pipelines" == 1 ]] ; then
   if [[ "$seg_only" == "true" ]] ; then mode=seg
   elif [[ "$surf_only" == "true" ]] ; then mode=surf
   fi
+  if [[ "$num_parallel_seg" != "max" ]] ; then fail_bash_version_lt4 ; fi
   iterate_subjects_with_token "${iterate_subjects_with_token_args[@]}" | \
     process_by_token "$mode" "${process_by_token_args[@]}" | \
     filter_token
 else
   # multiple pipelines
+  if [[ "$num_parallel_seg" != "max" ]] || [[ "$num_parallel_surf" != "max" ]] ; then fail_bash_version_lt4 ; fi
   iterate_subjects_with_token "${iterate_subjects_with_token_args[@]}" | \
     process_by_token "seg" "${process_by_token_args[@]}" | \
     process_by_token "surf" "${process_by_token_args[@]}" | \
