@@ -73,80 +73,38 @@ def t1_to_t2_registration(
     if threads <= 0:
         threads = get_num_threads()
 
-    if registration_type == "coreg":
-        exe = shutil.which("mri_coreg")
-        if not bool(exe):
-            if os.environ.get("FREESURFER_HOME", ""):
-                exe = os.environ["FREESURFER_HOME"] + "/bin/mri_coreg"
-            else:
-                raise RuntimeError(
-                    "Could not find mri_coreg, source FreeSurfer or set the "
-                    "FREESURFER_HOME environment variable"
-                )
-        args = [exe, "--mov", t2_path, "--targ", t1_path, "--reg", lta_path]
-        args = list(map(str, args)) + ["--threads", str(threads)]
-        LOGGER.info("Running " + " ".join(args))
-        retval = Popen(args).finish()
-        if retval.retcode != 0:
-            LOGGER.error(f"mri_coreg failed with error code {retval.retcode}. ")
-            raise RuntimeError("mri_coreg failed registration")
-
-        else:
-            LOGGER.info(f"{exe} finished in {retval.runtime}!")
-            exe = shutil.which("mri_vol2vol")
-            if not bool(exe):
-                if os.environ.get("FREESURFER_HOME", ""):
-                    exe = os.environ["FREESURFER_HOME"] + "/bin/mri_vol2vol"
-                else:
-                    raise RuntimeError(
-                        "Could not find mri_vol2vol, source FreeSurfer or set "
-                        "the FREESURFER_HOME environment variable"
-                    )
-            args = [
-                exe,
-                "--mov", t2_path,
-                "--targ", t1_path,
-                "--reg", lta_path,
-                "--o", output_path,
-                "--cubic",
-                "--keep-precision",
-            ]
-            args = list(map(str, args))
-            LOGGER.info("Running " + " ".join(args))
-            retval = Popen(args).finish()
-            if retval.retcode != 0:
-                LOGGER.error(
-                    f"mri_vol2vol failed with error code {retval.retcode}."
-                )
-                raise RuntimeError("mri_vol2vol failed applying registration")
-            LOGGER.info(f"{exe} finished in {retval.runtime}!")
-    else:
-        exe = shutil.which("mri_robust_register")
-        if not bool(exe):
-            if os.environ.get("FREESURFER_HOME", ""):
-                exe = os.environ["FREESURFER_HOME"] + "/bin/mri_robust_register"
-            else:
-                raise RuntimeError(
-                    "Could not find mri_robust_register, source FreeSurfer or "
-                    "set the FREESURFER_HOME environment variable"
-                )
-        args = [
-            exe,
-            "--mov", t2_path,
-            "--dst", t1_path,
-            "--lta", lta_path,
-            "--mapmov", output_path,
-            "--cost NMI",
-        ]
-        args = list(map(str, args))
-        LOGGER.info("Running " + " ".join(args))
-        retval = Popen(args).finish()
-        if retval.retcode != 0:
-            LOGGER.error(
-                f"mri_robust_register failed with error code {retval.retcode}."
+    def from_freesurfer_home(fs_binary: str) -> str:
+        if not os.environ.get("FREESURFER_HOME", ""):
+            raise RuntimeError(
+                f"Could not find {fs_binary}, source FreeSurfer or set the FREESURFER_HOME environment variable"
             )
-            raise RuntimeError("mri_robust_register failed registration")
-        LOGGER.info(f"{exe} finished in {retval.runtime}!")
+        return os.environ["FREESURFER_HOME"] + "/bin/" + fs_binary
+
+    def run_fs_binary(fs_binary: str, args: list[str]) -> int:
+        fs_binary = shutil.which(fs_binary) or from_freesurfer_home(fs_binary)
+        args = [fs_binary] + list(map(str, args))
+        LOGGER.info("Running " + " ".join(args))
+        retval = Popen(args).finish()
+        if retval.retcode != 0:
+            LOGGER.error(f"{fs_binary} failed with error code {retval.retcode}.")
+            raise RuntimeError(f"{fs_binary} failed")
+
+        LOGGER.info(f"{fs_binary} finished in {retval.runtime}!")
+
+    if registration_type == "coreg":
+        run_fs_binary(
+            "mri_coreg",
+            ["--mov", t2_path, "--targ", t1_path, "--reg", lta_path, "--threads", str(threads)],
+        )
+        run_fs_binary(
+            "mri_vol2vol",
+            ["--mov", t2_path, "--targ", t1_path, "--reg", lta_path, "--o", output_path, "--cubic", "--keep-precision"],
+        )
+    else:
+        run_fs_binary(
+            "mri_robust_register",
+            ["--mov", t2_path, "--dst", t1_path, "--lta", lta_path, "--mapmov", output_path, "--cost", "NMI"],
+        )
 
     return output_path
 
@@ -167,8 +125,7 @@ def hypvinn_preproc(
     mode : ModalityMode
         The mode for HypVINN. It should be "t1t2".
     reg_mode : RegistrationMode
-        The registration mode. If it is not "none", the function will register T1 to T2
-        images.
+        The registration mode. If it is not "none", the function will register T1 to T2 images.
     t1_path : Path
         The path to the T1 image.
     t2_path : Path
@@ -176,8 +133,8 @@ def hypvinn_preproc(
     subject_dir : Path
         The directory of the subject.
     threads : int, default=-1
-        The number of threads to be used. If it is less than or equal to 0, the number
-        of threads will be automatically determined.
+        The number of threads to be used. If it is less than or equal to 0, the number of threads will be
+        automatically determined.
 
     Returns
     -------
@@ -187,13 +144,10 @@ def hypvinn_preproc(
     Raises
     ------
     RuntimeError
-        If the mode is not "t1t2", or if the registration mode is not "none" and the
-        registration fails.
+        If the mode is not "t1t2", or if the registration mode is not "none" and the registration fails.
     """
     if mode != "t1t2":
-        raise RuntimeError(
-            "hypvinn_preproc should only be called for t1t2 mode."
-        )
+        raise RuntimeError("hypvinn_preproc should only be called for t1t2 mode.")
     registered_t2_path = subject_dir / "mri/T2_nu_reg.mgz"
     if reg_mode != "none":
         from nibabel.analyze import AnalyzeImage
@@ -217,9 +171,7 @@ def hypvinn_preproc(
             registration_type=reg_mode,
             threads=threads,
         )
-        LOGGER.info(
-            f"Registration finish in {time.time() - load_res:0.4f} seconds!"
-        )
+        LOGGER.info(f"Registration finish in {time.time() - load_res:0.4f} seconds!")
     else:
         LOGGER.info(
             "No registration step, registering T1w and T2w is required when running "
@@ -227,10 +179,9 @@ def hypvinn_preproc(
             "predictions. Ignore this message, if input images are already registered."
         )
         try:
-            registered_t2_path.symlink_to(os.path.relpath(t2_path, registered_t2_path))
+            registered_t2_path.symlink_to(os.path.relpath(t2_path, registered_t2_path.parent))
         except FileNotFoundError as e:
-            msg = (f"Could not create symlink. "
-                   f"Does the folder {registered_t2_path.parent} exist?")
+            msg = f"Could not create symlink. Does the folder {registered_t2_path.parent} exist?"
             LOGGER.error(msg)
             raise FileNotFoundError(msg) from e
         except (RuntimeError, OSError):

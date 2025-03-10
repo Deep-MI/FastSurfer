@@ -47,39 +47,26 @@ def get_hypinn_mode(
         If neither T1 nor T2 files exist, or if the corresponding flags were passed but the files do not exist.
     """
     LOGGER.info("Setting up input mode...")
-    if t1_path is not None and t2_path is not None:
-        if t1_path.is_file() and t2_path.is_file():
-            return "t1t2"
+    if t1_path and t2_path and t1_path.is_file() and t2_path.is_file():
+        return "t1t2"
+    elif t1_path and t2_path:
         msg = []
         if not t1_path.is_file():
             msg.append(f"the t1 file does not exist ({t1_path})")
         if not t2_path.is_file():
             msg.append(f"the t2 file does not exist ({t2_path})")
-        raise RuntimeError(
-            f"ERROR: Both the t1 and the t2 flags were passed, but "
-            f"{' and '.join(msg)}."
-        )
-
+        raise RuntimeError(f"Both the t1 and the t2 flags were passed, but {' and '.join(msg)}.")
+    elif t1_path and t1_path.is_file():
+        return "t1"
     elif t1_path:
-        if t1_path.is_file():
-            return "t1"
-        raise RuntimeError(
-            f"ERROR: The t1 flag was passed, but the t1 file does not exist "
-            f"({t1_path})."
+        raise RuntimeError(f"The t1 flag was passed, but the t1 file does not exist ({t1_path}).")
+    elif t2_path and t2_path.is_file():
+        LOGGER.info(
+            "Warning: T2 mode selected. The quality of segmentations based on only a T2 image is significantly "
+            "worse than when T1 images are included."
         )
+        return "t2"
     elif t2_path:
-        if t2_path.is_file():
-            LOGGER.info(
-                "Warning: T2 mode selected. The quality of segmentations based "
-                "on only a T2 image is significantly worse than when T1 images "
-                "are included."
-            )
-            return "t2"
-        raise RuntimeError(
-            f"ERROR: The t2 flag was passed, but the t1 file does not exist "
-            f"({t1_path})."
-        )
+        raise RuntimeError(f"The t2 flag was passed, but the t1 file does not exist ({t2_path}).")
     else:
-        raise RuntimeError(
-            "No t1 or t2 flags were passed, invalid configuration."
-        )
+        raise RuntimeError("No t1 or t2 flags were passed, invalid configuration.")

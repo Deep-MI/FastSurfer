@@ -1016,8 +1016,8 @@ then
       fi
     else
       # no biasfield, but a t2 is passed; presumably, this is biasfield corrected
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-           --no_iso_vox --no_img_size "$t2" "$norm_name_t2")
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia --no_iso_vox --no_img_size
+           -i "$t2" -o "$norm_name_t2")
       {
         echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is"
         echo "  assumed to already be biasfield-corrected."

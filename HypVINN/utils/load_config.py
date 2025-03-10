@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from os.path import join, split, splitext
+from pathlib import Path
 
 from HypVINN.config.hypvinn import get_cfg_hypvinn
 
@@ -49,13 +50,13 @@ def get_config(args):
 
     return cfg
 
-def load_config(cfg_file):
+def load_config(cfg_file: Path | str):
     """
     Load and initialize the configuration from a given file.
 
     Parameters
     ----------
-    cfg_file : str
+    cfg_file : Path, str
         The path to the configuration file. The function will load configurations from this file.
 
     Returns

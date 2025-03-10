@@ -34,7 +34,7 @@ from FastSurferCNN.utils.common import SerialExecutor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
-from HypVINN.utils import ModalityDict, ModalityMode, ViewOperations
+from HypVINN.utils import ModalityDict, ModalityMode, ViewOperationDefinition, ViewOperations
 from HypVINN.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
 from HypVINN.utils.img_processing_utils import save_segmentation
 from HypVINN.utils.load_config import load_config
@@ -81,21 +81,15 @@ def option_parse() -> argparse.ArgumentParser:
     argparse.ArgumentParser
         The parser object to parse arguments from the command line.
     """
-    parser = argparse.ArgumentParser(
-        description="Script for Hypothalamus Segmentation.",
-    )
+    parser = argparse.ArgumentParser(description="Script for Hypothalamus Segmentation.")
 
     # 1. Directory information (where to read from, where to write from and to incl. search-tag)
-    parser = parser_defaults.add_arguments(
-        parser, ["sd", "sid"],
-    )
+    parser = parser_defaults.add_arguments(parser, ["sd", "sid"])
 
     parser = parser_defaults.add_arguments(parser, ["seg_log"])
 
     # 2. Options for the MRI volumes
-    parser = parser_defaults.add_arguments(
-        parser, ["t1"]
-    )
+    parser = parser_defaults.add_arguments(parser, ["t1"])
     parser.add_argument(
         '--t2',
         type=optional_path,
@@ -133,30 +127,14 @@ def option_parse() -> argparse.ArgumentParser:
 
     # 4. Options for advanced, technical parameters
     advanced = parser.add_argument_group(title="Advanced options")
-    parser_defaults.add_arguments(
-        advanced,
-        ["device", "viewagg_device", "threads", "batch_size", "async_io"],
-    )
+    parser_defaults.add_arguments(advanced, ["device", "viewagg_device", "threads", "batch_size", "async_io"])
 
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
     # 5. Checkpoint to load
-    parser_defaults.add_plane_flags(
-        advanced,
-        "checkpoint",
-        files,
-        CHECKPOINT_PATHS_FILE,
-    )
+    parser_defaults.add_plane_flags(advanced, "checkpoint", files, CHECKPOINT_PATHS_FILE)
 
-    parser_defaults.add_plane_flags(
-        advanced,
-        "config",
-        {
-            "coronal": Path("HypVINN/config/HypVINN_coronal_v1.1.0.yaml"),
-            "axial": Path("HypVINN/config/HypVINN_axial_v1.1.0.yaml"),
-            "sagittal": Path("HypVINN/config/HypVINN_sagittal_v1.1.0.yaml"),
-        },
-        CHECKPOINT_PATHS_FILE,
-    )
+    config_files = {plane: Path(f"HypVINN/config/HypVINN_{plane}_v1.1.0.yaml") for plane in PLANES}
+    parser_defaults.add_plane_flags(advanced, "config", config_files, CHECKPOINT_PATHS_FILE)
     return parser
 
 
@@ -235,20 +213,16 @@ def main(
     device : str, default="auto"
         The device to use. Default is "auto", which automatically selects the device.
     viewagg_device : str, default="auto"
-        The view aggregation device to use. Default is "auto", which automatically 
-        selects the device.
+        The view aggregation device to use. Default is "auto", which automatically selects the device.
 
     Returns
     -------
     int, str
-        0, if successful, an error message describing the cause for the
-        failure otherwise.
+        0, if successful, an error message describing the cause for the failure otherwise.
     """
     from concurrent.futures import Future, ProcessPoolExecutor
-    if threads != 1:
-        pool = ProcessPoolExecutor(threads)
-    else:
-        pool = SerialExecutor()
+
+    pool = ProcessPoolExecutor(threads) if threads != 1 else SerialExecutor()
     prep_tasks: dict[str, Future] = {}
 
     # mapped freesurfer orig input name to the hypvinn t1 name
@@ -271,17 +245,14 @@ def main(
 
         if not mode:
             return (
-                f"Failed Evaluation on {subject_name} couldn't determine the "
-                f"processing mode. Please check that T1 or T2 images are "
-                f"available.\nT1 image path: {t1_path}\nT2 image path "
-                f"{t2_path}.\nNo T1 or T2 image available."
+                f"Failed Evaluation on {subject_name} couldn't determine the processing mode. Please check that T1 or "
+                f"T2 images are available.\nT1 image path: {t1_path}\nT2 image path {t2_path}.\nNo T1 or T2 image "
+                f"available."
             )
 
         # Create output directory if it does not already exist.
         create_expand_output_directory(subject_dir, qc_snapshots)
-        logger.info(
-            f"Running HypVINN segmentation pipeline on subject {sid}"
-        )
+        logger.info(f"Running HypVINN segmentation pipeline on subject {sid}")
         logger.info(f"Output will be stored in: {subject_dir}")
         logger.info(f"T1 image input {t1_path}")
         logger.info(f"T2 image input {t2_path}")
@@ -302,24 +273,23 @@ def main(
 
         # Segmentation pipeline
         seg = time()
-        view_ops: ViewOperations = {a: None for a in PLANES}
         logger.info("Setting up HypVINN run")
 
+        _view_ops: list[ViewOperationDefinition] = []
         cfgs = (cfg_ax, cfg_cor, cfg_sag)
         ckpts = (ckpt_ax, ckpt_cor, ckpt_sag)
         for plane, _cfg_file, _ckpt_file in zip(PLANES, cfgs, ckpts, strict=False):
             logger.info(f"{plane} model configuration from {_cfg_file}")
-            view_ops[plane] = {
-                "cfg": set_up_cfgs(_cfg_file, subject_dir, batch_size),
-                "ckpt": _ckpt_file,
-            }
-
-            model = view_ops[plane]["cfg"].MODEL
-            if mode != model.MODE and "HypVinn" not in model.MODEL_NAME:
-                raise AssertionError(
-                    f"Modality mode different between input arg: "
-                    f"{mode} and axial train cfg: {model.MODE}"
+            view_op = ViewOperationDefinition(
+                cfg=set_up_cfgs(_cfg_file, subject_dir, batch_size),
+                ckpt=_ckpt_file,
+            )
+            if mode != view_op["cfg"].MODEL.MODE and "HypVinn" not in view_op["cfg"].MODEL.MODEL_NAME:
+                return (
+                    f"Modality mode different between input arg {mode} and axial train cfg: {view_op['cfg'].MODEL.MODE}"
                 )
+            _view_ops.append(view_op)
+        view_ops: ViewOperations = {k: ops for k, ops in zip(PLANES, _view_ops)}
 
         cfg_fin, ckpt_fin = view_ops["coronal"].values()
 
@@ -456,9 +426,8 @@ def load_volumes(
     """
     Load the volumes of T1 and T2 images.
 
-    This function loads the T1 and T2 images, checks their compatibility based
-    on the mode, and returns the loaded volumes along with their affine
-    transformations, headers, zoom levels, and sizes.
+    This function loads the T1 and T2 images, checks their compatibility based on the mode, and returns the loaded
+    volumes along with their affine transformations, headers, zoom levels, and sizes.
 
     Parameters
     ----------
@@ -482,8 +451,7 @@ def load_volumes(
     Raises
     ------
     RuntimeError
-        If the mode is inconsistent with the provided image paths,
-        or if the number of dimensions of the data is invalid.
+        If the mode is inconsistent with the provided image paths or if the number of dimensions of the data is invalid.
     ValueError
         If the mode is invalid, or if a header is missing.
     AssertionError
@@ -624,8 +592,8 @@ def get_prediction(
 # Processing
 ##
 def set_up_cfgs(
-        cfg: "yacs.config.CfgNode",
-        out_dir: Path,
+        cfg_file: Path | str,
+        out_dir: Path | str,
         batch_size: int = 1,
 ) -> "yacs.config.CfgNode":
     """
@@ -636,9 +604,9 @@ def set_up_cfgs(
 
     Parameters
     ----------
-    cfg : yacs.config.CfgNode
+    cfg_file : Path, str
         The configuration node to load.
-    out_dir : Path
+    out_dir : Path, str
         The output directory where the results will be stored.
     batch_size : int, default=1
         The batch size to use. Default is 1.
@@ -647,15 +615,13 @@ def set_up_cfgs(
     -------
     yacs.config.CfgNode
         The loaded and adjusted configuration node.
-
     """
-    cfg = load_config(cfg)
-    cfg.OUT_LOG_DIR = str(out_dir or cfg.LOG_DIR)
+    cfg = load_config(cfg_file)
+    cfg.OUT_LOG_DIR = str(str(out_dir) or cfg.LOG_DIR)
     cfg.TEST.BATCH_SIZE = batch_size
 
     cfg.MODEL.OUT_TENSOR_WIDTH = cfg.DATA.PADDED_SIZE
     cfg.MODEL.OUT_TENSOR_HEIGHT = cfg.DATA.PADDED_SIZE
-
     return cfg
 
 
@@ -663,9 +629,9 @@ if __name__ == "__main__":
     # arguments
     parser = option_parse()
     args = vars(parser.parse_args())
-    log_name = (args["log_name"] or
-                args["out_dir"] / args["sid"] / "scripts/hypvinn_seg.log")
-    del args["log_name"]
+    log_name = args["log_name"] or (args["out_dir"] / args["sid"] / "scripts/hypvinn_seg.log")
+    if "log_name" in args:
+        del args["log_name"]
 
     from FastSurferCNN.utils.logging import setup_logging
     setup_logging(log_name)
