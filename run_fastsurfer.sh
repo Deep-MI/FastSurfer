@@ -843,26 +843,30 @@ then
   } | tee -a "$seg_log"
 fi
 
-pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
-  function filter_log_build()
-  {
-    # filter expected files $LF and scripts/BUILD.log
-    IFS=""
-    while read -r file ; do
-      if [[ "${sd}/${subject}/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
-    done
-  }
+# mapfile builtin requires bash 4 (BASH_VERSINFO is available in bash 3)
+if [[ "${BASH_VERSINFO[0]}" -gt 3 ]]
+then
+  pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
+    function filter_log_build()
+    {
+      # filter expected files $LF and scripts/BUILD.log
+      IFS=""
+      while read -r file ; do
+        if [[ "${sd}/${subject}/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+      done
+    }
 
-  mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
-popd > /dev/null || exit 1
-if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
-  if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
-  {
-    echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
-    files=("${content_of_subject_dir[@]:0:6}")
-    if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
-    echo " Potentially Overwriting: ${files[*]}"
-  } | tee -a "$seg_log"
+    mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
+  popd > /dev/null || exit 1
+  if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
+    if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
+    {
+      echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
+      files=("${content_of_subject_dir[@]:0:6}")
+      if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
+      echo "  Potentially Overwriting: ${files[*]}"
+    } | tee -a "$seg_log"
+  fi
 fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
