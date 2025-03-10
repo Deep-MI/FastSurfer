@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import pytest
@@ -12,7 +12,6 @@ def assert_same_headers(expected_header, actual_header):
     # Get the image headers
 
     from nibabel.cmdline.diff import get_headers_diff
-    from nibabel import analyze
 
     # Check the image headers
     header_diff = get_headers_diff([actual_header, expected_header])
@@ -116,6 +115,8 @@ class Approx:
                 msg.append("Connected components exceeding threshold:")
                 connected_components = regionprops(delta_where)
                 msg.extend(f"  {i}: {cc.area} voxels @{cc.centroid}" for i, cc in enumerate(connected_components[:5]))
-        finally:
-            return msg
+        except BaseException as e:
+            logger.exception(e)
+            msg.append(f"Exception while comparing arrays: {e}")
+        return msg
 
