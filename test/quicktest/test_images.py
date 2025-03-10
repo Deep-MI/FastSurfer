@@ -1,9 +1,7 @@
-from collections import OrderedDict
 from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 
-import nibabel.cmdline.diff
 import numpy as np
 import pytest
 import yaml
@@ -11,7 +9,7 @@ import yaml
 from FastSurferCNN.utils.metrics import dice_score
 
 from .common import SubjectDefinition, Tolerances, write_table_file
-from .helper import assert_same_headers, Approx
+from .helper import Approx, assert_same_headers
 
 logger = getLogger(__name__)
 

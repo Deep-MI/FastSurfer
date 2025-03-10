@@ -1,6 +1,4 @@
 import logging
-import math
-from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
 from typing import cast
@@ -107,7 +105,7 @@ class Tolerances:
         """
         if isinstance(label_or_key, str):
             return label_or_key, self.config["thresholds"][label_or_key]
-        elif isinstance(label_or_key, (int, np.integer)):
+        elif isinstance(label_or_key, int | np.integer):
             labelname = ""
             try:
                 labelname = self.mapper[label_or_key]
@@ -122,7 +120,6 @@ class Tolerances:
                 return labelname, self.config["default_threshold"]
         else:
             raise ValueError("Invalid type of label argument!")
-
 
     def __repr__(self):
         config = str(tuple(self.config.keys()))

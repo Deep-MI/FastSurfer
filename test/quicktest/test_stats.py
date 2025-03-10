@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy import number
 
 from FastSurferCNN.segstats import PVStats
 
@@ -312,7 +311,8 @@ def test_stats_table(
             expected_conflicts.append(expected)
 
     if delta_dir:
-        from typing import TypeVar, Hashable
+        from collections.abc import Hashable
+        from typing import TypeVar
         _T = TypeVar("_T", bound=Hashable)
 
         def relative(a: dict[_T, int | float], b: dict[_T, int | float], field: _T) -> float:
