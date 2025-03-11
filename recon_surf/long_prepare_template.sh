@@ -220,25 +220,7 @@ then
 fi
 
 # check that SUBJECTS_DIR exists
-if [[ -z "$SUBJECTS_DIR" ]]
-then
-  echo "ERROR: No subject directory defined via --sd. This is required!"
-  exit 1;
-fi
-if [[ ! -d "${sd}" ]]
-then
-  echo "INFO: The subject directory did not exist, creating it now."
-  if ! mkdir -p "$SUBJECTS_DIR" ; then echo "ERROR: directory creation failed" ; exit 1; fi
-fi
-if [[ "$(stat -c "%u:%g" "$SUBJECTS_DIR")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && \
-  [[ "$(stat -c "%a" "$SUBJECTS_DIR" | tail -c 2)" -lt 6 ]]
-then
-  echo "ERROR: The subject directory ($SUBJECTS_DIR) is owned by root and is not writable."
-  echo "  FastSurfer cannot write results! This can happen if the directory is created by"
-  echo "  docker. Make sure to create the directory before invoking docker!"
-  exit 1;
-fi
-
+check_create_subjects_dir_properties "$SUBJECTS_DIR"
 
 ################################## SETUP and LOGFILE ##############################
 

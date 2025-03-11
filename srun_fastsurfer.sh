@@ -383,6 +383,7 @@ do
   fi
 done
 debugf "$newline\n"
+# the following stat command is not compatible with macOS, but srun_fastsurfer is not expected to be
 shell=$(stat -c %N "/proc/$$/exe" | cut -d">" -f2 | tail -c +3 | head -c -2)
 debug "Running in shell $shell: $($shell --version 2>/dev/null | head -n 1)"
 debug ""
