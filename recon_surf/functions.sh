@@ -1,22 +1,17 @@
 
 # set the binpath variable
-if [ -z "$FASTSURFER_HOME" ]
-then
-  binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
-else
-  binpath="$FASTSURFER_HOME/recon_surf/"
+if [[ -z "$FASTSURFER_HOME" ]] ; then binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
+else binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 export binpath
 
 # fs_time command from fs60, fs72 fails in parallel mode, use local one
-# also check for failure (e.g. on mac it fails)
-timecmd="${binpath}fs_time"
-$timecmd echo testing &> /dev/null
-if [ "${PIPESTATUS[0]}" -ne 0 ] ; then
-  echo "time command failing, not using time..."
-  timecmd=""
+# also check for failure (e.g. on mac it fails, so we cannot use it there)
+if FSTIME_LOAD=0 "${binpath}fs_time" echo testing &> /dev/null ; then timecmd="${binpath}fs_time"
+else timecmd="" ; echo "INFO: Testing fs_time was not successful, not reporting per-command runtimes."
 fi
 export timecmd
+export LC_NUMERIC="en_US.UTF-8"
 
 function check_create_subjects_dir_properties()
 {

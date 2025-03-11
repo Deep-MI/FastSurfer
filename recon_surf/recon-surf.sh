@@ -1402,7 +1402,7 @@ fi # not base run
 # Collect info
 EndTime=$(date)
 tSecEnd=$(date '+%s')
-tRunHours=$(printf %6.3f "$(bc <<< "($tSecEnd - $tSecStart) / 3600")")
+tRunHours=$(LC_NUMERIC="en_US.UTF-8" printf %6.3f "$(bc -l <<< "($tSecEnd - $tSecStart) / 3600")")
 
 {
   echo ""
