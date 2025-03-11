@@ -18,6 +18,36 @@ if [ "${PIPESTATUS[0]}" -ne 0 ] ; then
 fi
 export timecmd
 
+function check_create_subjects_dir_properties()
+{
+  # 1: subjects_dir
+  if [[ -z "$1" ]]
+  then
+    echo "ERROR: No subject directory defined via --sd. This is required!"
+    exit 1
+  elif [[ ! -d "$1" ]]
+  then
+    echo "INFO: The subject directory did not exist, creating it now."
+    if [[ "$(id -u)" == 0 ]] ; then echo "WARNING: Creating as root!" ; fi
+    if ! mkdir -p "$1" ; then echo "ERROR: directory creation failed" ; exit 1; fi
+  else
+    if stat --version > /dev/null 2> /dev/null ; then # linux (GNU version of stat, supports --version)
+      user_group=$(stat -c "%u:%g" "$1")
+      world_access=$(stat -c "%a" "$1" | tail -c 2)
+    else # macOS (BSD version of stat)
+      user_group=$(stat -f "%u:%g" "$1")
+      world_access=$(stat -f "%p" "$1" | tail -c 2)
+    fi
+    if [[ "$user_group" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$world_access" -lt 6 ]]
+    then
+      echo "ERROR: The subject directory ($1) is owned by root and is not writable."
+      echo "  FastSurfer cannot write results! This can happen if the directory is created"
+      echo "  by docker. Make sure to create the directory before invoking docker!"
+      exit 1
+    fi
+  fi
+}
+
 function RunIt()
 {
   # parameters

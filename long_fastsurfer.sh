@@ -223,20 +223,7 @@ if [ "${#tpids[@]}" -ne "${#t1s[@]}" ]
 fi
 
 # check that SUBJECTS_DIR exists
-if [[ -z "${sd}" ]]
-then
-  echo "ERROR: No subject directory defined via --sd. This is required!"
-  exit 1
-elif [[ ! -d "${sd}" ]]
-then
-  echo "INFO: The subject directory did not exist, creating it now."
-  if ! mkdir -p "$sd" ; then echo "ERROR: directory creation failed" ; exit 1; fi
-elif [[ "$(stat -c "%u:%g" "$sd")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$(stat -c "%a" "$sd" | tail -c 2)" -lt 6 ]]
-then
-  echo "ERROR: The subject directory ($sd) is owned by root and is not writable. FastSurfer cannot write results! "
-  echo "  This can happen if the directory is created by docker. Make sure to create the directory before invoking docker!"
-  exit 1
-fi
+check_create_subjects_dir_properties "$sd"
 
 if [[ -z "$LF" ]] ; then LF="$sd/$tid/scripts/long_fastsurfer.log" ; fi
 # make sure the directory for the logfile exists, create automatically if the directory is not in $sd
