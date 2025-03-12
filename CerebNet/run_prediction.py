@@ -139,10 +139,7 @@ def main(args: argparse.Namespace) -> int | str:
 
     subjects_kwargs = {}
     cereb_statsfile = getattr(args, "cereb_statsfile", None)
-    if cereb_statsfile is None or str(cereb_statsfile) == "default":
-        cereb_statsfile = DEFAULT_CEREBELLUM_STATSFILE
-        args.cereb_statsfile = cereb_statsfile
-    if cereb_statsfile is not None:
+    if cereb_statsfile:
         subjects_kwargs["cereb_statsfile"] = "cereb_statsfile"
         if not hasattr(args, "norm_name"):
             return (
