@@ -370,27 +370,21 @@ class Inference:
         from FastSurferCNN.data_loader.data_utils import load_image, load_maybe_conform
 
         norm_file, norm_data, norm = None, None, None
-        if subject.has_attribute("cereb_statsfile"):
+        if subject.has_attribute("cereb_statsfile") :
             if not subject.can_resolve_attribute("cereb_statsfile"):
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
 
                 raise ValueError(
-                    f"Cannot resolve the intended filename "
-                    f"{subject.get_attribute('cereb_statsfile')} for the "
-                    f"cereb_statsfile, maybe specify an absolute path via "
-                    f"{ALL_FLAGS['cereb_statsfile'](dict)['flag']}."
+                    f"Cannot resolve the intended filename {subject.get_attribute('cereb_statsfile')} for the "
+                    f"cereb_statsfile, maybe specify an absolute path via {ALL_FLAGS['cereb_statsfile'](dict)['flag']}."
                 )
-            if not subject.has_attribute(
-                "norm_name"
-            ) or not subject.fileexists_by_attribute("norm_name"):
+            if not subject.has_attribute("norm_name") or not subject.fileexists_by_attribute("norm_name"):
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
 
                 raise ValueError(
-                    f"Cannot resolve the file name "
-                    f"{subject.get_attribute('norm_name')} for the bias field "
-                    f"corrected image, maybe specify an absolute path via "
-                    f"{ALL_FLAGS['norm_name'](dict)['flag']} or the file does not "
-                    f"exist."
+                    f"Cannot resolve the file name {subject.get_attribute('norm_name')} for the bias field corrected "
+                    f"image, maybe specify an absolute path via {ALL_FLAGS['norm_name'](dict)['flag']} or the file "
+                    f"does not exist."
                 )
 
             norm_file = subject.filename_by_attribute("norm_name")
