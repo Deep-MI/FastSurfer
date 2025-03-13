@@ -43,7 +43,7 @@ check_version=1       # Check for supported FreeSurfer version (terminate if not
 get_t1=1              # Generate T1.mgz from nu.mgz and brainmask from it (default)
 hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 
-if [ -z "$FASTSURFER_HOME" ]
+if [[ -z "$FASTSURFER_HOME" ]]
 then
   binpath="$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
   FASTSURFER_HOME="$(cd -- "$(dirname "$binpath")" >/dev/null 2>&1 ; pwd -P )/"
@@ -51,14 +51,11 @@ else
   binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 
-
 # check bash version > 3.1 (needed for printf %q)
-function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
-if [ "$(version "${BASH_VERSION}")" -lt "$(version "3.1.0")" ]; then
-    echo "bash ${BASH_VERSION} is too old. Should be newer than 3.1, please upgrade!"
+if [[ "$(printf "%3d%03d%03d" "${BASH_VERSINFO[@]:0:3}")" -lt "3001000" ]] ; then
+    echo "ERROR: FastSurfer requires bash >= 3.1, but is running with bash ${BASH_VERSION}. Please upgrade!"
     exit 1
 fi
-
 
 function usage()
 {
