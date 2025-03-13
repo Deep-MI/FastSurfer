@@ -660,25 +660,40 @@ then
   exit 1
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] || [[ "$run_seg_pipeline" == "0" ]]; }
+# Check if running on an existing subject directory
+if [[ "$run_surf_pipeline" == 1 ]]
 then
-  if [[ ! -f "$asegdkt_segfile" ]]
+  if [[ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ]] || [[ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]]
   then
-    echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
-    echo "  You passed --surf_only or --no_asegdkt, but the whole-brain segmentation "
-    echo "  ($asegdkt_segfile) could not be found."
-    echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
-    echo "  specify the absolute path and name via --asegdkt_segfile <filename>."
-    exit 1
+    if [[ "$edits" == "true" ]]
+    then
+      echo "INFO: Running on top of an existing subject directory, but edits is $edits."
+    else
+      echo "ERROR: Running the surface pipeline on top of an existing subject directory, but not --edits!"
+      echo "  The output directory must not contain data from a previous invocation of recon-surf."
+      exit 1
+    fi
   fi
-  if [[ ! -f "$conformed_name" ]]
+  if [[ "$run_asegdkt_module" == "0" ]] || [[ "$run_seg_pipeline" == "0" ]]
   then
-    echo "ERROR: To run the surface pipeline only, a conformed T1 image must already exist."
-    echo "  You passed --surf_only but the conformed image ($conformed_name) could not be"
-    echo "  found. If the conformed image is not saved in the default location"
-    echo "  (\$SUBJECTS_DIR/\$SID/mri/orig.mgz), specify the absolute path and name via"
-    echo "  --conformed_name."
-    exit 1
+    if [[ ! -f "$asegdkt_segfile" ]]
+    then
+      echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
+      echo "  You passed --surf_only or --no_asegdkt, but the whole-brain segmentation "
+      echo "  ($asegdkt_segfile) could not be found."
+      echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
+      echo "  specify the absolute path and name via --asegdkt_segfile <filename>."
+      exit 1
+    fi
+    if [[ ! -f "$conformed_name" ]]
+    then
+      echo "ERROR: To run the surface pipeline only, a conformed T1 image must already exist."
+      echo "  You passed --surf_only but the conformed image ($conformed_name) could not be"
+      echo "  found. If the conformed image is not saved in the default location"
+      echo "  (\$SUBJECTS_DIR/\$SID/mri/orig.mgz), specify the absolute path and name via"
+      echo "  --conformed_name."
+      exit 1
+    fi
   fi
 fi
 
