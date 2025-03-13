@@ -403,9 +403,7 @@ case $key in
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
-    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then
-      # no more args or next arg starts with --
-      version_and_quit="1"
+    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then version_and_quit="1" # no more args or next arg starts with --
     else
       case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         all) version_and_quit="+checkpoints+git+pip" ;;
@@ -443,10 +441,7 @@ case $key in
     esac
     shift # past value
     ;;
-  --no_cuda)
-    echo "WARNING: --no_cuda is deprecated and will be removed, use --device cpu."
-    device="cpu"
-    ;;
+  --no_cuda) echo "WARNING: --no_cuda is deprecated and will be removed, use --device cpu." ; device="cpu" ;;
 
   # asegdkt module options
   #=============================================================
@@ -503,10 +498,8 @@ case $key in
   ##############################################################
   --base) base=1 ; run_cereb_module="0" ; run_hypvinn_module="0" ; surf_flags=("${surf_flags[@]}" "--base") ;;
   --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
-  *)    # unknown option
-    # if not empty arguments, error & exit
-    if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
-    ;;
+  # unknown option ;  if not empty arguments, error & exit
+  *) if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ; exit 1 ; fi ;;
 esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
@@ -536,7 +529,7 @@ then
     version_cache_args=("${version_cache_args[@]}" --sections "$version_and_quit")
   fi
   $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}"
-  exit
+  exit 1
 fi
 
 source "${reconsurfdir}/functions.sh"
@@ -553,7 +546,8 @@ tmpLF=$(mktemp)
 
 # CHECKS
 
-if [[ "$legacy_parallel_hemi" == 1 ]] ; then
+if [[ "$legacy_parallel_hemi" == 1 ]]
+then
   {
     echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3."
     echo "  Hemispheres are now automatically processed in parallel, if threads for surface "
@@ -561,7 +555,8 @@ if [[ "$legacy_parallel_hemi" == 1 ]] ; then
     echo "IMPORTANT NOTE: The threads behavior has also changed, --threads used to define the"
     echo "  number of threads per hemisphere, it now defines the number of threads in total!"
   } | tee -a "$tmpLF"
-  if [[ "$threads_surf" == 1 ]] ; then
+  if [[ "$threads_surf" == 1 ]]
+  then
     threads_surf=2
     {
       echo "INFO: We have changed the requested number of threads from 1 to 2, to activate parallel"
