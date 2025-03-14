@@ -451,7 +451,8 @@ case $key in
     fi
     run_asegdkt_module="0"
     ;;
-  --asegdkt_statsfile) asegdkt_statsfile="$1" ; shift ;;
+  --asegdkt_statsfile) asegdkt_vinn_statsfile="$1" ; shift ;;
+  --aseg_statsfile) aseg_vinn_statsfile="$1" ; shift ;;
   --aseg_segfile) aseg_segfile="$1" ; shift ;;
   --mask_name) mask_name="$1" ; warn_seg_only+=("$key" "$1") ; warn_base+=("$key" "$1") ; shift ;;
   --merged_segfile) merged_segfile="$1" ; shift ;;
@@ -585,6 +586,8 @@ if [[ -z "$merged_segfile" ]] ; then merged_segfile="${sd}/${subject}/mri/fastsu
 if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
 if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"; fi
 if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="${sd}/${subject}/stats/aseg+DKT.stats" ; fi
+if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="${sd}/${subject}/stats/aseg+DKT.VINN.stats" ; fi
+if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="${sd}/${subject}/stats/aseg.VINN.stats" ; fi
 if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz" ; fi
 if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats" ; fi
 if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="${sd}/${subject}/mri/hypothalamus.HypVINN.nii.gz" ; fi
@@ -965,28 +968,44 @@ then
     then
       mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
-      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
-           --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
            --threads "$threads_seg" --empty --excludeid 0
-           --sd "${sd}" --sid "${subject}"
-           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
-                 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
-                 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
-                 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031
-                 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013
-                 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
-                 2027 2028 2029 2030 2031 2034 2035
-           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt"
-           measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
-                              "SupraTentorial" "SupraTentorialNotVent"
-                              "SubCortGray" "rhCerebralWhiteMatter"
-                              "lhCerebralWhiteMatter" "CerebralWhiteMatter"
-           # make sure to read white matter hypointensities from the
-           )
+           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+                 251 252 253 254 255
+                 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020
+                 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+                 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
+                 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+           --segstatsfile "$asegdkt_vinn_statsfile"
+           measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent" "SupraTentorial" "SupraTentorialNotVent"
+                              "SubCortGray" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter"
+      )
       if [[ "$run_talairach_registration" == "true" ]]
       then
         cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
       fi
+      {
+        echo_quoted "${cmd[@]}"
+        "${cmd[@]}" 2>&1
+      } | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      then
+        echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
+        exit 1
+      fi
+      # create a symlink of the stats file for the old file name
+      softlink_or_copy "$asegdkt_vinn_statsfile" "$asegdkt_statsfile"
+      # create the aseg only statsfile
+      mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
+      if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --threads "$threads_seg" --empty --excludeid 0
+           --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+           --segstatsfile "$aseg_vinn_statsfile"
+           measures --import "all" --file "$asegdkt_vinn_statsfile"
+      )
       {
         echo_quoted "${cmd[@]}"
         "${cmd[@]}" 2>&1
