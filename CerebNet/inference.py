@@ -362,6 +362,7 @@ class Inference:
 
         from FastSurferCNN.data_loader.data_utils import load_image, load_maybe_conform
 
+        conform_kwargs = {"vox_size": 1.0, "order": 1, "img_size": "auto", "dtype": np.uint8, "orientation": "native"}
         norm_file, norm_data, norm = None, None, None
         if subject.has_attribute("cereb_statsfile") :
             if not subject.can_resolve_attribute("cereb_statsfile"):
@@ -382,9 +383,7 @@ class Inference:
 
             norm_file = subject.filename_by_attribute("norm_name")
             # finally, load the bias field file
-            norm = self.pool.submit(
-                load_maybe_conform, norm_file, norm_file, vox_size=1.0
-            )
+            norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, **conform_kwargs)
 
         # localization
         if not subject.fileexists_by_attribute("asegdkt_segfile"):
@@ -400,7 +399,7 @@ class Inference:
             load_maybe_conform,
             subject.filename_by_attribute("conf_name"),
             subject.filename_by_attribute("orig_name"),
-            vox_size=1.0,
+            **conform_kwargs,
         )
 
         seg, seg_data = seg.result()
@@ -410,7 +409,7 @@ class Inference:
             brain_seg=seg,
             patch_size=self.cfg.DATA.PATCH_SIZE,
             slice_thickness=self.cfg.DATA.THICKNESS,
-            primary_slice=self.cfg.DATA.PRIMARY_SLICE_DIR,
+            # obsolete: primary_slice=self.cfg.DATA.PRIMARY_SLICE_DIR,
         )
         subject_dataset.transforms = ToTensorTest()
         if norm is not None:
@@ -434,20 +433,21 @@ class Inference:
                 enumerate(iter_subjects), total=len(subject_dirs), desc="Subject",
             ):
                 try:
-                    # predict CerebNet, returns logits
+                    # predict CerebNet, returns logits (input and output are LIA)
                     preds = self._predict_single_subject(subject_dataset)
                     # create the folder for the output file, if it does not exist
                     _mkdir = self.pool.submit(
                         subject.segfile.parent.mkdir, exist_ok=True, parents=True,
                     )
 
-                    # postprocess logits (move axes, map sagittal to all classes)
+                    # postprocess logits (move axes, map sagittal to all classes, still LIA)
                     preds_per_plane = self._post_process_preds(preds)
-                    # view aggregation in logit space and find max label
+                    # view aggregation in logit space and find max label (still LIA)
                     cerebnet_seg = self._view_aggregation(preds_per_plane)
 
-                    # map predictions into FreeSurfer Label space & move segmentation to
-                    # cpu
+                    # transform data from lia to native on demand
+                    cerebnet_seg = subject_dataset.back_to_native(cerebnet_seg)
+                    # map predictions into FreeSurfer Label space & move segmentation to cpu
                     cerebnet_seg = self.cereb_id2fs_id.map(cerebnet_seg).cpu()
                     pred_time = time.time()
 

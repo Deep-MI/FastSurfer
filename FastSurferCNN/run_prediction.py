@@ -38,18 +38,17 @@ import nibabel as nib
 import numpy as np
 import torch
 import yacs.config
+from numpy import typing as npt
 
 import FastSurferCNN.reduce_to_aseg as rta
-from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
+from FastSurferCNN.data_loader.conform import conform, is_conform, to_target_orientation
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
-from FastSurferCNN.utils.arg_types import VoxSizeOption
-from FastSurferCNN.utils.checkpoint import (
-    get_checkpoints,
-    load_checkpoint_config_defaults,
-)
+from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
+from FastSurferCNN.utils.arg_types import vox_size as _vox_size
+from FastSurferCNN.utils.checkpoint import get_checkpoints, load_checkpoint_config_defaults
 from FastSurferCNN.utils.common import (
     SerialExecutor,
     SubjectDirectory,
@@ -159,6 +158,7 @@ class RunModelOnData:
     current_plane : str
     models : Dict[str, Inference]
     view_ops : Dict[str, Dict[str, Any]]
+    orientation : OrientationType
     conform_to_1mm_threshold : float, optional
         threshold until which the image will be conformed to 1mm res
 
@@ -195,6 +195,7 @@ class RunModelOnData:
     conform_to_1mm_threshold: float | None
     device: torch.device
     viewagg_device: torch.device
+    orientation: OrientationType
     _pool: Executor
 
     def __init__(
@@ -211,6 +212,8 @@ class RunModelOnData:
             threads: int = 1,
             batch_size: int = 1,
             vox_size: VoxSizeOption = "min",
+            orientation: OrientationType = "lia",
+            image_size: bool = True,
             async_io: bool = False,
             conform_to_1mm_threshold: float = 0.95,
     ):
@@ -226,6 +229,8 @@ class RunModelOnData:
         self._threads = threads
         torch.set_num_threads(self._threads)
         self._async_io = async_io
+        self.orientation = orientation
+        self.image_size = image_size
 
         self.sf = 1.0
 
@@ -273,11 +278,9 @@ class RunModelOnData:
                     view["cfg"], ckpt=view["ckpt"], device=self.device, lut=self.lut,
                 )
 
-        if vox_size == "min":
-            self.vox_size = "min"
-        elif 0.0 < float(vox_size) <= 1.0:
-            self.vox_size = float(vox_size)
-        else:
+        try:
+            self.vox_size = _vox_size(vox_size)
+        except argparse.ArgumentParser:
             raise ValueError(
                 f"Invalid value for vox_size, must be between 0 and 1 or 'min', was "
                 f"{vox_size}."
@@ -304,6 +307,14 @@ class RunModelOnData:
             # do not wait if we encounter a fail case)
             self._pool.shutdown(True)
 
+    def __conform_kwargs(self, **kwargs) -> dict[str, Any]:
+        return dict({
+            "threshold_1mm": self.conform_to_1mm_threshold,
+            "vox_size": self.vox_size,
+            "orientation": self.orientation,
+            "img_size": "fov",
+        }, **kwargs)
+
     def conform_and_save_orig(
         self, subject: SubjectDirectory,
     ) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
@@ -325,28 +336,23 @@ class RunModelOnData:
 
         # Save input image to standard location, but only
         if subject.can_resolve_attribute("copy_orig_name"):
-            self.pool.submit(self.save_img, subject.copy_orig_name, orig_data, orig)
+            self.async_save_img(subject.copy_orig_name, orig_data, orig, orig_data.dtype)
 
-        if not conf.is_conform(
-            orig,
-            conform_vox_size=self.vox_size,
-            check_dtype=True,
-            verbose=True,
-            conform_to_1mm_threshold=self.conform_to_1mm_threshold,
-        ):
-            LOGGER.info("Conforming image")
-            orig = conf.conform(
-                orig,
-                conform_vox_size=self.vox_size,
-                conform_to_1mm_threshold=self.conform_to_1mm_threshold,
-            )
+        if not is_conform(orig, **self.__conform_kwargs(verbose=True)):
+            if (self.orientation is None or self.orientation == "native") and \
+                    not is_conform(orig, **self.__conform_kwargs(verbose=False, dtype=None)):
+                raise RuntimeError(
+                    f"To store images in native image space, the input image {subject.orig_name} must have isometric "
+                    f"voxels."
+                )
+            LOGGER.info("Conforming image...")
+            orig = conform(orig, **self.__conform_kwargs())
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
         if subject.can_resolve_attribute("conf_name"):
-            self.pool.submit(
-                self.save_img, subject.conf_name, orig_data, orig, dtype=np.uint8
-            )
+            self.async_save_img(subject.conf_name, orig_data, orig, dtype=np.uint8)
+            LOGGER.info(f"Saving conformed image to {subject.conf_name}...")
         else:
             raise RuntimeError(
                 "Cannot resolve the name to the conformed image, please specify an "
@@ -367,7 +373,7 @@ class RunModelOnData:
         self.current_plane = plane
 
     def get_prediction(
-        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int],
+        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int], affine: npt.NDArray[float],
     ) -> np.ndarray:
         """
         Run and get prediction.
@@ -380,18 +386,22 @@ class RunModelOnData:
             Original image data.
         zoom : np.ndarray, tuple
             Original zoom.
+        affine : npt.NDArray[float]
+            Original affine.
 
         Returns
         -------
         np.ndarray
             Predicted classes.
         """
-        shape = orig_data.shape + (self.get_num_classes(),)
         kwargs = {
             "device": self.viewagg_device,
             "dtype": torch.float16,
             "requires_grad": False,
         }
+
+        orig_in_lia, back_to_native = to_target_orientation(orig_data, affine, target_orientation="LIA")
+        shape = orig_in_lia.shape + (self.get_num_classes(),)
 
         pred_prob = torch.zeros(shape, **kwargs)
 
@@ -400,11 +410,13 @@ class RunModelOnData:
             LOGGER.info(f"Run {plane} prediction")
             self.set_model(plane)
             # pred_prob is updated inplace to conserve memory
-            pred_prob = model.run(pred_prob, image_name, orig_data, zoom, out=pred_prob)
+            pred_prob = model.run(pred_prob, image_name, orig_in_lia, zoom, out=pred_prob)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
         del pred_prob
+        # reorder from lia to native
+        pred_classes = back_to_native(pred_classes)
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
         # return numpy array
@@ -583,18 +595,9 @@ def make_parser():
     )
 
     # 5. technical parameters
-    parser = parser_defaults.add_arguments(
-        parser,
-        [
-            "vox_size",
-            "conform_to_1mm_threshold",
-            "device",
-            "viewagg_device",
-            "batch_size",
-            "async_io",
-            "threads",
-        ],
-    )
+    image_flags = ["vox_size", "conform_to_1mm_threshold", "orientation", "image_size", "device"]
+    tech_flags = ["viewagg_device", "batch_size", "async_io", "threads"]
+    parser = parser_defaults.add_arguments(parser, image_flags + tech_flags)
     return parser
 
 def main(
@@ -623,6 +626,8 @@ def main(
         device: str = "auto",
         viewagg_device: str = "auto",
         batch_size: int = 1,
+        orientation: OrientationType = "lia",
+        image_size: bool = True,
         async_io: bool = True,
         threads: int = -1,
         conform_to_1mm_threshold: float = 0.95,
@@ -687,6 +692,8 @@ def main(
             threads=threads,
             batch_size=batch_size,
             vox_size=vox_size,
+            orientation=orientation,
+            image_size=image_size,
             async_io=async_io,
             conform_to_1mm_threshold=conform_to_1mm_threshold,
         )

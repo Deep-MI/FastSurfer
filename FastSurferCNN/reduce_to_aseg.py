@@ -20,6 +20,7 @@ import sys
 import nibabel as nib
 import numpy as np
 import scipy.ndimage
+from numpy import typing as npt
 from skimage.filters import gaussian
 from skimage.measure import label
 
@@ -92,7 +93,7 @@ def options_parse():
 
 def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
     """
-    Reduce the input segmentation to a simpler segmentation.
+    Reduce the input segmentation to a simpler segmentation (for all data orientations, LIA/etc).
 
     Parameters
     ----------
@@ -113,9 +114,9 @@ def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
     return data_inseg
 
 
-def create_mask(aseg_data, dnum, enum):
+def create_mask(aseg_data: npt.NDArray[int], dnum: int, enum: int) -> npt.NDArray[int]:
     """
-    Create dilated mask.
+    Create dilated mask (works for all data orientations, LIA/etc).
 
     Parameters
     ----------
@@ -128,7 +129,7 @@ def create_mask(aseg_data, dnum, enum):
 
     Returns
     -------
-    -
+    npt.NDArray[int]
         Returns aseg_data.
     """
     print("Creating dilated mask ...")
@@ -170,7 +171,7 @@ def create_mask(aseg_data, dnum, enum):
 
 def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
     """
-    Flip labels of disconnected white matter islands to the other hemisphere.
+    Flip labels of disconnected white matter islands to the other hemisphere (works for all data orientations, LIA/etc).
 
     Parameters
     ----------
