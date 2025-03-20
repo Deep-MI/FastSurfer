@@ -452,20 +452,11 @@ echo "" | tee -a "$LF"
   echo " "
 } | tee -a "$LF"
 
-CONFORM_LF=$SUBJECTS_DIR/$subject/scripts/conform.log
-if [ "$CONFORM_LF" != /dev/null ] ; then  rm -f "$CONFORM_LF" ; fi
-echo "Log file for Conform test" > "$CONFORM_LF"
-
 # check for input conformance
-cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose --log $CONFORM_LF"
+cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $t1 --check_only --vox_size min --verbose"
 RunIt "$cmd" "$LF"
 
-# look into the CONFORM_LF to find the voxel sizes, the second conform.py call will check the legality of vox_size
-vox_size_prefix=" - Voxel Size"
-vox_size=$(grep -oE "${vox_size_prefix} [0-9.]+" "$CONFORM_LF")
-vox_size="${vox_size:${#vox_size_prefix}}"
-# remove the temporary conform_log (all info is also in the recon-surf logfile)
-if [ -f "$CONFORM_LF" ]; then rm -f "$CONFORM_LF" ; fi
+vox_size=$($python -c "from nibabel import load; print(load('$t1').header.get_zooms()[0])")
 
 # here, we check the correct vox_size by passing it to the next conform, so errors in this line might be caused above
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/data_loader/conform.py -i $asegdkt_segfile --check_only --vox_size $vox_size --dtype any --verbose"
