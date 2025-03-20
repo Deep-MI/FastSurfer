@@ -417,9 +417,7 @@ class SubjectDirectory:
         str
             The orig name.
         """
-        assert (
-            hasattr(self, "_orig_name") or "The orig_name attribute has not been set!"
-        )
+        assert hasattr(self, "_orig_name"), "The orig_name attribute has not been set!"
         return self._orig_name
 
     @orig_name.setter

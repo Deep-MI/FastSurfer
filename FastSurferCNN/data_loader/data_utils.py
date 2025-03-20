@@ -36,7 +36,6 @@ from skimage.measure import label, regionprops
 
 from FastSurferCNN.data_loader.conform import check_affine_in_nifti, conform, is_conform
 from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.arg_types import VoxSizeOption
 
 ##
 # Global Vars
@@ -53,9 +52,9 @@ LOGGER = logging.getLogger(__name__)
 # voxels
 def load_and_conform_image(
         img_filename: Path | str,
-        interpol: int = 1,
+        order: int = 1,
         logger: logging.Logger = LOGGER,
-        conform_min: bool = False
+        **conform_kwargs,
 ) -> tuple[_Header, np.ndarray, np.ndarray]:
     """
     Load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic
@@ -67,13 +66,12 @@ def load_and_conform_image(
     ----------
     img_filename : Path, str
         Path and name of volume to read.
-    interpol : int, default=1
-        Interpolation order for image conformation
-        (0=nearest, 1=linear(default), 2=quadratic, 3=cubic).
+    order : int, default=1
+        Interpolation order for image conformation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic).
     logger : logging.Logger, default=<local logger>
         Logger to write output to (default = STDOUT).
-    conform_min : bool, default=False
-        Conform image to minimal voxel size (for high-res).
+    **conform_kwargs
+        Additional parameters to conform and is_conform.
 
     Returns
     -------
@@ -87,40 +85,28 @@ def load_and_conform_image(
     Raises
     ------
     RuntimeError
-        Multiple input frames not supported.
-    RuntimeError
-        Inconsistency in nifti-header.
+        If input has multiple input frames or inconsistent nifti headers.
     """
     img_file = Path(img_filename)
-    orig = nib.load(img_file)
-    # is_conform and conform accept numeric values and the string 'min' instead of the
-    # bool value
-    _conform_vox_size = "min" if conform_min else 1.0
-    if not is_conform(orig, conform_vox_size=_conform_vox_size):
+    orig = cast(nib.analyze.SpatialImage, nib.load(img_file))
+    # is_conform and conform accept numeric values and the string 'min' instead of the bool value
+    if not is_conform(orig, **conform_kwargs):
 
-        logger.info(
-            "Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels"
-        )
+        logger.info("Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels")
 
         if len(orig.shape) > 3 and orig.shape[3] != 1:
-            raise RuntimeError(
-                f"ERROR: Multiple input frames ({orig.shape[3]}) not supported!"
-            )
+            raise RuntimeError(f"Multiple input frames ({orig.shape[3]}) not supported!")
 
         # Check affine if image is nifti image
         if img_file.suffix == ".nii" or img_file.suffixes[-2:] == [".nii", ".gz"]:
-            if not check_affine_in_nifti(orig, logger=logger):
-                raise RuntimeError("ERROR: inconsistency in nifti-header. Exiting now.")
+            if not check_affine_in_nifti(cast(nib.nifti1.Nifti1Image | nib.nifti2.Nifti1Image, orig), logger=logger):
+                raise RuntimeError("Inconsistency in nifti-header!")
 
         # conform
-        orig = conform(orig, interpol, conform_vox_size=_conform_vox_size)
+        orig = conform(orig, order=order, **conform_kwargs)
 
-    # Collect header and affine information
-    header_info = orig.header
-    affine_info = orig.affine
-    orig_data = np.asanyarray(orig.dataobj)
-
-    return header_info, affine_info, orig_data
+    # Return header and affine information
+    return orig.header, orig.affine, np.asanyarray(orig.dataobj)
 
 
 def load_image(
@@ -172,7 +158,7 @@ def load_image(
 def load_maybe_conform(
         file: Path | str,
         alt_file: Path | str,
-        vox_size: VoxSizeOption = "min"
+        **conform_kwargs,
 ) -> tuple[Path, nib.analyze.SpatialImage, np.ndarray]:
     """
     Load an image by file, check whether it is conformed to vox_size and conform to
@@ -184,8 +170,8 @@ def load_maybe_conform(
         Path to the file to load.
     alt_file : Path, str
         Alternative file to interpolate from.
-    vox_size : VoxSizeOption, default="min"
-        Voxel Size.
+    **conform_kwargs
+        Additional parameters to conform and is_conform.
 
     Returns
     -------
@@ -195,16 +181,22 @@ def load_maybe_conform(
         The file container object including the corrected header.
     np.ndarray
         The data loaded from the file.
+
+    See Also
+    --------
+    FastSurferCNN.data_loader.conform.conform
+    FastSurferCNN.data_loader.conform.is_conform
     """
     file = Path(file)
     alt_file = Path(alt_file)
+    conform_kwargs_no_order = {k: v for k, v in conform_kwargs.items() if k != "order"}
 
     _is_conform, img = False, None
     if file.is_file():
         # see if the file is 1mm
         img = cast(nib.analyze.SpatialImage, nib.load(file))
         # is_conform only needs the header, not the data
-        _is_conform = is_conform(img, conform_vox_size=vox_size, verbose=False)
+        _is_conform = is_conform(img, **conform_kwargs_no_order, verbose=False)
 
     if _is_conform:
         # calling np.asarray here, forces the load of img.dataobj into memory
@@ -224,7 +216,7 @@ def load_maybe_conform(
                 f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
             )
         file_no_fileext = str(file)[:-len(fileext[0]) - 1]
-        if vox_size == "min":
+        if (vox_size := conform_kwargs.get("vox_size", 1.0)) == "min":
             vox_suffix = ".min"
         else:
             vox_suffix = f".{str(vox_size).replace('.', '')}mm"
@@ -243,7 +235,7 @@ def load_maybe_conform(
         dst_file = Path(file_no_fileext + "." + fileext[0])
         # conform to 1mm
         header, affine, data = load_and_conform_image(
-            src_file, conform_min=False, logger=logging.getLogger(__name__ + ".conform")
+            src_file, logger=logging.getLogger(__name__ + ".conform"), **conform_kwargs,
         )
 
         # after conforming, save the conformed file
@@ -263,8 +255,7 @@ def save_image(
     """
     Save an image (nibabel MGHImage), according to the desired output file format.
 
-    Supported formats are defined in supported_output_file_formats. Saves predictions to
-    save_as.
+    Supported formats are defined in supported_output_file_formats. Saves predictions to save_as.
 
     Parameters
     ----------
@@ -277,8 +268,7 @@ def save_image(
     save_as : Path, str
         Name under which to save prediction; this determines output file format.
     dtype : npt.DTypeLike, optional
-        Image array type; if provided, the image object is explicitly set to match this
-        type (Default value = None).
+        Image array type; if provided, the image object is explicitly set to match this type.
     """
     save_as = Path(save_as)
     assert (

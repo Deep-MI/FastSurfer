@@ -13,28 +13,72 @@
 # limitations under the License.
 
 import argparse
-from typing import Literal
+from typing import Literal, cast
 
 import nibabel as nib
 import numpy as np
 
 VoxSizeOption = float | Literal["min"]
+ImageSizeOption = int | Literal["fov", "auto"]
+OrientationType = Literal["native", "soft lia", "lia"]
 
 
-def vox_size(a: str) -> VoxSizeOption:
+def orientation(a: str) -> OrientationType:
+    """
+    Convert the orientation argument to a valid orientation from 'native', 'soft lia', and 'lia'.
+
+    Parameters
+    ----------
+    a : str
+        Target orientation type, handles cases.
+
+    Returns
+    -------
+    str
+        One of 'native', 'soft lia', or 'lia'.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the argument is not a valid choice.
+    """
+    r = a.lower().replace("_", " ").replace("-", " ").strip()
+    if r in ("native", "soft lia", "lia"):
+        return cast(OrientationType, r)
+    raise argparse.ArgumentTypeError(f"'{a}' is not a valid orientation from 'native', 'soft lia', or 'lia'.") from None
+
+
+def string_to_bool(a: str) -> bool:
+    """
+    Convert a string to a boolean value.
+
+    Parameters
+    ----------
+    a : str
+        String to convert.
+
+    Returns
+    -------
+    bool
+        If a is "on", "true", "yes", "y", "1" (case-insensitive).
+    """
+    return a.lower() in ("on", "true", "yes", "y", "1")
+
+def vox_size(a: str) -> VoxSizeOption | None:
     """
     Convert the vox_size argument to 'min' or a valid voxel size.
 
     Parameters
     ----------
     a : str
-        Vox size type. Can be auto, bin or a number between 1 an 0.
+        Vox size type. Can be auto, min or a number between 1 an 0.
 
     Returns
     -------
-    str or float
+    str or float or None
         If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
         If a valid voxel size (between 0 and 1) is provided, it returns a float.
+        If 'any', it returns None.
 
     Raises
     ------
@@ -43,12 +87,44 @@ def vox_size(a: str) -> VoxSizeOption:
     """
     if a.lower() in ["auto", "min"]:
         return "min"
+    if a.lower() == "any":
+        return None
     try:
         return float_gt_zero_and_le_one(a)
     except argparse.ArgumentError as e:
-        raise argparse.ArgumentTypeError(
-            e.args[0] + " Additionally, vox_sizes may be 'min'."
-        ) from None
+        raise argparse.ArgumentTypeError(e.args[0] + " Additionally, vox_sizes may be 'min'.") from None
+
+def img_size(a: str) -> ImageSizeOption | None:
+    """
+    Convert the img_size argument to 'fov', 'auto' or int as a valid image size.
+
+    Parameters
+    ----------
+    a : str
+        Image size type. Can be auto, fov or an integer greater than 0.
+
+    Returns
+    -------
+    str or int
+        If 'auto' or 'fov' is provided, it returns a string('auto' or 'fov').
+        If a valid image size (greater than 0) is provided, it returns an int.
+        If 'any', it returns None.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the argument is not "fov", "auto" or convertible to an int greater than 0.
+    """
+    if a.lower() == "auto":
+        return "auto"
+    if a.lower() == "fov":
+        return "fov"
+    if a.lower() == "any":
+        return None
+    try:
+        return int_gt_zero(a)
+    except argparse.ArgumentError as e:
+        raise argparse.ArgumentTypeError(e.args[0] + " Additionally, img_sizes may be 'fov'.") from None
 
 
 def float_gt_zero_and_le_one(a: str) -> float | None:

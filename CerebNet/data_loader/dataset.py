@@ -28,6 +28,7 @@ from CerebNet.data_loader import data_utils as utils
 from CerebNet.data_loader.augmentation import ToTensor
 from CerebNet.datasets.load_data import SubjectLoader
 from CerebNet.datasets.utils import bounding_volume_offset, crop_transform
+from FastSurferCNN.data_loader.conform import to_target_orientation
 from FastSurferCNN.data_loader.data_utils import (
     get_thick_slices,
     transform_axial,
@@ -239,7 +240,7 @@ class SubjectDataset(Dataset):
         brain_seg: nib.analyze.SpatialImage,
         patch_size: tuple[int, ...],
         slice_thickness: int,
-        primary_slice: str,
+        primary_slice: str | None = None,
     ):
         self.slice_thickness = slice_thickness
         self.transforms = Compose([ToTensor()])
@@ -284,14 +285,16 @@ class SubjectDataset(Dataset):
             offsets=self.roi["offsets"],
             target_shape=self.roi["target_shape"],
         )
+        # reorient the data to lia
+        img_lia, self.back_to_native = to_target_orientation(img, self.img_org.affine, target_orientation="LIA")
 
         self.images_per_plane = {}
         self.count = 0
         self._plane: Plane = "axial"
         data = {
-            "axial": transform_axial(img),
-            "coronal": img,
-            "sagittal": transform_sagittal(img),
+            "axial": transform_axial(img_lia),
+            "coronal": img_lia,
+            "sagittal": transform_sagittal(img_lia),
         }
         for plane, data_i in data.items():
             # data is transformed to 'plane'-direction in axis 2

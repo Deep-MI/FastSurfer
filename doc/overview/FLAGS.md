@@ -32,6 +32,9 @@ In the following, we give an overview of the most important options. You can vie
 * `--no_cereb`: Switch off the cerebellum sub-segmentation.
 * `--cereb_segfile`: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
 * `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.
+* `--orientation`: **Only supported for `--seg_only`**, select the image orientation (`lia` (default), `soft lia` or `soft-lia` -- orient to LIA orientation, but do not interpolate, `native` -- segment in the native image space).
+* `--image_size`: Select the target image size (a number to use, `fov` to set the image size to the input field of view (**allows non-cube images, only supported for `--seg_only`**), or `auto` (default) expands the image so all three image dimensions are the same).
+* `--keepgeom`: **Only supported for `--seg_only`**, segment in native image space (both orientation and image size), same as `--orientation native --image_size fov`.
 
 ## Surface pipeline arguments (optional)
 * `--surf_only`: Only run the surface pipeline. The segmentation created by FastSurferVINN must already exist in this case.

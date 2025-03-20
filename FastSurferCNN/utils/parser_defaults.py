@@ -34,8 +34,10 @@ from pathlib import Path
 from typing import Literal, Optional, Protocol, TypeVar, get_args, get_origin
 
 from FastSurferCNN.utils import PLANES, Plane
+from FastSurferCNN.utils.arg_types import OrientationType, unquote_str
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
-from FastSurferCNN.utils.arg_types import unquote_str
+from FastSurferCNN.utils.arg_types import img_size as __image_size
+from FastSurferCNN.utils.arg_types import orientation as __orientation
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.dataclasses import field, get_field
 from FastSurferCNN.utils.threads import get_num_threads
@@ -46,7 +48,6 @@ PLANE_HELP = {
     "checkpoint": "{} checkpoint to load",
     "config": "Path to the {} config file",
 }
-VoxSize = Literal["min"] | float
 
 
 class CanAddArguments(Protocol):
@@ -297,6 +298,25 @@ ALL_FLAGS = {
              "experimental) or 'min' (default). A number forces processing at that specific voxel size, 'min' "
              "determines the voxel size from the image itself (conforming to the minimum voxel size, or 1 if the "
              "minimum voxel size is above 0.95mm). ",
+    ),
+    "orientation": __arg(
+        "--orientation",
+        choices=get_args(OrientationType),
+        type=__orientation,
+        dest="orientation",
+        default="lia",
+        help="Select the target affine format for output, native: input defined by input image, soft_lia (or soft-lia, "
+             "soft_lia) store as LIA, but do not interpolate, lia: force LIA, affine is only 0 or +-1 (default, "
+             "required by the surface pipeline).",
+    ),
+    "image_size": __arg(
+        "--image_size",
+        type=__image_size,
+        dest="image_size",
+        default="auto",
+        help="Select how the image should be conformed. A positive integer yields a cube of that size, 'fov' yields "
+             "dimensions, so the field of view stays consistent, 'auto' yields a cube of dimensions fully containing "
+             "the field of view (default).",
     ),
     "conform_to_1mm_threshold": __arg(
         "--conform_to_1mm_threshold",
