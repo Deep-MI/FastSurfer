@@ -207,14 +207,10 @@ def load_maybe_conform(
     else:
         # the image is not conformed to 1mm, do this now.
 
-        fileext = [
-            ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS
-            if file.name.endswith("." + ext)
-        ]
+        fileext = [ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS if file.name.endswith("." + ext)]
         if len(fileext) != 1:
             raise RuntimeError(
-                f"Invalid file extension of conf_name: {file}, must be one of "
-                f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
+                f"Invalid file extension of conf_name: {file}, must be one of {SUPPORTED_OUTPUT_FILE_FORMATS}."
             )
         file_no_fileext = str(file)[:-len(fileext[0]) - 1]
         if (vox_size := conform_kwargs.get("vox_size", 1.0)) == "min":
@@ -228,9 +224,8 @@ def load_maybe_conform(
         src_file = alt_file if alt_file.is_file() else file
         if not alt_file.is_file():
             LOGGER.warning(
-                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to "
-                f"interpolate from, so we might lose quality due to multiple chained "
-                f"interpolations."
+                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so we might "
+                f"lose quality due to multiple chained interpolations."
             )
 
         dst_file = Path(file_no_fileext + "." + fileext[0])
@@ -272,13 +267,8 @@ def save_image(
         Image array type; if provided, the image object is explicitly set to match this type.
     """
     save_as = Path(save_as)
-    assert (
-        save_as.suffix[1:] in SUPPORTED_OUTPUT_FILE_FORMATS or
-        save_as.suffixes[-2:] == [".nii", ".gz"]
-    ), (
-        f"Output filename does not contain a supported file format "
-        f"{SUPPORTED_OUTPUT_FILE_FORMATS}!"
-    )
+    valid_ext = save_as.suffix[1:] in SUPPORTED_OUTPUT_FILE_FORMATS or save_as.suffixes[-2:] == [".nii", ".gz"]
+    assert valid_ext, f"Output filename does not contain a supported file format {SUPPORTED_OUTPUT_FILE_FORMATS}!"
 
     mgh_img = None
     if save_as.suffix == ".mgz":

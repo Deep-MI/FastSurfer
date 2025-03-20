@@ -15,6 +15,8 @@
 # IMPORTS
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, FileHandler, Logger, StreamHandler, basicConfig, getLogger
 from logging import getLogger as get_logger
+import logging as _logging
+from os import environ as _environ
 from pathlib import Path as _Path
 from sys import stdout as _stdout
 
@@ -39,4 +41,8 @@ def setup_logging(log_file_path: _Path | str):
 
         handlers.append(FileHandler(filename=log_file_path, mode="a"))
 
-    basicConfig(level=INFO, format=_FORMAT, handlers=handlers)
+    log_level = _environ.get("FASTSURFER_LOG_LEVEL", "INFO").upper()
+    if log_level not in ("INFO", "DEBUG", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"):
+        raise RuntimeError(f"Invalid log level: {log_level}")
+
+    basicConfig(level=getattr(_logging, log_level), format=_FORMAT, handlers=handlers)

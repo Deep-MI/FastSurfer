@@ -1412,16 +1412,14 @@ def crop_transform(
             _target_shape = image.shape[:-len_off] + tuple(
                 i - 2 * o for i, o in zip(image.shape[-len_off:], offsets, strict=False)
             )
-        elif len_off != len(target_shape):
-            raise ValueError(
-                "Incompatible offset and target_shape dimensionality (at least once)."
-            )
-        else:
+        elif len_off == len(target_shape):
             _target_shape = tuple(
                 i if t == -1 else t
                 for i, t in zip(image.shape[-len_off:], target_shape, strict=False)
             )
             _target_shape = image.shape[:-len_off] + _target_shape
+        else:
+            raise ValueError("Incompatible offset and target_shape dimensionality (at least once).")
 
     if len_off > image.ndim:
         raise RuntimeError("shape of offsets is larger than dim of image allows.")

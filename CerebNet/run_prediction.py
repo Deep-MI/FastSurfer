@@ -136,10 +136,9 @@ def main(args: argparse.Namespace) -> int | str:
 
     Returns
     -------
-    int
-        Returns 0 upon successful execution to indicate success.
-    str
-        A message indicating the failure reason in case of an exception.
+    int, str
+        Returns 0 upon successful execution to indicate success or
+        a message indicating the failure reason in case of an exception.
 
     References
     ----------

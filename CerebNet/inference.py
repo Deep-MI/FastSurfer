@@ -56,6 +56,7 @@ class Inference:
     cerebnet_labels: Mapper[str, int]
     cereb_name2fs_id: Mapper[str, int]
     freesurfer_name2id: Mapper[str, int]
+    cereb_id2fs_id: Mapper[int, int]
 
     def __init__(
         self,
@@ -153,12 +154,8 @@ class Inference:
 
         self.cerebnet_labels = _cerebnet_mapper.result().labelname2id()
         self.freesurfer_name2id = fs_color_map.result().labelname2id()
-        cereb_name2fs_name: Mapper[str, str] = (
-            cereb2freesurfer_mapper.result().labelname2id()
-        )
-        cerebsag_name2cereb_name: Mapper[str, str] = (
-            sagittal_cereb2cereb_mapper.result().labelname2id()
-        )
+        cereb_name2fs_name: Mapper[str, str] = cereb2freesurfer_mapper.result().labelname2id()
+        cerebsag_name2cereb_name: Mapper[str, str] = sagittal_cereb2cereb_mapper.result().labelname2id()
 
         cereb_id2name = self.cerebnet_labels.__reversed__()
         self.cereb_name2fs_id = cereb_name2fs_name.chain(self.freesurfer_name2id)
@@ -204,13 +201,9 @@ class Inference:
         return dict(zip(PLANES, self.pool.map(_load_model_func, PLANES), strict=False))
 
     @torch.no_grad()
-    def _predict_single_subject(
-        self, subject_dataset: SubjectDataset
-    ) -> dict[Plane, list[torch.Tensor]]:
-        """Predict the classes based on a SubjectDataset."""
-        img_loader = DataLoader(
-            subject_dataset, batch_size=self.batch_size, shuffle=False
-        )
+    def _predict_single_subject(self, subject_dataset: SubjectDataset) -> dict[Plane, list[torch.Tensor]]:
+        """Predict the classes based on a SubjectDataset (operates fully in LIA)."""
+        img_loader = DataLoader(subject_dataset, batch_size=self.batch_size, shuffle=False)
         prediction_logits = {}
         try:
             for plane in PLANES:
@@ -220,8 +213,7 @@ class Inference:
                 from CerebNet.data_loader.data_utils import slice_lia2ras, slice_ras2lia
 
                 for img in img_loader:
-                    # CerebNet is trained on RAS+ conventions, so we need to map between
-                    # lia (FastSurfer) and RAS+
+                    # CerebNet is trained on RAS+ conventions, so we need to map between lia (FastSurfer) and RAS+
                     # map LIA 2 RAS
                     img = slice_lia2ras(plane, img, thick_slices=True)
                     batch = img.to(self.device)
@@ -367,9 +359,7 @@ class Inference:
         if cerebnet_seg.shape != orig.shape:
             raise RuntimeError("Cereb segmentation shape inconsistent with Orig shape!")
         logger.info(f"Saving CerebNet cerebellum segmentation at {filename}")
-        return self.pool.submit(
-            save_image, orig.header, orig.affine, cerebnet_seg, filename, dtype=np.int16
-        )
+        return self.pool.submit(save_image, orig.header, orig.affine, cerebnet_seg, filename, dtype=np.int16)
 
     def _get_subject_dataset(
         self, subject: SubjectDirectory
@@ -409,9 +399,7 @@ class Inference:
                 f"The aseg.DKT-segmentation file '{subject.asegdkt_segfile}' did not "
                 f"exist, please run FastSurferVINN first."
             )
-        seg = self.pool.submit(
-            load_image, subject.filename_by_attribute("asegdkt_segfile")
-        )
+        seg = self.pool.submit(load_image, subject.filename_by_attribute("asegdkt_segfile"))
         # create conformed image
         conf_img = self.pool.submit(
             load_maybe_conform,
@@ -461,9 +449,7 @@ class Inference:
                     # predict CerebNet, returns logits (input and output are LIA)
                     preds = self._predict_single_subject(subject_dataset)
                     # create the folder for the output file, if it does not exist
-                    _mkdir = self.pool.submit(
-                        subject.segfile.parent.mkdir, exist_ok=True, parents=True,
-                    )
+                    _mkdir = self.pool.submit(subject.segfile.parent.mkdir, exist_ok=True, parents=True)
 
                     # postprocess logits (move axes, map sagittal to all classes, still LIA)
                     preds_per_plane = self._post_process_preds(preds)
@@ -487,11 +473,7 @@ class Inference:
                     # this is None, but synchronizes the creation of the directory
                     _ = _mkdir.result()
                     futures.append(
-                        self._save_cerebnet_seg(
-                            full_cereb_seg,
-                            subject.segfile,
-                            subject_dataset.get_nibabel_img(),
-                        )
+                        self._save_cerebnet_seg(full_cereb_seg, subject.segfile, subject_dataset.get_nibabel_img())
                     )
 
                     if subject.has_attribute("cereb_statsfile"):
@@ -521,10 +503,9 @@ class Inference:
                             )
                         )
 
-                    logger.info(
-                        f"Subject {idx + 1}/{len(subject_dirs)} with id '{subject.id}' processed in "
-                        f"{pred_time - start_time :.2f} sec."
-                    )
+                    duration = pred_time - start_time
+                    num = len(subject_dirs)
+                    logger.info(f"Subject {idx + 1}/{num} with id '{subject.id}' processed in {duration:.2f} sec.")
                 except Exception as e:
                     logger.exception(e)
                     return "\n".join(map(str, e.args))

@@ -21,9 +21,9 @@ Contains the ALL_FLAGS dictionary, which can be used as follows to add default f
 >>> allows_root = args.root  # instead of the default dest args.allow_root
 
 Values can also be extracted by
->>> print(ALL_FLAGS["allow_root"](dict, dest="root")
->>> # {'flag': '--allow_root', 'flags': ('--allow_root',), 'action': 'store_true',
->>> #  'dest': 'root', 'help': 'Allow execution as root user.'}
+>>> print(ALL_FLAGS["seg_log"](dict, dest="log_file")
+>>> # {'flag': '--seg_log', 'flags': ('--seg_log',), 'type': str, default='', 'dest': 'log_file',
+>>> #  'help': 'Absolute path to file in which run logs will be saved. If not set, logs will not be saved.'}
 """
 
 import argparse
