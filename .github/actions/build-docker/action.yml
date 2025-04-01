@@ -35,7 +35,7 @@ runs:
       uses: docker/setup-buildx-action@v3
     - name: Recover freesurfer build image
       if: ${{ contains( inputs.freesurfer-build-image, 'fastsurfer-build:freesurfer') }}
-      uses: ./.github/actions/load-docker
+      uses: Deep-MI/FastSurfer/.github/actions/load-docker@dev
       with:
         docker-image: ${{ inputs.freesurfer-build-image }}
         target: build_freesurfer

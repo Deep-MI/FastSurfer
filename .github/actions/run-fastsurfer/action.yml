@@ -63,27 +63,20 @@ runs:
           exit 1
         fi
         # Check if the docker needs to be loaded (fail if not)
-        if [[ -z "$(docker images -q "${{ inputs.docker-image }}")" ]] ; then di="0" ; else di="1" ; fi
-        echo "IMAGE_LOADED=$di" >> $GITHUB_OUTPUT
+        if [[ -z "$(docker images -q "${{ inputs.docker-image }}")" ]] ; then img_loaded="0" ; else img_loaded="1" ; fi
+        echo "IMAGE_LOADED=$img_loaded" >> $GITHUB_OUTPUT
         echo "::endgroup::"
     - name: Load the docker image
       if: steps.prep.outputs.IMAGE_LOADED == 0
       id: load-docker
-      uses: ./.github/actions/load-docker
+      uses: Deep-MI/FastSurfer/.github/actions/load-docker@dev
       with:
         docker-image: ${{ inputs.docker-image }}
-    - name: Reuse loaded image
-      if: steps.prep.outputs.IMAGE_LOADD != 0
-      id: load-docker
-      shell: bash
-      run: |
-        # populate image-name
-        echo "image-name=${{ inputs.docker-image }}" > $GITHUB_OUTPUT
     - name: FastSurfer Segmentation pipeline
       shell: bash
       if: ${{ ! contains( inputs.extra-args, '--surf_only' ) }}
       env:
-        IMAGE_NAME: ${{ steps.load-docker.outputs.image-name }}
+        IMAGE_NAME: ${{ steps.prep.outputs.IMAGE_LOADED == 0 && steps.load-docker.outputs.image-name || inputs.docker-image }}
       run: |
         # Segmentation call
         echo "::group::FastSurfer Segmentation"
@@ -95,7 +88,7 @@ runs:
       shell: bash
       if: ${{ ! contains( inputs.extra-args, '--seg_only' ) }}
       env:
-        IMAGE_NAME: ${{ steps.load-docker.outputs.image-name }}
+        IMAGE_NAME: ${{ steps.prep.outputs.IMAGE_LOADED == 0 && steps.load-docker.outputs.image-name || inputs.docker-image }}
       run: |
         # Surface pipeline call
         echo "::group::FastSurfer Surface reconstruction"
@@ -113,14 +106,14 @@ runs:
         if [[ "${{ contains( inputs.extra-args, '--surf_only' ) }}" == "0" ]] ; then docker container rm seg_container ; fi
         if [[ "${{ contains( inputs.extra-args, '--seg_only' ) }}" == "0" ]] ; then docker container rm surf_container ; fi
         echo "::endgroup::"
+        echo "::group::Save ${{ inputs.subject-id }} as an artifact"
     - name: Create archive of Processed subject-data
       shell: bash
       run: |
         # Archive data code
-        echo "::group::Save ${{ inputs.subject-id }} as an artifact"
         tar cfz "$DATA_DIR/${{ inputs.subject-id }}.tar.gz" -C "$DATA_DIR" "${{ inputs.subject-id }}"
     - name: Save processed data
       uses: actions/upload-artifact@v4
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
-        path: ${{ env.DATA_DIR }}/${{ inputs.subject-id }}.tar.gz
+        path: ${{ env.DATA_DIR }}/${{ inputs.subject-id }}

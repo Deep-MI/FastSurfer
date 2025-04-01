@@ -16,11 +16,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Recover processed files
-      uses: actions/download-artifact@v4
-      with:
-        name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
-        path: /tmp/${{ inputs.subject-id }}.tar.gz
     - name: Load cached subject directory
       shell: bash
       run: |
@@ -29,9 +24,8 @@ runs:
           echo "The expected subject directory ${{ inputs.subjects-dir }}/${{ inputs.subject-id }} already exists!"
           exit 1
         fi
-        tar xf /tmp/${{ inputs.subject-id }}.tar.gz -C ${{ inputs.subjects-dir }}
-        rm -f /tmp/${{ inputs.subject-id }}.tar.gz
-        if [[ ! -d "${{ inputs.subjects-dir }}/${{ inputs.subject-id }}" ]] ; then
-          echo "The artifact did not contain the expected output directory ${{ inputs.subjects-dir }}/${{ inputs.subject-id }}!"
-          exit 1
-        fi
+    - name: Recover processed files
+      uses: actions/download-artifact@v4
+      with:
+        name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
+        path: ${{ inputs.subjects-dir }}/${{ inputs.subject-id }}

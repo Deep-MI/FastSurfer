@@ -59,7 +59,7 @@ runs:
         rm -f "$REF_DIR/ref-download-data"
         echo "::endgroup::"
     - name: Recover Case data
-      uses: ./.github/actions/load-processed
+      uses: Deep-MI/FastSurfer/.github/actions/load-processed@dev
       with:
         subject-id: ${{ inputs.subject-id }}
         subjects-dir: ${{ inputs.subjects-dir }}
@@ -70,6 +70,7 @@ runs:
         FASTSURFER_HOME: ${{ github.workspace }}
         REF_DIR: ${{ inputs.reference-dir }}
       shell: bash
+      continue-on-error: true  # pytest only exits with code 0, if all tests pass
       run: |
         echo "::group::Run tests"
         flags=("--junit-xml=${{ inputs.junit-file }}")
