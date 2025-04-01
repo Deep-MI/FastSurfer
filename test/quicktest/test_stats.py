@@ -7,7 +7,8 @@ import pytest
 
 from FastSurferCNN.segstats import PVStats
 
-from .common import Approx, SubjectDefinition, Tolerances, write_table_file
+from .common import SubjectDefinition, Tolerances, write_table_file
+from .helper import Approx
 
 logger = getLogger(__name__)
 

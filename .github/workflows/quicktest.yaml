@@ -35,7 +35,20 @@ on:
         description: 'FreeSurfer build image to build with ("" (default) => deepmi/fastsurfer-build:freesurferXXX; extract version from Docker/install_fs_pruned.sh)'
         type: string
 
-permissions: read-all
+permissions:
+  actions: read
+  attestations: read
+  checks: write
+  contents: read
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: read
 
 env:
   SUBJECTS_DIR: /tmp/subjects
@@ -190,7 +203,7 @@ jobs:
           license: ${{ secrets.QUICKTEST_LICENSE }}
           docker-image: ${{ needs.build-docker.outputs.docker-image }}
           extra-args: ${{ matrix.extra-args }} ${{ needs.build-docker.outputs.extra-args }}
-          cleanup: 'true'
+          cleanup: 'false'
       - name: Run tests
         uses: Deep-MI/FastSurfer/.github/actions/run-tests@dev
         with:
@@ -216,3 +229,5 @@ jobs:
         with:
           report_paths: /tmp/fastsurfer-quicktest-*.junit.xml
           check_name: Annotate the test results as checks
+          fail_on_failure: 'true'
+          fail_on_parse_error: 'true'
