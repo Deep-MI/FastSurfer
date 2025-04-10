@@ -247,7 +247,7 @@ function get_device_list()
   if [[ "$1" =~ ^(cpu|mps|auto|cuda)$ ]] || [[ "$1" =~ ^cuda:[0-9]+(,[0-9]+)*$ ]] ; then list=",$1"
   elif [[ "$1" =~ ^cuda:[0-9]+([-,][0-9]+(-[0-9]+)?)* ]] ; then
     IFS="," ; host=${1:0:5}
-    for i in ${1:5} ; do IFS="-" ; v=($i) ; list+=",$(seq -s"," "${v[0]}" "$(("${v[1]}" - 1))")" ; done
+    for i in ${1:5} ; do IFS="-" ; v=($i) ; list+=",$(seq -s"," "${v[0]}" "${v[1]}")" ; done
   else
     echo "ERROR: Invalid format for device|viewagg_device: $1 must be auto|cpu|mps|cuda[:X[,Y][-Z]...]"
     exit 1
