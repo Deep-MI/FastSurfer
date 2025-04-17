@@ -31,7 +31,7 @@ To run FastSurfer on a given subject using the Singularity image with GPU access
 
 ```bash
 singularity exec --nv \
-                 --no-mount home,cwd -e\
+                 --no-mount home,cwd -e \
                  -B /home/user/my_mri_data:/data \
                  -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs \
@@ -66,7 +66,7 @@ You can run the Singularity equivalent of CPU-Docker by building a Singularity i
 cd /home/user/my_singlarity_images
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:cpu-v#.#.#
 
-singularity exec --no-home \
+singularity exec --no-mount home,cwd -e \
                  -B /home/user/my_mri_data:/data \
                  -B /home/user/my_fastsurfer_analysis:/output \
                  -B /home/user/my_fs_license_dir:/fs \
@@ -85,5 +85,5 @@ Do not mount the user home directory into the singularity container as the home 
   
 Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `singularity exec ... --version +pip` outputs the FastSurfer version including a full list of python packages. 
 
-How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. 
+How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. Additionally setting the `-e` flag will ensure that no environment variables will be passed from the host system into the container.
 
