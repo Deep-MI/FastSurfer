@@ -212,3 +212,38 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
       ```
       Also note, that the image storage location with containerd is not defined by the docker config file `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd) file with `containerd config default > /etc/containerd/config.toml`, in this config file edit the `"root"`-entry (default value is `/var/lib/containerd`).  
 4. Finally, you can now build the FastSurfer image with `python Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
+
+## Building for release
+
+Make sure, you are building on a machine that has [containerd-storage and Buildkit](#build-docker-image-with-attestation-and-provenance).
+
+```bash
+# configuration
+build_dir=$HOME/FastSurfer-build
+img=deepmi/fastsurfer
+# the version can be identified with: $build_dir/run_fastsurfer.sh --version
+version=2.4.3
+# the cuda and rocm version can be identified with: python $build_dir/Docker/build.py --help | grep -E ^[[:space:]]+--device
+cuda=126
+cudas=("cuda118" "cuda124" "cuda$cuda")
+rocm=6.2.4
+rocms=("rocm$rocm")
+# end of config
+
+# code
+git clone --branch stable --single-branch gtihub.com/Deep-MI/FastSurfer $build_dir
+cd $build_dir
+all_tags=("latest" "gpu-latest" "cuda-v$version" "rocm-v$version" "cpu-latest")
+# build all distinct images
+for dev in cpu "${rocms[@]}" "${cudas[@]}"
+do
+  python3 Docker/build.py --tag $img:$dev-v$version --freesurfer_build_image $img-build:freesurfer741 --attest --device $dev
+  all_tags+=("$dev-v$version")
+done
+# labels that are just references
+docker tag $img:rocm$rocm-v$version $img:rocm-v$version
+docker tag $img:cpu-v$version $img:cpu-latest
+for tag in cuda-v$version gpu-latest latest; do docker tag $img:cu$cuda-v$version $img:$tag ; done
+# push all labels
+for tag in "${all_tags[@]}" ; do docker push $img:$tag ; done
+```
