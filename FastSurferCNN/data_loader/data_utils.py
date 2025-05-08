@@ -185,7 +185,7 @@ def load_maybe_conform(
     See Also
     --------
     FastSurferCNN.data_loader.conform.conform
-    FastSurferCNN.data_loader.conform.is_conform
+        For additional parameters supported via `conform_kwargs`.
     """
     file = Path(file)
     alt_file = Path(alt_file)

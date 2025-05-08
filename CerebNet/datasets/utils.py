@@ -23,7 +23,7 @@ import numpy as np
 import torch
 from numpy import typing as npt
 
-from FastSurferCNN.data_loader.conform import getscale, scalecrop, crop_transform
+from FastSurferCNN.data_loader.conform import getscale, scalecrop
 
 CLASS_NAMES = {
     "Background": 0,

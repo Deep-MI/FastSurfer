@@ -17,8 +17,8 @@
 # IMPORTS
 import argparse
 import sys
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, TypeVar, cast, Literal, Sequence
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Literal, TypeVar, cast
 
 import nibabel
 import nibabel as nib
@@ -236,7 +236,7 @@ def to_target_orientation(
         The image data to reorder/flip.
     source_affine : npt.NDArray[float]
         The affine to detect the reorientation operations.
-    target_orientation: str
+    target_orientation : str
         The target orientation to reorient to.
 
     Returns
@@ -273,22 +273,25 @@ def apply_orientation(arr: _TB | npt.ArrayLike, ornt) -> _TB:
     Parameters
     ----------
     arr : array-like or torch Tensor of data with ndim >= n
+        The image/data to reorient.
     ornt : (n,2) orientation array
-       orientation transform. ``ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and
+       Orientation transform. ``ornt[N,1]` is flip of axis N of the array implied by `shape`, where 1 means no flip and
        -1 means flip.  For example, if ``N==0`` and ``ornt[0,1] == -1``, and there's an array ``arr`` of shape `shape`,
        the flip would correspond to the effect of ``np.flipud(arr)``.  ``ornt[:,0]`` is the transpose that needs to be
-       done to the implied array, as in ``arr.transpose(ornt[:,0])``
+       done to the implied array, as in ``arr.transpose(ornt[:,0])``.
 
     Returns
     -------
     t_arr : ndarray or Tensor
-       data array `arr` transformed according to ornt
+       The data array `arr` transformed according to ornt.
 
     See Also
     --------
     nibabel.orientations.apply_orientation
+        This function is an extension to `nibabel.orientations.apply_orientation`.
     """
-    from nibabel.orientations import OrientationError, apply_orientation as _apply_orientation
+    from nibabel.orientations import OrientationError
+    from nibabel.orientations import apply_orientation as _apply_orientation
     from torch import is_tensor as _is_tensor
 
     if _is_tensor(arr):
@@ -594,8 +597,10 @@ def conform(
         Conform the image to this voxel size, a specific smaller voxel size (0-1, for high-res), or automatically
         determine the 'minimum voxel size' from the image (value 'min'). This assumes the smallest of the three voxel
         sizes. `None` disables this criterion.
-    img_size : int, "fov", "auto", None
-        Conform the image to this image size, a specific smaller size (0-1, for high-res), or automatically
+    img_size : int, "fov", "auto", None, default=256
+        Conform the image to this image size, e.g. a specific smaller size (for example for high-res), or automatically
+        determine the image size from the field of view ('fov' or 'auto', the former may yield non-cube-images). `None`
+        disables this criterion.
     dtype : type, None, default=np.unit8
         The dtype to enforce in the image (default: UCHAR, as mri_convert -c). `None` disregards this criterion.
     orientation : {"soft lia", "lia", "native"}, None, default="lia"
@@ -607,17 +612,17 @@ def conform(
         "none" will do no rescaling, "auto" will rescale if the target data type is integer. If the target data type is
         None, rescaling will never happen.
 
+    Returns
+    -------
+    nib.MGHImage
+        Conformed image.
+
     Other Parameters
     ----------------
     conform_vox_size : float, optional
         Legacy parameter for vox_size, overwrites vox_size.
     conform_to_1mm_threshold : float, optional
         Legacy parameter for threshold_1mm, overwrites threshold_1mm.
-
-    Returns
-    -------
-    nib.MGHImage
-        Conformed image.
 
     Notes
     -----
@@ -710,13 +715,13 @@ def prepare_mgh_header(
 
     Parameters
     ----------
-    img: nibabel.analyze.SpatialImage
+    img : nibabel.analyze.SpatialImage
         The image object to base the header on.
-    target_vox_size: npt.NDArray[float], None, default=None
+    target_vox_size : npt.NDArray[float], None, default=None
         The target voxel size, importantly still in native orientation (reordering after).
-    target_img_size: npt.NDArray[int], None, default=None
+    target_img_size : npt.NDArray[int], None, default=None
         The target image size, importantly still in native orientation (reordering after).
-    orientation: {"native", "soft lia", "lia"}, default="native"
+    orientation : {"native", "soft lia", "lia"}, default="native"
         How the affine should look like.
 
     Returns
@@ -1255,6 +1260,7 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
         return partial(np.pad, pad_width=[(0, 0)] * (image.ndim - len(pad_tuples)) + pad_tuples, **kwargs)
     else:  # Tensor
         from itertools import chain
+
         from torch.nn.functional import pad as _pad
 
         return partial(_pad, pad=list(chain.from_iterable(reversed(pad_tuples))), **kwargs)

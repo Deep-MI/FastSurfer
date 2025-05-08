@@ -27,9 +27,9 @@ from tqdm import tqdm
 
 from CerebNet.data_loader.augmentation import ToTensorTest
 from CerebNet.data_loader.dataset import SubjectDataset
-from CerebNet.datasets.utils import crop_transform
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
+from FastSurferCNN.data_loader.conform import crop_transform
 from FastSurferCNN.utils import PLANES, Plane, logging
 from FastSurferCNN.utils.common import (
     SerialExecutor,

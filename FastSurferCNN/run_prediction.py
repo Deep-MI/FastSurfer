@@ -284,7 +284,7 @@ class RunModelOnData:
             raise ValueError(
                 f"Invalid value for vox_size, must be between 0 and 1 or 'min', was "
                 f"{vox_size}."
-            )
+            ) from None
         self.conform_to_1mm_threshold = conform_to_1mm_threshold
 
     @property
