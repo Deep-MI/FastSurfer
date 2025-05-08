@@ -27,8 +27,8 @@ from torchvision.transforms import Compose
 from CerebNet.data_loader import data_utils as utils
 from CerebNet.data_loader.augmentation import ToTensor
 from CerebNet.datasets.load_data import SubjectLoader
-from CerebNet.datasets.utils import bounding_volume_offset, crop_transform
-from FastSurferCNN.data_loader.conform import to_target_orientation
+from CerebNet.datasets.utils import bounding_volume_offset
+from FastSurferCNN.data_loader.conform import crop_transform, to_target_orientation
 from FastSurferCNN.data_loader.data_utils import (
     get_thick_slices,
     transform_axial,
