@@ -14,7 +14,8 @@
 
 # IMPORTS
 import time
-from typing import Optional, Callable
+from collections.abc import Callable
+from typing import Optional
 
 import h5py
 import numpy as np
