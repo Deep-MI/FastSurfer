@@ -31,7 +31,7 @@ from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
 from FastSurferCNN.data_loader.conform import crop_transform
 from FastSurferCNN.utils import PLANES, Plane, logging
-from FastSurferCNN.utils.arg_types import OrientationType, ImageSizeOption
+from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
 from FastSurferCNN.utils.common import (
     SerialExecutor,
     SubjectDirectory,
