@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Literal, Optional, Protocol, TypeVar, get_args, get_origin
 
 from FastSurferCNN.utils import PLANES, Plane
-from FastSurferCNN.utils.arg_types import OrientationType, unquote_str, VALID_ORIENTATIONS
+from FastSurferCNN.utils.arg_types import VALID_ORIENTATIONS, OrientationType, unquote_str
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
 from FastSurferCNN.utils.arg_types import img_size as __image_size
 from FastSurferCNN.utils.arg_types import orientation as __orientation

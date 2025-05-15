@@ -780,6 +780,7 @@ def prepare_mgh_header(
         The epsilon for the voxelsize check.
     rot_eps : float, default=1e-6
         The epsilon for the affine rotation check.
+
     Returns
     -------
     nibabel.freesurfer.mghformat.MGHHeader
