@@ -906,9 +906,8 @@ then
       if [[ "$edits" == "true" ]]
       then
         {
-          echo "INFO: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected,"
-          echo "  supersedes $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile"
-          echo "  and $mask_name!"
+          echo "INFO: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected, supersedes"
+          echo "  $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile and $mask_name!"
         } | tee -a "$seg_log"
         asegdkt_segfile="$asegdkt_segfile_manedit"
         cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"

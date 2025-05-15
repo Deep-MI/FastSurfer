@@ -130,9 +130,7 @@ class Inference:
         self.viewagg_device = _viewagg_device
 
 
-        def prep_lut(
-                file: Path, *args, **kwargs,
-        ) -> Future[TSVLookupTable | JsonColorLookupTable]:
+        def prep_lut(file: Path, *args, **kwargs) -> Future[TSVLookupTable | JsonColorLookupTable]:
             _cls = TSVLookupTable
             cls = {".json": JsonColorLookupTable, ".txt": _cls, ".tsv": _cls}
             return self.pool.submit(cls[file.suffix], file, *args, **kwargs)
@@ -371,7 +369,7 @@ class Inference:
 
         from FastSurferCNN.data_loader.data_utils import load_image, load_maybe_conform
 
-        norm_file, norm_data, norm = None, None, None
+        norm_file, norm_data, _norm = None, None, None
         if subject.has_attribute("cereb_statsfile") :
             if not subject.can_resolve_attribute("cereb_statsfile"):
                 from FastSurferCNN.utils.parser_defaults import ALL_FLAGS
@@ -391,7 +389,7 @@ class Inference:
 
             norm_file = subject.filename_by_attribute("norm_name")
             # finally, load the bias field file
-            norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, **self._conform_kwargs)
+            _norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, **self._conform_kwargs)
 
         # localization
         if not subject.fileexists_by_attribute("asegdkt_segfile"):
@@ -399,24 +397,23 @@ class Inference:
                 f"The aseg.DKT-segmentation file '{subject.asegdkt_segfile}' did not "
                 f"exist, please run FastSurferVINN first."
             )
-        seg = self.pool.submit(load_image, subject.filename_by_attribute("asegdkt_segfile"))
+        _seg = self.pool.submit(load_image, subject.filename_by_attribute("asegdkt_segfile"))
         # create conformed image
-        conf_img = self.pool.submit(
+        _conf_img = self.pool.submit(
             load_maybe_conform,
             subject.filename_by_attribute("conf_name"),
             subject.filename_by_attribute("orig_name"),
             **self._conform_kwargs,
         )
 
-        seg, seg_data = seg.result()
-        conf_file, conf_img, conf_data = conf_img.result()
+        seg, seg_data = _seg.result()
+        conf_file, conf_img, conf_data = _conf_img.result()
 
         if np.allclose(conf_img.header.get_zooms(), 1.0, atol=0.01):
             logger.warning(
                 "CerebNet does not support images that are not conformed to 1.0mm. We detected a voxel sizes of "
                 f"{tuple(conf_img.header.get_zooms())} in {conf_file}!"
             )
-
         subject_dataset = SubjectDataset(
             img_org=conf_img,
             brain_seg=seg,
@@ -425,8 +422,8 @@ class Inference:
             # obsolete: primary_slice=self.cfg.DATA.PRIMARY_SLICE_DIR,
         )
         subject_dataset.transforms = ToTensorTest()
-        if norm is not None:
-            norm_file, _, norm_data = norm.result()
+        if _norm is not None:
+            norm_file, _, norm_data = _norm.result()
         return norm_data, norm_file, subject_dataset
 
     def run(self, subject_dirs: SubjectList):
@@ -442,9 +439,8 @@ class Inference:
                 from FastSurferCNN.utils.common import iterate
             iter_subjects = iterate(self.pool, self._get_subject_dataset, subject_dirs)
             futures = []
-            for idx, (subject, (norm, norm_file, subject_dataset)) in tqdm(
-                enumerate(iter_subjects), total=len(subject_dirs), desc="Subject",
-            ):
+            for idx, (subject, _data) in tqdm(enumerate(iter_subjects), total=len(subject_dirs), desc="Subject"):
+                norm, norm_file, subject_dataset = _data
                 try:
                     # predict CerebNet, returns logits (input and output are LIA)
                     preds = self._predict_single_subject(subject_dataset)

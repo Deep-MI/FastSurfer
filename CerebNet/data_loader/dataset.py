@@ -242,6 +242,8 @@ class SubjectDataset(Dataset):
         slice_thickness: int,
         primary_slice: str | None = None,
     ):
+        from numpy.linalg import inv
+
         self.slice_thickness = slice_thickness
         self.transforms = Compose([ToTensor()])
         self.img_org = img_org
@@ -251,8 +253,6 @@ class SubjectDataset(Dataset):
 
         # binarize the cerebellum from brain_seg
         cereb_aseg_mask = utils.get_aseg_cereb_mask(np.asarray(brain_seg.dataobj))
-
-        from numpy.linalg import inv
 
         affine = inv(brain_seg.affine) @ img_org.affine
 

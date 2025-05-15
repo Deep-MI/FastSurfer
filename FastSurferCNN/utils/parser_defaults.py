@@ -274,12 +274,7 @@ ALL_FLAGS = {
         fieldname="search_tag",
     ),
     "csv_file": __arg("--csv_file", dc=SubjectDirectoryConfig),
-    "batch_size": __arg(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="Batch size for inference. Default=1"
-    ),
+    "batch_size": __arg("--batch_size", type=int, default=1, help="Batch size for inference. Default=1"),
     "sd": __arg("--sd", dc=SubjectDirectoryConfig, fieldname="out_dir"),
     "qc_log": __arg(
         "--qc_log",

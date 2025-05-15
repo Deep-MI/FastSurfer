@@ -206,26 +206,22 @@ def load_maybe_conform(
         dst_file = file
     else:
         # the image is not conformed to 1mm, do this now.
-
         fileext = [ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS if file.name.endswith("." + ext)]
         if len(fileext) != 1:
             raise RuntimeError(
                 f"Invalid file extension of conf_name: {file}, must be one of {SUPPORTED_OUTPUT_FILE_FORMATS}."
             )
         file_no_fileext = str(file)[:-len(fileext[0]) - 1]
-        if (vox_size := conform_kwargs.get("vox_size", 1.0)) == "min":
-            vox_suffix = ".min"
-        else:
-            vox_suffix = f".{str(vox_size).replace('.', '')}mm"
+        vox_size = conform_kwargs.get("vox_size", 1.0)
+        vox_suffix = ".min" if vox_size == "min" else f".{str(vox_size).replace('.', '')}mm"
         if not file_no_fileext.endswith(vox_suffix):
             file_no_fileext += vox_suffix
-        # if the orig file is neither absolute nor in the subject path, use the
-        # conformed file
+        # if the orig file is neither absolute nor in the subject path, use the conformed file
         src_file = alt_file if alt_file.is_file() else file
         if not alt_file.is_file():
             LOGGER.warning(
                 f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so we might "
-                f"lose quality due to multiple chained interpolations."
+                f"lose quality due to multiple chained interpolations. "
             )
 
         dst_file = Path(file_no_fileext + "." + fileext[0])
