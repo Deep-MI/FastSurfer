@@ -200,7 +200,9 @@ docker run --gpus all -v $datadir:/data \
                       --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
                       --t1 /data/subject1/t1-weighted.nii.gz \
                       --asegdkt_segfile /output/subject1/aparc.DKTatlas+aseg.deep.mgz \
-                      --conformed_name $outputdir/subject1/conformed.mgz \
+                      --conformed_name /output/subject1/conformed.mgz \
+                      --sd /output \
+                      --sid  subject1 \
                       --threads 4 --seg_only --3T
 ```
 
