@@ -81,7 +81,26 @@ def setup_options():
     advanced = parser.add_argument_group(title="Advanced options")
     parser_defaults.add_arguments(
         advanced,
-        ["device", "viewagg_device", "threads", "batch_size", "async_io"],
+        ["device", "viewagg_device", "threads", "batch_size", "async_io", "orientation", "image_size"],
+    )
+
+    def _vox_size(a):
+        if a.lower() == "none":
+            return None
+        try:
+            if float(a) == 1:
+                return 1.0
+        except ValueError:
+            pass
+        raise argparse.ArgumentTypeError(f"--vox_size can only be 1 or 'none', not {a}") from None
+
+    advanced.add_argument(
+        "--vox_size",
+        choices=("1", "1.0", "none"),
+        type=_vox_size,
+        default=1,
+        dest="vox_size",
+        help="Choose the voxelsize to process, CerebNet only supports 1 or 'none' to ignore the voxelsize. ",
     )
 
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
@@ -165,6 +184,9 @@ def main(args: argparse.Namespace) -> int | str:
             threads=getattr(args, "threads", 1),
             device=args.device,
             viewagg_device=args.viewagg_device,
+            orientation=args.orientation,
+            vox_size=args.vox_size,
+            image_size=args.image_size,
         )
         return tester.run(subjects)
     except Exception as e:

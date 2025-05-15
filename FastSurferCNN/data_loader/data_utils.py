@@ -189,14 +189,15 @@ def load_maybe_conform(
     """
     file = Path(file)
     alt_file = Path(alt_file)
-    conform_kwargs_no_order = {k: v for k, v in conform_kwargs.items() if k != "order"}
+    conform_kwargs_is_conform = dict(conform_kwargs.items())
+    del conform_kwargs_is_conform["order"]
 
     _is_conform, img = False, None
     if file.is_file():
         # see if the file is 1mm
         img = cast(nib.analyze.SpatialImage, nib.load(file))
         # is_conform only needs the header, not the data
-        _is_conform = is_conform(img, **conform_kwargs_no_order, verbose=False)
+        _is_conform = is_conform(img, **conform_kwargs_is_conform, verbose=False, vox_eps=0.1)
 
     if _is_conform:
         # calling np.asarray here, forces the load of img.dataobj into memory

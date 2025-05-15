@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+from itertools import permutations, product
 from typing import Literal, cast
 
 import nibabel as nib
@@ -20,12 +21,23 @@ import numpy as np
 
 VoxSizeOption = float | Literal["min"]
 ImageSizeOption = int | Literal["fov", "auto"]
-OrientationType = Literal["native", "soft lia", "lia"]
+
+__axcode = ("rl", "ap", "si")
+__orders = tuple(permutations(range(3)))
+__flips = ((0, 1),) * 3
+__axcodes = ["".join(__axcode[ii[i]][j] for i, j in enumerate(jj)) for ii, jj in product(__orders, product(*__flips))]
+VALID_ORIENTATIONS = ["native", *map(lambda x: "soft " + x, __axcodes), *__axcodes]
+
+OrientationType = str
+# future better typing, requires Python 3.11 (Syntax Error before that)
+# OrientationType = Literal[*VALID_ORIENTATIONS]
+
 
 
 def orientation(a: str) -> OrientationType:
     """
-    Convert the orientation argument to a valid orientation from 'native', 'soft lia', and 'lia'.
+    Convert the orientation argument to a valid orientation from 'native', 'soft[-_ ]<orientation/i>', and
+    '<orientation/i>', where <orientation/i> is any valid orientation (case-insensitive).
 
     Parameters
     ----------
@@ -35,7 +47,7 @@ def orientation(a: str) -> OrientationType:
     Returns
     -------
     str
-        One of 'native', 'soft lia', or 'lia'.
+        One of 'native', 'soft <orientation>', or '<orientation>'.
 
     Raises
     ------
@@ -43,9 +55,10 @@ def orientation(a: str) -> OrientationType:
         If the argument is not a valid choice.
     """
     r = a.lower().replace("_", " ").replace("-", " ").strip()
-    if r in ("native", "soft lia", "lia"):
+    if r in VALID_ORIENTATIONS:
         return cast(OrientationType, r)
-    raise argparse.ArgumentTypeError(f"'{a}' is not a valid orientation from 'native', 'soft lia', or 'lia'.") from None
+    valid_orientations = "'native', 'soft-<orientation>', or '<orientation>'"
+    raise argparse.ArgumentTypeError(f"'{a}' is not a valid orientation from {valid_orientations}.") from None
 
 
 def string_to_bool(a: str) -> bool:
@@ -85,10 +98,10 @@ def vox_size(a: str) -> VoxSizeOption | None:
     argparse.ArgumentTypeError
         If the argument is not "min", "auto" or convertible to a float between 0 and 1.
     """
+    if a is None or a.lower() == "any":
+        return None
     if a.lower() in ["auto", "min"]:
         return "min"
-    if a.lower() == "any":
-        return None
     try:
         return float_gt_zero_and_le_one(a)
     except argparse.ArgumentError as e:
@@ -180,8 +193,8 @@ def target_dtype(a: str) -> str:
     numpy.dtype
         For more information on numpy data types and their properties.
     """
-    dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
-    dtypes.add("any")
+    dtypes = list(nib.freesurfer.mghformat.data_type_codes.value_set("label"))
+    dtypes.append("any")
     _a = a.lower()
     if _a in dtypes:
         return _a

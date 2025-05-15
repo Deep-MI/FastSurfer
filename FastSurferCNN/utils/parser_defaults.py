@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Literal, Optional, Protocol, TypeVar, get_args, get_origin
 
 from FastSurferCNN.utils import PLANES, Plane
-from FastSurferCNN.utils.arg_types import OrientationType, unquote_str
+from FastSurferCNN.utils.arg_types import OrientationType, unquote_str, VALID_ORIENTATIONS
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
 from FastSurferCNN.utils.arg_types import img_size as __image_size
 from FastSurferCNN.utils.arg_types import orientation as __orientation
@@ -301,13 +301,14 @@ ALL_FLAGS = {
     ),
     "orientation": __arg(
         "--orientation",
-        choices=get_args(OrientationType),
+        choices=VALID_ORIENTATIONS,
         type=__orientation,
         dest="orientation",
+        metavar="{native,XXX,soft-XXX}",
         default="lia",
-        help="Select the target affine format for output, native: input defined by input image, soft_lia (or soft-lia, "
-             "soft_lia) store as LIA, but do not interpolate, lia: force LIA, affine is only 0 or +-1 (default, "
-             "required by the surface pipeline).",
+        help="Select the target affine format for output, native: input defined by input image, soft-XXX (e.g. "
+             "soft-lia): store as XXX, but do not interpolate, XXX (e.g. lia): force XXX, affine is only 0 or +-1. "
+             "Default: lia (required by the surface pipeline).",
     ),
     "image_size": __arg(
         "--image_size",

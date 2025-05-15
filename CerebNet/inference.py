@@ -31,6 +31,7 @@ from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
 from FastSurferCNN.data_loader.conform import crop_transform
 from FastSurferCNN.utils import PLANES, Plane, logging
+from FastSurferCNN.utils.arg_types import OrientationType, ImageSizeOption
 from FastSurferCNN.utils.common import (
     SerialExecutor,
     SubjectDirectory,
@@ -63,6 +64,9 @@ class Inference:
         async_io: bool = False,
         device: str = "auto",
         viewagg_device: str = "auto",
+        orientation: OrientationType = "lia",
+        image_size: ImageSizeOption = "auto",
+        vox_size: float | None = 1.0,
     ):
         """
         Create the inference object to manage inferencing, batch processing, data
@@ -80,6 +84,14 @@ class Inference:
             Device to perform inference on.
         viewagg_device : str, default="auto"
             Device to aggregate views on.
+        vox_size : 1.0, None, default=1.0
+            The voxel size, use None to deactivate the conforming w.r.t. the voxel size.
+        orientation : "native", "soft-<orientation>", "<orientation>", default="native"
+            How the affine should look like.
+        image_size : int, "fov", "auto", None, default=256
+            Conform the image to this image size, e.g. a specific smaller size (for example for high-res), or
+            automatically determine the image size from the field of view ('fov' or 'auto', the former may yield
+            non-cube-images). `None` disables this criterion.
         """
         self.pool = None
         self._threads = None
@@ -89,6 +101,13 @@ class Inference:
         self.pool = ThreadPoolExecutor(self._threads) if async_io else SerialExecutor()
         self.cfg = cfg
         self._async_io = async_io
+        self._conform_kwargs = {
+            "vox_size": vox_size,
+            "img_size": image_size,
+            "orientation": orientation,
+            "order": 1,
+            "dtype": np.uint8,
+        }
 
         # Set random seed from config_files.
         np.random.seed(cfg.RNG_SEED)
@@ -362,7 +381,6 @@ class Inference:
 
         from FastSurferCNN.data_loader.data_utils import load_image, load_maybe_conform
 
-        conform_kwargs = {"vox_size": 1.0, "order": 1, "img_size": "auto", "dtype": np.uint8, "orientation": "native"}
         norm_file, norm_data, norm = None, None, None
         if subject.has_attribute("cereb_statsfile") :
             if not subject.can_resolve_attribute("cereb_statsfile"):
@@ -383,7 +401,7 @@ class Inference:
 
             norm_file = subject.filename_by_attribute("norm_name")
             # finally, load the bias field file
-            norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, **conform_kwargs)
+            norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, **self._conform_kwargs)
 
         # localization
         if not subject.fileexists_by_attribute("asegdkt_segfile"):
@@ -399,11 +417,18 @@ class Inference:
             load_maybe_conform,
             subject.filename_by_attribute("conf_name"),
             subject.filename_by_attribute("orig_name"),
-            **conform_kwargs,
+            **self._conform_kwargs,
         )
 
         seg, seg_data = seg.result()
         conf_file, conf_img, conf_data = conf_img.result()
+
+        if np.allclose(conf_img.header.get_zooms(), 1.0, atol=0.01):
+            logger.warning(
+                "CerebNet does not support images that are not conformed to 1.0mm. We detected a voxel sizes of "
+                f"{tuple(conf_img.header.get_zooms())} in {conf_file}!"
+            )
+
         subject_dataset = SubjectDataset(
             img_org=conf_img,
             brain_seg=seg,

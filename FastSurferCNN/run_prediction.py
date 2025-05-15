@@ -400,6 +400,12 @@ class RunModelOnData:
             "requires_grad": False,
         }
 
+        if not np.allclose(_zoom := np.asarray(zoom), np.mean(zoom), atol=1e-4, rtol=1e-3):
+            LOGGER.warning(
+                f"FastSurfer support for anisotropic images is experimental, we detected the following voxel sizes: "
+                f"{_zoom.tolist()}!"
+            )
+
         orig_in_lia, back_to_native = to_target_orientation(orig_data, affine, target_orientation="LIA")
         shape = orig_in_lia.shape + (self.get_num_classes(),)
 
@@ -708,9 +714,7 @@ def main(
         # Run model
         try:
             # The orig_t1_file is only used to populate verbose messages here
-            pred_data = eval.get_prediction(
-                subject.orig_name, data_array, orig_img.header.get_zooms()
-            )
+            pred_data = eval.get_prediction(subject.orig_name, data_array, orig_img.header.get_zooms(), orig_img.affine)
             futures.append(
                 eval.async_save_img(
                     subject.segfile, pred_data, orig_img, dtype=np.int16
