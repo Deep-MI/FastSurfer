@@ -66,8 +66,7 @@ run_surf_pipeline="1"
 surf_flags=()
 legacy_parallel_hemi=0
 vox_size="min"
-orientation="lia"
-image_size="auto"
+native_image="false"
 run_asegdkt_module="1"
 run_cereb_module="1"
 run_hypvinn_module="1"
@@ -175,21 +174,10 @@ SEGMENTATION PIPELINE:
                             in --seg_only stream and stats files (is affected by
                             the --3T flag, see below). Manual talairach
                             registrations are not replaced in --edits mode.
-  --orientation <native|sof_lia|lia>
-                          Whether and how to reorient the images and output files.
-                            native: keep the affine as the input (see also --keepgeom,
-                             only compatible with --seg_only)
-                            soft_lia: reorient the image to 'soft' lia
-                              (no interpolation, only --seg_only)
-                            lia: reorient and interpolate to LIA (default)
-                            Note, input images **must be** isometric.
-  --image_size <int>|fov|auto
-                          How to determine the target image size of images and segm.,
-                            "fov" fixes the field of view (in mm, only --seg_only),
-                            "auto" (default) expands the image so the image dimensions
-                            the same, <int> sets a specific target size (all directions).
-  --keepgeom              Alias for "--orientation native --image_size fov" for
-                            segmentation in the native image space
+  --native_image OR       Output all images and segmentations in the native image space
+  --keepgeom                with its image geometry (voxel size, dimensions, orientation).
+                            This setting is not compatible with the surface pipeline and
+                            requires isotropic voxels in the native image space.
 
   MODULES:
   By default, all modules are run.
@@ -360,12 +348,6 @@ function verify_threads() {
   export verify_value
 }
 
-function fix_orientation() {
-  # 1: value
-  value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
-  if [[ "$value" =~ ^lia.strict$ ]] ; then echo "lia_strict" ; else echo "$value" ; fi
-}
-
 # PARSE Command line
 inputargs=("$@")
 POSITIONAL=()
@@ -442,9 +424,7 @@ case $key in
   #=============================================================
   --surf_only) run_seg_pipeline="0" ;;
   --no_biasfield) run_biasfield="0" ;;
-  --orientation) orientation="$(fix_orientation "$1")" ; shift ;;
-  --keepgeom) orientation="native" ; image_size="fov" ;;
-  --image_size) image_size="$(echo "$1" | tr '[:upper:]' '[:lower:]')" ; shift ;;
+  --keepgeom|--native_image) native_image="true" ;;
   --tal_reg) run_talairach_registration="true" ;;
   --device) device="$1" ; shift ;;
   --batch) batch_size="$1" ; shift ;;
@@ -635,7 +615,17 @@ fi
 if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
 # check the vox_size setting
-if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
+if [[ "$native_image" != "false" ]]
+then
+  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "none" ]]
+  then
+    {
+      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size none because --keepgeom or --native_image was"
+      echo "  specified."
+    } | tee -a "$tmpLF"
+  fi
+  vox_size="none"
+elif [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
   if (( $(echo "$vox_size < 0" | bc -l) || $(echo "$vox_size > 1" | bc -l) ))
@@ -646,10 +636,10 @@ then
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental." | tee -a "$tmpLF"
   fi
-elif [[ "$vox_size" != "min" ]]
+elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "none" ]]
 then
   # not a number or "min"
-  echo "ERROR: Invalid option for --vox_size, only a number or 'min' are valid."
+  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number or 'min' are valid."
   exit 1
 fi
 
@@ -709,7 +699,6 @@ then
   fi
 fi
 
-surf_on_off="$([[ "$run_surf_pipeline" == 1 ]] && echo "on" || echo "off")"
 if [[ "$run_seg_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] && [[ "$run_cereb_module" == "1" ]]; }
 then
   if [[ ! -f "$asegdkt_segfile" ]]
@@ -722,17 +711,10 @@ then
   fi
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]] && [[ "$orientation" != "lia" ]]
+if [[ "$run_surf_pipeline" == "1" ]] && [[ "$native_image" != "false" ]]
 then
-  echo "ERROR: The surface pipeline is not compatible with the option --orientation native or "
-  echo "  --orientation soft_lia (here: orientation: $orientation, surface: $surf_on_off)."
-  exit 1
-fi
-
-if [[ "$run_surf_pipeline" == "1" ]] && [[ ! "$image_size" =~ ^auto|[[:digit:]]+$ ]]
-then
-  echo "ERROR: The surface pipeline is not compatible with the option --image_size fov"
-  echo "  (here: image_size: $image_size, surface: $surf_on_off)."
+  echo "ERROR: The surface pipeline is not compatible with the options --native_image and "
+  echo "  --keepgeom."
   exit 1
 fi
 
@@ -908,10 +890,10 @@ then
          --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
          --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
          --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg"
-         --orientation "$orientation" --image_size "$image_size")
+         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
-    if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd"); fi
+    if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd") ; fi
+    if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"
     exit_code="${PIPESTATUS[0]}"
@@ -1110,6 +1092,7 @@ then
          --threads "$threads_seg" "${cereb_flags[@]}")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
+    if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"  # no tee, directly logging to $seg_log
     if [[ "${PIPESTATUS[0]}" -ne 0 ]]
