@@ -172,9 +172,10 @@ def make_parser() -> argparse.ArgumentParser:
         default="auto",
         metavar="<int>|auto|fov|any",
         type=__img_size,
-        help="Specifies the image size to conform to. Options: <int> (dimension of the target image), 'auto' "
-             "(determine dimensions of image from largest field-of-view dimension, min. 256), 'fov' (determine "
-             "dims. of image from field of view, dims. may be differ) or 'any' (ignore this criteria, similar to fov).",
+        help="Specifies the image size to conform to, cube: same value for all three directions. Options: <int> "
+             "(cube, sets dimension of the target image), 'auto' (cube, infer dimensions of image from largest "
+             "field-of-view dimension, min. 256), 'fov' (may not be cube, set all three dimensions of image to keep "
+             "the field of view the same) or 'any' (ignore this criteria, in practice similar to fov).",
     )
     parser.add_argument(
         "--rescale",
