@@ -409,7 +409,7 @@ class Inference:
         seg, seg_data = _seg.result()
         conf_file, conf_img, conf_data = _conf_img.result()
 
-        if np.allclose(conf_img.header.get_zooms(), 1.0, atol=0.01):
+        if not np.allclose(conf_img.header.get_zooms(), 1.0, atol=0.01):
             logger.warning(
                 "CerebNet does not support images that are not conformed to 1.0mm. We detected a voxel sizes of "
                 f"{tuple(conf_img.header.get_zooms())} in {conf_file}!"

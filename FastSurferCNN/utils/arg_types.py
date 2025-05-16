@@ -128,10 +128,8 @@ def img_size(a: str) -> ImageSizeOption | None:
     argparse.ArgumentTypeError
         If the argument is not "fov", "auto" or convertible to an int greater than 0.
     """
-    if a.lower() == "auto":
-        return "auto"
-    if a.lower() == "fov":
-        return "fov"
+    if a.lower() in ("auto", "fov"):
+        return cast(ImageSizeOption, a.lower())
     if a.lower() == "any":
         return None
     try:
