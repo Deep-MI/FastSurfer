@@ -321,7 +321,7 @@ class RunModelOnData:
             if (self.orientation is None or self.orientation == "native") and \
                     not is_conform(orig, **self.__conform_kwargs(verbose=False, dtype=None)):
                 raise RuntimeError(
-                    f"To store images in native image space, the input image {subject.orig_name} must have isometric "
+                    f"To store images in native image space, the input image {subject.orig_name} must have isotropic "
                     f"voxels."
                 )
             LOGGER.info("Conforming image...")
