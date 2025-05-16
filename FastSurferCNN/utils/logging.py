@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # IMPORTS
+import logging as _logging
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, FileHandler, Logger, StreamHandler, basicConfig, getLogger
 from logging import getLogger as get_logger
-import logging as _logging
 from os import environ as _environ
 from pathlib import Path as _Path
 from sys import stdout as _stdout
