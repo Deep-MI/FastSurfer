@@ -222,14 +222,14 @@ echo "T1  $t1"
 echo "asegdkt_segfile $asegdkt_segfile"
 echo ""
 
-if [ -z "$SUBJECTS_DIR" ]
+if [[ -z "$SUBJECTS_DIR" ]]
 then
   echo "ERROR: \$SUBJECTS_DIR not set. Either set it via the shell prior to"
   echo "  running recon-surf.sh or supply it via the --sd flag."
   exit 1
 fi
 
-if [ -z "$FREESURFER_HOME" ]
+if [[ -z "$FREESURFER_HOME" ]]
 then
   echo "ERROR: Did not find \$FREESURFER_HOME. A working version of FreeSurfer $FS_VERSION_SUPPORT"
   echo "  is needed to run recon-surf locally."
@@ -241,48 +241,40 @@ fi
 # needed in FS72 due to a bug in recon-all --fill using FREESURFER instead of FREESURFER_HOME
 export FREESURFER=$FREESURFER_HOME   
 
-if [ "$check_version" == "1" ]
+if [[ "$check_version" == "1" ]] && grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
 then
-  if grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
-  then
-    echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat "$FREESURFER_HOME/build-stamp.txt")."
-    echo "  We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT."
-    echo "  Therefore, make sure to export and source the correct FreeSurfer version"
-    echo "  before running recon-surf.sh: "
-    echo "  export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
-    echo "  source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
-    exit 1
-  fi
+  echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat "$FREESURFER_HOME/build-stamp.txt")."
+  echo "  We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT."
+  echo "  Therefore, make sure to export and source the correct FreeSurfer version"
+  echo "  before running recon-surf.sh: "
+  echo "  export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
+  echo "  source \$FREESURFER_HOME/SetUpFreeSurfer.sh"
+  exit 1
 fi
 
-if [ -z "$PYTHONUNBUFFERED" ]
-then
-  export PYTHONUNBUFFERED=0
-fi
+if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
 if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
   echo "before you can run any longitudinal time points."
-  exit 1;
+  exit 1
 fi
 
-if [[ "$base" == "1" ]]
+if [[ "$base" == "1" ]] && [[ ! -f "$SUBJECTS_DIR/$subject/base-tps.fastsurfer" ]]
 then
-  if [ ! -f "$SUBJECTS_DIR/$subject/base-tps.fastsurfer" ] ; then
-    echo "ERROR: $subject is either not found in SUBJECTS_DIR"
-    echo "or it is not a longitudinal template directory (base),"
-    echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
-    echo "the base (template) has been created with long_prepare_template.sh."
-    exit 1
-  fi
+  echo "ERROR: $subject is either not found in SUBJECTS_DIR"
+  echo "or it is not a longitudinal template directory (base),"
+  echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
+  echo "the base (template) has been created with long_prepare_template.sh."
+  exit 1
 fi
 
 basedir=""
-if [ "$long" == "1" ]
+if [[ "$long" == "1" ]]
 then
   basedir="$SUBJECTS_DIR/$baseid"
-  if [ ! -f "$basedir/base-tps.fastsurfer" ] ; then
+  if [[ ! -f "$basedir/base-tps.fastsurfer" ]] ; then
     echo "ERROR: $baseid is either not found in \$SUBJECTS_DIR or it is not a longitudinal"
     echo "  template directory, which needs to contain base-tps.fastsurfer file. Please"
     echo "  ensure that the base (template) has been created when running with --long flag."
@@ -295,7 +287,7 @@ then
   fi
 fi
 
-if [ -z "$t1" ] || [ ! -f "$t1" ]
+if [[ -z "$t1" ]] || [[ ! -f "$t1" ]]
 then
   echo "ERROR: T1 image ($t1) could not be found. Must supply an existing T1 input"
   echo "  (conformed, full head) via --t1 (absolute path and name)."
@@ -303,19 +295,19 @@ then
   exit 1
 fi
 
-if [ -z "$subject" ]
+if [[ -z "$subject" ]]
 then
   echo "ERROR: must supply subject name via --sid"
   exit 1
 fi
 
-if [ -z "$asegdkt_segfile" ]
+if [[ -z "$asegdkt_segfile" ]]
 then
   # Set to default
   asegdkt_segfile="${SUBJECTS_DIR}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz"
 fi
 
-if [ ! -f "$asegdkt_segfile" ]
+if [[ ! -f "$asegdkt_segfile" ]]
 then
   # No segmentation found, exit with error
   echo "ERROR: Segmentation ($asegdkt_segfile) could not be found! "
@@ -337,11 +329,9 @@ export OMP_NUM_THREADS=$threads
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 
 # define the fsthreads variable for the joint section
-if [ "$threads" -gt "1" ] ; then fsthreads="-threads $threads -itkthreads $threads"
-else fsthreads=""
-fi
+if [[ "$threads" -gt "1" ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
 
-if [ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]
+if [[ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]]
 then
   echo "ERROR: Subject directory path is very long."
   echo "  This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
@@ -350,7 +340,7 @@ then
 fi
 
 # Check if running on an existing subject directory
-if [ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ] || [ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]
+if [[ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ]] || [[ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]]
 then
   on_existing_run="true"
   if [[ "$edits" == "true" ]]
@@ -368,13 +358,6 @@ fi
 # collect info
 StartTime=$(date)
 tSecStart=$(date '+%s')
-# unused
-# year=$(date +%Y)
-# month=$(date +%m)
-# day=$(date +%d)
-# hour=$(date +%H)
-# min=$(date +%M)
-
 
 # Setup dirs
 mkdir -p "$SUBJECTS_DIR/$subject/scripts"
@@ -396,9 +379,9 @@ fi
 
 # Set up log file
 DoneFile="$SUBJECTS_DIR/$subject/scripts/recon-surf.done"
-if [ "$DoneFile" != /dev/null ] ; then  rm -f "$DoneFile" ; fi
+if [[ "$DoneFile" != /dev/null ]] ; then rm -f "$DoneFile" ; fi
 LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
-if [ "$LF" != /dev/null ]  && [[ "$edits" != "true" ]]; then  rm -f "$LF" ; fi
+if [[ "$LF" != /dev/null ]]  && [[ "$edits" != "true" ]]; then rm -f "$LF" ; fi
 echo "Log file for recon-surf.sh" >> "$LF"
 { # all output tee -a "$LF"
   date 2>&1
@@ -415,18 +398,16 @@ echo "Log file for recon-surf.sh" >> "$LF"
     echo "Running on top of an existing subject directory with edits=$edits!"
   fi
   echo " "
-  if [ "$base" == "1" ] ; then
-    echo " "
+  if [[ "$base" == "1" ]] ; then
     echo "================== BASE - Longitudinal Template Creation ========================="
     echo " "
-  elif [ "$long" == "1" ] ; then
-    echo " "
+  elif [[ "$long" == "1" ]] ; then
     echo "================== LONG - Longitudinal Timpe Point Creation ======================"
     echo "long: using template directory (base) $baseid"
     echo " "
   fi
   # Print parallelization parameters
-  if [ "$DoParallel" == "1" ]
+  if [[ "$DoParallel" == "1" ]]
   then
     echo " RUNNING both hemis in PARALLEL"
   else
@@ -442,7 +423,6 @@ echo "Log file for recon-surf.sh" >> "$LF"
 
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/quick_qc.py --asegdkt_segfile $asegdkt_segfile"
 RunIt "$cmd" "$LF"
-echo "" | tee -a "$LF"
 
 ########################################## START ########################################################
 
@@ -504,14 +484,14 @@ popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 
 # ============================= MASK & ASEG_noCC ========================================
 
-if [ "$long" == "1" ] ; then
+if [[ "$long" == "1" ]] ; then
   # for long we copy mask from base
   cmda=(cp "$basedir/mri/mask.mgz" "$mask")
   run_it "$LF" "${cmda[@]}"
 fi
 
 aseg_nocc="aseg.auto_noCCseg.mgz"
-if [ ! -f "$mask" ] || [ ! -f "$mdir/$aseg_nocc" ] ; then
+if [[ ! -f "$mask" ]] || [[ ! -f "$mdir/$aseg_nocc" ]] ; then
   # independently of the existence of manedit files, generate the baseline files.
   # Mask or aseg.auto_noCCseg not found; create them from aparc.DKTatlas+aseg
   {
@@ -528,11 +508,11 @@ if [ ! -f "$mask" ] || [ ! -f "$mdir/$aseg_nocc" ] ; then
   cmda=($python "$FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py" -i "$mdir/aparc.DKTatlas+aseg.orig.mgz"
         -o "$mdir/$aseg_nocc" --fixwm)
 
-  if [ "$base" == "1" ] && [ ! -f "$mask" ] ; then
+  if [[ "$base" == "1" ]] && [[ ! -f "$mask" ]] ; then
     # for base we build union of mapped masks beforehand so it should be available
     echo "ERROR: $mask missing, but base run requires $mask!" | tee -a "$LF"
     exit 1
-  elif [ "$long" != "1" ] && [ "$base" != 1 ] ; then
+  elif [[ "$long" != "1" ]] && [[ "$base" != 1 ]] ; then
     # cross-sectional processing, add outmask to cmd (not for or base long stream)
     cmda+=(--outmask "$mask")
   fi
@@ -550,7 +530,7 @@ fi
 
 # ============================= NU BIAS CORRECTION =======================================
 
-if [ ! -f "$mdir/orig_nu.mgz" ] ; then
+if [[ ! -f "$mdir/orig_nu.mgz" ]] ; then
   # only run the bias field correction, if the bias field corrected does not exist already
   {
     echo " "
@@ -608,7 +588,7 @@ fi
 # create norm by masking nu (supports manedit-ed mask)
 cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
-if [ "$get_t1" == "1" ]
+if [[ "$get_t1" == "1" ]]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
   # T1.mgz was needed by some 3rd party downstream tools such as fmriprep, so we provide it
@@ -662,7 +642,7 @@ RunIt "$cmd" "$LF"
   echo " "
 } | tee -a "$LF"
 
-if [ "$long" == "1" ] ; then
+if [[ "$long" == "1" ]] ; then
   # in long we can skip fill as surfaces come from base
   # it would be great to also skip WM, but it is needed in place_surface to clip bright
   # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
@@ -689,7 +669,7 @@ export OMP_NUM_THREADS=$threads_hemi
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi
 
 # define the fsthreads variable for the joint section
-if [ "$threads_hemi" -gt "1" ] ; then fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
+if [[ "$threads_hemi" -gt "1" ]] ; then fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
 else fsthreads=""
 fi
 
@@ -709,66 +689,62 @@ for hemi in lh rh ; do
 # ============================= TESSELLATE - SMOOTH =====================================================
 
   # In Long stream we skip these
-  if [ "$long" == "0" ] ; then
-
-  {
-    echo "echo \" \""
-    echo "echo \"================== Creating surfaces $hemi - orig.nofix ==================\""
-    echo "echo \" \""
-  } | tee -a "$CMDF"
-
-  if [ "$fstess" == "1" ]
+  if [[ "$long" == "0" ]]
   then
-    cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning $hiresflag $fsthreads"
-    RunIt "$cmd" "$LF" "$CMDF"
-  else
-    # instead of mri_tesselate lego land use marching cube
 
-    if [ $hemi == "lh" ] ; then
-        hemivalue=255
-    else
-        hemivalue=127
-    fi
-
-    # extract initial surface "?h.orig.nofix"
-    cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
-    RunIt "$cmd" "$LF" "$CMDF"
-
-    # Marching cube does not return filename and wrong volume info!
-    outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix
-    cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
-    RunIt "$cmd" "$LF" "$CMDF"
-
-    # Rewrite surface orig.nofix to fix vertex locs bug (scannerRAS instead of surfaceRAS set with mc)
-    #cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
-    #RunIt "$cmd" "$LF" "$CMDF"
-
-    # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
     {
-      cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
-      echo "echo \"$cmd\""
-      echo "$timecmd $cmd"
+      echo "echo \" \""
+      echo "echo \"================== Creating surfaces $hemi - orig.nofix ==================\""
+      echo "echo \" \""
     } | tee -a "$CMDF"
-    echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \" ; exit 1 ; fi" >> "$CMDF"
 
-    # Reduce to largest component (usually there should only be one)
-    cmd="mris_extract_main_component $outmesh $outmesh"
-    RunIt "$cmd" "$LF" "$CMDF"
-    
-    # for hires decimate mesh 
-    if [ -n "$hiresflag" ] ; then
-      DecimationFaceArea="0.5"
-      # Reduce the number of faces such that the average face area is
-      # DecimationFaceArea.  If the average face area is already more
-      # than DecimationFaceArea, then the surface is not changed.
-      # set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
-      cmd="mris_remesh --desired-face-area $DecimationFaceArea --input $outmesh --output $sdir/$hemi.orig.nofix"
+    if [[ "$fstess" == "1" ]]
+    then
+      cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning $hiresflag $fsthreads"
+      RunIt "$cmd" "$LF" "$CMDF"
+    else
+      # instead of mri_tesselate lego land use marching cube
+      if [[ $hemi == "lh" ]] ; then hemivalue=255 ; else hemivalue=127 ; fi
+
+      # extract initial surface "?h.orig.nofix"
+      cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
+      RunIt "$cmd" "$LF" "$CMDF"
+
+      # Marching cube does not return filename and wrong volume info!
+      outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix
+      cmd="mri_mc $mdir/filled-pretess$hemivalue.mgz $hemivalue $outmesh"
+      RunIt "$cmd" "$LF" "$CMDF"
+
+      # Rewrite surface orig.nofix to fix vertex locs bug (scannerRAS instead of surfaceRAS set with mc)
+      #cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
+      #RunIt "$cmd" "$LF" "$CMDF"
+
+      # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
+      {
+        cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
+        echo "echo \"$cmd\""
+        echo "$timecmd $cmd"
+      } | tee -a "$CMDF"
+      echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \" ; exit 1 ; fi" >> "$CMDF"
+
+      # Reduce to largest component (usually there should only be one)
+      cmd="mris_extract_main_component $outmesh $outmesh"
+      RunIt "$cmd" "$LF" "$CMDF"
+
+      # for hires decimate mesh
+      if [[ -n "$hiresflag" ]]
+      then
+        DecimationFaceArea="0.5"
+        # Reduce the number of faces such that the average face area is DecimationFaceArea.  If the average face
+        # area is already more than DecimationFaceArea, then the surface is not changed.
+        # set cmd = (mris_decimate -a $DecimationFaceArea ../surf/$hemi.orig.nofix.predec ../surf/$hemi.orig.nofix)
+        cmd="mris_remesh --desired-face-area $DecimationFaceArea --input $outmesh --output $sdir/$hemi.orig.nofix"
+        RunIt "$cmd" "$LF" "$CMDF"
+      fi
+      # -smooth1 (explicitly state 10 iteration (default) but may change in future)
+      cmd="mris_smooth -n 10 -nw -seed 1234 $sdir/$hemi.orig.nofix $sdir/$hemi.smoothwm.nofix"
       RunIt "$cmd" "$LF" "$CMDF"
     fi
-    # -smooth1 (explicitly state 10 iteration (default) but may change in future)
-    cmd="mris_smooth -n 10 -nw -seed 1234 $sdir/$hemi.orig.nofix $sdir/$hemi.smoothwm.nofix"
-    RunIt "$cmd" "$LF" "$CMDF"
-  fi
 
   else # LONG
 
@@ -786,39 +762,41 @@ for hemi in lh rh ; do
 # ============================= INFLATE1 - QSPHERE =====================================================
 
   # In Long stream we skip these
-  if [ "$long" == "0" ] ; then
-
-  {
-    echo "echo \"\""
-    echo "echo \"=================== Creating surfaces $hemi - qsphere ====================\""
-    echo "echo \"\""
-  } | tee -a "$CMDF"
-
-  #surface inflation (54sec both hemis) (needed for qsphere and for topo-fixer)
-  cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning $hiresflag $fsthreads"
-  RunIt "$cmd" "$LF" "$CMDF"
-
-  if [ "$fsqsphere" == "1" ]
+  if [[ "$long" == "0" ]]
   then
-    # quick spherical mapping (2min48sec)
-    cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning $hiresflag $fsthreads"
+
+    {
+      echo "echo \"\""
+      echo "echo \"=================== Creating surfaces $hemi - qsphere ====================\""
+      echo "echo \"\""
+    } | tee -a "$CMDF"
+
+    #surface inflation (54sec both hemis) (needed for qsphere and for topo-fixer)
+    cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
-  else
-    # instead of mris_sphere, directly project to sphere with spectral approach
-    # equivalent to -qsphere
-    # (23sec)
-    cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
-    printf -v tmp %q "$python"
-    cmd="$cmd --subject $subject --threads=$threads_hemi --py ${tmp} --binpath ${binpath}"
-    RunIt "$cmd" "$LF" "$CMDF"
-  fi
+
+    if [ "$fsqsphere" == "1" ]
+    then
+      # quick spherical mapping (2min48sec)
+      cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning $hiresflag $fsthreads"
+      RunIt "$cmd" "$LF" "$CMDF"
+    else
+      # instead of mris_sphere, directly project to sphere with spectral approach
+      # equivalent to -qsphere
+      # (23sec)
+      cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
+      printf -v tmp %q "$python"
+      cmd="$cmd --subject $subject --threads=$threads_hemi --py ${tmp} --binpath ${binpath}"
+      RunIt "$cmd" "$LF" "$CMDF"
+    fi
 
   fi # not long
 
 # ============================= FIX - WHITEPREAPARC ==================================================
 
   # In Long stream we skip topo fix
-  if [ "$long" == "0" ] ; then
+  if [ "$long" == "0" ]
+  then
     # longitudinal base and cross-sectional
 
     {
@@ -894,47 +872,49 @@ for hemi in lh rh ; do
 # ============================= SPHERE - SURFREG (optional) ==============================================
 
   # if we segment with FS or if surface registration is requested do it here:
-  if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
+  if [[ "$fsaparc" == "1" ]] || [[ "$fssurfreg" == "1" ]]
+  then
     {
       echo "echo \" \""
       echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\""
       echo "echo \" \""
     } | tee -a "$CMDF"
 
-    if [ "$long" == "0" ] ; then
+    if [[ "$long" == "0" ]]
+    then
 
-    # SPHERE: Inflate to sphere with minimal metric distortion
-    cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
-    RunIt "$cmd" "$LF" "$CMDF"
+      # SPHERE: Inflate to sphere with minimal metric distortion
+      cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
+      RunIt "$cmd" "$LF" "$CMDF"
 
-    # SURFREG (sphere.reg)
-    # Surface registration for cross-subject correspondence (registration to fsaverage)
-    # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
-    # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
-    # seem to do this, so we initialize the spherical registration with the better
-    # cortical segmentation from FastSurferCNN, this replaces recon-all -surfreg
-    # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
-    # (note the former fix, initializing with pre-central label, is not working in FS7.2
-    # as they broke the label initialization in mris_register)
-    cmd="$python ${binpath}/rotate_sphere.py \
-         --srcsphere $sdir/${hemi}.sphere \
-         --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
-         --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
-         --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
-         --out $sdir/${hemi}.angles.txt"
-    RunIt "$cmd" "$LF" "$CMDF"
-    # 2. use global rotation as initialization to non-linear registration:
-    cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
-         $sdir/${hemi}.sphere \
-         $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
-         $sdir/${hemi}.sphere.reg"
-    RunIt "$cmd" "$LF" "$CMDF"
-    # command to generate new aparc to check if registration was OK
-    # run only for debugging
-    # cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
-    #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
-    #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
-    #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
+      # SURFREG (sphere.reg)
+      # Surface registration for cross-subject correspondence (registration to fsaverage)
+      # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
+      # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
+      # seem to do this, so we initialize the spherical registration with the better
+      # cortical segmentation from FastSurferCNN, this replaces recon-all -surfreg
+      # 1. get alpha, beta, gamma for global alignment (rotation) based on aseg centers
+      # (note the former fix, initializing with pre-central label, is not working in FS7.2
+      # as they broke the label initialization in mris_register)
+      cmd="$python ${binpath}/rotate_sphere.py \
+           --srcsphere $sdir/${hemi}.sphere \
+           --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
+           --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
+           --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
+           --out $sdir/${hemi}.angles.txt"
+      RunIt "$cmd" "$LF" "$CMDF"
+      # 2. use global rotation as initialization to non-linear registration:
+      cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
+           $sdir/${hemi}.sphere \
+           $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+           $sdir/${hemi}.sphere.reg"
+      RunIt "$cmd" "$LF" "$CMDF"
+      # command to generate new aparc to check if registration was OK
+      # run only for debugging
+      # cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
+      #     -aseg $SUBJECTS_DIR/$subject/mri/aseg.presurf.mgz \
+      #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
+      #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
 
     else # longitudinal
 
@@ -970,7 +950,8 @@ for hemi in lh rh ; do
   # it is then used also below for surface placement.
   # we should consider, always computing it (when surfreg is available) -> test later what consequences this has
   #if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
-  if [ "$fsaparc" == "1" ] ; then
+  if [[ "$fsaparc" == "1" ]]
+  then
     {
       echo "echo \" \""
       echo "echo \"============ Creating surfaces $hemi - FS aparc ===============\""
@@ -978,7 +959,8 @@ for hemi in lh rh ; do
     } | tee -a "$CMDF"
 
     longflag=""
-    if [ "$long" == "1" ] ; then
+    if [[ "$long" == "1" ]]
+    then
       # recon-all has different treatment for cortparc:
       # initialize with aparc.annot from base
       longflag="-long -R $basedir/label/${hemi}.aparc.annot"
@@ -995,7 +977,8 @@ for hemi in lh rh ; do
 
   # first select what cortical parcellation to use to guide surface placement:
   aparc=""
-  if [ "$fsaparc" == "1" ] ; then
+  if [[ "$fsaparc" == "1" ]]
+  then
     {
       echo "echo \" \""
       echo "echo \"============ Creating surfaces $hemi - white and pial using FS aparc ===============\""
@@ -1023,10 +1006,8 @@ for hemi in lh rh ; do
     --threads $threads_hemi --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
     --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label \
     --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc"
-  if [ "$long" == "0" ] ; then # cross/regular/base
-    cmd="$cmd --i ../surf/$hemi.white.preaparc"
-  else  # longitudinal processing ; also adds longmaxdist
-    cmd="$cmd --i ../surf/$hemi.orig_white --max-cbv-dist 3.5"
+  if [[ "$long" == "0" ]] ; then cmd="$cmd --i ../surf/$hemi.white.preaparc" # cross/regular/base
+  else cmd="$cmd --i ../surf/$hemi.orig_white --max-cbv-dist 3.5" # longitudinal processing ; also adds longmaxdist
   fi
   RunIt "$cmd" "$LF" "$CMDF"
 
@@ -1037,8 +1018,7 @@ for hemi in lh rh ; do
     --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label \
     --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc \
     --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white"
-  if [ "$long" == "0" ] ; then # cross/regular/base
-    cmd="$cmd --i ../surf/$hemi.white"
+  if [ "$long" == "0" ] ; then cmd="$cmd --i ../surf/$hemi.white" # cross/regular/base
   else  # longitudinal processing ; also adds longmaxdist
     cmd="$cmd --i ../surf/$hemi.orig_pial --max-cbv-dist 3.5 --blend-surf .25 ../surf/$hemi.white"
   fi
@@ -1074,10 +1054,8 @@ for hemi in lh rh ; do
   cmd="recon-all -subject $subject -hemi $hemi -curvstats -no-isrunning $hiresflag $fsthreads"
   RunIt "$cmd" "$LF" "$CMDF"
 
-
-
-
-  if [ "$DoParallel" == "0" ] ; then
+  if [[ "$DoParallel" == "0" ]]
+  then
     {
       echo " "
       echo " RUNNING $hemi sequentially ... "
@@ -1095,12 +1073,9 @@ export OMP_NUM_THREADS=$threads
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 
 # define the fsthreads variable for the joint section (again)
-if [ "$threads" -gt "1" ] ; then fsthreads="-threads $threads -itkthreads $threads"
-else fsthreads=""
-fi
+if [[ "$threads" -gt "1" ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
 
-
-if [ "$DoParallel" == 1 ] ; then
+if [[ "$DoParallel" == 1 ]] ; then
   {
     echo ""
     echo " RUNNING HEMIs in PARALLEL !!! "
@@ -1113,13 +1088,14 @@ fi
 # ============================= RIBBON ===============================================
 
 # Skip RIBBON in base
-if [ "$base" != "1" ] ; then
+if [[ "$base" != "1" ]]
+then
 
-{
-  echo ""
-  echo "============================ Creating surfaces - ribbon ==========================="
-  echo ""
-} | tee -a "$LF"
+  {
+    echo ""
+    echo "============================ Creating surfaces - ribbon ==========================="
+    echo ""
+  } | tee -a "$LF"
   # -cortribbon 4 minutes, ribbon is used in mris_anatomical stats to remove voxels from surface based volumes that should not be cortex
   # anatomical stats can run without ribbon, but will omit some surface based measures then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
@@ -1131,10 +1107,11 @@ fi # skip in base
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
-if [ "$fsaparc" == "1" ] ; then
+if [[ "$fsaparc" == "1" ]] ; then
 
     # this per-hemi section does not get parallelized
-  for hemi in lh rh ; do
+  for hemi in lh rh
+  do
 
     {
       echo ""
@@ -1144,7 +1121,8 @@ if [ "$fsaparc" == "1" ] ; then
 
     # Destrieux Atlas (recon-all -cortparc2):
     longflag=""
-    if [ "$long" == "1" ] ; then
+    if [[ "$long" == "1" ]]
+    then
       # recon-all has different treatment for cortparc:
       # initialize with destrieux annot from base
       longflag="-long -R $basedir/label/${hemi}.a2009s.annot"
@@ -1156,11 +1134,8 @@ if [ "$fsaparc" == "1" ] ; then
 
     # DKT Atlas (recon-all -cortparc3):
     longflag=""
-    if [ "$long" == "1" ] ; then
-      # recon-all has different treatment for cortparc:
-      # initialize with destrieux annot from base
-      longflag="-long -R $basedir/label/${hemi}.DKTatlas.annot"
-    fi
+    # recon-all has different treatment for cortparc: initialize with destrieux annot from base
+    if [[ "$long" == "1" ]] ; then longflag="-long -R $basedir/label/${hemi}.DKTatlas.annot" ; fi
     CPAtlas="$FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs"
     annot="$ldir/${hemi}.aparc.DKTatlas.annot"
     cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $annot"
@@ -1169,7 +1144,8 @@ if [ "$fsaparc" == "1" ] ; then
   done # hemi loop
 
   # skip in base
-  if [ "$base" != "1" ] ; then
+  if [[ "$base" != "1" ]]
+  then
     cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
@@ -1180,7 +1156,8 @@ fi  # (FS-APARC)
 
 
 # Skip rest in case we have a base run, we are done here (probably we can skip stuff already in surface creation above)
-if [ "$base" != "1" ] ; then
+if [[ "$base" != "1" ]]
+then
 
 # ============================= MAPPED SURF-STATS =========================================
 
@@ -1191,14 +1168,16 @@ if [ "$base" != "1" ] ; then
   } | tee -a "$LF"
 
   # 2x18sec create stats from mapped aparc
-  for hemi in lh rh ; do
+  for hemi in lh rh
+  do
     cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $statsdir/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
     RunIt "$cmd" "$LF"
   done
 
 # ============================= FASTSURFER - surfcon hypo stats =========================================
 
-  if [ "$fsaparc" == "0" ] ; then
+  if [[ "$fsaparc" == "0" ]]
+  then
     {
       echo ""
       echo "============= Creating surfaces - pctsurfcon, hypo, segstats ===================="
@@ -1238,7 +1217,8 @@ if [ "$base" != "1" ] ; then
 
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
   # cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
-  if [[ "$segstats_legacy" == "true" ]] ; then
+  if [[ "$segstats_legacy" == "true" ]]
+  then
     cmda=($python "$FASTSURFER_HOME/FastSurferCNN/mri_brainvol_stats.py"
           --subject "$subject")
     run_it "$LF" "${cmda[@]}"
@@ -1263,11 +1243,8 @@ if [ "$base" != "1" ] ; then
                              "SubCortGray" "TotalGray" "SupraTentorial"
                              "SupraTentorialNotVent" "Mask($mask)"
                              "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
-    if [ "$long" == "0" ] ; then
-      # in long we do not have orig_nofix for surface hole computation as surfaces
-      # are inherited from base/template
-      cmda+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles")
-    fi
+    # in long we do not have orig_nofix for surface hole computation as surfaces are inherited from base/template
+    if [[ "$long" == "0" ]] ; then cmda+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles") ; fi
     cmda+=("EstimatedTotalIntraCranialVol")
     run_it "$LF" "${cmda[@]}"
 
@@ -1353,7 +1330,8 @@ if [ "$base" != "1" ] ; then
 # ============================= FASTSURFER - SYMLINKS =========================================
 
   # Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
-  if [ "$fsaparc" == "0" ] ; then
+  if [[ "$fsaparc" == "0" ]]
+  then
     # Symlink of aparc.DKTatlas+aseg.mapped.mgz
     pushd "$mdir" > /dev/null || (echo "Could not cd to $mdir" ; exit 1)
       softlink_or_copy "aparc.DKTatlas+aseg.mapped.mgz" "aparc.DKTatlas+aseg.mgz" "$LF"
@@ -1374,7 +1352,8 @@ if [ "$base" != "1" ] ; then
 # ============================= BALABELS =========================================
 
   # balabels need sphere.reg
-  if [ "$fssurfreg" == "1" ] ; then
+  if [[ "$fssurfreg" == "1" ]]
+  then
     # can be produced if surf registration exists
     #cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
     #RunIt "$cmd" "$LF"
@@ -1412,9 +1391,7 @@ tRunHours=$(LC_NUMERIC="en_US.UTF-8" printf %6.3f "$(bc -l <<< "($tSecEnd - $tSe
   # id -n sends an error message in docker (no user name), fall back to the USER environment variable or
   username=$(id -un 2>&1)
   if echo "$username" | grep -q "^id: " ; then
-    if [[ -n "$USER" ]] ; then username="$USER"
-    else username="$(id -u)"
-    fi
+    if [[ -n "$USER" ]] ; then username="$USER" ; else username="$(id -u)" ; fi
   fi
   echo "USER $username"
   echo "HOST $(hostname)"

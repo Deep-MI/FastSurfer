@@ -14,6 +14,7 @@
 
 # IMPORTS
 import time
+from collections.abc import Callable
 from typing import Optional
 
 import h5py
@@ -40,7 +41,7 @@ class MultiScaleOrigDataThickSlices(Dataset):
             orig_data: npt.NDArray,
             orig_zoom: npt.NDArray,
             cfg: yacs.config.CfgNode,
-            transforms: Optional = None
+            transforms: Callable[[npt.NDArray[float]], npt.NDArray[float]] | None = None,
     ):
         """
         Construct object.
@@ -50,15 +51,14 @@ class MultiScaleOrigDataThickSlices(Dataset):
         orig_data : npt.NDArray
             Original Data.
         orig_zoom : npt.NDArray
-            Original zoomfactors.
+            Original zoom factors.
         cfg : yacs.config.CfgNode
             Configuration Node.
-        transforms : Optional
-            Transformer for the image. Defaults to None.
+        transforms : callable[[npt.NDArray[float]], npt.NDArray[float]], optional
+            Transforms for the image, defaults to no transformation.
         """
-        assert (
-                orig_data.max() > 0.8
-        ), f"Multi Dataset - orig fail, max removed {orig_data.max()}"
+        orig_max = orig_data.max()
+        assert orig_max > 0.8, f"Multi Dataset - orig fail, max removed {orig_max}"
         self.plane = cfg.DATA.PLANE
         self.slice_thickness = cfg.MODEL.NUM_CHANNELS // 2
         self.base_res = cfg.MODEL.BASE_RES

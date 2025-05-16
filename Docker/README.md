@@ -190,13 +190,6 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
      [[worker.containerd.gcpolicy]]
        all = true
        keepBytes = 1024000000
-   # settings to push to a "local", registry with self-signed certificates
-   # see for example https://tech.paulcz.net/2016/01/secure-docker-with-tls/ https://github.com/paulczar/omgwtfssl
-   [registry."host:5000"]
-     ca=["/path/to/registry/ssl/ca.pem"]
-     [[registry."landau.dzne.ds:5000".keypair]]
-       key="/path/to/registry/ssl/key.pem"
-       cert="/path/to/registry/ssl/cert.pem"
    ```
 3. Attestation files are not supported by the standard docker image storage driver. Therefore, images cannot be tested locally. 
    There are two solutions to this limitation.
@@ -231,7 +224,7 @@ rocms=("rocm$rocm")
 # end of config
 
 # code
-git clone --branch stable --single-branch gtihub.com/Deep-MI/FastSurfer $build_dir
+git clone --branch stable --single-branch github.com/Deep-MI/FastSurfer $build_dir
 cd $build_dir
 all_tags=("latest" "gpu-latest" "cuda-v$version" "rocm-v$version" "cpu-latest")
 # build all distinct images

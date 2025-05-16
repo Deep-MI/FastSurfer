@@ -997,9 +997,7 @@ class SubjectList:
         """
         if isinstance(item, int):
             if item < 0 or item >= self._num_subjects:
-                raise IndexError(
-                    f"The index {item} is out of bounds for the subject list."
-                )
+                raise IndexError(f"The index {item} is out of bounds for the subject list.")
 
             # subject is always an absolute path (or relative to the working directory)
             # ... of the input file

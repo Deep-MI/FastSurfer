@@ -45,16 +45,11 @@ def setup_options():
     # Training settings
     parser = argparse.ArgumentParser(description="Segmentation")
 
-    # 1. Directory information (where to read from, where to write from and to incl.
-    # search-tag)
-    parser = parser_defaults.add_arguments(
-        parser, ["in_dir", "tag", "csv_file", "sd", "sid", "remove_suffix"]
-    )
+    # 1. Directory information (where to read from, where to write from and to incl. search-tag)
+    parser = parser_defaults.add_arguments(parser, ["in_dir", "tag", "csv_file", "sd", "sid", "remove_suffix"])
 
     # 2. Options for the MRI volumes
-    parser = parser_defaults.add_arguments(
-        parser, ["t1", "conformed_name", "norm_name", "asegdkt_segfile"]
-    )
+    parser = parser_defaults.add_arguments(parser, ["t1", "conformed_name", "norm_name", "asegdkt_segfile"])
     parser.add_argument(
         "--cereb_segfile",
         dest="cereb_segfile",
@@ -136,10 +131,9 @@ def main(args: argparse.Namespace) -> int | str:
 
     Returns
     -------
-    int
-        Returns 0 upon successful execution to indicate success.
-    str
-        A message indicating the failure reason in case of an exception.
+    int, str
+        Returns 0 upon successful execution to indicate success or
+        a message indicating the failure reason in case of an exception.
 
     References
     ----------
