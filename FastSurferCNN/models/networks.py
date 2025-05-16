@@ -361,18 +361,12 @@ class FastSurferVINN(FastSurferCNNBase):
         if scale_factor_out is None:
             scale_factor_out = rescale_factor
         else:
-            scale_factor_out = (
-                np.asarray(scale_factor_out)
-                * np.asarray(rescale_factor)
-                / np.asarray(scale_factor)
-            )
+            scale_factor_out = np.asarray(scale_factor_out) * np.asarray(rescale_factor) / np.asarray(scale_factor)
 
         prior_target_shape = self.interpol2.target_shape
         self.interpol2.target_shape = skip_encoder_0.shape[2:]
         try:
-            decoder_output0, sf = self.interpol2(
-                decoder_output1, scale_factor_out, rescale=True
-            )
+            decoder_output0, sf = self.interpol2(decoder_output1, scale_factor_out, rescale=True)
         finally:
             self.interpol2.target_shape = prior_target_shape
         outblock = self.outp_block(decoder_output0, skip_encoder_0)

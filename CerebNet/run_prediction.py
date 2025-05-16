@@ -168,9 +168,7 @@ def main(args: argparse.Namespace) -> int | str:
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 
     # Check input and output options and get all subjects of interest
-    subjects = SubjectList(
-        args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs,
-    )
+    subjects = SubjectList(args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs)
 
     try:
         tester = Inference(

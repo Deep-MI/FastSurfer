@@ -16,6 +16,7 @@
 
 # IMPORTS
 import argparse
+import re
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Literal, TypeVar, cast
@@ -35,7 +36,7 @@ else:
             pass
 
 from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType, VoxSizeOption
+from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType, StrictOrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one_mm
 from FastSurferCNN.utils.arg_types import img_size as __img_size
 from FastSurferCNN.utils.arg_types import orientation as __orientation
@@ -260,7 +261,7 @@ def options_parse():
 def to_target_orientation(
         image_data: _TA,
         source_affine: npt.NDArray[float],
-        target_orientation: str,
+        target_orientation: StrictOrientationType,
 ) -> tuple[_TA, Callable[[_TB], _TB]]:
     """
     Reorder and flip image_data such that the data is in orientation. This will always be without interpolation.
@@ -271,7 +272,7 @@ def to_target_orientation(
         The image data to reorder/flip.
     source_affine : npt.NDArray[float]
         The affine to detect the reorientation operations.
-    target_orientation : str
+    target_orientation : StrictOrientationType
         The target orientation to reorient to.
 
     Returns
@@ -281,13 +282,7 @@ def to_target_orientation(
     Callable[[np.ndarray], np.ndarray], Callable[[torch.Tensor], torch.Tensor]
         A function that flips and reorders the data back (returns same type as output).
     """
-    from nibabel.orientations import axcodes2ornt, io_orientation, ornt_transform
-
-    source_ornt = io_orientation(source_affine)
-    target_ornt = axcodes2ornt(target_orientation)
-
-    reorient_ornt = ornt_transform(source_ornt, target_ornt)
-    unorient_ornt = ornt_transform(target_ornt, source_ornt)
+    reorient_ornt, unorient_ornt = orientation_to_ornts(source_affine, target_orientation)
 
     if np.any([reorient_ornt[:, 1] != 1, reorient_ornt[:, 0] != np.arange(reorient_ornt.shape[0])]):  # is not lia yet
         def back_to_native(data: _TB) -> _TB:
@@ -299,6 +294,36 @@ def to_target_orientation(
             return data
 
         return image_data, do_nothing
+
+
+def orientation_to_ornts(
+        source_affine: npt.NDArray[float],
+        target_orientation: StrictOrientationType,
+) -> tuple[npt.NDArray[int], npt.NDArray[int]]:
+    """
+    Determine the nibabel `ornt` Array to reorder and flip data from source_affine such that the data is in orientation.
+
+    Parameters
+    ----------
+    source_affine : npt.NDArray[float]
+        The affine to detect the reorientation operations.
+    target_orientation : StrictOrientationType
+        The target orientation to reorient to.
+
+    Returns
+    -------
+    npt.NDArray[int]
+        The `ornt` transform from source_affine to target_orientation.
+    npt.NDArray[int]
+        The `ornt` transform back from target_orientation to source_affine.
+    """
+    from nibabel.orientations import axcodes2ornt, io_orientation, ornt_transform
+
+    source_ornt = io_orientation(source_affine)
+    target_ornt = axcodes2ornt(target_orientation.upper())
+    reorient_ornt = ornt_transform(source_ornt, target_ornt)
+    unorient_ornt = ornt_transform(target_ornt, source_ornt)
+    return reorient_ornt.astype(int), unorient_ornt.astype(int)
 
 
 def apply_orientation(arr: _TB | npt.ArrayLike, ornt: npt.NDArray[int]) -> _TB:
@@ -797,14 +822,11 @@ def prepare_mgh_header(
         re_order_axes = [0, 1, 2]
         rot_scale_mat = img.affine[:3, :3]
     else:
-        in_ornt = nib.orientations.io_orientation(img.affine)
-        out_ornt = nib.orientations.axcodes2ornt(orientation[-3:].upper())
-        LOGGER.debug(f"{nib.orientations.ornt2axcodes(in_ornt)} => {nib.orientations.ornt2axcodes(out_ornt)}")
-        _ornt_transform = nib.orientations.ornt_transform(in_ornt, out_ornt)
-        LOGGER.debug(str(_ornt_transform))
-        re_order_axes = _ornt_transform[:, 0].astype(int)
+        _ornt_transform, _ = orientation_to_ornts(img.affine, orientation[-3:])
+        re_order_axes = _ornt_transform[:, 0]
         if len(orientation) == 3:  # lia, ras, etc
             # this is a 3x3 matrix
+            out_ornt = nib.orientations.axcodes2ornt(orientation[-3:].upper())
             rot_scale_mat = nib.orientations.inv_ornt_aff(out_ornt, source_img_shape)[:3, :3]
         else: # soft lia, ras, ....
             aff = _ornt_transform[:, 1][None] * img.affine[:3, :3]
@@ -943,43 +965,49 @@ def is_conform(
     if len(img.shape) > 3 and img.shape[3] != 1:
         raise ValueError(f"Multiple input frames ({img.shape[3]}) not supported!")
 
-    checks = {"Number of Dimensions 3": (len(img.shape) == 3, f"image ndim {img.ndim}")}
+    checks: dict[str, tuple[bool | Literal["IGNORED"], str]] = {
+        "Number of Dimensions 3": (img.ndim == 3, f"image ndim {img.ndim}")
+    }
+
     # check dimensions
-    if img_size is not None and _img_size is not None:
-        # if not isinstance(_img_size, np.ndarray):
-        #     raise TypeError("_img_size should be numpy.ndarray here")
-        img_size_criteria = f"Dimensions {'x'.join(map(str, _img_size[:3]))}"
-        is_correct_img_size = np.array_equal(np.asarray(img.shape[:3]), _img_size)
-        checks[img_size_criteria] = is_correct_img_size, f"image dimensions {img.shape}"
+    img_size_text = f"image dimensions {img.shape}"
+    if img_size in (None, "fov") or _img_size is None:
+        img_size_criteria = f"Dimensions {img_size}"
+        checks[img_size_criteria] = "IGNORED", img_size_text
+    else:
+        img_size_criteria = f"Dimensions {img_size}={'x'.join(map(str, _img_size[:3]))}"
+        checks[img_size_criteria] = np.array_equal(np.asarray(img.shape[:3]), _img_size), img_size_text
 
     # check voxel size, drop voxel sizes of dimension 4 if available
     izoom = np.array(img.header.get_zooms())
-    if _vox_size is not None:
+    vox_size_text = f"image {'x'.join(map(str, izoom))}"
+    if _vox_size is None:
+        checks[f"Voxel Size {vox_size}"] = "IGNORED", vox_size_text
+    else:
         if not isinstance(_vox_size, np.ndarray):
             raise TypeError("_vox_size should be numpy.ndarray here")
-        is_correct_vox_size = np.allclose(izoom[:3], _vox_size, atol=vox_eps, rtol=0)
-        vox_size_criteria = f"Voxel Size {'x'.join(map(str, _vox_size))}"
-        checks[vox_size_criteria] = (is_correct_vox_size, f"image {'x'.join(map(str, izoom))}")
+        vox_size_criteria = f"Voxel Size {vox_size}={'x'.join(map(str, _vox_size))}"
+        checks[vox_size_criteria] = np.allclose(izoom[:3], _vox_size, atol=vox_eps, rtol=0), vox_size_text
 
     # check orientation LIA
-    if orientation is not None and orientation != "native":
+    affcode = "".join(nib.orientations.aff2axcodes(img.affine))
+    with np.printoptions(precision=2, suppress=True):
+        orientation_text = "affine=" + re.sub("\\s+", " ", str(img.affine[:3, :3])) + f" => {affcode}"
+    if orientation is None or orientation == "native":
+        checks[f"Orientation {orientation}"] = "IGNORED", orientation_text
+    else:
         is_soft = not orientation.startswith("soft")
-        if is_correct_orientation := is_orientation(img.affine, orientation[-3:], is_soft, eps):
-            orientation_text = orientation
-        else:
-            from re import sub
-
-            affcode = "".join(nib.orientations.aff2axcodes(img.affine))
-            with np.printoptions(precision=2, suppress=True):
-                orientation_text = "affine: " + sub("\\s+", " ", str(img.affine[:3, :3])) + f" => {affcode}"
-        checks[f"Orientation {orientation.upper()}"] = (is_correct_orientation, orientation_text)
+        is_correct_orientation = is_orientation(img.affine, orientation[-3:], is_soft, eps)
+        checks[f"Orientation {orientation.upper()}"] = is_correct_orientation, orientation_text
 
     # check dtype uchar
-    if dtype is not None:
+    dtype_text = f"dtype {img.get_data_dtype().name}"
+    if dtype is None:
+        checks["Dtype None"] = "IGNORED", dtype_text
+    else:
         _dtype: npt.DTypeLike = to_dtype(dtype)
         _dtype_name = _dtype.name if hasattr(_dtype, "name") else str(dtype)
-        is_correct_dtype = np.issubdtype(img.get_data_dtype(), _dtype)
-        checks[f"Dtype {_dtype_name}"] = (is_correct_dtype, f"dtype {img.get_data_dtype().name}")
+        checks[f"Dtype {_dtype_name}"] = np.issubdtype(img.get_data_dtype(), _dtype), dtype_text
 
     _is_conform = all(map(lambda x: x[0], checks.values()))
 
@@ -994,10 +1022,12 @@ def is_conform(
                 conform_str = f"{np.round(_vox_size[0], decimals=2):.2f}-"
             else:
                 with np.printoptions(precision=2, suppress=True):
-                    conform_str = f"{str(_vox_size)}-"
+                    conform_str = str(_vox_size) + "-"
         logger.info(f"A {conform_str}conformed image must satisfy the following criteria:")
         for condition, (value, message) in checks.items():
-            logger.info(f" - {condition:<30}: {value if value else 'BUT ' + message}")
+            if isinstance(value, bool):
+                value = "GOOD" if value else "BUT"
+            logger.info(f" - {condition:<30}: {value} {message}")
     return _is_conform
 
 

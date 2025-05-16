@@ -14,7 +14,7 @@
 
 # IMPORTS
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Optional
 
 import h5py
@@ -36,10 +36,12 @@ class MultiScaleOrigDataThickSlices(Dataset):
     Load MRI-Image and process it to correct format for network inference.
     """
 
+    zoom : npt.NDArray[float]
+
     def __init__(
             self,
             orig_data: npt.NDArray,
-            orig_zoom: npt.NDArray,
+            orig_zoom: npt.NDArray[float] | Sequence[float],
             cfg: yacs.config.CfgNode,
             transforms: Callable[[npt.NDArray[float]], npt.NDArray[float]] | None = None,
     ):
@@ -65,16 +67,16 @@ class MultiScaleOrigDataThickSlices(Dataset):
 
         if self.plane == "sagittal":
             orig_data = du.transform_sagittal(orig_data)
-            self.zoom = orig_zoom[::-1][:2]
+            self.zoom = np.asarray(orig_zoom)[[2, 1]]
             logger.info(f"Loading Sagittal with input voxelsize {self.zoom}")
 
         elif self.plane == "axial":
             orig_data = du.transform_axial(orig_data)
-            self.zoom = orig_zoom[::-1][:2]
+            self.zoom = np.asarray(orig_zoom)[[2, 0]]
             logger.info(f"Loading Axial with input voxelsize {self.zoom}")
 
         else:
-            self.zoom = orig_zoom[:2]
+            self.zoom = np.asarray(orig_zoom)[[0, 1]]
             logger.info(f"Loading Coronal with input voxelsize {self.zoom}")
 
         # Create thick slices

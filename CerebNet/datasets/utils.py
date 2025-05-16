@@ -26,7 +26,6 @@ from numpy import typing as npt
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
 from FastSurferCNN.utils import logging
 
-
 logger = logging.getLogger(__name__)
 
 CLASS_NAMES = {
