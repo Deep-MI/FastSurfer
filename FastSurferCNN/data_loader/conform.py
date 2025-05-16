@@ -1119,7 +1119,7 @@ def conformed_vox_img_size(
             _conformed_vox_size = MAX_VOX_SIZE
         target_vox_size = np.full((3,), _conformed_vox_size)
     # this is similar to mri_convert --conform_size <float>
-    elif isinstance(vox_size, float) and 0.0 < vox_size <= MAX_VOX_SIZE:
+    elif isinstance(vox_size, float | int) and 0.0 < vox_size <= MAX_VOX_SIZE:
         target_vox_size = np.full((3,), vox_size)
     elif vox_size is None:
         target_vox_size = None

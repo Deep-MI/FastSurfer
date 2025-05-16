@@ -91,9 +91,9 @@ def setup_options():
 
     advanced.add_argument(
         "--vox_size",
-        choices=("1", "1.0", "none"),
+        choices=(1.0, None),
         type=_vox_size,
-        default=1,
+        default=1.0,
         dest="vox_size",
         help="Choose the voxelsize to process, CerebNet only supports 1 or 'none' to ignore the voxelsize. ",
     )

@@ -24,6 +24,10 @@ import torch
 from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
+from FastSurferCNN.utils import logging
+
+
+logger = logging.getLogger(__name__)
 
 CLASS_NAMES = {
     "Background": 0,
@@ -215,14 +219,12 @@ def bounding_volume_offset(
         else None
     )
     if img_shape is not None:
-        offset = tuple(
-            min(max(0, o), imgs - ts)
-            for o, ts, imgs in zip(offset, target_img_size, img_shape, strict=False)
-        )
-        if any(o < 0 for o in offset):
-            raise RuntimeError(
-                f"Insufficient image size {img_shape} for target image size {target_img_size}"
-            )
+        # try to set the offset so the bounding volume is fully inside
+        _offset = list((max(0, o), imgs - ts) for o, ts, imgs in zip(offset, target_img_size, img_shape, strict=False))
+        # if it does not fit fully inside, warn
+        if any(min(left, right) < 0 for left, right in _offset):
+            logger.warning(f"The image is not large enough to cut a {target_img_size} patch, padding!")
+        offset = tuple(min(left, right) if min(left, right) >= 0 else int((left + right)/2) for left, right in _offset)
     return offset
 
 
