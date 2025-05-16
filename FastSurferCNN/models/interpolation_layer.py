@@ -91,9 +91,7 @@ class _ZoomNd(nn.Module):
         """
         Validate and set the target_shape.
         """
-        tup_target_shape = (
-            tuple(target_shape) if isinstance(target_shape, _T.Iterable) else tuple()
-        )
+        tup_target_shape = tuple(target_shape) if isinstance(target_shape, _T.Iterable) else tuple()
         if tup_target_shape != self._target_shape:
             LOGGER.debug(
                 f"Changing the target_shape of {type(self).__name__} to {tup_target_shape} from {self._target_shape}."

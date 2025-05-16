@@ -32,12 +32,7 @@ from CerebNet.utils import checkpoint as cp
 from FastSurferCNN.data_loader.conform import crop_transform
 from FastSurferCNN.utils import PLANES, Plane, logging
 from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
-from FastSurferCNN.utils.common import (
-    SerialExecutor,
-    SubjectDirectory,
-    SubjectList,
-    find_device,
-)
+from FastSurferCNN.utils.common import SerialExecutor, SubjectDirectory, SubjectList, find_device
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, Mapper, TSVLookupTable
 from FastSurferCNN.utils.threads import get_num_threads
 
@@ -122,6 +117,7 @@ class Inference:
                 viewagg_device,
                 flag_name="viewagg_device",
                 min_memory=2 * (2**30),
+                default_cuda_device=_device,
             )
 
         self.batch_size = cfg.TEST.BATCH_SIZE

@@ -25,12 +25,14 @@ ImageSizeOption = int | Literal["fov", "auto"]
 __axcode = ("rl", "ap", "si")
 __orders = tuple(permutations(range(3)))
 __flips = ((0, 1),) * 3
-__axcodes = ["".join(__axcode[ii[i]][j] for i, j in enumerate(jj)) for ii, jj in product(__orders, product(*__flips))]
-VALID_ORIENTATIONS = ["native", *map(lambda x: "soft " + x, __axcodes), *__axcodes]
+ORIENTATIONS = ["".join(__axcode[ii[i]][j] for i, j in enumerate(k)) for ii, k in product(__orders, product(*__flips))]
+VALID_ORIENTATIONS = ["native", *map(lambda x: "soft " + x, ORIENTATIONS), *ORIENTATIONS]
 
+StrictOrientationType = str
 OrientationType = str
 # future better typing, requires Python 3.11 (Syntax Error before that)
 # OrientationType = Literal[*VALID_ORIENTATIONS]
+# StrictOrientationType = Literal[*ORIENTATIONS]
 
 
 

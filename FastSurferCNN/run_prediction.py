@@ -41,7 +41,7 @@ from numpy import typing as npt
 
 import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import data_utils as du
-from FastSurferCNN.data_loader.conform import conform, is_conform, to_target_orientation
+from FastSurferCNN.data_loader.conform import conform, is_conform, orientation_to_ornts, to_target_orientation
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
@@ -237,7 +237,12 @@ class RunModelOnData:
             self.viewagg_device = self.device
         else:
             # check, if GPU is big enough to run view agg on it (this currently takes the memory of the passed device)
-            self.viewagg_device = find_device(viewagg_device, flag_name="viewagg_device", min_memory=4 * (2**30))
+            self.viewagg_device = find_device(
+                viewagg_device,
+                flag_name="viewagg_device",
+                min_memory=4 * (2**30),
+                default_cuda_device=self.device,
+            )
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
 
@@ -384,6 +389,8 @@ class RunModelOnData:
 
         orig_in_lia, back_to_native = to_target_orientation(orig_data, affine, target_orientation="LIA")
         shape = orig_in_lia.shape + (self.get_num_classes(),)
+        _ornt_transform, _ = orientation_to_ornts(affine, target_orientation="LIA")
+        _zoom = _zoom[_ornt_transform[:, 0]]
 
         pred_prob = torch.zeros(shape, **kwargs)
 
@@ -392,7 +399,7 @@ class RunModelOnData:
             LOGGER.info(f"Run {plane} prediction")
             self.set_model(plane)
             # pred_prob is updated inplace to conserve memory
-            pred_prob = model.run(pred_prob, image_name, orig_in_lia, zoom, out=pred_prob)
+            pred_prob = model.run(pred_prob, image_name, orig_in_lia, _zoom, out=pred_prob)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)

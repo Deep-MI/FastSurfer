@@ -568,9 +568,7 @@ def get_prediction(
     #  Solution: make this script/function more similar to the optimized FastSurferVINN
     device, viewagg_device = model.get_device()
 
-    h, w, d = target_shape
-
-    pred_shape = (h,w,d, model.get_num_classes())
+    pred_shape = tuple(target_shape) + (model.get_num_classes(),)
     # Set up tensor to hold probabilities and run inference
     pred_prob = torch.zeros(pred_shape, dtype=torch.float, device=viewagg_device)
     for plane, opts in view_opts.items():

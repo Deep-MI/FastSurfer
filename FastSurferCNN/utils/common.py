@@ -48,6 +48,7 @@ def find_device(
     device: torch.device | str = "auto",
     flag_name: str = "device",
     min_memory: int = 0,
+    default_cuda_device: torch.device | str = "cuda",
 ) -> torch.device:
     """
     Create a device object from the device string passed.
@@ -56,14 +57,14 @@ def find_device(
 
     Parameters
     ----------
-    device : torch.device, str
-        The device to search for and test following pytorch device naming
-        conventions, e.g. 'cuda:0', 'cpu', etc. (default: 'auto').
+    device : torch.device, str, default="auto"
+        The device to search for and test following pytorch device naming conventions, e.g. 'cuda:0', 'cpu', etc.
     flag_name : str
         Name of the corresponding flag for error messages (default: 'device').
     min_memory : int
-        The minimum memory in bytes required for cuda-devices to
-        be valid (default: 0, works always).
+        The minimum memory in bytes required for cuda-devices to be valid (default: 0, works always).
+    default_cuda_device : str, torch.device, default="cuda"
+        Default cuda device to use, if cuda is available and device is "auto".
 
     Returns
     -------
@@ -85,20 +86,18 @@ def find_device(
     # If auto detect:
     if str(device) == "auto" or not device:
         # 1st check cuda / also finds AMD ROCm, then mps, finally cpu
-        device = "cuda" if has_cuda else "mps" if has_mps else "cpu"
+        device = default_cuda_device if has_cuda else "mps" if has_mps else "cpu"
 
     device = torch.device(device)
 
     if device.type == "cuda" and min_memory > 0:
         dev_num = torch.cuda.current_device() if device.index is None else device.index
-        total_gpu_memory = torch.cuda.get_device_properties(dev_num).__getattribute__(
-            "total_memory"
-        )
+        total_gpu_memory = torch.cuda.get_device_properties(dev_num).__getattribute__("total_memory")
         if total_gpu_memory < min_memory:
             giga = 1024**3
-            logger.info(
-                f"Found {total_gpu_memory/giga:.1f} GB GPU memory, but "
-                f"{min_memory/giga:.1f} GB was required."
+            logger.warning(
+                f"Found {total_gpu_memory/giga:.1f} GB GPU memory on device {device}, but {min_memory/giga:.1f} GB was "
+                f"required. Falling back to {flag_name} cpu."
             )
             device = torch.device("cpu")
 

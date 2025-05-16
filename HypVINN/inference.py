@@ -98,12 +98,11 @@ class Inference:
         else:
             # check, if GPU is big enough to run view agg on it
             # (this currently takes the memory of the passed device)
-            self.viewagg_device = torch.device(
-                find_device(
-                    viewagg_device,
-                    flag_name="viewagg_device",
-                    min_memory=4 * (2 ** 30),
-                )
+            self.viewagg_device = find_device(
+                viewagg_device,
+                flag_name="viewagg_device",
+                min_memory=4 * (2 ** 30),
+                default_cuda_device=self.device,
             )
 
         logger.info(f"Running view aggregation on {self.viewagg_device}")

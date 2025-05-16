@@ -540,6 +540,8 @@ function process_by_token()
   if [[ "$mode" == "surf" ]] ; then max_processes="$num_parallel_surf" ; else max_processes="$num_parallel_seg" ; fi
   while [[ "$read_in" == 1 ]] || [[ "${#subject_buffer[@]}" -gt 0 ]]
   do
+    # initialize res_args
+    res_args=()
     if [[ "$read_in" == 1 ]]
     then
       IFS=""
@@ -578,20 +580,20 @@ function process_by_token()
           for name in "${device[@]}" ; do
             i="$(device2number "$name")"
             if [[ -z "${used_device[i]}" ]] || [[ -z "$(ps --no-headers "${used_device[i]}")" ]] ; then
-              res_args=("--device" "$name") ; used_device[i]=""; device_ready=$((device_ready + 1)) ; dev="$name" ; break
+              res_args+=("--device" "$name") ; used_device[i]=""; device_ready=$((device_ready + 1)) ; dev="$name" ; break
             fi
           done
-        else device_ready=$((device_ready + 1)) ; res_args=("--device" "${device[0]}")
+        else device_ready=$((device_ready + 1)) ; res_args+=("--device" "${device[0]}") ; dev="${device[0]}"
         fi
         if [[ "${#vdevice[@]}" -gt 1 ]] ; then
           # go through viewagg device assignments, if the processes finished, release the device assignment
           for name in "${vdevice[@]}" ; do
             i="$(device2number "$name")"
             if [[ -z "${used_vdevice[i]}" ]] || [[ -z "$(ps --no-headers "${used_vdevice[i]}")" ]] ; then
-              res_args=("--viewagg_device" "$name") ; used_vdevice[i]="" ; device_ready=$((device_ready + 1)) ; vdev="$name" ; break
+              res_args+=("--viewagg_device" "$name") ; used_vdevice[i]="" ; device_ready=$((device_ready + 1)) ; vdev="$name" ; break
             fi
           done
-        else device_ready=$((device_ready + 1)) ; res_args=("--viewagg_device" "${vdevice[0]}")
+        else device_ready=$((device_ready + 1)) ; res_args+=("--viewagg_device" "${vdevice[0]}") ; vdev="${vdevice[0]}"
         fi
       fi
       if [[ "$device_ready" -gt 1 ]]
