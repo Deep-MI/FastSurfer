@@ -91,8 +91,6 @@ class MultiScaleOrigDataThickSlices(Dataset):
         Get scaling factor to match original resolution of input image to final resolution of FastSurfer base network.
 
         Input resolution is taken from voxel size in image header.
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
 
         Returns
         -------
@@ -238,9 +236,7 @@ class MultiScaleDataset(Dataset):
         Get scaling factor to match original resolution of input image to final resolution of FastSurfer base network.
 
         Input resolution is taken from voxel size in image header.
-        
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
+
 
         Parameters
         ----------
@@ -260,9 +256,7 @@ class MultiScaleDataset(Dataset):
         scale = self.base_res / img_zoom
 
         if self.gn_noise:
-            scale += (
-                torch.randn(1) * 0.1 + 0
-            )  # needs to be changed to torch.tensor stuff
+            scale += torch.randn(1) * 0.1 + 0  # needs to be changed to torch.tensor stuff
             scale = torch.clamp(scale, min=0.1)
 
         return scale
@@ -470,9 +464,6 @@ class MultiScaleDatasetVal(Dataset):
 
         Input resolution is taken from voxel size in image header.
         
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
-
         Parameters
         ----------
         img_zoom : np.ndarray
