@@ -77,7 +77,7 @@ scikit-image==0.25.1
 scikit-learn==1.6.1
 scikit-sparse==0.4.15
 scipy==1.15.1
-setuptools==75.8.0
+setuptools==78.1.1
 shellingham==1.5.4
 shiboken6==6.8.1
 SimpleITK==2.4.1
