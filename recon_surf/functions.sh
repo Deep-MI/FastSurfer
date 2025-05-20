@@ -11,7 +11,7 @@ if FSTIME_LOAD=0 "${binpath}fs_time" echo testing &> /dev/null ; then timecmd="$
 else timecmd="" ; echo "INFO: Testing fs_time was not successful, not reporting per-command runtimes."
 fi
 export timecmd
-export LC_NUMERIC="en_US.UTF-8"
+if [[ "$LC_NUMERIC" != "en_US.UTF-8" ]] ; then export LC_NUMERIC="en_US.UTF-8" ; fi
 
 function check_create_subjects_dir_properties()
 {
@@ -188,6 +188,7 @@ function softlink_or_copy()
   local LF="$3"
   local ln_cmd=(ln -sf "$1" "$2")
   local cp_cmd=(cp "$1" "$2")
+  if [[ $# -lt 3 ]] || [[ -z "$LF" ]] ; then echo "WARNING: Parameter 3 of softlink_or_copy missing!" ; fi
   if [[ $# -eq 4 ]]
   then
     local CMDF=$4

@@ -455,11 +455,8 @@ def map_image(
             ornt = nib.orientations.io_orientation(vox2vox)
             new_old_index = list(enumerate(map(int, ornt[:, 0])))
             # if the direction is flipped (ornt[j, 1] == -1), offset has to start at the other end
-            offsets = [ornt[j, 1] * vox2vox[i, 3] + (ornt[j, 1] == -1) * out_shape[i] for i, j in new_old_index]
+            offsets = [ornt[j, 1] * vox2vox[i, 3] + (ornt[j, 1] == -1) * img.shape[j] for i, j in new_old_index]
             offsets = list(map(lambda x: int(x.astype(int)), offsets))
-            LOGGER.debug(f"no interp: offsets {offsets}, ornt {ornt}, shape {out_shape}")
-            LOGGER.debug(f"in center {np.asarray(image_data.shape) / 2}")
-            LOGGER.debug(f"out center {np.asarray(out_shape) / 2}")
             reordered = apply_orientation(image_data, ornt)
             # pad=0 => pad with zeros
             return crop_transform(reordered, offsets=offsets, target_shape=out_shape, pad=0)
@@ -817,20 +814,22 @@ def prepare_mgh_header(
     # nibabel only copies header information, if the file type is the same (here, this would be only of mgh header)
     source_img_shape = img.header.get_data_shape()
     source_vox_size = img.header.get_zooms()
+
+    source_mdc = img.affine[:3, :3] / np.linalg.norm(img.affine[:3, :3], axis=0, keepdims=True)
     # native
     if orientation == "native":
         re_order_axes = [0, 1, 2]
-        rot_scale_mat = img.affine[:3, :3]
+        mdc_affine = np.linalg.inv(source_mdc)
     else:
         _ornt_transform, _ = orientation_to_ornts(img.affine, orientation[-3:])
         re_order_axes = _ornt_transform[:, 0]
         if len(orientation) == 3:  # lia, ras, etc
             # this is a 3x3 matrix
             out_ornt = nib.orientations.axcodes2ornt(orientation[-3:].upper())
-            rot_scale_mat = nib.orientations.inv_ornt_aff(out_ornt, source_img_shape)[:3, :3]
+            mdc_affine = nib.orientations.inv_ornt_aff(out_ornt, source_img_shape)[:3, :3]
         else: # soft lia, ras, ....
-            aff = _ornt_transform[:, 1][None] * img.affine[:3, :3]
-            rot_scale_mat = np.stack([aff[:3, int(ax)] for ax in _ornt_transform[:, 0]], axis=-1)
+            aff = _ornt_transform[:, 1][None] * source_mdc
+            mdc_affine = np.stack([aff[:3, int(ax)] for ax in _ornt_transform[:, 0]], axis=-1)
 
     shape: list[int] = [(source_img_shape if target_img_size is None else target_img_size)[i] for i in re_order_axes]
     h1.set_data_shape(shape + [1])
@@ -838,7 +837,7 @@ def prepare_mgh_header(
     # --> h1['delta']
     h1.set_zooms([(target_vox_size if target_vox_size is not None else source_vox_size)[i] for i in re_order_axes])
 
-    h1["Mdc"] = rot_scale_mat.T / np.linalg.norm(rot_scale_mat, axis=1)
+    h1["Mdc"] = mdc_affine
     # fov should only be defined, if the image has same fov in all directions? fov == one number
     _fov = np.asarray([i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms(), strict=False)])
     if _fov.min() == _fov.max():
@@ -847,9 +846,12 @@ def prepare_mgh_header(
     center = np.asarray(img.shape[:3], dtype=float) / 2.0
     h1["Pxyz_c"] = img.affine.dot(np.hstack((center, [1.0])))[:3]
     # There is a special case here, where an interpolation is triggered, but it is not necessary, if the position of
-    # the center could "fix this" condition: 1. no rotation, no vox-size resampling,
+    # the center could "fix this" condition:
     vox2vox = np.linalg.inv(h1.get_affine()) @ img.affine
-    if not does_vox2vox_rot_require_interpolation(vox2vox, vox_eps=vox_eps, rot_eps=rot_eps):
+    if does_vox2vox_rot_require_interpolation(vox2vox, vox_eps=vox_eps, rot_eps=rot_eps):
+        # 1. has rotation, or vox-size resampling => requires resampling
+        pass
+    else:
         # 2. img_size changes from odd to even and vice versa
         #    i.e. can changing the RAS center make an interpolation unnecessary?
         vec = np.linalg.inv(vox2vox)[:3, 3]
@@ -973,15 +975,6 @@ def is_conform(
         "Number of Dimensions 3": (img.ndim == 3, f"image ndim {img.ndim}")
     }
 
-    # check dimensions
-    img_size_text = f"image dimensions {img.shape}"
-    if img_size in (None, "fov") or _img_size is None:
-        img_size_criteria = f"Dimensions {img_size}"
-        checks[img_size_criteria] = "IGNORED", img_size_text
-    else:
-        img_size_criteria = f"Dimensions {img_size}={'x'.join(map(str, _img_size[:3]))}"
-        checks[img_size_criteria] = np.array_equal(np.asarray(img.shape[:3]), _img_size), img_size_text
-
     # check voxel size, drop voxel sizes of dimension 4 if available
     izoom = np.array(img.header.get_zooms())
     vox_size_text = f"image {'x'.join(map(str, izoom))}"
@@ -992,6 +985,15 @@ def is_conform(
             raise TypeError("_vox_size should be numpy.ndarray here")
         vox_size_criteria = f"Voxel Size {vox_size}={'x'.join(map(str, _vox_size))}"
         checks[vox_size_criteria] = np.allclose(izoom[:3], _vox_size, atol=vox_eps, rtol=0), vox_size_text
+
+    # check dimensions
+    img_size_text = f"image dimensions {img.shape}"
+    if img_size in (None, "fov") or _img_size is None:
+        img_size_criteria = f"Dimensions {img_size}"
+        checks[img_size_criteria] = "IGNORED", img_size_text
+    else:
+        img_size_criteria = f"Dimensions {img_size}={'x'.join(map(str, _img_size[:3]))}"
+        checks[img_size_criteria] = np.array_equal(np.asarray(img.shape[:3]), _img_size), img_size_text
 
     # check orientation LIA
     affcode = "".join(nib.orientations.aff2axcodes(img.affine))
@@ -1168,7 +1170,7 @@ def conformed_vox_img_size(
     elif isinstance(img_size, int) and img_size > 0:
         target_img_size = np.full((3,), img_size)
     elif isinstance(img_size, str) and (img_size := img_size.lower()) in ["fov", "auto"]:
-        thres = threshold_1mm or 0.
+        thres = abs(1.0 - (threshold_1mm or 1.0))
         if target_vox_size is not None and np.allclose(target_vox_size, 1.0, atol=thres) and img_size == "auto":
             target_img_size = np.full((3,), MAX_DIMENSION)
         # (other voxel sizes may use different sizes)

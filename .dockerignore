@@ -3,6 +3,7 @@
 checkpoints
 Singularity
 doc
+test
 venv
 Tutorial
 **/*.md

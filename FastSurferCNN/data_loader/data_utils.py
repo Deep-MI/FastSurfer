@@ -148,11 +148,8 @@ def load_image(
     try:
         img = cast(nib.analyze.SpatialImage, nib.load(file, **kwargs))
     except (OSError, FileNotFoundError) as e:
-        raise OSError(
-            f"Failed loading the {name} '{file}' with error: {e.args[0]}"
-        ) from e
-    data = np.asarray(img.dataobj)
-    return img, data
+        raise OSError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
+    return img, np.asarray(img.dataobj)
 
 
 def load_maybe_conform(
