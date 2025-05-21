@@ -45,8 +45,8 @@ from FastSurferCNN.utils.threads import get_num_threads
 FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
 PLANE_HELP = {
-    "checkpoint": "{} checkpoint to load",
-    "config": "Path to the {} config file",
+    "checkpoint": "{} checkpoint to load.",
+    "config": "Path to the {} config file ('none' deactivates the view).",
 }
 
 
@@ -423,6 +423,9 @@ def add_plane_flags(
     if configtype not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")
 
+    def cast_type(__value: str) -> Path | None:
+        return None if configtype == "config" and (not bool(__value) or __value.lower() == "none") else Path(__value)
+
     from FastSurferCNN.utils.checkpoint import load_checkpoint_config_defaults
     defaults = load_checkpoint_config_defaults(configtype, defaults_path)
 
@@ -438,7 +441,7 @@ def add_plane_flags(
         plane_short = plane[: index + 2]
         parser.add_argument(
             f"--{PLANE_SHORT[configtype]}_{plane_short}",
-            type=Path,
+            type=cast_type,
             dest=f"{PLANE_SHORT[configtype]}_{plane_short}",
             help=PLANE_HELP[configtype].format(plane),
             default=path,
