@@ -7,19 +7,18 @@ import logging
 import os.path
 import re
 
-
 logger = logging.getLogger(__name__)
 
 
 arg_pattern = re.compile('^(\\s*-\\s*)(--[a-zA-Z0-9\\-]+)(\\s+\\S+)?(\\s*(#.*)?)$')
-package_pattern = re.compile('^(\\s*-\\s*)([a-zA-Z0-9\\-]+|pip:)(\\s*[<=>~]{1,2}\\s*\\S+)?(\\s*(#.*)?\\s*)$')
+package_pattern = re.compile('^(\\s*-\\s*)([a-zA-Z0-9\\.\\_\\-]+|pip:)(\\s*[<=>~]{1,2}\\s*\\S+)?(\\s*(#.*)?\\s*)$')
 dependencies_pattern = re.compile('^\\s*dependencies:\\s*$')
 
 
 def mode(arg: str) -> str:
     if arg in ["base", "cpu"] or \
             re.match("^cu\\d+$", arg) or \
-            re.match("^rocm\\d+\\.\\d+(\\.\\d+)?$"):
+            re.match("^rocm\\d+\\.\\d+(\\.\\d+)?$", arg):
         return arg
     else:
         raise argparse.ArgumentTypeError(f"The mode was '{arg}', but should be "
@@ -61,18 +60,17 @@ def make_parser() -> argparse.ArgumentParser:
 def main(args):
     """Function to split a conda env file for pytorch cuda and cpu versions."""
 
-    from operator import xor
-    mode = getattr(args, 'mode')
+    mode = args.mode
     if mode is None:
         return "ERROR: No mode set."
 
     yaml_in = getattr(args, 'yaml_in', None)
     if yaml_in is None or not os.path.exists(yaml_in):
         return f"ERROR: yaml environment file {yaml_in} is not valid!"
-    with open(yaml_in, "r") as f_yaml:
+    with open(yaml_in) as f_yaml:
         lines = f_yaml.readlines()
 
-    out_file = getattr(args, 'yaml_out')
+    out_file = args.yaml_out
     out_file_pointer = open(out_file, "w") if out_file else None
     # filter yaml file for pip content
     kwargs = {"sep": "", "end": "", "file": out_file_pointer}

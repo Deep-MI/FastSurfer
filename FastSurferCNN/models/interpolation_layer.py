@@ -18,78 +18,80 @@ from numbers import Number
 
 import numpy as np
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.nn import functional as _F
 
 from FastSurferCNN.utils.logging import getLogger as _getLogger
 
-
 LOGGER = _getLogger(__name__)
 
-T_Scale = _T.TypeVar("T_Scale", _T.List[float], Tensor)
+T_Scale = _T.TypeVar("T_Scale", list[float], Tensor)
 T_ScaleAll = _T.TypeVar("T_ScaleAll", _T.Sequence[float], Tensor, np.ndarray, float)
 
 
 class _ZoomNd(nn.Module):
-    """Abstract Class to perform a crop and interpolation on a (N+2)-dimensional Tensor respecting batch and channel.
+    """
+    Abstract Class to perform a crop and interpolation on a (N+2)-dimensional Tensor respecting batch and channel.
 
     Attributes
     ----------
     _mode
-        interpolation mode as in `torch.nn.interpolate` (default: 'neareast')
+        (Protected) Interpolation mode as in `torch.nn.interpolate` (default: 'neareast').
     _target_shape
-        Target tensor size for after this module,
+        (Protected) Target tensor size for after this module,
         not including batchsize and channels.
     _N
-        Number of dimensions
+        (Protected) Internal number of dimensions.
 
     Methods
     -------
     forward
-        forward propagation
+        Forward propagation.
     _fix_scale_factors
-        Checking and fixing the conformity of scale_factors
+        (Protected) Checking and fixing the conformity of scale_factors.
     _interpolate
-        abstract method
-    -calculate_crop_pad
-        Return start- and end- coordinate
+        (Protected) Abstract method.
+    _calculate_crop_pad
+        (Protected) Return start- and end- coordinate.
     """
 
     def __init__(
-            self,
-            target_shape: _T.Optional[_T.Sequence[int]],
-            interpolation_mode: str = "nearest"
+        self,
+        target_shape: _T.Sequence[int] | None,
+        interpolation_mode: str = "nearest",
     ):
-        """Construct Zoom object.
+        """
+        Construct Zoom object.
 
         Parameters
         ----------
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module,
             not including batchsize and channels.
-        interpolation_mode : str
-            interpolation mode as in `torch.nn.interpolate`
-            (default: 'neareast')
-
+        interpolation_mode : str, default="nearest"
+            Interpolation mode as in `torch.nn.interpolate`
+            (default: 'neareast').
         """
-        super(_ZoomNd, self).__init__()
+        super().__init__()
         self._mode = interpolation_mode
         if not hasattr(self, "_N"):
             self._N = -1
-        self._target_shape: _T.Tuple[int, ...] = tuple()
+        self._target_shape: tuple[int, ...] = tuple()
         self.target_shape = target_shape
 
     @property
-    def target_shape(self) -> _T.Tuple[int, ...]:
-        """Return the target shape."""
+    def target_shape(self) -> tuple[int, ...]:
+        """
+        Return the target shape.
+        """
         return self._target_shape
 
     @target_shape.setter
-    def target_shape(self, target_shape: _T.Optional[_T.Sequence[int]]) -> None:
-        """Validate and set the target_shape."""
-        tup_target_shape = (
-            tuple(target_shape) if isinstance(target_shape, _T.Iterable) else tuple()
-        )
+    def target_shape(self, target_shape: _T.Sequence[int] | None) -> None:
+        """
+        Validate and set the target_shape.
+        """
+        tup_target_shape = tuple(target_shape) if isinstance(target_shape, _T.Iterable) else tuple()
         if tup_target_shape != self._target_shape:
             LOGGER.debug(
                 f"Changing the target_shape of {type(self).__name__} to {tup_target_shape} from {self._target_shape}."
@@ -107,16 +109,14 @@ class _ZoomNd(nn.Module):
             )
 
     def forward(
-            self,
-            input_tensor: Tensor,
-            scale_factors: T_ScaleAll,
-            rescale: bool = False
-    ) -> _T.Tuple[Tensor, _T.List[T_Scale]]:
-        """Zoom the `input_tensor` with `scale_factors`.
+        self, input_tensor: Tensor, scale_factors: T_ScaleAll, rescale: bool = False
+    ) -> tuple[Tensor, list[T_Scale]]:
+        """
+        Zoom the `input_tensor` with `scale_factors`.
 
         This is not an exact zoom, but rather an "approximate zoom".
         This is due to the fact that the backbone function only interpolates between integer-sized images and therefore
-        the target shape must be rounded to the nearest integer
+        the target shape must be rounded to the nearest integer.
 
         Parameters
         ----------
@@ -128,10 +128,10 @@ class _ZoomNd(nn.Module):
             or a (cascaded) sequence of floats or ints) or a float. If it is a float, all axis and all images of the
             batch are treated the same (zoomed by the float). Else, it will be interpreted as a multidimensional
             image: The first dimension corresponds to and must be equal to the batch size of the image. The second
-            dimension is optional and may contain different values for the _scale_limits factor per axis. In consequence,
-            this dimension can have 1 or {dim} values.
-        rescale : bool
-            (Default value = False)
+            dimension is optional and may contain different values for the _scale_limits factor per axis.
+            In consequence, this dimension can have 1 or {dim} values.
+        rescale : bool, default="False"
+            (Default value = False).
 
         Returns
         -------
@@ -139,10 +139,9 @@ class _ZoomNd(nn.Module):
             The zoomed tensor and the zoom factors that were actually used in the calculation for correct rescaling.
 
         Notes
-        -------
+        -----
         If this Module is used to zoom images of different voxelsizes to the same voxelsize, then `scale_factor`
         should be equal to `target_voxelsize / source_voxelsize`.
-
         """
         if self._N == -1:
             raise RuntimeError(
@@ -160,7 +159,7 @@ class _ZoomNd(nn.Module):
             )
 
         scales_chunks = list(
-            zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]))
+            zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]), strict=False)
         )
         if len(scales_chunks) == 0:
             raise ValueError(
@@ -172,7 +171,7 @@ class _ZoomNd(nn.Module):
 
         # Pytorch Tensor shape BxCxHxW --> loop over batches, interpolate single images, concatenate output at end
         for tensor, scale_f, num in zip(
-            torch.split(input_tensor, chunks, dim=0), scales, chunks
+            torch.split(input_tensor, chunks, dim=0), scales, chunks, strict=False
         ):
             if rescale:
                 if isinstance(scale_f, list):
@@ -186,31 +185,29 @@ class _ZoomNd(nn.Module):
         return torch.cat(interp, dim=0), scales_out
 
     def _fix_scale_factors(
-            self,
-            scale_factors: T_ScaleAll,
-            batch_size: int
-    ) -> _T.Iterable[_T.Tuple[T_Scale, int]]:
-        """Check and fix the conformity of scale_factors.
+        self, scale_factors: T_ScaleAll, batch_size: int
+    ) -> _T.Iterable[tuple[T_Scale, int]]:
+        """
+        Check and fix the conformity of scale_factors.
 
         Parameters
         ----------
         scale_factors : T_ScaleAll
-            scale factors to fix dimensions
+            Scale factors to fix dimensions.
         batch_size : int
-            number of batches
+            Number of batches.
 
         Yields
         ------
-        _T.Iterable[_T.Tuple[T_Scale, int]]
-            The next fixed scale factor
+        tuple[T_Scale, int]
+            The next fixed scale factor.
 
         Raises
         ------
         ValueError
-            scale_factors is neither a _T.Iterable nor a Number
-
+            Scale_factors is neither a _T.Iterable nor a Number.
         """
-        if isinstance(scale_factors, (Tensor, np.ndarray)):
+        if isinstance(scale_factors, Tensor | np.ndarray):
             batch_size_sf = scale_factors.shape[0]
         elif isinstance(scale_factors, _T.Iterable):
             scale_factors = list(scale_factors)
@@ -224,13 +221,13 @@ class _ZoomNd(nn.Module):
                     "scale_factors is a Sequence, but not the same length as the batch-size."
                 )
             num = 0
-            last_sf: _T.Optional[T_Scale] = None
+            last_sf: T_Scale | None = None
             # Loop over batches
             for i, sf in enumerate(scale_factors):
                 if isinstance(sf, Number):
                     sf = [sf] * self._N
                 else:
-                    if isinstance(sf, (np.ndarray, Tensor)):
+                    if isinstance(sf, np.ndarray | Tensor):
                         if isinstance(sf, Tensor) and sf.dim() == 0:
                             sf_dim = 1
                             sf = [sf] * self._N
@@ -253,7 +250,7 @@ class _ZoomNd(nn.Module):
                             f"scale factors, but only 1 or {self._N} are valid: {sf}."
                         )
 
-                if last_sf is not None and any(l != t for l, t in zip(last_sf, sf)):
+                if last_sf is not None and any(ln != t for ln, t in zip(last_sf, sf, strict=False)):
                     yield last_sf, num
                     # reset the counter
                     num = 0
@@ -268,40 +265,42 @@ class _ZoomNd(nn.Module):
                 "scale_factors is not the correct type, must be sequence of floats or float."
             )
 
-    def _interpolate(self, *args) -> _T.Tuple[Tensor, T_Scale]:
-        """Abstract method.
+    def _interpolate(self, *args) -> tuple[Tensor, T_Scale]:
+        """
+        Abstract method.
 
         Parameters
         ----------
         args
-            placeholder
-
+            Placeholder
         """
         raise NotImplementedError
 
     def _calculate_crop_pad(
-            self,
-            in_shape: _T.Sequence[int],
-            scale_factor: T_Scale,
-            dim: int, alignment: str
-    ) -> _T.Tuple[slice, T_Scale, _T.Tuple[int, int], int]:
-        """Return start- and end- coordinate given sizes, the updated scale factor [MISSING].
+        self,
+        in_shape: _T.Sequence[int],
+        scale_factor: T_Scale,
+        dim: int,
+        alignment: str,
+    ) -> tuple[slice, T_Scale, tuple[int, int], int]:
+        """
+        Return start- and end- coordinate given sizes, the updated scale factor.
 
         Parameters
         ----------
         in_shape : _T.Sequence[int]
-            [MISSING]
+            Input shape.
         scale_factor : T_Scale
-            [MISSING]
+            Scale factor.
         dim : int
-            dimension to be cropped
+            Dimension to be cropped.
         alignment : str
-            [MISSING]
+            Alignment of the cropping.
 
         Returns
         -------
         _T.Tuple[slice,T_Scale,_T.Tuple[int,int],int]
-            slice(start, end), new scale_factor, padding, interp_target_shape
+            Slice(start, end), new scale_factor, padding, interp_target_shape.
         """
         this_in_shape = in_shape[dim + 2]
         source_size = self._target_shape[dim] * scale_factor[dim]
@@ -366,43 +365,61 @@ class _ZoomNd(nn.Module):
 
 
 class Zoom2d(_ZoomNd):
-    """Perform a crop and interpolation on a Four-dimensional Tensor respecting batch and channel.
-
-    Attributes
-    ----------
-     _N
-        Number of dimensions (Here 2)
-     _crop_position
-        Position to crop
+    """
+    Perform a crop and interpolation on a Four-dimensional Tensor respecting batch and channel.
 
     Methods
     -------
     _interpolate
-        Crops, interpolates and pads the tensor
+        (Protected) Crops, interpolates and pads the tensor.
     """
 
+    _crop_position: str
+
     def __init__(
-            self,
-            target_shape: _T.Optional[_T.Sequence[int]],
-            interpolation_mode: str = "nearest",
-            crop_position: str = "top_left"
+        self,
+        target_shape: _T.Sequence[int] | None,
+        interpolation_mode: str = "nearest",
+        crop_position: str = "top_left",
     ):
-        """Construct Zoom2d object.
+        """
+        Construct Zoom2d object.
 
         Parameters
         ----------
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module, not including batchsize and channels.
-        interpolation_mode : str
-            interpolation mode as in `torch.nn.interpolate` (default: 'nearest')
-        crop_position : str
-            crop position to use from 'top_left', 'bottom_left', top_right', 'bottom_right',
-            'center' (default: 'top_left')
-
+        interpolation_mode : str, default="nearest"
+            Interpolation mode as in `torch.nn.interpolate` (default: 'nearest')
+        crop_position : str, default="top_left"
+            Crop position to use from 'top_left', 'bottom_left', top_right', 'bottom_right',
+            'center' (default: 'top_left').
         """
         if interpolation_mode not in ["nearest", "bilinear", "bicubic", "area"]:
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
+        self._N = 2
+        super().__init__(target_shape, interpolation_mode)
+        self.crop_position = crop_position
+
+    @property
+    def crop_position(self) -> str:
+        """
+        Property associated with the position of the image in the data.
+        """
+        return self._crop_position
+
+    @crop_position.setter
+    def crop_position(self, crop_position: str) -> None:
+        """
+        Set the crop position.
+
+        Parameters
+        ----------
+        crop_position : str
+            The crop position key from 'top_left', 'bottom_left', top_right', 
+            'bottom_right', 'center'.
+        """
         if crop_position not in [
             "top_left",
             "bottom_left",
@@ -411,33 +428,30 @@ class Zoom2d(_ZoomNd):
             "center",
         ]:
             raise ValueError(f"invalid crop_position, got {crop_position}")
-
-        self._N = 2
-        super(Zoom2d, self).__init__(target_shape, interpolation_mode)
-        self._crop_position = crop_position
-
+        self._crop_position = crop_position        
+    
     def _interpolate(
-            self,
-            data: Tensor,
-            scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[float]]
-    ) -> _T.Tuple[Tensor, T_Scale]:
-        """Crop, interpolate and pad the tensor according to the scale_factor.
+        self,
+        data: Tensor,
+        scale_factor: Tensor | np.ndarray | _T.Sequence[float],
+    ) -> tuple[Tensor, T_Scale]:
+        """
+        Crop, interpolate and pad the tensor according to the scale_factor.
 
         Scale_factor must be 2-length sequence.
 
         Parameters
         ----------
         data : Tensor
-            input, to-be-interpolated tensor
+            Input, to-be-interpolated tensor.
         scale_factor : _T.Union[Tensor, np.ndarray, _T.Sequence[float]]
-            zoom factor
-            Returns: the interpolated tensor
+            Zoom factor
+            Returns: The interpolated tensor.
 
         Returns
         -------
         _T.Tuple[Tensor, T_Scale]
-            The interpolated tensor and its scaling factor
-
+            The interpolated tensor and its scaling factor.
         """
         scale_factor = (
             scale_factor.tolist()
@@ -490,33 +504,58 @@ class Zoom2d(_ZoomNd):
 
 
 class Zoom3d(_ZoomNd):
-    """Perform a crop and interpolation on a Five-dimensional Tensor respecting batch and channel."""
+    """
+    Perform a crop and interpolation on a Five-dimensional Tensor respecting batch and channel.
+    """
 
     def __init__(
-            self,
-            target_shape: _T.Optional[_T.Sequence[int]],
-            interpolation_mode: str = "nearest",
-            crop_position: str = "front_top_left"
+        self,
+        target_shape: _T.Sequence[int] | None,
+        interpolation_mode: str = "nearest",
+        crop_position: str = "front_top_left",
     ):
-        """Construct Zoom3d object.
+        """
+        Construct Zoom3d object.
 
         Parameters
         ----------
         target_shape : _T.Optional[_T.Sequence[int]]
             Target tensor size for after this module,
             not including batchsize and channels.
-        interpolation_mode : str
-            interpolation mode as in `torch.nn.interpolate`
-            (default: 'neareast')
-        crop_position : str
-            crop position to use from 'front_top_left', 'back_top_left',
+        interpolation_mode : str, default="nearest"
+            Interpolation mode as in `torch.nn.interpolate`,
+            (default: 'neareast').
+        crop_position : str, default="front_top_left"
+            Crop position to use from 'front_top_left', 'back_top_left',
             'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
-            'front_bottom_right', 'back_bottom_right', 'center' (default: 'front_top_left')
-
+            'front_bottom_right', 'back_bottom_right', 'center' (default: 'front_top_left').
         """
         if interpolation_mode not in ["nearest", "trilinear", "area"]:
             raise ValueError(f"invalid interpolation_mode, got {interpolation_mode}")
 
+        self._N = 3
+        super().__init__(target_shape, interpolation_mode)
+        self.crop_position = crop_position
+
+    @property
+    def crop_position(self) -> str:
+        """
+        Property associated with the position of the image in the data.
+        """
+        return self._crop_position
+
+    @crop_position.setter
+    def crop_position(self, crop_position: str) -> None:
+        """
+        Set the crop position.
+
+        Parameters
+        ----------
+        crop_position : str
+            Crop position to use from 'front_top_left', 'back_top_left',
+            'front_bottom_left', 'back_bottom_left', 'front_top_right', 'back_top_right',
+            'front_bottom_right', 'back_bottom_right', 'center' (default: 'front_top_left').
+        """
         if crop_position not in [
             "front_top_left",
             "back_top_left",
@@ -529,31 +568,27 @@ class Zoom3d(_ZoomNd):
             "center",
         ]:
             raise ValueError(f"invalid crop_position, got {crop_position}")
-
-        self._N = 3
-        super(Zoom3d, self).__init__(target_shape, interpolation_mode)
         self._crop_position = crop_position
-
+    
     def _interpolate(
-            self,
-            data: Tensor,
-            scale_factor: _T.Union[Tensor, np.ndarray, _T.Sequence[int]]
+        self, data: Tensor, scale_factor: Tensor | np.ndarray | _T.Sequence[int]
     ):
-        """Crop, interpolate and pad the tensor according to the scale_factor.
+        """
+        Crop, interpolate and pad the tensor according to the scale_factor.
 
-        scale_factor must be 3-length sequence.
+        Scale_factor must be 3-length sequence.
 
         Parameters
         ----------
         data : Tensor
-            input, to-be-interpolated tensor
+            Input, to-be-interpolated tensor.
         scale_factor : _T.Sequence[int]
-            zoom factor
+            Zoom factor.
 
         Returns
         -------
         _T.Tuple[Tensor, T_Scale]
-             The interpolated tensor and its scaling factor
+             The interpolated tensor and its scaling factor.
         """
         scale_factor = (
             scale_factor.tolist()

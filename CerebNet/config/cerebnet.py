@@ -116,7 +116,7 @@ _C.TRAIN.DROP_LAST_CONV = False
 # Data Augmentation options
 # ---------------------------------------------------------------------------- #
 
-# Augmentation for traning
+# Augmentation for training
 _C.AUGMENTATION = CN()
 
 # list of augmentations to use for training

@@ -8,7 +8,7 @@
 set -e
 
 # Install conda-pack
-conda install -c conda-forge conda-pack
+mamba install -c conda-forge conda-pack
 # Use conda-pack to create a standalone environment in /venv
 conda-pack -n "$1" -o /tmp/env.tar
 mkdir /venv

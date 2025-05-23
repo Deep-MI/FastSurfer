@@ -11,47 +11,47 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import torch.optim
+
 # IMPORTS
 import torch.optim.lr_scheduler as scheduler
-from typing import Union
-
 import yacs.config
 
 
 def get_lr_scheduler(
-        optimzer: torch.optim.Optimizer,
-        cfg: yacs.config.CfgNode
-) -> Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]:
-    """Give a schedular for left-right scheduling.
+    optimizer: torch.optim.Optimizer, cfg: yacs.config.CfgNode
+) -> None | scheduler.StepLR | scheduler.CosineAnnealingWarmRestarts:
+    """
+    Give a schedular for left-right scheduling.
 
     Parameters
     ----------
-    optimzer : torch.optim.Optimizer
-        Optimizer for the scheduler
+    optimizer : torch.optim.Optimizer
+        Optimizer for the scheduler.
     cfg : yacs.config.CfgNode
-        configuration node
+        Configuration node.
 
     Returns
     -------
-    [MISSING]
+    Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]
+        A learning rate scheduler configured according to `cfg`, or None if no scheduling is required.
 
     Raises
     ------
     ValueError
-        lr scheduler is not supported
-
+        lr scheduler is not supported.
     """
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":
         return scheduler.StepLR(
-            optimizer=optimzer,
+            optimizer=optimizer,
             step_size=cfg.OPTIMIZER.STEP_SIZE,
             gamma=cfg.OPTIMIZER.GAMMA,
         )
     elif scheduler_type == "cosineWarmRestarts":
         return scheduler.CosineAnnealingWarmRestarts(
-            optimizer=optimzer,
+            optimizer=optimizer,
             T_0=cfg.OPTIMIZER.T_ZERO,
             T_mult=cfg.OPTIMIZER.T_MULT,
             eta_min=cfg.OPTIMIZER.ETA_MIN,

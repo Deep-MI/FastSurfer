@@ -15,14 +15,13 @@
 # limitations under the License.
 
 VERSION='$Id$'
-FS_VERSION_SUPPORT="7.3.2"
+FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
 subject=""; # Subject name
-python="python3.8" # python version
+python="python3.10" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
-allow_root=""         # flag for allowing execution as root user
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -32,15 +31,6 @@ then
   binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
 else
   binpath="$FASTSURFER_HOME/recon_surf/"
-fi
-
-# fs_time command from fs60, fs72 fails in parallel mode, use local one
-# also check for failure (e.g. on mac it fails)
-timecmd="${binpath}fs_time"
-$timecmd echo testing &> /dev/null
-if [ ${PIPESTATUS[0]} -ne 0 ] ; then
-  echo "time command failing, not using time..."
-  timecmd=""
 fi
 
 
@@ -56,10 +46,10 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surfreg.sh --sid <sid> --sd <sdir> --seg <seg> [OPTIONS]
+Usage: recon-surfreg.sh --sid <sid> --sd <sdir> [OPTIONS]
 
-recon-surfreg.sh takes a segmentation and T1 full head image and creates surfaces,
-thickness etc as a FS subject dir.
+recon-surfreg.sh creates the ?h.sphere and ?h.sphere.reg from an existing
+subject directory, if this step was skipped in recon-surf.sh with --no_surfreg
 
 FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
@@ -77,7 +67,6 @@ Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will otherwise terminate if $FS_VERSION_SUPPORT is
                             not sourced. Can be used for testing dev versions.
-  --allow_root            Allow execution as root user
 
 REFERENCES:
 
@@ -96,82 +85,8 @@ EOF
 
 }
 
-
-function RunIt()
-{
-# parameters
-# $1 : cmd  (command to run)
-# $2 : LF   (log file)
-# $3 : CMDF (command file) optional
-# if CMDF is passed, then LF is ignored and cmd is echoed into CMDF and not run
-  cmd=$1
-  LF=$2
-  if [[ $# -eq 3 ]]
-  then
-    CMDF=$3
-    echo "echo \"$cmd\" " |& tee -a $CMDF
-    echo "$timecmd $cmd " |& tee -a $CMDF
-    echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> $CMDF
-  else
-    echo $cmd |& tee -a $LF
-    $timecmd $cmd |& tee -a $LF
-    #if [ ${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi
-  fi
-}
-
-function RunBatchJobs()
-{
-# parameters
-# $1 : LF
-# $2 ... : CMDFS
-  LOG_FILE=$1
-  # launch jobs found in command files (shift past first logfile arg).
-  # job output goes to a logfile named after the command file, which
-  # later gets appended to LOG_FILE
-
-  echo
-  echo "RunBatchJobs: Logfile: $LOG_FILE"
-
-  PIDS=()
-  LOGS=()
-  shift
-  for cmdf in $*; do
-    echo "RunBatchJobs: CMDF: $cmdf"
-    chmod u+x $cmdf
-    JOB="$cmdf"
-    LOG=$cmdf.log
-    echo "" >& $LOG
-    echo " $JOB" >> $LOG
-    echo "" >> $LOG
-    exec $JOB >> $LOG 2>&1 &
-    PIDS=(${PIDS[@]} $!)
-    LOGS=(${LOGS[@]} $LOG)
-
-  done
-  # wait till all processes have finished
-  PIDS_STATUS=()
-  for pid in "${PIDS[@]}"; do
-    echo "Waiting for PID $pid of (${PIDS[@]}) to complete..."
-    wait $pid
-    PIDS_STATUS=(${PIDS_STATUS[@]} $?)
-  done
-  # now append their logs to the main log file
-  for log in "${LOGS[@]}"
-  do
-    cat $log >> $LOG_FILE
-    rm -f $log
-  done
-  echo "PIDs (${PIDS[@]}) completed and logs appended."
-  # and check for failures
-  for pid_status in "${PIDS_STATUS[@]}"
-  do
-    if [ "$pid_status" != "0" ] ; then
-      exit 1
-    fi
-  done
-}
-
-
+# Load RunIt, timecmd, RunBatchJobs from functions.sh
+source "$binpath/functions.sh"
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
@@ -240,21 +155,9 @@ done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # CHECKS
-echo
-echo sid $subject
-echo
-
-
-# Warning if run as root user
-if [ -z "$allow_root" ] && [ "$(id -u)" == "0" ]
-  then
-    echo "You are trying to run '$0' as root. We advice to avoid running FastSurfer as root, "
-    echo "because it will lead to files and folders created as root."
-    echo "If you are running FastSurfer in a docker container, you can specify the user with "
-    echo "'-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
-    echo "If you want to force running as root, you may pass --allow_root to recon-surf.sh."
-    exit 1;
-fi
+echo " "
+echo "sid $subject"
+echo " "
 
 if [ "$subject" == "subject" ]
 then
@@ -356,28 +259,28 @@ if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
 LF=$SUBJECTS_DIR/$subject/scripts/recon-surfreg.log
 if [ $LF != /dev/null ] ; then  rm -f $LF ; fi
 echo "Log file for recon-surfreg.sh" >> $LF
-date  |& tee -a $LF
-echo "" |& tee -a $LF
-echo "export SUBJECTS_DIR=$SUBJECTS_DIR" |& tee -a $LF
-echo "cd `pwd`"  |& tee -a $LF
-echo $0 ${inputargs[*]} |& tee -a $LF
-echo "" |& tee -a $LF
-cat $FREESURFER_HOME/build-stamp.txt |& tee -a $LF
-echo $VERSION |& tee -a $LF
-uname -a  |& tee -a $LF
+date  2>&1 | tee -a $LF
+echo "" | tee -a $LF
+echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 ${inputargs[*]} | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  2>&1 | tee -a $LF
 
 
 # Print parallelization parameters
-echo " " |& tee -a $LF
+echo " " | tee -a $LF
 if [ "$DoParallel" == "1" ]
 then
-  echo " RUNNING both hemis in PARALLEL " |& tee -a $LF
+  echo " RUNNING both hemis in PARALLEL " | tee -a $LF
 else
-  echo " RUNNING both hemis SEQUENTIALLY " |& tee -a $LF
+  echo " RUNNING both hemis SEQUENTIALLY " | tee -a $LF
 fi
-echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " |& tee -a $LF
-echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " |& tee -a $LF
-echo " " |& tee -a $LF
+echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " | tee -a $LF
+echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " | tee -a $LF
+echo " " | tee -a $LF
 
 
 #if false; then
@@ -396,9 +299,9 @@ for hemi in lh rh; do
   CMDFS="$CMDFS $CMDF"
   rm -rf $CMDF
 
-  echo "echo \" \"" |& tee -a $CMDF
-  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" |& tee -a $CMDF
-  echo "echo \" \"" |& tee -a $CMDF
+  echo "echo \" \"" | tee -a $CMDF
+  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" | tee -a $CMDF
+  echo "echo \" \"" | tee -a $CMDF
 
   # Surface registration for cross-subject correspondence (registration to fsaverage)
   cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning $fsthreads"
@@ -432,9 +335,9 @@ for hemi in lh rh; do
   #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
 
   if [ "$DoParallel" == "0" ] ; then
-      echo " " |& tee -a $LF
-      echo " RUNNING $hemi sequentially ... " |& tee -a $LF
-      echo " " |& tee -a $LF
+      echo " " | tee -a $LF
+      echo " RUNNING $hemi sequentially ... " | tee -a $LF
+      echo " " | tee -a $LF
     chmod u+x $CMDF
     RunIt "$CMDF" $LF
   fi
@@ -444,16 +347,16 @@ done  # hemi loop ----------------------------------
 
 
 if [ "$DoParallel" == 1 ] ; then
-    echo " " |& tee -a $LF
-    echo " RUNNING HEMIs in PARALLEL !!! " |& tee -a $LF
-    echo " " |& tee -a $LF
+    echo " " | tee -a $LF
+    echo " RUNNING HEMIs in PARALLEL !!! " | tee -a $LF
+    echo " " | tee -a $LF
     RunBatchJobs $LF $CMDFS
 fi
 
 
-echo " " |& tee -a $LF
-echo "================= DONE =========================================================" |& tee -a $LF
-echo " " |& tee -a $LF
+echo " " | tee -a $LF
+echo "================= DONE =========================================================" | tee -a $LF
+echo " " | tee -a $LF
 
 # Collect info
 EndTime=`date`
@@ -461,9 +364,9 @@ tSecEnd=`date '+%s'`
 tRunHours=`echo \($tSecEnd - $tSecStart\)/3600|bc -l`
 tRunHours=`printf %6.3f $tRunHours`
 
-echo "Started at $StartTime " |& tee -a $LF
-echo "Ended   at $EndTime" |& tee -a $LF
-echo "#@#%# recon-surfreg-run-time-hours $tRunHours" |& tee -a $LF
+echo "Started at $StartTime " | tee -a $LF
+echo "Ended   at $EndTime" | tee -a $LF
+echo "#@#%# recon-surfreg-run-time-hours $tRunHours" | tee -a $LF
 
 # Create the Done File
 echo "------------------------------" > $DoneFile
@@ -471,7 +374,7 @@ echo "SUBJECT $subject"           >> $DoneFile
 echo "START_TIME $StartTime"      >> $DoneFile
 echo "END_TIME $EndTime"          >> $DoneFile
 echo "RUNTIME_HOURS $tRunHours"   >> $DoneFile
-echo "USER `id -un`"              >> $DoneFile
+echo "USER `id -un`"              >> $DoneFile 2> /dev/null
 echo "HOST `hostname`"            >> $DoneFile
 echo "PROCESSOR `uname -m`"       >> $DoneFile
 echo "OS `uname -s`"              >> $DoneFile
@@ -480,7 +383,7 @@ echo "VERSION $VERSION"           >> $DoneFile
 echo "CMDPATH $0"                 >> $DoneFile
 echo "CMDARGS ${inputargs[*]}"    >> $DoneFile
 
-echo "recon-surfreg.sh $subject finished without error at `date`"  |& tee -a $LF
+echo "recon-surfreg.sh $subject finished without error at `date`"  | tee -a $LF
 
 cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surfreg_times.yaml"
 RunIt "$cmd" "/dev/null"

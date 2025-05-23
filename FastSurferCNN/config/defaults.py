@@ -100,7 +100,8 @@ _C.TRAIN.NUM_WORKERS = 8
 # Flag to disable or enable Early Stopping
 _C.TRAIN.EARLY_STOPPING = True
 
-# Mode for early stopping (min = stop when metric is no longer decreasing, max = stop when mwtric is no longer increasing)
+# Mode for early stopping (min = stop when metric is no longer decreasing,
+# max = stop when mwtric is no longer increasing)
 _C.TRAIN.EARLY_STOPPING_MODE = "min"
 
 # Patience = Number of epochs to wait before stopping

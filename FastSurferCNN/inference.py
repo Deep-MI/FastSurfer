@@ -12,46 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# IMPORTS
-import time
-from typing import Optional, Dict, Tuple, Union
 import os
 
+# IMPORTS
+import time
+from typing import Optional
+
 import numpy as np
-from numpy import typing as npt
 import torch
 import yacs.config
+from numpy import typing as npt
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from FastSurferCNN.utils import logging
-from FastSurferCNN.models.networks import build_model
 from FastSurferCNN.data_loader.augmentation import ToTensorTest
 from FastSurferCNN.data_loader.data_utils import map_prediction_sagittal2full
 from FastSurferCNN.data_loader.dataset import MultiScaleOrigDataThickSlices
-
+from FastSurferCNN.models.networks import build_model
+from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
 
 
 class Inference:
     """Model evaluation class to run inference using FastSurferCNN.
-    
-    Methods
-    -------
-    setup_model
-        Set up the initial model
-    set_cfg
-        Set configuration node
-    to
-        Moves and/or casts the parameters and buffers.
-    load_checkpoint
-        Load the checkpoint
-    eval
-        Evaluate predictions
-    run
-        Run the loaded model
 
     Attributes
     ----------
@@ -70,35 +55,50 @@ class Inference:
     model_name : str
         Name of the model
     alpha : Dict[str, float]
-        [MISSING]
+        Alpha values for different planes.
     post_prediction_mapping_hook
-        [MISSING]
+        Hook for post prediction mapping.
+
+    Methods
+    -------
+    setup_model
+        Set up the initial model
+    set_cfg
+        Set configuration node
+    to
+        Moves and/or casts the parameters and buffers.
+    load_checkpoint
+        Load the checkpoint
+    eval
+        Evaluate predictions
+    run
+        Run the loaded model
     """
 
-    permute_order: Dict[str, Tuple[int, int, int, int]]
-    device: Optional[torch.device]
+    permute_order: dict[str, tuple[int, int, int, int]]
+    device: torch.device | None
     default_device: torch.device
 
     def __init__(
-            self,
-            cfg: yacs.config.CfgNode,
-            device: torch.device,
-            ckpt: str = "",
-            lut: Union[None, str, np.ndarray, DataFrame] = None
+        self,
+        cfg: yacs.config.CfgNode,
+        device: torch.device,
+        ckpt: str = "",
+        lut: None | str | np.ndarray | DataFrame = None,
     ):
-        """Construct Inference object.
+        """
+        Construct Inference object.
 
         Parameters
         ----------
         cfg : yacs.config.CfgNode
-            configuration Node
+            Configuration Node.
         device : torch.device
-            device specification for distributed computation usage.
+            Device specification for distributed computation usage.
         ckpt : str
-            string or os.PathLike object containing the name to the checkpoint file (Default value = "")
-        lut : Union[None, str, np.ndarray, DataFrame]
-             [MISSING] (Default value = None)
-
+            String or os.PathLike object containing the name to the checkpoint file (Default value = "").
+        lut : str, np.ndarray, DataFrame, optional
+             Lookup table for mapping.
         """
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -138,15 +138,15 @@ class Inference:
             self.load_checkpoint(ckpt)
 
     def setup_model(self, cfg=None, device: torch.device = None):
-        """Set up the model.
+        """
+        Set up the model.
 
         Parameters
         ----------
         cfg : yacs.config.CfgNode
-            configuration Node (Default value = None)
+            Configuration Node (Default value = None).
         device : torch.device
-            device specification for distributed computation usage. (Default value = None)
-
+            Device specification for distributed computation usage. (Default value = None).
         """
         if cfg is not None:
             self.cfg = cfg
@@ -154,66 +154,62 @@ class Inference:
             device = self.default_device
 
         # Set up model
-        self._model_not_init = build_model(
-            self.cfg
-        )  # ~ model = FastSurferCNN(params_network)
+        self._model_not_init = build_model(self.cfg)  # ~ model = FastSurferCNN(params_network)
         self._model_not_init.to(device)
         self.device = None
 
     def set_cfg(self, cfg: yacs.config.CfgNode):
-        """[MISSING].
+        """
+        Set the configuration node.
 
         Parameters
         ----------
         cfg : yacs.config.CfgNode
-            Configuration node
-
+            Configuration node.
         """
         self.cfg = cfg
 
-    def to(self, device: Optional[torch.device] = None):
-        """Move and/or cast the parameters and buffers.
+    def to(self, device: torch.device | None = None):
+        """
+        Move and/or cast the parameters and buffers.
 
         Parameters
         ----------
         device : Optional[torch.device]
-            the desired device of the parameters and buffers in this module (Default value = None)
-
+            The desired device of the parameters and buffers in this module (Default value = None).
         """
         if self.model_parallel:
-            raise RuntimeError(
-                "Moving the model to other devices is not supported for multi-device models."
-            )
+            raise RuntimeError("Moving the model to other devices is not supported for multi-device models.")
         _device = self.default_device if device is None else device
         self.device = _device
         self.model.to(device=_device)
 
-    def load_checkpoint(self, ckpt: Union[str, os.PathLike]):
-        """Load the checkpoint and set device and model.
+    def load_checkpoint(self, ckpt: str | os.PathLike):
+        """
+        Load the checkpoint and set device and model.
 
         Parameters
         ----------
         ckpt : Union[str, os.PathLike]
-            string or os.PathLike object containing the name to the checkpoint file
-
+            String or os.PathLike object containing the name to the checkpoint file.
         """
-        logger.info("Loading checkpoint {}".format(ckpt))
+        logger.info(f"Loading checkpoint {ckpt}")
 
         self.model = self._model_not_init
         # If device is None, the model has never been loaded (still in random initial configuration)
         if self.device is None:
             self.device = self.default_device
+        load_device = self.device
 
         # workaround for mps (directly loading to map_location=mps results in zeros)
-        device = self.device
         if self.device.type == "mps":
-            self.model.to("cpu")
-            device = "cpu"
-        else:
-            # make sure the model is, where it is supposed to be
-            self.model.to(self.device)
+            load_device = "cpu"
+        # make sure the model is, where it is supposed to be
+        self.model.to(load_device)
 
-        model_state = torch.load(ckpt, map_location=device)
+        # WARNING: weights_only=False can cause unsafe code execution, but here the
+        # checkpoint can be considered to be from a safe source
+        model_state = torch.load(ckpt, map_location=load_device, weights_only=False)
         self.model.load_state_dict(model_state["model_state"])
 
         # workaround for mps (move the model back to mps)
@@ -223,70 +219,123 @@ class Inference:
         if self.model_parallel:
             self.model = torch.nn.DataParallel(self.model)
 
-    def get_modelname(self):
-        """Return the model name."""
+    def get_modelname(self) -> str:
+        """
+        Return the model name.
+
+        Returns
+        -------
+        str
+            The name of the model.
+        """
         return self.model_name
 
-    def get_cfg(self):
-        """Return the configurations."""
+    def get_cfg(self) -> yacs.config.CfgNode:
+        """
+        Return the configurations.
+
+        Returns
+        -------
+        yacs.config.CfgNode
+            Configuration node.
+        """
         return self.cfg
 
-    def get_num_classes(self):
-        """Return the number of classes."""
+    def get_num_classes(self) -> int:
+        """
+        Return the number of classes.
+
+        Returns
+        -------
+        int
+            The number of classes.
+        """
         return self.cfg.MODEL.NUM_CLASSES
 
-    def get_plane(self):
-        """Return the plane."""
+    def get_plane(self) -> str:
+        """
+        Return the plane.
+
+        Returns
+        -------
+        str
+            The plane used in the model.
+        """
         return self.cfg.DATA.PLANE
 
-    def get_model_height(self):
-        """Return the model height."""
+    def get_model_height(self) -> int:
+        """
+        Return the model height.
+
+        Returns
+        -------
+        int
+            The height of the model.
+        """
         return self.cfg.MODEL.HEIGHT
 
-    def get_model_width(self):
-        """Return the model width."""
+    def get_model_width(self) -> int:
+        """
+        Return the model width.
+
+        Returns
+        -------
+        int
+            The width of the model.
+        """
         return self.cfg.MODEL.WIDTH
 
-    def get_max_size(self):
-        """Return the max size."""
+    def get_max_size(self) -> int | tuple[int, int]:
+        """
+        Return the max size.
+
+        Returns
+        -------
+        int | tuple[int, int]
+            The maximum size, either a single value or a tuple (width, height).
+        """
         if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH
         else:
             return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
 
-    def get_device(self):
-        """Return the device."""
+    def get_device(self) -> torch.device:
+        """
+        Return the device.
+
+        Returns
+        -------
+        torch.device
+            The device used for computation.
+        """
         return self.device
 
     @torch.no_grad()
     def eval(
-            self,
-            init_pred: torch.Tensor,
-            val_loader: DataLoader,
-            *,
-            out_scale: Optional = None,
-            out: Optional[torch.Tensor] = None
+        self,
+        init_pred: torch.Tensor,
+        val_loader: DataLoader,
+        *,
+        out_scale: Optional = None,
+        out: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Perform prediction and inplace-aggregate views into pred_prob.
 
         Parameters
         ----------
         init_pred : torch.Tensor
-            initial prediction
+            Initial prediction.
         val_loader : DataLoader
-            value loader
-        * :
-            
+            Validation loader.
         out_scale : Optional
-            [MISSING] (Default value = None)
-        out : Optional[torch.Tensor]
-            previous prediction tensor (Default value = None)
+            Output scale (Default value = None).
+        out : torch.Tensor, optional
+            Previous prediction tensor (Default value = None).
 
         Returns
         -------
         torch.Tensor
-            prediction probability tensor
-        
+            Prediction probability tensor.
         """
         self.model.eval()
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
@@ -303,21 +352,18 @@ class Inference:
         ii = [slice(None) for _ in range(4)]
         pred_ii = tuple(slice(i) for i in target_shape[:3])
 
-        from tqdm.contrib.logging import logging_redirect_tqdm
         from tqdm import tqdm
+        from tqdm.contrib.logging import logging_redirect_tqdm
 
         if out is None:
             out = init_pred.detach().clone()
+        log_batch_idx = None
         with logging_redirect_tqdm():
             try:
-                for batch_idx, batch in tqdm(
-                    enumerate(val_loader), total=len(val_loader), unit="batch"
-                ):
-
+                for batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader), unit="batch"):
+                    log_batch_idx = batch_idx
                     # move data to the model device
-                    images, scale_factors = batch["image"].to(self.device), batch[
-                        "scale_factor"
-                    ].to(self.device)
+                    images, scale_factors = batch["image"].to(self.device), batch["scale_factor"].to(self.device)
 
                     # predict the current batch, outputs logits
                     pred = self.model(images, scale_factors, out_scale)
@@ -326,14 +372,10 @@ class Inference:
 
                     # check if we need a special mapping (e.g. as for sagittal)
                     if self.get_plane() == "sagittal":
-                        pred = map_prediction_sagittal2full(
-                            pred, num_classes=self.get_num_classes(), lut=self.lut
-                        )
+                        pred = map_prediction_sagittal2full(pred, num_classes=self.get_num_classes(), lut=self.lut)
 
                     # permute the prediction into the out slice order
-                    pred = pred.permute(*self.permute_order[plane]).to(
-                        out.device
-                    )  # the to-operation is implicit
+                    pred = pred.permute(*self.permute_order[plane]).to(out.device)  # the to-operation is implicit
 
                     # cut prediction to the image size
                     pred = pred[pred_ii]
@@ -344,54 +386,49 @@ class Inference:
                     start_index = end_index
 
             except:
-                logger.exception(
-                    "Exception in batch {} of {} inference.".format(batch_idx, plane)
-                )
+                logger.exception(f"Exception in batch {log_batch_idx + 1} of {plane} inference.")
                 raise
             else:
-                logger.info(
-                    "Inference on {} batches for {} successful".format(
-                        batch_idx + 1, plane
-                    )
-                )
+                logger.info(f"Inference on {log_batch_idx + 1} batches for {plane} successful")
 
         return out
 
     @torch.no_grad()
     def run(
-            self,
-            init_pred: torch.Tensor,
-            img_filename: str,
-            orig_data: npt.NDArray,
-            orig_zoom: npt.NDArray,
-            out: Optional[torch.Tensor] = None,
-            out_res: Optional[int] = None,
-            batch_size: int = None
+        self,
+        init_pred: torch.Tensor,
+        img_filename: str,
+        orig_data: npt.NDArray,
+        orig_zoom: npt.NDArray,
+        out: torch.Tensor | None = None,
+        out_res: int | None = None,
+        batch_size: int | None = None,
     ) -> torch.Tensor:
-        """Run the loaded model on the data (T1) from orig_data and img_filename (for messages only)  with scale factors orig_zoom.
+        """
+        Run the loaded model on the data (T1) from orig_data and
+        img_filename (for messages only) with scale factors orig_zoom.
 
         Parameters
         ----------
         init_pred : torch.Tensor
-            initial prediction
+            Initial prediction.
         img_filename : str
-            original image filename
+            Original image filename.
         orig_data : npt.NDArray
-            original image data
+            Original image data.
         orig_zoom : npt.NDArray
-            original zoom
+            Original zoom.
         out : Optional[torch.Tensor]
-            updated output tensor (Default = None)
+            Updated output tensor (Default = None).
         out_res : Optional[int]
-            output resolution (Default value = None)
-        batch_size : int
-            batch size (Default = None)
+            Output resolution (Default value = None).
+        batch_size : int, optional
+            Batch size.
 
         Returns
         -------
-        toch.Tensor
-            prediction probability tensor
-        
+        torch.Tensor
+            Prediction probability tensor.
         """
         # Set up DataLoader
         test_dataset = MultiScaleOrigDataThickSlices(
@@ -412,8 +449,7 @@ class Inference:
         out = self.eval(init_pred, test_data_loader, out=out, out_scale=out_res)
         time_delta = time.time() - start
         logger.info(
-            f"{self.cfg.DATA.PLANE.capitalize()} inference on {img_filename} finished in "
-            f"{time_delta:0.4f} seconds"
+            f"{self.cfg.DATA.PLANE.capitalize()} inference on {img_filename} finished in {time_delta:0.4f} seconds"
         )
 
         return out

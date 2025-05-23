@@ -14,21 +14,21 @@
 
 
 # IMPORTS
-import sys
 import optparse
+import sys
+
 import nibabel.freesurfer.io as fs
 from nibabel import load as nibload
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
     options
-        object holding options
-
-
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $",
@@ -54,19 +54,21 @@ def options_parse():
 
 
 def resafe_surface(insurf: str, outsurf: str, pretess: str) -> None:
-    """Take path to insurf and rewrite it to outsurf thereby fixing vertex locs flag error.
+    """
+    Take path to insurf and rewrite it to outsurf thereby fixing vertex locs flag error.
 
-    (scannerRAS instead of surfaceRAS after marching cube)
+    This function fixes header information not properly saved in marching cubes. 
+    It makes sure the file header correctly references the scannerRAS instead of the surfaceRAS,
+    i.e. filename and volume is set to the correct data in the header.
 
     Parameters
     ----------
     insurf : str
-        Path and name of input surface
+        Path and name of input surface.
     outsurf : str
-        Path and name of output surface
+        Path and name of output surface.
     pretess : str
-        Path and name of file the input surface was created on (e.g. filled-pretess127.mgz)
-    
+        Path and name of file the input surface was created on (e.g. filled-pretess127.mgz).
     """
     surf = fs.read_geometry(insurf, read_metadata=True)
 
@@ -85,7 +87,7 @@ if __name__ == "__main__":
     surf_out = options.output_surf
     vol_in = options.in_pretess
 
-    print("Reading in surface: {} ...".format(surf_in))
+    print(f"Reading in surface: {surf_in} ...")
     resafe_surface(surf_in, surf_out, vol_in)
-    print("Outputting surface as: {}".format(surf_out))
+    print(f"Outputting surface as: {surf_out}")
     sys.exit(0)

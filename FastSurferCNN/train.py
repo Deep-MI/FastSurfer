@@ -12,58 +12,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 # IMPORTS
 import pprint
 import time
-import os
 from collections import defaultdict
-from typing import Union
 
+import numpy as np
 import torch
+import torch.optim.lr_scheduler as scheduler
 import yacs.config
 from torch.utils.tensorboard import SummaryWriter
-import torch.optim.lr_scheduler as scheduler
-import numpy as np
 from tqdm import tqdm
 
+from FastSurferCNN.config.global_var import get_class_names
 from FastSurferCNN.data_loader import loader
+from FastSurferCNN.models.losses import get_loss_func
 from FastSurferCNN.models.networks import build_model
 from FastSurferCNN.models.optimizer import get_optimizer
-from FastSurferCNN.models.losses import get_loss_func
-from FastSurferCNN.utils import logging, checkpoint as cp
+from FastSurferCNN.utils import checkpoint as cp
+from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.lr_scheduler import get_lr_scheduler
 from FastSurferCNN.utils.meters import Meter
 from FastSurferCNN.utils.metrics import iou_score, precision_recall
-from FastSurferCNN.utils.misc import update_num_steps, plot_predictions
-from FastSurferCNN.config.global_var import get_class_names
+from FastSurferCNN.utils.misc import plot_predictions, update_num_steps
 
 logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    """Trainer for the networks.
-    
+    """
+    Trainer for the networks.
+
     Methods
     -------
     __init__
         Construct object.
     train
-        trains the network
+        Trains the network.
     eval
-        validates calculations
+        Validates calculations.
     run
-        performs training loop
-
+        Performs training loop.
     """
 
     def __init__(self, cfg: yacs.config.CfgNode):
-        """Construct Trainer object.
+        """
+        Construct Trainer object.
 
         Parameters
         ----------
         cfg : yacs.config.CfgNode
-            Node of configs to be used
-
+            Node of configs to be used.
         """
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -91,28 +92,29 @@ class Trainer:
         self.subepoch = False if self.cfg.TRAIN.BATCH_SIZE == 16 else True
 
     def train(
-            self,
-            train_loader: loader.DataLoader,
-            optimizer: torch.optim.optimizer.Optimizer,
-            scheduler: Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts],
-            train_meter: Meter,
-            epoch
+        self,
+        train_loader: loader.DataLoader,
+        optimizer: torch.optim.Optimizer,
+        scheduler: None | scheduler.StepLR | scheduler.CosineAnnealingWarmRestarts,
+        train_meter: Meter,
+        epoch,
     ) -> None:
-        """Train the network to the given training data.
+        """
+        Train the network to the given training data.
 
         Parameters
         ----------
         train_loader : loader.DataLoader
-            data loader for the training
-        optimizer : torch.optim.optimizer.Optimizer
-            optimizer for the training
-        scheduler : Union[None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts]
-            lr scheduler for the training
+            Data loader for the training.
+        optimizer : torch.optim.Optimizer
+            Optimizer for the training.
+        scheduler : None, scheduler.StepLR, scheduler.CosineAnnealingWarmRestarts
+            LR scheduler for the training.
         train_meter : Meter
-            [MISSING]
+            Meter to keep track of the training stats.
         epoch : int
-            [MISSING]
-        
+            Current epoch.
+
         """
         self.model.train()
         logger.info("Training started ")
@@ -120,7 +122,6 @@ class Trainer:
         loss_batch = np.zeros(1)
 
         for curr_iter, batch in tqdm(enumerate(train_loader), total=len(train_loader)):
-
             images, labels, weights, scale_factors = (
                 batch["image"].to(self.device),
                 batch["label"].to(self.device),
@@ -147,8 +148,8 @@ class Trainer:
 
             loss_total.backward()
             if (
-                    not self.subepoch
-                    or (curr_iter + 1) % (16 / self.cfg.TRAIN.BATCH_SIZE) == 0
+                not self.subepoch
+                or (curr_iter + 1) % (16 / self.cfg.TRAIN.BATCH_SIZE) == 0
             ):
                 optimizer.step()  # every second epoch to get batchsize of 16 if using 8
                 if scheduler is not None:
@@ -171,34 +172,29 @@ class Trainer:
 
         train_meter.log_epoch(epoch)
         logger.info(
-            "Training epoch {} finished in {:.04f} seconds".format(
-                epoch, time.time() - epoch_start
-            )
+            f"Training epoch {epoch} finished in {time.time() - epoch_start:.04f} seconds"
         )
 
     @torch.no_grad()
     def eval(
-            self,
-            val_loader: loader.DataLoader,
-            val_meter: Meter,
-            epoch: int
+        self, val_loader: loader.DataLoader, val_meter: Meter, epoch: int
     ) -> np.ndarray:
-        """Evaluate model and calculates stats.
+        """
+        Evaluate model and calculates stats.
 
         Parameters
         ----------
         val_loader : loader.DataLoader
-            Value loader
+            Value loader.
         val_meter : Meter
-            Meter for the values
+            Meter for the values.
         epoch : int
-            epoch to evaluate
+            Epoch to evaluate.
 
         Returns
         -------
         int, float, ndarray
-            median miou [value]
-
+            median miou [value].
         """
         logger.info(f"Evaluating model at epoch {epoch}")
         self.model.eval()
@@ -218,7 +214,6 @@ class Trainer:
 
         val_start = time.time()
         for curr_iter, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
-
             images, labels, weights, scale_factors = (
                 batch["image"].to(self.device),
                 batch["label"].to(self.device),
@@ -269,9 +264,7 @@ class Trainer:
 
         val_meter.log_epoch(epoch)
         logger.info(
-            "Validation epoch {} finished in {:.04f} seconds".format(
-                epoch, time.time() - val_start
-            )
+            f"Validation epoch {epoch} finished in {time.time() - val_start:.04f} seconds"
         )
 
         # Get final measures and log them
@@ -284,21 +277,12 @@ class Trainer:
 
             # Log metrics
             logger.info(
-                "[Epoch {} stats]: SF: {}, MIoU: {:.4f}; "
-                "Mean Recall: {:.4f}; "
-                "Mean Precision: {:.4f}; "
-                "Avg loss total: {:.4f}; "
-                "Avg loss dice: {:.4f}; "
-                "Avg loss ce: {:.4f}".format(
-                    epoch,
-                    key,
-                    np.mean(ious),
-                    np.mean(accs[key] / per_cls_counts_gt[key]),
-                    np.mean(accs[key] / per_cls_counts_pred[key]),
-                    val_loss_total[key],
-                    val_loss_dice[key],
-                    val_loss_ce[key],
-                )
+                f"[Epoch {epoch} stats]: SF: {key}, MIoU: {np.mean(ious):.4f}; "
+                f"Mean Recall: {np.mean(accs[key] / per_cls_counts_gt[key]):.4f}; "
+                f"Mean Precision: {np.mean(accs[key] / per_cls_counts_pred[key]):.4f}; "
+                f"Avg loss total: {val_loss_total[key]:.4f}; "
+                f"Avg loss dice: {val_loss_dice[key]:.4f}; "
+                f"Avg loss ce: {val_loss_ce[key]:.4f}"
             )
 
             logger.info(self.a.format(*self.class_names))
@@ -307,10 +291,12 @@ class Trainer:
         return np.mean(np.mean(miou))
 
     def run(self):
-        """Transfer the model to devices, create a tensor board summary writer and then perform the training loop."""
+        """
+        Transfer the model to devices, create a tensor board summary writer and then perform the training loop.
+        """
         if self.cfg.NUM_GPUS > 1:
             assert (
-                    self.cfg.NUM_GPUS <= torch.cuda.device_count()
+                self.cfg.NUM_GPUS <= torch.cuda.device_count()
             ), "Cannot use more GPU devices than available"
             print("Using ", self.cfg.NUM_GPUS, "GPUs!")
             self.model = torch.nn.DataParallel(self.model)
@@ -344,7 +330,7 @@ class Trainer:
                 logger.info(f"Resume training from epoch {start_epoch}")
             except Exception as e:
                 print(
-                    "No model to restore. Resuming training from Epoch 0. {}".format(e)
+                    f"No model to restore. Resuming training from Epoch 0. {e}"
                 )
         else:
             logger.info("Training from scratch")
@@ -352,9 +338,7 @@ class Trainer:
             best_miou = 0
 
         logger.info(
-            "{} parameters in total".format(
-                sum(x.numel() for x in self.model.parameters())
-            )
+            f"{sum(x.numel() for x in self.model.parameters())} parameters in total"
         )
 
         # Create tensorboard summary writer
@@ -381,9 +365,9 @@ class Trainer:
             writer=writer,
         )
 
-        logger.info("Summary path {}".format(self.cfg.SUMMARY_PATH))
+        logger.info(f"Summary path {self.cfg.SUMMARY_PATH}")
         # Perform the training loop.
-        logger.info("Start epoch: {}".format(start_epoch + 1))
+        logger.info(f"Start epoch: {start_epoch + 1}")
 
         for epoch in range(start_epoch, self.cfg.TRAIN.NUM_EPOCHS):
             self.train(train_loader, optimizer, scheduler, train_meter, epoch=epoch)

@@ -2,7 +2,6 @@
 name: fastsurfer_reconsurf
 
 channels:
-  - defaults
   - conda-forge
   
 dependencies:

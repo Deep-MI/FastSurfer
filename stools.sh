@@ -42,26 +42,36 @@ function translate_cases ()
   #param2 subject_list file
   #param3 target_dir
   #param4 optional, delimiter
-  #param5 optional, awk snippets to modify the subject_id and the subject_path (split by :), default '$1:$2'
-  if [[ "$#" -gt 3 ]]
-  then
-    delimiter=$4
-  else
-    delimiter=","
-  fi
-  if [[ "$#" -gt 4 ]]
-  then
-    subid_awk="$(echo "$5" | cut -f1 -d:)"
-    subpath_awk="$(echo "$5" | cut -f2 -d:)"
-  else
-    subid_awk='$1'
-    subpath_awk='$2'
-  fi
-  init='BEGIN { regex="^(" source_dir "|" target_dir ")"; }'
-  script=$(printf "%s length(\$NF) > 1 { subid=%s; subpath=%s; gsub(regex, \"\", subpath); print subid \"=\" target_dir \"/\" subpath; }" \
-           "$init" "$subid_awk" "$subpath_awk")
-  #>&2 echo "awk -F \"$delimiter\" -v target_dir=\"$3\" -v source_dir=\"$1\" \"$script\" \"$2\""
-  awk -F "$delimiter" -v target_dir="$3" -v source_dir="$1" "$script" "$2"
+  #param5 optional, awk snippets to modify the subject_id, default '$1'
+  #param6 optional, awk snippets to modify the image_path, default '$2'
+  #param7 optional, second delimiter, default="[[:space::]]--t2[[:space:]]+"
+  #   this param only supports T2 right now!
+  source_dir="$([[ "$1" =~ ^(.*[^/])/+$ ]] && echo "${BASH_REMATCH[1]}" || echo "$1")"
+  target_dir="$([[ "$3" =~ ^(.*[^/])/+$ ]] && echo "${BASH_REMATCH[1]}" || echo "$3")"
+  # both source_dir and target_dir are without trailing /
+  delimiter=${4-,}
+  subid_awk="${5-\$1}"
+  subpath_awk="${6-\$2}"
+  t2_lookbehind="${7-[[:space:]]--[tT]2[[:space:]]+}"
+  script="
+  BEGIN {
+    regex=\"(\" source_dir \"|\" target_dir \")/+\";
+  }
+  length(\$NF) > 1 {
+    subid=${subid_awk};
+    subpath=${subpath_awk};
+    gsub(\"^\" regex, \"\", subpath);
+    gsub(\"$t2_lookbehind\" regex, \" --t2 \" target_dir \"/\", subpath);
+    gsub(\"/{2,}\", \"/\", subpath);
+    print subid \"=\" target_dir \"/\" subpath;
+  }"
+  #  >&2 echo "DEBUG awk script"
+  #  >&2 echo "========="
+  #  >&2 echo "awk -F \"$delimiter\" -v target_dir=\"$target_dir\" -v source_dir=\"$source_dir\" \"$script\" \"$2\""
+  #  >&2 cat "$2"
+  #  >&2 awk -F "$delimiter" -v target_dir="$target_dir" -v source_dir="$source_dir" "$script" "$2"
+  #  >&2 echo "========="
+  awk -F "$delimiter" -v target_dir="$target_dir" -v source_dir="$source_dir" "$script" "$2"
 }
 
 # step zero: make directories
@@ -84,6 +94,7 @@ function check_out_dir ()
   #param2 true/false, optional check empty, default false
   if [[ -z "$1" ]]; then
     echo "The subject directory (output directory) is not defined."
+    exit 1
   elif [[ ! -d "$1" ]]; then
     echo "The subject directory $1 (output directory) does not exists."
     read -r -p "Create the directory? [y/N]" -n 1 retval
@@ -108,6 +119,39 @@ function check_fs_license ()
     exit 1
   fi
 }
+function check_cases_in_out_dir ()
+{
+  #param1 out_dir
+  #param2 cases
+  #param3 optional: true/false jobarray defined (default: false)
+  if [[ "$#" -gt 2 ]] && [[ "$3" == "true" ]]
+  then
+    jobarray_defined="true"
+  else
+    jobarray_defined="false"
+  fi
+  case_already_exists=""
+  for subject in $2
+  do
+    subject_id=$(echo "$subject" | cut -d= -f1)
+    if [[ -e "$1/$subject_id" ]]
+    then
+      case_already_exists="$case_already_exists, $subject_id"
+    fi
+  done
+  if [[ "$case_already_exists" != "" ]]
+  then
+    echo "Some cases already exist in $1 (${case_already_exists:2})"
+    if [[ "$jobarray_defined" == "true" ]]
+    then
+      echo "This list does not filter for the --slurm_jobarray argument!"
+    fi
+    read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval
+    echo ""
+    if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
+    else exit 1; fi
+  fi
+}
 function check_seg_surf_only ()
 {
   #param1 seg_only
@@ -119,33 +163,59 @@ function check_seg_surf_only ()
 }
 function check_subject_images ()
 {
-  #param1 cases
-  if [[ "$#" -lt 1 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
+  #param1 data dir
+  #param2 cases
+  if [[ "$#" -lt 2 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
   missing_subject_ids=""
   missing_subject_imgs=""
-  for subject in $1
+  symlink_subject_imgs=""
+  data_dir="$1"
+  #remove training /
+  while [[ "${data_dir:$((${#data_dir} - 1))}" == "/" ]] ; do data_dir=${data_dir:0:$((${#data_dir} - 1))} ; done
+  OLD_IFS=$IFS
+  IFS=$'\n'
+  for subject in $2
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
-    image_path=$(echo "$subject" | cut -d= -f2)
-    #TODO: also check here, if any of the folders up to the mounted dir leading to the file are symlinks
-    #TODO: if so, this will lead to problems
-    if [[ ! -e "$image_path" ]]
-    then
-      if [[ -n "$missing_subject_ids" ]]
+    image_parameters=$(echo "$subject" | cut -d= -f2-1000)
+    i=0
+    first_img=1
+    IFS=" "
+    for arg in $image_parameters
+    do
+      if [[ "$i" == 0 ]]
       then
-        missing_subject_ids="$missing_subject_ids, "
-        missing_subject_imgs="$missing_subject_imgs, "
+        # expecting a path
+        if [[ ! -e "$arg" ]]
+        then
+          if [[ $first_img == 1 ]]; then missing_subject_ids+=", $subject_id" ; first_img=0 ; fi
+          missing_subject_imgs+=", $arg"
+          i=$((i + 1))
+          continue
+        fi
+        real_data="$(realpath "$data_dir")"
+        real_arg="$(realpath "$arg")"
+        arg0="${arg:0:${#data_dir}}"
+        if [[ "$real_data" != "$(realpath "$arg0")" ]] || [[ "${real_arg:${#real_data}}" != "${arg:${#data_dir}}" ]] # this is a symlink
+        then
+          if [[ $first_img == 1 ]]; then missing_subject_ids+=", $subject_id" ; first_img=0 ; fi
+          symlink_subject_imgs+=", $arg => $(realpath "$arg")"
+        fi
+      elif [[ "$arg" == "--t2" ]] ; then i=-1 ;
       fi
-      missing_subject_ids="$missing_subject_ids$subject_id"
-      missing_subject_imgs="$missing_subject_imgs$image_path"
-    fi
+      i=$((i + 1))
+    done
+    IFS=$OLD_IFS
   done
   if [[ -n "$missing_subject_ids" ]]
   then
-    echo "ERROR: Some images are missing!"
-    echo "Subject IDs: $missing_subject_ids"
-    echo "Files: $missing_subject_imgs"
-    exit 1
+    condition=$([[ -n "$missing_subject_imgs" ]] && echo " or missing")
+    condition+=$([[ -n "$symlink_subject_imgs" ]] && echo " or symlinks")
+    echo "$([[ "${condition:4:1}" == m ]] && echo "ERROR" || echo "WARNING"): Some images are ${condition:4}!"
+    echo "Subject IDs: ${missing_subject_ids:2}"
+    if [[ -n "$missing_subject_imgs" ]] ; then echo "Missing files: ${missing_subject_imgs:2}" ; fi
+    if [[ -n "$symlink_subject_imgs" ]] ; then echo "Symlink files: ${symlink_subject_imgs:2}" ; fi
+    if [[ -n "$missing_subject_imgs" ]] ; then exit 1 ; fi
   fi
 }
 
@@ -164,21 +234,20 @@ function make_cleanup_job ()
   # param1: hpc_work directory
   # param2: output directory
   # param3: dependency tag
-  # param4: optional: true/false (delete hpc_work directory, default=false)
-  # param5: optional: true/false (submit jobs, default=true)
-
-  # param4: optional: true/false (delete hpc_work, default=false)
-  # param5: optional: true/false (submit jobs, default=true)
+  # param4: mode: the mode in which to copy (mv/cp)
+  # param5: logfile the log file
+  # param6: optional: true/false (delete hpc_work directory, default=false)
+  # param7: optional: true/false (submit jobs, default=true)
   local clean_cmd_file
   local submit_jobs
   local delete_hpc_work_dir
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "true" ]]
+  if [[ "$#" -gt 5 ]] && [[ "$6" == "true" ]]
   then
     delete_hpc_work_dir="true"
   else
     delete_hpc_work_dir="false"
   fi
-  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
+  if [[ "$#" -gt 6 ]] && [[ "$7" == "false" ]]
   then
     submit_jobs="false"
     clean_cmd_file=$(mktemp)
@@ -193,6 +262,13 @@ function make_cleanup_job ()
   local clean_slurm_sched=(-d "$3" -J "FastSurfer-Cleanup-$USER"
     --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/cleanup_%A.log"
     "$clean_cmd_filename")
+  local mode=$4
+  if [[ "$mode" != "mv" ]] && [[ "$mode" != "cp" ]]
+  then
+    >&2 echo "invalid mode $mode"
+    exit 1
+  fi
+  local logfile=$5
 
   mkdir -p "$out_dir/slurm/logs"
   {
@@ -215,7 +291,10 @@ function make_cleanup_job ()
     echo "then"
     echo "  for s in $hpc_work/cases/*"
     echo "  do"
-    echo "    mv -f -t \"$out_dir\" \$s &"
+    if [[ "$mode" == "mv" ]]; then echo "    mv -f -t \"$out_dir\" \$s &"
+    elif [[ "$mode" == "cp" ]]; then echo "    cp -r -t \"$out_dir\" \$s && rm -R \$s &"
+    else >&2 echo "invalid mode $mode"; exit 1;
+    fi
     echo "    pids=(\${pids[@]} \$!)"
     echo "  done"
     echo "fi"
@@ -233,7 +312,10 @@ function make_cleanup_job ()
     then
       echo "  rm -R $hpc_work"
     else
-      echo "  rm -R $hpc_work/*"
+      echo "  rm -R $hpc_work/images"
+      echo "  rm $hpc_work/scripts"
+      echo "  rm $hpc_work/cases"
+      echo "  rm $hpc_work/logs"
     fi
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
@@ -241,18 +323,18 @@ function make_cleanup_job ()
   } > $clean_cmd_file
 
   chmod +x $clean_cmd_file
-  echo "sbatch --parsable ${clean_slurm_sched[*]}"
+  echo "sbatch --parsable ${clean_slurm_sched[*]}" | tee -a $logfile
   echo "--- sbatch script $clean_cmd_filename ---"
   cat $clean_cmd_file
   echo "--- end of script ---"
 
   if [[ "$submit_jobs" == "false" ]]
   then
-    echo "Not submitting the Cleanup Jobs to slurm (--dry)."
-    clean_jobid=CLEAN_JOB_ID
+    echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a $logfile
+    export clean_jobid=CLEAN_JOB_ID
   else
-    clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
-    echo "Submitted Cleanup Jobs $clean_jobid"
+    export clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
+    echo "Submitted Cleanup Jobs $clean_jobid" | tee -a $logfile
   fi
 }
 
@@ -262,10 +344,11 @@ function make_copy_job ()
   # param1: hpc_work directory
   # param2: output directory
   # param3: subject_list file
-  # param4: optional: true/false (submit jobs, default=true)
+  # param4: logfile log file
+  # param5: optional: true/false (submit jobs, default=true)
 
   local copy_cmd_file
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
     copy_cmd_file=$(mktemp)
   else
@@ -276,6 +359,7 @@ function make_copy_job ()
   local hpc_work=$1
   local out_dir=$2
   local subject_list=$3
+  local logfile=$4
   local copy_slurm_sched=(-J "FastSurfer-Copyseg-$USER"
     --ntasks=1 --cpus-per-task=4 -o "$out_dir/slurm/logs/copy_%A.log"
     "$copy_cmd_filename")
@@ -287,7 +371,7 @@ function make_copy_job ()
   fi
   {
     echo "#!/bin/bash"
-    echo "set -e"
+    echo "IFS=''"
     echo "mkdir -p $hpc_work/cases"
     echo "while read subject; do"
     echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
@@ -300,42 +384,25 @@ function make_copy_job ()
   } > $copy_cmd_file
 
   chmod +x $copy_cmd_file
-  echo "sbatch --parsable ${copy_slurm_sched[*]}"
+  echo "sbatch --parsable ${copy_slurm_sched[*]}" | tee -a "$logfile"
   echo "--- sbatch script $copy_cmd_filename ---"
   cat $copy_cmd_file
   echo "--- end of script ---"
 
   if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
   then
-    echo "Not submitting the Copyseg Jobs to slurm (--dry)."
-    copy_jobid=COPY_JOB_ID
+    echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
+    export copy_jobid=COPY_JOB_ID
   else
-    copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
-    echo "Submitted Copyseg Jobs $copy_jobid"
+    export copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
+    echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
 }
 
-function first_non_empty_partition ()
-{
-  for i in "$@"
-  do
-    if [[ -n "$i" ]]
-    then
-      echo "-p $i"
-      break
-    fi
-  done
-}
 function first_non_empty_arg ()
 {
-  for i in "$@"
-  do
-    if [[ -n "$i" ]]
-    then
-      echo "$i"
-      break
-    fi
-  done
+  # returns the first argument to the function that was not empty
+  for i in "$@" ; do if [[ -n "$i" ]] ; then echo "$i" ; break ; fi ; done
 }
 function print_status ()
 {
@@ -347,11 +414,8 @@ function print_status ()
   local info=$2
   local retval=$3
   local text
-  if [[ "$retval" != "0" ]]
-  then
-    text="Failed $info with exit code $retval"
-  else
-    text="Finished $info successfully"
+  if [[ "$retval" != "0" ]] ; then text="Failed $info with exit code $retval"
+  else text="Finished $info successfully"
   fi
   echo "$subject_id: $text"
 }
@@ -359,8 +423,12 @@ function prepend ()
 {
   #param1 string to prepend to every line
   # https://serverfault.com/questions/72744/command-to-prepend-string-to-each-line
-  while read -r line;
-  do
-    echo "${1}${line}"
-  done
+  IFS=""
+  while read -r line ; do echo "${1}${line}" ; done
+}
+function append ()
+{
+  #param1 string to append to every line
+  IFS=""
+  while read -r line ; do echo "${line}$1" ; done
 }

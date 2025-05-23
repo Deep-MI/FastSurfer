@@ -16,7 +16,6 @@
 # IMPORTS
 import math
 import numbers
-from typing import List
 import typing as _T
 
 import torch
@@ -29,8 +28,9 @@ logger = logging.get_logger(__name__)
 
 
 class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
-    """Extends the ReduceLROnPlateau class with the restart ability."""
-
+    """
+    Extends the ReduceLROnPlateau class with the restart ability.
+    """
     def __init__(self, optimizer, *args, T_0=10, Tmult=1, lr_restart=None, **kwargs):
         """
         Create a ReduceLROnPlateauWithRestarts learning rate scheduler.
@@ -44,7 +44,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         Args:
             ...: same as ReduceLROnPlateau
             T_0 (optional): number of epochs until first restart (default: 10)
-            Tmult (optiona): multiplicative factor for future restarts (default: 1)
+            Tmult (optional): multiplicative factor for future restarts (default: 1)
             lr_restart (optinoal): multiplicative factor for learning rate adjustment at restart.
         """
         # from torch.optim.lr_scheduler._LRSchduler
@@ -60,7 +60,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
             map(lambda group: group["initial_lr"], optimizer.param_groups)
         )
 
-        super(ReduceLROnPlateauWithRestarts, self).__init__(optimizer, *args, **kwargs)
+        super().__init__(optimizer, *args, **kwargs)
         self.T_0 = T_0
         self.Tmult = Tmult
         self.lr_restart = lr_restart
@@ -71,14 +71,31 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
             self.lr_restart = 1
 
     def step(self, metrics, epoch=None):
+        """
+        Performs an optimization step.
 
+        Parameters
+        ----------
+        metrics : float
+            The value of metrics is used to determine learning rate adjustments.
+        epoch : int, default=None
+            Number of epochs.
+        
+        Notes
+        -----
+        For details, refer to the PyTorch documentation for `ReduceLROnPlateau` at:
+        https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html
+        """
         self.Tcur += 1
-        super(ReduceLROnPlateauWithRestarts, self).step(metrics, epoch)
+        super().step(metrics, epoch)
         if self.Tcur >= self.T_i:
             self._reset_lr()
         self._last_lr = [group["lr"] for group in self.optimizer.param_groups]
 
     def _reset_lr(self):
+        """
+        Internal method to reset the learning rate.
+        """
         self.Tcur = 0
         self.T_i *= self.Tmult
         self.i += 1
@@ -87,7 +104,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         self._reset()
 
         for i, param_group in enumerate(self.optimizer.param_groups):
-            old_lr = float(param_group["lr"])
+            # old_lr = float(param_group["lr"])
             lr_r = (
                 self.lr_restart[i]
                 if isinstance(self.lr_restart, _T.Sequence)
@@ -101,13 +118,16 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
             param_group["lr"] = new_lr
             if self.verbose:
                 logger.info(
-                    "Epoch {:5d}: restarting learning rate with "
-                    "{:.4e} for group {}.".format(self.last_epoch, new_lr, i)
+                    f"Epoch {self.last_epoch:5d}: restarting learning rate with "
+                    f"{new_lr:.4e} for group {i}."
                 )
 
 
 # https://detectron2.readthedocs.io/_modules/detectron2/solver/lr_scheduler.html
 class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
+    """
+    Learning Rate scheduler that combines a cosine schedule with a warmup phase.
+    """
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -123,7 +143,10 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
+        """
+        Get the learning rates at the current epoch.
+        """
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method, self.last_epoch, self.warmup_iters, self.warmup_factor
         )
@@ -140,7 +163,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
             for base_lr in self.base_lrs
         ]
 
-    def _compute_values(self) -> List[float]:
+    def _compute_values(self) -> list[float]:
         # The new interface
         return self.get_lr()
 
@@ -171,10 +194,13 @@ def _get_warmup_factor_at_iter(
         alpha = iter / warmup_iters
         return warmup_factor * (1 - alpha) + alpha
     else:
-        raise ValueError("Unknown warmup method: {}".format(method))
+        raise ValueError(f"Unknown warmup method: {method}")
 
 
 class CosineLR:
+    """
+    Learning rate scheduler that follows a Cosine trajectory.
+    """
     def __init__(self, base_lr, eta_min, max_epoch):
         self.base_lr = base_lr
         self.max_epoch = max_epoch
@@ -182,8 +208,12 @@ class CosineLR:
 
     def lr_func_cosine(self, cur_epoch):
         """
+        Get the learning rate following a cosine pattern for the epoch `cur_epoch`.
 
-        cur_epoch (float): the number of epoch of the current training stage.
+        Parameters
+        ----------
+        cur_epoch : int
+            The number of epoch of the current training stage.
         """
         return self.eta_min + (
             (self.base_lr - self.eta_min)
@@ -194,9 +224,13 @@ class CosineLR:
     def set_lr(self, optimizer, epoch):
         """
         Sets the optimizer lr to the specified value.
-        Args:
-            optimizer (optim): the optimizer using to optimize the current network.
-            new_lr (float): the new learning rate to set.
+        
+        Parameters
+        ----------
+        optimizer : torch.optim.Optimizer
+            The optimizer using to optimize the current network.
+        epoch : int
+            The epoch for which to update the learning rate.
         """
         new_lr = self.get_epoch_lr(epoch)
         for param_group in optimizer.param_groups:
@@ -205,20 +239,31 @@ class CosineLR:
     def get_epoch_lr(self, cur_epoch):
         """
         Retrieves the lr for the given epoch (as specified by the lr policy).
-        Args:
-            cur_epoch (float): the number of epoch of the current training stage.
+
+        Parameters
+        ----------
+        cur_epoch : int
+            The number of epoch of the current training stage.
         """
         return self.lr_func_cosine(cur_epoch)
 
 
 class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
+    """
+    Learning rate scheduler that combines a Cosine annealing with warm restarts pattern, but also adds a 
+    decay factor for where the learning rate restarts at. 
+    """
     def __init__(self, optimizer, T_0, T_mult=1, eta_min=0, last_epoch=-1):
-        super(CosineAnnealingWarmRestartsDecay, self).__init__(
+        super().__init__(
             optimizer, T_0, T_mult=T_mult, eta_min=eta_min, last_epoch=last_epoch
         )
         pass
 
     def decay_base_lr(self, curr_iter, n_epochs, n_iter):
+        """
+        Learning rate scheduler that combines a Cosine annealing with warm restarts pattern, 
+        but also adds a decay factor for where the learning rate restarts at. 
+        """
         if self.T_cur + 1 == self.T_i:
             annealed_lrs = []
             for base_lr in self.base_lrs:
@@ -232,6 +277,9 @@ class CosineAnnealingWarmRestartsDecay(scheduler.CosineAnnealingWarmRestarts):
 
 
 def get_lr_scheduler(optimizer, cfg):
+    """
+    Build a learning rate scheduler object from the config data in cfg.
+    """
     scheduler_type = cfg.OPTIMIZER.LR_SCHEDULER
     if scheduler_type == "step_lr":
         return scheduler.StepLR(

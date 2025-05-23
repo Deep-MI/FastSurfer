@@ -14,17 +14,17 @@
 
 
 # IMPORTS
-import os
 import glob
 import math
+import os
 from itertools import product
 
-import torch
-from torchvision import utils
 import numpy as np
-from skimage import color
+import torch
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from skimage import color
+from torchvision import utils
 
 from FastSurferCNN.utils import logging
 
@@ -79,6 +79,29 @@ def plot_confusion_matrix(
     figsize=(20, 20),
     file_save_name=None,
 ):
+    """
+    This function prints and plots the confusion matrix.
+
+    Parameters
+    ----------
+    cm : np.ndarray
+        Confusion matrix.
+    classes : list
+        List of classes.
+    title : str, default="Confusion matrix"
+        Title of the confusion matrix.
+    cmap : plt.cm, default=matplotlib.pyplot.cm.Blues
+        Color map.
+    figsize : tuple, default=(20, 20)
+        Figure size.
+    file_save_name : str, optional
+        File save name.
+
+    Returns
+    -------
+    fig : plt.Figure
+        Figure object.
+    """
     n_classes = len(classes)
 
     fig, ax = plt.subplots(figsize=figsize)
@@ -175,20 +198,23 @@ def get_selected_class_ids(num_classes, ignored_classes=None):
 
 def set_summary_path(cfg):
     """
-        Set last experiment number(EXPR_NUM) and updates the summary path accordingly
-    :param cfg:
-    :return:
+    Set last experiment number(EXPR_NUM) and updates the summary path accordingly.
+    
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     summary_path = check_path(os.path.join(cfg.LOG_DIR, "summary"))
     cfg.EXPR_NUM = str(find_latest_experiment(os.path.join(cfg.LOG_DIR, "summary")) + 1)
     if cfg.TRAIN.RESUME and cfg.TRAIN.RESUME_EXPR_NUM > 0:
         cfg.EXPR_NUM = cfg.TRAIN.RESUME_EXPR_NUM
-    cfg.SUMMARY_PATH = check_path(os.path.join(summary_path, "{}".format(cfg.EXPR_NUM)))
+    cfg.SUMMARY_PATH = check_path(os.path.join(summary_path, f"{cfg.EXPR_NUM}"))
 
 
 def load_classwise_weights(cfg):
     """
-    Loading class-wise median frequency weights
+    Loading class-wise median frequency weights.
     """
     dataset_dir = os.path.dirname(cfg.DATA.PATH_HDF5_TRAIN)
     weight_path = glob.glob(os.path.join(dataset_dir, "*.npy"))
@@ -202,26 +228,29 @@ def load_classwise_weights(cfg):
 
 def update_results_dir(cfg):
     """
-    It will update the results path by finding the last experiment number
-    :param cfg:
-    :return:
+    It will update the results path by finding the last experiment number.
+
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
     cfg.EXPR_NUM = str(find_latest_experiment(cfg.TEST.RESULTS_DIR) + 1)
     cfg.TEST.RESULTS_DIR = check_path(
-        os.path.join(cfg.TEST.RESULTS_DIR, "{}".format(cfg.EXPR_NUM))
+        os.path.join(cfg.TEST.RESULTS_DIR, f"{cfg.EXPR_NUM}")
     )
 
 
 def update_split_path(cfg):
     """
     Updating path with respect to the split number
-    Args:
-        cfg:
-
-    Returns:
-
+    
+    Parameters
+    ----------
+    cfg : yacs.config.CfgNode
+        Configuration node.
     """
-    from os.path import split, join
+    from os.path import join, split
 
     split_num = cfg.SPLIT_NUM
     keys = [
@@ -240,12 +269,12 @@ def update_split_path(cfg):
 
 def visualize_batch(img, label, idx):
     """
-     For deubg
+    For deubg
     :param batch_dict:
     :return:
     """
-    from skimage import color
     import matplotlib.pyplot as plt
+    from skimage import color
 
     plt.imshow(img[idx, 3].cpu().numpy(), cmap="gray")
     plt.imshow(color.label2rgb(label[idx].cpu().numpy(), bg_label=0), alpha=0.4)

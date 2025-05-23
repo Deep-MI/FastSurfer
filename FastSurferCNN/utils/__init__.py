@@ -24,4 +24,17 @@ __all__ = [
     "misc",
     "parser_defaults",
     "threads",
+    "Plane",
+    "PlaneAxial",
+    "PlaneCoronal",
+    "PlaneSagittal",
+    "PLANES",
 ]
+
+from typing import Literal, get_args
+
+PlaneAxial = Literal["axial"]
+PlaneCoronal = Literal["coronal"]
+PlaneSagittal = Literal["sagittal"]
+Plane = PlaneAxial | PlaneCoronal | PlaneSagittal
+PLANES: tuple[PlaneAxial, PlaneCoronal, PlaneSagittal] = ("axial", "coronal", "sagittal")

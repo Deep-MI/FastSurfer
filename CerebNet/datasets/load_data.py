@@ -14,8 +14,8 @@
 
 
 # IMPORTS
-from os.path import join, isfile
 from functools import partial
+from os.path import isfile, join
 
 import numpy as np
 
@@ -24,6 +24,9 @@ from CerebNet.datasets import utils
 
 
 class SubjectLoader:
+    """
+    Subject loader class.
+    """
     def __init__(self, cfg, aux_subjects_files=None):
         self.cfg = cfg
         self.patch_size = cfg.PATCH_SIZE
@@ -37,30 +40,60 @@ class SubjectLoader:
         self,
         seg_map,
         label_map_func,
-        plane_transform=None,
-    ):
+        plane_transform=None,):
         """
+        Process segmentation volumes.
 
-        :param seg_map:
-        :param plane_transform:
-        :param label_map_func:
-        :return:
+        Parameters
+        ----------
+        seg_map : np.ndarray
+            The segmentation map to be processed.
+        label_map_func : function
+            A function to map labels in the segmentation map.
+        plane_transform : function, optional
+            A function to transform the segmentation map in plane. Defaults to None.
+
+        Returns
+        -------
+        np.ndarray
+            The processed segmentation map.
         """
-
         mapped_seg = label_map_func(seg_map)
         if plane_transform is not None:
             mapped_seg = plane_transform(mapped_seg)
         return mapped_seg
 
     def _load_volumes(self, subject_path, store_talairach=False):
+        """
+        Loads the original image and cerebellum sub-segmentation from the given subject path.
+        Also loads the Talairach coordinates if store_talairach is set to True.
+
+        Parameters
+        ----------
+        subject_path : str
+            The path to the subject's data directory.
+        store_talairach : bool, default=False
+            If True, the method will attempt to load the Talairach coordinates. Defaults to False.
+
+        Returns
+        -------
+        orig : np.ndarray
+            The original image.
+        cereb_subseg : np.ndarray
+            The cerebellum sub-segmentation loaded from the subject's data directory.
+        img_meta_data : dict
+            Dictionary containing the affine transformation and header from cereb_subseg file.
+            If store_talairach is True and Talairach coordinates file exists, also contains the
+            Talairach coordinates.
+        """
         orig_path = join(subject_path, self.cfg.IMAGE_NAME)
         subseg_path = join(subject_path, self.cfg.CEREB_SUBSEG_NAME)
 
         img_meta_data = {}
         orig, _ = utils.load_reorient_rescale_image(orig_path)
-        print("Orig image {}".format(orig_path))
+        print(f"Orig image {orig_path}")
 
-        print("Loading from {}".format(subseg_path))
+        print(f"Loading from {subseg_path}")
         subseg_file = utils.load_reorient(subseg_path)
         cereb_subseg = np.asarray(subseg_file.get_fdata(), dtype=np.int16)
         img_meta_data["affine"] = subseg_file.affine
@@ -163,11 +196,21 @@ class SubjectLoader:
 
     def load_subject(self, current_subject, store_talairach=False, load_aux_data=False):
         """
-        Loads and process the subject and return data in a dictionary
-        :param current_subject: subject ID
-        :param load_aux_data: to load auxiliary data or not
-        :return:
-            dictionary of processed data
+        Loads and processes the subject and returns data in a dictionary.
+
+        Parameters
+        ----------
+        current_subject : str
+            Subject ID.
+        store_talairach : bool, optional
+            Whether to store Talairach coordinates. Defaults to False.
+        load_aux_data : bool, optional
+            Whether to load auxiliary data. Defaults to False.
+
+        Returns
+        -------
+        dict
+            Dictionary of processed data.
         """
         in_data = {}
         subject_path = join(self.cfg.DATA_DIR, current_subject)

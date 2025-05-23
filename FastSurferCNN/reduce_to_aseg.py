@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # IMPORTS
+import copy
 import optparse
 import sys
-import numpy as np
-import nibabel as nib
-import copy
 
+import nibabel as nib
+import numpy as np
 import scipy.ndimage
-from skimage.measure import label
+from numpy import typing as npt
 from skimage.filters import gaussian
+from skimage.measure import label
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right GM.
@@ -42,7 +42,7 @@ reduce_to_aseg  -i <input_seg> -o <output_seg>
 
     
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Numpy
     http://www.numpy.org
@@ -65,13 +65,13 @@ h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Command line option parser.
 
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
@@ -91,18 +91,20 @@ def options_parse():
     return options
 
 
-def reduce_to_aseg(data_inseg):
-    """[MISSING].
+def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
+    """
+    Reduce the input segmentation to a simpler segmentation (for all data orientations, LIA/etc).
 
     Parameters
     ----------
-    data_inseg :
-        [MISSING]
+    data_inseg : np.ndarray, torch.Tensor
+        The input segmentation. This should be a 3D array where the value at each position represents the segmentation
+        label for that position.
 
     Returns
     -------
-        [MISSING]
-
+    data_inseg : np.ndarray, torch.Tensor
+        The reduced segmentation.
     """
     print("Reducing to aseg ...")
     # replace 2000... with 42
@@ -112,22 +114,23 @@ def reduce_to_aseg(data_inseg):
     return data_inseg
 
 
-def create_mask(aseg_data, dnum, enum):
-    """Create dilated mask.
+def create_mask(aseg_data: npt.NDArray[int], dnum: int, enum: int) -> npt.NDArray[int]:
+    """
+    Create dilated mask (works for all data orientations, LIA/etc).
 
     Parameters
     ----------
-    aseg_data
-        [MISSING]
-    dnum
-        [MISSING]
-    enum
-        [MISSING]
+    aseg_data : npt.NDArray[int]
+        The input segmentation data.
+    dnum : int
+        The number of iterations for the dilation operation.
+    enum : int
+        The number of iterations for the erosion operation.
 
     Returns
     -------
-        [MISSING]
-
+    npt.NDArray[int]
+        Returns aseg_data.
     """
     print("Creating dilated mask ...")
 
@@ -151,7 +154,7 @@ def create_mask(aseg_data, dnum, enum):
     # extract largest component
     labels = label(datab)
     assert labels.max() != 0  # assume at least 1 real connected component
-    print("  Found {} connected component(s)!".format(labels.max()))
+    print(f"  Found {labels.max()} connected component(s)!")
 
     if labels.max() > 1:
         print("  Selecting largest component!")
@@ -166,20 +169,19 @@ def create_mask(aseg_data, dnum, enum):
     return aseg_data
 
 
-def flip_wm_islands(aseg_data):
-    """[MISSING].
+def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
+    """
+    Flip labels of disconnected white matter islands to the other hemisphere (works for all data orientations, LIA/etc).
 
     Parameters
     ----------
-    aseg_data
-        [MISSING]
-        
+    aseg_data : numpy.ndarray
+        The input segmentation data.
 
     Returns
     -------
-    flip_data
-        [MISSING]
-
+    flip_data : numpy.ndarray
+        The segmentation data with flipped WM labels.
     """
     # Sometimes WM is far in the other hemisphere, but with a WM label from the other hemi
     # These are usually islands, not connected to the main hemi WM component
@@ -220,7 +222,7 @@ def flip_wm_islands(aseg_data):
     flip_data = aseg_data.copy()
     flip_data[rhswap] = lh_wm
     flip_data[lhswap] = rh_wm
-    print("FlipWM: rh {} and lh {} flipped.".format(rhswap.sum(), lhswap.sum()))
+    print(f"FlipWM: rh {rhswap.sum()} and lh {lhswap.sum()} flipped.")
 
     return flip_data
 
@@ -229,7 +231,7 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
-    print("Reading in aparc+aseg: {} ...".format(options.input_seg))
+    print(f"Reading in aparc+aseg: {options.input_seg} ...")
     inseg = nib.load(options.input_seg)
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
@@ -241,7 +243,7 @@ if __name__ == "__main__":
     # get mask
     if options.output_mask:
         bm = create_mask(copy.deepcopy(inseg_data), 5, 4)
-        print("Outputting mask: {}".format(options.output_mask))
+        print(f"Outputting mask: {options.output_mask}")
         mask = nib.MGHImage(bm, inseg_affine, inseg_header)
         mask.to_filename(options.output_mask)
 
@@ -255,7 +257,7 @@ if __name__ == "__main__":
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
 
-    print("Outputting aseg: {}".format(options.output_seg))
+    print(f"Outputting aseg: {options.output_seg}")
     aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
     aseg_fin.to_filename(options.output_seg)
 

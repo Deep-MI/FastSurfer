@@ -18,16 +18,15 @@
 
 # IMPORTS
 import optparse
-import os.path
 import os
-from typing import Tuple, List
-import numpy as np
+import os.path
 import sys
-import nibabel.freesurfer.io as fs
+
+import numpy as np
 from create_annotation import (
+    build_annot,
     map_multiple_labels,
     read_colortable,
-    build_annot,
     write_annot,
 )
 
@@ -42,7 +41,7 @@ Optional flags:
                --fsaverage <fsaverage dir> --hemi <lh or rh>
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
     numpy, nibabel, sklearn
     
     Also FreeSurfer v7.3.2 is needed
@@ -74,13 +73,13 @@ h_fsaverage = (
 
 
 def options_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id:fs_balabels.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
@@ -106,38 +105,38 @@ def options_parse():
 
 
 def read_colortables(
-        colnames: List[str],
-        colappend: List[str],
+        colnames: list[str],
+        colappend: list[str],
         drop_unknown: bool = True
-) -> Tuple[List, List, List]:
-    """Read multiple colortables and appends extensions, drops unknown by default.
+) -> tuple[list, list, list]:
+    """
+    Read multiple colortables and appends extensions, drops unknown by default.
 
     Parameters
     ----------
     colnames : List[str]
-        List of color-names
+        List of color-names.
     colappend : List[str]
-        List of appends for names
+        List of appends for names.
     drop_unknown : bool
         True if unknown colors should be dropped.
-        Defaults to True
+        Defaults to True.
 
     Returns
     -------
     all_ids
-        List of all ids
+        List of all ids.
     all_names
-        List of all names
+        List of all names.
     all_cols
-        List of all colors
-
+        List of all colors.
     """
     pos = 0
     all_names = []
     all_ids = []
     all_cols = []
     for coltab in colnames:
-        print("Reading in colortable: {} ...".format(coltab))
+        print(f"Reading in colortable: {coltab} ...")
         ids, names, cols = read_colortable(coltab)
         if drop_unknown and names[0] == "unknown":
             ids = ids[1:]
@@ -152,15 +151,38 @@ def read_colortables(
     return all_ids, all_names, all_cols
 
 
+def parse_version(fs_version_str):
+    """
+    A function to parse fs_version with . as separator (in case like 7.4.1).
+
+    Parameters
+    ----------
+    fs_version_str : str
+        The full freesurfer version string including platform, date a git hash.
+
+    Returns
+    -------
+    tuple[int, int, int], str
+        Version numbers or string.
+    """
+    fs_version = fs_version_str.split('-')[3]
+    try:
+        version_parts = fs_version.split(".")
+        return tuple(map(int, version_parts))
+    except ValueError:
+        return fs_version
+
+
+
 if __name__ == "__main__":
 
     stream = os.popen("date")
     output = stream.read()
 
-    print
+    print()
     print("#--------------------------------------------")
     print("#@# BA_exvivo Labels " + output)
-    print
+    print()
 
     # Command line options and error checking done here
     options = options_parse()
@@ -180,11 +202,27 @@ if __name__ == "__main__":
     if options.fsaverage is None:
         options.fsaverage = os.path.join(fshome, "subjects", "fsaverage")
 
+    # check build-stamp.txt file for version
+    buildstamp = os.path.join(fshome, "build-stamp.txt")
+    if os.path.exists(buildstamp):
+        with open(buildstamp) as f:
+            version = parse_version(f.read().strip())
+            print(f"FreeSurfer version: {version if isinstance(version, str) else '.'.join(map(str, version))}")
+    else:
+        sys.exit(f"ERROR: {buildstamp} not found.")
+
     # read and stack colortable labels
     ba = os.path.join(fshome, "average", "colortable_BA.txt")
     vpnl = os.path.join(fshome, "average", "colortable_vpnl.txt")
     colnames = [ba, ba, vpnl]
-    colappend = ["", ".thresh", ".mpm.vpnl"]
+    # freesurfer changed the format of average/colortable_vpnl.txt in versions 7.5
+    # See also : https://github.com/freesurfer/freesurfer/commit/59a63453ac3d8c400b49c730218bd9f3bf7bb501
+    if version == "dev" or (isinstance(version, tuple) and version >= (7, 5)):
+        colappend = ["", ".thresh", ""]
+        print("VERSION 7.5 or later detected")
+    else:
+        colappend = ["", ".thresh", ".mpm.vpnl"]
+        print("VERSION 7.4 or earlier detected")
     annotnames = ["BA_exvivo", "BA_exvivo.thresh", "mpm.vpnl"]
     label_ids, label_names, label_cols = read_colortables(colnames, colappend)
 
@@ -197,9 +235,7 @@ if __name__ == "__main__":
         white = os.path.join(options.sd, options.sid, "surf", hemi + ".white")
         cortex = os.path.join(options.sd, options.sid, "label", hemi + ".cortex.label")
         print(
-            "Mapping multiple labels from {} to {} for {} ...\n".format(
-                labeldir, trgdir, hemi
-            )
+            f"Mapping multiple labels from {labeldir} to {trgdir} for {hemi} ...\n"
         )
         all_labels, all_values = map_multiple_labels(
             hemi,
@@ -218,7 +254,7 @@ if __name__ == "__main__":
         for annot in annotnames:
             # print("Debug length labelids pos {}".format(len(label_ids[pos])))
             stop = start + len(label_ids[pos])
-            print("\nCreating {} annotation on {}".format(annot, white))
+            print(f"\nCreating {annot} annotation on {white}")
             # print("Debug info start: {}, stop: {}".format(start,stop))
             annot_ids, annot_vals = build_annot(
                 all_labels[start:stop],
@@ -228,7 +264,7 @@ if __name__ == "__main__":
                 cortex,
             )
             # write annot
-            print("Writing BA_exvivo annotation to {}\n".format(annot))
+            print(f"Writing BA_exvivo annotation to {annot}\n")
             annotout = os.path.join(
                 options.sd, options.sid, "label", hemi + "." + annot + ".annot"
             )
@@ -242,10 +278,8 @@ if __name__ == "__main__":
                     options.sd, options.sid, "stats", hemi + "." + annot + ".stats"
                 )
                 ctab = os.path.join(options.sd, options.sid, "label", annot + ".ctab")
-                cmd = "mris_anatomical_stats -mgz -f {} -b -a {} -c {} \
-                       {} {} white".format(
-                    stats, annotout, ctab, options.sid, hemi
-                )
+                cmd = f"mris_anatomical_stats -mgz -f {stats} -b -a {annotout} -c {ctab} \
+                       {options.sid} {hemi} white"
                 print("Debug cmd: " + cmd)
                 stream = os.popen(cmd)
                 print(stream.read())

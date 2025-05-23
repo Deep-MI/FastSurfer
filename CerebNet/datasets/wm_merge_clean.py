@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from numbers import Number
 
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
@@ -13,23 +14,24 @@ from numbers import Number
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 # IMPORTS
 from os.path import join
-from typing import TypeVar, Iterable
+from typing import TypeVar
 
+import nibabel as nib
 import numpy as np
 from numpy import typing as npt
-import nibabel as nib
 from scipy import ndimage
+from skimage.measure import label, regionprops
 from skimage.morphology import binary_dilation
-from skimage.measure import regionprops, label
 
 NT = TypeVar("NT", bound=Number)
 
 
 def locating_unknowns(gm_binary, wm_mask):
+    """
+    Find labels with missing labels, i.e. find holes.
+    """
     selem = ndimage.generate_binary_structure(3, 3)
     wm_binary = np.array(wm_mask, dtype=np.bool)
     # gm_binary = (segmap != 0) ^ wm_binary
@@ -41,8 +43,7 @@ def locating_unknowns(gm_binary, wm_mask):
 
 
 def drop_disconnected_component(
-    img_data: npt.NDArray[NT], classes: Iterable[NT]
-) -> npt.NDArray[NT]:
+    img_data: npt.NDArray[NT], classes: Iterable[NT]) -> npt.NDArray[NT]:
     """
     Dropping the smaller disconnected component of each label.
     """
@@ -64,7 +65,9 @@ def drop_disconnected_component(
 
 
 def filling_unknown_labels(segmap, unknown_mask, candidate_lbls):
-
+    """
+    For each unknown voxel in unknown_mask, find and fill it with a candidate.
+    """
     h, w, d = segmap.shape
     blur_vals = np.ndarray((h, w, d, 0), dtype=np.float)
     for lbl in candidate_lbls:
@@ -80,6 +83,9 @@ def filling_unknown_labels(segmap, unknown_mask, candidate_lbls):
 
 
 def cereb_subseg_lateral_mask(cereb_subseg):
+    """
+    Create mask for left and right cerebellar gray matter.
+    """
     left_gm_idxs = np.array([1, 3, 5, 8, 11, 14, 17, 20, 23, 26])
     right_gm_idxs = np.array([2, 4, 7, 10, 13, 16, 19, 22, 25, 28])
 
@@ -95,6 +101,9 @@ def cereb_subseg_lateral_mask(cereb_subseg):
 
 
 def sphere(radius):
+    """
+    Create a spherical binary mask.
+    """
     shape = (2 * radius + 1,) * 3
     struct = np.zeros(shape)
     x, y, z = np.indices(shape)
@@ -114,7 +123,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
     :return:
     """
     # to capture small holes
-    struc = ndimage.generate_binary_structure(3, 1)
+    # struc = ndimage.generate_binary_structure(3, 1)
 
     l_wm_fs = aseg == 7
     r_wm_fs = aseg == 46
@@ -234,7 +243,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
     )
 
     print("4.Filling any remaining holes")
-    filled_bin_mask = ndimage.binary_fill_holes(dropped_comp_img != 0, structure=struc)
+    #filled_bin_mask = ndimage.binary_fill_holes(dropped_comp_img != 0, structure=struc)
     remaining_holes_mask = (
         dropped_comp_img != 0
     )  # np.logical_xor(filled_bin_mask, dropped_comp_img != 0)
@@ -260,6 +269,10 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
 
 
 def correct_cereb_brainstem(cereb_subseg, brainstem, manual_cereb):
+    """
+    Correct brainstem or cereb_subseg according to the 
+    other (select which to correct by manual_cereb).
+    """
     if manual_cereb:
         print("Correcting brainstem according to cerebellum dzne_manual subseg.")
         # mapping the overlapping part to dzne_manual labels
@@ -272,6 +285,9 @@ def correct_cereb_brainstem(cereb_subseg, brainstem, manual_cereb):
 
 
 def save_mgh_image(img_data, save_path, header, affine):
+    """
+    Save data as mgh image.
+    """
     mgh_out = nib.MGHImage(img_data, header=header, affine=affine)
     print(f"Saving {save_path}")
     nib.save(mgh_out, save_path)

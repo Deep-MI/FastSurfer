@@ -7,7 +7,7 @@
 # In order to update to a new FreeSurfer version you need to update the fslink and then build a 
 # docker with this setup. Run it and whenever it crashes/exits, find the missing file (binary,
 # atlas, datafile, or dependency) and add it here or if a dependency is missing install it in the 
-# docker and rebuild and re-run. Repeat until recon-surf finishes sucessfullly. Then repeat with
+# docker and rebuild and re-run. Repeat until recon-surf finishes successfully. Then repeat with
 # all supported recon-surf flags (--hires, --fsaparc etc.).
 
 
@@ -15,21 +15,41 @@
 fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz"
 
 
-if [ "$#" -lt 1 ]; then
+if [[ "$#" -lt 1 ]]; then
     echo
-    echo "Usage: install_fs_prunded install_dir <--upx>"
+    echo "Usage: install_fs_prunded install_dir [--upx] [--url freesurfer_download_url]"
     echo 
     echo "--upx is optional, if passed, fs/bin will be packed"
-    echo 
+    echo "--url is optional, if passed, freesurfer will be downloaded from it instead of $fslink"
+    echo
     exit 2
 fi
 
-
 where=/opt
-if [ "$#" -ge 1 ]; then
+if [[ "$#" -ge 1 ]]; then
   where=$1
+  shift
 fi
 
+upx="false"
+while [[ "$#" -ge 1 ]]; do
+  lowercase=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+  case $lowercase in
+  --upx)
+    upx="true"
+    shift
+    ;;
+  --url)
+    if [[ "$2" != "default" ]];  then fslink=$2; fi
+    shift
+    shift
+    ;;
+  *)
+    echo "Invalid argument $1"
+    exit 1
+    ;;
+  esac
+done
 fss=$where/fs-tmp
 fsd=$where/freesurfer
 echo
@@ -41,13 +61,48 @@ echo "$fslink"
 echo
 
 
-# get Freesurfer and upack (some of it)
+function run_parallel ()
+{
+  # param 1 num_parallel_processes
+  # param 2 command (printf string)
+  # param 3 how many entries to consume from $@ per "run"
+  # param ... parameters to format, ie. we are executing $(printf $command $@...)
+  i=0
+  pids=()
+  num_parallel_processes=$1
+  command=$2
+  num=$3
+  shift
+  shift
+  shift
+  args=("$@")
+  j=0
+  while [[ "$j" -lt "${#args}" ]]
+  do
+    cmd=$(printf "$command" "${args[@]:$j:$num}")
+    j=$((j + num))
+    $cmd &
+    pids=("${pids[@]}" "$!")
+    i=$((i + 1))
+    if [[ "$i" -ge "$num_parallel_processes" ]]
+    then
+      wait "${pids[0]}"
+      pids=("${pids[@]:1}")
+    fi
+  done
+  for pid in "${pids[@]}"
+  do
+    wait "$pid"
+  done
+}
+
+
+# get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
 wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
       --exclude='freesurfer/average/*.gca' \
       --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
       --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
-      --exclude='freesurfer/average/mult-comp-cor' \
       --exclude='freesurfer/average/mult-comp-cor' \
       --exclude='freesurfer/average/samseg' \
       --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
@@ -169,6 +224,7 @@ copy_files="
   bin/isanalyze
   bin/isnifti
   bin/lta_convert
+  bin/make_upright
   bin/mpr2mni305
   bin/mri_add_xform_to_header
   bin/mri_annotation2label
@@ -178,6 +234,7 @@ copy_files="
   bin/mri_concat
   bin/mri_concatenate_lta
   bin/mri_convert
+  bin/mri_coreg
   bin/mri_diff
   bin/mri_edit_wm_with_aseg
   bin/mri_fill
@@ -200,6 +257,7 @@ copy_files="
   bin/mri_surf2volseg
   bin/mri_tessellate
   bin/mri_vol2surf
+  bin/mri_vol2vol
   bin/mris_anatomical_stats
   bin/mris_autodet_gwstats
   bin/mris_ca_label
@@ -212,7 +270,6 @@ copy_files="
   bin/mris_euler_number
   bin/mris_extract_main_component
   bin/mris_fix_topology
-  bin/mris_inflate
   bin/mris_inflate
   bin/mris_info
   bin/mris_jacobian
@@ -338,6 +395,14 @@ do
   cp -r $fss/$file $fsd/$file
 done
 
+# pack if desired with upx (do this before adding all the links
+if [[ "$upx" == "true" ]] ; then
+  echo "finding executables in $fsd/bin/..."
+  exe=$(find $fsd/bin -exec file {} \; | grep ELF | cut -d: -f1)
+  echo "packing $fsd/bin/ executables (this can take a while) ..."
+  run_parallel 8 "upx -9 %s %s %s %s" 4 $exe
+fi
+
 # Modify fsbindings Python package to allow calling scripts like asegstats2table directly:
 echo "from . import legacy" > "$fsd/python/packages/fsbindings/__init__.py"
 
@@ -372,7 +437,6 @@ link_files="
   bin/mri_stats2seg
   bin/mri_surf2vol
   bin/mri_surfcluster
-  bin/mri_vol2vol
   bin/mri_voldiff
   bin/mri_watershed
   bin/mris_divide_parcellation
@@ -404,7 +468,7 @@ do
 done
 
 # use our python (not really needed in recon-all anyway)
-p3=`which python3`
+p3=$(which python3)
 if [ "$p3" == "" ]; then
   echo "No python3 found, please install first!"
   echo
@@ -414,12 +478,3 @@ ln -s $p3 $fsd/bin/fspython
 
 #cleanup
 rm -rf $fss
-
-# pack if desired with upx
-if [ "$#" -ge 2 ]; then
-  if [ "${2^^}" == "--UPX" ] ; then
-    echo "packing $fsd/bin/ executables (this can take a while) ..."
-    exe=`find $fsd/bin -exec file {} \; | grep ELF | cut -d: -f1`
-    upx -9 $exe
-  fi
-fi

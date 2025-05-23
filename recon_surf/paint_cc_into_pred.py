@@ -14,11 +14,13 @@
 
 
 # IMPORTS
+
+import argparse
+import sys
+
+import nibabel as nib
 import numpy as np
 from numpy import typing as npt
-import nibabel as nib
-import sys
-import argparse
 
 HELPTEXT = """
 Script to add corpus callosum segmentation (CC, FreeSurfer IDs 251-255) to
@@ -30,7 +32,7 @@ paint_cc_into_pred  -in_cc <input_seg_with_cc> -in_pred <input_seg_without_cc> -
 
 
 Dependencies:
-    Python 3.8
+    Python 3.8+
 
     Nibabel to read and write FreeSurfer data
     http://nipy.org/nibabel/
@@ -42,13 +44,13 @@ Date: Jul-10-2020
 
 
 def argument_parse():
-    """Command line option parser.
+    """
+    Create a command line interface and return command line options.
 
     Returns
     -------
-    options
-        object holding options
-
+    options : argparse.Namespace
+        Namespace object holding options.
     """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
@@ -79,22 +81,22 @@ def argument_parse():
 
 
 def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
-    """Paint corpus callosum segmentation into prediction.
+    """
+    Paint corpus callosum segmentation into aseg+dkt segmentation map.
 
     Note, that this function modifies the original array and does not create a copy.
 
     Parameters
     ----------
-    pred : npt.ArrayLike
-        Deep-learning prediction
+    asegdkt : npt.ArrayLike
+        Deep-learning segmentation map.
     aseg_cc : npt.ArrayLike
-        Aseg segmentation with CC
+        Aseg segmentation with CC.
 
     Returns
     -------
-    pred
-        Prediction with added CC
-
+    asegdkt
+        Segmentation map with added CC.
     """
     cc_mask = (aseg_cc >= 251) & (aseg_cc <= 255)
     pred[cc_mask] = aseg_cc[cc_mask]
@@ -105,13 +107,16 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = argument_parse()
 
-    print("Reading inputs: {} {}...".format(options.input_cc, options.input_pred))
+    print(f"Reading inputs: {options.input_cc} {options.input_pred}...")
     aseg_image = np.asanyarray(nib.load(options.input_cc).dataobj)
     prediction = nib.load(options.input_pred)
     pred_with_cc = paint_in_cc(np.asanyarray(prediction.dataobj), aseg_image)
 
-    print("Writing segmentation with corpus callosum to: {}".format(options.output))
+    print(f"Writing segmentation with corpus callosum to: {options.output}")
     pred_with_cc_fin = nib.MGHImage(pred_with_cc, prediction.affine, prediction.header)
     pred_with_cc_fin.to_filename(options.output)
 
     sys.exit(0)
+
+
+# TODO: Rename the file (paint_cc_into_asegdkt or similar) and functions.

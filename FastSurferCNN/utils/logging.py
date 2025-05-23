@@ -13,39 +13,36 @@
 # limitations under the License.
 
 # IMPORTS
-from logging import *
-from logging import (
-    getLogger as get_logger,
-    StreamHandler,
-    FileHandler,
-    INFO,
-    DEBUG,
-    getLogger,
-    basicConfig,
-)
-from os import path, makedirs
+import logging as _logging
+from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, FileHandler, Logger, StreamHandler, basicConfig, getLogger
+from logging import getLogger as get_logger
+from os import environ as _environ
+from pathlib import Path as _Path
 from sys import stdout as _stdout
 
 
-def setup_logging(log_file_path: str):
-    """Set up the logging.
+def setup_logging(log_file_path: _Path | str):
+    """
+    Set up the logging.
 
     Parameters
     ----------
-    log_file_path : str
-        Path to the logfile
-
+    log_file_path : Path, str
+        Path to the logfile.
     """
     # Set up logging format.
     _FORMAT = "[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s"
     handlers = [StreamHandler(_stdout)]
 
     if log_file_path:
-        log_dir_path = path.dirname(log_file_path)
-        log_file_name = path.basename(log_file_path)
-        if not path.exists(log_dir_path):
-            makedirs(log_dir_path)
+        if not isinstance(log_file_path, _Path):
+            log_file_path = _Path(log_file_path)
+        log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
         handlers.append(FileHandler(filename=log_file_path, mode="a"))
 
-    basicConfig(level=INFO, format=_FORMAT, handlers=handlers)
+    log_level = _environ.get("FASTSURFER_LOG_LEVEL", "INFO").upper()
+    if log_level not in ("INFO", "DEBUG", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"):
+        raise RuntimeError(f"Invalid log level: {log_level}")
+
+    basicConfig(level=getattr(_logging, log_level), format=_FORMAT, handlers=handlers)

@@ -13,54 +13,152 @@
 # limitations under the License.
 
 import argparse
-from typing import Union, Literal, Optional
+from itertools import permutations, product
+from typing import Literal, cast
 
 import nibabel as nib
 import numpy as np
 
-VoxSizeOption = Union[float, Literal["min"]]
+VoxSizeOption = float | Literal["min"]
+ImageSizeOption = int | Literal["fov", "auto"]
+
+__axcode = ("rl", "ap", "si")
+__orders = tuple(permutations(range(3)))
+__flips = ((0, 1),) * 3
+ORIENTATIONS = ["".join(__axcode[ii[i]][j] for i, j in enumerate(k)) for ii, k in product(__orders, product(*__flips))]
+VALID_ORIENTATIONS = ["native", *map(lambda x: "soft " + x, ORIENTATIONS), *ORIENTATIONS]
+
+StrictOrientationType = str
+OrientationType = str
+# future better typing, requires Python 3.11 (Syntax Error before that)
+# OrientationType = Literal[*VALID_ORIENTATIONS]
+# StrictOrientationType = Literal[*ORIENTATIONS]
 
 
-def vox_size(a: str) -> VoxSizeOption:
-    """Convert the vox_size argument to 'min' or a valid voxel size.
+
+def orientation(a: str) -> OrientationType:
+    """
+    Convert the orientation argument to a valid orientation from 'native', 'soft[-_ ]<orientation/i>', and
+    '<orientation/i>', where <orientation/i> is any valid orientation (case-insensitive).
 
     Parameters
     ----------
     a : str
-        vox size type. Can be auto, bin or a number between 1 an 0
+        Target orientation type, handles cases.
 
     Returns
     -------
-    [MISSING]
+    str
+        One of 'native', 'soft <orientation>', or '<orientation>'.
 
     Raises
     ------
     argparse.ArgumentTypeError
-        An error from creating or using an argument. Additionally, vox_sizes may be 'min'.
-
+        If the argument is not a valid choice.
     """
+    r = a.lower().replace("_", " ").replace("-", " ").strip()
+    if r in VALID_ORIENTATIONS:
+        return cast(OrientationType, r)
+    valid_orientations = "'native', 'soft-<orientation>', or '<orientation>'"
+    raise argparse.ArgumentTypeError(f"'{a}' is not a valid orientation from {valid_orientations}.") from None
+
+
+def string_to_bool(a: str) -> bool:
+    """
+    Convert a string to a boolean value.
+
+    Parameters
+    ----------
+    a : str
+        String to convert.
+
+    Returns
+    -------
+    bool
+        If a is "on", "true", "yes", "y", "1" (case-insensitive).
+    """
+    return a.lower() in ("on", "true", "yes", "y", "1")
+
+def vox_size(a: str) -> VoxSizeOption | None:
+    """
+    Convert the vox_size argument to 'min' or a valid voxel size.
+
+    Parameters
+    ----------
+    a : str
+        Vox size type. Can be auto, min or a number between 1 an 0.
+
+    Returns
+    -------
+    str or float or None
+        If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
+        If a valid voxel size (between 0 and 1) is provided, it returns a float.
+        If 'any', it returns None.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the argument is not "min", "auto" or convertible to a float between 0 and 1.
+    """
+    if a is None or a.lower() == "any":
+        return None
     if a.lower() in ["auto", "min"]:
         return "min"
     try:
         return float_gt_zero_and_le_one(a)
     except argparse.ArgumentError as e:
-        raise argparse.ArgumentTypeError(
-            e.args[0] + " Additionally, vox_sizes may be 'min'."
-        ) from None
+        raise argparse.ArgumentTypeError(e.args[0] + " Additionally, vox_sizes may be 'min'.") from None
 
-
-def float_gt_zero_and_le_one(a: str) -> Optional[float]:
-    """Check whether a parameters are a float between 0 and one.
+def img_size(a: str) -> ImageSizeOption | None:
+    """
+    Convert the img_size argument to 'fov', 'auto' or int as a valid image size.
 
     Parameters
     ----------
     a : str
-        String of a number or none, infinity
+        Image size type. Can be auto, fov or an integer greater than 0.
 
     Returns
     -------
-    [MISSING]
+    str or int
+        If 'auto' or 'fov' is provided, it returns a string('auto' or 'fov').
+        If a valid image size (greater than 0) is provided, it returns an int.
+        If 'any', it returns None.
 
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If the argument is not "fov", "auto" or convertible to an int greater than 0.
+    """
+    if a.lower() in ("auto", "fov"):
+        return cast(ImageSizeOption, a.lower())
+    if a.lower() == "any":
+        return None
+    try:
+        return int_gt_zero(a)
+    except argparse.ArgumentError as e:
+        raise argparse.ArgumentTypeError(e.args[0] + " Additionally, img_sizes may be 'fov'.") from None
+
+
+def float_gt_zero_and_le_one(a: str) -> float | None:
+    """
+    Check whether a parameters are a float between 0 and one.
+
+    Parameters
+    ----------
+    a : str
+        String of a number or none, infinity.
+
+    Returns
+    -------
+    float or None
+        If `a` is a valid float between 0 and 1, return the float value.
+        If `a` is 'none' or 'infinity', return None.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If `a` is neither a float between 0 and 1.
     """
     if a is None or a.lower() in ["none", "infinity"]:
         return None
@@ -72,25 +170,31 @@ def float_gt_zero_and_le_one(a: str) -> Optional[float]:
 
 
 def target_dtype(a: str) -> str:
-    """Check for valid dtypes.
+    """
+    Check for valid dtypes.
 
     Parameters
     ----------
     a : str
-        datatype
+        Datatype descriptor.
 
     Returns
     -------
-    [MISSING]
+    str
+        The validated data type.
 
     Raises
     ------
     argparse.ArgumentTypeError
-        Invalid dtype
+        Invalid dtype.
 
+    See Also
+    --------
+    numpy.dtype
+        For more information on numpy data types and their properties.
     """
-    dtypes = nib.freesurfer.mghformat.data_type_codes.value_set("label")
-    dtypes.add("any")
+    dtypes = list(nib.freesurfer.mghformat.data_type_codes.value_set("label"))
+    dtypes.append("any")
     _a = a.lower()
     if _a in dtypes:
         return _a
@@ -106,24 +210,24 @@ def target_dtype(a: str) -> str:
         raise argparse.ArgumentTypeError(f"Invalid dtype {a}. {msg}")
 
 
-def int_gt_zero(value: Union[str, int]) -> int:
-    """Convert to positive integers.
+def int_gt_zero(value: str | int) -> int:
+    """
+    Convert to positive integers.
 
     Parameters
     ----------
     value : Union[str, int]
-        integer to convert
+        Integer to convert.
 
     Returns
     -------
     val : int
-        converted integer
+        Converted integer.
 
     Raises
     ------
     argparse
         ArgumentTypeError: Invalid value, must not be negative.
-
     """
     val = int(value)
     if val <= 0:
@@ -131,24 +235,24 @@ def int_gt_zero(value: Union[str, int]) -> int:
     return val
 
 
-def int_ge_zero(value) -> int:
-    """Convert to integers greater 0.
+def int_ge_zero(value: str) -> int:
+    """
+    Convert to integers greater 0.
 
     Parameters
     ----------
-    value :
-        integer to convert
+    value : str
+        String to convert to int.
 
     Returns
     -------
     val : int
-        given value if bigger or equal to zero
+        Given value if bigger or equal to zero.
 
     Raises
     ------
     argparse
         ArgumentTypeError: Invalid value, must be greater than 0.
-
     """
     val = int(value)
     if val < 0:
@@ -157,18 +261,18 @@ def int_ge_zero(value) -> int:
 
 
 def unquote_str(value) -> str:
-    """Unquote a (single quoted) string.
+    """
+    Unquote a (single quoted) string, i.e. remove one level of single-quotes.
 
     Parameters
     ----------
-    value :
-        String to be unquoted
+    value : str
+        String to be unquoted.
 
     Returns
     -------
     val : str
-        A string of the value without quoting with '''
-
+        A string of the value without leading and trailing single-quotes.
     """
     val = str(value)
     if val.startswith("'") and val.endswith("'"):

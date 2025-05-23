@@ -1,0 +1,8 @@
+url:
+- "https://zenodo.org/records/10390742/files"
+- "https://b2share.fz-juelich.de/api/files/c6cf7bc6-2ae5-4d0e-814d-2a3cf0e1a8c5"
+
+checkpoint:
+  axial:  "checkpoints/CerebNet_axial_v1.0.0.pkl"
+  coronal: "checkpoints/CerebNet_coronal_v1.0.0.pkl"
+  sagittal: "checkpoints/CerebNet_sagittal_v1.0.0.pkl"

@@ -147,14 +147,15 @@ def get_class_names(plane, options):
 
     Parameters
     ----------
-    plane :
-        [MISSING]
-    options :
-        [MISSING]
+    plane : str
+        Plane of the MRI scan.
+    options : List[str]
+        List of classes to include.
 
     Returns
     -------
-        [MISSING]
+        selection : List[str]
+        List of class names.
 
     """
     selection = []
