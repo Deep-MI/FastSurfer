@@ -90,7 +90,7 @@ tifffile==2025.1.10
 torch==2.6.0+cpu
 torchio==0.20.4
 torchvision==0.21.0+cpu
-tornado==6.4.2
+tornado==6.5.1
 tqdm==4.67.1
 typer==0.15.1
 typing_extensions==4.12.2
