@@ -12,8 +12,8 @@ ADNI | AD/MCI/Normal | 56 | 91 | 73 | 73 | 66 | 80 | 106 | 215 | NorthAmerica
 HCP | Normal | 24 | 33 | 28 | 28 | 24 | 33 | 15 | 30 | NorthAmerica
 IXI | Normal | 20 | 86 | 51 | 50 | 28 | 68 | 204 | 400 | Europe
 LA5C | Neuropsych/Normal | 21 | 50 | 32 | 33 | 23 | 46 | 102 | 203 | NorthAmerica
-MBB | Normal | 56 | 86 | 71 | 70 | 62 | 76 | 15 | 30 | Europe
-MIRIAD | AD/Normal | 23 | 78 | 33 | 42 | 23 | 68 | 96 | 195 | Europe
+MBB | Normal | 23 | 78 | 33 | 42 | 23 | 68 | 96 | 195 | Europe
+MIRIAD | AD/Normal | 56 | 86 | 71 | 70 | 62 | 76 | 15 | 30 | Europe
 OASIS1 | Normal | 18 | 90 | 58 | 54 | 26 | 75 | 39 | 79 | NorthAmerica
 OASIS2 | AD/Normal | 60 | 90 | 75 | 75 | 67 | 83 | 32 | 65 | NorthAmerica
 RS | Normal | 30 | 95 | 69 | 59 | 42 | 76 | 15 | 30 | Europe
