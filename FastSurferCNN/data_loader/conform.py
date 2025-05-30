@@ -859,6 +859,10 @@ def prepare_mgh_header(
             new_center = (center + (1 - np.isclose(vec, np.round(vec), **tols)) / 2.0, [1.0])
             h1["Pxyz_c"] = img.affine.dot(np.hstack(new_center))[:3]
 
+    # tr information is not copied when copying from non-mgh formats
+    if len(img.header.get('pixdim', [])) :
+        h1['tr'] = img.header['pixdim'][4] * 1000
+
     # The affine can be explicitly constructed by MGHHeader.get_affine() / h1.get_affine()
     # MdcD = np.asarray(h1["Mdc"]).T * h1["delta"]
     # vol_center = MdcD.dot(hdr["dims"][:3]) / 2
