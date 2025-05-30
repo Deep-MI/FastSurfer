@@ -100,7 +100,7 @@ tensorboard==2.18.0
 tensorboard_data_server==0.7.0
 threadpoolctl==3.5.0
 tifffile==2025.1.10
-torch==2.6.0+cu126
+torch==2.7.0+cu126
 torchio==0.20.4
 torchvision==0.21.0+cu126
 tornado==6.5.1
