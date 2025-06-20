@@ -172,17 +172,17 @@ class SubjectDirectoryConfig:
         flags=("--conformed_name",),
     )
 
-    in_dir: Optional[Path] = field(  # noqa: UP007
+    in_dir: Optional[Path] = field(  # noqa: UP045
         flags=("--in_dir",),
         default=None,
         help="Directory in which input volume(s) are located. Optional, if full path is defined for --t1.",
     )
-    csv_file: Optional[Path] = field(  # noqa: UP007
+    csv_file: Optional[Path] = field(  # noqa: UP045
         flags=("--csv_file",),
         default=None,
         help="Csv-file with subjects to analyze (alternative to --tag)",
     )
-    sid: Optional[str] = field(  # noqa: UP007
+    sid: Optional[str] = field(  # noqa: UP045
         flags=("--sid",),
         default=None,
         help="Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject "
@@ -207,7 +207,7 @@ class SubjectDirectoryConfig:
         help="Optional: remove suffix from path definition of input file to yield correct subject name (e.g. "
              "/ses-x/anat/ for BIDS or /mri/ for FreeSurfer input). Default: do not remove anything.",
     )
-    out_dir: Optional[Path] = field(  # noqa: UP007
+    out_dir: Optional[Path] = field(  # noqa: UP045
         default=None,
         help="Directory in which evaluation results should be written. Will be created if it does not exist. Optional "
              "if full path is defined for --pred_name.",
