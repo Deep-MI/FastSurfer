@@ -266,7 +266,7 @@ function get_device_list()
 if [[ "$num_parallel_seg" != 1 ]] && [[ "$surf_only" != "true" ]] && [[ "$res_device" =~ ^auto|cuda$ ]]
 then
   # device is auto or cuda, auto-detect the device count and make it match with num_parallel_seg
-  detected_devices=$($python -c "import torch.cuda.device_count as d ; print(*range(d()), sep=',')")
+  detected_devices=$($python -c "from torch.cuda import device_count as d ; print(*range(d()), sep=',')")
   _devices=($detected_devices)
   num_devices="${#_devices[@]}"
   echo "INFO: Auto-detecting CUDA-capable devices to parallelize segmentation, found $num_devices device(s)."
