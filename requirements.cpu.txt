@@ -71,7 +71,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 PyWavelets==1.8.0
 PyYAML==6.0.2
-requests==2.32.3
+requests==2.32.4
 rich==13.9.4
 scikit-image==0.25.1
 scikit-learn==1.6.1
