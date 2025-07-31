@@ -73,7 +73,7 @@ pandas==2.2.3
 pillow==11.1.0
 pip==25.0
 plotly==6.0.0
-protobuf==5.28.3
+protobuf==5.29.5
 psutil==6.1.1
 pycparser==2.22
 Pygments==2.19.1
