@@ -646,14 +646,14 @@ if [[ "$long" == "1" ]] ; then
   # in long we can skip fill as surfaces come from base
   # it would be great to also skip WM, but it is needed in place_surface to clip bright
   # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
-  cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation $hiresflag $fsthreads"
+  cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF"
   # copy over filled from base for stop-edits to transfer to long (a bit of a hack)
   cmd="cp $basedir/mri/filled.mgz $mdir/filled.mgz"
   RunIt "$cmd" "$LF"
 else # cross and base
   # filled is needed to generate initial WM surfaces
-  cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill $hiresflag $fsthreads"
+  cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF"
 fi
 
@@ -700,7 +700,7 @@ for hemi in lh rh ; do
 
     if [[ "$fstess" == "1" ]]
     then
-      cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning $hiresflag $fsthreads"
+      cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning -umask $(umask) $hiresflag $fsthreads"
       RunIt "$cmd" "$LF" "$CMDF"
     else
       # instead of mri_tesselate lego land use marching cube
@@ -772,13 +772,13 @@ for hemi in lh rh ; do
     } | tee -a "$CMDF"
 
     #surface inflation (54sec both hemis) (needed for qsphere and for topo-fixer)
-    cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
     if [ "$fsqsphere" == "1" ]
     then
       # quick spherical mapping (2min48sec)
-      cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning $hiresflag $fsthreads"
+      cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning -umask $(umask) $hiresflag $fsthreads"
       RunIt "$cmd" "$LF" "$CMDF"
     else
       # instead of mris_sphere, directly project to sphere with spectral approach
@@ -805,7 +805,7 @@ for hemi in lh rh ; do
       echo "echo \"\""
     } | tee -a "$CMDF"
 
-    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
     # fix the surfaces if they are corrupt
@@ -815,14 +815,14 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF" "$CMDF"
 
     # create first WM surface white.preaparc from topo fixed orig surf
-    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
   else # longitudinal stream
     # ... we skip topo fix
 
     # in long we don't use orig.premesh (so switch off remesh for autodetgwstat)
-    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -no-remesh -no-isrunning $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -no-remesh -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
     # for place_surfaces white.preparc we need to directly call it with special long parameter:
@@ -844,7 +844,7 @@ for hemi in lh rh ; do
   # create cortex label (1min)
   # create nicer inflated surface from topo fixed (not needed, just later for visualization)
   # identical for long processing
-  cmd="recon-all -subject $subject -hemi $hemi -cortex-label -smooth2 -inflate2 -curvHK -no-isrunning $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -hemi $hemi -cortex-label -smooth2 -inflate2 -curvHK -no-isrunning -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF" "$CMDF"
 
 
@@ -884,7 +884,7 @@ for hemi in lh rh ; do
     then
 
       # SPHERE: Inflate to sphere with minimal metric distortion
-      cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning $fsthreads"
+      cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning -umask $(umask) $fsthreads"
       RunIt "$cmd" "$LF" "$CMDF"
 
       # SURFREG (sphere.reg)
@@ -937,7 +937,7 @@ for hemi in lh rh ; do
 
     # in all cases where sphere.reg is available, create jacobian white (distortion to sphere)
     # and avgcurv (map atlas curvature to subject):
-    cmd="recon-all -subject $subject -hemi $hemi -jacobian_white -avgcurv -no-isrunning $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -hemi $hemi -jacobian_white -avgcurv -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
   fi
@@ -1051,7 +1051,7 @@ for hemi in lh rh ; do
 # ============================= CURVSTATS ===============================================
 
   # in FS7 curvstats moves here
-  cmd="recon-all -subject $subject -hemi $hemi -curvstats -no-isrunning $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -hemi $hemi -curvstats -no-isrunning -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF" "$CMDF"
 
   if [[ "$DoParallel" == "0" ]]
@@ -1100,7 +1100,7 @@ then
   # anatomical stats can run without ribbon, but will omit some surface based measures then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
   # So lets run it to have these measures below.
-  cmd="recon-all -subject $subject -cortribbon $hiresflag $fsthreads"
+  cmd="recon-all -subject $subject -cortribbon -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF"
 
 fi # skip in base
@@ -1146,7 +1146,7 @@ if [[ "$fsaparc" == "1" ]] ; then
   # skip in base
   if [[ "$base" != "1" ]]
   then
-    cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
     # removed -balabels here and do that below independent of fsaparc flag
     # removed -segstats here (now part of mri_segstats.py/segstats.py
@@ -1200,7 +1200,7 @@ then
     # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
     # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz
     # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces
-    cmd="recon-all -subject $subject -hyporelabel -apas2aseg $hiresflag $fsthreads"
+    cmd="recon-all -subject $subject -hyporelabel -apas2aseg -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
   fi
 

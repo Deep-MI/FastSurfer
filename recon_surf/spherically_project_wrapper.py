@@ -15,7 +15,7 @@
 
 # IMPORTS
 import argparse
-import shlex
+from os import umask
 from subprocess import PIPE, Popen
 from typing import Any
 
@@ -45,7 +45,7 @@ def setup_options():
     return args
 
 
-def call(command: str, **kwargs: Any) -> int:
+def call(command: list[str], **kwargs: Any) -> int:
     """
     Run command with arguments.
 
@@ -53,7 +53,7 @@ def call(command: str, **kwargs: Any) -> int:
 
     Parameters
     ----------
-    command : str
+    command : list[str]
         Command to call.
     **kwargs : Any
         Keyword arguments.
@@ -66,9 +66,7 @@ def call(command: str, **kwargs: Any) -> int:
     """
     kwargs["stdout"] = PIPE
     kwargs["stderr"] = PIPE
-    command_split = shlex.split(command)
-
-    p = Popen(command_split, **kwargs)
+    p = Popen(command, **kwargs)
     stdout, stderr = p.communicate()
 
     if stdout:
@@ -82,15 +80,15 @@ def call(command: str, **kwargs: Any) -> int:
     return p.returncode
 
 
-def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
+def spherical_wrapper(command1: list[str], command2: list[str], **kwargs: Any) -> int:
     """
     Run the first command. If it fails the fallback command is run instead.
 
     Parameters
     ----------
-    command1 : str
+    command1 : list[str]
         Command to call.
-    command2 : str
+    command2 : list[str]
         Fallback command to call.
     **kwargs : Any
         Arguments. The same as for the Popen constructor.
@@ -105,9 +103,7 @@ def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
     code_1 = call(command1, **kwargs)
 
     if code_1 != 0:
-        print(
-            f"Command {command1} failed.\nRunning fallback command: {command2}"
-        )
+        print(f"Command {command1} failed.\nRunning fallback command: {command2}")
         code_1 = call(command2, **kwargs)
 
     return code_1
@@ -116,36 +112,29 @@ def spherical_wrapper(command1: str, command2: str, **kwargs: Any) -> int:
 if __name__ == "__main__":
 
     opts = setup_options()
-    cmd1 = (
-        opts.py
-        + " "
-        + opts.binpath
-        + "spherically_project.py -i "
-        + opts.sdir
-        + "/"
-        + opts.hemi
-        + ".smoothwm.nofix -o "
-        + opts.sdir
-        + "/"
-        + opts.hemi
-        + ".qsphere.nofix"
-    )
+    cmd1 = [
+        opts.py,
+        f"{opts.binpath}spherically_project.py",
+        "-i", f"{opts.sdir}/{opts.hemi}.smoothwm.nofix",
+        "-o", f"{opts.sdir}/{opts.hemi}.qsphere.nofix",
+    ]
 
+    threading = ()
     if opts.threads > 1:
-        threading = (
-            "-threads " + str(opts.threads) + " -itkthreads " + str(opts.threads)
-        )
-    else:
-        threading = ""
+        threading = ("-threads", str(opts.threads), "-itkthreads", str(opts.threads))
 
-    cmd2 = (
-        "recon-all -s "
-        + opts.subject
-        + " -hemi "
-        + opts.hemi
-        + " -qsphere -no-isrunning "
-        + threading
-    )
+    # get the umask (for some reason this can only be returned if it is also set, so we set it to 2 just to get the
+    # current value)
+    umask = umask(_umask := umask(0o02))
+    cmd2 = [
+        "recon-all",
+        "-s", opts.subject,
+        "-hemi", opts.hemi,
+        "-qsphere",
+        "-no-isrunning",
+        "-umask", str(_umask),
+        *threading,
+    ]
     # make sure the process has a username, so nibabel does not crash in write_geometry
     from os import environ
     env = dict(environ)
