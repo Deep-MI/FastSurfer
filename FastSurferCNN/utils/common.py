@@ -326,7 +326,7 @@ class SubjectDirectory:
         Path
             The set subject directory.
         """
-        assert hasattr(self, "_subject_dir") or "The folder attribute has not been set!"
+        assert hasattr(self, "_subject_dir"), "The folder attribute has not been set!"
         return Path(self._subject_dir)
 
     @subject_dir.setter
@@ -351,7 +351,7 @@ class SubjectDirectory:
         str
             The id.
         """
-        assert hasattr(self, "_id") or "The id attribute has not been set!"
+        assert hasattr(self, "_id"), "The id attribute has not been set!"
         return self._id
 
     @id.setter
@@ -371,8 +371,7 @@ class SubjectDirectory:
         """
         Try to return absolute path.
 
-        If the native_t1_file is a relative path, it will be
-        interpreted as relative to folder.
+        If the native_t1_file is a relative path, it will be interpreted as relative to folder.
 
         Returns
         -------
@@ -399,18 +398,14 @@ class SubjectDirectory:
         """
         Try to return absolute path.
 
-        If the copy_orig_t1_file is a relative path, it will be
-        interpreted as relative to folder.
+        If the copy_orig_t1_file is a relative path, it will be interpreted as relative to folder.
 
         Returns
         -------
         Path
             The copy of orig name.
         """
-        assert (
-            hasattr(self, "_copy_orig_name")
-            or "The copy_orig_name attribute has not been set!"
-        )
+        assert hasattr(self, "_copy_orig_name"), "The copy_orig_name attribute has not been set!"
         return self.filename_in_subject_folder(self._copy_orig_name)
 
     @copy_orig_name.setter
@@ -435,17 +430,14 @@ class SubjectDirectory:
         """
         Try to return absolute path.
 
-        If the conformed_t1_file is a relative path, it will be
-        interpreted as relative to folder.
+        If the conformed_t1_file is a relative path, it will be interpreted as relative to folder.
 
         Returns
         -------
         Path
             The path to the conformed image file.
         """
-        assert (
-            hasattr(self, "_conf_name") or "The conf_name attribute has not been set!"
-        )
+        assert hasattr(self, "_conf_name"), "The conf_name attribute has not been set!"
         return self.filename_in_subject_folder(self._conf_name)
 
     @conf_name.setter
@@ -473,7 +465,7 @@ class SubjectDirectory:
         Path
             Path to the segfile.
         """
-        assert hasattr(self, "_segfile") or "The _segfile attribute has not been set!"
+        assert hasattr(self, "_segfile"), "The _segfile attribute has not been set!"
         return self.filename_in_subject_folder(self._segfile)
 
     @segfile.setter
@@ -493,18 +485,14 @@ class SubjectDirectory:
         """
         Try to return absolute path.
 
-        If the asegdkt_segfile is a relative path, it will be
-        interpreted as relative to folder.
+        If the asegdkt_segfile is a relative path, it will be interpreted as relative to folder.
 
         Returns
         -------
         Path
             Path to segmentation file.
         """
-        assert (
-            hasattr(self, "_segfile")
-            or "The asegdkt_segfile attribute has not been set!"
-        )
+        assert hasattr(self, "_asegdkt_segfile"), "The asegdkt_segfile attribute has not been set!"
         return self.filename_in_subject_folder(self._asegdkt_segfile)
 
     @asegdkt_segfile.setter
@@ -524,8 +512,7 @@ class SubjectDirectory:
         """
         Try to return absolute path.
 
-        If the main_segfile is a relative path, it will be
-        interpreted as relative to folder.
+        If the main_segfile is a relative path, it will be interpreted as relative to folder.
 
         Returns
         -------
@@ -533,10 +520,7 @@ class SubjectDirectory:
             Path to the main segfile.
 
         """
-        assert (
-            hasattr(self, "_main_segfile")
-            or "The main_segfile attribute has not been set!"
-        )
+        assert hasattr(self, "_main_segfile"), "The main_segfile attribute has not been set!"
         return self.filename_in_subject_folder(self._main_segfile)
 
     @main_segfile.setter
