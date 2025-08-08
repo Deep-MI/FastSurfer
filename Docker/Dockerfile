@@ -71,7 +71,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ARG FORGE_VERSION=24.11.2-1
+ARG FORGE_VERSION=25.3.1-0
 
 # Install conda
 RUN wget --no-check-certificate -qO ~/miniforge.sh \
@@ -86,34 +86,31 @@ ENV PATH=/opt/miniforge/bin:$PATH
 FROM build_base AS build_common
 
 # get install scripts into docker
-COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py /install/
+ARG MAMBA_SSL_CERTIFICATE=""
+COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py ${MAMBA_SSL_CERTIFICATE} /install/
 
-# SHELL ["/bin/bash", "--login", "-c"]
+SHELL ["/bin/bash", "--login", "-c", "-e"]
 # Install conda for gpu
 
+ARG MAMBA_SSL_VERIFY=""
 ARG DEBUG=false
-RUN python /install/install_env.py -m base -i /install/fastsurfer.yml \
-      -o /install/base-env.yml && \
-    mamba env create -qy -f "/install/base-env.yml" | tee /install/env-create.log ; \
-    if [ "${DEBUG}" != "true" ]; then \
-      rm /install/base-env.yml ; \
-    fi
+ENV PIP_ROOT_USER_ACTION=ignore
+RUN python /install/install_env.py -m base -i /install/fastsurfer.yml -o /install/base-env.yml && \
+    mamba env create -qy -f "/install/base-env.yml" $([ "$DEBUG" == "true" ] && echo "-vvv") \
+      | tee /install/env-create.log ; \
+    if [ "${DEBUG}" != "true" ]; then rm /install/base-env.yml ; fi
 
 FROM build_common AS build_conda
 
 ARG DEBUG=false
 ARG DEVICE=cu118
 # install additional packages for cuda/rocm/cpu
-RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml \
-      -o /install/${DEVICE}-env.yml && \
-    mamba env update -q -n "fastsurfer" -f "/install/${DEVICE}-env.yml" \
+RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /install/${DEVICE}-env.yml && \
+    mamba env update -qy -n "fastsurfer" -f "/install/${DEVICE}-env.yml" $([ "$DEBUG" == "true" ] && echo "-vvv") \
       | tee /install/env-update.log && \
     /install/conda_pack.sh "fastsurfer" && \
-    echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /install/build_conda.args ;  \
-    if [ "${DEBUG}" != "true" ]; then \
-      mamba env remove -qy -n "fastsurfer" && \
-      rm -R /install ; \
-    fi
+    echo "DEBUG=$DEBUG\nDEVICE=$DEVICE\n" > /install/build_conda.args ; \
+    if [ "${DEBUG}" != "true" ]; then mamba env remove -qy -n "fastsurfer" && rm -R /install ; fi
 
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
@@ -126,9 +123,9 @@ ARG FREESURFER_URL=default
 
 # install freesurfer and point to new python location
 RUN /install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL && \
-rm /opt/freesurfer/bin/fspython &&  \
-rm -R /install && \
-ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
+    rm /opt/freesurfer/bin/fspython && \
+    rm -R /install && \
+    ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
 
 
 # =======================================================

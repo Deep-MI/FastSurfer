@@ -174,6 +174,15 @@ class CacheSpec:
     __repr__ = format_cache_from
 
 
+def _validate_ssl_verify(value) -> Path | bool:
+    """Validate the SSL certificate value from false/none/true/path to certificate."""
+    if value.lower() in ("false", "<false>", "none"):
+        return False
+    elif value.lower() in ("true", "<true>"):
+        return True
+    return Path(value)
+
+
 def make_parser() -> argparse.ArgumentParser:
     try:
         from FastSurferCNN.segstats import HelpFormatter
@@ -226,12 +235,10 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--cache",
         type=CacheSpec,
-        help=f"""cache as defined in https://docs.docker.com/build/cache/backends/ 
-                 (using --cache-to syntax, parameters are automatically filtered for use 
-                 in --cache-to and --cache-from), e.g.: 
-                 --cache type=registry,ref=server/fastbuild,mode=max.
-                 Will default to the environment variable FASTSURFER_BUILD_CACHE: 
-                 {cache_kwargs.get('default', 'N/A')}""",
+        help=f"""cache as defined in https://docs.docker.com/build/cache/backends/ (using --cache-to syntax, 
+             parameters are automatically filtered for use in --cache-to and --cache-from), e.g.: 
+             --cache type=registry,ref=server/fastbuild,mode=max will default to the environment variable 
+             FASTSURFER_BUILD_CACHE: {cache_kwargs.get('default', 'N/A')}""",
         metavar="type={inline,local,...}[,<param>=<value>[,...]]",
         **cache_kwargs,
     )
@@ -274,11 +281,9 @@ def make_parser() -> argparse.ArgumentParser:
         "--action",
         choices=("load", "push"),
         default="load",
-        help="Which action to perform after building the image (if a docker-container "
-             "is detected): "
+        help="Which action to perform after building the image (if a docker-container is detected): "
              "'load' loads the image into the current docker context (default), "
-             "'push' pushes the image to the registry (needs --tag <registry>/"
-             "<name+maybe organization>:<tag>)",
+             "'push' pushes the image to the registry (needs --tag <registry>/<name+maybe organization>:<tag>)",
     )
     expert.add_argument(
         "--freesurfer_build_image",
@@ -287,7 +292,8 @@ def make_parser() -> argparse.ArgumentParser:
         help="""explicitly specifies an image to copy freesurfer binaries from.
                 freesurfer binaries are expected to be in /opt/freesurfer in the image, 
                 like the runtime image. By default, uses the "build_freesurfer" stage in 
-                the Dockerfile (either by building it or from cache, see --cache).""")
+                the Dockerfile (either by building it or from cache, see --cache).""",
+    )
     expert.add_argument(
         "--conda_build_image",
         type=docker_image,
@@ -295,24 +301,34 @@ def make_parser() -> argparse.ArgumentParser:
         help="""explicitly specifies an image to copy the python environment from.
                 The environment is expected to be in /venv in the image, like the 
                 runtime image. By default, uses the "build_conda" stage in the 
-                Dockerfile (either by building it or from cache, see --cache).""")
+                Dockerfile (either by building it or from cache, see --cache).""",
+    )
     expert.add_argument(
         "--runtime_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the runtime image from "
-             "(default: ubuntu:22.04).")
+        help="explicitly specifies the base image to build the runtime image from (default: ubuntu:22.04).",
+    )
     expert.add_argument(
         "--build_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the build images from "
-             "(default: ubuntu:22.04).")
-
+        help="explicitly specifies the base image to build the build images from (default: ubuntu:22.04).",
+    )
     expert.add_argument(
         "--debug",
         action="store_true",
-        help="enables the DEBUG build flag."
+        help="enables the DEBUG build flag.",
+    )
+    default_ssl_verify = lambda x: os.environ.get("MAMBA_SSL_VERIFY", os.environ.get("CONDA_SSL_VERIFY", x))
+    expert.add_argument(
+        "--ssl_verify",
+        type=_validate_ssl_verify,
+        default=default_ssl_verify(True),
+        metavar="{True,False,<path>}",
+        help="ssl certificate to use for condaforge, from None/False (ignore), True (default system certificate), or a "
+             "certificate file path (defaults to the value of the MAMBA_SSL_VERIFY (or CONDA_SSL_VERIFY) environment "
+             f"variable, here: {default_ssl_verify('True (neither set)')}).",
     )
     return parser
 
@@ -616,6 +632,7 @@ def main(
         dry_run: bool = False,
         tag_dev: bool = True,
         fastsurfer_home: Path | None = None,
+        ssl_verify: Path | bool = True,
         **keywords,
         ) -> int | str:
     from FastSurferCNN.version import has_git
@@ -654,7 +671,17 @@ def main(
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
     #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
-
+    if ssl_verify is not True:
+        if ssl_verify is False:
+            kwargs["build_arg"].append(f"MAMBA_SSL_VERIFY=<false>")
+        else:
+            _ssl_cert = "./Docker/custom-ssl.crt"
+            if (fastsurfer_home / _ssl_cert).exists():
+                (fastsurfer_home / _ssl_cert).unlink()
+            from shutil import copy2
+            copy2(ssl_verify, fastsurfer_home / _ssl_cert)
+            kwargs["build_arg"].append(f"MAMBA_SSL_CERTIFICATE={_ssl_cert}")
+            kwargs["build_arg"].append(f"MAMBA_SSL_VERIFY=/install/{Path(_ssl_cert).name}")
     build_filename = fastsurfer_home / "Docker/BUILD.info"
     if has_git():
         version_sections = "+git"
@@ -662,9 +689,8 @@ def main(
         # try creating the build file without git info
         version_sections = ""
         logger.warning(
-            "Failed to create the git_status section in the BUILD.info file. "
-            "The resulting build file will not have valid git information, so "
-            "the version command of FastSurfer in the image will not complete."
+            "Failed to create the git_status section in the BUILD.info file. The resulting build file will not have "
+            "valid git information, so the version command of FastSurfer in the image will not complete."
         )
 
     with open(build_filename, "w") as build_file, \

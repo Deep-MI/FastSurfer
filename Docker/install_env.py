@@ -120,6 +120,7 @@ def main(args):
                 # pip is automatically added in front of the '- pip:' subsection
                 pass
             elif package_pip == "pip:":
+                # this adds "- pip" and "- pip:"  to buffer
                 buffer = ("" if has_pip else indent + "pip\n") + line
                 pip_indent = indent_count
             elif mode == "base" and package_pip not in all_special_packages or \
