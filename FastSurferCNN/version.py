@@ -89,8 +89,7 @@ def section(arg: str) -> str:
         return arg
     else:
         raise argparse.ArgumentTypeError(
-            "The section argument must be 'all', or any combination of "
-            "'+branch', '+checkpoints', '+git' and '+pip'."
+            "The section argument must be 'all', or any combination of '+branch', '+checkpoints', '+git' and '+pip'."
         )
 
 
@@ -238,8 +237,7 @@ def main(
     ...]
     ```
 
-    $PROJECT_ROOT is the root directory of the project determined as the parent to this
-    file's directory.
+    $PROJECT_ROOT is the root directory of the project determined as the parent to this file's directory.
 
     Parameters
     ----------
@@ -248,8 +246,8 @@ def main(
         '+checkpoints', '+git', and '+pip', e.g. '+git+checkpoints'.
         The order does not matter, '+checkpoints', '+git' or '+pip' also implicitly activate '+branch'.
     project_file : TextIO, optional
-        A file-like object to read the projects toml file, with the '[project]' section
-        with a 'version' attribute. Defaults to $PROJECT_ROOT/pyproject.toml.
+        A file-like object to read the projects toml file, with the '[project]' section with a 'version' attribute.
+        Defaults to $PROJECT_ROOT/pyproject.toml.
     build_cache : False, TextIO, optional
         A file-like object to read cached version information, the format should be formatted like the output of `main`.
         If build_cache is None, it defaults to $PROJECT_ROOT/BUILD.info; if it is False, it is ignored.
@@ -387,8 +385,8 @@ def get_default_version_info() -> VersionDict:
 def parse_build_file(build_file: TextIO | io.StringIO | None) -> VersionDict:
     """Read and parse a build file (same as output of `main`).
 
-    Read and parse a file with version information in the format that is also the
-    output of the `main` function. The format is documented in `main`.
+    Read and parse a file with version information in the format that is also the output of the `main` function. The
+    format is documented in `main`.
 
     Parameters
     ----------
@@ -398,9 +396,8 @@ def parse_build_file(build_file: TextIO | io.StringIO | None) -> VersionDict:
     Returns
     -------
     VersionDict
-        Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch',
-        'checkpoints', 'git_status', and 'pypackages'. The last 3 are optional and may
-        be missing depending on the content of the file.
+        Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch', 'checkpoints', 'git_status', and
+        'pypackages'. The last 3 are optional and may be missing depending on the content of the file.
 
     Notes
     -----
