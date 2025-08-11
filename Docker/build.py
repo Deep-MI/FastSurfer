@@ -320,15 +320,17 @@ def make_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="enables the DEBUG build flag.",
     )
-    default_ssl_verify = lambda x: os.environ.get("MAMBA_SSL_VERIFY", os.environ.get("CONDA_SSL_VERIFY", x))
+
+    def _default_ssl_verify(x):
+        return os.environ.get("MAMBA_SSL_VERIFY", os.environ.get("CONDA_SSL_VERIFY", x))
     expert.add_argument(
         "--ssl_verify",
         type=_validate_ssl_verify,
-        default=default_ssl_verify(True),
+        default=_default_ssl_verify(True),
         metavar="{True,False,<path>}",
         help="ssl certificate to use for condaforge, from None/False (ignore), True (default system certificate), or a "
              "certificate file path (defaults to the value of the MAMBA_SSL_VERIFY (or CONDA_SSL_VERIFY) environment "
-             f"variable, here: {default_ssl_verify('True (neither set)')}).",
+             f"variable, here: {_default_ssl_verify('True (neither set)')}).",
     )
     return parser
 
@@ -673,7 +675,7 @@ def main(
     #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
     if ssl_verify is not True:
         if ssl_verify is False:
-            kwargs["build_arg"].append(f"MAMBA_SSL_VERIFY=<false>")
+            kwargs["build_arg"].append("MAMBA_SSL_VERIFY=<false>")
         else:
             _ssl_cert = "./Docker/custom-ssl.crt"
             if (fastsurfer_home / _ssl_cert).exists():
