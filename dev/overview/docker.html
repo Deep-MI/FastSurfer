@@ -503,8 +503,7 @@ python<span class="w"> </span>build.py<span class="w"> </span>--device<span clas
 <section id="example-2-build-cpu-fastsurfer-image">
 <h3>Example 2: Build CPU FastSurfer Image<a class="headerlink" href="#example-2-build-cpu-fastsurfer-image" title="Link to this heading">¶</a></h3>
 <p>In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PYTHONPATH</span><span class="o">=</span>&lt;FastSurferRoot&gt;
-python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu
 </pre></div>
 </div>
 <p>As you can see, only the <code class="docutils literal notranslate"><span class="pre">--device</span></code> to the build command is changed from <code class="docutils literal notranslate"><span class="pre">cuda</span></code> to <code class="docutils literal notranslate"><span class="pre">cpu</span></code>.</p>
@@ -525,8 +524,7 @@ python<span class="w"> </span>build.py<span class="w"> </span>--device<span clas
 <p>Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into
 your host machine kernel (<code class="docutils literal notranslate"><span class="pre">amdgpu-install</span> <span class="pre">--usecase=dkms</span></code>) for the amd docker to work. For this follow:
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PYTHONPATH</span><span class="o">=</span>&lt;FastSurferRoot&gt;
-python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
 </pre></div>
 </div>
 <p>and run segmentation only:</p>
@@ -591,6 +589,13 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 </li>
 <li><p>Finally, you can now build the FastSurfer image with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span></code>. This will add the additional flags to the docker build command.</p></li>
 </ol>
+</section>
+<section id="setting-the-ssl-verify-parameter-of-mamba">
+<h2>Setting the ssl_verify parameter of mamba<a class="headerlink" href="#setting-the-ssl-verify-parameter-of-mamba" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">build.py</span></code> script supports the <code class="docutils literal notranslate"><span class="pre">--ssl_verify</span></code> flag, which can be passed <code class="docutils literal notranslate"><span class="pre">&quot;False&quot;</span></code> or the path to an alternative root certificate.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu<span class="w"> </span>--ssl_verify<span class="w"> </span>/path/to/custom-cert.srt
+</pre></div>
+</div>
 </section>
 <section id="building-for-release">
 <h2>Building for release<a class="headerlink" href="#building-for-release" title="Link to this heading">¶</a></h2>
@@ -711,6 +716,7 @@ docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</
 </ul>
 </li>
 <li><a class="reference internal" href="#build-docker-image-with-attestation-and-provenance">Build docker image with attestation and provenance</a></li>
+<li><a class="reference internal" href="#setting-the-ssl-verify-parameter-of-mamba">Setting the ssl_verify parameter of mamba</a></li>
 <li><a class="reference internal" href="#building-for-release">Building for release</a></li>
 </ul>
 </li>
