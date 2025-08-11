@@ -116,7 +116,6 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
 
 ```bash
-PYTHONPATH=<FastSurferRoot>
 python build.py --device cpu --tag my_fastsurfer:cpu
 ```
 
@@ -142,7 +141,6 @@ your host machine kernel (`amdgpu-install --usecase=dkms`) for the amd docker to
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html
 
 ```bash
-PYTHONPATH=<FastSurferRoot>
 python build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
@@ -205,6 +203,14 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
       ```
       Also note, that the image storage location with containerd is not defined by the docker config file `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd) file with `containerd config default > /etc/containerd/config.toml`, in this config file edit the `"root"`-entry (default value is `/var/lib/containerd`).  
 4. Finally, you can now build the FastSurfer image with `python Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
+
+## Setting the ssl_verify parameter of mamba
+
+The `build.py` script supports the `--ssl_verify` flag, which can be passed `"False"` or the path to an alternative root certificate.
+
+```bash
+python build.py --device cpu --tag my_fastsurfer:cpu --ssl_verify /path/to/custom-cert.srt
+```
 
 ## Building for release
 
