@@ -144,7 +144,8 @@ FROM $CONDA_BUILD_IMAGE AS selected_conda_build_image
 # =========================================
 FROM $RUNTIME_BASE_IMAGE AS runtime
 
-ENV LANG=C.UTF-8
+ENV LANG=C.UTF-8 \
+    LC_NUMERIC=en_US.UTF-8
 
 # Install required packages for freesurfer to dry_run
 RUN apt-get update && apt-get install -y --no-install-recommends \

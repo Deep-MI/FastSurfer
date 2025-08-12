@@ -1012,7 +1012,7 @@ then
         exit 1
       fi
       # create a symlink of the stats file for the old file name
-      softlink_or_copy "$asegdkt_vinn_statsfile" "$asegdkt_statsfile"
+      softlink_or_copy "$asegdkt_vinn_statsfile" "$asegdkt_statsfile" "$seg_log"
       # create the aseg only statsfile
       mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
