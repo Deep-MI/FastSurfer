@@ -46,15 +46,19 @@ runs:
         FASTSURFER_HOME: ${{ inputs.fastsurfer-home }}
       run: |
         echo "::group::Build FastSurfer Image"
+        bashopts=
+        if [[ "$RUNNER_DEBUG" == "1" ]] ; then bashopts=-x ; set $bashopts ; fi
         image_name="${{ inputs.tag }}"
         if [[ "$image_name" == "auto" ]] ; then  
-          v="$(bash "$FASTSURFER_HOME/run_fastsurfer.sh" --version --py python)"
+          v="$(bash $bashopts "$FASTSURFER_HOME/run_fastsurfer.sh" --version --py python)"
           image_name="fastsurfer:cpu-${v/+/_}"
         fi
+        if [[ -z "$(which python)" ]] ; then echo "ERROR: Cannot find python!" ; fi
         cmd=(python "$FASTSURFER_HOME/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
         if [[ "${{ inputs.freesurfer-build-image }}" != "rebuild" ]] ; then 
           cmd+=(--freesurfer_build_image "${{ inputs.freesurfer-build-image }}")
         fi
+        if [[ "$RUNNER_DEBUG" == "1" ]] ; then cmd+=(--debug) ; fi
         "${cmd[@]}"
         echo "::endgroup::"
         echo "::group::Save image as artifact"

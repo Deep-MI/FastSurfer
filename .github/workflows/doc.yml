@@ -10,8 +10,10 @@ on:
 
 jobs:
   build:
-    timeout-minutes: 10
+    timeout-minutes: 15
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         shell: bash
@@ -40,29 +42,16 @@ jobs:
             doc-build
             !doc-build/.doctrees
 
-  deploy:
-    # only on push to dev or stable
-    if: ${{ github.event_name == 'push' && contains(fromJSON('["dev", "stable"]'), github.ref_name) }}
-    needs: build
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Download documentation
-        uses: actions/download-artifact@v4
-        with:
-          name: doc
-          path: doc
-      - name: Deploy {dev,stable} documentation
+      # deploy
+      - name: Deploy the {dev,stable} documentation to github.io
+        # only on push to dev or stable
+        if: ${{ success() && github.event_name == 'push' && contains(fromJSON('["dev", "stable"]'), github.ref_name) }}
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: doc
+          publish_dir: doc-build
+          exclude_assets: '.doctrees'
           # destination_dir: github.ref_name will be dev or stable
           destination_dir: ${{ github.ref_name }}
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+          user_name: 'github-doc-action[bot]'
+          user_email: 'github-doc-action[bot]@users.noreply.github.com'
