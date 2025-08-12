@@ -304,7 +304,7 @@ for hemi in lh rh; do
   echo "echo \" \"" | tee -a $CMDF
 
   # Surface registration for cross-subject correspondence (registration to fsaverage)
-  cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning $fsthreads"
+  cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning -umask $(umask) $fsthreads"
   RunIt "$cmd" $LF "$CMDF"
 
   # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
