@@ -391,12 +391,12 @@
 <span id="fastsurfercnn-utils-arg-types"></span><h1>FastSurferCNN.utils.arg_types<a class="headerlink" href="#module-FastSurferCNN.utils.arg_types" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.float_gt_zero_and_le_one">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">float_gt_zero_and_le_one</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L143-L169"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.float_gt_zero_and_le_one" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">float_gt_zero_and_le_one</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L144-L170"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.float_gt_zero_and_le_one" title="Link to this definition">¶</a></dt>
 <dd><p>Check whether a parameters are a float between 0 and one.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>a</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>String of a number or none, infinity.</p>
+<dt><strong>a</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>String of a number or none, infinity.</p>
 </dd>
 </dl>
 </dd>
@@ -409,7 +409,7 @@ If <code class="xref py py-obj docutils literal notranslate"><span class="pre">a
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentTypeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentTypeError</span></code></a></dt><dd><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">a</span></code> is neither a float between 0 and 1.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">a</span></code> is neither a float between 0 and 1.</p>
 </dd>
 </dl>
 </dd>
@@ -418,7 +418,7 @@ If <code class="xref py py-obj docutils literal notranslate"><span class="pre">a
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.img_size">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">img_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L112-L140"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.img_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">img_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L113-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.img_size" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the img_size argument to ‘fov’, ‘auto’ or int as a valid image size.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -437,7 +437,7 @@ If ‘any’, it returns None.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentTypeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentTypeError</span></code></a></dt><dd><p>If the argument is not “fov”, “auto” or convertible to an int greater than 0.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the argument is not “fov”, “auto” or convertible to an int greater than 0.</p>
 </dd>
 </dl>
 </dd>
@@ -446,7 +446,7 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.int_ge_zero">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_ge_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L238-L260"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_ge_zero" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_ge_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L239-L261"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_ge_zero" title="Link to this definition">¶</a></dt>
 <dd><p>Convert to integers greater 0.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -463,7 +463,7 @@ If ‘any’, it returns None.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#module-argparse" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse</span></code></a></dt><dd><p>ArgumentTypeError: Invalid value, must be greater than 0.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>Invalid value, must be greater than 0.</p>
 </dd>
 </dl>
 </dd>
@@ -472,7 +472,7 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.int_gt_zero">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_gt_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L213-L235"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_gt_zero" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_gt_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L214-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_gt_zero" title="Link to this definition">¶</a></dt>
 <dd><p>Convert to positive integers.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -489,7 +489,7 @@ If ‘any’, it returns None.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#module-argparse" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse</span></code></a></dt><dd><p>ArgumentTypeError: Invalid value, must not be negative.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>Invalid value, must not be negative.</p>
 </dd>
 </dl>
 </dd>
@@ -498,25 +498,25 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.orientation">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L39-L63"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.orientation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L38-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.orientation" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the orientation argument to a valid orientation from ‘native’, ‘soft[-_ ]&lt;orientation/i&gt;’, and
 ‘&lt;orientation/i&gt;’, where &lt;orientation/i&gt; is any valid orientation (case-insensitive).</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>a</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Target orientation type, handles cases.</p>
+<dt><strong>a</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Target orientation type, case-insensitive.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>One of ‘native’, ‘soft &lt;orientation&gt;’, or ‘&lt;orientation&gt;’.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>One of ‘native’, ‘soft-&lt;orientation&gt;’, or ‘&lt;orientation&gt;’.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentTypeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentTypeError</span></code></a></dt><dd><p>If the argument is not a valid choice.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the argument is not a valid orientation.</p>
 </dd>
 </dl>
 </dd>
@@ -525,7 +525,7 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.string_to_bool">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">string_to_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L66-L80"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.string_to_bool" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">string_to_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L65-L81"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.string_to_bool" title="Link to this definition">¶</a></dt>
 <dd><p>Convert a string to a boolean value.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -545,7 +545,7 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.target_dtype">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">target_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L172-L210"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.target_dtype" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">target_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L173-L211"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.target_dtype" title="Link to this definition">¶</a></dt>
 <dd><p>Check for valid dtypes.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -562,7 +562,7 @@ If ‘any’, it returns None.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentTypeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentTypeError</span></code></a></dt><dd><p>Invalid dtype.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the dtype is invalid.</p>
 </dd>
 </dl>
 </dd>
@@ -578,7 +578,7 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.unquote_str">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">unquote_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L263-L280"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.unquote_str" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">unquote_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L264-L281"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.unquote_str" title="Link to this definition">¶</a></dt>
 <dd><p>Unquote a (single quoted) string, i.e. remove one level of single-quotes.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -598,12 +598,12 @@ If ‘any’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.vox_size">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">vox_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L82-L110"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.vox_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">vox_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/FastSurferCNN/utils/arg_types.py#L83-L111"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.vox_size" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the vox_size argument to ‘min’ or a valid voxel size.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>a</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Vox size type. Can be auto, min or a number between 1 an 0.</p>
+<dt><strong>a</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></span></dt><dd><p>Vox size type. Can be auto, min or a number between 1 an 0.</p>
 </dd>
 </dl>
 </dd>
@@ -617,7 +617,7 @@ If ‘any’, it returns None.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.ArgumentTypeError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.ArgumentTypeError</span></code></a></dt><dd><p>If the argument is not “min”, “auto” or convertible to a float between 0 and 1.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the argument is not “min”, “auto” or convertible to a float between 0 and 1.</p>
 </dd>
 </dl>
 </dd>
