@@ -529,7 +529,7 @@ then
     version_cache_args=("${version_cache_args[@]}" --sections "$version_and_quit")
   fi
   $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}"
-  exit 1
+  exit $?
 fi
 
 source "${reconsurfdir}/functions.sh"
