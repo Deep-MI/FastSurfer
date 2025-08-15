@@ -17,6 +17,7 @@
 import math
 import optparse
 import sys
+from pathlib import Path
 
 import nibabel.freesurfer.io as fs
 import numpy as np
@@ -265,9 +266,7 @@ def tria_spherical_project(
     # do a few mean curvature flow euler steps to make more convex
     # three should be sufficient
     if flow_iter > 0:
-        tflow = tria_mean_curvature_flow(
-            TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod
-        )
+        tflow = tria_mean_curvature_flow(TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod)
         vn = tflow.v
 
     # project to sphere and scaled to have the same scale/origin as FS:
@@ -304,26 +303,24 @@ def tria_spherical_project(
 
 
 def spherically_project_surface(
-        insurf: str,
-        outsurf: str,
-        use_cholmod: bool = True
+        insurf: Path | str,
+        outsurf: Path | str,
+        use_cholmod: bool = True,
 ) -> None:
     """Take path to insurf, spherically projects it, outputs it to outsurf.
 
     Parameters
     ----------
-    insurf : str
+    insurf : Path, str
         Path to input surface file
-    outsurf : str
+    outsurf : Path, str
         Path to output surface file
     use_cholmod : bool
         Try to use the Cholesky decomposition from the cholmod. Defaults to True
 
     """
     surf = fs.read_geometry(insurf, read_metadata=True)
-    projected = tria_spherical_project(
-        TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod
-    )
+    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod)
     fs.write_geometry(outsurf, projected.v, projected.t, volume_info=surf[2])
 
 

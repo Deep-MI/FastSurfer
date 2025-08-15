@@ -15,9 +15,7 @@
 
 # IMPORTS
 import argparse
-from os import umask
-from subprocess import PIPE, Popen
-from typing import Any
+from pathlib import Path
 
 
 def setup_options():
@@ -33,110 +31,63 @@ def setup_options():
     parser = argparse.ArgumentParser(description="Wrapper for spherical projection")
 
     parser.add_argument("--hemi", type=str, help="Hemisphere to analyze.")
-    parser.add_argument("--sdir", type=str, help="Surface directory of subject.")
+    parser.add_argument("--sdir", type=Path, help="Surface directory of subject.")
     parser.add_argument("--subject", type=str, help="Name (ID) of subject.")
     parser.add_argument("--threads", type=int, help="Number of threads to use.")
-    parser.add_argument("--py", type=str, help="which python version to use.")
-    parser.add_argument(
-        "--binpath", type=str, help="directory of spherically_project.py script."
-    )
 
     args = parser.parse_args()
     return args
 
 
-def call(command: list[str], **kwargs: Any) -> int:
-    """
-    Run command with arguments.
-
-    Wait for command to complete. Sends output to logging module.
-
-    Parameters
-    ----------
-    command : list[str]
-        Command to call.
-    **kwargs : Any
-        Keyword arguments.
-        
-
-    Returns
-    -------
-    int
-       Returncode of called command.
-    """
-    kwargs["stdout"] = PIPE
-    kwargs["stderr"] = PIPE
-    p = Popen(command, **kwargs)
-    stdout, stderr = p.communicate()
-
-    if stdout:
-        for line in stdout.decode("utf-8").split("\n"):
-            print(line)
-    if stderr:
-        print("stderr")
-        for line in stderr.decode("utf-8").split("\n"):
-            print(line)
-
-    return p.returncode
-
-
-def spherical_wrapper(command1: list[str], command2: list[str], **kwargs: Any) -> int:
-    """
-    Run the first command. If it fails the fallback command is run instead.
-
-    Parameters
-    ----------
-    command1 : list[str]
-        Command to call.
-    command2 : list[str]
-        Fallback command to call.
-    **kwargs : Any
-        Arguments. The same as for the Popen constructor.
-
-    Returns
-    -------
-    code_1
-        Return code of command1. If command1 failed return code of command2.
-    """
-    # First try to run standard spherical project
-    print(f"Running command: {command1}")
-    code_1 = call(command1, **kwargs)
-
-    if code_1 != 0:
-        print(f"Command {command1} failed.\nRunning fallback command: {command2}")
-        code_1 = call(command2, **kwargs)
-
-    return code_1
-
-
 if __name__ == "__main__":
-
+    import sys
     opts = setup_options()
-    cmd1 = [
-        opts.py,
-        f"{opts.binpath}spherically_project.py",
-        "-i", f"{opts.sdir}/{opts.hemi}.smoothwm.nofix",
-        "-o", f"{opts.sdir}/{opts.hemi}.qsphere.nofix",
-    ]
 
-    threading = ()
-    if opts.threads > 1:
-        threading = ("-threads", str(opts.threads), "-itkthreads", str(opts.threads))
+    # identify whether sksparse is installed (in which case we can use_cholmod in LaPy
+    try:
+        # ignore ruff F401 (unused import)
+        from sksparse import cholmod  # noqa F401
+        has_sksparse = True
+    except ImportError:
+        has_sksparse = False
+        # First try to run standard spherical project
+    try:
+        from os import environ
 
-    # get the umask (for some reason this can only be returned if it is also set, so we set it to 2 just to get the
-    # current value)
-    umask = umask(_umask := umask(0o02))
-    cmd2 = [
-        "recon-all",
-        "-s", opts.subject,
-        "-hemi", opts.hemi,
-        "-qsphere",
-        "-no-isrunning",
-        "-umask", str(_umask),
-        *threading,
-    ]
-    # make sure the process has a username, so nibabel does not crash in write_geometry
-    from os import environ
-    env = dict(environ)
-    env.setdefault("USERNAME", "UNKNOWN")
-    spherical_wrapper(cmd1, cmd2, env=env)
+        from recon_surf.spherically_project import spherically_project_surface
+
+        source_surface = opts.sdir / f"{opts.hemi}.smoothwm.nofix"
+        projected_surface = opts.sdir / f"{opts.hemi}.qsphere.nofix"
+        print(f"Reading in surface: {source_surface} ...")
+
+        # make sure the process has a username, so nibabel does not crash in write_geometry
+        environ.setdefault("USERNAME", "UNKNOWN")
+
+        # only switch cholmod on if we have scikit sparse cholmod (cholmod on will be faster)
+        spherically_project_surface(source_surface, projected_surface, use_cholmod=has_sksparse)
+        print(f"Spherically projected surface output to: {projected_surface}")
+
+    except Exception as e:
+        import shutil
+        from os import umask
+        from traceback import print_exception
+
+        from FastSurferCNN.utils.run_tools import Popen
+
+        print_exception(e)
+
+        # get the umask (for some reason this can only be returned if it is also set, so we set it to 2 just to get the
+        # current value)
+        umask(_umask := umask(0o02))
+
+        # run the FreeSurfer fallback command
+        recon_all = shutil.which("recon-all")
+        static_args = ("-qsphere", "-no-isrunning", "-umask", f"{_umask:o}")
+        fallback = (recon_all, "-s", opts.subject, " -hemi ", opts.hemi) + static_args
+        if opts.threads > 1:
+            fallback += ("-threads", str(opts.threads), "-itkthreads", str(opts.threads))
+
+        print(f"spherical_project.py failed.\nRunning fallback command: {' '.join(fallback)}")
+        process = Popen(fallback, env=dict(environ, SUBJECTS_DIR=str(opts.sdir)))
+        done = process.forward_output(encoding="utf-8", timeout=None)
+        sys.exit(done.retcode)
