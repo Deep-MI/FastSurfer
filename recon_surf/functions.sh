@@ -11,7 +11,12 @@ if FSTIME_LOAD=0 "${binpath}fs_time" echo testing &> /dev/null ; then timecmd="$
 else timecmd="" ; echo "INFO: Testing fs_time was not successful, not reporting per-command runtimes."
 fi
 export timecmd
-if [[ "$LC_NUMERIC" != "en_US.UTF-8" ]] ; then export LC_NUMERIC="en_US.UTF-8" ; fi
+
+if [[ "$(locale decimal_point)" != "." ]] ; then export LC_NUMERIC="en_US.UTF-8" ; fi
+if [[ "$(locale decimal_point)" != "." ]] ; then
+  echo "WARNING: Could not change \$LC_NUMERIC, but FastSurfer requires decimal_point=., please configure your locale"
+  echo "  to use a '.' decimal_point, e.g. export LC_NUMERIC=en_US.UTF-8 !"
+fi
 
 function check_create_subjects_dir_properties()
 {

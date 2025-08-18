@@ -781,13 +781,9 @@ for hemi in lh rh ; do
       cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning -umask $(umask) $hiresflag $fsthreads"
       RunIt "$cmd" "$LF" "$CMDF"
     else
-      # instead of mris_sphere, directly project to sphere with spectral approach
-      # equivalent to -qsphere
-      # (23sec)
-      cmd="$python ${binpath}spherically_project_wrapper.py --hemi $hemi --sdir $sdir"
-      printf -v tmp %q "$python"
-      cmd="$cmd --subject $subject --threads=$threads_hemi --py ${tmp} --binpath ${binpath}"
-      RunIt "$cmd" "$LF" "$CMDF"
+      # instead of mris_sphere, directly project to sphere with spectral approach equivalent to -qsphere (23sec)
+      cmda=("${binpath}spherically_project_wrapper.py" --hemi "$hemi" --sdir "$sdir" --subject "$subject")
+      run_it_cmdf "$LF" "$CMDF" $python "${cmda[@]}" --threads "$threads_hemi"
     fi
 
   fi # not long
@@ -1369,7 +1365,7 @@ fi # not base run
 # Collect info
 EndTime=$(date)
 tSecEnd=$(date '+%s')
-tRunHours=$(LC_NUMERIC="en_US.UTF-8" printf %6.3f "$(bc -l <<< "($tSecEnd - $tSecStart) / 3600")")
+tRunHours=$(printf %6.3f "$(bc -l <<< "($tSecEnd - $tSecStart) / 3600")")
 
 {
   echo ""
