@@ -14,15 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
 import sys
-import argparse
 from functools import lru_cache
 from pathlib import Path
+from subprocess import STDOUT, run
 
 import nibabel as nib
-
-from FastSurferCNN.utils.run_tools import Popen
 
 VERSION = "1.0 2025-08-18 by kueglerd @ DZNE"
 
@@ -50,18 +49,6 @@ def validate_existing_subjects_dir(value: str) -> Path:
     if not path.is_dir():
         raise argparse.ArgumentTypeError(f"Path is not a directory: {value}")
     return path
-
-
-def validate_subject_id(value: str) -> str:
-    """Validate subject ID format"""
-    if not value or not value.strip():
-        raise argparse.ArgumentTypeError("Subject ID cannot be empty")
-    # Remove any potentially problematic characters for filesystem
-    cleaned = value.strip()
-    if "/" in cleaned or "\\" in cleaned:
-        raise argparse.ArgumentTypeError("Subject ID cannot contain path separators")
-    return cleaned
-
 
 def check_freesurfer(check_version: bool = True) -> None:
     """Check if FreeSurfer is properly installed and version is supported"""
@@ -92,7 +79,6 @@ def check_freesurfer(check_version: bool = True) -> None:
         else:
             raise FastSurferCompatError("Could not find/read FreeSurfer build-stamp file.")
 
-
 def softlink_or_copy(source: str | Path, target: str | Path) -> None:
     """Create soft link or copy file if linking fails"""
     source_path = Path(source)
@@ -118,7 +104,7 @@ def get_voxel_size(image_file: Path) -> float:
         img = nib.load(str(image_file))
         return float(img.header.get_zooms()[0])
     except Exception as e:
-        raise FastSurferCompatError(f"ERROR: Could not read voxel size from {image_file}: {e}")
+        raise FastSurferCompatError(f"Could not read voxel size from {image_file}: {e}") from e
 
 
 @lru_cache
@@ -190,7 +176,7 @@ def validate_inputs(subject_dir: Path):
     tpfile = subject_dir / "base-tps.fastsurfer"
     if not tpfile.exists():
         raise FastSurferCompatError(
-            f"{args.subject} is either not found in $SUBJECTS_DIR or it is not a longitudinal template directory "
+            f"{subject_dir.name} is either not found in $SUBJECTS_DIR or it is not a longitudinal template directory "
             f"(base), which needs to contain base-tps.fastsurfer file. Please ensure that the base (template) has been "
             f"created with long_prepare_template.sh."
         )
@@ -281,16 +267,18 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
             cmd.extend(["-threads", str(threads), "-itkthreads", str(threads)])
 
         print("Running: cortical ribbon creation")
-        Popen(cmd, env=env).forward_outputs(timeout=None)
+        completed = run(cmd, env=env, stdout=STDOUT, stderr=STDOUT)
+        if completed.returncode != 0:
+            raise FastSurferCompatError("Creating cortical ribbon failed!")
 
         # mapped aparcDKT to vol (1:30 min)
         segfile = mdir / "aparc.DKTatlas+aseg.mapped.mgz"
         wm_segfile = mdir / "wmparc.DKTatlas.mapped.mgz"
-        threads_flags = ("--threads", threads)
+        threads_flags = ("--threads", str(threads))
 
         def hemi_flags(hemi: str, offset: int) -> list:
             return [
-                f"--{hemi}-annot", ldir / f"{hemi}.aparc.DKTatlas.mapped.annot", offset,
+                f"--{hemi}-annot", ldir / f"{hemi}.aparc.DKTatlas.mapped.annot", str(offset),
                 f"--{hemi}-cortex-mask", ldir / f"{hemi}.cortex.label",
                 f"--{hemi}-white", sdir / f"{hemi}.white", f"--{hemi}-pial", sdir / f"{hemi}.pial",
             ]
@@ -301,7 +289,9 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         for hemi, offset in (("lh", 1000), ("rh", 2000)):
             cmd.extend(hemi_flags(hemi, offset))
 
-        Popen(list(map(str, cmd)), env=env).forward_outputs(timeout=None)
+        completed = run(list(map(str, cmd)), env=env, stdout=STDOUT, stderr=STDOUT)
+        if completed.returncode != 0:
+            raise FastSurferCompatError("Mapping aparcDKT failed!")
 
         # mapped wmparc (1:30 min)
         print("Mapping wmparc...")
@@ -310,7 +300,9 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         for hemi, offset in (("lh", 3000), ("rh", 4000)):
             cmd.extend(hemi_flags(hemi, offset))
 
-        Popen(list(map(str, cmd)), env=env).forward_outputs(timeout=None)
+        completed = run(list(map(str, cmd)), env=env, stdout=STDOUT, stderr=STDOUT)
+        if completed.returncode != 0:
+            raise FastSurferCompatError("Mapping wmparc failed!")
 
         # Create symbolic links
         print("Creating symbolic links...")
@@ -319,12 +311,12 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         softlink_or_copy(segfile.name, mdir / "aparc+aseg.mgz")
         softlink_or_copy("wmparc.DKTatlas.mapped.mgz", mdir / "wmparc.mgz")
 
-        softlink_or_copy(subjects_dir / "base-tps.fastsurfer", "base-tps")
+        softlink_or_copy(subject_dir / "base-tps.fastsurfer", "base-tps")
 
         print(f"Processing {subject} completed successfully!")
 
     except FastSurferCompatError as e:
-        print(str(e))
+        print(f"ERROR: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
         print("\nProcessing interrupted by user.")
