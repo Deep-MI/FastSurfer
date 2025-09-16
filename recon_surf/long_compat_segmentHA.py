@@ -19,7 +19,7 @@ import os
 import sys
 from functools import lru_cache
 from pathlib import Path
-from subprocess import STDOUT, run
+from subprocess import STDOUT, CompletedProcess
 
 import nibabel as nib
 
@@ -91,11 +91,11 @@ def softlink_or_copy(source: str | Path, target: str | Path) -> None:
         target_path.symlink_to(source_path)
     except OSError:
         # If symlink fails, copy the file
-        import shutil
+        from shutil import copy2
 
         if not target_path.is_absolute():
             target_path = (source.parent / target_path).resolve()
-        shutil.copy2(source_path, target_path)
+        copy2(source_path, target_path)
 
 
 def get_voxel_size(image_file: Path) -> float:
@@ -116,6 +116,22 @@ def get_supported_freesurfer_version() -> str:
             if line.lstrip().startswith("FS_VERSION_SUPPORT"):
                 return line.strip().removeprefix("FS_VERSION_SUPPORT").lstrip(" =").strip("\"")
     return "7.4.1"
+
+
+def run(command: list[str], *args, **kwargs) -> CompletedProcess:
+    """Run the FreeSurfer command `command`."""
+    from shutil import which
+    from subprocess import run as _run
+
+    executable, *arguments = command
+    # do we have executable in PATH?
+    if not (_executable := which(executable)):
+        # if not, do we have it in FREESURFER_HOME/bin ?
+        _executable = which(f"{os.environ['FREESURFER_HOME']}/bin/{executable}")
+    if _executable is None:
+        raise FastSurferCompatError(f"Could not find the FreeSurfer executable {executable}.")
+
+    return _run([_executable, *arguments], *args, **kwargs)
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -219,7 +235,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
 
         # Validate inputs
         subject_dir = subjects_dir / subject
-        validate_inputs(subject_dir)
+        validate_inputs(subjects_dir)
 
         # Set threading environment
         env = dict(os.environ)
@@ -235,7 +251,10 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
                 source = line.strip()
                 if source:
                     target = f"{source}.long.{subject}"
-                    softlink_or_copy(subjects_dir / source, target)
+                    if not (subjects_dir / source).exists():
+                        raise FastSurferCompatError(f"The longitudinal processing {source} could not be found!")
+
+                    softlink_or_copy(source, subjects_dir / target)
                     print(f"Created link: {source} -> {target}")
 
         # Setup variables
@@ -311,7 +330,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         softlink_or_copy(segfile.name, mdir / "aparc+aseg.mgz")
         softlink_or_copy("wmparc.DKTatlas.mapped.mgz", mdir / "wmparc.mgz")
 
-        softlink_or_copy(subject_dir / "base-tps.fastsurfer", "base-tps")
+        softlink_or_copy("base-tps.fastsurfer", subject_dir / "base-tps")
 
         print(f"Processing {subject} completed successfully!")
 
