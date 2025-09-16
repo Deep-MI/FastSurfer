@@ -1,0 +1,132 @@
+import numpy as np
+from scipy import ndimage
+from skimage.measure import label
+
+from CorpusCallosum.data.constants import *
+
+
+
+def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[float, float, float]) -> float:
+    """Calculate the volume of the corpus callosum in cubic millimeters.
+    
+    This function calculates the volume of the corpus callosum (CC) in cubic millimeters.
+    If the CC width is larger than desired_width_mm, the voxels on the edges are calculated as
+    partial volumes to achieve the desired width.
+    
+    Args:
+        desired_width_mm (int): Desired width of the CC in millimeters
+        cc_mask (np.ndarray): Binary mask of the corpus callosum
+        voxel_size (tuple[float, float, float]): Voxel size in millimeters (x, y, z)
+        
+    Returns:
+        float: Volume of the CC in cubic millimeters
+        
+    Raises:
+        ValueError: If CC width is smaller than desired width
+        AssertionError: If CC mask doesn't have odd number of voxels in x dimension
+    """
+    assert cc_mask.shape[0] % 2 == 1, "CC mask must have odd number of voxels in x dimension"
+
+
+    # Calculate voxel volume
+    voxel_volume = np.prod(voxel_size)
+
+    # Get width of CC mask in voxels by finding the extent in x dimension
+    width_vox = np.sum(np.any(cc_mask, axis=(1,2)))
+
+    # we are in LIA, so 0 is L/R resolution
+    width_mm = width_vox * voxel_size[0]
+
+    if width_mm == desired_width_mm:
+        return np.sum(cc_mask) * voxel_volume
+    elif width_mm > desired_width_mm:
+        # remainder on the left/right side of the CC mask
+        desired_width_vox = desired_width_mm / voxel_size[0]
+        fraction_of_voxel_at_edge = (desired_width_vox % 1) / 2
+
+        if fraction_of_voxel_at_edge > 0:
+            desired_width_vox = int(np.floor(desired_width_vox) + 1)
+            desired_width_vox = desired_width_vox + 1 if desired_width_vox % 2 == 0 else desired_width_vox
+
+            assert cc_mask.shape[0] == desired_width_vox, f"CC mask should have {desired_width_vox} voxels, but has {cc_mask.shape[0]}"
+
+
+
+        left_partial_volume = np.sum(cc_mask[0]) * voxel_volume * fraction_of_voxel_at_edge
+        right_partial_volume = np.sum(cc_mask[-1]) * voxel_volume * fraction_of_voxel_at_edge
+        center_volume = np.sum(cc_mask[1:-1]) * voxel_volume
+        return left_partial_volume + right_partial_volume + center_volume
+    else:
+        raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
+
+
+
+def get_largest_cc(seg_arr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Get largest connected component from a binary segmentation array.
+    
+    This function takes a binary segmentation array, dilates it, finds connected components,
+    and returns the largest component (excluding background) along with its mask.
+    
+    Args:
+        seg_arr (np.ndarray): Input binary segmentation array
+        
+    Returns:
+        tuple: A tuple containing:
+            - clean_seg (np.ndarray): Segmentation array with only the largest connected component
+            - largest_cc (np.ndarray): Binary mask of the largest connected component
+    """
+    # generate dilatation structure
+    struct1 = ndimage.generate_binary_structure(3, 3)
+    # Dilate prediction
+    mask = ndimage.binary_dilation(seg_arr, structure=struct1, iterations=1, ).astype(np.uint8)
+    # Get connected components
+    labels_cc = label(mask, connectivity=3, background=0)
+    # Get componnets count
+    bincount = np.bincount(labels_cc.flat)
+    # Get background label, assumption that background is the biggest connected component
+    background = np.argmax(bincount)
+    bincount[background] = -1
+    # Get largest connected component
+    largest_cc = labels_cc == np.argmax(bincount)
+    # Apply mask
+    clean_seg = seg_arr * largest_cc
+
+    return clean_seg,largest_cc
+
+def clean_cc_segmentation(seg_arr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Clean corpus callosum segmentation by removing non-connected components.
+    
+    This function processes a segmentation array to clean up the corpus callosum (CC)
+    by removing non-connected components. It first isolates the CC (label 192),
+    removes non-connected components, then adds the fornix (label 250), and
+    finally removes non-connected components from the combined CC and fornix.
+    
+    Args:
+        seg_arr (np.ndarray): Input segmentation array with CC (192) and fornix (250) labels
+        
+    Returns:
+        tuple: A tuple containing:
+            - clean_seg (np.ndarray): Cleaned segmentation array with only the largest 
+              connected component of CC and fornix
+            - mask (np.ndarray): Binary mask of the largest connected component
+    """
+    #Remove non connected components from the CC alone
+    clean_seg = np.zeros_like(seg_arr)
+    clean_seg[seg_arr == CC_LABEL] = CC_LABEL
+    clean_seg,_ = get_largest_cc(clean_seg)
+
+    #Add fornix to the CC labels
+    clean_seg[seg_arr == FORNIX_LABEL] = FORNIX_LABEL
+
+    #Remove non connected components from CC & Fornix
+    clean_seg, mask = get_largest_cc(clean_seg)
+
+    unique_labels = np.unique(clean_seg)
+
+    if 250 not in unique_labels:
+        clean_seg[seg_arr == 250] = 250
+        mask [seg_arr == 250] = True
+    if 192 not in unique_labels:
+        clean_seg[seg_arr == 192] = 192
+        mask[seg_arr == 192] = True
+    return clean_seg, mask

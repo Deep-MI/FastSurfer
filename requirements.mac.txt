@@ -16,4 +16,8 @@ torchio>=0.18.83
 torchvision>=0.15.2
 tqdm>=4.65
 yacs>=0.1.8
-
+monai>=1.4.0
+meshpy>=2025.1.1
+pyrr>=0.10.3
+whippersnappy>=1.3.1
+pip>=25.0
