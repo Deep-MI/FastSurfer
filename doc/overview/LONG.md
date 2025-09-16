@@ -79,7 +79,7 @@ docker run --gpus all --rm --user  $(id -u):$(id -g) \
 
 For speed-up you can also add ```--parallel_surf max --threads_surf 2``` to run all hemispheres of all time points for the surface module in parallel (if you have enough CPU threads and RAM). Also, sometimes the FreeSurfer license is not called `license.txt` but `.license` (from older FreeSurfer versions). 
 
-Note, FastSurfer does not like if you pass images with different voxel sizes across time. That should never happen anyway in a longitudinal study, as you would never even think of changing your acquisition sequences, right? That would introduce potential bias due to consistent changes in the way that time points are aquired. If you want to process that kind of data, conform images first (e.g. with ```mri_convert --conform```) and beware that you may introduce biases here (maybe account for the acquisition change with a time varying co-variate in your LME statistical model later).  
+Note, FastSurfer does not like if you pass images with different voxel sizes across time. That should never happen anyway in a longitudinal study, as you would never even think of changing your acquisition sequences, right? That would introduce potential bias due to consistent changes in the way that time points are acquired. If you want to process that kind of data, conform images first (e.g. with ```mri_convert --conform```) and beware that you may introduce biases here (maybe account for the acquisition change with a time varying co-variate in your LME statistical model later).  
 
 ## Single Time Point Cases
 
