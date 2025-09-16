@@ -341,7 +341,7 @@ if [[ "$parallel" == "1" ]] ; then
   log "======================================="
   tee -a "$LF" < "$base_surf_cmdf_log"
   if [ "$success1" -ne 0 ] ; then
-    log "Persone-Template Surface pipeline terminated with error: $success1"
+    log "Person-Template Surface pipeline terminated with error: $success1"
     what_failed+=("Person-Template Surface Pipeline")
   else
     log "Person-Template Surface pipeline finished successfully!"
