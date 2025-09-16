@@ -438,12 +438,29 @@
 <span class="w">                 </span>/fastsurfer/long_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--tid<span class="w"> </span>&lt;templateID&gt;<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--t1s<span class="w"> </span>&lt;T1_1&gt;<span class="w"> </span>&lt;T1_2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--t1s<span class="w"> </span>/data/&lt;T1_1&gt;<span class="w"> </span>/data/&lt;T1_2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--tpids<span class="w"> </span>&lt;tID1&gt;<span class="w"> </span>&lt;tID2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--3T
 </pre></div>
 </div>
+<p>For Docker this is very similar, but we need to specify the entrypoint explicitly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span>--user<span class="w">  </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--entrypoint<span class="w"> </span><span class="s2">&quot;/fastsurfer/long_fastsurfer.sh&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--tid<span class="w"> </span>&lt;templateID&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--t1s<span class="w"> </span>/data/&lt;T1_1&gt;<span class="w"> </span>/data/&lt;T1_2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--tpids<span class="w"> </span>&lt;tID1&gt;<span class="w"> </span>&lt;tID2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--3T
+</pre></div>
+</div>
+<p>For speed-up you can also add <code class="docutils literal notranslate"><span class="pre">--parallel_surf</span> <span class="pre">max</span> <span class="pre">--threads_surf</span> <span class="pre">2</span></code> to run all hemispheres of all time points for the surface module in parallel (if you have enough CPU threads and RAM). Also, sometimes the FreeSurfer license is not called <code class="docutils literal notranslate"><span class="pre">license.txt</span></code> but <code class="docutils literal notranslate"><span class="pre">.license</span></code> (from older FreeSurfer versions).</p>
+<p>Note, FastSurfer does not like if you pass images with different voxel sizes across time. That should never happen anyway in a longitudinal study, as you would never even think of changing your acquisition sequences, right? That would introduce potential bias due to consistent changes in the way that time points are acquired. If you want to process that kind of data, conform images first (e.g. with <code class="docutils literal notranslate"><span class="pre">mri_convert</span> <span class="pre">--conform</span></code>) and beware that you may introduce biases here (maybe account for the acquisition change with a time varying co-variate in your LME statistical model later).</p>
 </section>
 <section id="single-time-point-cases">
 <h2>Single Time Point Cases<a class="headerlink" href="#single-time-point-cases" title="Link to this heading">¶</a></h2>
