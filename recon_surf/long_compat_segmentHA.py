@@ -26,9 +26,11 @@ from FastSurferCNN.utils.run_tools import Popen
 
 VERSION = "1.0 2025-08-18 by kueglerd @ DZNE"
 
+
 class FastSurferCompatError(Exception):
     """Custom exception for FastSurfer compatibility issues"""
     pass
+
 
 def validate_existing_file(value: str) -> Path:
     """Validate that the input is an existing file path"""
@@ -39,6 +41,7 @@ def validate_existing_file(value: str) -> Path:
         raise argparse.ArgumentTypeError(f"Path is not a file: {value}")
     return path
 
+
 def validate_existing_subjects_dir(value: str) -> Path:
     """Validate that the input is an existing directory path"""
     path = Path(value)
@@ -47,6 +50,7 @@ def validate_existing_subjects_dir(value: str) -> Path:
     if not path.is_dir():
         raise argparse.ArgumentTypeError(f"Path is not a directory: {value}")
     return path
+
 
 def validate_subject_id(value: str) -> str:
     """Validate subject ID format"""
@@ -57,6 +61,7 @@ def validate_subject_id(value: str) -> str:
     if "/" in cleaned or "\\" in cleaned:
         raise argparse.ArgumentTypeError("Subject ID cannot contain path separators")
     return cleaned
+
 
 def check_freesurfer(check_version: bool = True) -> None:
     """Check if FreeSurfer is properly installed and version is supported"""
@@ -85,7 +90,8 @@ def check_freesurfer(check_version: bool = True) -> None:
                     f"  source $FREESURFER_HOME/SetUpFreeSurfer.sh"
                 )
         else:
-            FastSurferCompatError("Could not find/read FreeSurfer build-stamp file.")
+            raise FastSurferCompatError("Could not find/read FreeSurfer build-stamp file.")
+
 
 def softlink_or_copy(source: str | Path, target: str | Path) -> None:
     """Create soft link or copy file if linking fails"""
@@ -105,6 +111,7 @@ def softlink_or_copy(source: str | Path, target: str | Path) -> None:
             target_path = (source.parent / target_path).resolve()
         shutil.copy2(source_path, target_path)
 
+
 def get_voxel_size(image_file: Path) -> float:
     """Get voxel size from aseg file using nibabel."""
     try:
@@ -112,6 +119,7 @@ def get_voxel_size(image_file: Path) -> float:
         return float(img.header.get_zooms()[0])
     except Exception as e:
         raise FastSurferCompatError(f"ERROR: Could not read voxel size from {image_file}: {e}")
+
 
 @lru_cache
 def get_supported_freesurfer_version() -> str:
@@ -122,6 +130,7 @@ def get_supported_freesurfer_version() -> str:
             if line.lstrip().startswith("FS_VERSION_SUPPORT"):
                 return line.strip().removeprefix("FS_VERSION_SUPPORT").lstrip(" =").strip("\"")
     return "7.4.1"
+
 
 def make_parser() -> argparse.ArgumentParser:
     """Parse command line arguments"""
@@ -136,13 +145,12 @@ def make_parser() -> argparse.ArgumentParser:
 
                If you use this for research publications, please cite:
 
-               Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
-                fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
-                (2020), 117012. https://doi.org/10.1016/j.neuroimage.2020.117012
+               Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep 
+                learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. 
+                https://doi.org/10.1016/j.neuroimage.2020.117012
 
-               Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
-                Resolution-Independence into Deep Learning Segmentation Methods - A Solution
-                for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
+               Henschel L, Kuegler D (co-first), Reuter M.. FastSurferVINN: Building Resolution-Independence into 
+                Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
                 http://dx.doi.org/10.1016/j.neuroimage.2022.118933
                """
     )
@@ -151,7 +159,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sid", "--tid", dest="subject", required=True, metavar="subject id",
                         help="Template to create directory inside $SUBJECTS_DIR.")
     parser.add_argument("--sd", dest="subjects_dir", type=validate_existing_subjects_dir,
-                        default=Path(os.environ.get("SUBJECTS_DIR", "/")), required=not os.environ.get("SUBJECTS_DIR"),
+                        default=Path(os.environ.get("SUBJECTS_DIR", "/")), required="SUBJECTS_DIR" not in os.environ,
                         help=f"Output directory, default: SUBJECTS_DIR env var ({os.environ.get('SUBJECTS_DIR', '')}).")
 
     # Optional arguments
@@ -167,6 +175,7 @@ def make_parser() -> argparse.ArgumentParser:
                              f"if FreeSurfer {get_supported_freesurfer_version()} is not sourced.")
 
     return parser
+
 
 def validate_inputs(subject_dir: Path):
     """Validate all input arguments and environment"""
@@ -184,13 +193,6 @@ def validate_inputs(subject_dir: Path):
             f"{args.subject} is either not found in $SUBJECTS_DIR or it is not a longitudinal template directory "
             f"(base), which needs to contain base-tps.fastsurfer file. Please ensure that the base (template) has been "
             f"created with long_prepare_template.sh."
-        )
-
-    # Check for aseg.mgz
-    aseg_file = subject_dir / "mri" / "aseg.mgz"
-    if not aseg_file.exists():
-        raise FastSurferCompatError(
-            f"aseg segmentation ({aseg_file}) could not be found! Segmentation must exist at location."
         )
 
     # Check if already processed
@@ -255,19 +257,15 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         ldir = subject_dir / "label"
         sdir = subject_dir / "surf"
         aseg_segfile = mdir / "aseg.mgz"
+        in_segfile = mdir / "aparc.DKTatlas+aseg.deep.mgz"
 
         # Get voxel size and determine hires flag
-        vox_size = get_voxel_size(aseg_segfile)
+        vox_size = get_voxel_size(in_segfile)
         hires_voxsize_threshold = 0.999
 
-        if vox_size < hires_voxsize_threshold:
-            print(f"The voxel size {vox_size} is less than {hires_voxsize_threshold}, "
-                  f"so we are proceeding with hires options.")
-            hiresflag = "-hires"
-        else:
-            print(f"The voxel size {vox_size} is not less than {hires_voxsize_threshold}, "
-                  f"so we are proceeding with standard options.")
-            hiresflag = ""
+        hires = vox_size < hires_voxsize_threshold
+        print(f"The voxel size {vox_size} is {'not ' if hires else ''}less than {hires_voxsize_threshold}, so we are "
+              f"proceeding with {'hires' if hires else 'standard'} options.")
 
         # CREATE cortical ribbon (approx 5mins)
         # CREATE ASEG
@@ -277,8 +275,8 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         print("Creating cortical ribbon...")
         os.umask(_umask := os.umask(0o22))
         cmd = ["recon-all", "-subject", subject, "-cortribbon", "-hyporelabel", "-apas2aseg", "-umask", f"{_umask:o}"]
-        if hiresflag:
-            cmd.append(hiresflag)
+        if hires:
+            cmd.append("-hires")
         if threads > 1:
             cmd.extend(["-threads", str(threads), "-itkthreads", str(threads)])
 
@@ -333,7 +331,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         sys.exit(130)
     except Exception as e:
         from traceback import print_exception
-        print(f"Unexpected error:")
+        print("Unexpected error:")
         print_exception(e)
         sys.exit(1)
 
