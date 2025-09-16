@@ -20,14 +20,14 @@
 #
 #  FastSurfer Longitudinal Processing
 # 
-#  1. Prepare base inputs (time point co-registration etc)
-#  2. Run Base Segmentation (aparcDKT only)
-#  3. Run Base Surface creation (skip some steps there using -base flag)
+#  1. Prepare longitudinal Subject-Template (time point co-registration etc)
+#  2. Run Subject-Template Segmentation (aparcDKT only)
+#  3. Run Subject-Template Surface creation (skip some steps there using -base flag)
 #  4. Run Long Segmentation (can be in parallel with 2 and 3 above)
 #  5. Run Long Surface creation (depends on all previous steps)
 #
 #  Note, that of course 2 and 3, as well as 4 and 5 can be run in a single run_fastsurfer call.
-#  Also note, that 4 (long seg) can be run in parallel to the base runs (2 and 3).
+#  Also note, that 4 (long seg) can be run in parallel to the template runs (2 and 3).
 #
 ###################################################################################################
 
@@ -67,13 +67,13 @@ cat << EOF
 Usage: long_fastsurfer.sh --tid <tid> --t1s <T1_1> <T1_2> .. --tpids <tID1> <tID2> .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
-     (i)   a template subject directory 
+     (i)   a template directory for the specific person
      (ii)  directories for each processed time point in template space,
            here you find the final longitudinal results
 
 FLAGS:
 
-  --tid <templateID>        ID for subject template/base directory inside
+  --tid <templateID>        ID for person-specific template directory inside
                               \$SUBJECTS_DIR to be created"
   --t1s <T1_1> <T1_2> ..    T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
@@ -86,7 +86,7 @@ FLAGS:
   -h --help                 Print Help
 
 Parallelization options:
-  All of the following options will activate parallel processing of the base and the longitudinal time-point images
+  All of the following options will activate parallel processing of the template and the longitudinal time-point images
   where possible. Additionally, the number of different processes for segmentation and surface reconstructionis set.
   --parallel <n>|max        See above, sets the size of the processing pool for segmentation and surface reconstruction
   --parallel_seg <n>|max    See above, only sets the size of the processing pool for segmentation (default: 1)
@@ -211,7 +211,7 @@ fi
 
 if [ -z "$tid" ]
  then
-  echo "ERROR: Must supply subject template name via --tid <template id>!"
+  echo "ERROR: Must supply person-specific template name via --tid <template id>!"
   exit 1
 fi
 
@@ -244,9 +244,9 @@ set +eo > /dev/null
 log "Logging outputs of $THIS_SCRIPT to $LF"
 log "======================================="
 
-################################### Prepare Base ##################################
+################################### Prepare Person-Template ##################################
 
-log "Base Setup $tid"
+log "Person-Template Setup $tid"
 cmda=("$reconsurfdir/long_prepare_template.sh"
      --tid "$tid" --t1s "${t1s[@]}" --tpids "${tpids[@]}"
      --py "$python"
@@ -254,9 +254,9 @@ cmda=("$reconsurfdir/long_prepare_template.sh"
 # run_it will exit the bash script if the command fails (with exit code 1)
 run_it "$LF" "${cmda[@]}"
 
-################################### Run Base Seg ##################################
+################################### Run Person-Template Seg ##################################
 
-log "Base Segmentation $tid"
+log "Person-Template Segmentation $tid"
 cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
         --sid "$tid" --sd "$sd" --base
         --seg_only --py "$python"
@@ -264,9 +264,9 @@ cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
 # run_it will exit the bash script if the command fails (with exit code 1)
 run_it "$LF" "${cmda[@]}"
 
-################################### Run Base Surf #################################
+################################### Run Person-Template Surf #################################
 
-log "Base Surface reconstruction $tid"
+log "Person-Template Surface Reconstruction $tid"
 cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
         --sid "$tid" --sd "$sd"
         --surf_only --base --py "$python"
@@ -275,12 +275,12 @@ if [[ "$parallel" == "1" ]] ; then
   base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
   base_surf_cmdf_log="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf.log"
   {
-    echo "Log file of base surface pipeline"
+    echo "Log file of person-template surface pipeline"
     date
   } > "$base_surf_cmdf_log"
   echo "#/bin/bash" > "$base_surf_cmdf"
   run_it_cmdf "$LF" "$base_surf_cmdf" "${cmda[@]}"
-  log "Starting base surface reconstruction, logs temporarily diverted to $base_surf_cmdf_log..."
+  log "Starting person-template surface reconstruction, logs temporarily diverted to $base_surf_cmdf_log..."
   log "Output from this process will be delayed to when it has finished."
   log "======================================="
   bash "$base_surf_cmdf" >> "$base_surf_cmdf_log" 2>&1 &
@@ -330,21 +330,21 @@ fi
 cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --surf_only --long "$tid"
       "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
 if [[ "$parallel" == "1" ]] ; then
-  # Append the base surface and longitudinal segmentation logs, exit if either failed
+  # Append the template surface and longitudinal segmentation logs, exit if either failed
   what_failed=()
   log "======================================="
-  log "Waiting for base surface reconstruction and longitudinal segmentations to finish... (this may take 30+ minutes)"
+  log "Waiting for person-template surface reconstruction and longitudinal segmentations to finish... (this may take 30+ minutes)"
   wait "$base_surf_pid"
   success1=$?
   log "done."
-  log "Base Surface pipeline Log:"
+  log "Person-Template Surface pipeline Log:"
   log "======================================="
   tee -a "$LF" < "$base_surf_cmdf_log"
   if [ "$success1" -ne 0 ] ; then
-    log "Base Surface pipeline terminated with error: $success1"
-    what_failed+=("Base Surface Pipeline")
+    log "Persone-Template Surface pipeline terminated with error: $success1"
+    what_failed+=("Person-Template Surface Pipeline")
   else
-    log "Base Surface pipeline finished successfully!"
+    log "Person-Template Surface pipeline finished successfully!"
     rm "$base_surf_cmdf_log" # the content of this file is transferred to LF
   fi
   log "======================================="
