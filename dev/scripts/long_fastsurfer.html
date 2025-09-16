@@ -402,13 +402,13 @@ Change via environment to location of your choice if this is undesired (export F
 Usage: long_fastsurfer.sh --tid &lt;tid&gt; --t1s &lt;T1_1&gt; &lt;T1_2&gt; .. --tpids &lt;tID1&gt; &lt;tID2&gt; .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
-     (i)   a template subject directory 
+     (i)   a template directory for the specific person
      (ii)  directories for each processed time point in template space,
            here you find the final longitudinal results
 
 FLAGS:
 
-  --tid &lt;templateID&gt;        ID for subject template/base directory inside
+  --tid &lt;templateID&gt;        ID for person-specific template directory inside
                               $SUBJECTS_DIR to be created&quot;
   --t1s &lt;T1_1&gt; &lt;T1_2&gt; ..    T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
@@ -421,7 +421,7 @@ FLAGS:
   -h --help                 Print Help
 
 Parallelization options:
-  All of the following options will activate parallel processing of the base and the longitudinal time-point images
+  All of the following options will activate parallel processing of the template and the longitudinal time-point images
   where possible. Additionally, the number of different processes for segmentation and surface reconstructionis set.
   --parallel &lt;n&gt;|max        See above, sets the size of the processing pool for segmentation and surface reconstruction
   --parallel_seg &lt;n&gt;|max    See above, only sets the size of the processing pool for segmentation (default: 1)
