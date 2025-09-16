@@ -20,9 +20,9 @@
 #
 #  FastSurfer Longitudinal Processing
 # 
-#  1. Prepare longitudinal Subject-Template (time point co-registration etc)
-#  2. Run Subject-Template Segmentation (aparcDKT only)
-#  3. Run Subject-Template Surface creation (skip some steps there using -base flag)
+#  1. Prepare longitudinal Person-specific Template (time point co-registration etc)
+#  2. Run Person-Template Segmentation (aparcDKT only)
+#  3. Run Person-Template Surface creation (skip some steps there using -base flag)
 #  4. Run Long Segmentation (can be in parallel with 2 and 3 above)
 #  5. Run Long Surface creation (depends on all previous steps)
 #
