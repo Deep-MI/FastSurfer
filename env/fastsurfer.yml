@@ -29,3 +29,6 @@ dependencies:
   - torch==2.6.0+cu126
   - torchio==0.20.4
   - torchvision==0.21.0+cu126
+  - meshpy>=2025.1.1
+  - pyrr>=0.10.3
+  - whippersnappy>=1.3.1
