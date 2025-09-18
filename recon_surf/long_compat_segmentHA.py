@@ -19,7 +19,7 @@ import os
 import sys
 from functools import lru_cache
 from pathlib import Path
-from subprocess import STDOUT, CompletedProcess
+from subprocess import CompletedProcess
 
 import nibabel as nib
 
