@@ -136,13 +136,19 @@ def run(command: list[str], *args, **kwargs) -> CompletedProcess:
 
 def make_parser() -> argparse.ArgumentParser:
     """Parse command line arguments"""
-    from FastSurferCNN.utils.arg_types import int_gt_zero
+    from textwrap import dedent
+
+    def int_gt_zero(value: str | int) -> int:
+        val = int(value)
+        if val <= 0:
+            raise ValueError("Invalid value, must not be negative.")
+        return val
 
     parser = argparse.ArgumentParser(
         description="long_compat_segmentHA.py takes a longitudinally processed subject and creates files "
                     "missing for other longitudinal processing like the hippocampal subfields stream of FreeSurfer.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        epilog=dedent("""
                REFERENCES:
 
                If you use this for research publications, please cite:
@@ -154,7 +160,7 @@ def make_parser() -> argparse.ArgumentParser:
                Henschel L, Kuegler D (co-first), Reuter M.. FastSurferVINN: Building Resolution-Independence into 
                 Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
                 http://dx.doi.org/10.1016/j.neuroimage.2022.118933
-               """
+               """)
     )
 
     # Required arguments
@@ -235,13 +241,16 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
 
         # Validate inputs
         subject_dir = subjects_dir / subject
-        validate_inputs(subjects_dir)
+        validate_inputs(subject_dir)
 
         # Set threading environment
         env = dict(os.environ)
         env["OMP_NUM_THREADS"] = str(threads)
         env["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = str(threads)
         env["FS_LICENSE"] = str(fs_license)
+        env["SUBJECTS_DIR"] = str(subjects_dir)
+        if env["FREESURFER_HOME"] not in env["PATH"]:
+            env["PATH"] = env["FREESURFER_HOME"] + "/bin:" + env["PATH"]
 
         # Create FreeSurfer-compatible timepoint symlinks
         tpfile = subject_dir / "base-tps.fastsurfer"
@@ -269,7 +278,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         hires_voxsize_threshold = 0.999
 
         hires = vox_size < hires_voxsize_threshold
-        print(f"The voxel size {vox_size} is {'not ' if hires else ''}less than {hires_voxsize_threshold}, so we are "
+        print(f"The voxel size {vox_size} is {'' if hires else 'not '}less than {hires_voxsize_threshold}, so we are "
               f"proceeding with {'hires' if hires else 'standard'} options.")
 
         # CREATE cortical ribbon (approx 5mins)
@@ -286,7 +295,8 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
             cmd.extend(["-threads", str(threads), "-itkthreads", str(threads)])
 
         print("Running: cortical ribbon creation")
-        completed = run(cmd, env=env, stdout=STDOUT, stderr=STDOUT)
+
+        completed = run(cmd, env=env)
         if completed.returncode != 0:
             raise FastSurferCompatError("Creating cortical ribbon failed!")
 
@@ -308,7 +318,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         for hemi, offset in (("lh", 1000), ("rh", 2000)):
             cmd.extend(hemi_flags(hemi, offset))
 
-        completed = run(list(map(str, cmd)), env=env, stdout=STDOUT, stderr=STDOUT)
+        completed = run(list(map(str, cmd)), env=env)
         if completed.returncode != 0:
             raise FastSurferCompatError("Mapping aparcDKT failed!")
 
@@ -319,7 +329,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         for hemi, offset in (("lh", 3000), ("rh", 4000)):
             cmd.extend(hemi_flags(hemi, offset))
 
-        completed = run(list(map(str, cmd)), env=env, stdout=STDOUT, stderr=STDOUT)
+        completed = run(list(map(str, cmd)), env=env)
         if completed.returncode != 0:
             raise FastSurferCompatError("Mapping wmparc failed!")
 
