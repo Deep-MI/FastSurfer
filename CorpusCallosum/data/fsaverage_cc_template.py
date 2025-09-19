@@ -1,10 +1,11 @@
-import nibabel as nib
-import matplotlib.pyplot as plt
-from shape.cc_postprocessing import process_slice
-from pathlib import Path
 import os
-from scipy import ndimage
+from pathlib import Path
+
+import nibabel as nib
 import numpy as np
+from scipy import ndimage
+from shape.cc_postprocessing import process_slice
+
 
 def smooth_contour(contour, window_size=5):
         """
@@ -50,7 +51,9 @@ def load_fsaverage_cc_template():
     freesurfer_home = Path(os.environ['FREESURFER_HOME'])
 
     if not freesurfer_home.exists():
-        raise EnvironmentError(f"FREESURFER_HOME environment variable is not set correctly or does not exist: {freesurfer_home}, either provide your own template or set the FREESURFER_HOME environment variable")
+        raise OSError(f"FREESURFER_HOME environment variable is not set correctly or does not exist: "
+                      f"{freesurfer_home}, either provide your own template or set the "
+                      f"FREESURFER_HOME environment variable")
 
     fsaverage_seg_path = freesurfer_home / 'subjects' / 'fsaverage' / 'mri' / 'aparc+aseg.mgz'
     fsaverage_seg = nib.load(fsaverage_seg_path)
@@ -84,7 +87,16 @@ def load_fsaverage_cc_template():
     cc_mask = cc_mask_smoothed.astype(int)
     cc_mask[cc_mask > 0] = 192
 
-    output_dict, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx = process_slice(cc_mask[None], 0, AC, PC, fsaverage_seg.affine, 100, [1/6, 1/2, 2/3, 3/4], "shape", 1.0, verbose=False)
+    (_, contour_with_thickness, anterior_endpoint_idx, 
+     posterior_endpoint_idx) = process_slice(segmentation=cc_mask[None], 
+                                             slice_idx=0, 
+                                             ac_coords=AC, 
+                                             pc_coords=PC, 
+                                             affine=fsaverage_seg.affine, 
+                                             num_thickness_points=100, 
+                                             subdivisions=[1/6, 1/2, 2/3, 3/4], 
+                                             subdivision_method="shape", 
+                                             contour_smoothing=1.0)
     outside_contour = contour_with_thickness[0].T
 
 

@@ -22,18 +22,18 @@ def main():
     try:
         fs_home = Path(os.environ['FREESURFER_HOME'])
         if not fs_home.exists():
-            raise EnvironmentError(f"FREESURFER_HOME environment variable is not set correctly or does not exist: {fs_home}")
+            raise OSError(f"FREESURFER_HOME environment variable is not set correctly or does not exist: {fs_home}")
         
         fsaverage_path = fs_home / 'subjects' / 'fsaverage'
         if not fsaverage_path.exists():
-            raise EnvironmentError(f"fsaverage path does not exist: {fsaverage_path}")
+            raise OSError(f"fsaverage path does not exist: {fsaverage_path}")
         
         fsaverage_aseg_path = fsaverage_path / 'mri' / 'aseg.mgz'
         if not fsaverage_aseg_path.exists():
             raise FileNotFoundError(f"fsaverage aseg file does not exist: {fsaverage_aseg_path}")
             
-    except KeyError:
-        raise EnvironmentError("FREESURFER_HOME environment variable is not set")
+    except KeyError as err:
+        raise OSError("FREESURFER_HOME environment variable is not set") from err
     
     print(f"Loading fsaverage segmentation from: {fsaverage_aseg_path}")
     
@@ -102,20 +102,20 @@ def main():
     # Print some statistics
     label_ids = list(centroids_dst.keys())
     print(f"Label IDs range: {min(label_ids)} to {max(label_ids)}")
-    print(f"Sample centroids:")
+    print("Sample centroids:")
     for label_id in sorted(label_ids)[:5]:
         centroid = centroids_dst[label_id]
         print(f"  Label {label_id}: [{centroid[0]:.2f}, {centroid[1]:.2f}, {centroid[2]:.2f}]")
     
-    print(f"Fsaverage affine matrix:")
+    print("Fsaverage affine matrix:")
     print(fsaverage_affine)
     
-    print(f"Fsaverage header fields:")
+    print("Fsaverage header fields:")
     print(f"  dims: {dims}")
     print(f"  delta: {delta}")
     print(f"  Mdc shape: {Mdc.shape}")
     print(f"  Pxyz_c: {Pxyz_c}")
-    print(f"Combined data structure created successfully")
+    print("Combined data structure created successfully")
 
 
 if __name__ == "__main__":

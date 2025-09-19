@@ -7,7 +7,8 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
     Crop around AC and PC
     """
     
-    def __init__(self, keys, allow_missing_keys: bool = False, padding_mm: float = 10, random_translate: float = 0) -> None:
+    def __init__(self, keys, allow_missing_keys: bool = False, padding_mm: float = 10, 
+                 random_translate: float = 0) -> None:
         MapTransform.__init__(self, keys, allow_missing_keys)
         RandomizableTransform.__init__(self, prob=1, do_transform=True)
         self.padding_mm = padding_mm
@@ -36,8 +37,10 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
             
             # 'PC_center': array([  2., 139., 143.], dtype=float32), 'AC_center': array([  2., 128., 168.]
             
-            ac_pc_bottomleft = (np.min([ac_center[1], pc_center[1]]).astype(int), np.min([ac_center[2], pc_center[2]]).astype(int))
-            ac_pc_topright = (np.max([ac_center[1], pc_center[1]]).astype(int), np.max([ac_center[2], pc_center[2]]).astype(int))
+            ac_pc_bottomleft = (np.min([ac_center[1], pc_center[1]]).astype(int), 
+                                np.min([ac_center[2], pc_center[2]]).astype(int))
+            ac_pc_topright = (np.max([ac_center[1], pc_center[1]]).astype(int), 
+                              np.max([ac_center[2], pc_center[2]]).astype(int))
 
 
             voxel_padding = round(self.padding_mm / d['res'])
@@ -85,21 +88,3 @@ class CropAroundACPCtrack(CropAroundACPC):
 
         return d
     
-    
-
-class UncropAroundACPC(MapTransform):
-    """
-    Uncrop around AC and PC - reverses CropAroundACPC transform by padding back to original size
-    """
-    
-    def __init__(self, keys, allow_missing_keys: bool = False, padding_mm: float = 10) -> None:
-        super().__init__(keys, allow_missing_keys)
-        self.padding_mm = padding_mm
-
-    def __call__(self, data):    
-        pad_left, pad_right, pad_top, pad_bottom = d['to_pad']
-    
-        # Pad back to original size
-        d[key] = np.pad(d[key], ((0,0), (0,0), (pad_left.item(), pad_right.item()), (pad_top.item(), pad_bottom.item())), mode='constant', constant_values=0)
-
-        return d

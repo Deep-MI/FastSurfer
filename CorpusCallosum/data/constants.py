@@ -18,5 +18,6 @@ STANDARD_OUTPUT_PATHS = {
     "orient_volume_lta": "transforms/orient_volume.lta",
     "orig_space_segmentation": "mri/segmentation_orig_space.mgz",
     "debug_image": "stats/cc_postprocessing.png",
-    #"qc_view": "stats/qc_view.png"   
+    "qc_view": "qc-snapshots/corpus_callosum.png",
+    "qc_view3d": "qc-snapshots/corpus_callosum_thickness.png"
 }

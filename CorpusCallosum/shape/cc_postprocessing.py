@@ -1,10 +1,14 @@
 from pathlib import Path
 
-import nibabel as nib
 import numpy as np
 
 from shape.cc_thickness import convert_to_ras, cc_thickness
-from shape.cc_subsegment_contour import subdivide_contour, transform_to_acpc_standard, subsegment_midline_orthogonal, hampel_subdivide_contour
+from shape.cc_subsegment_contour import (
+    subdivide_contour,
+    transform_to_acpc_standard,
+    subsegment_midline_orthogonal,
+    hampel_subdivide_contour,
+)
 from shape.cc_endpoint_heuristic import get_endpoints
 from shape.cc_metrics import calculate_cc_index
 from shape.cc_subsegment_contour import get_primary_eigenvector
@@ -21,7 +25,8 @@ LIA_ORIENTATION[1,2] = 1
 LIA_ORIENTATION[2,1] = -1
 
 
-def create_visualization(subdivision_method, result, midslices_data, output_image_path, ac_coords, pc_coords, vox_size, title_suffix=""):
+def create_visualization(subdivision_method, result, midslices_data, output_image_path, 
+                         ac_coords, pc_coords, vox_size, title_suffix=""):
     """Helper function to create visualization plots based on subdivision method.
     
     Args:
@@ -44,8 +49,8 @@ def create_visualization(subdivision_method, result, midslices_data, output_imag
                                 output_image_path, ac_coords, pc_coords, vox_size, title)
     else:
         return run_in_background(plot_contours, False, midslices_data, 
-                                None, result['split_contours_hofer_frahm'], result['midline_equidistant'], result['levelpaths'], 
-                                output_image_path, ac_coords, pc_coords, vox_size, title)
+                                None, result['split_contours_hofer_frahm'], result['midline_equidistant'], 
+                                result['levelpaths'], output_image_path, ac_coords, pc_coords, vox_size, title)
 
 
 def create_slice_affine(temp_seg_affine, slice_idx, fsaverage_middle):
@@ -67,7 +72,8 @@ def create_slice_affine(temp_seg_affine, slice_idx, fsaverage_middle):
     return slice_affine
 
 
-def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thickness_points, subdivisions, subdivision_method, contour_smoothing, verbose=False):
+def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thickness_points, subdivisions, 
+                  subdivision_method, contour_smoothing):
     """Process a single slice for corpus callosum measurements.
     
     Performs detailed analysis of a corpus callosum slice, including:
@@ -116,27 +122,46 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
         raise ValueError(f'No CC found in slice {slice_idx}')
         
 
-    contour, anterior_endpoint_idx, posterior_endpoint_idx = get_endpoints(cc_mask_slice, ac_coords, pc_coords, affine.diagonal()[1], return_coordinates=False, contour_smoothing=contour_smoothing)
+    contour, anterior_endpoint_idx, posterior_endpoint_idx = get_endpoints(cc_mask_slice, ac_coords, pc_coords, 
+                                                                           affine.diagonal()[1], 
+                                                                           return_coordinates=False, 
+                                                                           contour_smoothing=contour_smoothing)
     contour_1mm = convert_to_ras(contour, affine)
 
-    midline_length, thickness, curvature, midline_equidistant, levelpaths, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx = cc_thickness(contour_1mm.T, anterior_endpoint_idx, posterior_endpoint_idx, n_points=num_thickness_points)
-    thickness_profile = [np.sum(np.sqrt(np.diff(np.array(levelpath[:,:2]),axis=0)**2),axis=0) for levelpath in levelpaths]
+    (midline_length, thickness, curvature, midline_equidistant, levelpaths,
+     contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx) = cc_thickness(contour_1mm.T, 
+                                                                                           anterior_endpoint_idx, 
+                                                                                           posterior_endpoint_idx, 
+                                                                                           n_points=num_thickness_points)
+    
+    thickness_profile = [
+        np.sum(np.sqrt(np.diff(np.array(levelpath[:,:2]), axis=0)**2), axis=0)
+        for levelpath in levelpaths
+    ]
     thickness_profile = np.linalg.norm(np.array(thickness_profile),axis=1)
 
-    contour_acpc, ac_pt_acpc, pc_pt_acpc, rotate_back_acpc = transform_to_acpc_standard(contour_1mm, contour_1mm[:,anterior_endpoint_idx], contour_1mm[:,posterior_endpoint_idx])
+    contour_acpc, ac_pt_acpc, pc_pt_acpc, rotate_back_acpc = transform_to_acpc_standard(contour_1mm, 
+                                                                                        contour_1mm[:,anterior_endpoint_idx], 
+                                                                                        contour_1mm[:,posterior_endpoint_idx])
     cc_index = calculate_cc_index(contour_acpc)
 
     # Apply different subdivision methods based on user choice
     if subdivision_method == "shape":
-        areas, split_contours = subsegment_midline_orthogonal(midline_equidistant, subdivisions, contour_1mm, plot=False)
-        split_contours = [transform_to_acpc_standard(split_contour, contour_1mm[:,anterior_endpoint_idx], contour_1mm[:,posterior_endpoint_idx])[0] for split_contour in split_contours]
+        areas, split_contours = subsegment_midline_orthogonal(midline_equidistant, subdivisions, 
+                                                              contour_1mm, plot=False)
+        split_contours = [transform_to_acpc_standard(split_contour, 
+                                                     contour_1mm[:,anterior_endpoint_idx], 
+                                                     contour_1mm[:,posterior_endpoint_idx])[0] 
+                                                     for split_contour in split_contours]
+        
         split_contours_hofer_frahm = None
     elif subdivision_method == "vertical":
         areas, split_contours = subdivide_contour(contour_acpc, subdivisions, plot=False)
         split_contours_hofer_frahm = split_contours.copy()
     elif subdivision_method == "angular":
         if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
-            print('Error: Angular subdivision method (Hampel) only supports equidistant subdivision, but got: ', subdivisions)
+            print('Error: Angular subdivision method (Hampel) only supports equidistant subdivision, '
+                  f'but got: {subdivisions}')
             return None
         areas, split_contours = hampel_subdivide_contour(contour_acpc, num_rays=len(subdivisions), plot=False)       
         split_contours_hofer_frahm = split_contours.copy()
@@ -217,10 +242,17 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         slice_idx = segmentation.shape[0] // 2
         slice_affine = create_slice_affine(temp_seg_affine, slice_idx, FSAVERAGE_MIDDLE)
         
-        result, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx = process_slice(segmentation, slice_idx, ac_coords, pc_coords, slice_affine, 
+        result, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx = process_slice(segmentation, 
+                                                                                                      slice_idx, 
+                                                                                                      ac_coords, 
+                                                                                                      pc_coords, 
+                                                                                                      slice_affine, 
                              num_thickness_points, subdivisions, subdivision_method, contour_smoothing)
         
-        cc_mesh.add_contour(0, contour_with_thickness[0], contour_with_thickness[1], start_end_idx=(anterior_endpoint_idx, posterior_endpoint_idx))
+        cc_mesh.add_contour(0, 
+                            contour_with_thickness[0], 
+                            contour_with_thickness[1], 
+                            start_end_idx=(anterior_endpoint_idx, posterior_endpoint_idx))
 
         if result is not None:
             slice_results.append(result)
@@ -250,16 +282,18 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
             slice_affine = create_slice_affine(temp_seg_affine, slice_idx, FSAVERAGE_MIDDLE)
             
             # Process this slice
-            result, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx = process_slice(segmentation, slice_idx, ac_coords, pc_coords, slice_affine, 
-                                 num_thickness_points, subdivisions, subdivision_method, contour_smoothing)
+            (result, contour_with_thickness, 
+             anterior_endpoint_idx, posterior_endpoint_idx) = process_slice(segmentation, slice_idx, 
+                                                                            ac_coords, pc_coords, 
+                                                                            slice_affine, num_thickness_points, 
+                                                                            subdivisions, subdivision_method, 
+                                                                            contour_smoothing)
 
             # insert 
-            cc_mesh.add_contour(slice_idx, contour_with_thickness[0], contour_with_thickness[1], start_end_idx=(anterior_endpoint_idx, posterior_endpoint_idx))
-            #cc_mesh.plot_contour(slice_idx, output_dir / f'slice_{slice_idx}' / 'contour.png')
-            
-            #cc_mesh.plot_contour(slice_idx, output_dir / f'slice_{slice_idx}' / 'contour_filled.png')
-
-
+            cc_mesh.add_contour(slice_idx, 
+                                contour_with_thickness[0], 
+                                contour_with_thickness[1], 
+                                start_end_idx=(anterior_endpoint_idx, posterior_endpoint_idx))
 
             if result is not None:
                 slice_results.append(result)
@@ -274,7 +308,8 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
                 
                 # Create visualization for this slice
                 IO_processes.append(create_visualization(subdivision_method, result, midslices[slice_idx:slice_idx+1], 
-                                                       output_subdir, ac_coords, pc_coords, vox_size, f' (Slice {slice_idx})'))
+                                                         output_subdir, ac_coords, pc_coords, 
+                                                         vox_size, f' (Slice {slice_idx})'))
 
     if save_template is not None:
         # Convert to Path object and ensure directory exists

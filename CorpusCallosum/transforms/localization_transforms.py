@@ -6,7 +6,8 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
     Crop around AC and PC with fixed size
     """
 
-    def __init__(self, keys, fixed_size: tuple[int, int], allow_missing_keys: bool = False, random_translate: float = 0) -> None:
+    def __init__(self, keys, fixed_size: tuple[int, int], allow_missing_keys: bool = False, 
+                 random_translate: float = 0) -> None:
         MapTransform.__init__(self, keys, allow_missing_keys)
         RandomizableTransform.__init__(self)
         self.random_translate = random_translate
