@@ -202,7 +202,8 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
 
 def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
                   num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
-                  output_dir, debug_image_path=None, vox_size=None, verbose=False, save_template=None):
+                  output_dir, debug_image_path=None, thickness_image_path=None, vox_size=None, verbose=False, 
+                  save_template=None):
     """Process corpus callosum slices based on selection mode.
     
     Handles the processing of either a single middle slice, all slices, or a specific slice,
@@ -324,8 +325,9 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         cc_mesh.create_mesh()
         cc_mesh.smooth_(1)
         cc_mesh.plot_mesh()
-        cc_mesh.write_vtk(str(output_dir / 'cc_mesh.vtk'))
-        cc_mesh.snap_cc_picture(str(output_dir / 'cc_mesh_snap.png'))
+        #cc_mesh.write_vtk(str(output_dir / 'cc_mesh.vtk'))
+        cc_mesh.snap_cc_picture(str(output_dir / thickness_image_path))
+        
     
     if not slice_results:
         print("Error: No valid slices were found for postprocessing")

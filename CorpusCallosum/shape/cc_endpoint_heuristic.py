@@ -43,7 +43,14 @@ def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, co
     # gaussian_cc_mask = scipy.ndimage.gaussian_filter(gaussian_cc_mask, sigma=1.0)
     contour = skimage.measure.find_contours(gaussian_cc_mask, level=0.5)[0].T
 
-    contour = lapy.tria_mesh.TriaMesh.iterative_resample_polygon(contour.T, 701).T
+
+
+    # Add z=0 coordinate to make 3D, then remove it after resampling
+    contour_3d = np.vstack([contour, np.zeros(contour.shape[1])])
+    contour_3d = lapy.tria_mesh.TriaMesh._TriaMesh__resample_polygon(contour_3d.T, 701).T
+    contour = contour_3d[:2]
+
+    
     contour = contour[:, :-1]
 
     rotated_AC_2d = np.array(rotated_AC_2d).astype(float)

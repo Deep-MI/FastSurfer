@@ -17,7 +17,6 @@ STANDARD_OUTPUT_PATHS = {
     "upright_lta": "transforms/upright.lta",
     "orient_volume_lta": "transforms/orient_volume.lta",
     "orig_space_segmentation": "mri/segmentation_orig_space.mgz",
-    "debug_image": "stats/cc_postprocessing.png",
-    "qc_view": "qc-snapshots/corpus_callosum.png",
-    "qc_view3d": "qc-snapshots/corpus_callosum_thickness.png"
+    "debug_image": "qc_snapshots/corpus_callosum.png",
+    "thickness_image": "qc_snapshots/corpus_callosum_thickness.png"
 }

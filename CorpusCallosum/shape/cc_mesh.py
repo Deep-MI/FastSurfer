@@ -1,4 +1,5 @@
 import tempfile
+from pathlib import Path
 
 import lapy
 import matplotlib
@@ -1026,7 +1027,7 @@ class CC_Mesh(lapy.TriaMesh):
 
         return viewmat
 
-    def snap_cc_picture(self, output_path: str):
+    def snap_cc_picture(self, output_path: str, fssurf_file: str | None = None, overlay_file: str | None = None):
         """Snap a picture of the corpus callosum mesh.
 
         Takes a snapshot of the mesh from a predefined viewpoint, with optional thickness
@@ -1034,7 +1035,10 @@ class CC_Mesh(lapy.TriaMesh):
 
         Args:
             output_path (str): Path where to save the snapshot image.
-
+            fssurf_file (str, optional): Path to a FreeSurfer surface file to use for the snapshot - if not provided,
+                the mesh is saved to a temporary file.
+            overlay_file (str, optional): Path to a FreeSurfer overlay file to use for the snapshot - if not provided,
+                the mesh is saved to a temporary file.
         Note:
             This method uses a temporary file to store the mesh and overlay data during
             the snapshot process.
@@ -1045,17 +1049,22 @@ class CC_Mesh(lapy.TriaMesh):
             return
 
         # create temp file
-        temp_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True)
-        self.write_fssurf(temp_file.name)
-
-        # Write thickness values as overlay
-        if hasattr(self, "mesh_vertex_colors"):
-            overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True)
-            # Write thickness values in FreeSurfer .w format
-            nib.freesurfer.write_morph_data(overlay_file.name, self.mesh_vertex_colors)
-            overlaypath = overlay_file.name
+        if fssurf_file is None:
+            temp_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True)
+            self.write_fssurf(temp_file.name)
         else:
-            overlaypath = None
+            temp_file = Path(fssurf_file)
+
+        if overlay_file is None:
+            if hasattr(self, "mesh_vertex_colors"):
+                overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True)
+                # Write thickness values in FreeSurfer .w format
+                nib.freesurfer.write_morph_data(overlay_file.name, self.mesh_vertex_colors)
+                overlaypath = overlay_file.name
+            else:
+                overlaypath = None
+        else:
+            overlaypath = Path(overlay_file).name
 
         snap1(
             temp_file.name,

@@ -1,8 +1,14 @@
+from pathlib import Path
+
 import numpy as np
 import torch
 from monai import transforms
-from monai.networks.nets import DenseNet as DenseNet_monai
-from transforms.localization_transforms import CropAroundACPCFixedSize
+from monai.networks.nets import DenseNet
+
+from CorpusCallosum.transforms.localization_transforms import CropAroundACPCFixedSize
+from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
+from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
+from FastSurferCNN.download_checkpoints import main as download_checkpoints
 
 
 def load_model(checkpoint_path, device=None):
@@ -20,7 +26,7 @@ def load_model(checkpoint_path, device=None):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Initialize model architecture (must match training)
-    model = DenseNet_monai( # densenet201
+    model = DenseNet( # densenet201
         spatial_dims=2,
         in_channels=3,
         out_channels=4,
@@ -32,9 +38,17 @@ def load_model(checkpoint_path, device=None):
         norm=("batch", {"affine": True}),
         dropout_prob=0.2
     )
+
+    download_checkpoints(cc=True)
+    cc_config = load_checkpoint_config_defaults(
+                "checkpoint",
+                filename=CC_YAML,
+            )
+    checkpoint_path = cc_config['localization']
+
     
     # Load state dict
-    if isinstance(checkpoint_path, str):
+    if isinstance(checkpoint_path, str) or isinstance(checkpoint_path, Path):
         state_dict = torch.load(checkpoint_path, map_location=device, weights_only=True)
         if isinstance(state_dict, dict) and 'model_state_dict' in state_dict:
             state_dict = state_dict['model_state_dict']

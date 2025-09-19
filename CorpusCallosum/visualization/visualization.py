@@ -186,6 +186,8 @@ def plot_contours(
     ax[0].set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
     ax[0].set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
 
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     # plt.show()
 
