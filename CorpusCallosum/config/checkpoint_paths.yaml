@@ -1,0 +1,7 @@
+url:
+- "https://zenodo.org/records/17141933/files"
+- "https://b2share.fz-juelich.de/api/files/e4eb699c-ba68-4470-9f3d-89ceeee1a334"
+
+checkpoint:
+  segmentation: "checkpoints/FastSurferCC_segmentation_v1.0.0.pkl"
+  localization: "checkpoints/FastSurferCC_localization_v1.0.0.pkl"

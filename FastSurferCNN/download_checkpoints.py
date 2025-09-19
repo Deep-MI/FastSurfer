@@ -17,6 +17,7 @@
 from CerebNet.utils.checkpoint import (
     YAML_DEFAULT as CEREBNET_YAML,
 )
+from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.utils import PLANES
 from FastSurferCNN.utils.checkpoint import (
     YAML_DEFAULT as VINN_YAML,
@@ -26,9 +27,7 @@ from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from HypVINN.utils.checkpoint import (
-    YAML_DEFAULT as HYPVINN_YAML,
-)
+from HypVINN.utils.checkpoint import YAML_DEFAULT as HYPVINN_YAML
 
 
 class ConfigCache:
@@ -40,9 +39,12 @@ class ConfigCache:
 
     def hypvinn_url(self):
         return load_checkpoint_config_defaults("url", filename=HYPVINN_YAML)
+    
+    def cc_url(self):
+        return load_checkpoint_config_defaults("url", filename=CC_YAML)
 
     def all_urls(self):
-        return self.vinn_url() + self.cerebnet_url() + self.hypvinn_url()
+        return self.vinn_url() + self.cerebnet_url() + self.hypvinn_url() + self.cc_url()
 
 
 defaults = ConfigCache()
@@ -72,6 +74,12 @@ def make_parser():
         action="store_true",
         help="Check and download CerebNet default checkpoints",
     )
+    parser.add_argument(
+        "--cc",
+        default=False,
+        action="store_true",
+        help="Check and download Corpus Callosum default checkpoints",
+    )
 
     parser.add_argument(
         "--hypvinn",
@@ -99,16 +107,20 @@ def make_parser():
 
 
 def main(
-        vinn: bool,
-        cerebnet: bool,
-        hypvinn: bool,
-        all: bool,
-        files: list[str],
+        vinn: bool = False,
+        cerebnet: bool = False,
+        hypvinn: bool = False,
+        cc: bool = False,
+        all: bool = False,
+        files: list[str] = None,
         url: str | None = None,
 ) -> int | str:
-    if not vinn and not files and not cerebnet and not hypvinn and not all:
+    if not vinn and not files and not cerebnet and not hypvinn and not cc and not all:
         return ("Specify either files to download or --vinn, --cerebnet, "
                 "--hypvinn, or --all, see help -h.")
+    
+    if files is None:
+        files = []
 
     try:
         # FastSurferVINN checkpoints
@@ -140,6 +152,16 @@ def main(
             get_checkpoints(
                 *(hypvinn_config[plane] for plane in PLANES),
                 urls=defaults.hypvinn_url() if url is None else [url],
+            )
+        # Corpus Callosum checkpoints
+        if cc or all:
+            cc_config = load_checkpoint_config_defaults(
+                "checkpoint",
+                filename=CC_YAML,
+            )
+            get_checkpoints(
+                *(cc_config[model] for model in cc_config.keys()),
+                urls=defaults.cc_url() if url is None else [url],
             )
         for fname in files:
             check_and_download_ckpts(

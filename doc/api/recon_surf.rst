@@ -13,7 +13,6 @@ recon_surf
     fs_balabels
     map_surf_label
     N4_bias_correct
-    paint_cc_into_pred
     rewrite_oriented_surface
     rewrite_mc_surface
     rotate_sphere

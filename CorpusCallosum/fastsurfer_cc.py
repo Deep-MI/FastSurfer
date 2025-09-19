@@ -6,11 +6,6 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 import torch
-from CorpusCallosum.localization import localization_inference
-from recon_surf import lta
-from recon_surf.align_points import find_rigid
-from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
-from FastSurferCNN.data_loader.conform import is_conform
 
 from CorpusCallosum.data.constants import (
     CC_LABEL,
@@ -29,7 +24,6 @@ from CorpusCallosum.data.read_write import (
     save_nifti_background,
 )
 from CorpusCallosum.localization import localization_inference
-from CorpusCallosum.registration import find_rigid, lta
 from CorpusCallosum.registration.mapping_helpers import (
     apply_transform_and_map_volume,
     apply_transform_to_pt,
@@ -40,6 +34,8 @@ from CorpusCallosum.registration.mapping_helpers import (
 from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
 from CorpusCallosum.shape.cc_postprocessing import create_visualization, process_slices
 from FastSurferCNN.data_loader.conform import is_conform
+from recon_surf import lta
+from recon_surf.align_points import find_rigid
 
 
 def options_parse() -> argparse.Namespace:
@@ -155,17 +151,22 @@ def options_parse() -> argparse.Namespace:
     parser.add_argument(
         "--debug_image_path",
         type=str,
-        help="Path for debug visualization image (default: subject_dir/stats/cc_postprocessing.png)",
+        help="Path for debug visualization image (default: subject_dir/qc_snapshots/cc_postprocessing.png)",
         default=None,
     )
-
-    # Template saving argument
     parser.add_argument(
         "--save_template",
         type=str,
         help="Directory path where to save contours.txt and thickness_values.txt files",
         default=None,
     )
+    parser.add_argument(
+        "--thickness_image_path",
+        type=str,
+        help="Path for thickness image (default: subject_dir/qc_snapshots/corpus_callosum_thickness_3d.png)",
+        default=None,
+    )
+
 
     args = parser.parse_args()
 
@@ -375,6 +376,7 @@ def main(
     orig_space_segmentation_path: str | Path = None,
     debug_image_path: str | Path = None,
     save_template: str | Path | None = None,
+    thickness_image_path: str | Path = None,
     cpu: bool = False,
 ) -> None:
     """Main pipeline function for corpus callosum analysis.
@@ -408,6 +410,8 @@ def main(
             (default: output_dir/mri/segmentation_orig_space.mgz)
         debug_image_path: Path for debug visualization image (default: output_dir/stats/cc_postprocessing.png)
         save_template: Directory path where to save contours.txt and thickness_values.txt files
+        thickness_image_path: Path for thickness image 
+            (default: output_dir/qc_snapshots/corpus_callosum_thickness_3d.png)
         cpu: Force CPU usage even when CUDA is available
 
     The function saves multiple outputs to specified paths or default locations in output_dir:
@@ -451,7 +455,7 @@ def main(
             "center around the mid-sagittal plane)"
         )
 
-    if not is_conform(orig, conform_vox_size=orig.header.get_zooms()[0]):
+    if not is_conform(orig):
         print("Error: MRI is not conformed, please run conform.py or mri_convert to conform the image.")
         exit(1)
 

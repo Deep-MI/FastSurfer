@@ -2,8 +2,11 @@ import nibabel as nib
 import numpy as np
 import torch
 from monai import transforms
-from transforms.segmentation_transforms import CropAroundACPC
 
+from CorpusCallosum.transforms.segmentation_transforms import CropAroundACPC
+from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
+from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
+from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
 
 
@@ -42,6 +45,13 @@ def load_model(checkpoint_path, device=None):
         "out_tensor_height": 320,
     }
     model = FastSurferVINN(params)
+    
+    download_checkpoints(cc=True)
+    cc_config = load_checkpoint_config_defaults(
+                "checkpoint",
+                filename=CC_YAML,
+            )
+    checkpoint_path = cc_config['segmentation']
     
     #model = torch.load(checkpoint_path, map_location=device, weights_only=False)
     weights = torch.load(checkpoint_path, weights_only=True, map_location=device)
