@@ -1,7 +1,7 @@
-import numpy as np
-import skimage.measure
-import scipy.ndimage
 import lapy
+import numpy as np
+import scipy.ndimage
+import skimage.measure
 
 
 def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, contour_smoothing=1.0):

@@ -1,11 +1,8 @@
 import argparse
 import json
-import warnings
-
-warnings.filterwarnings("ignore", message="TypedStorage is deprecated")
-
 from pathlib import Path
 
+# import warnings warnings.filterwarnings("ignore", message="TypedStorage is deprecated")
 import nibabel as nib
 import numpy as np
 import torch
@@ -16,12 +13,12 @@ from CorpusCallosum.segmentation import segmentation_inference, segmentation_pos
 from FastSurferCNN.data_loader.conform import is_conform
 
 from CorpusCallosum.data.constants import (
+    CC_LABEL,
     FSAVERAGE_CENTROIDS_PATH,
     FSAVERAGE_DATA_PATH,
-    WEIGHTS_PATH,
-    STANDARD_OUTPUT_PATHS,
     FSAVERAGE_MIDDLE,
-    CC_LABEL,
+    STANDARD_OUTPUT_PATHS,
+    WEIGHTS_PATH,
 )
 from CorpusCallosum.data.read_write import (
     convert_numpy_to_json_serializable,
@@ -31,6 +28,8 @@ from CorpusCallosum.data.read_write import (
     run_in_background,
     save_nifti_background,
 )
+from CorpusCallosum.localization import localization_inference
+from CorpusCallosum.registration import find_rigid, lta
 from CorpusCallosum.registration.mapping_helpers import (
     apply_transform_and_map_volume,
     apply_transform_to_pt,
@@ -38,7 +37,9 @@ from CorpusCallosum.registration.mapping_helpers import (
     interpolate_midplane,
     map_softlabels_to_orig,
 )
+from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
 from CorpusCallosum.shape.cc_postprocessing import create_visualization, process_slices
+from FastSurferCNN.data_loader.conform import is_conform
 
 
 def options_parse() -> argparse.Namespace:

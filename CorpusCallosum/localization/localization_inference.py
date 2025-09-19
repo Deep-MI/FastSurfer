@@ -1,8 +1,7 @@
-import torch
 import numpy as np
+import torch
 from monai import transforms
 from monai.networks.nets import DenseNet as DenseNet_monai
-
 from transforms.localization_transforms import CropAroundACPCFixedSize
 
 

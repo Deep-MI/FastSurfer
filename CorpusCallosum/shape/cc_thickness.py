@@ -1,11 +1,11 @@
-import sys
 import os
+import sys
 
-import numpy as np
-from lapy import TriaMesh, Solver
-from lapy.diffgeo import compute_rotated_f
 import meshpy.triangle as triangle
+import numpy as np
 import scipy.interpolate
+from lapy import Solver, TriaMesh
+from lapy.diffgeo import compute_rotated_f
 
 
 class HiddenPrints:

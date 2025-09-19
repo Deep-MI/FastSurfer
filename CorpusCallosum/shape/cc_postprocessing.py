@@ -1,22 +1,21 @@
 from pathlib import Path
 
 import numpy as np
-
-from shape.cc_thickness import convert_to_ras, cc_thickness
-from shape.cc_subsegment_contour import (
-    subdivide_contour,
-    transform_to_acpc_standard,
-    subsegment_midline_orthogonal,
-    hampel_subdivide_contour,
-)
 from shape.cc_endpoint_heuristic import get_endpoints
-from shape.cc_metrics import calculate_cc_index
-from shape.cc_subsegment_contour import get_primary_eigenvector
 from shape.cc_mesh import CC_Mesh
-from CorpusCallosum.visualization.visualization import plot_contours
-from CorpusCallosum.data.read_write import run_in_background
-from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
+from shape.cc_metrics import calculate_cc_index
+from shape.cc_subsegment_contour import (
+    get_primary_eigenvector,
+    hampel_subdivide_contour,
+    subdivide_contour,
+    subsegment_midline_orthogonal,
+    transform_to_acpc_standard,
+)
+from shape.cc_thickness import cc_thickness, convert_to_ras
 
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
+from CorpusCallosum.data.read_write import run_in_background
+from CorpusCallosum.visualization.visualization import plot_contours
 
 # assert LIA orientation
 LIA_ORIENTATION = np.zeros((3,3))

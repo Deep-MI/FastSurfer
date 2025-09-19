@@ -1,17 +1,16 @@
 import tempfile
 
-import numpy as np
+import lapy
 import matplotlib
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 import nibabel as nib
-import lapy
+import numpy as np
+import plotly.graph_objects as go
 import pyrr
 import scipy.interpolate
 from scipy.ndimage import gaussian_filter1d
-
+from shape.cc_thickness import HiddenPrints, make_mesh_from_contour
 from whippersnappy.core import snap1
-from shape.cc_thickness import make_mesh_from_contour, HiddenPrints
 
 
 class CC_Mesh(lapy.TriaMesh):
@@ -388,9 +387,9 @@ class CC_Mesh(lapy.TriaMesh):
             fig.write_html(output_path)  # Save as interactive HTML
         else:
             # For non-interactive display, save to a temporary HTML and open in browser
+            import os
             import tempfile
             import webbrowser
-            import os
 
             temp_path = os.path.join(tempfile.gettempdir(), "cc_mesh_plot.html")
             fig.write_html(temp_path)
