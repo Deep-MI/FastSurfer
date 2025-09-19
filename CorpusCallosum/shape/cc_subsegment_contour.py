@@ -198,7 +198,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
         # plot contour
         ax.plot(contour[0], contour[1], "-", linewidth=2, color="grey")
         # put text between split points
-        # add enpoints to split_points
+        # add endpoints to split_points
         split_points = split_points.tolist()
         split_points.insert(0, extremes[0])
         split_points.append(extremes[1])
@@ -385,7 +385,7 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
                 [midpoint_lower_edge[1], midpoint_lower_edge[1] + ray_vector[1]],
                 "k--",
             )
-        # pretty plot with areas filles in the polygon and overall area annotated
+        # pretty plot with areas files in the polygon and overall area annotated
         colors = plt.cm.Spectral(np.linspace(0.2, 0.8, len(split_contours)))
         for color, split_contour in zip(colors, split_contours, strict=True):
             ax.fill(split_contour[0], split_contour[1], alpha=0.5, color=color)
@@ -425,7 +425,7 @@ def subdivide_contour(
         #     extremes = (np.array([extremes[0][0], most_inferior_point - 5]), 
         #                   np.array([extremes[1][0], most_inferior_point - 5]))
         # else:
-        #     # get y diffrence between extremes and hline_anchor
+        #     # get y difference between extremes and hline_anchor
         #     y_diff = extremes[1][1] - hline_anchor[1]
         #     extremes = (np.array([extremes[0][0], extremes[0][1] - y_diff]), 
         #                       np.array([extremes[1][0], extremes[1][1] - y_diff]))
@@ -618,7 +618,7 @@ def subdivide_contour(
             ax.axis("equal")
         else:
             SHOW = False
-        # pretty plot with areas filles in the polygon and overall area annotated
+        # pretty plot with areas filled in the polygon and overall area annotated
         colors = plt.cm.Spectral(np.linspace(0.2, 0.8, len(split_contours)))
         for color, split_contour in zip(colors, split_contours, strict=True):
             ax.fill(split_contour[0], split_contour[1], alpha=0.5, color=color)
@@ -646,7 +646,7 @@ def subdivide_contour(
         ax.plot(start_point_vline[:, 0], start_point_vline[:, 1], "--", linewidth=2, color="grey")
         ax.plot(end_point_vline[:, 0], end_point_vline[:, 1], "--", linewidth=2, color="grey")
         # put text between split points
-        # add enpoints to split_points
+        # add endpoints to split_points
         split_points.insert(0, extremes[0])
         split_points.append(extremes[1])
         # convert area_weights into fraction of total line length
@@ -769,7 +769,7 @@ def get_primary_eigenvector(contour_ras):
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
 
-    # make first eigentor unit length
+    # make first eigenvector unit length
     primary_eigenvector = eigenvectors[:, 0] / np.linalg.norm(eigenvectors[:, 0])
     pt0 = np.mean(contour_ras, axis=1)
     pt0 -= np.array([0, 5])
