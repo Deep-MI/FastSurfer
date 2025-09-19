@@ -1,5 +1,5 @@
-import numpy as np
 import nibabel as nib
+import numpy as np
 from scipy.ndimage import affine_transform
 
 

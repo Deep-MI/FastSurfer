@@ -1,6 +1,7 @@
 import multiprocessing
-import numpy as np
+
 import nibabel as nib
+import numpy as np
 
 
 def run_in_background(function, debug=False, *args, **kwargs):

@@ -1,11 +1,10 @@
-import torch
-import numpy as np
 import nibabel as nib
-
+import numpy as np
+import torch
 from monai import transforms
+from transforms.segmentation_transforms import CropAroundACPC
 
 from FastSurferCNN.models.networks import FastSurferVINN
-from transforms.segmentation_transforms import CropAroundACPC
 
 
 def load_model(checkpoint_path, device=None):

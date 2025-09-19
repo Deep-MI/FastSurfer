@@ -7,12 +7,13 @@ and saves them to a JSON file for fast loading during pipeline execution.
 Run this script once to generate the centroids file.
 """
 
-import os
 import json
+import os
 from pathlib import Path
-import numpy as np
+
 import nibabel as nib
-from read_write import get_centroids_from_nib, convert_numpy_to_json_serializable
+import numpy as np
+from read_write import convert_numpy_to_json_serializable, get_centroids_from_nib
 
 
 def main():

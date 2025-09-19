@@ -5,7 +5,6 @@ from skimage.measure import label
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
 
 
-
 def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[float, float, float]) -> float:
     """Calculate the volume of the corpus callosum in cubic millimeters.
     

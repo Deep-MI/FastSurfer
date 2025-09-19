@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+
 import numpy as np
 
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
