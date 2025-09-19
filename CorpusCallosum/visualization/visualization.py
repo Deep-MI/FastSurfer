@@ -181,7 +181,7 @@ def plot_contours(
         a.set_aspect("equal", adjustable="box")
         a.axis("off")
 
-    # get bounding box of countours
+    # get bounding box of contours
     padding = 30
     ax[0].set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
     ax[0].set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
