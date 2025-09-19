@@ -158,7 +158,7 @@ def load_fsaverage_centroids(centroids_path):
     if not centroids_path.exists():
         raise FileNotFoundError(f"Fsaverage centroids file not found: {centroids_path}")
     
-    with open(centroids_path, 'r') as f:
+    with open(centroids_path) as f:
         centroids_data = json.load(f)
     
     # Convert string keys back to integers and lists back to numpy arrays
@@ -230,7 +230,7 @@ def load_fsaverage_data(data_path):
     if not data_path.exists():
         raise FileNotFoundError(f"Fsaverage data file not found: {data_path}")
     
-    with open(data_path, 'r') as f:
+    with open(data_path) as f:
         data = json.load(f)
     
     # Verify required fields

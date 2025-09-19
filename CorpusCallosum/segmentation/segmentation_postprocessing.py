@@ -2,7 +2,7 @@ import numpy as np
 from scipy import ndimage
 from skimage.measure import label
 
-from CorpusCallosum.data.constants import *
+from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
 
 
 
@@ -48,9 +48,8 @@ def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[
             desired_width_vox = int(np.floor(desired_width_vox) + 1)
             desired_width_vox = desired_width_vox + 1 if desired_width_vox % 2 == 0 else desired_width_vox
 
-            assert cc_mask.shape[0] == desired_width_vox, f"CC mask should have {desired_width_vox} voxels, but has {cc_mask.shape[0]}"
-
-
+            assert cc_mask.shape[0] == desired_width_vox, (f"CC mask should have {desired_width_vox} voxels, "
+                                                          f"but has {cc_mask.shape[0]}")
 
         left_partial_volume = np.sum(cc_mask[0]) * voxel_volume * fraction_of_voxel_at_edge
         right_partial_volume = np.sum(cc_mask[-1]) * voxel_volume * fraction_of_voxel_at_edge

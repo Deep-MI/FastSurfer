@@ -1,12 +1,5 @@
-import nibabel as nib
 import numpy as np
 from scipy.spatial import ConvexHull
-from tqdm import tqdm
-import pandas as pd
-
-from shape.cc_thickness import cc_thickness, convert_to_ras
-from shape.cc_endpoint_heuristic import get_endpoints
-
 
 
 def minimum_bounding_rectangle(points):
@@ -17,28 +10,23 @@ def minimum_bounding_rectangle(points):
     :param points: an nx2 matrix of coordinates
     :rval: an nx2 matrix of coordinates
     """
-    pi2 = np.pi/2.
+    pi2 = np.pi / 2.0
     points = points.T
 
     # get the convex hull for the points
     hull_points = points[ConvexHull(points).vertices]
 
     # calculate edge angles
-    edges = np.zeros((len(hull_points)-1, 2))
+    edges = np.zeros((len(hull_points) - 1, 2))
     edges = hull_points[1:] - hull_points[:-1]
 
-    angles = np.zeros((len(edges)))
     angles = np.arctan2(edges[:, 1], edges[:, 0])
 
     angles = np.abs(np.mod(angles, pi2))
     angles = np.unique(angles)
 
     # find rotation matrices
-    rotations = np.vstack([
-        np.cos(angles),
-        np.cos(angles-pi2),
-        np.cos(angles+pi2),
-        np.cos(angles)]).T
+    rotations = np.vstack([np.cos(angles), np.cos(angles - pi2), np.cos(angles + pi2), np.cos(angles)]).T
     rotations = rotations.reshape((-1, 2, 2))
 
     # apply rotations to the hull
@@ -66,7 +54,7 @@ def minimum_bounding_rectangle(points):
     rval[1] = np.dot([x2, y2], r)
     rval[2] = np.dot([x2, y1], r)
     rval[3] = np.dot([x1, y1], r)
-    
+
     return rval
 
 
@@ -75,45 +63,41 @@ def get_area_from_subsegments(split_contours):
     areas = [np.abs(np.trapz(split_contour[1], split_contour[0])) for split_contour in split_contours]
     area_out = np.zeros(len(areas))
     for i in range(len(areas)):
-        if i == len(areas)-1:
+        if i == len(areas) - 1:
             area_out[i] = areas[i]
         else:
-            area_out[i] = areas[i] - areas[i+1]
+            area_out[i] = areas[i] - areas[i + 1]
     return area_out
 
 
 def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=None, extremes=None):
-    
     # get points after midline length of splits
 
     # get vertex closest to midline end
     midline_end_idx = np.argmin(np.linalg.norm(contour.T - midline[-1], axis=1))
     # roll contour start to midline end
     contour = np.roll(contour, -midline_end_idx, axis=1)
-    
+
     edge_idx, edge_frac = np.divmod(len(midline) * np.array(area_weights), 1)
     edge_idx = edge_idx.astype(int)
-    split_points = midline[edge_idx] + (midline[edge_idx+1] - midline[edge_idx]) * edge_frac[:,None]
+    split_points = midline[edge_idx] + (midline[edge_idx + 1] - midline[edge_idx]) * edge_frac[:, None]
 
     # get edge for each split point
-    edge_directions = midline[edge_idx] - midline[edge_idx+1]
+    edge_directions = midline[edge_idx] - midline[edge_idx + 1]
     # get vector perpendicular to each midline edge
-    edge_ortho_vectors = np.column_stack((-edge_directions[:,1], edge_directions[:,0]))
-    edge_ortho_vectors = edge_ortho_vectors / np.linalg.norm(edge_ortho_vectors, axis=1)[:,None]
-    
+    edge_ortho_vectors = np.column_stack((-edge_directions[:, 1], edge_directions[:, 0]))
+    edge_ortho_vectors = edge_ortho_vectors / np.linalg.norm(edge_ortho_vectors, axis=1)[:, None]
+
     split_contours = []
     split_contours.append(contour)
-    
-    
-    for pt_idx,split_point in enumerate(split_points):
+
+    for pt_idx, split_point in enumerate(split_points):
         intersections = []
         for i in range(contour.shape[1] - 1):
-
             # get contour segment
             segment_start = contour[:, i]
             segment_end = contour[:, i + 1]
             segment_vector = segment_end - segment_start
-                
 
             # Check for intersection with the perpendicular line
             matrix = np.array([segment_vector, -edge_ortho_vectors[pt_idx]]).T
@@ -131,12 +115,13 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
                 # plt.plot(contour[0], contour[1], 'k-')
                 # plt.plot(midline[:,0], midline[:,1], 'k--')
                 # plt.plot(split_point[0], split_point[1], 'ro')
-                
+
                 # plt.plot([segment_start[0], segment_end[0]], [segment_start[1], segment_end[1]], 'bo', linewidth=2)
-                # plt.plot([split_point[0]-edge_ortho_vectors[pt_idx][0], split_point[0]+edge_ortho_vectors[pt_idx][0]], [split_point[1]-edge_ortho_vectors[pt_idx][1], split_point[1]+edge_ortho_vectors[pt_idx][1]], 'k-', linewidth=2)
+                # plt.plot([split_point[0]-edge_ortho_vectors[pt_idx][0], split_point[0]+edge_ortho_vectors[pt_idx][0]],
+                # [split_point[1]-edge_ortho_vectors[pt_idx][1], 
+                # split_point[1]+edge_ortho_vectors[pt_idx][1]], 'k-', linewidth=2)
                 # plt.show()
 
-       
         # get the two intersections closest to split_point
         intersections.sort(key=lambda x: np.linalg.norm(x[1] - split_point))
 
@@ -150,130 +135,133 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
                 first_intersection, second_intersection = second_intersection, first_intersection
 
             first_index += 1
-            #second_index += 1
+            # second_index += 1
 
             # connect first and second half
-            start_to_cutoff = np.hstack((contour[:, :first_index], first_intersection[:, None], second_intersection[:, None], contour[:, second_index + 1:]))
+            start_to_cutoff = np.hstack(
+                (
+                    contour[:, :first_index],
+                    first_intersection[:, None],
+                    second_intersection[:, None],
+                    contour[:, second_index + 1 :],
+                )
+            )
             split_contours.append(start_to_cutoff)
         else:
-            raise ValueError('No intersections found, this should not happen')
-        
+            raise ValueError("No intersections found, this should not happen")
+
         # plot contour to first index, then split point, then contour to second index
-        
+
         # import matplotlib.pyplot as plt
         # plt.close()
         # fig, ax = plt.subplots(1,1)
-        # ax.plot(contour[:, :first_index][0], contour[:, :first_index][1], '-', linewidth=2, color='grey', label='Contour to first index')
-        # ax.plot(first_intersection[0], first_intersection[1], 'o', markersize=8, color='red', label='First intersection')
-        # ax.plot(second_intersection[0], second_intersection[1], 'o', markersize=8, color='red', label='Second intersection')
-        # ax.plot(contour[:, second_index + 1:][0], contour[:, second_index + 1:][1], '-', linewidth=2, color='red', label='Contour to second index')
+        # ax.plot(contour[:, :first_index][0], contour[:, :first_index][1], '-', linewidth=2, color='grey',
+        # label='Contour to first index')
+        # ax.plot(first_intersection[0], first_intersection[1], 'o', markersize=8, color='red',
+        # label='First intersection')
+        # ax.plot(second_intersection[0], second_intersection[1], 'o', markersize=8, color='red',
+        # label='Second intersection')
+        # ax.plot(contour[:, second_index + 1:][0], contour[:, second_index + 1:][1], '-', linewidth=2, color='red',
+        # label='Contour to second index')
         # ax.legend()
         # ax.set_title('Split Contours')
         # ax.set_aspect('equal')
         # ax.axis('off')
         # plt.show()
-        
-        
-            
+
     if plot:
         extremes = [midline[0], midline[-1]]
-    
+
         plot_transform = None
         if plot_transform is not None:
             split_contours = [plot_transform(split_contour) for split_contour in split_contours]
             contour = plot_transform(contour)
-            extremes = [plot_transform(extreme[:,None]) for extreme in extremes]
-            split_points = [plot_transform(split_point[:,None]) for split_point in split_points]
-            split_points_vlines_start = plot_transform(split_points_vlines_start)
-            split_points_vlines_end = plot_transform(split_points_vlines_end)
-            
-        import seaborn as sns
+            extremes = [plot_transform(extreme[:, None]) for extreme in extremes]
+            split_points = [plot_transform(split_point[:, None]) for split_point in split_points]
+            # split_points_vlines_start = plot_transform(split_points_vlines_start)
+            # split_points_vlines_end = plot_transform(split_points_vlines_end)
+
         import matplotlib.pyplot as plt
+
         if ax is None:
             SHOW = True
-            fig, ax = plt.subplots(1,1,figsize=(8, 6))
-            ax.axis('equal')
+            fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+            ax.axis("equal")
         else:
             SHOW = False
-        # pretty plot with areas filles in the polygon and overall area annotated
-        colors = sns.color_palette("ch:start=.2,rot=-.3", len(split_contours))
-        for i, (color, split_contour) in enumerate(zip(colors, split_contours)):
+        # pretty plot with areas filled in the polygon and overall area annotated
+        colors = plt.cm.Spectral(np.linspace(0.2, 0.8, len(split_contours)))
+        for color, split_contour in zip(colors, split_contours, strict=True):
             ax.fill(split_contour[0], split_contour[1], alpha=0.5, color=color)
-            #ax.text(np.mean(split_contour[0]), np.mean(split_contour[1]), f'{area_out[i]:.2f}', color='black', fontsize=12)
+            # ax.text(np.mean(split_contour[0]), np.mean(split_contour[1]), f'{area_out[i]:.2f}', 
+            # olor='black', fontsize=12)
         # plot contour
-        ax.plot(contour[0], contour[1], '-', linewidth=2, color='grey')
+        ax.plot(contour[0], contour[1], "-", linewidth=2, color="grey")
         # put text between split points
         # add enpoints to split_points
         split_points = split_points.tolist()
         split_points.insert(0, extremes[0])
         split_points.append(extremes[1])
-        #ax.scatter(np.array(split_points)[:,0], np.array(split_points)[:,1], color='black', s=20)
-        ax.plot(midline[:,0], midline[:,1], 'k--', linewidth=2)
-
+        # ax.scatter(np.array(split_points)[:,0], np.array(split_points)[:,1], color='black', s=20)
+        ax.plot(midline[:, 0], midline[:, 1], "k--", linewidth=2)
 
         # plot edge orthogonal to each split point
-        for i in range(0,len(edge_ortho_vectors)):
-            pt = split_points[i+1]
+        for i in range(0, len(edge_ortho_vectors)):
+            pt = split_points[i + 1]
             length = 0.4
-            ax.plot([pt[0]-edge_ortho_vectors[i][0]*length, pt[0]+edge_ortho_vectors[i][0]*length], [pt[1]-edge_ortho_vectors[i][1]*length, pt[1]+edge_ortho_vectors[i][1]*length], 'k-', linewidth=2)
+            ax.plot(
+                [pt[0] - edge_ortho_vectors[i][0] * length, pt[0] + edge_ortho_vectors[i][0] * length],
+                [pt[1] - edge_ortho_vectors[i][1] * length, pt[1] + edge_ortho_vectors[i][1] * length],
+                "k-",
+                linewidth=2,
+            )
 
         # convert area_weights into fraction of total line length
         # e.g. area_weights=[1/6, 1/2, 2/3, 3/4] to ['1/6', '2/3', ...]
         # cumulative difference
         area_weights_diff = []
         area_weights_diff.append(area_weights[0])
-        for i in range(1,len(area_weights)):
-            area_weights_diff.append(area_weights[i] - area_weights[i-1])
+        for i in range(1, len(area_weights)):
+            area_weights_diff.append(area_weights[i] - area_weights[i - 1])
         area_weights_diff.append(1 - area_weights[-1])
-        
-        #area_weights_txt = area_weights_txt / area_weights_txt[-1]
-        from fractions import Fraction
-        area_weights_txt = [Fraction(area_weights_diff[i]).limit_denominator(1000) for i in range(len(area_weights_diff))]
-        
-        for i in range(len(split_points)-1):
+
+        for i in range(len(split_points) - 1):
             # get_index of split_points[i] in midline
             sp1_midline_idx = np.argmin(np.linalg.norm(midline - split_points[i], axis=1))
-            sp2_midline_idx = np.argmin(np.linalg.norm(midline - split_points[i+1], axis=1))
+            sp2_midline_idx = np.argmin(np.linalg.norm(midline - split_points[i + 1], axis=1))
 
             # get midpoint on midline
             midpoint_idx = (sp1_midline_idx + sp2_midline_idx) // 2
             midpoint = midline[midpoint_idx]
 
             # get vector perpendicular to line between split points
-            vector = np.array(split_points[i+1]) - np.array(split_points[i])
+            vector = np.array(split_points[i + 1]) - np.array(split_points[i])
             vector = vector / np.linalg.norm(vector)
             vector = np.array([-vector[1], vector[0]])
 
             midpoint = midpoint - vector * 3
-            #ax.text(midpoint[0]-5, midpoint[1]-5, f'{area_out[i]:.2f}', color='black', fontsize=12)
-            #ax.text(midpoint[0], midpoint[1], f'{area_weights_txt[i]}', color='black', fontsize=12, horizontalalignment='center', verticalalignment='center')
+            # ax.text(midpoint[0]-5, midpoint[1]-5, f'{area_out[i]:.2f}', color='black', fontsize=12)
+            # ax.text(midpoint[0], midpoint[1], f'{area_weights_txt[i]}', color='black', fontsize=12,
+            # horizontalalignment='center', verticalalignment='center')
 
-        
-            
         # start point & end point
-        ax.plot(extremes[0][0], extremes[0][1], marker='o', markersize=8, color='black')
-        ax.plot(extremes[1][0], extremes[1][1], marker='o', markersize=8, color='black')
-
+        ax.plot(extremes[0][0], extremes[0][1], marker="o", markersize=8, color="black")
+        ax.plot(extremes[1][0], extremes[1][1], marker="o", markersize=8, color="black")
 
         # plot contour point 0
-        #ax.scatter(contour[0,0], contour[1,0], color='red', s=120)
-        ax.set_title('Split Contours')
-        
+        # ax.scatter(contour[0,0], contour[1,0], color='red', s=120)
+        ax.set_title("Split Contours")
+
         if SHOW:
-            ax.axis('off')
+            ax.axis("off")
             ax.invert_xaxis()
-            ax.axis('equal')
+            ax.axis("equal")
             plt.show()
-    
 
     return get_area_from_subsegments(split_contours), split_contours
 
 
-
-
-
 def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
-
     # Find the extreme points in the x-direction
     min_x_index = np.argmin(contour[0])
     contour = np.roll(contour, -min_x_index, axis=1)
@@ -287,49 +275,47 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
     long_edges = np.linalg.norm(long_edges, axis=1)
     long_edges_idx = np.argpartition(long_edges, -2)[-2:]
 
-
     # select lower long edge
     min_val = np.inf
     min_idx = None
     for i in long_edges_idx:
-
-        if rectangle_duplicate_last[i][1] < min_val:  
+        if rectangle_duplicate_last[i][1] < min_val:
             min_val = rectangle_duplicate_last[i][1]
             min_idx = i
-        
-        if rectangle_duplicate_last[i+1][1] < min_val:
-            min_val = rectangle_duplicate_last[i+1][1]
+
+        if rectangle_duplicate_last[i + 1][1] < min_val:
+            min_val = rectangle_duplicate_last[i + 1][1]
             min_idx = i
 
-    lowest_points = rectangle_duplicate_last[[min_idx, min_idx+1]]
+    lowest_points = rectangle_duplicate_last[[min_idx, min_idx + 1]]
 
     # sort lowest points by x coordinate
-    if lowest_points[0,0] < lowest_points[1,0]:
+    if lowest_points[0, 0] < lowest_points[1, 0]:
         lowest_points = lowest_points[::-1]
-            
-    
+
     # get midpoint of lower edge of rectangle
     midpoint_lower_edge = np.mean(lowest_points, axis=0)
-    
+
     # get angle of lower edge of rectangle to x-axis
-    angle_lower_edge = np.arctan2(lowest_points[1, 1] - lowest_points[0, 1], lowest_points[1, 0] - lowest_points[0, 0]) #% (np.pi)
-    
-    #steps = np.pi / num_rays
-    
-    #print(np.degrees(angle_lower_edge))
+    angle_lower_edge = np.arctan2(
+        lowest_points[1, 1] - lowest_points[0, 1], lowest_points[1, 0] - lowest_points[0, 0]
+    )  # % (np.pi)
+
+    # steps = np.pi / num_rays
+
+    # print(np.degrees(angle_lower_edge))
     # get angles for equally spaced rays
-    angles = np.linspace(-angle_lower_edge, -angle_lower_edge + np.pi, num_rays+2, endpoint=True) #+ np.pi *3
+    angles = np.linspace(-angle_lower_edge, -angle_lower_edge + np.pi, num_rays + 2, endpoint=True)  # + np.pi *3
     angles = angles[1:-1]
-    
+
     # create ray vectors
     ray_vectors = np.vstack((np.cos(angles), np.sin(angles)))
     # make ray vectors unit length
     ray_vectors = ray_vectors / np.linalg.norm(ray_vectors, axis=0)
-    
+
     # invert x of ray vectors
     ray_vectors[0] = -ray_vectors[0]
-   
-    
+
     # Subdivision logic
     split_contours = []
     for ray_vector in ray_vectors.T:
@@ -352,64 +338,71 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
 
         # Sort intersections by their position along the contour
         intersections.sort()
-        
 
         # Create new contours by splitting at intersections
         if intersections:
             first_index, first_intersection = intersections[0]
             second_index, second_intersection = intersections[-1]
 
-            start_to_cutoff = np.hstack((contour[:, :first_index], first_intersection[:, None], second_intersection[:, None], contour[:, second_index + 1:]))
-            
+            start_to_cutoff = np.hstack(
+                (
+                    contour[:, :first_index],
+                    first_intersection[:, None],
+                    second_intersection[:, None],
+                    contour[:, second_index + 1 :],
+                )
+            )
+
             # connect first and second half
             split_contours.append(start_to_cutoff)
         else:
-            raise ValueError('No intersections found, this should not happen')
-        
+            raise ValueError("No intersections found, this should not happen")
+
     split_contours.append(contour)
     split_contours = split_contours[::-1]
-    
-    
-    #split_contours = split_contours[::-1]
+
+    # split_contours = split_contours[::-1]
 
     # Plotting logic
     if plot:
-        import seaborn as sns
         import matplotlib.pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-            ax.axis('equal')
+            ax.axis("equal")
             SHOW = True
         else:
             SHOW = False
         min_bounding_rectangle_plot = np.vstack((min_bounding_rectangle, min_bounding_rectangle[0]))
-        #ax.plot(contour[0], contour[1], 'b-', label='Original Contour')
-        ax.plot(min_bounding_rectangle_plot[:,0], min_bounding_rectangle_plot[:,1], 'k--')
-        ax.plot(midpoint_lower_edge[0], midpoint_lower_edge[1], 'ko', markersize=8)
-        for i, ray_vector in enumerate(ray_vectors.T):
+        # ax.plot(contour[0], contour[1], 'b-', label='Original Contour')
+        ax.plot(min_bounding_rectangle_plot[:, 0], min_bounding_rectangle_plot[:, 1], "k--")
+        ax.plot(midpoint_lower_edge[0], midpoint_lower_edge[1], "ko", markersize=8)
+        for ray_vector in ray_vectors.T:
             ray_length = 15
             ray_vector *= -ray_length
-            ax.plot([midpoint_lower_edge[0], midpoint_lower_edge[0] + ray_vector[0]],
-                    [midpoint_lower_edge[1], midpoint_lower_edge[1] + ray_vector[1]],
-                    'k--')
+            ax.plot(
+                [midpoint_lower_edge[0], midpoint_lower_edge[0] + ray_vector[0]],
+                [midpoint_lower_edge[1], midpoint_lower_edge[1] + ray_vector[1]],
+                "k--",
+            )
         # pretty plot with areas filles in the polygon and overall area annotated
-        colors = sns.color_palette("ch:start=.2,rot=-.3", len(split_contours))
-        for i, (color, split_contour) in enumerate(zip(colors, split_contours)):
+        colors = plt.cm.Spectral(np.linspace(0.2, 0.8, len(split_contours)))
+        for color, split_contour in zip(colors, split_contours, strict=True):
             ax.fill(split_contour[0], split_contour[1], alpha=0.5, color=color)
-        ax.plot(contour[0], contour[1], '-', linewidth=2, color='grey')
-                    
-        ax.set_title('Split Contours')
-        ax.axis('off')
+        ax.plot(contour[0], contour[1], "-", linewidth=2, color="grey")
+
+        ax.set_title("Split Contours")
+        ax.axis("off")
         if SHOW:
-            ax.axis('equal')
+            ax.axis("equal")
             plt.show()
-            
 
     return get_area_from_subsegments(split_contours), split_contours
 
 
-def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform=None, oriented=False, hline_anchor=None):
-
+def subdivide_contour(
+    contour, area_weights, plot=False, ax=None, plot_transform=None, oriented=False, hline_anchor=None
+):
     # Find the extreme points in the x-direction
     min_x_index = np.argmax(contour[0])
     contour = np.roll(contour, -min_x_index, axis=1)
@@ -417,11 +410,7 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
     min_x_index = 0
     max_x_index = np.argmin(contour[0])
 
-    
-
-    
     if oriented:
-
         contour_x_sorted = np.sort(contour[0])
         min_x = contour_x_sorted[0]
         max_x = contour_x_sorted[-1]
@@ -430,16 +419,16 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
         if hline_anchor is not None:
             extremes = (np.array([max_x, hline_anchor[1]]), np.array([min_x, hline_anchor[1]]))
 
-
-
         # only keep x values of extremes and set y 5 mm below most inferior point of contour
         # if hline_anchor is None:
         #     most_inferior_point = np.min(contour[1])
-        #     extremes = (np.array([extremes[0][0], most_inferior_point - 5]), np.array([extremes[1][0], most_inferior_point - 5]))
+        #     extremes = (np.array([extremes[0][0], most_inferior_point - 5]), 
+        #                   np.array([extremes[1][0], most_inferior_point - 5]))
         # else:
         #     # get y diffrence between extremes and hline_anchor
         #     y_diff = extremes[1][1] - hline_anchor[1]
-        #     extremes = (np.array([extremes[0][0], extremes[0][1] - y_diff]), np.array([extremes[1][0], extremes[1][1] - y_diff]))
+        #     extremes = (np.array([extremes[0][0], extremes[0][1] - y_diff]), 
+        #                       np.array([extremes[1][0], extremes[1][1] - y_diff]))
     else:
         extremes = (contour[:, min_x_index].copy(), contour[:, max_x_index].copy())
         # Calculate the line between the extreme points
@@ -453,10 +442,11 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
         # Calculate the perpendicular vector
         perp_vector = np.array([-line_unit_vector[1], line_unit_vector[0]])
         perp_vector = perp_vector / np.linalg.norm(perp_vector)
-        
+
         if hline_anchor is None:
             most_inferior_point = np.min(contour[1])
-            # move extreme 1 down 5 mm below inferior point and extreme 2 the same distance (so the angle stays the same)
+            # move extreme 1 down 5 mm below inferior point and extreme 2 the 
+            # same distance (so the angle stays the same)
             down_distance = (extremes[1][1] - most_inferior_point) * 1.3
             start_point = extremes[0] + down_distance * perp_vector
             end_point = extremes[1] + down_distance * perp_vector
@@ -481,12 +471,8 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
             # move start and end point the same distance
             start_point = extremes[0] + distance * perp_vector
             end_point = extremes[1] + distance * perp_vector
-            
-        
-        extremes = (start_point, end_point)
 
-        
-    
+        extremes = (start_point, end_point)
 
     # Calculate the line between the extreme points
     start_point, end_point = extremes
@@ -501,13 +487,11 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
 
     # Calculate split points based on area weights
     split_points = []
-    for i,weight in enumerate(area_weights):
-        #current_weight = np.sum(area_weights[:i])
+    for weight in area_weights:
+        # current_weight = np.sum(area_weights[:i])
         split_distance = weight * line_length
         split_point = start_point + split_distance * line_unit_vector
         split_points.append(split_point)
-        
-    
 
     # Split the contour at the calculated split points
     split_contours = []
@@ -531,14 +515,13 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
                 intersections.append((i, intersection_point))
 
         # Sort intersections by their position along the contour
-        #intersections.sort()
-        
+        # intersections.sort()
+
         # get the two intersections that have the highest y coordinate
         intersections.sort(key=lambda x: x[1][1], reverse=True)
 
         # Create new contours by splitting at intersections
         if intersections:
-            
             first_index, first_intersection = intersections[1]
             second_index, second_intersection = intersections[0]
 
@@ -547,13 +530,13 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
                 first_intersection, second_intersection = second_intersection, first_intersection
 
             first_index += 1
-            #second_index += 1
-            
-            
+            # second_index += 1
 
-            #start_to_cutoff = np.hstack((contour[:, :first_index], first_intersection[:, None], second_intersection[:, None], contour[:, second_index + 1:]))
-            start_to_cutoff = np.hstack((first_intersection[:, None], contour[:, first_index:second_index], second_intersection[:, None]))
-
+            # start_to_cutoff = np.hstack((contour[:, :first_index], first_intersection[:, None], 
+            # second_intersection[:, None], contour[:, second_index + 1:]))
+            start_to_cutoff = np.hstack(
+                (first_intersection[:, None], contour[:, first_index:second_index], second_intersection[:, None])
+            )
 
             # import matplotlib.pyplot as plt
             # plt.close()
@@ -564,17 +547,16 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
             # ax.plot(second_intersection[0], second_intersection[1], 'go', label='Second Intersection')
             # # ax.plot(contour[:, :first_index][0], contour[:, :first_index][1]+0.5, 'r-', label='First Segment')
             # # ax.plot(contour[:, second_index+1:][0], contour[:, second_index+1:][1]+1, 'g-', label='Second Segment')
-            # ax.plot(contour[:, first_index:second_index][0], contour[:, first_index:second_index][1]+0.5, 'r-', label='Segment')
+            # ax.plot(contour[:, first_index:second_index][0], 
+            #         contour[:, first_index:second_index][1]+0.5, 'r-', label='Segment')
             # ax.plot(start_to_cutoff[0], start_to_cutoff[1], 'g-', label='Start to Cutoff')
             # ax.legend()
             # plt.show()
-            
+
             # connect first and second half
             split_contours.append(start_to_cutoff)
         else:
-            raise ValueError('No intersections found, this should not happen')
-        
-    
+            raise ValueError("No intersections found, this should not happen")
 
     # if plot:
     #     import matplotlib.pyplot as plt
@@ -591,7 +573,7 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
     #     plt.legend()
     #     plt.axis('equal')
     #     plt.show()
-        
+
     #     # same plot but segment are moved apart by 5 mm
     #     plt.figure(figsize=(8, 6))
     #     for i, split_contour in enumerate(split_contours):
@@ -603,58 +585,66 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
     #     plt.legend()
     #     plt.axis('equal')
     #     plt.show()
-        
-        
-    
-            
+
     if plot:
         # make vline at every split point
         split_points_vlines_start = (np.array(split_points) - perp_vector * 1).T
         split_points_vlines_end = (np.array(split_points) + perp_vector * 1).T
 
-
-        if oriented:    
-            # make another vline at start point and end point, this time not perpendicular to line but perpendicular to x-axis
-            start_point_vline = np.array([start_point, np.array([start_point[0], start_point[1]+8])])
-            end_point_vline = np.array([end_point, np.array([end_point[0], end_point[1]+8])])
+        if oriented:
+            # make another vline at start point and end point, this time not 
+            # perpendicular to line but perpendicular to x-axis
+            start_point_vline = np.array([start_point, np.array([start_point[0], start_point[1] + 8])])
+            end_point_vline = np.array([end_point, np.array([end_point[0], end_point[1] + 8])])
         else:
             start_point_vline = np.array([start_point, start_point - perp_vector * 8])
             end_point_vline = np.array([end_point, end_point - perp_vector * 8])
-    
+
         if plot_transform is not None:
             split_contours = [plot_transform(split_contour) for split_contour in split_contours]
             contour = plot_transform(contour)
-            extremes = [plot_transform(extreme[:,None]) for extreme in extremes]
-            split_points = [plot_transform(split_point[:,None]) for split_point in split_points]
+            extremes = [plot_transform(extreme[:, None]) for extreme in extremes]
+            split_points = [plot_transform(split_point[:, None]) for split_point in split_points]
             split_points_vlines_start = plot_transform(split_points_vlines_start)
             split_points_vlines_end = plot_transform(split_points_vlines_end)
             start_point_vline = plot_transform(start_point_vline.T).T
             end_point_vline = plot_transform(end_point_vline.T).T
-            
-        import seaborn as sns
+
         import matplotlib.pyplot as plt
+
         if ax is None:
             SHOW = True
-            fig, ax = plt.subplots(1,1,figsize=(8, 6))
-            ax.axis('equal')
+            fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+            ax.axis("equal")
         else:
             SHOW = False
         # pretty plot with areas filles in the polygon and overall area annotated
-        colors = sns.color_palette("ch:start=.2,rot=-.3", len(split_contours))
-        for i, (color, split_contour) in enumerate(zip(colors, split_contours)):
+        colors = plt.cm.Spectral(np.linspace(0.2, 0.8, len(split_contours)))
+        for color, split_contour in zip(colors, split_contours, strict=True):
             ax.fill(split_contour[0], split_contour[1], alpha=0.5, color=color)
-            #ax.text(np.mean(split_contour[0]), np.mean(split_contour[1]), f'{area_out[i]:.2f}', color='black', fontsize=12)
+            # ax.text(np.mean(split_contour[0]), np.mean(split_contour[1]), 
+            # f'{area_out[i]:.2f}', color='black', fontsize=12)
         # plot contour
-        ax.plot(contour[0], contour[1], '-', linewidth=2, color='grey')
+        ax.plot(contour[0], contour[1], "-", linewidth=2, color="grey")
         # dashed line between start point & end point
-        ax.plot(np.vstack((extremes[0][0], extremes[1][0])), np.vstack((extremes[0][1], extremes[1][1])), '--', linewidth=2, color='grey')
+        ax.plot(
+            np.vstack((extremes[0][0], extremes[1][0])),
+            np.vstack((extremes[0][1], extremes[1][1])),
+            "--",
+            linewidth=2,
+            color="grey",
+        )
         # markers at every split point
         for i in range(split_points_vlines_start.shape[1]):
-            ax.plot(np.vstack((split_points_vlines_start[:,i][0], split_points_vlines_end[:,i][0])), 
-                    np.vstack((split_points_vlines_start[:,i][1], split_points_vlines_end[:,i][1])), 'k-', linewidth=2)
-            
-        ax.plot(start_point_vline[:,0], start_point_vline[:,1], '--', linewidth=2, color='grey')
-        ax.plot(end_point_vline[:,0], end_point_vline[:,1], '--', linewidth=2, color='grey')
+            ax.plot(
+                np.vstack((split_points_vlines_start[:, i][0], split_points_vlines_end[:, i][0])),
+                np.vstack((split_points_vlines_start[:, i][1], split_points_vlines_end[:, i][1])),
+                "k-",
+                linewidth=2,
+            )
+
+        ax.plot(start_point_vline[:, 0], start_point_vline[:, 1], "--", linewidth=2, color="grey")
+        ax.plot(end_point_vline[:, 0], end_point_vline[:, 1], "--", linewidth=2, color="grey")
         # put text between split points
         # add enpoints to split_points
         split_points.insert(0, extremes[0])
@@ -664,72 +654,71 @@ def subdivide_contour(contour, area_weights, plot=False, ax=None, plot_transform
         # cumulative difference
         area_weights_diff = []
         area_weights_diff.append(area_weights[0])
-        for i in range(1,len(area_weights)):
-            area_weights_diff.append(area_weights[i] - area_weights[i-1])
+        for i in range(1, len(area_weights)):
+            area_weights_diff.append(area_weights[i] - area_weights[i - 1])
         area_weights_diff.append(1 - area_weights[-1])
-        
-        #area_weights_txt = area_weights_txt / area_weights_txt[-1]
+
+        # area_weights_txt = area_weights_txt / area_weights_txt[-1]
         from fractions import Fraction
-        area_weights_txt = [Fraction(area_weights_diff[i]).limit_denominator(1000) for i in range(len(area_weights_diff))]
-        
-        for i in range(len(split_points)-1):
-            midpoint = np.mean([split_points[i], split_points[i+1]], axis=0)
-            #ax.text(midpoint[0]-5, midpoint[1]-5, f'{area_out[i]:.2f}', color='black', fontsize=12)
-            ax.text(midpoint[0], midpoint[1]-5, f'{area_weights_txt[i]}', color='black', fontsize=11, horizontalalignment='center')
 
-            
-            
+        area_weights_txt = [
+            Fraction(area_weights_diff[i]).limit_denominator(1000) for i in range(len(area_weights_diff))
+        ]
+
+        for i in range(len(split_points) - 1):
+            midpoint = np.mean([split_points[i], split_points[i + 1]], axis=0)
+            # ax.text(midpoint[0]-5, midpoint[1]-5, f'{area_out[i]:.2f}', color='black', fontsize=12)
+            ax.text(
+                midpoint[0],
+                midpoint[1] - 5,
+                f"{area_weights_txt[i]}",
+                color="black",
+                fontsize=11,
+                horizontalalignment="center",
+            )
+
         # start point & end point
-        ax.plot(extremes[0][0], extremes[0][1], marker='o', markersize=8, color='black')
-        ax.plot(extremes[1][0], extremes[1][1], marker='o', markersize=8, color='black')
-
+        ax.plot(extremes[0][0], extremes[0][1], marker="o", markersize=8, color="black")
+        ax.plot(extremes[1][0], extremes[1][1], marker="o", markersize=8, color="black")
 
         # plot contour 0 point
-        #ax.scatter(contour[0,0], contour[1,0], color='red', s=100)
+        # ax.scatter(contour[0,0], contour[1,0], color='red', s=100)
 
-        
-        
-        
-        ax.set_title('Split Contours')
+        ax.set_title("Split Contours")
         # ax.set_xlabel('X')
         # ax.set_ylabel('Y')
-        
+
         # axis off
-        ax.axis('off')
+        ax.axis("off")
         if SHOW:
-            ax.axis('equal')
+            ax.axis("equal")
             plt.show()
-    
 
     return get_area_from_subsegments(split_contours), split_contours
 
 
 def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
     # translate AC to the origin and PC to (0, ac_pc_dist)
-    translation_matrix = np.array([[1, 0, -ac_pt_ras[0]],
-                                   [0, 1, -ac_pt_ras[1]],
-                                   [0, 0, 1]])
-    
-    ac_pc_vec = pc_pt_ras - ac_pt_ras 
+    translation_matrix = np.array([[1, 0, -ac_pt_ras[0]], [0, 1, -ac_pt_ras[1]], [0, 0, 1]])
+
+    ac_pc_vec = pc_pt_ras - ac_pt_ras
     ac_pc_dist = np.linalg.norm(ac_pc_vec)
-    
+
     posterior_vector = np.array([-ac_pc_dist, 0])
-    
+
     # get angle between ac_pc_vec and posterior_vector
     dot_product = np.dot(ac_pc_vec, posterior_vector)
     norms_product = np.linalg.norm(ac_pc_vec) * np.linalg.norm(posterior_vector)
     theta = np.arccos(dot_product / norms_product)
-    
+
     # Determine the sign of the angle using cross product
     cross_product = np.cross(ac_pc_vec, posterior_vector)
     if cross_product < 0:
         theta = -theta
-    
+
     # create rotation matrix for theta
-    rotation_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
-                                [np.sin(theta), np.cos(theta), 0],
-                                [0, 0, 1]])
-    
+    rotation_matrix = np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
+
     # apply translation and rotation
     if contour_ras.shape[0] == 2:
         contour_ras_homogeneous = np.vstack([contour_ras, np.ones(contour_ras.shape[1])])
@@ -738,17 +727,19 @@ def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
 
     contour_acpc = (rotation_matrix @ translation_matrix) @ contour_ras_homogeneous
     contour_acpc = contour_acpc[:2, :]
-    
-    rotate_back = lambda x: (np.linalg.inv(rotation_matrix @ translation_matrix) @ np.vstack([x, np.ones(x.shape[1])]))[:2, :]
+
+    def rotate_back(x):
+        return (np.linalg.inv(rotation_matrix @ translation_matrix) @ np.vstack([x, np.ones(x.shape[1])]))[:2, :]
+
     return contour_acpc, np.array([0, 0]), np.array([-ac_pc_dist, 0]), rotate_back
+
 
 def preprocess_cc(cc_label_nib, paths_csv, subj_id):
     cc_mask = cc_label_nib.get_fdata() == 192
-    cc_mask = cc_mask[cc_mask.shape[0]//2]
+    cc_mask = cc_mask[cc_mask.shape[0] // 2]
 
-
-    posterior_commisure_center = paths_csv.loc[subj_id, 'PC_center_r':'PC_center_s'].to_numpy().astype(float)
-    anterior_commisure_center = paths_csv.loc[subj_id, 'AC_center_r':'AC_center_s'].to_numpy().astype(float)
+    posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r":"PC_center_s"].to_numpy().astype(float)
+    anterior_commisure_center = paths_csv.loc[subj_id, "AC_center_r":"AC_center_s"].to_numpy().astype(float)
 
     # adjust LR from label coordinates to orig_up coordinates
     posterior_commisure_center[0] = 128
@@ -766,20 +757,20 @@ def get_primary_eigenvector(contour_ras):
     # Center the data by subtracting mean
     contour_mean = np.mean(contour_ras, axis=1, keepdims=True)
     contour_centered = contour_ras - contour_mean
-    
+
     # Calculate covariance matrix
     cov_matrix = np.cov(contour_centered)
-    
+
     # Get eigenvalues and eigenvectors using PCA
     eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
-    
+
     # Sort in descending order
     idx = eigenvalues.argsort()[::-1]
     eigenvalues = eigenvalues[idx]
-    eigenvectors = eigenvectors[:,idx]
-    
+    eigenvectors = eigenvectors[:, idx]
+
     # make first eigentor unit length
-    primary_eigenvector = eigenvectors[:,0] / np.linalg.norm(eigenvectors[:,0])
+    primary_eigenvector = eigenvectors[:, 0] / np.linalg.norm(eigenvectors[:, 0])
     pt0 = np.mean(contour_ras, axis=1)
     pt0 -= np.array([0, 5])
     pt1 = pt0 + primary_eigenvector * 100
@@ -790,199 +781,6 @@ def get_primary_eigenvector(contour_ras):
     # # plot line between pt0 and pt1
     # ax[0].plot([pt0[0], pt1[0]], [pt0[1], pt1[1]], 'r-', linewidth=2)
     # plt.show()
-    
+
     return pt0, pt1
 
-if __name__ == "__main__":
-
-    OUTPUT_TO_RAS = False
-    PLOT = False
-
-    paths_csv = pd.read_csv('/groups/ag-reuter/projects/corpus_callosum_fornix/pollakc/network/data/found_labels_with_meta_data_difficult_final.csv', index_col=0)
-
-
-    FOUND = False
-    for subj_id in tqdm(paths_csv.index):
-
-        
-        # if subj_id != 'b1213f65' and not FOUND:
-        #     print(subj_id, 'skipping')
-        #     continue
-        
-        # FOUND = True
-            
-
-        #subj_id = '04ac873f'
-        #print(subj_id)
-        
-        #subj_id = '099f7f5a'
-        #label_path = '099f7f5a-norm-cc_up-cropped-labels_v02-l02_merged.mgz'
-        label_path = paths_csv.loc[subj_id, 'label_merged']
-        
-        try:
-            cc_label_nib = nib.load(label_path)
-        except Exception as e:
-            import pdb; pdb.set_trace()
-            print(subj_id, 'error', e)
-            continue
-
-        PC_2d = paths_csv.loc[subj_id, 'PC_center_r':'PC_center_s'].to_numpy().astype(float)[1:]
-        AC_2d = paths_csv.loc[subj_id, 'AC_center_r':'AC_center_s'].to_numpy().astype(float)[1:]
-        
-
-        cc_mask = cc_label_nib.get_fdata() == 192
-        cc_mask = cc_mask[cc_mask.shape[0]//2]
-
-        contour, anterior_endpoint_idx, posterior_endpoint_idx = get_endpoints(cc_mask, AC_2d, PC_2d, cc_label_nib.header.get_zooms()[1], return_coordinates=False)
-        contour_as = convert_to_ras(contour, cc_label_nib.affine)
-        ac_pt_as = convert_to_ras(AC_2d, cc_label_nib.affine)
-        pc_pt_as = convert_to_ras(PC_2d, cc_label_nib.affine)
-        
-        np.save(f'./contours/{subj_id}_contour_as.npy', contour_as)
-        np.save(f'./contours/{subj_id}_ac_pt_as.npy', ac_pt_as)
-        np.save(f'./contours/{subj_id}_pc_pt_as.npy', pc_pt_as)
-        continue
-        
-        #### contour to ACPC standard ####
-        contour_acpc, ac_pt_acpc, pc_pt_acpc, rotate_back_acpc = transform_to_acpc_standard(contour_as, ac_pt_as, pc_pt_as)
-
-
-        import matplotlib.pyplot as plt
-
-        print(subj_id)
-
-        # fig, ax = plt.subplots(1,1,figsize=(5, 4))
-        # ax.plot(contour_acpc[0], contour_acpc[1], 'b-', label='Contour ACPC')
-        # ax.plot(ac_pt_acpc[0], ac_pt_acpc[1], 'gx', markersize=8, label='AC (ACPC)')
-        # ax.plot(pc_pt_acpc[0], pc_pt_acpc[1], 'rx', markersize=8, label='PC (ACPC)')
-
-        # ax.plot(contour_ras[0], contour_ras[1], 'y-', label='Contour RAS')
-        # ax.plot(ac_pt_ras[0], ac_pt_ras[1], 'gx', markersize=8, label='AC (RAS)')
-        # ax.plot(pc_pt_ras[0], pc_pt_ras[1], 'rx', markersize=8, label='PC (RAS)')
-
-        # # transform back using rotate_back_acpc
-        # contour_ras_back = rotate_back_acpc(contour_acpc)
-        # ax.plot(contour_ras_back[0], contour_ras_back[1], 'g-', label='Contour RAS back')
-
-        # ax.set_title(subj_id)
-        # ax.axis('equal')
-        # ax.legend()
-        # plt.show()
-        # plt.close()
-
-
-        
-
-        # fig, ax = plt.subplots(1,1,figsize=(5, 4))
-        # #ax.imshow(cc_mask, cmap='gray')
-        
-        # image_path = paths_csv.loc[subj_id, 'image_orig_up']
-        # image_nib = nib.load(image_path)
-        # image = image_nib.get_fdata()
-        # ax.imshow(image[127][::-1], cmap='gray')#, vmin=100, vmax=256)
-        # #ax.imshow(cc_mask[::-1], cmap='heat', alpha=0.5)
-        # #contour_acpc[:,1] = contour_acpc[:,1][::-1]
-        # subdivide_contour(contour_acpc, area_weights=[1/6, 1/2, 2/3, 3/4], plot=PLOT, ax=ax, plot_transform=rotate_back_acpc)
-        # ax.plot(contour[1], image_nib.shape[2] - contour[0], 'y-', linewidth=3)
-        # # invert y axis
-        # ax.invert_yaxis()
-        # plt.show()
-        # plt.close()
-
-        
-        fig, ax = plt.subplots(2,3,figsize=(12, 8), sharex=True, sharey=True)
-
-
-        # Aboitiz scheme
-        subdivided_contour = subdivide_contour(contour_as, area_weights=[1/3, 2/3, 4/5], plot=PLOT, ax=ax[0,0], oriented=False, hline_anchor=ac_pt_as)
-        ax[0,0].set_title('Aboitiz')
-        
-        # Witelson scheme
-        subdivided_contour = subdivide_contour(contour_as, area_weights=[1/3, 1/2, 2/3, 4/5], plot=PLOT, ax=ax[0,1], oriented=False, hline_anchor=ac_pt_as)
-        ax[0,1].set_title('Witelson')
-
-        # Jaenecke
-        subdivided_contour = subdivide_contour(contour_acpc, area_weights=[1/3, 1/2, 2/3, 4/5], plot=PLOT, ax=ax[0,2], oriented=True, plot_transform=rotate_back_acpc, hline_anchor=ac_pt_acpc)
-        ax[0,2].set_title('Jäncke')
-        
-        # Hofer-Frahm
-        subdivided_contour = subdivide_contour(contour_as, area_weights=[1/6, 1/2, 2/3, 3/4], plot=PLOT, ax=ax[1,0], oriented=False, hline_anchor=ac_pt_as)
-        ax[1,0].set_title('Hofer-Frahm')
-        
-        
-        
-        # Hofer-Frahm + Jaenecke
-        # subdivided_contour = subdivide_contour(contour_acpc, area_weights=[1/6, 1/2, 2/3, 3/4], plot=PLOT, ax=ax[1,1], oriented=True, plot_transform=rotate_back_acpc, hline_anchor=ac_pt_acpc)
-        # ax[1,1].set_title('Hofer-Frahm + Jaenecke')
-
-        subdivided_contour = hampel_subdivide_contour(contour_as, num_rays=4, plot=PLOT, ax=ax[1,1])
-        ax[1,1].set_title('Hampel')
-
-        
-        
-        pt0, pt1 = get_primary_eigenvector(contour_as)
-        contour_eigen, pt0_eigen, pt1_eigen, rotate_back_eigen = transform_to_acpc_standard(contour_as, pt0, pt1)
-        ac_pt_eigen, _, _, _ = transform_to_acpc_standard(ac_pt_as[:, None], pt0, pt1)
-        ac_pt_eigen = ac_pt_eigen[:, 0]
-        # fig, ax = plt.subplots(1,1,figsize=(5, 4))
-        # ax.plot(contour_eigen[0], contour_eigen[1], 'b-', label='Contour Eigen')
-        # ax.plot(pt0_eigen[0], pt0_eigen[1], 'gx', markersize=8, label='AC (Eigen)')
-        # ax.plot(pt1_eigen[0], pt1_eigen[1], 'rx', markersize=8, label='PC (Eigen)')
-        # ax.plot(contour_ras[0], contour_ras[1], 'y-', label='Contour RAS')
-        # ax.plot(ac_pt_ras[0], ac_pt_ras[1], 'gx', markersize=8, label='AC (RAS)')
-        # ax.plot(pc_pt_ras[0], pc_pt_ras[1], 'rx', markersize=8, label='PC (RAS)')
-        # ax.axis('equal')
-        # ax.legend()
-        # plt.show()
-        # plt.close()
-        subdivided_contour = subdivide_contour(contour_eigen, area_weights=[1/5, 2/5, 3/5, 4/5], plot=PLOT, ax=ax[1,2], oriented=True, plot_transform=rotate_back_eigen, hline_anchor=ac_pt_eigen)
-        ax[1,2].set_title('mri_cc')
-        
-        
-
-
-
-        try:
-            midline_length, thickness, curvature, midline_equidistant, levelpaths = cc_thickness(contour_as.T, anterior_endpoint_idx, posterior_endpoint_idx)
-        except Exception as e:
-            contour_as += np.random.randn(contour_as.shape[0], contour_as.shape[1])*0.0001
-            midline_length, thickness, curvature, midline_equidistant, levelpaths = cc_thickness(contour_as.T, anterior_endpoint_idx, posterior_endpoint_idx)
-            print('Successfully computed thickness after adding noise')
-            
-        #contour_as = contour_as.T
-
-        
-
-        
-
-
-        
-        plt.tight_layout()
-        # make axis equal
-        for a in ax.flatten():
-            a.set_aspect('equal', adjustable='box')
-            a.axis('off')
-
-
-        # first two rows
-        # for a in ax[0:2, :].flatten():
-        #     a.scatter(ac_pt_as[0], ac_pt_as[1], color='red', s=100, marker='x')
-        #     a.scatter(pc_pt_as[0], pc_pt_as[1], color='blue', s=100, marker='x')
-
-        ax[0,0].invert_xaxis()
-
-        plt.savefig(f'/groups/ag-reuter/projects/corpus_callosum_fornix/pollakc/cc_pipeline/subdivision_plots/cc_subdivisions_{subj_id}.png', dpi=300, bbox_inches='tight')
-        plt.show()
-        plt.close()
-
-
-        fig, ax = plt.subplots(1,1,figsize=(5, 4))
-        areas, split_contours = subsegment_midline_orthogonal(midline_equidistant, [1/6, 1/2, 2/3, 3/4], contour_as, plot=True, ax=ax)
-        ax.invert_xaxis()
-        ax.set_title('Midline subdivision - Hofer-Frahm ratios')
-        ax.axis('equal')
-        ax.axis('off')
-        plt.savefig(f'/groups/ag-reuter/projects/corpus_callosum_fornix/pollakc/cc_pipeline/subdivision_plots/cc_subdivisions_{subj_id}_midline.png', dpi=300, bbox_inches='tight')
-        plt.show()
-        plt.close()
-        
