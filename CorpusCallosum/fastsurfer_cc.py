@@ -7,6 +7,7 @@ import nibabel as nib
 import numpy as np
 import torch
 
+import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import (
     CC_LABEL,
     FSAVERAGE_CENTROIDS_PATH,
@@ -37,6 +38,8 @@ from FastSurferCNN.data_loader.conform import is_conform
 from recon_surf import lta
 from recon_surf.align_points import find_rigid
 
+logger = logging.get_logger(__name__)
+
 
 def options_parse() -> argparse.Namespace:
     """Parse command line arguments for the pipeline."""
@@ -66,10 +69,8 @@ def options_parse() -> argparse.Namespace:
         "Required if --in_mri and --aseg are not both provided.",
         default=None,
     )
-    parser.add_argument("--debug_output_dir", type=str, required=False, default=None)
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose output and debug plots")
-
-    # CC shape arguments
+    parser.add_argument("--debug_output_dir", type=str, required=False, default=None,
+                        help="Directory for debug output (default: subject_dir/qc_snapshots)")
     parser.add_argument(
         "--num_thickness_points", type=int, default=100, help="Number of points for thickness estimation."
     )
@@ -77,7 +78,7 @@ def options_parse() -> argparse.Namespace:
         "--subdivisions",
         type=float,
         nargs="+",
-        default=[1 / 6, 1 / 2, 2 / 3, 3 / 4],
+        default=[1/6, 1/2, 2/3, 3/4],
         help="List of subdivision fractions for the corpus callosum subsegmentation.",
     )
     parser.add_argument(
@@ -101,57 +102,57 @@ def options_parse() -> argparse.Namespace:
     parser.add_argument(
         "--slice_selection",
         type=str,
-        default="middle",
+        default="all",
         help="Which slices to process. Options: 'middle' (default), 'all', or a specific slice number.",
     )
-
-    # Output path arguments
     parser.add_argument(
         "--upright_volume_path",
         type=str,
-        help="Path for upright volume output (default: subject_dir/stats/upright_volume.mgz)",
+        help=f"Path for upright volume output (default: subject_dir/{STANDARD_OUTPUT_PATHS['upright_volume']})",
         default=None,
     )
     parser.add_argument(
         "--segmentation_path",
         type=str,
-        help="Path for segmentation output (default: subject_dir/stats/cc_segmentation.mgz)",
+        help=f"Path for segmentation output (default: subject_dir/{STANDARD_OUTPUT_PATHS['segmentation']})",
         default=None,
     )
     parser.add_argument(
         "--postproc_results_path",
         type=str,
-        help="Path for postprocessing results (default: subject_dir/stats/cc_postproc_results.json)",
+        help=f"Path for postprocessing results (default: subject_dir/{STANDARD_OUTPUT_PATHS['postproc_results']})",
         default=None,
     )
     parser.add_argument(
         "--cc_markers_path",
         type=str,
-        help="Path for CC markers output (default: subject_dir/stats/cc_markers.json)",
+        help=f"Path for CC markers output (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_markers']})",
         default=None,
     )
     parser.add_argument(
         "--upright_lta_path",
         type=str,
-        help="Path for upright LTA transform (default: subject_dir/transforms/upright.lta)",
+        help=f"Path for upright LTA transform (default: subject_dir/{STANDARD_OUTPUT_PATHS['upright_lta']})",
         default=None,
     )
     parser.add_argument(
         "--orient_volume_lta_path",
         type=str,
-        help="Path for orientation volume LTA transform (default: subject_dir/transforms/orient_volume.lta)",
+        help="Path for orientation volume LTA transform "
+             f"(default: subject_dir/{STANDARD_OUTPUT_PATHS['orient_volume_lta']})",
         default=None,
     )
     parser.add_argument(
         "--orig_space_segmentation_path",
         type=str,
-        help="Path for segmentation in original space (default: subject_dir/mri/segmentation_orig_space.mgz)",
+        help="Path for segmentation in original space "
+             f"(default: subject_dir/{STANDARD_OUTPUT_PATHS['orig_space_segmentation']})",
         default=None,
     )
     parser.add_argument(
         "--debug_image_path",
         type=str,
-        help="Path for debug visualization image (default: subject_dir/qc_snapshots/cc_postprocessing.png)",
+        help=f"Path for debug visualization image (default: subject_dir/{STANDARD_OUTPUT_PATHS['debug_image']})",
         default=None,
     )
     parser.add_argument(
@@ -163,9 +164,52 @@ def options_parse() -> argparse.Namespace:
     parser.add_argument(
         "--thickness_image_path",
         type=str,
-        help="Path for thickness image (default: subject_dir/qc_snapshots/corpus_callosum_thickness_3d.png)",
+        help=f"Path for thickness image (default: subject_dir/{STANDARD_OUTPUT_PATHS['thickness_image']})",
         default=None,
     )
+    parser.add_argument(
+        "--surf_file_path",
+        type=str,
+        help=f"Path for surf file (default: subject_dir/{STANDARD_OUTPUT_PATHS['surf_file']})",
+        default=None,
+    )
+    parser.add_argument(
+        "--overlay_file_path",
+        type=str,
+        help=f"Path for overlay file (default: subject_dir/{STANDARD_OUTPUT_PATHS['overlay_file']})",
+        default=None,
+    )
+    parser.add_argument(
+        "--cc_html_path",
+        type=str,
+        help=f"Path for CC HTML file (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_html']})",
+        default=None,
+    )
+    parser.add_argument(
+        "--vtk_file_path",
+        type=str,
+        help=f"Path for vtk file (default: subject_dir/{STANDARD_OUTPUT_PATHS['vtk_file']})",
+        default=None,
+    )
+    parser.add_argument(
+        "--softlabels_cc_path",
+        type=str,
+        help=f"Path for cc softlabels (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_cc']})",
+        default=None,
+    )
+    parser.add_argument(
+        "--softlabels_fn_path",
+        type=str,
+        help=f"Path for fornix softlabels (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_fn']})",
+        default=None,
+    )
+    parser.add_argument(
+        "--softlabels_background_path",
+        type=str,
+        help=f"Path for background softlabels (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_background']})",
+        default=None,
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose (shows output paths)", default=False)
 
 
     args = parser.parse_args()
@@ -191,7 +235,7 @@ def options_parse() -> argparse.Namespace:
 
         # Set default output paths if not provided
         for key, value in STANDARD_OUTPUT_PATHS.items():
-            if not getattr(args, f"{key}_path"):
+            if not getattr(args, f"{key}_path") and value is not None:
                 setattr(args, f"{key}_path", str(subject_dir_path / value))
 
         # Set output_dir to subject_dir
@@ -262,7 +306,7 @@ def centroid_registration(aseg_nib, verbose=False):
     return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header
 
 
-def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localization, slices_to_analyze, verbose=False):
+def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localization, slices_to_analyze):
     """Localize anterior and posterior commissure points in the brain.
 
     Uses a trained model to detect AC and PC points in mid-sagittal slices,
@@ -275,15 +319,12 @@ def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localizati
         fsaverage_hires_affine (np.ndarray): High-resolution fsaverage affine matrix
         model_localization: Trained model for AC-PC detection
         slices_to_analyze (int): Number of slices to process
-        verbose (bool): Whether to print progress information
 
     Returns:
         tuple: Contains:
             - ac_coords (np.ndarray): Coordinates of the anterior commissure
             - pc_coords (np.ndarray): Coordinates of the posterior commissure
     """
-    if verbose:
-        print("Localization and segmentation inference")
 
     # get center of third ventricle from aseg and map to fsaverage space
     third_ventricle_mask = aseg_nib.get_fdata() == 4
@@ -373,10 +414,17 @@ def main(
     cc_markers_path: str | Path = None,
     upright_lta_path: str | Path = None,
     orient_volume_lta_path: str | Path = None,
+    surf_file_path: str | Path = None,
+    overlay_file_path: str | Path = None,
+    cc_html_path: str | Path = None,
+    vtk_file_path: str | Path = None,
     orig_space_segmentation_path: str | Path = None,
     debug_image_path: str | Path = None,
     save_template: str | Path | None = None,
     thickness_image_path: str | Path = None,
+    softlabels_cc_path: str | Path = None,
+    softlabels_fn_path: str | Path = None,
+    softlabels_background_path: str | Path = None,
     cpu: bool = False,
 ) -> None:
     """Main pipeline function for corpus callosum analysis.
@@ -412,6 +460,13 @@ def main(
         save_template: Directory path where to save contours.txt and thickness_values.txt files
         thickness_image_path: Path for thickness image 
             (default: output_dir/qc_snapshots/corpus_callosum_thickness_3d.png)
+        surf_file_path: Path for surf file (default: output_dir/surf/callosum.surf)
+        overlay_file_path: Path for overlay file (default: output_dir/mri/callosum_seg_aseg_space.mgz)
+        cc_html_path: Path for CC HTML file (default: output_dir/qc_snapshots/corpus_callosum.html)
+        vtk_file_path: Path for vtk file (default: output_dir/qc_snapshots/callosum_mesh.vtk)
+        softlabels_cc_path: Path for cc softlabels (default: output_dir/mri/callosum_seg_soft.mgz)
+        softlabels_fn_path: Path for fornix softlabels (default: output_dir/mri/fornix_seg_soft.mgz)
+        softlabels_background_path: Path for background softlabels (default: output_dir/mri/background_seg_soft.mgz)
         cpu: Force CPU usage even when CUDA is available
 
     The function saves multiple outputs to specified paths or default locations in output_dir:
@@ -426,6 +481,15 @@ def main(
     if subdivisions is None:
         subdivisions = [1 / 6, 1 / 2, 2 / 3, 3 / 4]
 
+    # Set up logging if verbose mode is enabled
+    if verbose:
+        logging.setup_logging(None)  # Log to stdout only
+    
+    logger.info("Starting corpus callosum analysis pipeline")
+    logger.info(f"Input MRI: {in_mri_path}")
+    logger.info(f"Input segmentation: {aseg_path}")
+    logger.info(f"Output directory: {output_dir}")
+    
     # Convert all paths to Path objects
     in_mri_path = Path(in_mri_path)
     aseg_path = Path(aseg_path)
@@ -450,33 +514,39 @@ def main(
         slices_to_analyze += 1
 
     if verbose:
-        print(
+        logger.info(
             f"Segmenting {slices_to_analyze} slices (5 mm width at {orig.header.get_zooms()[0]} mm resolution, "
             "center around the mid-sagittal plane)"
         )
 
     if not is_conform(orig):
-        print("Error: MRI is not conformed, please run conform.py or mri_convert to conform the image.")
+        logger.error("Error: MRI is not conformed, please run conform.py or mri_convert to conform the image.")
         exit(1)
 
     # load models
     device = torch.device("cuda" if torch.cuda.is_available() and not cpu else "cpu")
+    logger.info(f"Using device: {device}")
+    
+    logger.info("Loading localization model")
     model_localization = localization_inference.load_model(
         str(Path(WEIGHTS_PATH) / "localization_weights_acpc.pth"), device=device
     )
+    logger.info("Loading segmentation model")
     model_segmentation = segmentation_inference.load_model(
         str(Path(WEIGHTS_PATH) / "segmentation_weights_cc_fn.pth"), device=device
     )
 
     aseg_nib = nib.load(aseg_path)
 
+    logger.info("Performing centroid registration to fsaverage space")
     orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header = centroid_registration(
-        aseg_nib, verbose
+        aseg_nib, verbose=False
     )
 
     if verbose:
-        print("Interpolating midplane")
+        logger.info("Interpolating midplane")
 
+    logger.info("Interpolating midplane slices")
     # this is a fast interpolation to not block the main thread
     midslices = interpolate_midplane(orig, orig_fsaverage_vox2vox, slices_to_analyze)
 
@@ -495,12 +565,36 @@ def main(
     )
 
     #### do localization and segmentation inference
+    logger.info("Starting AC/PC localization")
     ac_coords, pc_coords = localize_ac_pc(
-        midslices, aseg_nib, orig_fsaverage_vox2vox, model_localization, slices_to_analyze, verbose
+        midslices, aseg_nib, orig_fsaverage_vox2vox, model_localization, slices_to_analyze
     )
+    logger.info("Starting corpus callosum segmentation")
     segmentation, outputs_soft = segment_cc(
         midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, slices_to_analyze
     )
+
+
+    # calculate affine for segmentation volume
+    orig_to_seg = np.eye(4)
+    orig_to_seg[0, 3] = -FSAVERAGE_MIDDLE + slices_to_analyze // 2
+    seg_affine = fsaverage_hires_affine
+    seg_affine = seg_affine @ np.linalg.inv(orig_to_seg)
+
+    # save softlabels
+    if softlabels_background_path is not None:
+        if verbose:
+            logger.info(f"Saving background softlabels to {softlabels_background_path}")
+        save_nifti_background(IO_processes, outputs_soft[..., 0], seg_affine, orig.header, softlabels_background_path)
+    if softlabels_cc_path is not None:
+        if verbose:
+            logger.info(f"Saving cc softlabels to {softlabels_cc_path}")
+        save_nifti_background(IO_processes, outputs_soft[..., 1], seg_affine, orig.header, softlabels_cc_path)
+    if softlabels_fn_path is not None:
+        if verbose:
+            logger.info(f"Saving fornix softlabels to {softlabels_fn_path}")
+        save_nifti_background(IO_processes, outputs_soft[..., 2], seg_affine, orig.header, softlabels_fn_path)
+    
 
     # map soft labels to original space (in parallel because this takes a while)
     IO_processes.append(
@@ -520,6 +614,7 @@ def main(
     temp_seg_affine = fsaverage_hires_affine @ np.linalg.inv(np.eye(4))
 
     # Process slices based on selection mode
+    logger.info(f"Processing slices with selection mode: {slice_selection}")
     slice_results, slice_io_processes = process_slices(
         segmentation=segmentation,
         slice_selection=slice_selection,
@@ -533,6 +628,11 @@ def main(
         contour_smoothing=contour_smoothing,
         output_dir=output_dir,
         debug_image_path=debug_image_path,
+        surf_file_path=surf_file_path,
+        overlay_file_path=overlay_file_path,
+        cc_html_path=cc_html_path,
+        vtk_file_path=vtk_file_path,
+        thickness_image_path=thickness_image_path,
         vox_size=orig.header.get_zooms()[0],
         verbose=verbose,
         save_template=save_template,
@@ -575,7 +675,7 @@ def main(
         json.dump(per_slice_output_dict, f, indent=4)
 
     if verbose:
-        print(f"Multiple slice post-processing results saved to {postproc_results_path}")
+        logger.info(f"Multiple slice post-processing results saved to {postproc_results_path}")
 
     ########## Save outputs ##########
 
@@ -640,11 +740,7 @@ def main(
         get_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig_fsaverage_vox2vox, output_dir)
     )
 
-    # save segmentation with fitting affine
-    orig_to_seg = np.eye(4)
-    orig_to_seg[0, 3] = -FSAVERAGE_MIDDLE + slices_to_analyze // 2
-    seg_affine = fsaverage_hires_affine
-    seg_affine = seg_affine @ np.linalg.inv(orig_to_seg)
+    
     save_nifti_background(IO_processes, segmentation, seg_affine, orig.header, segmentation_path)
 
     # write output dict as csv
@@ -660,16 +756,19 @@ def main(
     # Convert numpy arrays to lists for JSON serialization
     output_dict = convert_numpy_to_json_serializable(output_dict)
 
+    logger.info(f"Saving CC markers to {cc_markers_path}")
     with open(cc_markers_path, "w") as f:
         json.dump(output_dict, f, indent=4)
 
     # save lta to fsaverage space
+    logger.info(f"Saving LTA to fsaverage space: {upright_lta_path}")
     lta.writeLTA(upright_lta_path, orig_fsaverage_ras2ras, aseg_path, aseg_nib.header, "fsaverage", fsaverage_header)
 
     # save lta to standardized space (fsaverage + nodding + ac to center)
     orig_to_standardized_ras2ras = (
         orig.affine @ np.linalg.inv(standardized_to_orig_vox2vox) @ np.linalg.inv(orig.affine)
     )
+    logger.info(f"Saving LTA to standardized space: {orient_volume_lta_path}")
     lta.writeLTA(
         orient_volume_lta_path, orig_to_standardized_ras2ras, in_mri_path, orig.header, in_mri_path, orig.header
     )
@@ -677,6 +776,8 @@ def main(
     for process in IO_processes:
         if process is not None:
             process.join()
+    
+    logger.info("CorpusCallosum analysis pipeline completed successfully")
 
 
 if __name__ == "__main__":

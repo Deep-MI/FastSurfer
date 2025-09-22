@@ -3,6 +3,10 @@ import multiprocessing
 import nibabel as nib
 import numpy as np
 
+import FastSurferCNN.utils.logging as logging
+
+logger = logging.get_logger(__name__)
+
 
 def run_in_background(function, debug=False, *args, **kwargs):
     """Run a function in the background using multiprocessing.
@@ -102,6 +106,7 @@ def save_nifti_background(io_processes, data, affine, header, filepath):
         header: NIfTI header object containing metadata
         filepath (str): Path where the image should be saved
     """
+    logger.info(f"Saving NIfTI image to {filepath}")
     io_processes.append(run_in_background(nib.save, False, 
                                         nib.MGHImage(data, affine, header), filepath))
 

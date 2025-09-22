@@ -13,9 +13,14 @@ from shape.cc_subsegment_contour import (
 )
 from shape.cc_thickness import cc_thickness, convert_to_ras
 
+import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.data.read_write import run_in_background
+from CorpusCallosum.utils.utils import HiddenPrints
 from CorpusCallosum.visualization.visualization import plot_contours
+
+logger = logging.get_logger(__name__)
+
 
 # assert LIA orientation
 LIA_ORIENTATION = np.zeros((3,3))
@@ -40,16 +45,29 @@ def create_visualization(subdivision_method, result, midslices_data, output_imag
     Returns:
         Process object for background execution
     """
-    title = f'CC Subsegmentation: {subdivision_method}{title_suffix}'
-    
+    title = f'CC Subsegmentation by {subdivision_method} {title_suffix}'
+
+    args_dict = {
+        'debug': False,
+        'transformed': midslices_data,
+        'split_contours': None,
+        'split_contours_hofer_frahm': None,
+        'midline_equidistant': result['midline_equidistant'],
+        'levelpaths': result['levelpaths'],
+        'output_path': output_image_path,
+        'ac_coords': ac_coords,
+        'pc_coords': pc_coords,
+        'vox_size': vox_size,
+        'title': title,
+    }
+
     if subdivision_method == "shape":
-        return run_in_background(plot_contours, False, midslices_data, 
-                                result['split_contours'], None, result['midline_equidistant'], result['levelpaths'], 
-                                output_image_path, ac_coords, pc_coords, vox_size, title)
+        args_dict['split_contours'] = result['split_contours']
     else:
-        return run_in_background(plot_contours, False, midslices_data, 
-                                None, result['split_contours_hofer_frahm'], result['midline_equidistant'], 
-                                result['levelpaths'], output_image_path, ac_coords, pc_coords, vox_size, title)
+        args_dict['split_contours_hofer_frahm'] = result['split_contours_hofer_frahm']
+
+    return run_in_background(plot_contours, **args_dict)
+
 
 
 def create_slice_affine(temp_seg_affine, slice_idx, fsaverage_middle):
@@ -93,7 +111,6 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
         subdivision_method (str): Method for contour subdivision ('shape', 'vertical', 
             'angular', or 'eigenvector')
         contour_smoothing (float): Gaussian sigma for contour smoothing
-        verbose (bool): Whether to print progress information
         
     Returns:
         dict or None: Dictionary containing measurements if successful, including:
@@ -159,7 +176,7 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
         split_contours_hofer_frahm = split_contours.copy()
     elif subdivision_method == "angular":
         if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
-            print('Error: Angular subdivision method (Hampel) only supports equidistant subdivision, '
+            logger.error('Error: Angular subdivision method (Hampel) only supports equidistant subdivision, '
                   f'but got: {subdivisions}')
             return None
         areas, split_contours = hampel_subdivide_contour(contour_acpc, num_rays=len(subdivisions), plot=False)       
@@ -202,8 +219,9 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
 
 def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
                   num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
-                  output_dir, debug_image_path=None, thickness_image_path=None, vox_size=None, verbose=False, 
-                  save_template=None):
+                  output_dir, debug_image_path=None, thickness_image_path=None, vox_size=None, 
+                  save_template=None, surf_file_path=None, overlay_file_path=None, cc_html_path=None, 
+                  vtk_file_path=None, verbose=False):
     """Process corpus callosum slices based on selection mode.
     
     Handles the processing of either a single middle slice, all slices, or a specific slice,
@@ -242,26 +260,32 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         slice_idx = segmentation.shape[0] // 2
         slice_affine = create_slice_affine(temp_seg_affine, slice_idx, FSAVERAGE_MIDDLE)
         
-        result, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx = process_slice(segmentation, 
-                                                                                                      slice_idx, 
-                                                                                                      ac_coords, 
-                                                                                                      pc_coords, 
-                                                                                                      slice_affine, 
-                             num_thickness_points, subdivisions, subdivision_method, contour_smoothing)
+        (result, contour_with_thickness, 
+         anterior_endpoint_idx, posterior_endpoint_idx) = process_slice(segmentation, 
+                                                                        slice_idx, 
+                                                                        ac_coords, 
+                                                                        pc_coords, 
+                                                                        slice_affine, 
+                                                                        num_thickness_points, 
+                                                                        subdivisions, 
+                                                                        subdivision_method, 
+                                                                        contour_smoothing)
         
         cc_mesh.add_contour(0, 
                             contour_with_thickness[0], 
                             contour_with_thickness[1], 
                             start_end_idx=(anterior_endpoint_idx, posterior_endpoint_idx))
 
-        if result is not None:
+        if result is not None and debug_image_path is not None:
             slice_results.append(result)
             # Create visualization
+            if verbose:
+                logger.info(f"Saving segmentation qc image to {debug_image_path}")
             IO_processes.append(create_visualization(subdivision_method, result, midslices, 
                                                    debug_image_path, ac_coords, pc_coords, vox_size))
     else:
-
-        cc_mesh = CC_Mesh(num_slices=segmentation.shape[0])
+        num_slices = segmentation.shape[0]
+        cc_mesh = CC_Mesh(num_slices=num_slices)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
         cc_mesh.set_resolution(1) # contour is always scaled to 1 mm
 
@@ -276,7 +300,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         
         for slice_idx in range(start_slice, end_slice):
             if verbose:
-                print(f"Calculating CC measurements for slice {slice_idx+1} of {end_slice-start_slice}")
+                logger.info(f"Calculating CC measurements for slice {slice_idx+1} of {end_slice-start_slice}")
             
             # Update affine for this slice
             slice_affine = create_slice_affine(temp_seg_affine, slice_idx, FSAVERAGE_MIDDLE)
@@ -297,40 +321,69 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
 
             if result is not None:
                 slice_results.append(result)
+            
+                debug_path_base, debug_path_ext = str(debug_image_path).rsplit('.', 1)
+                debug_path_with_postfix = f"{debug_path_base}_slice_{slice_idx}"
+                debug_output_path_slice = Path(f"{debug_path_with_postfix}.{debug_path_ext}").with_suffix('.png')
                 
-                # For single slice mode, save to main directory
-                if slice_selection != "all":
-                    output_subdir = output_dir
-                else:
-                    # For all slices mode, create per-slice directory
-                    output_subdir = output_dir / f'slice_{slice_idx}'
-                    output_subdir.mkdir(exist_ok=True)
-                
+                if verbose:
+                    logger.info(f"Saving segmentation qc image to {debug_output_path_slice}")
+
+                current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
                 # Create visualization for this slice
-                IO_processes.append(create_visualization(subdivision_method, result, midslices[slice_idx:slice_idx+1], 
-                                                         output_subdir, ac_coords, pc_coords, 
+                IO_processes.append(create_visualization(subdivision_method, result, 
+                                                         midslices[current_slice_in_volume:current_slice_in_volume+1], 
+                                                         debug_output_path_slice, ac_coords, pc_coords, 
                                                          vox_size, f' (Slice {slice_idx})'))
 
     if save_template is not None:
         # Convert to Path object and ensure directory exists
         template_dir = Path(save_template)
         template_dir.mkdir(parents=True, exist_ok=True)
+        if verbose:
+            logger.info("Saving template files (contours.txt, thickness_values.txt, "
+                        f"thickness_measurement_points.txt) to {template_dir}")
         cc_mesh.save_contours(str(template_dir / 'contours.txt'))
         cc_mesh.save_thickness_values(str(template_dir / 'thickness_values.txt'))
         cc_mesh.save_thickness_measurement_points(str(template_dir / 'thickness_measurement_points.txt'))
 
 
-    if len(cc_mesh.contours) > 1:
+    if len(cc_mesh.contours) > 1 and thickness_image_path is not None:
         cc_mesh.fill_thickness_values()
         cc_mesh.create_mesh()
         cc_mesh.smooth_(1)
-        cc_mesh.plot_mesh()
+        cc_mesh.plot_mesh(output_path=cc_html_path)
+
+        if vtk_file_path is not None:
+            if verbose: 
+                logger.info(f"Saving vtk file to {vtk_file_path}")
+            cc_mesh.write_vtk(str(vtk_file_path))
         #cc_mesh.write_vtk(str(output_dir / 'cc_mesh.vtk'))
-        cc_mesh.snap_cc_picture(str(output_dir / thickness_image_path))
+        
+        
+        cc_mesh.to_fs_coordinates()
+
+        if overlay_file_path is not None:
+            if verbose: 
+                logger.info(f"Saving overlay file to {overlay_file_path}")
+            cc_mesh.write_overlay(str(overlay_file_path))
+
+        if surf_file_path is not None:
+            if verbose: 
+                logger.info(f"Saving surf file to {surf_file_path}")
+            cc_mesh.write_fssurf(str(surf_file_path))
+
+        
+
+        if thickness_image_path is not None:
+            if verbose: 
+                logger.info(f"Saving thickness image to {thickness_image_path}")
+            with HiddenPrints():
+                cc_mesh.snap_cc_picture(str(output_dir / thickness_image_path))
         
     
     if not slice_results:
-        print("Error: No valid slices were found for postprocessing")
+        logger.error("Error: No valid slices were found for postprocessing")
         exit(1)
         
     return slice_results, IO_processes
