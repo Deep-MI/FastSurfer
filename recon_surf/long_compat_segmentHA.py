@@ -131,6 +131,8 @@ def run(command: list[str], *args, **kwargs) -> CompletedProcess:
     if _executable is None:
         raise FastSurferCompatError(f"Could not find the FreeSurfer executable {executable}.")
 
+    print((args, kwargs))
+
     return _run([_executable, *arguments], *args, **kwargs)
 
 
@@ -173,7 +175,7 @@ def make_parser() -> argparse.ArgumentParser:
     # Optional arguments
     parser.add_argument("--threads", type=int_gt_zero, default=1,
                         help="Set openMP and ITK threads to <int>.")
-    parser.add_argument("--fs_license", dest="fs_license", type=validate_existing_file,
+    parser.add_argument("--fs_license", dest="fs_license", type=validate_existing_file, default=Path("."),
                         help="Path to FreeSurfer license key file.")
     parser.add_argument("--version", action="version", version=f"long_compat_segmentHA: {VERSION}")
 
@@ -247,7 +249,13 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         env = dict(os.environ)
         env["OMP_NUM_THREADS"] = str(threads)
         env["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = str(threads)
-        env["FS_LICENSE"] = str(fs_license)
+
+        if Path(".") != fs_license:
+            env["FS_LICENSE"] = str(fs_license)
+        elif env.get("FS_LICENSE", None) and not Path(env["FS_LICENSE"]).exists():
+            raise FastSurferCompatError("No valid --fs_license passed, but environment FS_LICENSE does not exist!")
+        # else FS_LICENSE will default to automatic search
+
         env["SUBJECTS_DIR"] = str(subjects_dir)
         if env["FREESURFER_HOME"] not in env["PATH"]:
             env["PATH"] = env["FREESURFER_HOME"] + "/bin:" + env["PATH"]
@@ -256,15 +264,13 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         tpfile = subject_dir / "base-tps.fastsurfer"
         print("Copying/symlinking timepoints...")
         with open(subject_dir / tpfile) as f:
-            for line in f.readlines():
-                source = line.strip()
-                if source:
-                    target = f"{source}.long.{subject}"
-                    if not (subjects_dir / source).exists():
-                        raise FastSurferCompatError(f"The longitudinal processing {source} could not be found!")
+            for long_id in filter(lambda x: bool(x), map(str.strip, f.readlines())):
+                target = f"{long_id}.long.{subject}"
+                if not (subjects_dir / long_id).exists():
+                    raise FastSurferCompatError(f"The longitudinal processing {long_id} could not be found!")
 
-                    softlink_or_copy(source, subjects_dir / target)
-                    print(f"Created link: {source} -> {target}")
+                softlink_or_copy(long_id, subjects_dir / target)
+                print(f"Created link: {long_id} -> {target}")
 
         # Setup variables
         mdir = subject_dir / "mri"
