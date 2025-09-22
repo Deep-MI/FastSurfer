@@ -15,6 +15,10 @@ import nibabel as nib
 import numpy as np
 from read_write import convert_numpy_to_json_serializable, get_centroids_from_nib
 
+import FastSurferCNN.utils.logging as logging
+
+logger = logging.get_logger(__name__)
+
 
 def main():
     """Generate and save fsaverage centroids to a static file."""
@@ -52,6 +56,7 @@ def main():
     
     # Save centroids to JSON file
     centroids_output_path = Path(__file__).parent / "fsaverage_centroids.json"
+    logger.info(f"Saving fsaverage centroids to {centroids_output_path}")
     with open(centroids_output_path, 'w') as f:
         json.dump(centroids_serializable, f, indent=2)
     
@@ -92,6 +97,7 @@ def main():
     
     # Save combined data to JSON file
     combined_output_path = Path(__file__).parent / "fsaverage_data.json"
+    logger.info(f"Saving fsaverage affine and header data to {combined_output_path}")
     with open(combined_output_path, 'w') as f:
         json.dump(combined_data_serializable, f, indent=2)
     

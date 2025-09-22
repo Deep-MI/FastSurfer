@@ -2,6 +2,10 @@ import nibabel as nib
 import numpy as np
 from scipy.ndimage import affine_transform
 
+import FastSurferCNN.utils.logging as logging
+
+logger = logging.get_logger(__name__)
+
 
 def make_midplane_affine(orig_affine, slices_to_analyze=1, offset=4):
     """
@@ -190,6 +194,7 @@ def apply_transform_and_map_volume(
         order=order,
     )
     if output_path is not None:
+        logger.info(f"Saving transformed volume to {output_path}")
         nib.save(nib.MGHImage(transformed, affine, header), output_path)
     return transformed
 
@@ -280,6 +285,7 @@ def map_softlabels_to_orig(
     )
 
     if orig_space_segmentation_path is not None:
+        logger.info(f"Saving segmentation in original space to {orig_space_segmentation_path}")
         nib.save(
             nib.MGHImage(segmentation_orig_space, orig.affine, orig.header),
             orig_space_segmentation_path,

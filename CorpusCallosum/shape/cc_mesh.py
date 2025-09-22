@@ -13,6 +13,10 @@ from scipy.ndimage import gaussian_filter1d
 from shape.cc_thickness import HiddenPrints, make_mesh_from_contour
 from whippersnappy.core import snap1
 
+import FastSurferCNN.utils.logging as logging
+
+logger = logging.get_logger(__name__)
+
 
 class CC_Mesh(lapy.TriaMesh):
     """A class for representing and manipulating corpus callosum (CC) meshes.
@@ -1114,6 +1118,7 @@ class CC_Mesh(lapy.TriaMesh):
         Args:
             output_path (str): Path where to save the CSV file.
         """
+        logger.info(f"Saving contours to CSV file: {output_path}")
         with open(output_path, "w") as f:
             # Write header
             f.write("slice_idx,x,y\n")
@@ -1185,6 +1190,7 @@ class CC_Mesh(lapy.TriaMesh):
         Args:
             output_path (str): Path where to save the CSV file.
         """
+        logger.info(f"Saving thickness data to CSV file: {output_path}")
         with open(output_path, "w") as f:
             # Write header
             f.write("slice_idx,thickness\n")
@@ -1315,6 +1321,7 @@ class CC_Mesh(lapy.TriaMesh):
         Args:
             filename (str): Path where to save the CSV file.
         """
+        logger.info(f"Saving thickness measurement points to CSV file: {filename}")
         with open(filename, "w") as f:
             f.write("slice_idx,vertex_idx\n")
             for slice_idx, vertex_indices in enumerate(self.original_thickness_vertices):

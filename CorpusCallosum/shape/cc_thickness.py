@@ -1,21 +1,10 @@
-import os
-import sys
-
 import meshpy.triangle as triangle
 import numpy as np
 import scipy.interpolate
 from lapy import Solver, TriaMesh
 from lapy.diffgeo import compute_rotated_f
 
-
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, "w")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
+from CorpusCallosum.utils.utils import HiddenPrints
 
 
 def compute_curvature(path):

@@ -127,7 +127,7 @@ def plot_contours(
     if split_contours_hofer_frahm is not None:
         NO_PLOTS += 1
 
-    fig, ax = plt.subplots(1, NO_PLOTS, sharex=True, sharey=True, figsize=(15, 10))
+    _, ax = plt.subplots(1, NO_PLOTS, sharex=True, sharey=True, figsize=(15, 10))
 
     PLT_NUM = 0
 
