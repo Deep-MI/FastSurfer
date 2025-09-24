@@ -14,7 +14,7 @@ from shape.cc_subsegment_contour import (
 from shape.cc_thickness import cc_thickness, convert_to_ras
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, SUBSEGEMNT_LABELS
 from CorpusCallosum.data.read_write import run_in_background
 from CorpusCallosum.utils.utils import HiddenPrints
 from CorpusCallosum.visualization.visualization import plot_contours
@@ -219,7 +219,7 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
 
 def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
                   num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
-                  output_dir, debug_image_path=None, thickness_image_path=None, vox_size=None, 
+                  debug_image_path=None, thickness_image_path=None, vox_size=None, 
                   save_template=None, surf_file_path=None, overlay_file_path=None, cc_html_path=None, 
                   vtk_file_path=None, verbose=False):
     """Process corpus callosum slices based on selection mode.
@@ -238,7 +238,6 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         subdivisions (list[float]): List of fractions for anatomical subdivisions
         subdivision_method (str): Method for contour subdivision
         contour_smoothing (float): Gaussian sigma for contour smoothing
-        output_dir (str): Base output directory
         debug_image_path (str, optional): Path for debug visualization image
         verbose (bool): Whether to print progress information
         save_template (str | Path | None): Directory path where to save template files, or None to skip saving
@@ -254,7 +253,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
     if slice_selection == "middle":
         cc_mesh = CC_Mesh(num_slices=1)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(1) # contour is always scaled to 1 mm
+        cc_mesh.set_resolution(vox_size) # contour is always scaled to 1 mm
 
         # Process only the middle slice
         slice_idx = segmentation.shape[0] // 2
@@ -287,7 +286,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         num_slices = segmentation.shape[0]
         cc_mesh = CC_Mesh(num_slices=num_slices)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(1) # contour is always scaled to 1 mm
+        cc_mesh.set_resolution(vox_size) # contour is always scaled to 1 mm
 
         # Process multiple slices or specific slice
         if slice_selection == "all":
@@ -379,7 +378,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
             if verbose: 
                 logger.info(f"Saving thickness image to {thickness_image_path}")
             with HiddenPrints():
-                cc_mesh.snap_cc_picture(str(output_dir / thickness_image_path))
+                cc_mesh.snap_cc_picture(str(thickness_image_path))
         
     
     if not slice_results:
@@ -387,3 +386,170 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         exit(1)
         
     return slice_results, IO_processes
+
+
+
+
+def vectorized_line_test(coords_x, coords_y, line_start, line_end):
+    """Vectorized version of point_relative_to_line for arrays of points.
+    
+    Args:
+        coords_x (np.ndarray): Array of x coordinates
+        coords_y (np.ndarray): Array of y coordinates  
+        line_start (array-like): [x, y] coordinates of line start point
+        line_end (array-like): [x, y] coordinates of line end point
+        
+    Returns:
+        np.ndarray: Boolean array where True means point is to the left of the line
+    """
+    # Vector from line_start to line_end
+    line_vec = np.array(line_end) - np.array(line_start)
+    
+    # Vectors from line_start to all points (vectorized)
+    point_vec_x = coords_x - line_start[0]
+    point_vec_y = coords_y - line_start[1]
+    
+    # Cross product (vectorized): positive means point is to the left of the line
+    cross_products = line_vec[0] * point_vec_y - line_vec[1] * point_vec_x
+    
+    return cross_products > 0
+
+
+
+
+def get_unique_contour_points(split_contours):
+    """Get unique contour points from the split contours.
+    This is a workaround to retrospectively add voxel-based sub-division
+    in the future we could keep track of the sub-division lines for
+    every sub-division scheme.
+
+    Args:
+        split_contours (list): List of split contours (subsegmentations)
+
+    Returns:
+        list: List of unique contour points
+    
+    """
+    # For each contour point, check if it appears in other contours
+    unique_contour_points = []
+    
+    for i, contour in enumerate(split_contours):
+        # Get points for this contour
+        contour_points = np.vstack((contour[0], -contour[1])).T  # Shape: (N,2)
+        
+        # Check each point against all other contours
+        unique_points = []
+        for point in contour_points:
+            is_unique = True
+            
+            # Compare against other contours
+            for j, other_contour in enumerate(split_contours):
+                if i == j:
+                    continue
+                    
+                other_points = np.vstack((other_contour[0], -other_contour[1])).T
+                
+                # Check if point exists in other contour (with small tolerance)
+                if np.any(np.all(np.abs(other_points - point) < 1e-6, axis=1)):
+                    is_unique = False
+                    break
+                    
+            if is_unique:
+                unique_points.append(point)
+                
+        unique_contour_points.append(np.array(unique_points))
+
+    return unique_contour_points
+
+
+def make_subdivision_mask(slice_shape, split_contours):
+    """Create a mask for subdividing the corpus callosum based on split contours.
+
+    This function creates a mask that assigns different labels to different segments of the corpus callosum
+    based on the subdivision lines defined by the split contours. Each segment is labeled with a value from
+    SUBSEGEMNT_LABELS.
+
+    Args:
+        slice_shape (tuple): Shape of the slice (rows, cols)
+        split_contours (list): List of contours defining the subdivisions. 
+            Each contour is a tuple of x and y coordinates.
+
+    Returns:
+        ndarray: A mask of shape slice_shape where each pixel is labeled with a value from SUBSEGEMNT_LABELS
+                indicating which subdivision segment it belongs to.
+    """
+
+    # unique contour points are the points where sub-division lines were inserted
+    unique_contour_points = get_unique_contour_points(split_contours)
+    subdivision_segments = unique_contour_points[1:]
+
+    for s in subdivision_segments:
+        if len(s) != 2:
+            logger.error(f'Subdivision segment {s} has {len(s)} points, expected 2')
+ 
+    # Create coordinate grids for all points in the slice
+    rows, cols = slice_shape
+    y_coords, x_coords = np.mgrid[0:rows, 0:cols]
+    
+    # Initialize with first segment label
+    subdivision_mask = np.full(slice_shape, SUBSEGEMNT_LABELS[0], dtype=np.int32)
+    
+    # Process each subdivision line
+    for segment_idx, segment_points in enumerate(subdivision_segments):
+        line_start = segment_points[0]
+        line_end = segment_points[-1]
+        
+        # Vectorized test: find all points to the right of this line
+        points_right_of_line = vectorized_line_test(x_coords, y_coords, line_start, line_end)
+        
+        # All points to the right of this line belong to the next segment or beyond
+        subdivision_mask[points_right_of_line] = SUBSEGEMNT_LABELS[segment_idx + 1]
+        
+        # Debug visualization (optional)
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(figsize=(10, 8))
+        # ax.imshow(subdivision_mask, cmap='tab10')
+        # ax.plot([line_start[0], line_end[0]], [line_start[1], line_end[1]], 'r-', linewidth=2)
+        # ax.set_title(f'After subdivision line {segment_idx}')
+        # plt.show()
+
+    return subdivision_mask
+
+
+def check_area_changes(contours: list[np.ndarray], threshold: float = 0.3, verbose: bool = False) -> None:
+    """Check for large changes between consecutive CC areas and issue warnings.
+    
+    This function checks if any two consecutive areas have a change greater than
+    the specified threshold (default 30%) and issues a warning if they do.
+    
+    Args:
+        contours (list[np.ndarray]): List of contours
+        threshold (float, optional): Threshold for relative change. Defaults to 0.3 (30%).
+    """
+
+    areas = [np.sum(np.sqrt(np.sum((np.diff(contour, axis=0))**2, axis=1))) for contour in contours]
+
+    assert len(areas) > 1, "At least two areas are required to check for area changes"
+    
+    for i in range(len(areas) - 1):
+        if areas[i] == 0 and areas[i+1] == 0:
+            continue  # Skip if both areas are zero
+        
+        if areas[i] == 0 or areas[i+1] == 0:
+            # One area is zero, the other is not - this is a 100% change
+            if verbose:
+                logger.warning(f"Large area change detected: area {i+1} = {areas[i]:.2f} mm², "
+                               f"area {i+2} = {areas[i+1]:.2f} mm² (one area is zero)")
+            return False
+        
+        # Calculate relative change
+        relative_change = abs(areas[i+1] - areas[i]) / areas[i]
+        
+        if relative_change > threshold:
+            percent_change = relative_change * 100
+            if verbose:
+                logger.warning(f"Large corpus callosum area change between slices detected: "
+                               f"area {i+1} = {areas[i]:.2f} mm², "
+                               f"area {i+2} = {areas[i+1]:.2f} mm² ({percent_change:.1f}% change)")
+            return False
+    return True

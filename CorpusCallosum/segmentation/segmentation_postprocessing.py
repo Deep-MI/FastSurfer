@@ -1,8 +1,13 @@
 import numpy as np
-from scipy import ndimage
+from scipy import integrate, ndimage
 from skimage.measure import label
 
+import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
+
+logger = logging.get_logger(__name__)
+
+
 
 
 def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[float, float, float]) -> float:
@@ -57,7 +62,80 @@ def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[
     else:
         raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
 
-
+def get_cc_volume_simpsons(desired_width_mm: int, cc_contours: list[np.ndarray], 
+                           voxel_size: tuple[float, float, float]) -> float:
+    """Calculate the volume of the corpus callosum in cubic millimeters using Simpson's rule.
+    
+    This function calculates the volume of the corpus callosum (CC) in cubic millimeters using Simpson's rule.
+    If the CC width is larger than desired_width_mm, the voxels on the edges are calculated as
+    partial volumes to achieve the desired width.
+    
+    Args:
+        desired_width_mm (int): Desired width of the CC in millimeters
+        cc_contours (list[np.ndarray]): List of CC contours for each slice in the left-right direction
+        voxel_size (tuple[float, float, float]): Voxel size in millimeters (x, y, z)
+        
+    Returns:
+        float: Volume of the CC in cubic millimeters
+        
+    Raises:
+        ValueError: If CC width is smaller than desired width or insufficient contours for Simpson's rule
+    """
+    if len(cc_contours) < 3:
+        raise ValueError("Need at least 3 contours for Simpson's rule integration")
+    
+    # Calculate cross-sectional areas for each contour
+    areas = []
+    for contour in cc_contours:
+        # Calculate area using the shoelace formula for polygon area
+        if contour.shape[1] < 3:
+            areas.append(0.0)
+        else:
+            x = contour[0]
+            y = contour[1]
+            # Shoelace formula: A = 0.5 * |sum(x_i * y_{i+1} - x_{i+1} * y_i)|
+            area = 0.5 * np.abs(np.sum(x[:-1] * y[1:] - x[1:] * y[:-1]))
+            # Convert from voxel^2 to mm^2
+            area_mm2 = area * voxel_size[1] * voxel_size[2]  # y * z voxel dimensions
+            areas.append(area_mm2)
+    
+    areas = np.array(areas)
+    
+    # Calculate spacing between slices (left-right direction)
+    lr_spacing = voxel_size[0]  # x-direction voxel size
+    
+    # Get current width in mm
+    current_width_mm = len(cc_contours) * lr_spacing
+    
+    if current_width_mm == desired_width_mm:
+        # Use Simpson's rule directly
+        return integrate.simpson(areas, dx=lr_spacing)
+    elif current_width_mm > desired_width_mm:
+        # Handle partial volumes at edges
+        desired_width_vox = desired_width_mm / lr_spacing
+        fraction_of_voxel_at_edge = (desired_width_vox % 1) / 2
+        
+        if fraction_of_voxel_at_edge > 0:
+            # Apply partial volume correction to edge areas
+            areas_corrected = areas.copy()
+            areas_corrected[0] *= fraction_of_voxel_at_edge
+            areas_corrected[-1] *= fraction_of_voxel_at_edge
+            
+            # Use Simpson's rule with corrected areas
+            return integrate.simps(areas_corrected, dx=lr_spacing)
+        else:
+            # No partial volumes needed, truncate to desired width
+            desired_slices = int(desired_width_vox)
+            if desired_slices % 2 == 0:
+                desired_slices += 1  # Ensure odd number for Simpson's rule
+            
+            start_idx = (len(areas) - desired_slices) // 2
+            end_idx = start_idx + desired_slices
+            truncated_areas = areas[start_idx:end_idx]
+            
+            return integrate.simps(truncated_areas, dx=lr_spacing)
+    else:
+        raise ValueError(f"Width of CC segmentation is smaller than desired width: {current_width_mm} < {desired_width_mm}")
 
 def get_largest_cc(seg_arr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Get largest connected component from a binary segmentation array.
