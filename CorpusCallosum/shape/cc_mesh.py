@@ -389,6 +389,7 @@ class CC_Mesh(lapy.TriaMesh):
         )
 
         if output_path is not None:
+            self.__make_parent_folder(output_path)
             fig.write_html(output_path)  # Save as interactive HTML
         else:
             # For non-interactive display, save to a temporary HTML and open in browser
@@ -718,6 +719,7 @@ class CC_Mesh(lapy.TriaMesh):
         Raises:
             ValueError: If the contour for the specified slice is not set.
         """
+        self.__make_parent_folder(output_path)
 
         if self.contours[slice_idx] is None:
             raise ValueError(f"Contour for slice {slice_idx} is not set")
@@ -976,8 +978,10 @@ class CC_Mesh(lapy.TriaMesh):
         # plt.ylim(-105, -75)
         # plt.xlim(181, 101)
         if save_path is not None:
+            self.__make_parent_folder(save_path)
             plt.savefig(save_path, dpi=300)
-        plt.show()
+        else:
+            plt.show()
         return fig
 
     def set_mesh(self, vertices, faces, thickness_values=None):
@@ -1047,6 +1051,7 @@ class CC_Mesh(lapy.TriaMesh):
             This method uses a temporary file to store the mesh and overlay data during
             the snapshot process.
         """
+        self.__make_parent_folder(output_path)
         # Skip snapshot if there are no faces
         if len(self.t) == 0:
             print("Warning: Cannot create snapshot - no faces in mesh")
@@ -1280,6 +1285,13 @@ class CC_Mesh(lapy.TriaMesh):
                     ]
             self.thickness_values = new_thickness_values
 
+    @staticmethod
+    def __make_parent_folder(filename: str):
+        """Make the parent folder of the given filename.
+        """
+        output_folder = Path(filename).parent
+        output_folder.mkdir(parents=False, exist_ok=True)
+
     def to_fs_coordinates(self):
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
@@ -1299,6 +1311,7 @@ class CC_Mesh(lapy.TriaMesh):
         Returns:
             The result of the parent class's write_fssurf method.
         """
+        self.__make_parent_folder(filename)
         return super().write_fssurf(filename)
 
     def write_overlay(self, filename):
@@ -1310,6 +1323,7 @@ class CC_Mesh(lapy.TriaMesh):
         Returns:
             The result of writing the morph data using nibabel.
         """
+        self.__make_parent_folder(filename)
         return nib.freesurfer.write_morph_data(filename, self.mesh_vertex_colors)
 
     def save_thickness_measurement_points(self, filename):
@@ -1321,6 +1335,7 @@ class CC_Mesh(lapy.TriaMesh):
         Args:
             filename (str): Path where to save the CSV file.
         """
+        self.__make_parent_folder(filename)
         logger.info(f"Saving thickness measurement points to CSV file: {filename}")
         with open(filename, "w") as f:
             f.write("slice_idx,vertex_idx\n")
@@ -1340,6 +1355,7 @@ class CC_Mesh(lapy.TriaMesh):
             list: List of arrays containing vertex indices for each slice where
                 thickness was measured.
         """
+        self.__make_parent_folder(filename)
         data = np.loadtxt(filename, delimiter=",", skiprows=1)
         slice_indices = data[:, 0].astype(int)
         vertex_indices = data[:, 1].astype(int)

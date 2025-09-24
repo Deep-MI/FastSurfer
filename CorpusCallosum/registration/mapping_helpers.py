@@ -232,6 +232,7 @@ def map_softlabels_to_orig(
     slices_to_analyze,
     orig_space_segmentation_path=None,
     fsaverage_middle=128,
+    subdivision_mask=None,
 ):
     """
     Maps soft labels back to original image space and applies post-processing.
@@ -247,6 +248,7 @@ def map_softlabels_to_orig(
     Returns:
         segmentation_orig_space: Final segmentation in original image space
     """
+
     # map softlabels to original image
     softlabels_transformed = []
     for i in range(outputs_soft.shape[-1]):
@@ -277,12 +279,31 @@ def map_softlabels_to_orig(
     )
 
     segmentation_orig_space = np.argmax(softlabels_orig_space, axis=-1)
+
+    if subdivision_mask is not None:
+        # repeat subdivision mask for shape 0 of orig
+        subdivision_mask = np.repeat(subdivision_mask[np.newaxis, :, :], orig.shape[0], axis=0)
+        # map subdivision mask to orig space
+        subdivision_mask_orig_space = affine_transform(
+            subdivision_mask,
+            orig_fsaverage_vox2vox,
+            output_shape=orig.shape,
+            order=0,
+        )
+
+        segmentation_orig_space[segmentation_orig_space == 1] = \
+            segmentation_orig_space[segmentation_orig_space == 1] * \
+                subdivision_mask_orig_space[segmentation_orig_space == 1]
+
+
     segmentation_orig_space = np.where(
         segmentation_orig_space == 1, 192, segmentation_orig_space
     )
     segmentation_orig_space = np.where(
         segmentation_orig_space == 2, 250, segmentation_orig_space
     )
+
+    
 
     if orig_space_segmentation_path is not None:
         logger.info(f"Saving segmentation in original space to {orig_space_segmentation_path}")

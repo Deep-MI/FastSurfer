@@ -33,7 +33,12 @@ from CorpusCallosum.registration.mapping_helpers import (
     map_softlabels_to_orig,
 )
 from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
-from CorpusCallosum.shape.cc_postprocessing import create_visualization, process_slices
+from CorpusCallosum.shape.cc_postprocessing import (
+    check_area_changes,
+    create_visualization,
+    make_subdivision_mask,
+    process_slices,
+)
 from FastSurferCNN.data_loader.conform import is_conform
 from recon_surf import lta
 from recon_surf.align_points import find_rigid
@@ -242,16 +247,10 @@ def options_parse() -> argparse.Namespace:
         args.output_dir = str(subject_dir_path)
 
     # Create parent directories for all output paths
-    for path in [
-        args.upright_volume_path,
-        args.segmentation_path,
-        args.postproc_results_path,
-        args.cc_markers_path,
-        args.upright_lta_path,
-        args.orient_volume_lta_path,
-    ]:
+    for path_name in STANDARD_OUTPUT_PATHS.keys():
+        path = getattr(args, f"{path_name}_path")
         if path is not None:
-            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            Path(path).parent.mkdir(parents=False, exist_ok=True)
 
     return args
 
@@ -397,6 +396,8 @@ def segment_cc(midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, sl
     return segmentation, outputs_soft
 
 
+
+
 def main(
     in_mri_path: str | Path,
     aseg_path: str | Path,
@@ -408,6 +409,9 @@ def main(
     subdivisions: list[float] | None = None,
     subdivision_method: str = "shape",
     contour_smoothing: float = 1.0,
+    save_template: str | Path | None = None,
+    cpu: bool = False,
+    # output paths
     upright_volume_path: str | Path = None,
     segmentation_path: str | Path = None,
     postproc_results_path: str | Path = None,
@@ -420,12 +424,10 @@ def main(
     vtk_file_path: str | Path = None,
     orig_space_segmentation_path: str | Path = None,
     debug_image_path: str | Path = None,
-    save_template: str | Path | None = None,
     thickness_image_path: str | Path = None,
     softlabels_cc_path: str | Path = None,
     softlabels_fn_path: str | Path = None,
     softlabels_background_path: str | Path = None,
-    cpu: bool = False,
 ) -> None:
     """Main pipeline function for corpus callosum analysis.
 
@@ -448,6 +450,7 @@ def main(
         subdivisions: List of subdivision fractions for CC subsegmentation
         subdivision_method: Method for contour subdivision
         contour_smoothing: Gaussian sigma for smoothing during contour detection
+        cpu: Force CPU usage even when CUDA is available
         upright_volume_path: Path for upright volume output (default: output_dir/upright_volume.mgz)
         segmentation_path: Path for segmentation output (default: output_dir/segmentation.mgz)
         postproc_results_path: Path for postprocessing results (default: output_dir/cc_postproc_results.json)
@@ -467,7 +470,7 @@ def main(
         softlabels_cc_path: Path for cc softlabels (default: output_dir/mri/callosum_seg_soft.mgz)
         softlabels_fn_path: Path for fornix softlabels (default: output_dir/mri/fornix_seg_soft.mgz)
         softlabels_background_path: Path for background softlabels (default: output_dir/mri/background_seg_soft.mgz)
-        cpu: Force CPU usage even when CUDA is available
+        
 
     The function saves multiple outputs to specified paths or default locations in output_dir:
     - cc_markers.json: Contains detected landmarks and measurements
@@ -596,20 +599,6 @@ def main(
         save_nifti_background(IO_processes, outputs_soft[..., 2], seg_affine, orig.header, softlabels_fn_path)
     
 
-    # map soft labels to original space (in parallel because this takes a while)
-    IO_processes.append(
-        run_in_background(
-            map_softlabels_to_orig,
-            False,
-            outputs_soft,
-            orig_fsaverage_vox2vox,
-            orig,
-            slices_to_analyze,
-            orig_space_segmentation_path,
-            fsaverage_middle=FSAVERAGE_MIDDLE,
-        )
-    )
-
     # Create a temporary segmentation image with proper affine for enhanced postprocessing
     temp_seg_affine = fsaverage_hires_affine @ np.linalg.inv(np.eye(4))
 
@@ -626,7 +615,6 @@ def main(
         subdivisions=subdivisions,
         subdivision_method=subdivision_method,
         contour_smoothing=contour_smoothing,
-        output_dir=output_dir,
         debug_image_path=debug_image_path,
         surf_file_path=surf_file_path,
         overlay_file_path=overlay_file_path,
@@ -637,10 +625,36 @@ def main(
         verbose=verbose,
         save_template=save_template,
     )
+
+
+    outer_contours = [slice_result['split_contours'][0] for slice_result in slice_results]
+
+    if not check_area_changes(outer_contours, verbose=True):
+        logger.warning("Large area changes detected between consecutive slices, "
+                       "this is likely due to a segmentation error.")
+
     IO_processes.extend(slice_io_processes)
 
     # Get middle slice result for backward compatibility
     middle_slice_result = slice_results[len(slice_results) // 2]
+
+    subdivision_mask = make_subdivision_mask(segmentation.shape[1:], middle_slice_result['split_contours'])
+
+
+    # map soft labels to original space (in parallel because this takes a while)
+    IO_processes.append(
+        run_in_background(
+            map_softlabels_to_orig,
+            debug=True,
+            outputs_soft=outputs_soft,
+            orig_fsaverage_vox2vox=orig_fsaverage_vox2vox,
+            orig=orig,
+            slices_to_analyze=slices_to_analyze,
+            orig_space_segmentation_path=orig_space_segmentation_path,
+            fsaverage_middle=FSAVERAGE_MIDDLE,
+            subdivision_mask=subdivision_mask,
+        )
+    )
 
     # Create enhanced output dictionary with all slice results
     per_slice_output_dict = {
@@ -679,9 +693,20 @@ def main(
 
     ########## Save outputs ##########
 
-    cc_volume = segmentation_postprocessing.get_cc_volume(
-        desired_width_mm=5, cc_mask=segmentation == CC_LABEL, voxel_size=orig.header.get_zooms()
-    )
+    if len(outer_contours) > 1:
+        cc_volume_old = segmentation_postprocessing.get_cc_volume(
+            desired_width_mm=5, 
+            cc_mask=segmentation == CC_LABEL, 
+            voxel_size=orig.header.get_zooms()
+        )
+        cc_volume = segmentation_postprocessing.get_cc_volume_simpsons(
+            desired_width_mm=5, 
+            cc_contours=outer_contours, 
+            voxel_size=orig.header.get_zooms()
+        )
+    else:
+        cc_volume = None
+    
 
     # Create backward compatible output_dict for existing pipeline using middle slice
     output_dict = {
