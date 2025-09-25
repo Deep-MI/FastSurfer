@@ -76,10 +76,11 @@ def main(
         resolution: Resolution in mm for the mesh
         smooth_iterations: Number of smoothing iterations to apply to the mesh
         colormap: Which colormap to use. Options are:
-                 - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
-                 - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
-                 - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
-                 - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
+        - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
+        - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
+        - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
+        - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
+
         color_range: Optional tuple of (min, max) to set fixed color range for the colorbar
         twoD: If True, generate 2D visualization instead of 3D mesh
     """

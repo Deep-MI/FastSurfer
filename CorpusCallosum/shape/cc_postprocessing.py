@@ -1,21 +1,35 @@
+# Copyright 2025 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from pathlib import Path
 
 import numpy as np
-from shape.cc_endpoint_heuristic import get_endpoints
-from shape.cc_mesh import CC_Mesh
-from shape.cc_metrics import calculate_cc_index
-from shape.cc_subsegment_contour import (
+
+import FastSurferCNN.utils.logging as logging
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, SUBSEGEMNT_LABELS
+from CorpusCallosum.data.read_write import run_in_background
+from CorpusCallosum.shape.cc_endpoint_heuristic import get_endpoints
+from CorpusCallosum.shape.cc_mesh import CC_Mesh
+from CorpusCallosum.shape.cc_metrics import calculate_cc_index
+from CorpusCallosum.shape.cc_subsegment_contour import (
     get_primary_eigenvector,
     hampel_subdivide_contour,
     subdivide_contour,
     subsegment_midline_orthogonal,
     transform_to_acpc_standard,
 )
-from shape.cc_thickness import cc_thickness, convert_to_ras
-
-import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, SUBSEGEMNT_LABELS
-from CorpusCallosum.data.read_write import run_in_background
+from CorpusCallosum.shape.cc_thickness import cc_thickness, convert_to_ras
 from CorpusCallosum.utils.utils import HiddenPrints
 from CorpusCallosum.visualization.visualization import plot_contours
 
@@ -101,19 +115,30 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
     - Subdivision into anatomical regions
     
     Args:
-        segmentation (np.ndarray): 3D segmentation array
-        slice_idx (int): Index of the slice to process
-        ac_coords (np.ndarray): Anterior commissure coordinates
-        pc_coords (np.ndarray): Posterior commissure coordinates
-        affine (np.ndarray): 4x4 affine transformation matrix
-        num_thickness_points (int): Number of points for thickness estimation
-        subdivisions (list[float]): List of fractions for anatomical subdivisions
-        subdivision_method (str): Method for contour subdivision ('shape', 'vertical', 
+        segmentation (np.ndarray): 
+            3D segmentation array
+        slice_idx (int): 
+            Index of the slice to process
+        ac_coords (np.ndarray): 
+            Anterior commissure coordinates
+        pc_coords (np.ndarray): 
+            Posterior commissure coordinates
+        affine (np.ndarray): 
+            4x4 affine transformation matrix
+        num_thickness_points (int): 
+            Number of points for thickness estimation
+        subdivisions (list[float]): 
+            List of fractions for anatomical subdivisions
+        subdivision_method (str): 
+            Method for contour subdivision ('shape', 'vertical', 
             'angular', or 'eigenvector')
-        contour_smoothing (float): Gaussian sigma for contour smoothing
+        contour_smoothing (float): 
+            Gaussian sigma for contour smoothing
         
     Returns:
-        dict or None: Dictionary containing measurements if successful, including:
+        slice_data (dict | None): 
+            Dictionary containing measurements if successful, including:
+        
             - cc_index: Corpus callosum shape index
             - circularity: Shape circularity measure
             - areas: Areas of subdivided regions
@@ -131,6 +156,7 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
             - slice_index: Index of the processed slice
             
             Returns None if no CC is found in the slice.
+            
     """
 
     cc_mask_slice = segmentation[slice_idx] == 192
@@ -243,8 +269,9 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         verbose (bool): Whether to print progress information
         save_template (str | Path | None): Directory path where to save template files, or None to skip saving
         
-    Returns:
-        tuple: Contains:
+        Returns:
+            tuple: Contains:
+            
             - list: List of slice processing results
             - list: List of background IO processes
     """
@@ -477,13 +504,16 @@ def make_subdivision_mask(slice_shape, split_contours):
     SUBSEGEMNT_LABELS.
 
     Args:
-        slice_shape (tuple): Shape of the slice (rows, cols)
-        split_contours (list): List of contours defining the subdivisions. 
+        slice_shape (tuple): 
+            Shape of the slice (rows, cols)
+        split_contours (list): 
+            List of contours defining the subdivisions. 
             Each contour is a tuple of x and y coordinates.
 
     Returns:
-        ndarray: A mask of shape slice_shape where each pixel is labeled with a value from SUBSEGEMNT_LABELS
-                indicating which subdivision segment it belongs to.
+        ndarray: 
+            A mask of shape slice_shape where each pixel is labeled with a value from SUBSEGEMNT_LABELS
+            indicating which subdivision segment it belongs to.
     """
 
     # unique contour points are the points where sub-division lines were inserted

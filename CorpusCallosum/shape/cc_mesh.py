@@ -1,3 +1,17 @@
+# Copyright 2025 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
 import tempfile
 from pathlib import Path
@@ -11,10 +25,10 @@ import plotly.graph_objects as go
 import pyrr
 import scipy.interpolate
 from scipy.ndimage import gaussian_filter1d
-from shape.cc_thickness import HiddenPrints, make_mesh_from_contour
 from whippersnappy.core import snap1
 
 import FastSurferCNN.utils.logging as logging
+from CorpusCallosum.shape.cc_thickness import HiddenPrints, make_mesh_from_contour
 
 logger = logging.get_logger(__name__)
 
@@ -68,10 +82,14 @@ class CC_Mesh(lapy.TriaMesh):
         """Add a contour and its associated thickness values for a specific slice.
 
         Args:
-            slice_idx (int): Index of the slice where the contour should be added.
-            contour (numpy.ndarray): Array of shape (N, 2) containing 2D contour points.
-            thickness_values (numpy.ndarray): Array of thickness measurements for each contour point.
-            start_end_idx (tuple[int, int], optional): Tuple containing start and end indices for the contour.
+            slice_idx (int): 
+                Index of the slice where the contour should be added.
+            contour (numpy.ndarray): 
+                Array of shape (N, 2) containing 2D contour points.
+            thickness_values (numpy.ndarray): 
+                Array of thickness measurements for each contour point.
+            start_end_idx (tuple[int, int], optional): 
+                Tuple containing start and end indices for the contour.
                 If None, defaults to (0, len(contour)//2).
         """
         self.contours[slice_idx] = contour
@@ -121,22 +139,32 @@ class CC_Mesh(lapy.TriaMesh):
         to an HTML file or displayed in a web browser.
 
         Args:
-            output_path (str, optional): Path to save the plot. If None, displays the plot interactively.
-            colormap (str, optional): Which colormap to use. Options are:
+            output_path (str, optional): 
+                Path to save the plot. If None, displays the plot interactively.
+            colormap (str, optional): 
+                Which colormap to use. Options are:
                 - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
                 - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
                 - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
                 - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
+            
                 Defaults to "red_to_yellow".
-            thickness_overlay (bool, optional): Whether to overlay thickness values on the mesh.
+            thickness_overlay (bool, optional): 
+                Whether to overlay thickness values on the mesh.
                 Defaults to True.
-            show_contours (bool, optional): Whether to show the contours. Defaults to False.
-            show_grid (bool, optional): Whether to show the grid. Defaults to False.
-            color_range (tuple[float, float], optional): Optional tuple of (min, max) to set fixed
+            show_contours (bool, optional): 
+                Whether to show the contours. Defaults to False.
+            show_grid (bool, optional): 
+                Whether to show the grid. Defaults to False.
+            color_range (tuple[float, float], optional): 
+                Optional tuple of (min, max) to set fixed
                 color range. Defaults to None.
-            show_mesh_edges (bool, optional): Whether to show the mesh edges. Defaults to False.
-            legend (str, optional): Legend text for the colorbar. Defaults to "".
-            threshold (tuple[float, float], optional): Values between these thresholds will be shown in grey.
+            show_mesh_edges (bool, optional): 
+                Whether to show the mesh edges. Defaults to False.
+            legend (str, optional): 
+                Legend text for the colorbar. Defaults to "".
+            threshold (tuple[float, float], optional): 
+                Values between these thresholds will be shown in grey.
                 Defaults to (-0.2, 0.2).
         """
         assert self.v is not None and self.t is not None, "Mesh has not been created yet"
@@ -758,19 +786,19 @@ class CC_Mesh(lapy.TriaMesh):
 
     def smooth_contour(self, contour_idx, window_size=5):
         """
-        Smooth a contour using a moving average filter
+        Smooth a contour using a moving average filter.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         contour : tuple of arrays
-            The contour coordinates (x, y)
+            The contour coordinates (x, y).
         window_size : int
-            Size of the smoothing window
+            Size of the smoothing window.
 
-        Returns:
-        --------
+        Returns
+        -------
         tuple of arrays
-            The smoothed contour coordinates (x, y)
+            The smoothed contour coordinates (x, y).
         """
         x, y = self.contours[contour_idx].T
 
@@ -1043,11 +1071,13 @@ class CC_Mesh(lapy.TriaMesh):
         overlay. The image is saved to the specified output path.
 
         Args:
-            output_path (str): Path where to save the snapshot image.
-            fssurf_file (str, optional): Path to a FreeSurfer surface file to use for the snapshot - if not provided,
-                the mesh is saved to a temporary file.
-            overlay_file (str, optional): Path to a FreeSurfer overlay file to use for the snapshot - if not provided,
-                the mesh is saved to a temporary file.
+            output_path (str): 
+                Path where to save the snapshot image.
+            fssurf_file (str | None): Path to a FreeSurfer surface file to use for the snapshot. If None,
+                the mesh is saved to a temporary file. Defaults to None.
+            overlay_file (str | None): Path to a FreeSurfer overlay file to use for the snapshot. If None,
+                the mesh is saved to a temporary file. Defaults to None.
+
         Note:
             This method uses a temporary file to store the mesh and overlay data during
             the snapshot process.
@@ -1213,13 +1243,16 @@ class CC_Mesh(lapy.TriaMesh):
         vertices using a measurement points file.
 
         Args:
-            input_path (str): Path to the CSV file containing thickness values.
-            original_thickness_vertices_path (str, optional): Path to a file containing the
+            input_path (str): 
+                Path to the CSV file containing thickness values.
+            original_thickness_vertices_path (str, optional): 
+                Path to a file containing the
                 indices of vertices where thickness was measured. If None, assumes thickness
                 values correspond to all vertices in order.
 
         Raises:
-            ValueError: If the number of thickness values doesn't match the number of
+            ValueError: 
+                If the number of thickness values doesn't match the number of
                 measurement points, or if the number of slices is inconsistent.
         """
         data = np.loadtxt(input_path, delimiter=",", skiprows=1)
