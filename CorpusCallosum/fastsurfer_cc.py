@@ -466,7 +466,7 @@ def main(
         surf_file_path: Path for surf file (default: output_dir/surf/callosum.surf)
         overlay_file_path: Path for overlay file (default: output_dir/mri/callosum_seg_aseg_space.mgz)
         cc_html_path: Path for CC HTML file (default: output_dir/qc_snapshots/corpus_callosum.html)
-        vtk_file_path: Path for vtk file (default: output_dir/qc_snapshots/callosum_mesh.vtk)
+        vtk_file_path: Path for vtk file (default: output_dir/surf/callosum_mesh.vtk)
         softlabels_cc_path: Path for cc softlabels (default: output_dir/mri/callosum_seg_soft.mgz)
         softlabels_fn_path: Path for fornix softlabels (default: output_dir/mri/fornix_seg_soft.mgz)
         softlabels_background_path: Path for background softlabels (default: output_dir/mri/background_seg_soft.mgz)
@@ -616,6 +616,7 @@ def main(
         subdivision_method=subdivision_method,
         contour_smoothing=contour_smoothing,
         debug_image_path=debug_image_path,
+        one_debug_image=True,
         surf_file_path=surf_file_path,
         overlay_file_path=overlay_file_path,
         cc_html_path=cc_html_path,
@@ -629,7 +630,7 @@ def main(
 
     outer_contours = [slice_result['split_contours'][0] for slice_result in slice_results]
 
-    if not check_area_changes(outer_contours, verbose=True):
+    if len(outer_contours) > 1 and not check_area_changes(outer_contours, verbose=True):
         logger.warning("Large area changes detected between consecutive slices, "
                        "this is likely due to a segmentation error.")
 
@@ -638,14 +639,18 @@ def main(
     # Get middle slice result for backward compatibility
     middle_slice_result = slice_results[len(slice_results) // 2]
 
-    subdivision_mask = make_subdivision_mask(segmentation.shape[1:], middle_slice_result['split_contours'])
+    if len(middle_slice_result['split_contours']) <= 5:
+        subdivision_mask = make_subdivision_mask(segmentation.shape[1:], middle_slice_result['split_contours'])
+    else:
+        logger.warning("Too many subsegments for lookup table, skipping sub-divion of output segmentation.")
+        subdivision_mask = None
 
 
     # map soft labels to original space (in parallel because this takes a while)
     IO_processes.append(
         run_in_background(
             map_softlabels_to_orig,
-            debug=True,
+            debug=False,
             outputs_soft=outputs_soft,
             orig_fsaverage_vox2vox=orig_fsaverage_vox2vox,
             orig=orig,
@@ -693,19 +698,7 @@ def main(
 
     ########## Save outputs ##########
 
-    if len(outer_contours) > 1:
-        cc_volume_old = segmentation_postprocessing.get_cc_volume(
-            desired_width_mm=5, 
-            cc_mask=segmentation == CC_LABEL, 
-            voxel_size=orig.header.get_zooms()
-        )
-        cc_volume = segmentation_postprocessing.get_cc_volume_simpsons(
-            desired_width_mm=5, 
-            cc_contours=outer_contours, 
-            voxel_size=orig.header.get_zooms()
-        )
-    else:
-        cc_volume = None
+    
     
 
     # Create backward compatible output_dict for existing pipeline using middle slice
@@ -723,6 +716,24 @@ def main(
         "total_perimeter": middle_slice_result["total_perimeter"],
         "thickness_profile": middle_slice_result["thickness_profile"],
     }
+
+    if len(outer_contours) > 1:
+        cc_volume_voxel = segmentation_postprocessing.get_cc_volume_voxel(
+            desired_width_mm=5, 
+            cc_mask=segmentation == CC_LABEL, 
+            voxel_size=orig.header.get_zooms()
+        )
+        cc_volume_contour = segmentation_postprocessing.get_cc_volume_contour(
+            desired_width_mm=5, 
+            cc_contours=outer_contours, 
+            voxel_size=orig.header.get_zooms()
+        )
+        if verbose:
+            logger.info(f"CC volume voxel: {cc_volume_voxel}")
+            logger.info(f"CC volume contour: {cc_volume_contour}")
+        
+        output_dict["cc_5mm_volume"] = cc_volume_voxel
+        output_dict["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
     # multiply split contour with resolution scale factor for middle slice visualization
     split_contours = [
@@ -775,7 +786,6 @@ def main(
     output_dict["pc_center_oriented_volume"] = pc_coords_standardized
     output_dict["ac_center_upright"] = ac_coords_3d
     output_dict["pc_center_upright"] = pc_coords_3d
-    output_dict["cc_5mm_volume"] = cc_volume
     output_dict["num_slices"] = slices_to_analyze
 
     # Convert numpy arrays to lists for JSON serialization

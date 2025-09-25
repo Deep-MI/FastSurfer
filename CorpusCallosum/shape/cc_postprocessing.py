@@ -219,7 +219,8 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
 
 def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
                   num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
-                  debug_image_path=None, thickness_image_path=None, vox_size=None, 
+                  debug_image_path=None, one_debug_image=False,
+                  thickness_image_path=None, vox_size=None, 
                   save_template=None, surf_file_path=None, overlay_file_path=None, cc_html_path=None, 
                   vtk_file_path=None, verbose=False):
     """Process corpus callosum slices based on selection mode.
@@ -320,20 +321,26 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
 
             if result is not None:
                 slice_results.append(result)
-            
-                debug_path_base, debug_path_ext = str(debug_image_path).rsplit('.', 1)
-                debug_path_with_postfix = f"{debug_path_base}_slice_{slice_idx}"
-                debug_output_path_slice = Path(f"{debug_path_with_postfix}.{debug_path_ext}").with_suffix('.png')
-                
-                if verbose:
-                    logger.info(f"Saving segmentation qc image to {debug_output_path_slice}")
 
-                current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
-                # Create visualization for this slice
-                IO_processes.append(create_visualization(subdivision_method, result, 
-                                                         midslices[current_slice_in_volume:current_slice_in_volume+1], 
-                                                         debug_output_path_slice, ac_coords, pc_coords, 
-                                                         vox_size, f' (Slice {slice_idx})'))
+                if (one_debug_image and slice_idx == num_slices // 2) or not one_debug_image:
+                    if not one_debug_image:
+                        debug_path_base, debug_path_ext = str(debug_image_path).rsplit('.', 1)
+                        debug_path_with_postfix = f"{debug_path_base}_slice_{slice_idx}"
+                    
+                        debug_output_path_slice = Path(f"{debug_path_with_postfix}.{debug_path_ext}")
+                        debug_output_path_slice = debug_output_path_slice.with_suffix('.png')
+                    else:
+                        debug_output_path_slice = debug_image_path
+                    
+                    if verbose:
+                        logger.info(f"Saving segmentation qc image to {debug_output_path_slice}")
+
+                    current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
+                    # Create visualization for this slice
+                    IO_processes.append(create_visualization(subdivision_method, result, 
+                                                            midslices[current_slice_in_volume:current_slice_in_volume+1], 
+                                                            debug_output_path_slice, ac_coords, pc_coords, 
+                                                            vox_size, f' (Slice {slice_idx})'))
 
     if save_template is not None:
         # Convert to Path object and ensure directory exists

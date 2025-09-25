@@ -47,13 +47,12 @@ def load_fsaverage_cc_template():
     # smooth outside contour
     # Apply smoothing to the outside contour using a moving average
 
-
-    freesurfer_home = Path(os.environ['FREESURFER_HOME'])
-
-    if not freesurfer_home.exists():
+    try:
+        freesurfer_home = Path(os.environ['FREESURFER_HOME'])
+    except KeyError as err:
         raise OSError(f"FREESURFER_HOME environment variable is not set correctly or does not exist: "
                       f"{freesurfer_home}, either provide your own template or set the "
-                      f"FREESURFER_HOME environment variable")
+                      f"FREESURFER_HOME environment variable") from err
 
     fsaverage_seg_path = freesurfer_home / 'subjects' / 'fsaverage' / 'mri' / 'aparc+aseg.mgz'
     fsaverage_seg = nib.load(fsaverage_seg_path)

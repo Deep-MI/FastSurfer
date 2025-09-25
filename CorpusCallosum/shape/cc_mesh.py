@@ -1,3 +1,4 @@
+import sys
 import tempfile
 from pathlib import Path
 
@@ -1280,9 +1281,17 @@ class CC_Mesh(lapy.TriaMesh):
                         [loaded_thickness_values[slice_idx], loaded_thickness_values[slice_idx][::-1]]
                     )
                 else:
-                    new_thickness_values[slice_idx][vertex_indices] = loaded_thickness_values[slice_idx][
-                        ~np.isnan(loaded_thickness_values[slice_idx])
-                    ]
+                    try:
+                        new_thickness_values[slice_idx][vertex_indices] = loaded_thickness_values[slice_idx][
+                            ~np.isnan(loaded_thickness_values[slice_idx])]
+                    except IndexError:
+                        print(
+                            f"Tried to load "
+                            f"{loaded_thickness_values[slice_idx][~np.isnan(loaded_thickness_values[slice_idx])]} "
+                            f"values, but template has {new_thickness_values[slice_idx][vertex_indices]} values, "
+                            "supply a correct template to visualize the thickness values"
+                        )
+                        sys.exit(1)
             self.thickness_values = new_thickness_values
 
     @staticmethod
@@ -1355,7 +1364,6 @@ class CC_Mesh(lapy.TriaMesh):
             list: List of arrays containing vertex indices for each slice where
                 thickness was measured.
         """
-        self.__make_parent_folder(filename)
         data = np.loadtxt(filename, delimiter=",", skiprows=1)
         slice_indices = data[:, 0].astype(int)
         vertex_indices = data[:, 1].astype(int)
