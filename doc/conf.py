@@ -227,7 +227,7 @@ def import_from_path(module_name, file_path):
 
 linkcode_resolve = LinkCodeResolver(gh_url, branch)
 
-_re_script_dirs = "fastsurfercnn|cerebnet|recon_surf|hypvinn"
+_re_script_dirs = "fastsurfercnn|cerebnet|recon_surf|hypvinn|corpuscallosum"
 _up = "^/\\.\\./"
 _end = "(\\.md)?(#.*)?$"
 

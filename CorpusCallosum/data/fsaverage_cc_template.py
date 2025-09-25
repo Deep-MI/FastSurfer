@@ -1,27 +1,42 @@
+# Copyright 2025 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
 from scipy import ndimage
-from shape.cc_postprocessing import process_slice
+
+from CorpusCallosum.shape.cc_postprocessing import process_slice
 
 
 def smooth_contour(contour, window_size=5):
         """
-        Smooth a contour using a moving average filter
+        Smooth a contour using a moving average filter.
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         contour : tuple of arrays
-            The contour coordinates (x, y)
+            The contour coordinates (x, y).
         window_size : int
-            Size of the smoothing window
+            Size of the smoothing window.
             
-        Returns:
-        --------
+        Returns
+        -------
         tuple of arrays
-            The smoothed contour coordinates (x, y)
+            The smoothed contour coordinates (x, y).
         """
         x, y = contour
         

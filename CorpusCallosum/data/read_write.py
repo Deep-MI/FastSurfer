@@ -1,3 +1,17 @@
+# Copyright 2025 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import multiprocessing
 
 import nibabel as nib
@@ -10,20 +24,20 @@ logger = logging.get_logger(__name__)
 
 def run_in_background(function, debug=False, *args, **kwargs):
     """Run a function in the background using multiprocessing.
-    
+
     This function executes the given function either in a separate process (normal mode)
     or in the current process (debug mode). In debug mode, the function is executed
     synchronously for easier debugging.
-    
+
     Args:
         function: The function to execute
         debug (bool): If True, run synchronously in current process
-        *args: Positional arguments to pass to the function
-        **kwargs: Keyword arguments to pass to the function
-        
+        args: Positional arguments to pass to the function
+        kwargs: Keyword arguments to pass to the function
+
     Returns:
         multiprocessing.Process or None: Process object if running in background,
-            None if in debug mode
+        None if in debug mode
     """
     if debug:
         function(*args, **kwargs)
@@ -43,17 +57,19 @@ def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None
     Coordinates are returned in RAS (Right-Anterior-Superior) coordinate system.
     
     Args:
-        seg_img (nib.Nifti1Image): Nibabel image containing segmentation labels
-        label_ids (list[int] | None): Optional list of specific label IDs to process.
+        seg_img (nib.Nifti1Image)
+            Nibabel image containing segmentation labels
+        label_ids (list[int] | None) 
+            Optional list of specific label IDs to process.
             If None, processes all non-zero labels.
-        
+    
     Returns:
-        If label_ids is None:
-            dict[int, np.ndarray]: Mapping of label IDs to their centroids (x,y,z) in RAS coordinates
-        If label_ids is provided:
-            tuple: Contains:
-                - dict[int, np.ndarray]: Mapping of found label IDs to their centroids
-                - list[int]: List of label IDs that were not found in the image
+        centroids (dict | dict, list)
+            If label_ids is None, returns a dict mapping label IDs to their centroids (x,y,z) in RAS coordinates.
+            If label_ids is provided, returns a tuple containing:
+            - dict[int, np.ndarray]: Mapping of found label IDs to their centroids
+            - list[int]: List of label IDs that were not found in the image
+
     """
     # Get segmentation data and affine
     seg_data = seg_img.get_fdata()

@@ -271,6 +271,7 @@ def centroid_registration(aseg_nib, verbose=False):
             - orig_fsaverage_ras2ras: Transformation matrix from original to fsaverage RAS space
             - fsaverage_hires_affine: High-resolution fsaverage affine matrix
             - fsaverage_header: FSAverage header fields for LTA writing
+
     """
     if verbose:
         print("Centroid registration")
@@ -321,8 +322,9 @@ def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localizati
 
     Returns:
         tuple: Contains:
-            - ac_coords (np.ndarray): Coordinates of the anterior commissure
-            - pc_coords (np.ndarray): Coordinates of the posterior commissure
+        - ac_coords (np.ndarray): Coordinates of the anterior commissure
+        - pc_coords (np.ndarray): Coordinates of the posterior commissure
+
     """
 
     # get center of third ventricle from aseg and map to fsaverage space
@@ -363,6 +365,7 @@ def segment_cc(midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, sl
         tuple: Contains:
             - segmentation (np.ndarray): Binary segmentation of the corpus callosum
             - outputs_soft (np.ndarray): Soft segmentation probabilities
+
     """
     # get 5 mm of slices output with 9 slices per inference
     midslices_middle = midslices.shape[0] // 2
@@ -439,39 +442,6 @@ def main(
     5. Performs enhanced post-processing analysis
     6. Saves results and visualizations
 
-    Args:
-        in_mri_path: Path to input MRI file
-        aseg_path: Path to input segmentation file
-        output_dir: Directory for output files
-        slice_selection: Which slices to process ('middle', 'all', or specific slice number)
-        debug_output_dir: Optional directory for debug outputs
-        verbose: Flag for verbose output
-        num_thickness_points: Number of points for thickness estimation
-        subdivisions: List of subdivision fractions for CC subsegmentation
-        subdivision_method: Method for contour subdivision
-        contour_smoothing: Gaussian sigma for smoothing during contour detection
-        cpu: Force CPU usage even when CUDA is available
-        upright_volume_path: Path for upright volume output (default: output_dir/upright_volume.mgz)
-        segmentation_path: Path for segmentation output (default: output_dir/segmentation.mgz)
-        postproc_results_path: Path for postprocessing results (default: output_dir/cc_postproc_results.json)
-        cc_markers_path: Path for CC markers output (default: output_dir/cc_markers.json)
-        upright_lta_path: Path for upright LTA transform (default: output_dir/upright.lta)
-        orient_volume_lta_path: Path for orientation volume LTA transform (default: output_dir/orient_volume.lta)
-        orig_space_segmentation_path: Path for segmentation in original space
-            (default: output_dir/mri/segmentation_orig_space.mgz)
-        debug_image_path: Path for debug visualization image (default: output_dir/stats/cc_postprocessing.png)
-        save_template: Directory path where to save contours.txt and thickness_values.txt files
-        thickness_image_path: Path for thickness image 
-            (default: output_dir/qc_snapshots/corpus_callosum_thickness_3d.png)
-        surf_file_path: Path for surf file (default: output_dir/surf/callosum.surf)
-        overlay_file_path: Path for overlay file (default: output_dir/mri/callosum_seg_aseg_space.mgz)
-        cc_html_path: Path for CC HTML file (default: output_dir/qc_snapshots/corpus_callosum.html)
-        vtk_file_path: Path for vtk file (default: output_dir/surf/callosum_mesh.vtk)
-        softlabels_cc_path: Path for cc softlabels (default: output_dir/mri/callosum_seg_soft.mgz)
-        softlabels_fn_path: Path for fornix softlabels (default: output_dir/mri/fornix_seg_soft.mgz)
-        softlabels_background_path: Path for background softlabels (default: output_dir/mri/background_seg_soft.mgz)
-        
-
     The function saves multiple outputs to specified paths or default locations in output_dir:
     - cc_markers.json: Contains detected landmarks and measurements
     - midplane_slices.mgz: Extracted midplane slices
@@ -479,6 +449,65 @@ def main(
     - segmentation.mgz: Corpus callosum segmentation
     - cc_postproc_results.json: Enhanced postprocessing results
     - Various visualization plots and transformation matrices
+
+    Args:
+        in_mri_path:
+            Path to input MRI file
+        aseg_path:
+            Path to input segmentation file
+        output_dir:
+            Directory for output files
+        slice_selection:
+            Which slices to process ('middle', 'all', or specific slice number)
+        debug_output_dir:
+            Optional directory for debug outputs
+        verbose:
+            Flag for verbose output
+        num_thickness_points:
+            Number of points for thickness estimation
+        subdivisions:
+            List of subdivision fractions for CC subsegmentation
+        subdivision_method:
+            Method for contour subdivision
+        contour_smoothing:
+            Gaussian sigma for smoothing during contour detection
+        save_template:
+            Directory path where to save contours.txt and thickness_values.txt files
+        cpu:
+            Force CPU usage even when CUDA is available
+        upright_volume_path:
+            Path for upright volume output (default: output_dir/upright_volume.mgz)
+        segmentation_path:
+            Path for segmentation output (default: output_dir/segmentation.mgz)
+        postproc_results_path:
+            Path for postprocessing results (default: output_dir/cc_postproc_results.json)
+        cc_markers_path:
+            Path for CC markers output (default: output_dir/cc_markers.json)
+        upright_lta_path:
+            Path for upright LTA transform (default: output_dir/upright.lta)
+        orient_volume_lta_path:
+            Path for orientation volume LTA transform (default: output_dir/orient_volume.lta)
+        surf_file_path:
+            Path for surf file (default: output_dir/surf/callosum.surf)
+        overlay_file_path:
+            Path for overlay file (default: output_dir/mri/callosum_seg_aseg_space.mgz)
+        cc_html_path:
+            Path for CC HTML file (default: output_dir/qc_snapshots/corpus_callosum.html)
+        vtk_file_path:
+            Path for vtk file (default: output_dir/surf/callosum_mesh.vtk)
+        orig_space_segmentation_path:
+            Path for segmentation in original space (default: output_dir/mri/segmentation_orig_space.mgz)
+        debug_image_path:
+            Path for debug visualization image (default: output_dir/stats/cc_postprocessing.png)
+        thickness_image_path:
+            Path for thickness image (default: output_dir/qc_snapshots/corpus_callosum_thickness_3d.png)
+        softlabels_cc_path:
+            Path for cc softlabels (default: output_dir/mri/callosum_seg_soft.mgz)
+        softlabels_fn_path:
+            Path for fornix softlabels (default: output_dir/mri/fornix_seg_soft.mgz)
+        softlabels_background_path:
+            Path for background softlabels (default: output_dir/mri/background_seg_soft.mgz)
+
     """
 
     if subdivisions is None:
