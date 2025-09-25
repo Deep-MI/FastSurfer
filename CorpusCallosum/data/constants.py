@@ -32,5 +32,5 @@ STANDARD_OUTPUT_PATHS = {
     ## surface
     "surf_file": "surf/callosum.surf", # cc surface file
     "overlay_file": "surf/callosum.thickness.w", # cc surface overlay file
-    "vtk_file": "qc_snapshots/callosum_mesh.vtk", # vtk file of cc mesh
+    "vtk_file": "surf/callosum_mesh.vtk", # vtk file of cc mesh
 }
