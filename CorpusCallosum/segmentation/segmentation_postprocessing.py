@@ -10,7 +10,7 @@ logger = logging.get_logger(__name__)
 
 
 
-def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[float, float, float]) -> float:
+def get_cc_volume_voxel(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[float, float, float]) -> float:
     """Calculate the volume of the corpus callosum in cubic millimeters.
     
     This function calculates the volume of the corpus callosum (CC) in cubic millimeters.
@@ -62,7 +62,7 @@ def get_cc_volume(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[
     else:
         raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
 
-def get_cc_volume_simpsons(desired_width_mm: int, cc_contours: list[np.ndarray], 
+def get_cc_volume_contour(desired_width_mm: int, cc_contours: list[np.ndarray], 
                            voxel_size: tuple[float, float, float]) -> float:
     """Calculate the volume of the corpus callosum in cubic millimeters using Simpson's rule.
     
@@ -104,38 +104,15 @@ def get_cc_volume_simpsons(desired_width_mm: int, cc_contours: list[np.ndarray],
     # Calculate spacing between slices (left-right direction)
     lr_spacing = voxel_size[0]  # x-direction voxel size
     
-    # Get current width in mm
-    current_width_mm = len(cc_contours) * lr_spacing
+    # interpolate areas at 0 and 5
+    areas_interpolated = np.interp(x=[0, 5], xp=np.arange(lr_spacing/2, 5, lr_spacing), fp=areas)
+
+
     
-    if current_width_mm == desired_width_mm:
-        # Use Simpson's rule directly
-        return integrate.simpson(areas, dx=lr_spacing)
-    elif current_width_mm > desired_width_mm:
-        # Handle partial volumes at edges
-        desired_width_vox = desired_width_mm / lr_spacing
-        fraction_of_voxel_at_edge = (desired_width_vox % 1) / 2
-        
-        if fraction_of_voxel_at_edge > 0:
-            # Apply partial volume correction to edge areas
-            areas_corrected = areas.copy()
-            areas_corrected[0] *= fraction_of_voxel_at_edge
-            areas_corrected[-1] *= fraction_of_voxel_at_edge
-            
-            # Use Simpson's rule with corrected areas
-            return integrate.simps(areas_corrected, dx=lr_spacing)
-        else:
-            # No partial volumes needed, truncate to desired width
-            desired_slices = int(desired_width_vox)
-            if desired_slices % 2 == 0:
-                desired_slices += 1  # Ensure odd number for Simpson's rule
-            
-            start_idx = (len(areas) - desired_slices) // 2
-            end_idx = start_idx + desired_slices
-            truncated_areas = areas[start_idx:end_idx]
-            
-            return integrate.simps(truncated_areas, dx=lr_spacing)
-    else:
-        raise ValueError(f"Width of CC segmentation is smaller than desired width: {current_width_mm} < {desired_width_mm}")
+    measurements = [0,0.5,1.5,2.5,3.5,4.5,5]
+    # can also use cumulative trapezoidal rule
+    return integrate.simpson([areas_interpolated[0]] + areas.tolist() + [areas_interpolated[1]], x=measurements)
+    
 
 def get_largest_cc(seg_arr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Get largest connected component from a binary segmentation array.
