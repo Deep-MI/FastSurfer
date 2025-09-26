@@ -366,21 +366,21 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         type=Path,
         dest="nbr_mix_coeff",
         default="",
-        help="Save the alternate labels' mixing coefficients (default: off).",
+        help="Save mixing coefficients of alternate labels (default: off).",
     )
     advanced.add_argument(
         "--seg_means",
         type=Path,
         dest="seg_means",
         default="",
-        help="Save the segmentation labels' means (default: off).",
+        help="Save means of segmentation labels (default: off).",
     )
     advanced.add_argument(
         "--alternate_means",
         type=Path,
         dest="nbr_means",
         default="",
-        help="Save the alternate labels' means (default: off).",
+        help="Save means of alternate labels (default: off).",
     )
     advanced.add_argument(
         "--volume_precision",
@@ -1793,7 +1793,7 @@ def pv_calc(
     maps : dict[str, np.ndarray], optional
         Only returned, if return_maps is True:
         A dictionary with the 5 meta-information pv-maps:
-        nbr: The alternative labels that were considered instead of the voxel's label.
+        nbr: The alternative labels that were considered instead of the voxel label.
         nbr_means: The local mean intensity of the label nbr at the specific voxel.
         seg_means: The local mean intensity of the primary label at the specific voxel.
         mixing_coeff: The partial volume of the primary label at the location.
