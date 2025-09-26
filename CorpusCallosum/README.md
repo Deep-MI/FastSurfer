@@ -9,7 +9,7 @@ This pipeline combines localization and segmentation deep learning models to:
 1. Detect AC (Anterior Commissure) and PC (Posterior Commissure) points
 2. Extract and align midplane slices
 3. Segment the corpus callosum
-4. Perform advanced morphometry for corpus callosum, including subdivision thickness analysis, and various shape metrics
+4. Perform advanced morphometry for corpus callosum, including subdivision, thickness analysis, and various shape metrics
 5. Generate visualizations and measurements
 
 
@@ -119,14 +119,14 @@ The pipeline produces the following outputs in the specified output directory:
 
 **Image Volumes:**
 - `mri/callosum_seg_upright.mgz`: Corpus callosum segmentation in upright space (aligned to fsaverage, matching cc_up.lta)
-- `mri/callosum_seg_aseg_space.mgz`: Corpus callosum segmentation in conformed image orientation (algined to orig.mgz and other segmentations)
+- `mri/callosum_seg_aseg_space.mgz`: Corpus callosum segmentation in conformed image orientation (aligned to orig.mgz and other segmentations)
 - `mri/callosum_seg_soft.mgz`: Corpus callosum soft labels (segmentation probabilities, upright space)
 - `mri/fornix_seg_soft.mgz`: Fornix soft labels (segmentation probabilities, upright space)
 - `mri/background_seg_soft.mgz`: Background soft labels (segmentation probabilities, upright space)
 
 
 **Quality Control and Visualizations:**
-- `qc_snapshots/callosum.png`: Debug visualization of corpus callosum contours and thickness measurments
+- `qc_snapshots/callosum.png`: Debug visualization of corpus callosum contours and thickness measurements
 - `qc_snapshots/callosum_thickness.png`: 3D thickness visualization (when using `--slice_selection all`)
 - `qc_snapshots/corpus_callosum.html`: Interactive 3D mesh visualization (when using `--slice_selection all`)
 
