@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import tempfile
 from pathlib import Path
 
@@ -28,6 +27,7 @@ from scipy.ndimage import gaussian_filter1d
 from whippersnappy.core import snap1
 
 import FastSurferCNN.utils.logging as logging
+from CorpusCallosum.shape.cc_endpoint_heuristic import smooth_contour
 from CorpusCallosum.shape.cc_thickness import HiddenPrints, make_mesh_from_contour
 
 logger = logging.get_logger(__name__)
@@ -802,23 +802,9 @@ class CC_Mesh(lapy.TriaMesh):
         """
         x, y = self.contours[contour_idx].T
 
-        # Ensure the window size is odd
-        if window_size % 2 == 0:
-            window_size += 1
+        x, y = smooth_contour(x, y, window_size)
 
-        # Create a padded version of the arrays to handle the edges
-        x_padded = np.pad(x, (window_size // 2, window_size // 2), mode="wrap")
-        y_padded = np.pad(y, (window_size // 2, window_size // 2), mode="wrap")
-
-        # Apply moving average
-        x_smoothed = np.zeros_like(x)
-        y_smoothed = np.zeros_like(y)
-
-        for i in range(len(x)):
-            x_smoothed[i] = np.mean(x_padded[i : i + window_size])
-            y_smoothed[i] = np.mean(y_padded[i : i + window_size])
-
-        self.contours[contour_idx] = np.array([x_smoothed, y_smoothed]).T
+        self.contours[contour_idx] = np.array([x, y]).T
 
     def plot_cc_contour_with_levelsets(self, contour_idx=0, levelpaths=None, title=None, save_path=None, colorbar=True):
         """Plot a contour with levelset visualization.
@@ -1348,7 +1334,9 @@ class CC_Mesh(lapy.TriaMesh):
         self.v = self.v[:, [2, 0, 1]] # LIA to ALI?
         self.v *= (vox_size[0] **2) ## ???
         self.v[:, 1] -= image_size[1] * vox_size[1] // 2 # move 0 to center of image
-        self.v[:, 2] += image_size[2] * vox_size[2] // 2
+        self.v[:, 2] += image_size[2] * vox_size[2] // 2 
+        self.v[:, 0] += vox_size[0] / 2
+        
         
 
     def write_fssurf(self, filename):

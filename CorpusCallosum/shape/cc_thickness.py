@@ -199,7 +199,7 @@ def cc_thickness(
     # plot mesh points with index next to point
     # import matplotlib.pyplot as plt
     # fig, ax = plt.subplots(figsize=(10, 8))
-    # ax.scatter(mesh_points[:,0], mesh_points[:,1], label='Mesh Points')
+    # ax.plot(mesh_points[:,0], mesh_points[:,1], label='Mesh Points')
     # for i in range(len(mesh_points)):
     #     ax.text(mesh_points[i,0], mesh_points[i,1], str(i), fontsize=7)
     # plt.show()

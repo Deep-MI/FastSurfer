@@ -100,8 +100,8 @@ def options_parse() -> argparse.Namespace:
     parser.add_argument(
         "--contour_smoothing",
         type=float,
-        default=1.0,
-        help="Gaussian sigma for smoothing during contour detection. Default is 1.0, higher values mean a smoother"
+        default=5,
+        help="Window size for smoothing during contour detection. Default is 5, higher values mean a smoother"
         "outline, at the cost of precision.",
     )
     parser.add_argument(
@@ -390,7 +390,7 @@ def segment_cc(midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, sl
         or np.any(cc_volume_mask[:, :, 0])
         or np.any(cc_volume_mask[:, :, -1])
     ):
-        print("Warning: CC volume mask touches the edge of the segmentation field-of-view, CC might be truncated")
+        print("Warning: CC voume mask touches the edge of the segmentation field-of-view, CC might be truncated")
 
     # get voxels that were removed during cleaning
     removed_voxels = pre_clean_segmentation != segmentation
@@ -411,7 +411,7 @@ def main(
     num_thickness_points: int = 100,
     subdivisions: list[float] | None = None,
     subdivision_method: str = "shape",
-    contour_smoothing: float = 1.0,
+    contour_smoothing: float = 5,
     save_template: str | Path | None = None,
     cpu: bool = False,
     # output paths
@@ -605,7 +605,6 @@ def main(
     segmentation, outputs_soft = segment_cc(
         midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, slices_to_analyze
     )
-
 
     # calculate affine for segmentation volume
     orig_to_seg = np.eye(4)

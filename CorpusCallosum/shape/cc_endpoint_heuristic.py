@@ -16,9 +16,117 @@ import lapy
 import numpy as np
 import scipy.ndimage
 import skimage.measure
+from scipy.ndimage import label
 
 
-def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, contour_smoothing=1.0):
+def smooth_contour(x, y, window_size):
+    """
+    Smooth a contour using a moving average filter.
+    """
+
+    # Ensure the window size is odd
+    if window_size % 2 == 0:
+        window_size += 1
+
+    # Create a padded version of the arrays to handle the edges
+    x_padded = np.pad(x, (window_size // 2, window_size // 2), mode="wrap")
+    y_padded = np.pad(y, (window_size // 2, window_size // 2), mode="wrap")
+
+    # Apply moving average
+    x_smoothed = np.zeros_like(x)
+    y_smoothed = np.zeros_like(y)
+
+    for i in range(len(x)):
+        x_smoothed[i] = np.mean(x_padded[i : i + window_size])
+        y_smoothed[i] = np.mean(y_padded[i : i + window_size])
+
+    # remove padding
+    x_smoothed = x_smoothed[window_size // 2:-window_size // 2]
+    y_smoothed = y_smoothed[window_size // 2:-window_size // 2]
+
+    return x_smoothed, y_smoothed
+
+
+def connect_diagonally_connected_components(cc_mask):
+    """
+    Connects diagonally connected components in the CC mask.
+    """
+    
+    # Create padded mask to handle boundary conditions
+    padded_mask = np.pad(cc_mask, pad_width=1, mode='constant', constant_values=0)
+    
+    # Get center pixels and diagonal neighbors
+    center = padded_mask[1:-1, 1:-1]
+    
+    # Direct neighbors (4-connectivity)
+    left = padded_mask[1:-1, :-2]      # left
+    right = padded_mask[1:-1, 2:]      # right  
+    up = padded_mask[:-2, 1:-1]        # up
+    down = padded_mask[2:, 1:-1]       # down
+    
+    # Diagonal neighbors
+    up_left = padded_mask[:-2, :-2]     # up-left
+    up_right = padded_mask[:-2, 2:]     # up-right
+    down_left = padded_mask[2:, :-2]    # down-left
+    down_right = padded_mask[2:, 2:]    # down-right
+    
+    potential_diagonal_gaps = (center == 0) & (
+        ((up_left > 0) & ((right > 0) | (down > 0))) |
+        ((up_right > 0) & ((left > 0) | (down > 0))) |
+        ((down_left > 0) & ((right > 0) | (up > 0))) |
+        ((down_right > 0) & ((left > 0) | (up > 0)))
+    )
+    
+    
+    # Get connected components before filling using 4-connectivity
+    # This way, diagonal-only connections are treated as separate components
+    structure_4conn = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+    _, num_components_before = label(cc_mask, structure=structure_4conn)
+    
+    # For each potential gap, check if filling it would reduce the number of components
+    connects_diagonals = np.zeros_like(potential_diagonal_gaps)
+    gap_positions = np.where(potential_diagonal_gaps)
+    
+    for i, j in zip(gap_positions[0], gap_positions[1], strict=True):
+        # Temporarily fill this gap
+        test_mask = cc_mask.copy()
+        test_mask[i, j] = 1
+        
+        # Check connected components after filling
+        _, num_components_after = label(test_mask, structure=structure_4conn)
+        
+        # Only fill if it actually connects previously disconnected components
+        if num_components_after < num_components_before:
+            connects_diagonals[i, j] = True
+    
+    # Fill the identified diagonal gaps that actually improve connectivity
+    cc_mask[connects_diagonals] = 1
+
+
+def extract_cc_contour(cc_mask, contour_smoothing=5):
+    """
+    Extracts the contour of the CC from the mask.
+    """
+    # cc_mask_orig = cc_mask
+    cc_mask = cc_mask.copy()
+
+    connect_diagonally_connected_components(cc_mask)
+
+    contour = skimage.measure.find_contours(cc_mask, level=0.5)[0].T
+    contour = np.array(smooth_contour(contour[0], contour[1], contour_smoothing))
+
+    # plot contour
+    # import matplotlib.pyplot as plt
+    # fig, ax = plt.subplots(1,2,figsize=(10, 8))
+    # ax[0].imshow(cc_mask_orig)
+    # ax[1].imshow(cc_mask)
+    # ax[0].plot(contour[1], contour[0], 'r-')
+    # ax[1].plot(contour[1], contour[0], 'r-')
+    # plt.show()
+
+    return contour
+
+def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, contour_smoothing=5):
     """
     Determines endpoints of CC by finding the point in the contour closest to
     the anterior and posterior commisure (with some offsets)
@@ -39,6 +147,8 @@ def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, co
     theta_degrees = theta * 180 / np.pi
     rotated_cc_mask = scipy.ndimage.rotate(cc_mask, -theta_degrees, order=0, reshape=False)
 
+    contour = extract_cc_contour(rotated_cc_mask, contour_smoothing)
+
     # rotate points around center
     origin_point = np.array([image_size[0] // 2, image_size[1] // 2])
 
@@ -51,13 +161,7 @@ def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, co
 
     rotated_PC_2d = (rot_matrix @ pc_centered) + origin_point
     rotated_AC_2d = (rot_matrix @ ac_centered) + origin_point
-
-    # get contour of CC
-    gaussian_cc_mask = scipy.ndimage.gaussian_filter(rotated_cc_mask.astype(float), sigma=contour_smoothing)
-    # gaussian_cc_mask = scipy.ndimage.gaussian_filter(gaussian_cc_mask, sigma=1.0)
-    contour = skimage.measure.find_contours(gaussian_cc_mask, level=0.5)[0].T
-
-
+    
 
     # Add z=0 coordinate to make 3D, then remove it after resampling
     contour_3d = np.vstack([contour, np.zeros(contour.shape[1])])
