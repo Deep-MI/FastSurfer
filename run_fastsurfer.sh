@@ -508,14 +508,15 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 # Function to convert path to absolute if it exists and is not empty
 convert_to_absolute_path() {
   local var_name="$1"
-  local var_value="${!var_name}"
+  local var_value
+  eval "var_value=\$$var_name"
   
-  if [[ -n "$var_value" ]]; then
-    if [[ -e "$var_value" ]] || [[ "$var_value" == *"/"* ]]; then
+  if [ -n "$var_value" ]; then
+    if [ -e "$var_value" ] || [ "${var_value#*/}" != "$var_value" ]; then
       # Path exists or contains directory separators - convert to absolute
       local abs_path
-      abs_path=$(realpath -m "$var_value" 2>/dev/null)
-      if [[ $? -eq 0 && -n "$abs_path" ]]; then
+      abs_path=$(realpath  "$var_value" 2>/dev/null)
+      if [ $? -eq 0 ] && [ -n "$abs_path" ]; then
         eval "$var_name=\"$abs_path\""
       else
         echo "WARNING: Failed to convert $var_name to absolute path: $var_value" | tee -a "${tmpLF:-/dev/null}"
