@@ -136,7 +136,7 @@ The pipeline produces the following outputs in the specified output directory:
 - `surf/callosum.thickness.w`: FreeSurfer overlay file containing thickness values
 - `surf/callosum_mesh.vtk`: VTK format mesh file for 3D visualization 
 
-### Template Files (when --save_template is used)
+**Template Files (when --save_template is used):**
 
 - `contours.txt`: Corpus callosum contour coordinates for visualization
 - `thickness_values.txt`: Thickness measurements at each contour point

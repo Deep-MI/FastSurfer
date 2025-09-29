@@ -100,7 +100,11 @@ def get_cc_volume_contour(desired_width_mm: int, cc_contours: list[np.ndarray],
     
     # Calculate cross-sectional areas for each contour
     areas = []
+    
     for contour in cc_contours:
+        contour = contour.copy()
+        assert voxel_size[1] == voxel_size[2], "volume must be isotropic"
+        contour *= voxel_size[1]
         # Calculate area using the shoelace formula for polygon area
         if contour.shape[1] < 3:
             areas.append(0.0)
@@ -117,15 +121,25 @@ def get_cc_volume_contour(desired_width_mm: int, cc_contours: list[np.ndarray],
     
     # Calculate spacing between slices (left-right direction)
     lr_spacing = voxel_size[0]  # x-direction voxel size
+
+    measurement_points = np.arange(-voxel_size[0]*(areas.shape[0]//2), 
+                                    voxel_size[0]*((areas.shape[0]+1)//2), lr_spacing)
     
-    # interpolate areas at 0 and 5
-    areas_interpolated = np.interp(x=[0, 5], xp=np.arange(lr_spacing/2, 5, lr_spacing), fp=areas)
+    # interpolate areas at 0.25 and 5
+    areas_interpolated = np.interp(x=[-2.5, 2.5], 
+                                   xp=measurement_points, 
+                                   fp=areas)
 
 
+    # remove measurement points that are outside of the desired range
+    # not sure if this can happen, but let's be safe
+    outside_range = (measurement_points < -2.5) | (measurement_points > 2.5)
+    measurement_points = [-2.5] + measurement_points[~outside_range].tolist() + [2.5]
+    areas = [areas_interpolated[0]] + areas[~outside_range].tolist() + [areas_interpolated[1]]
     
-    measurements = [0,0.5,1.5,2.5,3.5,4.5,5]
-    # can also use cumulative trapezoidal rule
-    return integrate.simpson([areas_interpolated[0]] + areas.tolist() + [areas_interpolated[1]], x=measurements)
+    
+    # can also use trapezoidal rule
+    return integrate.simpson(areas, x=measurement_points)
     
 
 def get_largest_cc(seg_arr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -192,7 +206,7 @@ def clean_cc_segmentation(seg_arr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     if 250 not in unique_labels:
         clean_seg[seg_arr == 250] = 250
-        mask [seg_arr == 250] = True
+        mask[seg_arr == 250] = True
     if 192 not in unique_labels:
         clean_seg[seg_arr == 192] = 192
         mask[seg_arr == 192] = True
