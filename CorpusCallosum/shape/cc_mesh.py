@@ -1317,14 +1317,19 @@ class CC_Mesh(lapy.TriaMesh):
                     try:
                         new_thickness_values[slice_idx][vertex_indices] = loaded_thickness_values[slice_idx][
                             ~np.isnan(loaded_thickness_values[slice_idx])]
-                    except IndexError:
-                        print(
+                    except IndexError as err:
+                        logger.error(
                             f"Tried to load "
                             f"{loaded_thickness_values[slice_idx][~np.isnan(loaded_thickness_values[slice_idx])]} "
                             f"values, but template has {new_thickness_values[slice_idx][vertex_indices]} values, "
                             "supply a correct template to visualize the thickness values"
                         )
-                        sys.exit(1)
+                        raise ValueError(
+                            f"Tried to load "
+                            f"{loaded_thickness_values[slice_idx][~np.isnan(loaded_thickness_values[slice_idx])]} "
+                            f"values, but template has {new_thickness_values[slice_idx][vertex_indices]} values, "
+                            "supply a correct template to visualize the thickness values"
+                        ) from err
             self.thickness_values = new_thickness_values
 
     @staticmethod
@@ -1334,15 +1339,17 @@ class CC_Mesh(lapy.TriaMesh):
         output_folder = Path(filename).parent
         output_folder.mkdir(parents=False, exist_ok=True)
 
-    def to_fs_coordinates(self):
+    def to_fs_coordinates(self, vox_size: tuple[int, int, int], image_size: tuple[int, int, int]):
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
         Transforms the mesh vertices from the original coordinate system to the
         FreeSurfer coordinate system by reordering axes and applying appropriate offsets.
         """
-        self.v = self.v[:, [2, 0, 1]]
-        self.v[:, 1] -= 128
-        self.v[:, 2] += 128
+        self.v = self.v[:, [2, 0, 1]] # LIA to ALI?
+        self.v *= (vox_size[0] **2) ## ???
+        self.v[:, 1] -= image_size[1] * vox_size[1] // 2 # move 0 to center of image
+        self.v[:, 2] += image_size[2] * vox_size[2] // 2
+        
 
     def write_fssurf(self, filename):
         """Write the mesh to a FreeSurfer surface file.

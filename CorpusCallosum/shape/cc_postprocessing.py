@@ -134,7 +134,6 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
             'angular', or 'eigenvector')
         contour_smoothing (float): 
             Gaussian sigma for contour smoothing
-        
     Returns:
         slice_data (dict | None): 
             Dictionary containing measurements if successful, including:
@@ -246,7 +245,7 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
 def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
                   num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
                   debug_image_path=None, one_debug_image=False,
-                  thickness_image_path=None, vox_size=None, 
+                  thickness_image_path=None, vox_size=None, image_size=None,
                   save_template=None, surf_file_path=None, overlay_file_path=None, cc_html_path=None, 
                   vtk_file_path=None, verbose=False):
     """Process corpus callosum slices based on selection mode.
@@ -281,7 +280,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
     if slice_selection == "middle":
         cc_mesh = CC_Mesh(num_slices=1)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(vox_size) # contour is always scaled to 1 mm
+        cc_mesh.set_resolution(vox_size[0]) # contour is always scaled to 1 mm
 
         # Process only the middle slice
         slice_idx = segmentation.shape[0] // 2
@@ -309,12 +308,12 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
             if verbose:
                 logger.info(f"Saving segmentation qc image to {debug_image_path}")
             IO_processes.append(create_visualization(subdivision_method, result, midslices, 
-                                                   debug_image_path, ac_coords, pc_coords, vox_size))
+                                                   debug_image_path, ac_coords, pc_coords, vox_size[0]))
     else:
         num_slices = segmentation.shape[0]
         cc_mesh = CC_Mesh(num_slices=num_slices)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(vox_size) # contour is always scaled to 1 mm
+        cc_mesh.set_resolution(vox_size[0]) # contour is always scaled to 1 mm
 
         # Process multiple slices or specific slice
         if slice_selection == "all":
@@ -367,7 +366,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
                     IO_processes.append(create_visualization(subdivision_method, result, 
                                                             midslices[current_slice_in_volume:current_slice_in_volume+1], 
                                                             debug_output_path_slice, ac_coords, pc_coords, 
-                                                            vox_size, f' (Slice {slice_idx})'))
+                                                            vox_size[0], f' (Slice {slice_idx})'))
 
     if save_template is not None:
         # Convert to Path object and ensure directory exists
@@ -394,7 +393,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         #cc_mesh.write_vtk(str(output_dir / 'cc_mesh.vtk'))
         
         
-        cc_mesh.to_fs_coordinates()
+        cc_mesh.to_fs_coordinates(vox_size=vox_size, image_size=image_size)
 
         if overlay_file_path is not None:
             if verbose: 
@@ -417,7 +416,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
     
     if not slice_results:
         logger.error("Error: No valid slices were found for postprocessing")
-        exit(1)
+        raise ValueError("No valid slices were found for postprocessing")
         
     return slice_results, IO_processes
 

@@ -532,8 +532,8 @@ def main(
     # Validate subdivision fractions
     for i in subdivisions:
         if i < 0 or i > 1:
-            print("Error: Subdivision fractions must be between 0 and 1, but got: ", i)
-            exit(1)
+            logger.error(f"Error: Subdivision fractions must be between 0 and 1, but got: {i}")
+            raise ValueError(f"Subdivision fractions must be between 0 and 1, but got: {i}")
 
     #### setup variables
     IO_processes = []
@@ -551,9 +551,9 @@ def main(
             "center around the mid-sagittal plane)"
         )
 
-    if not is_conform(orig):
+    if not is_conform(orig, vox_size='min', img_size=None):
         logger.error("Error: MRI is not conformed, please run conform.py or mri_convert to conform the image.")
-        exit(1)
+        raise ValueError("MRI is not conformed, please run conform.py or mri_convert to conform the image.")
 
     # load models
     device = torch.device("cuda" if torch.cuda.is_available() and not cpu else "cpu")
@@ -651,7 +651,8 @@ def main(
         cc_html_path=cc_html_path,
         vtk_file_path=vtk_file_path,
         thickness_image_path=thickness_image_path,
-        vox_size=orig.header.get_zooms()[0],
+        vox_size=orig.header.get_zooms(),
+        image_size=orig.shape,
         verbose=verbose,
         save_template=save_template,
     )

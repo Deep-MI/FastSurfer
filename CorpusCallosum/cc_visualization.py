@@ -128,7 +128,7 @@ def main(
             contour_idx=len(cc_mesh.contours) // 2, save_path=str(output_dir / "midslice_2d.png")
         )
 
-        cc_mesh.to_fs_coordinates()
+        cc_mesh.to_fs_coordinates(vox_size=[resolution, resolution, resolution])
         cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
         cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
         cc_mesh.write_overlay(str(output_dir / "cc_mesh_overlay.curv"))
