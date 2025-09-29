@@ -504,6 +504,48 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
+
+# Function to convert path to absolute if it exists and is not empty
+convert_to_absolute_path() {
+  local var_name="$1"
+  local var_value="${!var_name}"
+  
+  if [[ -n "$var_value" ]]; then
+    if [[ -e "$var_value" ]] || [[ "$var_value" == *"/"* ]]; then
+      # Path exists or contains directory separators - convert to absolute
+      local abs_path
+      abs_path=$(realpath -m "$var_value" 2>/dev/null)
+      if [[ $? -eq 0 && -n "$abs_path" ]]; then
+        eval "$var_name=\"$abs_path\""
+      else
+        echo "WARNING: Failed to convert $var_name to absolute path: $var_value" | tee -a "${tmpLF:-/dev/null}"
+      fi
+    fi
+  fi
+}
+
+# Convert path variables to absolute paths
+convert_to_absolute_path "sd"
+convert_to_absolute_path "t1"
+convert_to_absolute_path "t2"
+convert_to_absolute_path "seg_log"
+convert_to_absolute_path "conformed_name"
+convert_to_absolute_path "norm_name"
+convert_to_absolute_path "norm_name_t2"
+convert_to_absolute_path "asegdkt_segfile"
+convert_to_absolute_path "mask_name"
+convert_to_absolute_path "merged_segfile"
+convert_to_absolute_path "cereb_segfile"
+convert_to_absolute_path "cereb_statsfile"
+convert_to_absolute_path "hypo_segfile"
+convert_to_absolute_path "hypo_statsfile"
+convert_to_absolute_path "asegdkt_vinn_statsfile"
+convert_to_absolute_path "aseg_vinn_statsfile"
+convert_to_absolute_path "aseg_segfile"
+convert_to_absolute_path "FS_LICENSE"
+
+
+
 # make sure FastSurfer is in the PYTHONPATH
 export PYTHONPATH
 PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
