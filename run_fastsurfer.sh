@@ -515,7 +515,7 @@ convert_to_absolute_path() {
     if [ -e "$var_value" ] || [ "${var_value#*/}" != "$var_value" ]; then
       # Path exists or contains directory separators - convert to absolute
       local abs_path
-      abs_path=$(realpath  "$var_value" 2>/dev/null)
+      abs_path=$(realpath "$var_value" 2>/dev/null)
       if [ $? -eq 0 ] && [ -n "$abs_path" ]; then
         eval "$var_name=\"$abs_path\""
       else
