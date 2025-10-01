@@ -104,7 +104,7 @@ def create_slice_affine(temp_seg_affine, slice_idx, fsaverage_middle):
 
 
 def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thickness_points, subdivisions, 
-                  subdivision_method, contour_smoothing):
+                  subdivision_method, contour_smoothing, vox_size):
     """Process a single slice for corpus callosum measurements.
     
     Performs detailed analysis of a corpus callosum slice, including:
@@ -164,7 +164,7 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
         
 
     contour, anterior_endpoint_idx, posterior_endpoint_idx = get_endpoints(cc_mask_slice, ac_coords, pc_coords, 
-                                                                           affine.diagonal()[1], 
+                                                                           vox_size, 
                                                                            return_coordinates=False, 
                                                                            contour_smoothing=contour_smoothing)
     contour_1mm = convert_to_ras(contour, affine)
@@ -194,7 +194,6 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
                                                      contour_1mm[:,anterior_endpoint_idx], 
                                                      contour_1mm[:,posterior_endpoint_idx])[0] 
                                                      for split_contour in split_contours]
-        
         split_contours_hofer_frahm = None
     elif subdivision_method == "vertical":
         areas, split_contours = subdivide_contour(contour_acpc, subdivisions, plot=False)
@@ -245,7 +244,7 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
 def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
                   num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
                   debug_image_path=None, one_debug_image=False,
-                  thickness_image_path=None, vox_size=None, image_size=None,
+                  thickness_image_path=None, vox_size=None, vox2ras_tkr=None,
                   save_template=None, surf_file_path=None, overlay_file_path=None, cc_html_path=None, 
                   vtk_file_path=None, verbose=False):
     """Process corpus callosum slices based on selection mode.
@@ -280,7 +279,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
     if slice_selection == "middle":
         cc_mesh = CC_Mesh(num_slices=1)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(vox_size[0]) # contour is always scaled to 1 mm
+        cc_mesh.set_resolution(vox_size[0])
 
         # Process only the middle slice
         slice_idx = segmentation.shape[0] // 2
@@ -295,7 +294,8 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
                                                                         num_thickness_points, 
                                                                         subdivisions, 
                                                                         subdivision_method, 
-                                                                        contour_smoothing)
+                                                                        contour_smoothing,
+                                                                        vox_size[0])
         
         cc_mesh.add_contour(0, 
                             contour_with_thickness[0], 
@@ -313,7 +313,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         num_slices = segmentation.shape[0]
         cc_mesh = CC_Mesh(num_slices=num_slices)
         cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(vox_size[0]) # contour is always scaled to 1 mm
+        cc_mesh.set_resolution(vox_size[0])
 
         # Process multiple slices or specific slice
         if slice_selection == "all":
@@ -337,7 +337,8 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
                                                                             ac_coords, pc_coords, 
                                                                             slice_affine, num_thickness_points, 
                                                                             subdivisions, subdivision_method, 
-                                                                            contour_smoothing)
+                                                                            contour_smoothing,
+                                                                            vox_size[0])
 
             # insert 
             cc_mesh.add_contour(slice_idx, 
@@ -393,7 +394,7 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
         #cc_mesh.write_vtk(str(output_dir / 'cc_mesh.vtk'))
         
         
-        cc_mesh.to_fs_coordinates(vox_size=vox_size, image_size=image_size)
+        cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr, vox_size=vox_size)
 
         if overlay_file_path is not None:
             if verbose: 

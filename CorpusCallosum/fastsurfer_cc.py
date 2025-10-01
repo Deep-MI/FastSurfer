@@ -278,7 +278,7 @@ def centroid_registration(aseg_nib, verbose=False):
 
     # Load pre-computed fsaverage centroids and data from static files
     centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
-    fsaverage_affine, fsaverage_header = load_fsaverage_data(FSAVERAGE_DATA_PATH)
+    fsaverage_affine, fsaverage_header, vox2ras_tkr = load_fsaverage_data(FSAVERAGE_DATA_PATH)
 
     centroids_mov, ids_not_found = get_centroids_from_nib(aseg_nib, label_ids=list(centroids_dst.keys()))
 
@@ -303,7 +303,7 @@ def centroid_registration(aseg_nib, verbose=False):
     )
     fsaverage_hires_affine = resolution_trans @ fsaverage_affine
 
-    return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header
+    return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header, vox2ras_tkr
 
 
 def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localization, slices_to_analyze):
@@ -571,7 +571,8 @@ def main(
     aseg_nib = nib.load(aseg_path)
 
     logger.info("Performing centroid registration to fsaverage space")
-    orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header = centroid_registration(
+    (orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, 
+     fsaverage_hires_affine, fsaverage_header, fsaverage_vox2ras_tkr) = centroid_registration(
         aseg_nib, verbose=False
     )
 
@@ -651,7 +652,7 @@ def main(
         vtk_file_path=vtk_file_path,
         thickness_image_path=thickness_image_path,
         vox_size=orig.header.get_zooms(),
-        image_size=orig.shape,
+        vox2ras_tkr=fsaverage_vox2ras_tkr,
         verbose=verbose,
         save_template=save_template,
     )

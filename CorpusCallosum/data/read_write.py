@@ -268,6 +268,7 @@ def load_fsaverage_data(data_path):
     
     # Convert lists back to numpy arrays
     affine_matrix = np.array(data["affine"])
+    vox2ras_tkr = np.array(data["vox2ras_tkr"])
     header_data = data["header"].copy()
     header_data["Mdc"] = np.array(header_data["Mdc"])
     header_data["Pxyz_c"] = np.array(header_data["Pxyz_c"])
@@ -276,4 +277,4 @@ def load_fsaverage_data(data_path):
     if affine_matrix.shape != (4, 4):
         raise ValueError(f"Expected 4x4 affine matrix, got shape {affine_matrix.shape}")
     
-    return affine_matrix, header_data
+    return affine_matrix, header_data, vox2ras_tkr
