@@ -13,16 +13,39 @@
 # limitations under the License.
 
 import lapy
+import nibabel
 import numpy as np
+import numpy.typing as npt
+import pandas as pd
 import scipy.ndimage
 import skimage.measure
 from scipy.ndimage import label
 
 
-def smooth_contour(x, y, window_size):
+def smooth_contour(x: npt.NDArray[np.float64], 
+                   y: npt.NDArray[np.float64], 
+                   window_size: int) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Smooth a contour using a moving average filter.
+
+    Parameters
+    ----------
+    x : npt.NDArray[np.float64]
+        x-coordinates of the contour points
+    y : npt.NDArray[np.float64]
+        y-coordinates of the contour points
+    window_size : int
+        Size of the smoothing window. Must be odd and > 2.
+
+    Returns
+    -------
+    tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
+        Smoothed x and y coordinates of the contour
     """
-    Smooth a contour using a moving average filter.
-    """
+    # Ensure window_size is an integer
+    window_size = int(window_size)
+
+    if window_size // 2 == 0:
+        raise ValueError(f"Smoothing window size of {window_size} is too small")
 
     # Ensure the window size is odd
     if window_size % 2 == 0:
@@ -47,9 +70,17 @@ def smooth_contour(x, y, window_size):
     return x_smoothed, y_smoothed
 
 
-def connect_diagonally_connected_components(cc_mask):
-    """
-    Connects diagonally connected components in the CC mask.
+def connect_diagonally_connected_components(cc_mask: npt.NDArray[np.bool_]) -> None:
+    """Connect diagonally connected components in the CC mask.
+
+    Parameters
+    ----------
+    cc_mask : npt.NDArray[np.bool_]
+        Binary mask of the corpus callosum
+
+    Notes
+    -----
+    Modifies the input mask in-place to connect diagonally connected components.
     """
     
     # Create padded mask to handle boundary conditions
@@ -103,9 +134,21 @@ def connect_diagonally_connected_components(cc_mask):
     cc_mask[connects_diagonals] = 1
 
 
-def extract_cc_contour(cc_mask, contour_smoothing=5):
-    """
-    Extracts the contour of the CC from the mask.
+def extract_cc_contour(cc_mask: npt.NDArray[np.bool_], 
+                      contour_smoothing: int = 5) -> npt.NDArray[np.float64]:
+    """Extract the contour of the CC from the mask.
+
+    Parameters
+    ----------
+    cc_mask : npt.NDArray[np.bool_]
+        Binary mask of the corpus callosum
+    contour_smoothing : int, optional
+        Window size for contour smoothing, by default 5
+
+    Returns
+    -------
+    npt.NDArray[np.float64]
+        Array of shape (2, N) containing x,y coordinates of the contour points
     """
     # cc_mask_orig = cc_mask
     cc_mask = cc_mask.copy()
@@ -126,12 +169,42 @@ def extract_cc_contour(cc_mask, contour_smoothing=5):
 
     return contour
 
-def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, contour_smoothing=5):
-    """
-    Determines endpoints of CC by finding the point in the contour closest to
-    the anterior and posterior commisure (with some offsets)
+def get_endpoints(cc_mask: npt.NDArray[np.bool_], 
+                 AC_2d: npt.NDArray[np.float64], 
+                 PC_2d: npt.NDArray[np.float64], 
+                 resolution: float, 
+                 return_coordinates: bool = True, 
+                 contour_smoothing: int = 5) -> (
+                     tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]] |
+                     tuple[npt.NDArray[np.float64], int, int]):
+    """Determine endpoints of CC by finding points closest to AC and PC.
 
-    NOTE: Expects LIA orientation
+    Parameters
+    ----------
+    cc_mask : npt.NDArray[np.bool_]
+        Binary mask of the corpus callosum
+    AC_2d : npt.NDArray[np.float64]
+        2D coordinates of the anterior commissure
+    PC_2d : npt.NDArray[np.float64]
+        2D coordinates of the posterior commissure
+    resolution : float
+        Image resolution in mm
+    return_coordinates : bool, optional
+        If True, return endpoint coordinates, otherwise return indices, by default True
+    contour_smoothing : int, optional
+        Window size for contour smoothing, by default 5
+
+    Returns
+    -------
+    tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]] | tuple[npt.NDArray[np.float64], int, int]
+        If return_coordinates is True:
+            (contour, anterior_point, posterior_point)
+        If return_coordinates is False:
+            (contour, anterior_index, posterior_index)
+
+    Notes
+    -----
+    Expects LIA orientation
     """
     image_size = cc_mask.shape
 
@@ -215,25 +288,3 @@ def get_endpoints(cc_mask, AC_2d, PC_2d, resolution, return_coordinates=True, co
         return contour_rotated, start_point_A, start_point_P
     else:
         return contour_rotated, AC_startpoint_idx, PC_startpoint_idx
-
-
-def get_endpoints_from_nib(cc_label_nib, paths_csv, subj_id, return_coordinates=True):
-    cc_mask = cc_label_nib.get_fdata() == 192
-    cc_mask = cc_mask[cc_mask.shape[0] // 2]
-
-    posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r":"PC_center_s"].to_numpy().astype(float)
-    anterior_commisure_center = paths_csv.loc[subj_id, "AC_center_r":"AC_center_s"].to_numpy().astype(float)
-
-    # adjust LR from label coordinates to orig_up coordinates
-    posterior_commisure_center[0] = 128
-    anterior_commisure_center[0] = 128
-
-    # orientation I, A
-    # rotate image so anterior and posterior commisure are horizontal
-    AC_2d = anterior_commisure_center[1:]
-    PC_2d = posterior_commisure_center[1:]
-
-    return get_endpoints(
-        cc_mask, AC_2d, PC_2d, resolution=cc_label_nib.header.get_zooms()[1], return_coordinates=return_coordinates
-    )
-

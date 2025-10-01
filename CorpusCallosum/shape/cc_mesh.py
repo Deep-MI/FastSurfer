@@ -1325,17 +1325,40 @@ class CC_Mesh(lapy.TriaMesh):
         output_folder = Path(filename).parent
         output_folder.mkdir(parents=False, exist_ok=True)
 
-    def to_fs_coordinates(self, vox_size: tuple[int, int, int], image_size: tuple[int, int, int]):
+    def to_fs_coordinates(self, vox2ras_tkr: np.ndarray, vox_size: tuple[int, int, int]):
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
         Transforms the mesh vertices from the original coordinate system to the
         FreeSurfer coordinate system by reordering axes and applying appropriate offsets.
         """
-        self.v = self.v[:, [2, 0, 1]] # LIA to ALI?
-        self.v *= (vox_size[0] **2) ## ???
-        self.v[:, 1] -= image_size[1] * vox_size[1] // 2 # move 0 to center of image
-        self.v[:, 2] += image_size[2] * vox_size[2] // 2 
-        self.v[:, 0] += vox_size[0] / 2
+
+        # to voxel coordinates
+        v_vox = self.v.copy()
+        
+        # to LSA
+        v_vox = v_vox[:, [2, 1, 0]]
+        # to voxel
+        v_vox /= vox_size[0]
+        # center LR
+        v_vox[:, 0] += 256 // 2
+        # flip SI
+        v_vox[:, 1] = -v_vox[:, 1]
+
+
+        #v_vox_test = np.round(v_vox).astype(int)
+        ## write volume for debugging
+        # contour_img = np.zeros(orig.shape)
+        # for i in range(v_vox_test.shape[0]):
+        #     contour_img[v_vox_test[i, 0], v_vox_test[i, 1], v_vox_test[i, 2]] = 1
+
+        # tkrRAS = Torig*[C R S 1]'
+        # Torig: mri_info --vox2ras-tkr orig.mgz 
+        # https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
+        self.v = (vox2ras_tkr @ np.concatenate([v_vox, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
+        self.v = self.v * vox_size[0]
+        
+
+        
         
         
 

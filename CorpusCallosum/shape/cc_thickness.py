@@ -63,8 +63,8 @@ def convert_to_ras(contour, vox2ras_matrix, get_parameters=False):
         # get scaling by getting length of three column vectors
         scaling = np.linalg.norm(vox2ras_matrix[:3, :3], axis=0)
 
-        # apply transformation
-        contour = (contour.T / scaling[1:]).T
+        # voxel * vox_size = mm
+        contour = (contour.T * scaling[1:]).T
 
         if get_parameters:
             return contour, anterior_reversed, superior_reversed, swap_axes

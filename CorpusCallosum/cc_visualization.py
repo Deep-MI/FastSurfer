@@ -3,7 +3,9 @@ from pathlib import Path
 
 import numpy as np
 
+from CorpusCallosum.data.constants import FSAVERAGE_DATA_PATH
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
+from CorpusCallosum.data.read_write import load_fsaverage_data
 from CorpusCallosum.shape.cc_mesh import CC_Mesh
 
 
@@ -93,6 +95,8 @@ def main(
     # Load data and create mesh
     cc_mesh = CC_Mesh(num_slices=1)  # Will be resized when loading data
 
+    _, _, vox2ras_tkr = load_fsaverage_data(FSAVERAGE_DATA_PATH)
+
     if contours_path is not None:
         cc_mesh.load_contours(str(contours_path))
     else:
@@ -128,7 +132,7 @@ def main(
             contour_idx=len(cc_mesh.contours) // 2, save_path=str(output_dir / "midslice_2d.png")
         )
 
-        cc_mesh.to_fs_coordinates(vox_size=[resolution, resolution, resolution])
+        cc_mesh.to_fs_coordinates(vox_size=[resolution, resolution, resolution], vox2ras_tkr=vox2ras_tkr)
         cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
         cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
         cc_mesh.write_overlay(str(output_dir / "cc_mesh_overlay.curv"))

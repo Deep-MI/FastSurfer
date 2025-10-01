@@ -125,15 +125,15 @@ def plot_contours(
 
     # scale contour data by vox_size
     split_contours = (
-        [split_contour * vox_size for split_contour in split_contours] if split_contours is not None else None
+        [split_contour / vox_size for split_contour in split_contours] if split_contours is not None else None
     )
     split_contours_hofer_frahm = (
-        [split_contour * vox_size for split_contour in split_contours_hofer_frahm]
+        [split_contour / vox_size for split_contour in split_contours_hofer_frahm]
         if split_contours_hofer_frahm is not None
         else None
     )
-    midline_equidistant = midline_equidistant * vox_size
-    levelpaths = [levelpath * vox_size for levelpath in levelpaths]
+    midline_equidistant = midline_equidistant / vox_size
+    levelpaths = [levelpath / vox_size for levelpath in levelpaths]
 
     NO_PLOTS = 1
     if split_contours is not None:
