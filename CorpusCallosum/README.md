@@ -160,7 +160,6 @@ This file contains measurements from the middle sagittal slice and includes:
 
 **Subdivisions**
 - `areas`: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segemnts while preserving the original ratios.
-- `areas_hofer_frahm`: Areas using classical Hofer-Frahm subdivision method (mm²)
 
 **Thickness Analysis:**
 - `thickness`: Average corpus callosum thickness (mm)
@@ -179,9 +178,6 @@ This file contains measurements from the middle sagittal slice and includes:
 - `ac_center_upright`: AC coordinates in upright space (cc_up.lta)
 - `pc_center_upright`: PC coordinates in upright space (cc_up.lta)
 
-**Processing Parameters:**
-- `num_slices`: Number of slices analyzed around the midplane
-
 ### `stats/callosum.CC.all_slices.json` (Multi-Slice Analysis)
 
 This file contains comprehensive per-slice analysis when using `--slice_selection all`:
@@ -191,7 +187,7 @@ This file contains comprehensive per-slice analysis when using `--slice_selectio
 - `voxel_size`: Voxel dimensions [x, y, z] in mm
 - `subdivision_method`: Method used for anatomical subdivision
 - `num_thickness_points`: Number of points used for thickness estimation
-- `subdivisions`: Subdivision fractions used for regional analysis
+- `subdivision_ratios`: Subdivision fractions used for regional analysis
 - `contour_smoothing`: Gaussian sigma used for contour smoothing
 - `slice_selection`: Slice selection mode used
 

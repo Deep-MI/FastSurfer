@@ -54,7 +54,7 @@ def create_visualization(subdivision_method: str, result: dict, midslices_data: 
     subdivision_method : str
         The subdivision method being used.
     result : dict
-        Dictionary containing processing results with split_contours and split_contours_hofer_frahm.
+        Dictionary containing processing results with split_contours.
     midslices_data : np.ndarray
         Slice data for visualization.
     output_image_path : str or Path
@@ -76,10 +76,9 @@ def create_visualization(subdivision_method: str, result: dict, midslices_data: 
     title = f'CC Subsegmentation by {subdivision_method} {title_suffix}'
 
     args_dict = {
-        'debug': False,
+        'debug': True,
         'transformed': midslices_data,
-        'split_contours': None,
-        'split_contours_hofer_frahm': None,
+        'split_contours': result['split_contours'],
         'midline_equidistant': result['midline_equidistant'],
         'levelpaths': result['levelpaths'],
         'output_path': output_image_path,
@@ -88,11 +87,6 @@ def create_visualization(subdivision_method: str, result: dict, midslices_data: 
         'vox_size': vox_size,
         'title': title,
     }
-
-    if subdivision_method == "shape":
-        args_dict['split_contours'] = result['split_contours']
-    else:
-        args_dict['split_contours_hofer_frahm'] = result['split_contours_hofer_frahm']
 
     return run_in_background(plot_contours, **args_dict)
 
@@ -171,7 +165,6 @@ def process_slice(
         - total_area : float - Total area of the CC.
         - total_perimeter : float - Total perimeter length.
         - split_contours : list[np.ndarray] - Subdivided contour segments.
-        - split_contours_hofer_frahm : list[np.ndarray] - Alternative subdivision (if applicable).
         - midline_equidistant : np.ndarray - Equidistant points along midline.
         - levelpaths : list[np.ndarray] - Paths for thickness measurements.
         - thickness_measurement_points : np.ndarray - Points where thickness was measured.
@@ -230,17 +223,14 @@ def process_slice(
                                                      contour_1mm[:,anterior_endpoint_idx], 
                                                      contour_1mm[:,posterior_endpoint_idx])[0] 
                                                      for split_contour in split_contours]
-        split_contours_hofer_frahm = None
     elif subdivision_method == "vertical":
         areas, split_contours = subdivide_contour(contour_acpc, subdivisions, plot=False)
-        split_contours_hofer_frahm = split_contours.copy()
     elif subdivision_method == "angular":
         if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
             logger.error('Error: Angular subdivision method (Hampel) only supports equidistant subdivision, '
                   f'but got: {subdivisions}')
             return None
         areas, split_contours = hampel_subdivide_contour(contour_acpc, num_rays=len(subdivisions), plot=False)       
-        split_contours_hofer_frahm = split_contours.copy()
     elif subdivision_method == "eigenvector":
         pt0, pt1 = get_primary_eigenvector(contour_acpc)
         contour_eigen, _, _, rotate_back_eigen = transform_to_acpc_standard(contour_acpc, pt0, pt1)
@@ -248,7 +238,6 @@ def process_slice(
         ac_pt_eigen = ac_pt_eigen[:, 0]
         areas, split_contours = subdivide_contour(contour_eigen, subdivisions, oriented=True, hline_anchor=ac_pt_eigen)
         split_contours = [rotate_back_eigen(split_contour) for split_contour in split_contours]
-        split_contours_hofer_frahm = split_contours.copy()
 
     total_area = np.sum(areas)
     total_perimeter = np.sum(np.sqrt(np.sum((np.diff(contour_1mm, axis=0))**2, axis=1)))
@@ -256,8 +245,6 @@ def process_slice(
 
     # Transform split contours back to original space
     split_contours = [rotate_back_acpc(split_contour) for split_contour in split_contours]
-    if split_contours_hofer_frahm is not None:
-        split_contours_hofer_frahm = [rotate_back_acpc(split_contour) for split_contour in split_contours_hofer_frahm]
 
     return {
         'cc_index': cc_index,
@@ -270,7 +257,6 @@ def process_slice(
         'total_area': total_area,
         'total_perimeter': total_perimeter,
         'split_contours': split_contours,
-        'split_contours_hofer_frahm': split_contours_hofer_frahm,
         'midline_equidistant': midline_equidistant,
         'levelpaths': levelpaths,
         'slice_index': slice_idx
@@ -466,13 +452,14 @@ def process_slices(
         cc_mesh.fill_thickness_values()
         cc_mesh.create_mesh()
         cc_mesh.smooth_(1)
-        cc_mesh.plot_mesh(output_path=cc_html_path)
+        if verbose:
+            logger.info(f"Saving CC 3D visualization to {cc_html_path}")
+        cc_mesh.plot_mesh(output_path=str(cc_html_path), show_mesh_edges=True)
 
         if vtk_file_path is not None:
             if verbose: 
                 logger.info(f"Saving vtk file to {vtk_file_path}")
             cc_mesh.write_vtk(str(vtk_file_path))
-        #cc_mesh.write_vtk(str(output_dir / 'cc_mesh.vtk'))
         
         
         cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr, vox_size=vox_size)
