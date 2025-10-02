@@ -22,43 +22,65 @@ from scipy import ndimage
 from CorpusCallosum.shape.cc_postprocessing import process_slice
 
 
-def smooth_contour(contour, window_size=5):
-        """
-        Smooth a contour using a moving average filter.
-        
-        Parameters
-        ----------
-        contour : tuple of arrays
-            The contour coordinates (x, y).
-        window_size : int
-            Size of the smoothing window.
-            
-        Returns
-        -------
-        tuple of arrays
-            The smoothed contour coordinates (x, y).
-        """
-        x, y = contour
-        
-        # Ensure the window size is odd
-        if window_size % 2 == 0:
-            window_size += 1
-        
-        # Create a padded version of the arrays to handle the edges
-        x_padded = np.pad(x, (window_size//2, window_size//2), mode='wrap')
-        y_padded = np.pad(y, (window_size//2, window_size//2), mode='wrap')
-        
-        # Apply moving average
-        x_smoothed = np.zeros_like(x)
-        y_smoothed = np.zeros_like(y)
-        
-        for i in range(len(x)):
-            x_smoothed[i] = np.mean(x_padded[i:i+window_size])
-            y_smoothed[i] = np.mean(y_padded[i:i+window_size])
-        
-        return (x_smoothed, y_smoothed)
+def smooth_contour(contour: tuple[np.ndarray, np.ndarray], window_size: int = 5) -> tuple[np.ndarray, np.ndarray]:
+    """Smooth a contour using a moving average filter.
 
-def load_fsaverage_cc_template():
+    Parameters
+    ----------
+    contour : tuple of arrays
+        The contour coordinates (x, y).
+    window_size : int
+        Size of the smoothing window.
+
+    Returns
+    -------
+    tuple of arrays
+        The smoothed contour coordinates (x, y).
+    
+    """
+    x, y = contour
+
+    # Ensure the window size is odd
+    if window_size % 2 == 0:
+        window_size += 1
+
+    # Create a padded version of the arrays to handle the edges
+    x_padded = np.pad(x, (window_size//2, window_size//2), mode='wrap')
+    y_padded = np.pad(y, (window_size//2, window_size//2), mode='wrap')
+
+    # Apply moving average
+    x_smoothed = np.zeros_like(x)
+    y_smoothed = np.zeros_like(y)
+
+    for i in range(len(x)):
+        x_smoothed[i] = np.mean(x_padded[i:i+window_size])
+        y_smoothed[i] = np.mean(y_padded[i:i+window_size])
+
+    return (x_smoothed, y_smoothed)
+
+
+def load_fsaverage_cc_template() -> tuple[
+    np.ndarray, tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray, np.ndarray, tuple[int, int]
+]:
+    """Load and process the fsaverage corpus callosum template.
+
+    This function loads the fsaverage segmentation from FreeSurfer's data directory,
+    extracts the corpus callosum mask, and processes it to create a smooth template.
+
+    Returns
+    -------
+    tuple
+        Contains:
+        - contour : tuple[np.ndarray, np.ndarray] : x and y coordinates of the contour points.
+        - anterior_endpoint_idx : np.ndarray : Index of the anterior endpoint.
+        - posterior_endpoint_idx : np.ndarray : Index of the posterior endpoint.
+
+    Raises
+    ------
+    OSError
+        If FREESURFER_HOME environment variable is not set correctly.
+    
+    """
     # smooth outside contour
     # Apply smoothing to the outside contour using a moving average
 
@@ -101,16 +123,17 @@ def load_fsaverage_cc_template():
     cc_mask = cc_mask_smoothed.astype(int)
     cc_mask[cc_mask > 0] = 192
 
-    (_, contour_with_thickness, anterior_endpoint_idx, 
-     posterior_endpoint_idx) = process_slice(segmentation=cc_mask[None], 
-                                             slice_idx=0, 
-                                             ac_coords=AC, 
-                                             pc_coords=PC, 
-                                             affine=fsaverage_seg.affine, 
-                                             num_thickness_points=100, 
-                                             subdivisions=[1/6, 1/2, 2/3, 3/4], 
-                                             subdivision_method="shape", 
-                                             contour_smoothing=1.0)
+    (_, contour_with_thickness, anterior_endpoint_idx,
+     posterior_endpoint_idx) = process_slice(segmentation=cc_mask[None],
+                                             slice_idx=0,
+                                             ac_coords=AC,
+                                             pc_coords=PC,
+                                             affine=fsaverage_seg.affine,
+                                             num_thickness_points=100,
+                                             subdivisions=[1/6, 1/2, 2/3, 3/4],
+                                             subdivision_method="shape",
+                                             contour_smoothing=5,
+                                             vox_size=1)
     outside_contour = contour_with_thickness[0].T
 
 

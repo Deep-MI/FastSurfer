@@ -23,7 +23,7 @@ def options_parse() -> argparse.Namespace:
     parser.add_argument("--output_dir", type=str, required=True, help="Directory for output files")
     parser.add_argument("--resolution", type=float, default=1.0, help="Resolution in mm for the mesh")
     parser.add_argument(
-        "--smooth_iterations", type=int, default=1, help="Number of smoothing iterations to apply to the mesh"
+        "--smoothing_window", type=int, default=5, help="Window size for smoothing the contour"
     )
     parser.add_argument(
         "--colormap",
@@ -57,7 +57,7 @@ def main(
     measurement_points_path: str | Path,
     output_dir: str | Path,
     resolution: float = 1.0,
-    smooth_iterations: int = 1,
+    smoothing_window: int = 5,
     colormap: str = "red_to_yellow",
     color_range: tuple[float, float] | None = None,
     legend: str | None = None,
@@ -65,26 +65,36 @@ def main(
 ) -> None:
     """Main function to visualize corpus callosum from template files.
 
-    This function:
-    1. Loads contours and thickness values from template files
-    2. Creates a CC_Mesh object
-    3. Generates and saves visualizations
+    This function loads contours and thickness values from template files,
+    creates a CC_Mesh object, and generates visualizations.
 
-    Args:
-        contours_path: Path to contours.txt file
-        thickness_path: Path to thickness_values.txt file
-        measurement_points_path: Path to file containing the original vertex indices where thickness was measured
-        output_dir: Directory for output files
-        resolution: Resolution in mm for the mesh
-        smooth_iterations: Number of smoothing iterations to apply to the mesh
-        colormap: Which colormap to use. Options are:
+    Parameters
+    ----------
+    contours_path : str or Path or None
+        Path to contours.txt file.
+    thickness_path : str or Path
+        Path to thickness_values.txt file.
+    measurement_points_path : str or Path
+        Path to file containing original vertex indices where thickness was measured.
+    output_dir : str or Path
+        Directory for output files.
+    resolution : float, optional
+        Resolution in mm for the mesh, by default 1.0.
+    smoothing_window : int, optional
+        Window size for smoothing the contour, by default 5.
+    colormap : str, optional
+        Colormap to use for visualization, by default "red_to_yellow".
+        Options:
         - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
         - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
         - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
         - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
-
-        color_range: Optional tuple of (min, max) to set fixed color range for the colorbar
-        twoD: If True, generate 2D visualization instead of 3D mesh
+    color_range : tuple[float, float], optional
+        Fixed range (min, max) for the colorbar, by default None.
+    legend : str, optional
+        Legend for the colorbar, by default None.
+    twoD : bool, optional
+        If True, generate 2D visualization instead of 3D mesh, by default False.
     """
     # Convert paths to Path objects
     contours_path = Path(contours_path) if contours_path is not None else None
@@ -115,7 +125,7 @@ def main(
     else:
         cc_mesh.fill_thickness_values()
         # Create and process mesh
-        cc_mesh.create_mesh(smooth=smooth_iterations, closed=False)
+        cc_mesh.create_mesh(smooth=smoothing_window, closed=False)
 
         # Generate visualizations
         cc_mesh.plot_mesh(
@@ -147,7 +157,7 @@ if __name__ == "__main__":
         "measurement_points_path": options.measurement_points,
         "output_dir": options.output_dir,
         "resolution": options.resolution,
-        "smooth_iterations": options.smooth_iterations,
+        "smoothing_window": options.smoothing_window,
         "colormap": options.colormap,
         "color_range": options.color_range,
         "legend": options.legend,

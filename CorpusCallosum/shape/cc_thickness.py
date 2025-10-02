@@ -21,7 +21,19 @@ from lapy.diffgeo import compute_rotated_f
 from CorpusCallosum.utils.utils import HiddenPrints
 
 
-def compute_curvature(path):
+def compute_curvature(path: np.ndarray) -> np.ndarray:
+    """Compute curvature by computing edge angles.
+
+    Parameters
+    ----------
+    path : np.ndarray
+        Array of shape (N, 2) containing path coordinates.
+
+    Returns
+    -------
+    np.ndarray
+        Array of angle differences between consecutive edges.
+    """
     # compute curvature by computing edge angles
     edges = np.diff(path, axis=0)
     angles = np.arctan2(edges[:, 1], edges[:, 0])
@@ -32,7 +44,33 @@ def compute_curvature(path):
     return angle_diffs
 
 
-def convert_to_ras(contour, vox2ras_matrix, get_parameters=False):
+def convert_to_ras(
+    contour: np.ndarray,
+    vox2ras_matrix: np.ndarray,
+    get_parameters: bool = False
+) -> np.ndarray | tuple[np.ndarray, bool, bool, bool]:
+    """Convert contour coordinates from voxel space to RAS space.
+
+    Parameters
+    ----------
+    contour : np.ndarray
+        Array of shape (2, N) or (3, N) containing contour coordinates.
+    vox2ras_matrix : np.ndarray
+        4x4 voxel to RAS transformation matrix.
+    get_parameters : bool, optional
+        If True, return additional transformation parameters, by default False.
+
+    Returns
+    -------
+    np.ndarray | tuple[np.ndarray, bool, bool, bool]
+        If get_parameters is False:
+        Transformed contour coordinates.
+        If get_parameters is True:
+        - anterior_reversed : bool - Whether anterior axis was reversed.
+        - superior_reversed : bool - Whether superior axis was reversed.
+        - swap_axes : bool - Whether axes were swapped.
+    
+    """
     # converting to AS (no left-right dimension), out of plane movement is ignores,
     # so we only do scaling, axes swapping and flipping - no rotation
     # translation is ignored
@@ -81,6 +119,29 @@ def convert_to_ras(contour, vox2ras_matrix, get_parameters=False):
 
 
 def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint_idx):
+    """Roll contour points to set a new zero index, while keeping track of CC endpoints.
+
+    Parameters
+    ----------
+    contour : np.ndarray
+        Array of contour points.
+    idx : int
+        New zero index.
+    anterior_endpoint_idx : int
+        Index of anterior endpoint.
+    posterior_endpoint_idx : int
+        Index of posterior endpoint.
+
+    Returns
+    -------
+    tuple
+        - contour : np.ndarray
+            Rolled contour points.
+        - anterior_endpoint_idx : int
+            Updated anterior endpoint index.
+        - posterior_endpoint_idx : int
+            Updated posterior endpoint index.
+    """
     contour = np.roll(contour, -idx, axis=0)
     anterior_endpoint_idx = (anterior_endpoint_idx - idx) % contour.shape[0]
     posterior_endpoint_idx = (posterior_endpoint_idx - idx) % contour.shape[0]
@@ -90,12 +151,17 @@ def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint
 def find_closest_edge(point, contour):
     """Find the index of the edge closest to the given point.
 
-    Args:
-        point: 2D point coordinates
-        contour: Array of contour points (N x 2)
+    Parameters
+    ----------
+    point : np.ndarray
+        2D point coordinates.
+    contour : np.ndarray
+        Array of shape (N, 2) containing contour points.
 
-    Returns:
-        Index of the closest edge
+    Returns
+    -------
+    int
+        Index of the closest edge.
     """
     edges_start = contour[:-1, :2]  # N-1 x 2
     edges_end = contour[1:, :2]  # N-1 x 2
@@ -123,18 +189,33 @@ def find_closest_edge(point, contour):
     return np.argmin(distances)
 
 
-def insert_point_to_contour(
-    contour_with_thickness, point, thickness_value, get_index=False
-):
+def insert_point_with_thickness(
+    contour_with_thickness: list[np.ndarray],
+    point: np.ndarray,
+    thickness_value: float,
+    get_index: bool = False
+) -> tuple[list[np.ndarray], int] | list[np.ndarray]:
     """Insert a point and its thickness value into the contour.
 
-    Args:
-        contour_with_thickness: List containing [contour_points, thickness_values]
-        point: 2D point to insert
-        thickness_value: Thickness value corresponding to the point
+    Parameters
+    ----------
+    contour_with_thickness : list[np.ndarray]
+        List containing [contour_points, thickness_values].
+    point : np.ndarray
+        2D point to insert, shape (2,).
+    thickness_value : float
+        Thickness value corresponding to the point.
+    get_index : bool, optional
+        If True, return the index where point was inserted, by default False.
 
-    Returns:
-        Updated contour_with_thickness
+    Returns
+    -------
+    tuple[list[np.ndarray], int] or list[np.ndarray]
+        If get_index is True:
+            - Updated contour_with_thickness.
+            - Index where point was inserted.
+        If get_index is False:
+            - Updated contour_with_thickness.
     """
     # Find closest edge for the point
     edge_idx = find_closest_edge(point, contour_with_thickness[0])
@@ -153,7 +234,36 @@ def insert_point_to_contour(
         return contour_with_thickness
 
 
-def make_mesh_from_contour(contour_2d, max_volume=0.5, min_angle=25, verbose=False):
+def make_mesh_from_contour(
+    contour_2d: np.ndarray,
+    max_volume: float = 0.5,
+    min_angle: float = 25,
+    verbose: bool = False
+) -> tuple[np.ndarray, np.ndarray]:
+    """Create a triangular mesh from a 2D contour.
+
+    Parameters
+    ----------
+    contour_2d : np.ndarray
+        Array of shape (N, 2) containing contour points.
+    max_volume : float, optional
+        Maximum triangle area, by default 0.5.
+    min_angle : float, optional
+        Minimum angle in triangles (degrees), by default 25.
+    verbose : bool, optional
+        Whether to print mesh generation info, by default False.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        - mesh_points : Array of shape (M, 2) containing mesh vertices.
+        - mesh_trias : Array of shape (K, 3) containing triangle indices.
+
+    Notes
+    -----
+    Uses meshpy.triangle to create a constrained Delaunay triangulation
+    of the contour. The contour must not have duplicate points.
+    """
 
     facets = np.vstack(
         (
@@ -186,8 +296,38 @@ def make_mesh_from_contour(contour_2d, max_volume=0.5, min_angle=25, verbose=Fal
 
 
 def cc_thickness(
-    contour_2d, anterior_endpoint_idx, posterior_endpoint_idx, n_points=100
-):
+    contour_2d: np.ndarray,
+    anterior_endpoint_idx: int,
+    posterior_endpoint_idx: int,
+    n_points: int = 100
+) -> tuple[np.ndarray, np.ndarray]:
+    """Calculate corpus callosum thickness using Laplace equation.
+
+    Parameters
+    ----------
+    contour_2d : np.ndarray
+        Array of shape (N, 2) containing contour points.
+    anterior_endpoint_idx : int
+        Index of anterior endpoint in contour.
+    posterior_endpoint_idx : int
+        Index of posterior endpoint in contour.
+    n_points : int, optional
+        Number of points for thickness measurement, by default 100.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        - thickness_values : Array of thickness measurements.
+        - measurement_points : Array of points where thickness was measured.
+
+    Notes
+    -----
+    Uses the Laplace equation to compute thickness by:
+    1. Creating a triangular mesh from the contour
+    2. Setting boundary conditions (0 at endpoints, ±1 on sides)
+    3. Solving Laplace equation to get level sets
+    4. Computing thickness along level sets
+    """
 
     # standardize contour indices, to get consistent levelpath directions
     contour_2d, anterior_endpoint_idx, posterior_endpoint_idx = set_contour_zero_idx(
@@ -287,10 +427,10 @@ def cc_thickness(
         levelpath_start = lvlpath[0, :2]
         levelpath_end = lvlpath[-1, :2]
 
-        contour_with_thickness, inserted_idx_start = insert_point_to_contour(
+        contour_with_thickness, inserted_idx_start = insert_point_with_thickness(
             contour_with_thickness, levelpath_start, lvlpath_length, get_index=True
         )
-        contour_with_thickness, inserted_idx_end = insert_point_to_contour(
+        contour_with_thickness, inserted_idx_end = insert_point_with_thickness(
             contour_with_thickness, levelpath_end, lvlpath_length, get_index=True
         )
 

@@ -25,13 +25,24 @@ logger = logging.get_logger(__name__)
 
 def find_component_boundaries(labels_arr: np.ndarray, component_id: int) -> np.ndarray:
     """Find boundary voxels of a connected component.
-    
-    Args:
-        labels_arr (np.ndarray): Labeled array from connected components analysis
-        component_id (int): ID of the component to find boundaries for
-        
-    Returns:
-        np.ndarray: Array of boundary coordinates (N, 3)
+
+    Parameters
+    ----------
+    labels_arr : np.ndarray
+        Labeled array from connected components analysis
+    component_id : int
+        ID of the component to find boundaries for
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape (N, 3) containing boundary coordinates
+
+    Notes
+    -----
+    Uses 6-connectivity (face neighbors only) to determine boundaries.
+    Boundary voxels are those that are part of the component but have
+    at least one non-component neighbor.
     """
     component_mask = labels_arr == component_id
     
@@ -47,17 +58,34 @@ def find_component_boundaries(labels_arr: np.ndarray, component_id: int) -> np.n
     return np.array(np.where(boundary)).T
 
 
-def find_minimal_connection_path(boundary1: np.ndarray, boundary2: np.ndarray, 
-                                max_distance: float = 3.0) -> tuple[np.ndarray, np.ndarray] | None:
+def find_minimal_connection_path(
+    boundary1: np.ndarray, 
+    boundary2: np.ndarray, 
+    max_distance: float = 3.0
+) -> tuple[np.ndarray, np.ndarray] | None:
     """Find the minimal connection path between two component boundaries.
-    
-    Args:
-        boundary1 (np.ndarray): Boundary coordinates of first component (N1, 3)
-        boundary2 (np.ndarray): Boundary coordinates of second component (N2, 3)
-        max_distance (float): Maximum distance to consider for connection
-        
-    Returns:
-        tuple | None: (point1, point2) coordinates of closest points if within max_distance, None otherwise
+
+    Parameters
+    ----------
+    boundary1 : np.ndarray
+        Boundary coordinates of first component, shape (N1, 3)
+    boundary2 : np.ndarray
+        Boundary coordinates of second component, shape (N2, 3)
+    max_distance : float, optional
+        Maximum distance to consider for connection, by default 3.0
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray] or None
+        If a valid connection is found:
+            - point1 : Coordinates on first boundary
+            - point2 : Coordinates on second boundary
+        None if no connection within max_distance is found
+
+    Notes
+    -----
+    Uses Euclidean distance to find the closest pair of points
+    between the two boundaries.
     """
     if len(boundary1) == 0 or len(boundary2) == 0:
         return None
@@ -78,14 +106,27 @@ def find_minimal_connection_path(boundary1: np.ndarray, boundary2: np.ndarray,
 
 
 def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple[int, int, int]]:
-    """Create a line of voxels connecting two points using simplified 3D line algorithm.
-    
-    Args:
-        point1 (np.ndarray): Starting point coordinates (3,)
-        point2 (np.ndarray): Ending point coordinates (3,)
-        
-    Returns:
-        list: List of (x, y, z) coordinates forming the connection line
+    """Create a line of voxels connecting two points.
+
+    Uses a simplified 3D line algorithm to create a sequence of voxels
+    that form a continuous path between the two points.
+
+    Parameters
+    ----------
+    point1 : np.ndarray
+        Starting point coordinates, shape (3,)
+    point2 : np.ndarray
+        Ending point coordinates, shape (3,)
+
+    Returns
+    -------
+    list[tuple[int, int, int]]
+        List of (x, y, z) coordinates forming the connection line
+
+    Notes
+    -----
+    The line is created by interpolating between the points using
+    the maximum distance in any dimension as the number of steps.
     """
     x1, y1, z1 = map(int, point1)
     x2, y2, z2 = map(int, point2)
@@ -119,16 +160,29 @@ def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple
 
 def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: float = 3.0) -> np.ndarray:
     """Connect nearby disconnected components that should be connected.
-    
+
     This function identifies disconnected components in the segmentation and creates
     minimal connections between components that are close to each other.
-    
-    Args:
-        seg_arr (np.ndarray): Input binary segmentation array
-        max_connection_distance (float): Maximum distance to connect components
-        
-    Returns:
-        np.ndarray: Segmentation array with minimal connections added
+
+    Parameters
+    ----------
+    seg_arr : np.ndarray
+        Input binary segmentation array
+    max_connection_distance : float, optional
+        Maximum distance to connect components, by default 3.0
+
+    Returns
+    -------
+    np.ndarray
+        Segmentation array with minimal connections added between nearby components
+
+    Notes
+    -----
+    The function:
+    1. Identifies connected components in the input segmentation
+    2. Finds boundaries between components
+    3. Creates minimal connections between nearby components
+    4. Returns the modified segmentation with added connections
     """
 
     # Create a copy to modify
@@ -224,24 +278,44 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
     return connected_seg
 
 
-def get_cc_volume_voxel(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: tuple[float, float, float]) -> float:
+def get_cc_volume_voxel(
+    desired_width_mm: int,
+    cc_mask: np.ndarray,
+    voxel_size: tuple[float, float, float]
+) -> float:
     """Calculate the volume of the corpus callosum in cubic millimeters.
-    
+
     This function calculates the volume of the corpus callosum (CC) in cubic millimeters.
     If the CC width is larger than desired_width_mm, the voxels on the edges are calculated as
     partial volumes to achieve the desired width.
-    
-    Args:
-        desired_width_mm (int): Desired width of the CC in millimeters
-        cc_mask (np.ndarray): Binary mask of the corpus callosum
-        voxel_size (tuple[float, float, float]): Voxel size in millimeters (x, y, z)
-        
-    Returns:
-        float: Volume of the CC in cubic millimeters
-        
-    Raises:
-        ValueError: If CC width is smaller than desired width
-        AssertionError: If CC mask doesn't have odd number of voxels in x dimension
+
+    Parameters
+    ----------
+    desired_width_mm : int
+        Desired width of the CC in millimeters
+    cc_mask : np.ndarray
+        Binary mask of the corpus callosum
+    voxel_size : tuple[float, float, float]
+        Voxel size in millimeters (x, y, z)
+
+    Returns
+    -------
+    float
+        Volume of the CC in cubic millimeters
+
+    Raises
+    ------
+    ValueError
+        If CC width is smaller than desired width
+    AssertionError
+        If CC mask doesn't have odd number of voxels in x dimension
+
+    Notes
+    -----
+    The function assumes LIA orientation where:
+    - x dimension corresponds to Left/Right
+    - y dimension corresponds to Inferior/Superior
+    - z dimension corresponds to Anterior/Posterior
     """
     assert cc_mask.shape[0] % 2 == 1, "CC mask must have odd number of voxels in x dimension"
 
@@ -276,24 +350,34 @@ def get_cc_volume_voxel(desired_width_mm: int, cc_mask: np.ndarray, voxel_size: 
     else:
         raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
 
-def get_cc_volume_contour(desired_width_mm: int, cc_contours: list[np.ndarray], 
-                           voxel_size: tuple[float, float, float]) -> float:
-    """Calculate the volume of the corpus callosum in cubic millimeters using Simpson's rule.
-    
-    This function calculates the volume of the corpus callosum (CC) in cubic millimeters using Simpson's rule.
-    If the CC width is larger than desired_width_mm, the voxels on the edges are calculated as
-    partial volumes to achieve the desired width.
-    
-    Args:
-        desired_width_mm (int): Desired width of the CC in millimeters
-        cc_contours (list[np.ndarray]): List of CC contours for each slice in the left-right direction
-        voxel_size (tuple[float, float, float]): Voxel size in millimeters (x, y, z)
-        
-    Returns:
-        float: Volume of the CC in cubic millimeters
-        
-    Raises:
-        ValueError: If CC width is smaller than desired width or insufficient contours for Simpson's rule
+def get_cc_volume_contour(cc_contours: list[np.ndarray], 
+                         voxel_size: tuple[float, float, float]) -> float:
+    """Calculate the volume of the corpus callosum using Simpson's rule.
+
+    Parameters
+    ----------
+    desired_width_mm : int
+        Desired width of the CC in millimeters
+    cc_contours : list[np.ndarray]
+        List of CC contours for each slice in the left-right direction
+    voxel_size : tuple[float, float, float]
+        Voxel size in millimeters (x, y, z)
+
+    Returns
+    -------
+    float
+        Volume of the CC in cubic millimeters
+
+    Raises
+    ------
+    ValueError
+        If CC width is smaller than desired width or insufficient contours for Simpson's rule
+
+    Notes
+    -----
+    This function calculates the volume of the corpus callosum (CC) in cubic millimeters 
+    using Simpson's rule. If the CC width is larger than desired_width_mm, the voxels on 
+    the edges are calculated as partial volumes to achieve the desired width.
     """
     if len(cc_contours) < 3:
         raise ValueError("Need at least 3 contours for Simpson's rule integration")
@@ -342,22 +426,30 @@ def get_cc_volume_contour(desired_width_mm: int, cc_contours: list[np.ndarray],
     return integrate.simpson(areas, x=measurement_points)
     
 
-def get_largest_cc(seg_arr: np.ndarray, max_connection_distance: float = 3.0) -> tuple[np.ndarray, np.ndarray]:
-    """Get largest connected component from a binary segmentation array with minimal connections.
-    
-    This function takes a binary segmentation array, attempts to connect nearby disconnected
-    components that should be connected, then finds the largest connected component.
-    It first tries to establish minimal connections between close components before
-    falling back to dilation if no connections are made.
-    
-    Args:
-        seg_arr (np.ndarray): Input binary segmentation array
-        max_connection_distance (float): Maximum distance to connect components (default: 3.0)
-        
-    Returns:
-        tuple: A tuple containing:
-            - clean_seg (np.ndarray): Segmentation array with only the largest connected component
-            - largest_cc (np.ndarray): Binary mask of the largest connected component
+def get_largest_cc(
+    seg_arr: np.ndarray,
+    max_connection_distance: float = 3.0
+) -> np.ndarray:
+    """Get largest connected component from a binary segmentation array.
+
+    Parameters
+    ----------
+    seg_arr : np.ndarray
+        Input binary segmentation array
+    max_connection_distance : float, optional
+        Maximum distance to connect components, by default 3.0
+
+    Returns
+    -------
+    np.ndarray
+        Binary mask of the largest connected component
+
+    Notes
+    -----
+    The function first attempts to connect nearby disconnected components
+    that should be connected, then finds the largest connected component.
+    It uses minimal connections between close components before falling
+    back to dilation if no connections are made.
     """
     # First attempt: try to connect nearby components with minimal connections
     connected_seg = connect_nearby_components(seg_arr, max_connection_distance)
@@ -394,23 +486,33 @@ def get_largest_cc(seg_arr: np.ndarray, max_connection_distance: float = 3.0) ->
 
     return largest_cc
 
-def clean_cc_segmentation(seg_arr: np.ndarray, max_connection_distance: float = 3.0) -> tuple[np.ndarray, np.ndarray]:
+def clean_cc_segmentation(
+    seg_arr: np.ndarray,
+    max_connection_distance: float = 3.0
+) -> tuple[np.ndarray, np.ndarray]:
     """Clean corpus callosum segmentation by removing non-connected components.
-    
-    This function processes a segmentation array to clean up the corpus callosum (CC)
-    by removing non-connected components. It first isolates the CC (label 192),
-    attempts to connect nearby disconnected components, then adds the fornix (label 250), 
-    and finally removes non-connected components from the combined CC and fornix.
-    
-    Args:
-        seg_arr (np.ndarray): Input segmentation array with CC (192) and fornix (250) labels
-        max_connection_distance (float): Maximum distance to connect components (default: 3.0)
-        
-    Returns:
-        tuple: A tuple containing:
-            - clean_seg (np.ndarray): Cleaned segmentation array with only the largest 
-              connected component of CC and fornix
-            - mask (np.ndarray): Binary mask of the largest connected component
+
+    Parameters
+    ----------
+    seg_arr : np.ndarray
+        Input segmentation array with CC (192) and fornix (250) labels
+    max_connection_distance : float, optional
+        Maximum distance to connect components, by default 3.0
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        - clean_seg : Cleaned segmentation array with only the largest
+          connected component of CC and fornix
+        - mask : Binary mask of the largest connected component
+
+    Notes
+    -----
+    The function:
+    1. Isolates the CC (label 192)
+    2. Attempts to connect nearby disconnected components
+    3. Adds the fornix (label 250)
+    4. Removes non-connected components from the combined CC and fornix
     """
     # Remove non connected components from the CC alone, with minimal connections
     cc_seg = np.zeros_like(seg_arr)

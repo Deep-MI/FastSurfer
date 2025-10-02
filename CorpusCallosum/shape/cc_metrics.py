@@ -15,15 +15,18 @@
 import numpy as np
 
 
-def calculate_cc_index(cc_contour):
-    """
-    Calculate CC index based on three perpendicular measurements.
+def calculate_cc_index(cc_contour: np.ndarray) -> float:
+    """Calculate CC index based on three perpendicular measurements.
 
-    Args:
-        cc_contour: 2xN array of contour points in ACPC space
+    Parameters
+    ----------
+    cc_contour : np.ndarray
+        Array of shape (2, N) containing contour points in ACPC space.
 
-    Returns:
-        float: Sum of thicknesses at three measurement points
+    Returns
+    -------
+    float
+        Sum of thicknesses at three measurement points divided by AP length.
     """
     # Get anterior and posterior points
     anterior_idx = np.argmin(cc_contour[0])  # Leftmost point
@@ -40,7 +43,21 @@ def calculate_cc_index(cc_contour):
     # Get perpendicular direction
 
     # Get intersection points with contour for each measurement line
-    def get_intersections(start_point, direction):
+    def get_intersections(start_point: np.ndarray, direction: np.ndarray) -> np.ndarray:
+        """Find intersection points between a line and the contour.
+
+        Parameters
+        ----------
+        start_point : np.ndarray
+            Starting point of the line, shape (2,).
+        direction : np.ndarray
+            Direction vector of the line, shape (2,).
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape (N, 2) containing intersection points.
+        """
         # Get all points above and below the line
         points = cc_contour.T - start_point[None, :]
         dots = np.dot(points, direction)

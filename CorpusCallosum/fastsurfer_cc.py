@@ -26,8 +26,8 @@ from CorpusCallosum.data.read_write import (
 )
 from CorpusCallosum.localization import localization_inference
 from CorpusCallosum.registration.mapping_helpers import (
-    apply_transform_and_map_volume,
     apply_transform_to_pt,
+    apply_transform_to_volume,
     get_mapping_to_standard_space,
     interpolate_midplane,
     map_softlabels_to_orig,
@@ -255,23 +255,39 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-def centroid_registration(aseg_nib, verbose=False):
+def centroid_registration(aseg_nib: nib.Nifti1Image, verbose: bool = False) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, nib.Nifti1Header, np.ndarray
+]:
     """Perform centroid-based registration between subject and fsaverage space.
 
     Computes a rigid transformation between the subject's segmentation and fsaverage space
     by aligning centroids of corresponding anatomical structures.
 
-    Args:
-        aseg_nib (nib.Nifti1Image): Subject's segmentation image
-        verbose (bool): Whether to print progress information
+    Parameters
+    ----------
+    aseg_nib : nibabel.Nifti1Image
+        Subject's segmentation image.
+    verbose : bool, optional
+        Whether to print progress information, by default False.
 
-    Returns:
-        tuple: Contains:
-            - orig_fsaverage_vox2vox: Transformation matrix from original to fsaverage voxel space
-            - orig_fsaverage_ras2ras: Transformation matrix from original to fsaverage RAS space
-            - fsaverage_hires_affine: High-resolution fsaverage affine matrix
-            - fsaverage_header: FSAverage header fields for LTA writing
+    Returns
+    -------
+    orig_fsaverage_vox2vox : np.ndarray
+        Transformation matrix from original to fsaverage voxel space.
+    orig_fsaverage_ras2ras : np.ndarray
+        Transformation matrix from original to fsaverage RAS space.
+    fsaverage_hires_affine : np.ndarray
+        High-resolution fsaverage affine matrix.
+    fsaverage_header : nibabel.Nifti1Header
+        FSAverage header fields for LTA writing.
+    vox2ras_tkr : np.ndarray
+        Voxel to RAS tkr-space transformation matrix.
 
+    Notes
+    -----
+    The function uses pre-computed fsaverage centroids and data from static files
+    to perform the registration. It matches corresponding anatomical structures
+    between the subject's segmentation and fsaverage space.
     """
     if verbose:
         print("Centroid registration")
@@ -306,25 +322,37 @@ def centroid_registration(aseg_nib, verbose=False):
     return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header, vox2ras_tkr
 
 
-def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localization, slices_to_analyze):
+def localize_ac_pc(
+    midslices: np.ndarray,
+    aseg_nib: "nib.Nifti1Image",
+    orig_fsaverage_vox2vox: np.ndarray,
+    model_localization: "torch.nn.Module",
+    slices_to_analyze: int
+) -> tuple[np.ndarray, np.ndarray]:
     """Localize anterior and posterior commissure points in the brain.
 
     Uses a trained model to detect AC and PC points in mid-sagittal slices,
     using the third ventricle as an anatomical reference.
 
-    Args:
-        midslices (np.ndarray): Array of mid-sagittal slices
-        aseg_nib (nib.Nifti1Image): Subject's segmentation image
-        orig_fsaverage_vox2vox (np.ndarray): Transformation matrix to fsaverage space
-        fsaverage_hires_affine (np.ndarray): High-resolution fsaverage affine matrix
-        model_localization: Trained model for AC-PC detection
-        slices_to_analyze (int): Number of slices to process
+    Parameters
+    ----------
+    midslices : np.ndarray
+        Array of mid-sagittal slices.
+    aseg_nib : nibabel.Nifti1Image
+        Subject's segmentation image.
+    orig_fsaverage_vox2vox : np.ndarray
+        Transformation matrix to fsaverage space.
+    model_localization : torch.nn.Module
+        Trained model for AC-PC detection.
+    slices_to_analyze : int
+        Number of slices to process.
 
-    Returns:
-        tuple: Contains:
-        - ac_coords (np.ndarray): Coordinates of the anterior commissure
-        - pc_coords (np.ndarray): Coordinates of the posterior commissure
-
+    Returns
+    -------
+    ac_coords : np.ndarray
+        Coordinates of the anterior commissure.
+    pc_coords : np.ndarray
+        Coordinates of the posterior commissure.
     """
 
     # get center of third ventricle from aseg and map to fsaverage space
@@ -344,28 +372,40 @@ def localize_ac_pc(midslices, aseg_nib, orig_fsaverage_vox2vox, model_localizati
     return ac_coords, pc_coords
 
 
-def segment_cc(midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, slices_to_analyze):
+def segment_cc(
+    midslices: np.ndarray,
+    ac_coords: np.ndarray,
+    pc_coords: np.ndarray,
+    aseg_nib: "nib.Nifti1Image",
+    model_segmentation: "torch.nn.Module",
+    slices_to_analyze: int
+) -> tuple[np.ndarray, np.ndarray]:
     """Segment the corpus callosum using a trained model.
 
     Performs corpus callosum segmentation on mid-sagittal slices using a trained model,
-    with AC-PC points as anatomical references. Includes post-processing to clean the segmentation.
+    with AC-PC points as anatomical references. Includes post-processing to clean 
+    the segmentation.
 
-    Args:
-        midslices (np.ndarray): Array of mid-sagittal slices
-        ac_coords (np.ndarray): Anterior commissure coordinates
-        pc_coords (np.ndarray): Posterior commissure coordinates
-        aseg_nib (nib.Nifti1Image): Subject's segmentation image
-        orig_fsaverage_vox2vox (np.ndarray): Transformation matrix to fsaverage space
-        fsaverage_hires_affine (np.ndarray): High-resolution fsaverage affine matrix
-        model_segmentation: Trained model for CC segmentation
-        slices_to_analyze (int): Number of slices to process
-        verbose (bool): Whether to print progress information
+    Parameters
+    ----------
+    midslices : np.ndarray
+        Array of mid-sagittal slices.
+    ac_coords : np.ndarray
+        Anterior commissure coordinates.
+    pc_coords : np.ndarray
+        Posterior commissure coordinates.
+    aseg_nib : nibabel.Nifti1Image
+        Subject's segmentation image.
+    model_segmentation : torch.nn.Module
+        Trained model for CC segmentation.
+    slices_to_analyze : int
+        Number of slices to process.
 
-    Returns:
-        tuple: Contains:
-            - segmentation (np.ndarray): Binary segmentation of the corpus callosum
-            - outputs_soft (np.ndarray): Soft segmentation probabilities
-
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        - segmentation : Binary segmentation of the corpus callosum.
+        - outputs_soft : Soft segmentation probabilities.
     """
     # get 5 mm of slices output with 9 slices per inference
     midslices_middle = midslices.shape[0] // 2
@@ -414,7 +454,6 @@ def main(
     contour_smoothing: float = 5,
     save_template: str | Path | None = None,
     cpu: bool = False,
-    # output paths
     upright_volume_path: str | Path = None,
     segmentation_path: str | Path = None,
     postproc_results_path: str | Path = None,
@@ -434,80 +473,85 @@ def main(
 ) -> None:
     """Main pipeline function for corpus callosum analysis.
 
-    This function performs the following steps:
-    1. Initializes environment and loads models
-    2. Registers input image to fsaverage space
-    3. Detects AC and PC points
-    4. Segments the corpus callosum
-    5. Performs enhanced post-processing analysis
-    6. Saves results and visualizations
+    This function performs the complete corpus callosum analysis pipeline including
+    registration, landmark detection, segmentation, and morphometry analysis.
 
+    Parameters
+    ----------
+    in_mri_path : str or Path
+        Path to input MRI file.
+    aseg_path : str or Path
+        Path to input segmentation file.
+    output_dir : str or Path
+        Directory for output files.
+    slice_selection : str, optional
+        Which slices to process ('middle', 'all', or specific slice number), by default 'middle'.
+    debug_output_dir : str or Path, optional
+        Directory for debug outputs, by default None.
+    verbose : bool, optional
+        Flag for verbose output, by default False.
+    num_thickness_points : int, optional
+        Number of points for thickness estimation, by default 100.
+    subdivisions : list[float], optional
+        List of subdivision fractions for CC subsegmentation, by default None.
+    subdivision_method : str, optional
+        Method for contour subdivision ('shape', 'vertical', 'angular', 'eigenvector'), by default 'shape'.
+    contour_smoothing : float, optional
+        Gaussian sigma for smoothing during contour detection, by default 5.
+    save_template : str or Path, optional
+        Directory path where to save contours.txt and thickness_values.txt files, by default None.
+    cpu : bool, optional
+        Force CPU usage even when CUDA is available, by default False.
+    upright_volume_path : str or Path, optional
+        Path to save upright volume, by default None.
+    segmentation_path : str or Path, optional
+        Path to save segmentation, by default None.
+    postproc_results_path : str or Path, optional
+        Path to save post-processing results, by default None.
+    cc_markers_path : str or Path, optional
+        Path to save CC markers, by default None.
+    upright_lta_path : str or Path, optional
+        Path to save upright LTA transform, by default None.
+    orient_volume_lta_path : str or Path, optional
+        Path to save orientation transform, by default None.
+    surf_file_path : str or Path, optional
+        Path to save surface file, by default None.
+    overlay_file_path : str or Path, optional
+        Path to save overlay file, by default None.
+    cc_html_path : str or Path, optional
+        Path to save HTML visualization, by default None.
+    vtk_file_path : str or Path, optional
+        Path to save VTK file, by default None.
+    orig_space_segmentation_path : str or Path, optional
+        Path to save segmentation in original space, by default None.
+    debug_image_path : str or Path, optional
+        Path to save debug images, by default None.
+    thickness_image_path : str or Path, optional
+        Path to save thickness visualization, by default None.
+    softlabels_cc_path : str or Path, optional
+        Path to save CC soft labels, by default None.
+    softlabels_fn_path : str or Path, optional
+        Path to save fornix soft labels, by default None.
+    softlabels_background_path : str or Path, optional
+        Path to save background soft labels, by default None.
+
+    Notes
+    -----
     The function saves multiple outputs to specified paths or default locations in output_dir:
-    - cc_markers.json: Contains detected landmarks and measurements
-    - midplane_slices.mgz: Extracted midplane slices
-    - upright_volume.mgz: Volume aligned to standard orientation
-    - segmentation.mgz: Corpus callosum segmentation
-    - cc_postproc_results.json: Enhanced postprocessing results
-    - Various visualization plots and transformation matrices
+    - cc_markers.json: Contains detected landmarks and measurements.
+    - midplane_slices.mgz: Extracted midplane slices.
+    - upright_volume.mgz: Volume aligned to standard orientation.
+    - segmentation.mgz: Corpus callosum segmentation.
+    - cc_postproc_results.json: Enhanced postprocessing results.
+    - Various visualization plots and transformation matrices.
 
-    Args:
-        in_mri_path:
-            Path to input MRI file
-        aseg_path:
-            Path to input segmentation file
-        output_dir:
-            Directory for output files
-        slice_selection:
-            Which slices to process ('middle', 'all', or specific slice number)
-        debug_output_dir:
-            Optional directory for debug outputs
-        verbose:
-            Flag for verbose output
-        num_thickness_points:
-            Number of points for thickness estimation
-        subdivisions:
-            List of subdivision fractions for CC subsegmentation
-        subdivision_method:
-            Method for contour subdivision
-        contour_smoothing:
-            Gaussian sigma for smoothing during contour detection
-        save_template:
-            Directory path where to save contours.txt and thickness_values.txt files
-        cpu:
-            Force CPU usage even when CUDA is available
-        upright_volume_path:
-            Path for upright volume output (default: output_dir/upright_volume.mgz)
-        segmentation_path:
-            Path for segmentation output (default: output_dir/segmentation.mgz)
-        postproc_results_path:
-            Path for postprocessing results (default: output_dir/cc_postproc_results.json)
-        cc_markers_path:
-            Path for CC markers output (default: output_dir/cc_markers.json)
-        upright_lta_path:
-            Path for upright LTA transform (default: output_dir/upright.lta)
-        orient_volume_lta_path:
-            Path for orientation volume LTA transform (default: output_dir/orient_volume.lta)
-        surf_file_path:
-            Path for surf file (default: output_dir/surf/callosum.surf)
-        overlay_file_path:
-            Path for overlay file (default: output_dir/mri/callosum_seg_aseg_space.mgz)
-        cc_html_path:
-            Path for CC HTML file (default: output_dir/qc_snapshots/corpus_callosum.html)
-        vtk_file_path:
-            Path for vtk file (default: output_dir/surf/callosum_mesh.vtk)
-        orig_space_segmentation_path:
-            Path for segmentation in original space (default: output_dir/mri/segmentation_orig_space.mgz)
-        debug_image_path:
-            Path for debug visualization image (default: output_dir/stats/cc_postprocessing.png)
-        thickness_image_path:
-            Path for thickness image (default: output_dir/qc_snapshots/corpus_callosum_thickness_3d.png)
-        softlabels_cc_path:
-            Path for cc softlabels (default: output_dir/mri/callosum_seg_soft.mgz)
-        softlabels_fn_path:
-            Path for fornix softlabels (default: output_dir/mri/fornix_seg_soft.mgz)
-        softlabels_background_path:
-            Path for background softlabels (default: output_dir/mri/background_seg_soft.mgz)
-
+    The pipeline consists of the following steps:
+    1. Initializes environment and loads models.
+    2. Registers input image to fsaverage space.
+    3. Detects AC and PC points.
+    4. Segments the corpus callosum.
+    5. Performs enhanced post-processing analysis.
+    6. Saves results and visualizations.
     """
 
     if subdivisions is None:
@@ -586,7 +630,7 @@ def main(
     # start saving upright volume
     IO_processes.append(
         run_in_background(
-            apply_transform_and_map_volume,
+            apply_transform_to_volume,
             False,
             orig.get_fdata(),
             orig_fsaverage_vox2vox,
@@ -670,7 +714,9 @@ def main(
     middle_slice_result = slice_results[len(slice_results) // 2]
 
     if len(middle_slice_result['split_contours']) <= 5:
-        subdivision_mask = make_subdivision_mask(segmentation.shape[1:], middle_slice_result['split_contours'])
+        subdivision_mask = make_subdivision_mask(segmentation.shape[1:], 
+                                                 middle_slice_result['split_contours'], 
+                                                 orig.header.get_zooms())
     else:
         logger.warning("Too many subsegments for lookup table, skipping sub-divion of output segmentation.")
         subdivision_mask = None
@@ -754,7 +800,6 @@ def main(
             voxel_size=orig.header.get_zooms()
         )
         cc_volume_contour = segmentation_postprocessing.get_cc_volume_contour(
-            desired_width_mm=5, 
             cc_contours=outer_contours, 
             voxel_size=orig.header.get_zooms()
         )
@@ -803,7 +848,7 @@ def main(
     ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE, ac_coords))
     pc_coords_3d = np.hstack((FSAVERAGE_MIDDLE, pc_coords))
     standardized_to_orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig = (
-        get_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig_fsaverage_vox2vox, output_dir)
+        get_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig_fsaverage_vox2vox)
     )
 
     

@@ -15,17 +15,35 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 
 
-def plot_standardized_space(ax_row, vol, ac_coords, pc_coords):
+def plot_standardized_space(
+    ax_row: list[plt.Axes], 
+    vol: np.ndarray, 
+    ac_coords: np.ndarray, 
+    pc_coords: np.ndarray
+) -> None:
     """Plot standardized space visualization across three views.
 
-    Args:
-        ax_row: Row of axes to plot on (should be length 3)
-        vol: Volume data to visualize
-        ac_coords: AC coordinates in standardized space
-        pc_coords: PC coordinates in standardized space
+    Parameters
+    ----------
+    ax_row : list[plt.Axes]
+        Row of axes to plot on (should be length 3)
+    vol : np.ndarray
+        Volume data to visualize
+    ac_coords : np.ndarray
+        AC coordinates in standardized space
+    pc_coords : np.ndarray
+        PC coordinates in standardized space
+
+    Notes
+    -----
+    Creates three views:
+    - Axial (top view)
+    - Sagittal (side view)
+    - Coronal (front view)
     """
     ax_row[0].set_title("Standardized")
 
@@ -46,28 +64,48 @@ def plot_standardized_space(ax_row, vol, ac_coords, pc_coords):
 
 
 def visualize_coordinate_spaces(
-    orig,
-    upright,
-    standardized,
-    ac_coords_orig,
-    pc_coords_orig,
-    ac_coords_3d,
-    pc_coords_3d,
-    ac_coords_standardized,
-    pc_coords_standardized,
-    output_dir,
-):
-    """
-    Visualize the AC and PC coordinates in different coordinate spaces for testing/debugging.
+    orig: "nib.Nifti1Image",
+    upright: np.ndarray,
+    standardized: np.ndarray,
+    ac_coords_orig: np.ndarray,
+    pc_coords_orig: np.ndarray,
+    ac_coords_3d: np.ndarray,
+    pc_coords_3d: np.ndarray,
+    ac_coords_standardized: np.ndarray,
+    pc_coords_standardized: np.ndarray,
+    output_dir: str | Path,
+) -> None:
+    """Visualize the AC and PC coordinates in different coordinate spaces.
 
-    Args:
-        orig: Original image volume
-        vol: Volume in fsaverage space
-        vol2: Volume after nodding correction
-        vol3: Volume after translation
-        ac_coords_*: AC coordinates in different spaces
-        pc_coords_*: PC coordinates in different spaces
-        output_dir: Directory to save visualization
+    Creates a figure showing the anterior and posterior commissure points
+    in three different coordinate spaces for testing/debugging.
+
+    Parameters
+    ----------
+    orig : nibabel.Nifti1Image
+        Original image volume
+    upright : np.ndarray
+        Volume in fsaverage space
+    standardized : np.ndarray
+        Volume in standardized space
+    ac_coords_orig : np.ndarray
+        AC coordinates in original space
+    pc_coords_orig : np.ndarray
+        PC coordinates in original space
+    ac_coords_3d : np.ndarray
+        AC coordinates in fsaverage space
+    pc_coords_3d : np.ndarray
+        PC coordinates in fsaverage space
+    ac_coords_standardized : np.ndarray
+        AC coordinates in standardized space
+    pc_coords_standardized : np.ndarray
+        PC coordinates in standardized space
+    output_dir : str or Path
+        Directory to save visualization
+
+    Notes
+    -----
+    Saves the visualization as 'ac_pc_spaces.png' in the output directory.
     """
     fig, ax = plt.subplots(3, 4)
     ax = ax.T
@@ -95,32 +133,48 @@ def visualize_coordinate_spaces(
 
 def plot_contours(
     transformed: np.ndarray,
-    split_contours: list[np.ndarray],
-    split_contours_hofer_frahm: list[np.ndarray],
-    midline_equidistant: np.ndarray,
-    levelpaths: list[np.ndarray],
-    output_path: str,
-    ac_coords: np.ndarray,
-    pc_coords: np.ndarray,
-    vox_size: float,
-    title: str = None,
+    split_contours: list[np.ndarray] | None = None,
+    split_contours_hofer_frahm: list[np.ndarray] | None = None,
+    midline_equidistant: np.ndarray | None = None,
+    levelpaths: list[np.ndarray] | None = None,
+    output_path: str | Path | None = None,
+    ac_coords: np.ndarray | None = None,
+    pc_coords: np.ndarray | None = None,
+    vox_size: float | None = None,
+    title: str = "",
+    debug: bool = False,
 ) -> None:
-    """Plots corpus callosum contours and segmentations.
+    """Plot contours and subdivisions of the corpus callosum.
 
-    Creates a figure with three subplots showing:
-    1. Midline-based subsegmentation
-    2. Hofer-Frahm segmentation scheme
-    3. Midline and levelpaths visualization
+    Parameters
+    ----------
+    transformed : np.ndarray
+        Transformed image data
+    split_contours : list[np.ndarray], optional
+        List of contour arrays for each subdivision, by default None
+    split_contours_hofer_frahm : list[np.ndarray], optional
+        List of contour arrays using Hofer-Frahm subdivision, by default None
+    midline_equidistant : np.ndarray, optional
+        Midline points at equidistant spacing, by default None
+    levelpaths : list[np.ndarray], optional
+        List of level paths for visualization, by default None
+    output_path : str or Path, optional
+        Path to save the plot, by default None
+    ac_coords : np.ndarray, optional
+        AC coordinates for visualization, by default None
+    pc_coords : np.ndarray, optional
+        PC coordinates for visualization, by default None
+    vox_size : float, optional
+        Voxel size for scaling, by default None
+    title : str, optional
+        Title for the plot, by default ""
+    debug : bool, optional
+        Whether to show debug information, by default False
 
-    Args:
-        transformed: The transformed brain image array
-        split_contours: List of contour arrays for midline-based segmentation
-        split_contours_hofer_frahm: List of contour arrays for Hofer-Frahm segmentation
-        midline_equidistant: Array of midline points
-        levelpaths: List of levelpath arrays
-        output_dir: Directory to save the output plot
-        ac_coords: Anterior commissure coordinates
-        pc_coords: Posterior commissure coordinates
+    Notes
+    -----
+    Creates a visualization of the corpus callosum contours and their subdivisions.
+    If output_path is provided, saves the plot to that location.
     """
 
     # scale contour data by vox_size
@@ -206,13 +260,23 @@ def plot_contours(
     # plt.show()
 
 
-def plot_midplane(grid_orig, orig):
-    """
-    Creates a 3D visualization of grid points in original image space.
+def plot_midplane(grid_orig: np.ndarray, orig: np.ndarray) -> None:
+    """Create a 3D visualization of grid points in original image space.
 
-    Args:
-        grid_orig: Grid points in original space
-        orig: Original image for dimension reference
+    Parameters
+    ----------
+    grid_orig : np.ndarray
+        Grid points in original space, shape (3, N)
+    orig : np.ndarray
+        Original image for dimension reference
+
+    Notes
+    -----
+    The function:
+    1. Creates a 3D scatter plot of grid points
+    2. Samples every 40th point to avoid overcrowding
+    3. Sets axis limits based on original image dimensions
+    4. Shows the plot interactively
     """
     # Create a figure showing grid points in original space
 

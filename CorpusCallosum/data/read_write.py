@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import multiprocessing
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -22,22 +24,24 @@ import FastSurferCNN.utils.logging as logging
 logger = logging.get_logger(__name__)
 
 
-def run_in_background(function, debug=False, *args, **kwargs):
+def run_in_background(function: callable, debug: bool = False, *args, **kwargs) -> multiprocessing.Process | None:
     """Run a function in the background using multiprocessing.
 
-    This function executes the given function either in a separate process (normal mode)
-    or in the current process (debug mode). In debug mode, the function is executed
-    synchronously for easier debugging.
+    Parameters
+    ----------
+    function : callable
+        The function to execute.
+    debug : bool, optional
+        If True, run synchronously in current process, by default False.
+    *args
+        Positional arguments to pass to the function.
+    **kwargs
+        Keyword arguments to pass to the function.
 
-    Args:
-        function: The function to execute
-        debug (bool): If True, run synchronously in current process
-        args: Positional arguments to pass to the function
-        kwargs: Keyword arguments to pass to the function
-
-    Returns:
-        multiprocessing.Process or None: Process object if running in background,
-        None if in debug mode
+    Returns
+    -------
+    multiprocessing.Process or None
+        Process object if running in background, None if in debug mode.
     """
     if debug:
         function(*args, **kwargs)
@@ -51,25 +55,21 @@ def run_in_background(function, debug=False, *args, **kwargs):
 
 def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None = None) -> dict[int, np.ndarray]:
     """Get centroids of segmentation labels in RAS coordinates.
-    
-    Calculates the centroid coordinates for each segmentation label in the image.
-    If label_ids is provided, only calculates centroids for those specific labels.
-    Coordinates are returned in RAS (Right-Anterior-Superior) coordinate system.
-    
-    Args:
-        seg_img (nib.Nifti1Image)
-            Nibabel image containing segmentation labels
-        label_ids (list[int] | None) 
-            Optional list of specific label IDs to process.
-            If None, processes all non-zero labels.
-    
-    Returns:
-        centroids (dict | dict, list)
-            If label_ids is None, returns a dict mapping label IDs to their centroids (x,y,z) in RAS coordinates.
-            If label_ids is provided, returns a tuple containing:
-            - dict[int, np.ndarray]: Mapping of found label IDs to their centroids
-            - list[int]: List of label IDs that were not found in the image
 
+    Parameters
+    ----------
+    seg_img : nibabel.Nifti1Image
+        Input segmentation image.
+    label_ids : list[int], optional
+        List of label IDs to extract centroids for. If None, extracts all non-zero labels.
+
+    Returns
+    -------
+    dict[int, np.ndarray]
+        If label_ids is None, returns a dict mapping label IDs to their centroids (x,y,z) in RAS coordinates.
+        If label_ids is provided, returns a tuple containing:
+        - dict[int, np.ndarray]: Mapping of found label IDs to their centroids.
+        - list[int]: List of label IDs that were not found in the image.
     """
     # Get segmentation data and affine
     seg_data = seg_img.get_fdata()
@@ -109,40 +109,48 @@ def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None
 
 
 
-def save_nifti_background(io_processes, data, affine, header, filepath):
+def save_nifti_background(
+    io_processes: list, 
+    data: np.ndarray, 
+    affine: np.ndarray, 
+    header: nib.Nifti1Header,
+    filepath: str | Path
+) -> None:
     """Save a NIfTI image in a background process.
-    
+
     Creates a MGHImage from the provided data and metadata, then saves it to disk
     using a background process to avoid blocking the main execution.
-    
-    Args:
-        io_processes (list): List to store background process handles
-        data (np.ndarray): Image data array
-        affine (np.ndarray): 4x4 affine transformation matrix
-        header: NIfTI header object containing metadata
-        filepath (str): Path where the image should be saved
+
+    Parameters
+    ----------
+    io_processes : list
+        List to store background process handles.
+    data : np.ndarray
+        Image data array.
+    affine : np.ndarray
+        4x4 affine transformation matrix.
+    header : nib.Nifti1Header
+        NIfTI header object containing metadata.
+    filepath : str or Path
+        Path where the image should be saved.
     """
     logger.info(f"Saving NIfTI image to {filepath}")
     io_processes.append(run_in_background(nib.save, False, 
                                         nib.MGHImage(data, affine, header), filepath))
 
 
-def convert_numpy_to_json_serializable(obj):
-    """Convert numpy arrays in nested data structures to JSON serializable format.
-    
-    Recursively traverses dictionaries, lists, and numpy arrays, converting numpy arrays
-    to Python lists and numpy scalars to Python scalars for JSON serialization.
-    
-    Args:
-        obj: Any Python object that may contain numpy arrays (dict, list, np.ndarray, or scalar)
-        
-    Returns:
-        The input object with all numpy arrays converted to lists and numpy scalars to Python scalars
-        
-    Example:
-        >>> data = {'array': np.array([1, 2, 3]), 'nested': {'array': np.array([4, 5])}}
-        >>> result = convert_numpy_to_json_serializable(data)
-        >>> # Result: {'array': [1, 2, 3], 'nested': {'array': [4, 5]}}
+def convert_numpy_to_json_serializable(obj: object) -> object:
+    """Convert numpy types to JSON serializable types.
+
+    Parameters
+    ----------
+    obj : object
+        Object to convert to JSON serializable type.
+
+    Returns
+    -------
+    object
+        JSON serializable version of the input object.
     """
     if isinstance(obj, dict):
         return {k: convert_numpy_to_json_serializable(v) for k, v in obj.items()}
@@ -157,24 +165,19 @@ def convert_numpy_to_json_serializable(obj):
         return obj
 
 
-def load_fsaverage_centroids(centroids_path):
+def load_fsaverage_centroids(centroids_path: str | Path) -> dict[int, np.ndarray]:
     """Load fsaverage centroids from static JSON file.
-    
-    Loads pre-computed centroids from a static JSON file, avoiding the need to
-    compute them from the fsaverage segmentation at runtime.
-    
-    Args:
-        centroids_path (str or Path): Path to the JSON file containing centroids
-        
-    Returns:
-        dict[int, np.ndarray]: Mapping of label IDs to their centroids (x,y,z) in RAS coordinates
-        
-    Raises:
-        FileNotFoundError: If the centroids file doesn't exist
-        json.JSONDecodeError: If the file is not valid JSON
+
+    Parameters
+    ----------
+    centroids_path : str or Path
+        Path to the JSON file containing centroids.
+
+    Returns
+    -------
+    dict[int, np.ndarray]
+        Dictionary mapping label IDs to their centroids in RAS coordinates.
     """
-    import json
-    from pathlib import Path
     
     centroids_path = Path(centroids_path)
     if not centroids_path.exists():
@@ -192,23 +195,19 @@ def load_fsaverage_centroids(centroids_path):
     return centroids
 
 
-def load_fsaverage_affine(affine_path):
+def load_fsaverage_affine(affine_path: str | Path) -> np.ndarray:
     """Load fsaverage affine matrix from static text file.
-    
-    Loads pre-computed affine matrix from a static text file, avoiding the need to
-    load the fsaverage segmentation at runtime.
-    
-    Args:
-        affine_path (str or Path): Path to the text file containing affine matrix
-        
-    Returns:
-        np.ndarray: 4x4 affine transformation matrix
-        
-    Raises:
-        FileNotFoundError: If the affine file doesn't exist
-        ValueError: If the file doesn't contain a valid 4x4 matrix
+
+    Parameters
+    ----------
+    affine_path : str or Path
+        Path to the text file containing affine matrix.
+
+    Returns
+    -------
+    np.ndarray
+        4x4 affine transformation matrix.
     """
-    from pathlib import Path
     
     affine_path = Path(affine_path)
     if not affine_path.exists():
@@ -222,31 +221,41 @@ def load_fsaverage_affine(affine_path):
     return affine_matrix
 
 
-def load_fsaverage_data(data_path):
+def load_fsaverage_data(data_path: str | Path) -> tuple[np.ndarray, dict, np.ndarray]:
     """Load fsaverage affine matrix and header fields from static JSON file.
-    
-    Loads pre-computed affine matrix and header fields from a static JSON file,
-    avoiding the need to load the fsaverage segmentation at runtime.
-    
-    Args:
-        data_path (str or Path): Path to the JSON file containing combined data
+
+    Parameters
+    ----------
+    data_path : str or Path
+        Path to the JSON file containing combined data.
+
+    Returns
+    -------
+    affine_matrix : np.ndarray
+        4x4 affine transformation matrix.
+    header_fields : dict
+        Header fields needed for LTA:
+            - dims : list[int]
+                Volume dimensions [x,y,z].
+            - delta : list[float]
+                Voxel size in mm [x,y,z].
+            - Mdc : np.ndarray
+                3x3 direction cosines matrix.
+            - Pxyz_c : np.ndarray
+                RAS center coordinates [x,y,z].
+    vox2ras_tkr : np.ndarray
+        Voxel to RAS tkr-space transformation matrix.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the data file doesn't exist.
+    json.JSONDecodeError
+        If the file is not valid JSON.
+    ValueError
+        If required fields are missing.
         
-    Returns:
-        tuple: Contains:
-            - affine_matrix (np.ndarray): 4x4 affine transformation matrix
-            - header_fields (dict): Header fields needed for LTA:
-                - dims (list[int]): Volume dimensions [x,y,z]
-                - delta (list[float]): Voxel size in mm [x,y,z]
-                - Mdc (np.ndarray): 3x3 direction cosines matrix
-                - Pxyz_c (np.ndarray): RAS center coordinates [x,y,z]
-        
-    Raises:
-        FileNotFoundError: If the data file doesn't exist
-        json.JSONDecodeError: If the file is not valid JSON
-        ValueError: If required fields are missing
     """
-    import json
-    from pathlib import Path
     
     data_path = Path(data_path)
     if not data_path.exists():

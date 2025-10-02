@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import multiprocessing
 from pathlib import Path
 
 import numpy as np
@@ -43,21 +44,34 @@ LIA_ORIENTATION[1,2] = 1
 LIA_ORIENTATION[2,1] = -1
 
 
-def create_visualization(subdivision_method, result, midslices_data, output_image_path, 
-                         ac_coords, pc_coords, vox_size, title_suffix=""):
-    """Helper function to create visualization plots based on subdivision method.
-    
-    Args:
-        subdivision_method: The subdivision method being used
-        result: Dictionary containing processing results with split_contours and split_contours_hofer_frahm
-        midslices_data: Slice data for visualization
-        output_subdir: Directory to save visualization
-        ac_coords: AC coordinates
-        pc_coords: PC coordinates
-        title_suffix: Additional text to append to the title
-    
-    Returns:
-        Process object for background execution
+def create_visualization(subdivision_method: str, result: dict, midslices_data: np.ndarray, 
+                         output_image_path: str | Path, ac_coords: np.ndarray, 
+                         pc_coords: np.ndarray, vox_size: float, title_suffix: str = "") -> multiprocessing.Process:
+    """Create visualization plots based on subdivision method.
+
+    Parameters
+    ----------
+    subdivision_method : str
+        The subdivision method being used.
+    result : dict
+        Dictionary containing processing results with split_contours and split_contours_hofer_frahm.
+    midslices_data : np.ndarray
+        Slice data for visualization.
+    output_image_path : str or Path
+        Path to save visualization.
+    ac_coords : np.ndarray
+        AC coordinates.
+    pc_coords : np.ndarray
+        PC coordinates.
+    vox_size : float
+        Voxel size in mm.
+    title_suffix : str, optional
+        Additional text to append to the title, by default "".
+
+    Returns
+    -------
+    multiprocessing.Process
+        Process object for background execution.
     """
     title = f'CC Subsegmentation by {subdivision_method} {title_suffix}'
 
@@ -84,78 +98,100 @@ def create_visualization(subdivision_method, result, midslices_data, output_imag
 
 
 
-def create_slice_affine(temp_seg_affine, slice_idx, fsaverage_middle):
+def create_slice_affine(temp_seg_affine: np.ndarray, slice_idx: int, fsaverage_middle: int) -> np.ndarray:
     """Create slice-specific affine transformation matrix.
-    
-    Adjusts the input affine transformation matrix for a specific slice by updating
-    the translation component based on the slice index and fsaverage middle reference.
-    
-    Args:
-        temp_seg_affine (np.ndarray): Base 4x4 affine transformation matrix
-        slice_idx (int): Index of the slice to transform
-        fsaverage_middle (int): Reference middle slice index in fsaverage space
-        
-    Returns:
-        np.ndarray: Modified 4x4 affine transformation matrix for the specific slice
+
+    Parameters
+    ----------
+    temp_seg_affine : np.ndarray
+        Base 4x4 affine transformation matrix.
+    slice_idx : int
+        Index of the slice to transform.
+    fsaverage_middle : int
+        Reference middle slice index in fsaverage space.
+
+    Returns
+    -------
+    np.ndarray
+        Modified 4x4 affine transformation matrix for the specific slice.
     """
     slice_affine = temp_seg_affine.copy()
     slice_affine[0, 3] = -fsaverage_middle + slice_idx
     return slice_affine
 
 
-def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thickness_points, subdivisions, 
-                  subdivision_method, contour_smoothing, vox_size):
+def process_slice(
+    segmentation: np.ndarray,
+    slice_idx: int,
+    ac_coords: np.ndarray,
+    pc_coords: np.ndarray,
+    affine: np.ndarray,
+    num_thickness_points: int,
+    subdivisions: list[float],
+    subdivision_method: str,
+    contour_smoothing: float,
+    vox_size: float
+) -> dict | None:
     """Process a single slice for corpus callosum measurements.
-    
-    Performs detailed analysis of a corpus callosum slice, including:
-    - Contour extraction and endpoint detection
-    - Thickness profile calculation
-    - Area and perimeter measurements
-    - Shape-based metrics (circularity, CC index)
-    - Subdivision into anatomical regions
-    
-    Args:
-        segmentation (np.ndarray): 
-            3D segmentation array
-        slice_idx (int): 
-            Index of the slice to process
-        ac_coords (np.ndarray): 
-            Anterior commissure coordinates
-        pc_coords (np.ndarray): 
-            Posterior commissure coordinates
-        affine (np.ndarray): 
-            4x4 affine transformation matrix
-        num_thickness_points (int): 
-            Number of points for thickness estimation
-        subdivisions (list[float]): 
-            List of fractions for anatomical subdivisions
-        subdivision_method (str): 
-            Method for contour subdivision ('shape', 'vertical', 
-            'angular', or 'eigenvector')
-        contour_smoothing (float): 
-            Gaussian sigma for contour smoothing
-    Returns:
-        slice_data (dict | None): 
-            Dictionary containing measurements if successful, including:
-        
-            - cc_index: Corpus callosum shape index
-            - circularity: Shape circularity measure
-            - areas: Areas of subdivided regions
-            - midline_length: Length along the midline
-            - thickness: Array of thickness measurements
-            - curvature: Array of curvature measurements
-            - thickness_profile: Thickness measurements along the contour
-            - total_area: Total area of the CC
-            - total_perimeter: Total perimeter length
-            - split_contours: Subdivided contour segments
-            - split_contours_hofer_frahm: Alternative subdivision (if applicable)
-            - midline_equidistant: Equidistant points along midline
-            - levelpaths: Paths for thickness measurements
-            - thickness_measurement_points: Points where thickness was measured
-            - slice_index: Index of the processed slice
-            
-            Returns None if no CC is found in the slice.
-            
+
+    Parameters
+    ----------
+    segmentation : np.ndarray
+        3D segmentation array.
+    slice_idx : int
+        Index of the slice to process.
+    ac_coords : np.ndarray
+        Anterior commissure coordinates.
+    pc_coords : np.ndarray
+        Posterior commissure coordinates.
+    affine : np.ndarray
+        4x4 affine transformation matrix.
+    num_thickness_points : int
+        Number of points for thickness estimation.
+    subdivisions : list[float]
+        List of fractions for anatomical subdivisions.
+    subdivision_method : str
+        Method for contour subdivision ('shape', 'vertical', 'angular', or 'eigenvector').
+    contour_smoothing : float
+        Gaussian sigma for contour smoothing.
+    vox_size : float
+        Voxel size in millimeters.
+
+    Returns
+    -------
+    dict | None
+        Dictionary containing measurements if successful, including:
+        - cc_index : float - Corpus callosum shape index.
+        - circularity : float - Shape circularity measure.
+        - areas : np.ndarray - Areas of subdivided regions.
+        - midline_length : float - Length along the midline.
+        - thickness : np.ndarray - Array of thickness measurements.
+        - curvature : np.ndarray - Array of curvature measurements.
+        - thickness_profile : list[float] - Thickness measurements along the contour.
+        - total_area : float - Total area of the CC.
+        - total_perimeter : float - Total perimeter length.
+        - split_contours : list[np.ndarray] - Subdivided contour segments.
+        - split_contours_hofer_frahm : list[np.ndarray] - Alternative subdivision (if applicable).
+        - midline_equidistant : np.ndarray - Equidistant points along midline.
+        - levelpaths : list[np.ndarray] - Paths for thickness measurements.
+        - thickness_measurement_points : np.ndarray - Points where thickness was measured.
+        - slice_index : int - Index of the processed slice.
+        Returns None if no CC is found in the slice.
+
+    Raises
+    ------
+    ValueError
+        If no CC is found in the specified slice.
+
+    Notes
+    -----
+    The function performs the following steps:
+    1. Extracts CC contour and identifies endpoints.
+    2. Converts coordinates to RAS space.
+    3. Calculates thickness profile using Laplace equation.
+    4. Computes shape metrics and subdivisions.
+    5. Generates visualization data.
+
     """
 
     cc_mask_slice = segmentation[slice_idx] == 192
@@ -241,37 +277,82 @@ def process_slice(segmentation, slice_idx, ac_coords, pc_coords, affine, num_thi
     }, contour_with_thickness, anterior_endpoint_idx, posterior_endpoint_idx
 
 
-def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac_coords, pc_coords, 
-                  num_thickness_points, subdivisions, subdivision_method, contour_smoothing, 
-                  debug_image_path=None, one_debug_image=False,
-                  thickness_image_path=None, vox_size=None, vox2ras_tkr=None,
-                  save_template=None, surf_file_path=None, overlay_file_path=None, cc_html_path=None, 
-                  vtk_file_path=None, verbose=False):
+def process_slices(
+    segmentation: np.ndarray,
+    slice_selection: str,
+    temp_seg_affine: np.ndarray,
+    midslices: np.ndarray,
+    ac_coords: np.ndarray,
+    pc_coords: np.ndarray,
+    num_thickness_points: int,
+    subdivisions: list[float],
+    subdivision_method: str,
+    contour_smoothing: float,
+    debug_image_path: str | None = None,
+    one_debug_image: bool = False,
+    thickness_image_path: str | None = None,
+    vox_size: tuple[float, float, float] | None = None,
+    vox2ras_tkr: np.ndarray | None = None,
+    save_template: str | Path | None = None,
+    surf_file_path: str | None = None,
+    overlay_file_path: str | None = None,
+    cc_html_path: str | None = None,
+    vtk_file_path: str | None = None,
+    verbose: bool = False
+) -> tuple[list, list]:
     """Process corpus callosum slices based on selection mode.
-    
-    Handles the processing of either a single middle slice, all slices, or a specific slice,
-    including affine transformations and measurements for each slice.
-    
-    Args:
-        segmentation (np.ndarray): 3D segmentation array
-        slice_selection (str): Which slices to process ('middle', 'all', or slice number)
-        temp_seg_affine (np.ndarray): Base affine transformation matrix
-        midslices (np.ndarray): Array of mid-sagittal slices
-        ac_coords (np.ndarray): Anterior commissure coordinates
-        pc_coords (np.ndarray): Posterior commissure coordinates
-        num_thickness_points (int): Number of points for thickness estimation
-        subdivisions (list[float]): List of fractions for anatomical subdivisions
-        subdivision_method (str): Method for contour subdivision
-        contour_smoothing (float): Gaussian sigma for contour smoothing
-        debug_image_path (str, optional): Path for debug visualization image
-        verbose (bool): Whether to print progress information
-        save_template (str | Path | None): Directory path where to save template files, or None to skip saving
-        
-        Returns:
-            tuple: Contains:
-            
-            - list: List of slice processing results
-            - list: List of background IO processes
+
+    Parameters
+    ----------
+    segmentation : np.ndarray
+        3D segmentation array.
+    slice_selection : str
+        Which slices to process ('middle', 'all', or slice number).
+    temp_seg_affine : np.ndarray
+        Base affine transformation matrix.
+    midslices : np.ndarray
+        Array of mid-sagittal slices.
+    ac_coords : np.ndarray
+        Anterior commissure coordinates.
+    pc_coords : np.ndarray
+        Posterior commissure coordinates.
+    num_thickness_points : int
+        Number of points for thickness estimation.
+    subdivisions : list[float]
+        List of fractions for anatomical subdivisions.
+    subdivision_method : str
+        Method for contour subdivision.
+    contour_smoothing : float
+        Gaussian sigma for contour smoothing.
+    debug_image_path : str or None, optional
+        Path for debug visualization image, by default None.
+    one_debug_image : bool, optional
+        Whether to save only one debug image, by default False.
+    thickness_image_path : str or None, optional
+        Path for thickness visualization image, by default None.
+    vox_size : tuple[float, float, float] or None, optional
+        Voxel size in millimeters (x, y, z), by default None.
+    vox2ras_tkr : np.ndarray or None, optional
+        Voxel to RAS tkr-space transformation matrix, by default None.
+    save_template : str or Path or None, optional
+        Directory path where to save template files, by default None.
+    surf_file_path : str or None, optional
+        Path to save surface file, by default None.
+    overlay_file_path : str or None, optional
+        Path to save overlay file, by default None.
+    cc_html_path : str or None, optional
+        Path to save HTML visualization, by default None.
+    vtk_file_path : str or None, optional
+        Path to save VTK file, by default None.
+    verbose : bool, optional
+        Whether to print progress information, by default False.
+
+    Returns
+    -------
+    list
+        List of slice processing results.
+    list
+        List of background IO processes.
     """
     slice_results = []
     IO_processes = []
@@ -424,17 +505,25 @@ def process_slices(segmentation, slice_selection, temp_seg_affine, midslices, ac
 
 
 
-def vectorized_line_test(coords_x, coords_y, line_start, line_end):
+def vectorized_line_test(coords_x: np.ndarray, coords_y: np.ndarray, 
+                        line_start: np.ndarray, line_end: np.ndarray) -> np.ndarray:
     """Vectorized version of point_relative_to_line for arrays of points.
-    
-    Args:
-        coords_x (np.ndarray): Array of x coordinates
-        coords_y (np.ndarray): Array of y coordinates  
-        line_start (array-like): [x, y] coordinates of line start point
-        line_end (array-like): [x, y] coordinates of line end point
-        
-    Returns:
-        np.ndarray: Boolean array where True means point is to the left of the line
+
+    Parameters
+    ----------
+    coords_x : np.ndarray
+        Array of x coordinates.
+    coords_y : np.ndarray
+        Array of y coordinates.
+    line_start : array-like
+        [x, y] coordinates of line start point.
+    line_end : array-like
+        [x, y] coordinates of line end point.
+
+    Returns
+    -------
+    np.ndarray
+        Boolean array where True means point is to the left of the line.
     """
     # Vector from line_start to line_end
     line_vec = np.array(line_end) - np.array(line_start)
@@ -451,18 +540,29 @@ def vectorized_line_test(coords_x, coords_y, line_start, line_end):
 
 
 
-def get_unique_contour_points(split_contours):
+def get_unique_contour_points(split_contours: list[tuple[np.ndarray, np.ndarray]]) -> list[np.ndarray]:
     """Get unique contour points from the split contours.
-    This is a workaround to retrospectively add voxel-based sub-division
-    in the future we could keep track of the sub-division lines for
-    every sub-division scheme.
 
-    Args:
-        split_contours (list): List of split contours (subsegmentations)
+    Parameters
+    ----------
+    split_contours : list[tuple[np.ndarray, np.ndarray]]
+        List of split contours (subsegmentations), each containing x and y coordinates.
 
-    Returns:
-        list: List of unique contour points
-    
+    Returns
+    -------
+    list[np.ndarray]
+        List of unique contour points for each subsegment.
+
+    Notes
+    -----
+    This is a workaround to retrospectively add voxel-based subdivision.
+    In the future, we could keep track of the subdivision lines for
+    every subdivision scheme.
+
+    The function:
+    1. Processes each contour point.
+    2. Checks if it appears in other contours (with small tolerance).
+    3. Collects points unique to each subsegment.
     """
     # For each contour point, check if it appears in other contours
     unique_contour_points = []
@@ -496,24 +596,37 @@ def get_unique_contour_points(split_contours):
     return unique_contour_points
 
 
-def make_subdivision_mask(slice_shape, split_contours):
+def make_subdivision_mask(
+    slice_shape: tuple[int, int],
+    split_contours: list[tuple[np.ndarray, np.ndarray]],
+    vox_size: tuple[float, float, float]
+) -> np.ndarray:
     """Create a mask for subdividing the corpus callosum based on split contours.
 
-    This function creates a mask that assigns different labels to different segments of the corpus callosum
-    based on the subdivision lines defined by the split contours. Each segment is labeled with a value from
-    SUBSEGEMNT_LABELS.
+    Parameters
+    ----------
+    slice_shape : tuple[int, int]
+        Shape of the slice (rows, cols).
+    split_contours : list[tuple[np.ndarray, np.ndarray]]
+        List of contours defining the subdivisions.
+        Each contour is a tuple of x and y coordinates.
 
-    Args:
-        slice_shape (tuple): 
-            Shape of the slice (rows, cols)
-        split_contours (list): 
-            List of contours defining the subdivisions. 
-            Each contour is a tuple of x and y coordinates.
+    Returns
+    -------
+    np.ndarray
+        A mask of shape slice_shape where each pixel is labeled with a value
+        from SUBSEGEMNT_LABELS indicating which subdivision segment it belongs to.
 
-    Returns:
-        ndarray: 
-            A mask of shape slice_shape where each pixel is labeled with a value from SUBSEGEMNT_LABELS
-            indicating which subdivision segment it belongs to.
+    Notes
+    -----
+    The function:
+    1. Extracts unique contour points at subdivision boundaries.
+    2. Creates coordinate grids for all points in the slice.
+    3. Initializes mask with first segment label.
+    4. For each subdivision line:
+    - Tests which points lie to the right of the line.
+    - Updates labels for those points.
+
     """
 
     # unique contour points are the points where sub-division lines were inserted
@@ -527,20 +640,23 @@ def make_subdivision_mask(slice_shape, split_contours):
     # Create coordinate grids for all points in the slice
     rows, cols = slice_shape
     y_coords, x_coords = np.mgrid[0:rows, 0:cols]
+
+    subsegment_labels_anterior_posterior = SUBSEGEMNT_LABELS.copy()
+    subsegment_labels_anterior_posterior.reverse()
     
     # Initialize with first segment label
-    subdivision_mask = np.full(slice_shape, SUBSEGEMNT_LABELS[0], dtype=np.int32)
+    subdivision_mask = np.full(slice_shape, subsegment_labels_anterior_posterior[0], dtype=np.int32)
     
     # Process each subdivision line
     for segment_idx, segment_points in enumerate(subdivision_segments):
-        line_start = segment_points[0]
-        line_end = segment_points[-1]
+        line_start = segment_points[0] / vox_size[0]
+        line_end = segment_points[-1] / vox_size[0]
         
         # Vectorized test: find all points to the right of this line
         points_right_of_line = vectorized_line_test(x_coords, y_coords, line_start, line_end)
         
         # All points to the right of this line belong to the next segment or beyond
-        subdivision_mask[points_right_of_line] = SUBSEGEMNT_LABELS[segment_idx + 1]
+        subdivision_mask[points_right_of_line] = subsegment_labels_anterior_posterior[segment_idx + 1]
         
         # Debug visualization (optional)
         # import matplotlib.pyplot as plt
@@ -553,15 +669,22 @@ def make_subdivision_mask(slice_shape, split_contours):
     return subdivision_mask
 
 
-def check_area_changes(contours: list[np.ndarray], threshold: float = 0.3, verbose: bool = False) -> None:
+def check_area_changes(contours: list[np.ndarray], threshold: float = 0.3, verbose: bool = False) -> bool:
     """Check for large changes between consecutive CC areas and issue warnings.
     
-    This function checks if any two consecutive areas have a change greater than
-    the specified threshold (default 30%) and issues a warning if they do.
-    
-    Args:
-        contours (list[np.ndarray]): List of contours
-        threshold (float, optional): Threshold for relative change. Defaults to 0.3 (30%).
+    Parameters
+    ----------
+    contours : list[np.ndarray]
+        List of contours.
+    threshold : float, optional
+        Threshold for relative change, by default 0.3 (30%).
+    verbose : bool, optional
+        Whether to print warnings, by default False.
+
+    Returns
+    -------
+    bool
+        True if no large area changes are detected, False otherwise.
     """
 
     areas = [np.sum(np.sqrt(np.sum((np.diff(contour, axis=0))**2, axis=1))) for contour in contours]

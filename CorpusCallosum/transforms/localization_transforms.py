@@ -17,19 +17,68 @@ from monai.transforms import MapTransform, RandomizableTransform
 
 
 class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
-    """
-    Crop around AC and PC with fixed size
+    """Crop image around AC-PC points with fixed size.
+
+    A transform that crops the input image around the midpoint between
+    AC and PC points with a fixed size window and optional random translation.
+
+    Parameters
+    ----------
+    keys : list[str]
+        Keys of the data dictionary to apply the transform to
+    fixed_size : tuple[int, int]
+        Fixed size of the crop window (width, height)
+    allow_missing_keys : bool, optional
+        Whether to allow missing keys in the data dictionary, by default False
+    random_translate : float, optional
+        Maximum random translation in voxels, by default 0
+
+    Notes
+    -----
+    The transform expects the following keys in the data dictionary:
+    - AC_center : np.ndarray
+        Coordinates of anterior commissure
+    - PC_center : np.ndarray
+        Coordinates of posterior commissure
+    - image : np.ndarray
+        Input image to crop
+
+    Raises
+    ------
+    ValueError
+        If the crop boundaries extend outside the image dimensions
     """
 
-    def __init__(self, keys, fixed_size: tuple[int, int], allow_missing_keys: bool = False, 
-                 random_translate: float = 0) -> None:
+    def __init__(self, keys: list[str], fixed_size: tuple[int, int], 
+                 allow_missing_keys: bool = False, random_translate: float = 0) -> None:
         MapTransform.__init__(self, keys, allow_missing_keys)
         RandomizableTransform.__init__(self)
         self.random_translate = random_translate
         self.fixed_size = fixed_size
 
+    def __call__(self, data: dict) -> dict:
+        """Apply the transform to the data.
 
-    def __call__(self, data):
+        Parameters
+        ----------
+        data : dict
+            Dictionary containing the data to transform
+
+        Returns
+        -------
+        dict
+            Transformed data dictionary with cropped images and updated coordinates.
+            Also includes crop boundary information:
+            - crop_left : int
+            - crop_right : int
+            - crop_top : int
+            - crop_bottom : int
+
+        Raises
+        ------
+        ValueError
+            If crop boundaries extend outside the image dimensions
+        """
         d = dict(data)
 
         for key in self.keys:

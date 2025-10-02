@@ -24,20 +24,25 @@ from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
 
 
-def load_model(checkpoint_path, device=None):
-    """
-    Load the trained model from checkpoint
-    
-    Args:
-        checkpoint_path: Path to model checkpoint
-        device: torch device to load model to (defaults to CUDA if available)
-    
-    Returns:
-        model: Loaded model
+def load_model(checkpoint_path: str | None = None, device: torch.device | None = None) -> FastSurferVINN:
+    """Load trained model from checkpoint.
+
+    Parameters
+    ----------
+    checkpoint_path : str or None, optional
+        Path to model checkpoint, by default None.
+        If None, downloads and uses default checkpoint.
+    device : torch.device or None, optional
+        Device to load model to, by default None.
+        If None, uses CUDA if available, else CPU.
+
+    Returns
+    -------
+    FastSurferVINN
+        Loaded and initialized model in evaluation mode
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
 
     params = {
         "num_classes": 3,
@@ -67,27 +72,48 @@ def load_model(checkpoint_path, device=None):
             )
     checkpoint_path = cc_config['segmentation']
     
-    #model = torch.load(checkpoint_path, map_location=device, weights_only=False)
     weights = torch.load(checkpoint_path, weights_only=True, map_location=device)
     model.load_state_dict(weights)
     model.eval()
     model.to(device)
     return model
 
-def run_inference(model, image_slice, AC_center, PC_center, voxel_size, device=None, transform=None):
-    """
-    Run inference on a single image slice
-    
-    Args:
-        model: Trained model
-        image_slice: Input image as numpy array
-        device: torch device to run inference on
-        transform: Optional custom transform pipeline
-    
-    Returns:
-        dict containing:
-            segmentation: Segmentation map if model produces segmentation
-            landmarks: Predicted landmarks if model produces localization
+
+def run_inference(
+    model: FastSurferVINN,
+    image_slice: np.ndarray,
+    AC_center: np.ndarray,
+    PC_center: np.ndarray,
+    voxel_size: float,
+    device: torch.device | None = None,
+    transform: transforms.Transform | None = None
+) -> dict[str, np.ndarray]:
+    """Run inference on a single image slice.
+
+    Parameters
+    ----------
+    model : FastSurferVINN
+        Trained model
+    image_slice : np.ndarray
+        Input image as numpy array
+    AC_center : np.ndarray
+        Anterior commissure coordinates
+    PC_center : np.ndarray
+        Posterior commissure coordinates
+    voxel_size : float
+        Voxel size in mm
+    device : torch.device or None, optional
+        Device to run inference on, by default None.
+        If None, uses the device of the model.
+    transform : transforms.Transform or None, optional
+        Custom transform pipeline, by default None
+
+    Returns
+    -------
+    dict[str, np.ndarray]
+        Dictionary containing:
+        - segmentation : Binary segmentation map
+        - landmarks : Predicted landmark coordinates
     """
     orig_shape = image_slice.shape
     
@@ -95,7 +121,28 @@ def run_inference(model, image_slice, AC_center, PC_center, voxel_size, device=N
         #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         device = next(model.parameters()).device
         
-    def crop_around_acpc(img, ac, pc, vox_size):
+    def crop_around_acpc(img: np.ndarray, 
+                    ac: np.ndarray, 
+                    pc: np.ndarray, 
+                    vox_size: float) -> dict[str, np.ndarray]:
+        """Crop image around AC-PC points.
+
+        Parameters
+        ----------
+        img : np.ndarray
+            Input image
+        ac : np.ndarray
+            Anterior commissure coordinates
+        pc : np.ndarray
+            Posterior commissure coordinates
+        vox_size : float
+            Voxel size in mm
+
+        Returns
+        -------
+        dict[str, np.ndarray]
+            Dictionary containing cropped image and metadata
+        """
         return CropAroundACPC(keys=['image'], padding_mm=35, random_translate=0)(
             {'image': img, 'AC_center': ac, 'PC_center': pc, 'res': vox_size}
         )
@@ -166,8 +213,6 @@ def run_inference(model, image_slice, AC_center, PC_center, voxel_size, device=N
         outputs_soft.transpose(0,2,3,1),
     )
 
-# TODO: load validation data and run inference on it to confirm correct processing
-
 
 def load_validation_data(path):
     import pandas as pd
@@ -212,12 +257,39 @@ def one_hot_to_label(one_hot, label_ids=None):
     return label
 
 
-# TODO: add heuristic that removes islands that are far away
 
+def run_inference_on_slice(model: FastSurferVINN, 
+                          test_slice: np.ndarray,
+                          AC_center: np.ndarray, 
+                          PC_center: np.ndarray,
+                          voxel_size: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Run inference on a single slice.
 
+    Parameters
+    ----------
+    model : FastSurferVINN
+        Trained model for inference
+    test_slice : np.ndarray
+        Input image slice
+    AC_center : np.ndarray
+        Anterior commissure coordinates
+    PC_center : np.ndarray
+        Posterior commissure coordinates 
+    voxel_size : float
+        Voxel size in mm
 
-def run_inference_on_slice(model, test_slice, AC_center, PC_center, voxel_size):
-
+    Returns
+    -------
+    results: np.ndarray
+        Label map after one-hot conversion
+    inputs: np.ndarray
+        Preprocessed input image
+    outputs_avg: np.ndarray
+        Averaged model outputs
+    outputs_soft: np.ndarray
+        Softlabel outputs (non-discrete)
+    
+    """
     # add zero in front of AC_center and PC_center
     AC_center = np.concatenate([np.zeros(1), AC_center])
     PC_center = np.concatenate([np.zeros(1), PC_center])
@@ -226,54 +298,3 @@ def run_inference_on_slice(model, test_slice, AC_center, PC_center, voxel_size):
     results = one_hot_to_label(results)
 
     return results, inputs, outputs_avg, outputs_soft
-
-
-
-def remove_small_clusters(label_data, min_cluster_size=100):
-    """
-    Removes small clusters of connected components from a label image.
-    
-    Args:
-        label_data: numpy array containing the label data
-        min_cluster_size: minimum size of clusters to keep (default: 100)
-        
-    Returns:
-        cleaned_label: numpy array with small clusters removed
-    """
-    from scipy.ndimage import label as ndlabel
-    
-
-    list_of_cleaned_labels = []
-
-    for label_id in range(label_data.shape[1]-1):
-
-        # Create a binary mask of the label
-        binary_mask = label_data[:,label_id+1] > 0
-
-        
-        # Label the connected components
-        labeled_array, num_features = ndlabel(binary_mask)
-        
-        # Create a mask for small clusters
-        small_clusters_mask = np.zeros_like(binary_mask, dtype=bool)
-        for i in range(1, num_features + 1):
-            small_cluster = (labeled_array == i)
-            if np.sum(small_cluster) < min_cluster_size:
-                small_clusters_mask |= small_cluster
-        
-        # Remove small clusters from the original label
-        cleaned_label = label_data[:,label_id+1].copy()
-        cleaned_label[small_clusters_mask] = 0
-        list_of_cleaned_labels.append(cleaned_label)
-
-
-        # plot binary mask
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(2,len(binary_mask))
-        # for i in range(len(binary_mask)):
-        #     ax[0,i].imshow(binary_mask[i])
-        #     ax[1,i].imshow(cleaned_label[i])
-        # plt.show()
-        
-    return np.stack([label_data[:,0]]+list_of_cleaned_labels, axis=1)
-
