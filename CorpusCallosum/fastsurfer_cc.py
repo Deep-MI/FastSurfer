@@ -737,62 +737,59 @@ def main(
         )
     )
 
+    # Save middle slice visualization
+    IO_processes.append(
+        create_visualization(
+            subdivision_method,
+            {
+            "split_contours": middle_slice_result["split_contours"],
+            "midline_equidistant": middle_slice_result["midline_equidistant"],
+            "levelpaths": middle_slice_result["levelpaths"],
+            },
+            midslices,
+            output_dir,
+            ac_coords,
+            pc_coords,
+            orig.header.get_zooms()[0],
+            " (Middle Slice)",
+        )
+    )
+
+    save_nifti_background(IO_processes, segmentation, seg_affine, orig.header, segmentation_path)
+
+
+    METRICS = [
+        "areas",
+        "thickness",
+        "curvature",
+        "midline_length",
+        "circularity",
+        "cc_index",
+        "total_area",
+        "total_perimeter",
+        "thickness_profile",
+    ]
+
+    # Record key metrics for middle slice
+    output_metrics_middle_slice = {
+        metric: middle_slice_result[metric] for metric in METRICS
+    }
+
     # Create enhanced output dictionary with all slice results
     per_slice_output_dict = {
         "slices": [
             convert_numpy_to_json_serializable(
                 {
-                    "slice_index": result["slice_index"],
-                    "cc_index": result["cc_index"],
-                    "circularity": result["circularity"],
-                    "areas": result["areas"],
-                    "midline_length": result["midline_length"],
-                    "thickness": result["thickness"],
-                    "curvature": result["curvature"],
-                    "thickness_profile": result["thickness_profile"],
-                    "total_area": result["total_area"],
-                    "total_perimeter": result["total_perimeter"],
+                    metric: result[metric] for metric in METRICS
                 }
             )
             for result in slice_results
         ],
-        "slices_in_segmentation": segmentation.shape[0],
-        "voxel_size": [float(x) for x in orig.header.get_zooms()],
-        "subdivision_method": subdivision_method,
-        "num_thickness_points": num_thickness_points,
-        "subdivisions": subdivisions,
-        "contour_smoothing": contour_smoothing,
-        "slice_selection": slice_selection,
     }
-
-    # Save slice-wise postprocessing results to JSON
-    with open(postproc_results_path, "w") as f:
-        json.dump(per_slice_output_dict, f, indent=4)
-
-    if verbose:
-        logger.info(f"Multiple slice post-processing results saved to {postproc_results_path}")
 
     ########## Save outputs ##########
 
-    
-    
-
-    # Create backward compatible output_dict for existing pipeline using middle slice
-    output_dict = {
-        "areas": middle_slice_result["areas"],
-        "areas_hofer_frahm": middle_slice_result["areas"]
-        if middle_slice_result["split_contours_hofer_frahm"] is not None
-        else middle_slice_result["areas"],
-        "thickness": middle_slice_result["thickness"],
-        "curvature": middle_slice_result["curvature"],
-        "midline_length": middle_slice_result["midline_length"],
-        "circularity": middle_slice_result["circularity"],
-        "cc_index": middle_slice_result["cc_index"],
-        "total_area": middle_slice_result["total_area"],
-        "total_perimeter": middle_slice_result["total_perimeter"],
-        "thickness_profile": middle_slice_result["thickness_profile"],
-    }
-
+    additional_metrics = {}
     if len(outer_contours) > 1:
         cc_volume_voxel = segmentation_postprocessing.get_cc_volume_voxel(
             desired_width_mm=5, 
@@ -807,42 +804,10 @@ def main(
             logger.info(f"CC volume voxel: {cc_volume_voxel}")
             logger.info(f"CC volume contour: {cc_volume_contour}")
         
-        output_dict["cc_5mm_volume"] = cc_volume_voxel
-        output_dict["cc_5mm_volume_pv_corrected"] = cc_volume_contour
+        additional_metrics["cc_5mm_volume"] = cc_volume_voxel
+        additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
-    # multiply split contour with resolution scale factor for middle slice visualization
-    split_contours = [
-        split_contour * orig.header.get_zooms()[1] for split_contour in middle_slice_result["split_contours"]
-    ]
-    if middle_slice_result["split_contours_hofer_frahm"] is not None:
-        split_contours_hofer_frahm = [
-            split_contour * orig.header.get_zooms()[1]
-            for split_contour in middle_slice_result["split_contours_hofer_frahm"]
-        ]
-    else:
-        split_contours_hofer_frahm = split_contours  # backward compatibility
-    midline_equidistant = middle_slice_result["midline_equidistant"] * orig.header.get_zooms()[1]
-    levelpaths = [levelpath * orig.header.get_zooms()[1] for levelpath in middle_slice_result["levelpaths"]]
-
-    # Save middle slice visualization
-    single_slice_result = {
-        "split_contours": split_contours,
-        "split_contours_hofer_frahm": split_contours_hofer_frahm,
-        "midline_equidistant": midline_equidistant,
-        "levelpaths": levelpaths,
-    }
-    IO_processes.append(
-        create_visualization(
-            subdivision_method,
-            single_slice_result,
-            midslices,
-            output_dir,
-            ac_coords,
-            pc_coords,
-            orig.header.get_zooms()[0],
-            " (Middle Slice)",
-        )
-    )
+    
 
     # get ac and pc in all spaces
     ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE, ac_coords))
@@ -851,24 +816,37 @@ def main(
         get_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig_fsaverage_vox2vox)
     )
 
-    
-    save_nifti_background(IO_processes, segmentation, seg_affine, orig.header, segmentation_path)
-
     # write output dict as csv
-    output_dict["ac_center"] = ac_coords_orig
-    output_dict["pc_center"] = pc_coords_orig
-    output_dict["ac_center_oriented_volume"] = ac_coords_standardized
-    output_dict["pc_center_oriented_volume"] = pc_coords_standardized
-    output_dict["ac_center_upright"] = ac_coords_3d
-    output_dict["pc_center_upright"] = pc_coords_3d
-    output_dict["num_slices"] = slices_to_analyze
+    additional_metrics["ac_center"] = ac_coords_orig
+    additional_metrics["pc_center"] = pc_coords_orig
+    additional_metrics["ac_center_oriented_volume"] = ac_coords_standardized
+    additional_metrics["pc_center_oriented_volume"] = pc_coords_standardized
+    additional_metrics["ac_center_upright"] = ac_coords_3d
+    additional_metrics["pc_center_upright"] = pc_coords_3d
+    additional_metrics["slices_in_segmentation"] = slices_to_analyze
+    additional_metrics["voxel_size"] = [float(x) for x in orig.header.get_zooms()]
+    additional_metrics["num_thickness_points"] = num_thickness_points
+    additional_metrics["subdivision_method"] = subdivision_method
+    additional_metrics["subdivision_ratios"] = subdivisions
+    additional_metrics["contour_smoothing"] = contour_smoothing
+    additional_metrics["slice_selection"] = slice_selection
 
     # Convert numpy arrays to lists for JSON serialization
-    output_dict = convert_numpy_to_json_serializable(output_dict)
+    output_metrics_middle_slice = convert_numpy_to_json_serializable(output_metrics_middle_slice | additional_metrics)
 
     logger.info(f"Saving CC markers to {cc_markers_path}")
     with open(cc_markers_path, "w") as f:
-        json.dump(output_dict, f, indent=4)
+        json.dump(output_metrics_middle_slice, f, indent=4)
+
+
+    per_slice_output_dict = convert_numpy_to_json_serializable(per_slice_output_dict | additional_metrics)
+
+    # Save slice-wise postprocessing results to JSON
+    with open(postproc_results_path, "w") as f:
+        json.dump(per_slice_output_dict, f, indent=4)
+
+    if verbose:
+        logger.info(f"Multiple slice post-processing results saved to {postproc_results_path}")
 
     # save lta to fsaverage space
     logger.info(f"Saving LTA to fsaverage space: {upright_lta_path}")

@@ -73,7 +73,7 @@ def visualize_coordinate_spaces(
     pc_coords_3d: np.ndarray,
     ac_coords_standardized: np.ndarray,
     pc_coords_standardized: np.ndarray,
-    output_dir: str | Path,
+    output_plot_path: str | Path,
 ) -> None:
     """Visualize the AC and PC coordinates in different coordinate spaces.
 
@@ -100,7 +100,7 @@ def visualize_coordinate_spaces(
         AC coordinates in standardized space
     pc_coords_standardized : np.ndarray
         PC coordinates in standardized space
-    output_dir : str or Path
+    output_plot_path : str or Path
         Directory to save visualization
 
     Notes
@@ -126,7 +126,7 @@ def visualize_coordinate_spaces(
         a.set_aspect("equal", adjustable="box")
         a.axis("off")
 
-    plt.savefig(Path(output_dir) / "ac_pc_spaces.png", dpi=300, bbox_inches="tight")
+    plt.savefig(output_plot_path, dpi=300, bbox_inches="tight")
     plt.show()
     plt.close()
 
@@ -134,7 +134,6 @@ def visualize_coordinate_spaces(
 def plot_contours(
     transformed: np.ndarray,
     split_contours: list[np.ndarray] | None = None,
-    split_contours_hofer_frahm: list[np.ndarray] | None = None,
     midline_equidistant: np.ndarray | None = None,
     levelpaths: list[np.ndarray] | None = None,
     output_path: str | Path | None = None,
@@ -142,7 +141,6 @@ def plot_contours(
     pc_coords: np.ndarray | None = None,
     vox_size: float | None = None,
     title: str = "",
-    debug: bool = False,
 ) -> None:
     """Plot contours and subdivisions of the corpus callosum.
 
@@ -152,8 +150,6 @@ def plot_contours(
         Transformed image data
     split_contours : list[np.ndarray], optional
         List of contour arrays for each subdivision, by default None
-    split_contours_hofer_frahm : list[np.ndarray], optional
-        List of contour arrays using Hofer-Frahm subdivision, by default None
     midline_equidistant : np.ndarray, optional
         Midline points at equidistant spacing, by default None
     levelpaths : list[np.ndarray], optional
@@ -181,69 +177,43 @@ def plot_contours(
     split_contours = (
         [split_contour / vox_size for split_contour in split_contours] if split_contours is not None else None
     )
-    split_contours_hofer_frahm = (
-        [split_contour / vox_size for split_contour in split_contours_hofer_frahm]
-        if split_contours_hofer_frahm is not None
-        else None
-    )
-    midline_equidistant = midline_equidistant / vox_size
-    levelpaths = [levelpath / vox_size for levelpath in levelpaths]
+    midline_equidistant = midline_equidistant / vox_size if midline_equidistant is not None else None
+    levelpaths = [levelpath / vox_size for levelpath in levelpaths] if levelpaths is not None else None
 
     NO_PLOTS = 1
     if split_contours is not None:
         NO_PLOTS += 1
-    if split_contours_hofer_frahm is not None:
-        NO_PLOTS += 1
 
     _, ax = plt.subplots(1, NO_PLOTS, sharex=True, sharey=True, figsize=(15, 10))
 
-    PLT_NUM = 0
+    # NOTE: For all plots imshow shows y inverted
+    current_plot = 0
+
 
     if split_contours is not None:
-        ax[PLT_NUM].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
+        ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
         # ax[0].imshow(cc_mask, cmap='autumn')
-        ax[PLT_NUM].set_title(title)
+        ax[current_plot].set_title(title)
         for i in range(len(split_contours)):
-            ax[PLT_NUM].fill(split_contours[i][0, :], -split_contours[i][1, :], color="steelblue", alpha=0.25)
-            ax[PLT_NUM].plot(
+            ax[current_plot].fill(split_contours[i][0, :], -split_contours[i][1, :], color="steelblue", alpha=0.25)
+            ax[current_plot].plot(
                 split_contours[i][0, :], -split_contours[i][1, :], color="mediumblue", linestyle="dotted", linewidth=0.7
             )
-        ax[PLT_NUM].plot(split_contours[0][0, :], -split_contours[0][1, :], color="mediumblue", linewidth=0.7)
-        ax[PLT_NUM].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
-        ax[PLT_NUM].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
-        PLT_NUM += 1
 
-    if split_contours_hofer_frahm is not None:
-        ax[PLT_NUM].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
-        # ax[1].imshow(cc_mask, cmap='autumn')
-        ax[PLT_NUM].set_title("Hofer-Frahm Jaenecke")
-        for i in range(len(split_contours_hofer_frahm)):
-            ax[PLT_NUM].fill(
-                split_contours_hofer_frahm[i][0, :], -split_contours_hofer_frahm[i][1, :], color="steelblue", alpha=0.25
-            )
-            ax[PLT_NUM].plot(
-                [split_contours_hofer_frahm[i][0, 0], split_contours_hofer_frahm[i][0, -1]],
-                [-split_contours_hofer_frahm[i][1, 0], -split_contours_hofer_frahm[i][1, -1]],
-                color="mediumblue",
-                linestyle="dotted",
-                linewidth=0.7,
-            )
-        ax[PLT_NUM].plot(
-            split_contours_hofer_frahm[0][0, :], -split_contours_hofer_frahm[0][1, :], color="mediumblue", linewidth=0.7
-        )
-        ax[PLT_NUM].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
-        ax[PLT_NUM].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
-        PLT_NUM += 1
+        ax[current_plot].plot(split_contours[0][0, :], -split_contours[0][1, :], color="mediumblue", linewidth=0.7)
+        ax[current_plot].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
+        ax[current_plot].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
+        current_plot += 1
 
-    reference_contour = split_contours[0] if split_contours is not None else split_contours_hofer_frahm[0]
+    reference_contour = split_contours[0]
 
-    ax[PLT_NUM].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
+    ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
     # ax[2].imshow(cc_mask, cmap='autumn')
     for i in range(len(levelpaths)):
-        ax[PLT_NUM].plot(levelpaths[i][:, 0], -levelpaths[i][:, 1], color="brown", linewidth=0.8)
-    ax[PLT_NUM].set_title("Midline & Levelpaths")
-    ax[PLT_NUM].plot(midline_equidistant[:, 0], -midline_equidistant[:, 1], color="red")
-    ax[PLT_NUM].plot(reference_contour[0, :], -reference_contour[1, :], color="red", linewidth=0.5)
+        ax[current_plot].plot(levelpaths[i][:, 0], -levelpaths[i][:, 1], color="brown", linewidth=0.8)
+    ax[current_plot].set_title("Midline & Levelpaths")
+    ax[current_plot].plot(midline_equidistant[:, 0], -midline_equidistant[:, 1], color="red")
+    ax[current_plot].plot(reference_contour[0, :], -reference_contour[1, :], color="red", linewidth=0.5)
 
     for a in ax.flatten():
         a.set_aspect("equal", adjustable="box")
