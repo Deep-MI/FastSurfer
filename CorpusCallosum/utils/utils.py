@@ -17,10 +17,44 @@ import sys
 
 
 class HiddenPrints:
-    def __enter__(self):
+    """Context manager for suppressing stdout output.
+
+    Temporarily redirects stdout to os.devnull to hide any print statements
+    within the context.
+
+    Examples
+    --------
+    >>> with HiddenPrints():
+    ...     print("This will not be visible")
+    >>> print("This will be visible")
+    """
+
+    def __enter__(self) -> None:
+        """Enter the context manager.
+
+        Returns
+        -------
+        None
+        """
         self._original_stdout = sys.stdout
         sys.stdout = open(os.devnull, "w")
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type | None, exc_val: Exception | None, 
+                 exc_tb: type | None) -> None:
+        """Exit the context manager.
+
+        Parameters
+        ----------
+        exc_type : type or None
+            Type of the exception that occurred, if any
+        exc_val : Exception or None
+            Exception instance that occurred, if any
+        exc_tb : type or None
+            Traceback of the exception that occurred, if any
+
+        Returns
+        -------
+        None
+        """
         sys.stdout.close()
         sys.stdout = self._original_stdout

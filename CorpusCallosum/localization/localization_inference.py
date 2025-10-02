@@ -25,16 +25,23 @@ from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 
 
-def load_model(checkpoint_path, device=None):
-    """
-    Load the trained numerical localization model from checkpoint
-    
-    Args:
-        checkpoint_path: Path to model checkpoint
-        device: torch device to load model to (defaults to CUDA if available)
-    
-    Returns:
-        model: Loaded model
+def load_model(checkpoint_path: str | Path | None = None, 
+             device: torch.device | None = None) -> DenseNet:
+    """Load trained numerical localization model from checkpoint.
+
+    Parameters
+    ----------
+    checkpoint_path : str or Path or None, optional
+        Path to model checkpoint, by default None.
+        If None, downloads and uses default checkpoint.
+    device : torch.device or None, optional
+        Device to load model to, by default None.
+        If None, uses CUDA if available, else CPU.
+
+    Returns
+    -------
+    DenseNet
+        Loaded and initialized model in evaluation mode
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -60,7 +67,6 @@ def load_model(checkpoint_path, device=None):
             )
     checkpoint_path = cc_config['localization']
 
-    
     # Load state dict
     if isinstance(checkpoint_path, str) or isinstance(checkpoint_path, Path):
         state_dict = torch.load(checkpoint_path, map_location=device, weights_only=True)
@@ -68,23 +74,24 @@ def load_model(checkpoint_path, device=None):
             state_dict = state_dict['model_state_dict']
     else:
         state_dict = checkpoint_path
-
         
     model.load_state_dict(state_dict)
     model = model.to(device)
     model.eval()
     return model
 
-def get_transforms():
-    """Get preprocessing transforms for inference"""
+
+def get_transforms() -> transforms.Compose:
+    """Get preprocessing transforms for inference.
+
+    Returns
+    -------
+    transforms.Compose
+        Composed transform pipeline including:
+        - Intensity scaling to [0,1]
+        - Fixed size cropping around AC-PC points
+    """
     tr = [
-        # transforms.LoadImaged(
-        #     keys=['image'], 
-        #     reader="NibabelReader", 
-        #     image_only=True, 
-        #     dtype=torch.float32, 
-        #     ensure_channel_first=True
-        # ),
         transforms.ScaleIntensityd(keys=['image'], minv=0, maxv=1),
         CropAroundACPCFixedSize(
             keys=['image'], 
@@ -94,16 +101,28 @@ def get_transforms():
     ]
     return transforms.Compose(tr)
 
-def preprocess_volume(image_volume, center_pt, transform=None):
-    """
-    Preprocess a volume for inference
-    
-    Args:
-        image_volume: Input volume as numpy array or path to nifti file
-        transform: Optional custom transform pipeline
-    
-    Returns:
-        preprocessed: Preprocessed image tensor ready for model input
+
+def preprocess_volume(
+    image_volume: np.ndarray,
+    center_pt: np.ndarray,
+    transform: transforms.Transform | None = None
+) -> dict[str, torch.Tensor]:
+    """Preprocess a volume for inference.
+
+    Parameters
+    ----------
+    image_volume : np.ndarray
+        Input image volume
+    center_pt : np.ndarray
+        Center point coordinates for cropping
+    transform : transforms.Transform or None, optional
+        Custom transform pipeline, by default None.
+        If None, uses default transforms from get_transforms().
+
+    Returns
+    -------
+    dict[str, torch.Tensor]
+        Dictionary containing preprocessed image tensor
     """
     if transform is None:
         transform = get_transforms()
@@ -120,18 +139,36 @@ def preprocess_volume(image_volume, center_pt, transform=None):
             
     return transformed
 
-def run_inference(model, image_volume, third_ventricle_center, device=None, transform=None):
+def run_inference(model: torch.nn.Module,
+                 image_volume: np.ndarray,
+                 third_ventricle_center: np.ndarray,
+                 device: torch.device | None = None,
+                 transform: transforms.Transform | None = None
+                 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[int, int]]:
     """
     Run inference on an image volume
     
-    Args:
-        model: Trained model
-        image_volume: Input volume as numpy array or path to nifti file
-        device: torch device to run inference on
-        transform: Optional custom transform pipeline
-    
-    Returns:
-        dict containing predicted AC and PC coordinates in original image space
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Trained model for inference
+    image_volume : np.ndarray
+        Input volume as numpy array
+    third_ventricle_center : np.ndarray
+        Initial center point estimate for cropping
+    device : torch.device, optional
+        Device to run inference on, by default None
+    transform : transforms.Transform, optional
+        Custom transform pipeline, by default None
+
+    Returns
+    -------
+    tuple
+        Tuple containing:
+        - np.ndarray: Predicted PC coordinates
+        - np.ndarray: Predicted AC coordinates  
+        - np.ndarray: Processed input images
+        - tuple: Crop offsets (left, top)
     """
     if device is None:
         device = next(model.parameters()).device
@@ -183,12 +220,34 @@ def run_inference(model, image_volume, third_ventricle_center, device=None, tran
             (t_dict['crop_left'], t_dict['crop_top']))
 
 
-def run_inference_on_slice(model, image_slice, center_pt, debug_output=None):
+def run_inference_on_slice(model: torch.nn.Module, 
+                           image_slice: np.ndarray, 
+                           center_pt: np.ndarray, 
+                           debug_output: str | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """Run inference on a single slice to detect AC and PC points.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Trained model for AC-PC detection
+    image_slice : np.ndarray
+        3D image slice to run inference on
+    center_pt : np.ndarray
+        Initial center point estimate for cropping
+    debug_output : str, optional
+        Path to save debug visualization, by default None
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Detected AC and PC coordinates as (ac_coords, pc_coords)
+        Each coordinate array has shape (2,) containing [y,x] positions
+    """
 
     # Run inference
-    pc_coords, ac_coords, inputs, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
+    pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
     center_pt = np.mean(np.concatenate([ac_coords, pc_coords], axis=0), axis=0)
-    pc_coords, ac_coords, inputs, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
+    pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
     pc_coords = np.mean(pc_coords, axis=0)
     ac_coords = np.mean(ac_coords, axis=0)
 

@@ -12,17 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import ConvexHull
 
 
 def minimum_bounding_rectangle(points):
-    """
-    Find the smallest bounding rectangle for a set of points.
-    Returns a set of points representing the corners of the bounding box.
+    """Find the smallest bounding rectangle for a set of points.
 
-    :param points: an nx2 matrix of coordinates
-    :rval: an nx2 matrix of coordinates
+    Parameters
+    ----------
+    points : np.ndarray
+        Array of shape (N, 2) containing point coordinates.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape (4, 2) containing coordinates of the bounding box corners.
     """
     pi2 = np.pi / 2.0
     points = points.T
@@ -73,6 +81,18 @@ def minimum_bounding_rectangle(points):
 
 
 def get_area_from_subsegments(split_contours):
+    """Calculate area of each subsegment using the shoelace formula.
+
+    Parameters
+    ----------
+    split_contours : list[np.ndarray]
+        List of contour arrays, each of shape (2, N).
+
+    Returns
+    -------
+    np.ndarray
+        Array containing the area of each subsegment.
+    """
     # calculate area of each split contour using the shoelace formula
     areas = [np.abs(np.trapz(split_contour[1], split_contour[0])) for split_contour in split_contours]
     area_out = np.zeros(len(areas))
@@ -85,6 +105,33 @@ def get_area_from_subsegments(split_contours):
 
 
 def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=None, extremes=None):
+    """Subsegment contour orthogonally to the midline based on area weights.
+
+    Parameters
+    ----------
+    midline : np.ndarray
+        Array of shape (N, 2) containing midline points.
+    area_weights : np.ndarray
+        Array of weights for area-based subdivision.
+    contour : np.ndarray
+        Array of shape (2, M) containing contour points.
+    plot : bool, optional
+        Whether to plot the results, by default True.
+    ax : matplotlib.axes.Axes, optional
+        Axes for plotting, by default None.
+    extremes : tuple, optional
+        Tuple of extreme points, by default None.
+
+    Returns
+    -------
+    split_contours : list[np.ndarray]
+        List of contour arrays for each subsegment.
+    split_points : np.ndarray
+        Array of split points.
+    edge_directions : np.ndarray
+        Array of edge directions at split points.
+    
+    """
     # get points after midline length of splits
 
     # get vertex closest to midline end
@@ -415,8 +462,53 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
 
 
 def subdivide_contour(
-    contour, area_weights, plot=False, ax=None, plot_transform=None, oriented=False, hline_anchor=None
+    contour: np.ndarray,
+    area_weights: list[float],
+    plot: bool = False,
+    ax: plt.Axes | None = None,
+    plot_transform: Callable | None = None,
+    oriented: bool = False,
+    hline_anchor: np.ndarray | None = None
 ):
+    """Subdivide contour based on area weights using vertical lines.
+
+    Divides the contour into segments by drawing vertical lines at positions
+    determined by the area weights. The lines are drawn perpendicular to a
+    reference line connecting the extreme points of the contour.
+
+    Parameters
+    ----------
+    contour : np.ndarray
+        Array of shape (2, N) containing contour points.
+    area_weights : list[float]
+        List of weights for area-based subdivision.
+    plot : bool, optional
+        Whether to plot the results, by default False.
+    ax : matplotlib.axes.Axes, optional
+        Axes for plotting, by default None.
+    plot_transform : callable, optional
+        Function to transform points before plotting, by default None.
+    oriented : bool, optional
+        If True, use fixed horizontal reference line, by default False.
+    hline_anchor : np.ndarray, optional
+        Point to anchor horizontal reference line, by default None.
+
+    Returns
+    -------
+    areas : np.ndarray
+        Array of areas for each subsegment.
+    split_contours : list[np.ndarray]
+        List of contour arrays for each subsegment.
+
+    Notes
+    -----
+    The subdivision process:
+    1. Finds extreme points in x-direction.
+    2. Creates reference line between extremes.
+    3. Calculates split points based on area weights.
+    4. Divides contour using perpendicular lines at split points.
+    
+    """
     # Find the extreme points in the x-direction
     min_x_index = np.argmax(contour[0])
     contour = np.roll(contour, -min_x_index, axis=1)
@@ -712,6 +804,34 @@ def subdivide_contour(
 
 
 def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
+    """Transform contour coordinates to AC-PC standard space.
+
+    Transforms the contour coordinates by:
+        1. Translating AC point to origin.
+        2. Rotating to align PC point with posterior direction.
+        3. Scaling to maintain AC-PC distance.
+
+    Parameters
+    ----------
+    contour_ras : np.ndarray
+        Array of shape (2, N) or (3, N) containing contour points in RAS space.
+    ac_pt_ras : np.ndarray
+        Anterior commissure point coordinates in RAS space.
+    pc_pt_ras : np.ndarray
+        Posterior commissure point coordinates in RAS space.
+
+    Returns
+    -------
+    contour_acpc : np.ndarray
+        Transformed contour points in AC-PC space.
+    ac_pt_acpc : np.ndarray
+        AC point in AC-PC space (origin).
+    pc_pt_acpc : np.ndarray
+        PC point in AC-PC space.
+    rotate_back : callable
+        Function to transform points back to RAS space.
+    
+    """
     # translate AC to the origin and PC to (0, ac_pc_dist)
     translation_matrix = np.array([[1, 0, -ac_pt_ras[0]], [0, 1, -ac_pt_ras[1]], [0, 0, 1]])
 
@@ -749,6 +869,27 @@ def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
 
 
 def preprocess_cc(cc_label_nib, paths_csv, subj_id):
+    """Preprocess corpus callosum mask and extract AC/PC coordinates.
+
+    Parameters
+    ----------
+    cc_label_nib : nibabel.Nifti1Image
+        NIfTI image containing corpus callosum segmentation.
+    paths_csv : pd.DataFrame
+        DataFrame containing AC and PC coordinates.
+    subj_id : str
+        Subject ID to look up in paths_csv.
+
+    Returns
+    -------
+    cc_mask : np.ndarray
+        Binary mask of corpus callosum.
+    AC_2d : np.ndarray
+        2D coordinates of anterior commissure.
+    PC_2d : np.ndarray
+        2D coordinates of posterior commissure.
+    
+    """
     cc_mask = cc_label_nib.get_fdata() == 192
     cc_mask = cc_mask[cc_mask.shape[0] // 2]
 
@@ -768,6 +909,27 @@ def preprocess_cc(cc_label_nib, paths_csv, subj_id):
 
 
 def get_primary_eigenvector(contour_ras):
+    """Calculate primary eigenvector of contour points using PCA.
+
+    Computes the principal direction of the contour by:
+    1. Centering the points
+    2. Computing covariance matrix
+    3. Finding eigenvectors
+    4. Selecting primary direction
+
+    Parameters
+    ----------
+    contour_ras : np.ndarray
+        Array of shape (2, N) containing contour points in RAS space.
+
+    Returns
+    -------
+    pt0 : np.ndarray
+        Starting point for eigenvector line.
+    pt1 : np.ndarray
+        End point for eigenvector line.
+    
+    """
     # Center the data by subtracting mean
     contour_mean = np.mean(contour_ras, axis=1, keepdims=True)
     contour_centered = contour_ras - contour_mean

@@ -44,23 +44,35 @@ class CC_Mesh(lapy.TriaMesh):
     corpus callosum, with optional thickness measurements at various points along these
     contours.
 
-    Attributes:
-        contours (list): List of numpy arrays containing 2D contour points for each slice.
-        thickness_values (list): List of thickness measurements for each contour point.
-        start_end_idx (list): List of tuples containing start and end indices for each contour.
-        ac_coords (numpy.ndarray): Coordinates of the anterior commissure.
-        pc_coords (numpy.ndarray): Coordinates of the posterior commissure.
-        resolution (float): Spatial resolution of the mesh.
-        v (numpy.ndarray): Vertex coordinates of the mesh.
-        t (numpy.ndarray): Triangle indices of the mesh.
-        original_thickness_vertices (list): List of vertex indices where thickness was originally measured.
+    Attributes
+    ----------
+    contours : list[np.ndarray]
+        List of numpy arrays containing 2D contour points for each slice.
+    thickness_values : list[np.ndarray]
+        List of thickness measurements for each contour point.
+    start_end_idx : list[tuple[int, int]]
+        List of tuples containing start and end indices for each contour.
+    ac_coords : np.ndarray
+        Coordinates of the anterior commissure.
+    pc_coords : np.ndarray
+        Coordinates of the posterior commissure.
+    resolution : float
+        Spatial resolution of the mesh.
+    v : np.ndarray
+        Vertex coordinates of the mesh.
+    t : np.ndarray
+        Triangle indices of the mesh.
+    original_thickness_vertices : list[np.ndarray]
+        List of vertex indices where thickness was originally measured.
     """
 
     def __init__(self, num_slices):
         """Initialize a CC_Mesh object.
 
-        Args:
-            num_slices (int): Number of slices in the corpus callosum mesh.
+        Parameters
+        ----------
+        num_slices : int
+            Number of slices in the corpus callosum mesh
         """
         self.contours = [None] * num_slices
         self.thickness_values = [None] * num_slices
@@ -81,16 +93,17 @@ class CC_Mesh(lapy.TriaMesh):
     ):
         """Add a contour and its associated thickness values for a specific slice.
 
-        Args:
-            slice_idx (int): 
-                Index of the slice where the contour should be added.
-            contour (numpy.ndarray): 
-                Array of shape (N, 2) containing 2D contour points.
-            thickness_values (numpy.ndarray): 
-                Array of thickness measurements for each contour point.
-            start_end_idx (tuple[int, int], optional): 
-                Tuple containing start and end indices for the contour.
-                If None, defaults to (0, len(contour)//2).
+        Parameters
+        ----------
+        slice_idx : int
+            Index of the slice where the contour should be added.
+        contour : np.ndarray
+            Array of shape (N, 2) containing 2D contour points.
+        thickness_values : np.ndarray
+            Array of thickness measurements for each contour point.
+        start_end_idx : tuple[int, int], optional
+            Tuple containing start and end indices for the contour.
+            If None, defaults to (0, len(contour)//2).
         """
         self.contours[slice_idx] = contour
         self.thickness_values[slice_idx] = thickness_values
@@ -105,9 +118,12 @@ class CC_Mesh(lapy.TriaMesh):
     def set_acpc_coords(self, ac_coords: np.ndarray, pc_coords: np.ndarray):
         """Set the coordinates of the anterior and posterior commissure.
 
-        Args:
-            ac_coords (numpy.ndarray): 3D coordinates of the anterior commissure.
-            pc_coords (numpy.ndarray): 3D coordinates of the posterior commissure.
+        Parameters
+        ----------
+        ac_coords : np.ndarray
+            3D coordinates of the anterior commissure.
+        pc_coords : np.ndarray
+            3D coordinates of the posterior commissure.
         """
         self.ac_coords = ac_coords
         self.pc_coords = pc_coords
@@ -115,8 +131,10 @@ class CC_Mesh(lapy.TriaMesh):
     def set_resolution(self, resolution: float):
         """Set the spatial resolution of the mesh.
 
-        Args:
-            resolution (float): Spatial resolution in millimeters.
+        Parameters
+        ----------
+        resolution : float
+            Spatial resolution in millimeters.
         """
         self.resolution = resolution
 
@@ -135,37 +153,37 @@ class CC_Mesh(lapy.TriaMesh):
         """Plot the mesh using Plotly for better performance and interactivity.
 
         Creates an interactive 3D visualization of the mesh with optional features like
-        thickness overlay, contour display, and grid visualization. The plot can be saved
-        to an HTML file or displayed in a web browser.
+        thickness overlay, contour display, and grid visualization.
 
-        Args:
-            output_path (str, optional): 
-                Path to save the plot. If None, displays the plot interactively.
-            colormap (str, optional): 
-                Which colormap to use. Options are:
-                - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
-                - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
-                - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
-                - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
-            
-                Defaults to "red_to_yellow".
-            thickness_overlay (bool, optional): 
-                Whether to overlay thickness values on the mesh.
-                Defaults to True.
-            show_contours (bool, optional): 
-                Whether to show the contours. Defaults to False.
-            show_grid (bool, optional): 
-                Whether to show the grid. Defaults to False.
-            color_range (tuple[float, float], optional): 
-                Optional tuple of (min, max) to set fixed
-                color range. Defaults to None.
-            show_mesh_edges (bool, optional): 
-                Whether to show the mesh edges. Defaults to False.
-            legend (str, optional): 
-                Legend text for the colorbar. Defaults to "".
-            threshold (tuple[float, float], optional): 
-                Values between these thresholds will be shown in grey.
-                Defaults to (-0.2, 0.2).
+        Parameters
+        ----------
+        output_path : str, optional
+            Path to save the plot. If None, displays the plot interactively.
+        colormap : str, optional
+            Which colormap to use, by default "red_to_yellow".
+            Options:
+            - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
+            - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
+            - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
+            - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
+        thickness_overlay : bool, optional
+            Whether to overlay thickness values on the mesh, by default True.
+        show_contours : bool, optional
+            Whether to show the contours, by default False.
+        show_grid : bool, optional
+            Whether to show the grid, by default False.
+        color_range : tuple[float, float], optional
+            Fixed range (min, max) for the colorbar, by default None.
+        show_mesh_edges : bool, optional
+            Whether to show the mesh edges, by default False.
+        legend : str, optional
+            Legend text for the colorbar, by default "".
+        threshold : tuple[float, float], optional
+            Values between these thresholds will be shown in grey, by default None.
+
+        Notes
+        -----
+        The plot can be saved to an HTML file or displayed in a web browser.
         """
         assert self.v is not None and self.t is not None, "Mesh has not been created yet"
 
@@ -430,32 +448,50 @@ class CC_Mesh(lapy.TriaMesh):
             fig.write_html(temp_path)
             webbrowser.open("file://" + temp_path)
 
-    def get_contour_edge_lengths(self, contour_idx):
+    def get_contour_edge_lengths(self, contour_idx: int) -> np.ndarray:
         """Get the lengths of the edges of a contour.
 
-        Args:
-            contour_idx (int): Index of the contour to get the edge lengths for.
+        Parameters
+        ----------
+        contour_idx : int
+            Index of the contour to get the edge lengths for.
 
-        Returns:
-            numpy.ndarray: Array of edge lengths for the contour.
+        Returns
+        -------
+        np.ndarray
+            Array of edge lengths for the contour.
+
+        Notes
+        -----
+        Edge lengths are calculated as Euclidean distances between consecutive points
+        in the contour.
         """
         edges = np.diff(self.contours[contour_idx], axis=0)
         return np.sqrt(np.sum(edges**2, axis=1))
 
     @staticmethod
-    def make_triangles_between_contours(contour1, contour2):
-        """Creates a triangular mesh between two contours using a robust method.
+    def make_triangles_between_contours(contour1: np.ndarray, contour2: np.ndarray) -> np.ndarray:
+        """Create a triangular mesh between two contours using a robust method.
 
-        This method creates triangles that connect two contours by matching points between them.
-        It starts from the closest point on contour2 to the first point of contour1 and creates
-        triangles by connecting corresponding points.
+        Parameters
+        ----------
+        contour1 : np.ndarray
+            First contour points of shape (N, 2).
+        contour2 : np.ndarray
+            Second contour points of shape (M, 2).
 
-        Args:
-            contour1 (numpy.ndarray): First contour points of shape (N, 2).
-            contour2 (numpy.ndarray): Second contour points of shape (M, 2).
+        Returns
+        -------
+        np.ndarray
+            Array of triangle indices of shape (K, 3) where K is the number of triangles.
 
-        Returns:
-            numpy.ndarray: Array of triangle indices of shape (K, 3) where K is the number of triangles.
+        Notes
+        -----
+        The function:
+        1. Finds closest point on contour2 to first point of contour1
+        2. Creates triangles by connecting corresponding points
+        3. Handles contours with different numbers of points
+        4. Creates two triangles to form a quad between each pair of points
         """
         start_idx_c1 = 0
         # get closest point on contour2 to contour1[0]
@@ -480,8 +516,40 @@ class CC_Mesh(lapy.TriaMesh):
 
         return np.array(triangles)
 
-    def _create_levelpaths(self, contour_idx, points, trias, num_points=None):
-        # # compute poisson
+    def _create_levelpaths(
+        self,
+        contour_idx: int,
+        points: np.ndarray,
+        trias: np.ndarray,
+        num_points: int | None = None
+    ) -> tuple[list[np.ndarray], list[float]]:
+        """Create level paths for thickness measurements.
+
+        Parameters
+        ----------
+        contour_idx : int
+            Index of the contour to process
+        points : np.ndarray
+            Array of shape (N, 2) containing mesh points
+        trias : np.ndarray
+            Array of shape (M, 3) containing triangle indices
+        num_points : int or None, optional
+            Number of points to sample along the midline, by default None
+
+        Returns
+        -------
+        tuple[list[np.ndarray], list[float]]
+            - levelpaths : List of arrays containing level path coordinates
+            - thickness_values : List of thickness values for each level path
+
+        Notes
+        -----
+        The function:
+        1. Creates a triangular mesh from the points
+        2. Finds boundary points and endpoints
+        3. Solves Poisson equation for level sets
+        4. Extracts level paths and interpolates thickness values
+        """
         with HiddenPrints():
             cc_tria = lapy.TriaMesh(points, trias)
         # extract boundary curve
@@ -541,7 +609,38 @@ class CC_Mesh(lapy.TriaMesh):
 
         return levelpaths, thickness_values
 
-    def _create_cap(self, points, trias, contour_idx):
+    def _create_cap(
+        self,
+        points: np.ndarray,
+        trias: np.ndarray,
+        contour_idx: int
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Create a cap mesh for one end of the corpus callosum.
+
+        Parameters
+        ----------
+        points : np.ndarray
+            Array of shape (N, 2) containing mesh points
+        trias : np.ndarray
+            Array of shape (M, 3) containing triangle indices
+        contour_idx : int
+            Index of the contour to create cap for
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray, np.ndarray]
+            - level_vertices : Array of vertices for the cap mesh
+            - level_faces : Array of face indices for the cap mesh
+            - level_colors : Array of thickness values for each vertex
+
+        Notes
+        -----
+        The function:
+        1. Creates level paths using _create_levelpaths
+        2. Resamples level paths to fixed number of points
+        3. Creates triangles between consecutive level paths
+        4. Smooths thickness values for visualization
+        """
         levelpaths, thickness_values = self._create_levelpaths(contour_idx, points, trias)
 
         # Create mesh from level paths
@@ -601,17 +700,34 @@ class CC_Mesh(lapy.TriaMesh):
 
         return level_vertices, level_faces, level_colors
 
-    def create_mesh(self, lr_center: float = 0, closed: bool = False, smooth: int = 0):
-        """Creates a surface mesh by triangulating between consecutive contours.
+    def create_mesh(self, lr_center: float = 0, closed: bool = False, smooth: int = 0) -> None:
+        """Create a surface mesh by triangulating between consecutive contours.
 
-        This method constructs a 3D mesh from the stored contours by creating triangles between
-        adjacent slices. It can optionally create a closed mesh by adding caps at the ends and
-        apply smoothing.
+        Parameters
+        ----------
+        lr_center : float, optional
+            Center position in the left-right axis, by default 0.
+        closed : bool, optional
+            Whether to create a closed mesh by adding caps, by default False.
+        smooth : int, optional
+            Number of smoothing iterations to apply, by default 0.
 
-        Args:
-            lr_center (float, optional): Center position in the left-right axis. Defaults to 0.
-            closed (bool, optional): Whether to create a closed mesh by adding caps. Defaults to False.
-            smooth (int, optional): Number of smoothing iterations to apply. Defaults to 0.
+        Raises
+        ------
+        Warning
+            If no valid contours are found.
+
+        Notes
+        -----
+        The function:
+        1. Filters out None contours.
+        2. Calculates z-coordinates for each slice.
+        3. Creates triangles between adjacent contours.
+        4. Optionally:
+        - Creates caps at both ends.
+        - Applies smoothing.
+        - Colors caps based on thickness values.
+        
         """
         # Filter out None contours and get their indices
         valid_contours = [(i, c) for i, c in enumerate(self.contours) if c is not None]
@@ -683,9 +799,22 @@ class CC_Mesh(lapy.TriaMesh):
                 [self.mesh_vertex_colors, left_side_colors, right_side_colors],
             )
 
-    def fill_thickness_values(self):
-        """
-        Interpolate missing thickness values on the contours by weighted average of nearest known thickness values.
+    def fill_thickness_values(self) -> None:
+        """Interpolate missing thickness values using weighted averaging.
+
+        Notes
+        -----
+        The function:
+        1. Processes each contour with missing thickness values.
+        2. For each missing value:
+        - Finds two closest points with known thickness.
+        - Calculates distances along contour.
+        - Computes weighted average based on inverse distance.
+        3. Updates thickness values in place.
+
+        The weights are calculated as inverse distances to ensure closer
+        points have more influence on the interpolated value.
+
         """
 
         # For each contour with missing thickness values
@@ -726,27 +855,45 @@ class CC_Mesh(lapy.TriaMesh):
 
             self.thickness_values[i] = thickness
 
-    def smooth_thickness_values(self, iterations: int = 1):
-        """
-        Smooth the thickness values using a Gaussian filter
-        """
+    def smooth_thickness_values(self, iterations: int = 1) -> None:
+        """Smooth the thickness values using a Gaussian filter.
 
+        Parameters
+        ----------
+        iterations : int, optional
+            Number of smoothing iterations, by default 1.
+
+        Notes
+        -----
+        Applies Gaussian smoothing with sigma=5 to thickness values
+        for each slice that has measurements.
+        """
         for i in range(len(self.thickness_values)):
             if self.thickness_values[i] is not None:
                 self.thickness_values[i] = gaussian_filter1d(self.thickness_values[i], sigma=5)
 
-    def plot_contour(self, slice_idx: int, output_path: str):
+    def plot_contour(self, slice_idx: int, output_path: str) -> None:
         """Plot a single contour with thickness values.
 
-        Creates a 2D visualization of a specific contour slice with points colored according
-        to their thickness values. The plot is saved to the specified output path.
+        Parameters
+        ----------
+        slice_idx : int
+            Index of the slice to plot.
+        output_path : str
+            Path where to save the plot.
 
-        Args:
-            slice_idx (int): Index of the slice to plot.
-            output_path (str): Path where to save the plot.
+        Raises
+        ------
+        ValueError
+            If the contour for the specified slice is not set.
 
-        Raises:
-            ValueError: If the contour for the specified slice is not set.
+        Notes
+        -----
+        Creates a 2D visualization with:
+        - Points colored by thickness values.
+        - Gray points for missing thickness values.
+        - Connected contour line.
+        - Grid, labels, and legend.
         """
         self.__make_parent_folder(output_path)
 
@@ -784,43 +931,57 @@ class CC_Mesh(lapy.TriaMesh):
         plt.tight_layout()
         plt.savefig(output_path, dpi=300)
 
-    def smooth_contour(self, contour_idx, window_size=5):
-        """
-        Smooth a contour using a moving average filter.
+    def smooth_contour(self, contour_idx: int, window_size: int = 5) -> None:
+        """Smooth a contour using a moving average filter.
 
         Parameters
         ----------
-        contour : tuple of arrays
-            The contour coordinates (x, y).
-        window_size : int
-            Size of the smoothing window.
+        contour_idx : int
+            Index of the contour to smooth.
+        window_size : int, optional
+            Size of the smoothing window, by default 5.
 
-        Returns
-        -------
-        tuple of arrays
-            The smoothed contour coordinates (x, y).
+        Notes
+        -----
+        Uses smooth_contour from cc_endpoint_heuristic module to:
+        1. Extract x and y coordinates.
+        2. Apply moving average smoothing.
+        3. Update contour with smoothed coordinates.
         """
         x, y = self.contours[contour_idx].T
-
         x, y = smooth_contour(x, y, window_size)
-
         self.contours[contour_idx] = np.array([x, y]).T
 
-    def plot_cc_contour_with_levelsets(self, contour_idx=0, levelpaths=None, title=None, save_path=None, colorbar=True):
+    def plot_cc_contour_with_levelsets(
+        self,
+        contour_idx: int = 0,
+        levelpaths: list | None = None,
+        title: str | None = None,
+        save_path: str | None = None,
+        colorbar: bool = True,
+    ) -> matplotlib.figure.Figure:
         """Plot a contour with levelset visualization.
 
         Creates a visualization of a contour with interpolated levelsets, useful for
         analyzing the thickness distribution across the corpus callosum.
 
-        Args:
-            contour_idx (int, optional): Index of the contour to plot. Defaults to 0.
-            levelpaths (list, optional): List of levelset paths. If None, uses stored levelpaths.
-            title (str, optional): Title for the plot. Defaults to None.
-            save_path (str, optional): Path to save the plot. If None, displays interactively.
-            colorbar (bool, optional): Whether to show the colorbar. Defaults to True.
+        Parameters
+        ----------
+        contour_idx : int, optional
+            Index of the contour to plot, by default 0.
+        levelpaths : list or None, optional
+            List of levelset paths. If None, uses stored levelpaths, by default None.
+        title : str or None, optional
+            Title for the plot, by default None.
+        save_path : str or None, optional
+            Path to save the plot. If None, displays interactively, by default None.
+        colorbar : bool, optional
+            Whether to show the colorbar, by default True.
 
-        Returns:
-            matplotlib.figure.Figure: The created figure object.
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The created figure object.
         """
 
         plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])][:100])[
@@ -999,13 +1160,25 @@ class CC_Mesh(lapy.TriaMesh):
             plt.show()
         return fig
 
-    def set_mesh(self, vertices, faces, thickness_values=None):
+    def set_mesh(self, 
+                 vertices: list | np.ndarray, 
+                 faces: list | np.ndarray, 
+                 thickness_values: list | np.ndarray | None = None) -> None:
         """Set the mesh vertices, faces, and optional thickness values.
 
-        Args:
-            vertices (list or numpy.ndarray): List of vertex coordinates or array of shape (N, 3).
-            faces (list or numpy.ndarray): List of face indices or array of shape (M, 3).
-            thickness_values (list or numpy.ndarray, optional): Thickness values for each vertex.
+        Parameters
+        ----------
+        vertices : list or numpy.ndarray
+            List of vertex coordinates or array of shape (N, 3).
+        faces : list or numpy.ndarray
+            List of face indices or array of shape (M, 3).
+        thickness_values : list or numpy.ndarray, optional
+            Thickness values for each vertex.
+
+        Returns
+        -------
+        None
+            The function does not return anything.
         """
         # Handle case when there are no faces (single contour)
         if not faces:
@@ -1028,9 +1201,23 @@ class CC_Mesh(lapy.TriaMesh):
                 self.mesh_vertex_colors = np.array([])
 
     @staticmethod
-    def __create_cc_viewmat():
-        """
-        Create the view matrix for a nice view of the corpus callosum.
+    def __create_cc_viewmat() -> pyrr.Matrix44:
+        """Create the view matrix for a nice view of the corpus callosum.
+
+        Returns
+        -------
+        pyrr.Matrix44
+            4x4 view matrix that provides a standard view of the corpus callosum
+
+        Notes
+        -----
+        The function:
+        1. Creates a base view matrix looking from the left with top up
+        2. Applies a series of rotations:
+            - -10 degrees around x-axis
+            - 35 degrees around y-axis
+            - -8 degrees around z-axis
+        3. Adds a small translation for better centering
         """
         viewLeft = np.array([[0, 0, -1, 0], [-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])  # left w top up // right
         transl = pyrr.Matrix44.from_translation((0, 0, 0.4))
@@ -1050,23 +1237,40 @@ class CC_Mesh(lapy.TriaMesh):
 
         return viewmat
 
-    def snap_cc_picture(self, output_path: str, fssurf_file: str | None = None, overlay_file: str | None = None):
+    def snap_cc_picture(
+        self,
+        output_path: str,
+        fssurf_file: str | None = None,
+        overlay_file: str | None = None
+    ) -> None:
         """Snap a picture of the corpus callosum mesh.
 
-        Takes a snapshot of the mesh from a predefined viewpoint, with optional thickness
-        overlay. The image is saved to the specified output path.
+        Parameters
+        ----------
+        output_path : str
+            Path where to save the snapshot image.
+        fssurf_file : str or None, optional
+            Path to a FreeSurfer surface file to use for the snapshot.
+            If None, the mesh is saved to a temporary file, by default None.
+        overlay_file : str or None, optional
+            Path to a FreeSurfer overlay file to use for the snapshot.
+            If None, the mesh is saved to a temporary file, by default None.
 
-        Args:
-            output_path (str): 
-                Path where to save the snapshot image.
-            fssurf_file (str | None): Path to a FreeSurfer surface file to use for the snapshot. If None,
-                the mesh is saved to a temporary file. Defaults to None.
-            overlay_file (str | None): Path to a FreeSurfer overlay file to use for the snapshot. If None,
-                the mesh is saved to a temporary file. Defaults to None.
+        Raises
+        ------
+        Warning
+            If the mesh has no faces and cannot create a snapshot.
 
-        Note:
-            This method uses a temporary file to store the mesh and overlay data during
-            the snapshot process.
+        Notes
+        -----
+        The function:
+        1. Creates temporary files for mesh and overlay data if needed.
+        2. Uses whippersnappy to create a snapshot with:
+        - Custom view matrix for standard orientation.
+        - Ambient lighting and colorbar settings.
+        - Thickness overlay if available.
+        3. Cleans up temporary files after use.
+
         """
         self.__make_parent_folder(output_path)
         # Skip snapshot if there are no faces
@@ -1115,30 +1319,39 @@ class CC_Mesh(lapy.TriaMesh):
         temp_file.close()
         overlay_file.close()
 
-    def smooth_(self, iterations: int = 1):
+    def smooth_(self, iterations: int = 1) -> None:
         """Smooth the mesh while preserving the z-coordinates.
 
-        This method applies Laplacian smoothing to the mesh vertices while keeping
-        the z-coordinates unchanged to maintain the slice structure.
+        Parameters
+        ----------
+        iterations : int, optional
+            Number of smoothing iterations, by default 1.
 
-        Args:
-            iterations (int, optional): Number of smoothing iterations. Defaults to 1.
+        Notes
+        -----
+        The function:
+        1. Stores original z-coordinates.
+        2. Applies Laplacian smoothing to x and y coordinates.
+        3. Restores original z-coordinates to maintain slice structure.
         """
         z_values = self.v[:, 2]
         super().smooth_(iterations)
         self.v[:, 2] = z_values
 
-    def save_contours(self, output_path: str):
+    def save_contours(self, output_path: str) -> None:
         """Save the contours to a CSV file.
 
-        Saves all contours and their associated endpoint indices to a CSV file.
-        The file format is:
-        slice_idx,x,y
-        where each point of each contour gets its own row, with special lines indicating
-        the start of new contours and their endpoint indices.
+        Parameters
+        ----------
+        output_path : str
+            Path where to save the CSV file.
 
-        Args:
-            output_path (str): Path where to save the CSV file.
+        Notes
+        -----
+        The function saves contours in CSV format with:
+        - Header: slice_idx,x,y.
+        - Special lines indicating new contours with endpoint indices.
+        - Each point gets its own row with slice index and coordinates.
         """
         logger.info(f"Saving contours to CSV file: {output_path}")
         with open(output_path, "w") as f:
@@ -1154,18 +1367,26 @@ class CC_Mesh(lapy.TriaMesh):
                     for point in contour:
                         f.write(f"{slice_idx},{point[0]},{point[1]}\n")
 
-    def load_contours(self, input_path: str):
+    def load_contours(self, input_path: str) -> None:
         """Load contours from a CSV file.
 
-        Loads contours and their associated endpoint indices from a CSV file.
-        The file format should match that produced by save_contours:
-        slice_idx,x,y with special lines for endpoint indices.
+        Parameters
+        ----------
+        input_path : str
+            Path to the CSV file containing the contours.
 
-        Args:
-            input_path (str): Path to the CSV file containing the contours.
+        Raises
+        ------
+        ValueError
+            If the file format doesn't match expected structure.
 
-        Note:
-            This method will reset any existing contours and endpoint indices.
+        Notes
+        -----
+        The function:
+        1. Reads CSV file with format matching save_contours output.
+        2. Processes special lines for endpoint indices.
+        3. Reconstructs contours and endpoint indices for each slice.
+        4. Converts lists to fixed-size arrays with None padding.
         """
         current_points = []
         self.contours = []
@@ -1202,15 +1423,20 @@ class CC_Mesh(lapy.TriaMesh):
         self.contours = self.contours + [None] * (max_slices - len(self.contours))
         self.start_end_idx = self.start_end_idx + [None] * (max_slices - len(self.start_end_idx))
 
-    def save_thickness_values(self, output_path: str):
+    def save_thickness_values(self, output_path: str) -> None:
         """Save thickness values to a CSV file.
 
-        Saves all thickness values to a CSV file in the format:
-        slice_idx,thickness
-        where each thickness value gets its own row.
+        Parameters
+        ----------
+        output_path : str
+            Path where to save the CSV file.
 
-        Args:
-            output_path (str): Path where to save the CSV file.
+        Notes
+        -----
+        The function saves thickness values in CSV format with:
+        - Header: slice_idx,thickness.
+        - Each thickness value gets its own row with slice index.
+        - Skips slices with no thickness values.
         """
         logger.info(f"Saving thickness data to CSV file: {output_path}")
         with open(output_path, "w") as f:
@@ -1222,24 +1448,36 @@ class CC_Mesh(lapy.TriaMesh):
                     for value in thickness:
                         f.write(f"{slice_idx},{value}\n")
 
-    def load_thickness_values(self, input_path: str, original_thickness_vertices_path: str | None = None):
+    def load_thickness_values(
+        self,
+        input_path: str,
+        original_thickness_vertices_path: str | None = None
+    ) -> None:
         """Load thickness values from a CSV file.
 
-        Loads thickness values from a CSV file and optionally associates them with specific
-        vertices using a measurement points file.
+        Parameters
+        ----------
+        input_path : str
+            Path to the CSV file containing thickness values.
+        original_thickness_vertices_path : str or None, optional
+            Path to a file containing the indices of vertices where thickness
+            was measured, by default None.
 
-        Args:
-            input_path (str): 
-                Path to the CSV file containing thickness values.
-            original_thickness_vertices_path (str, optional): 
-                Path to a file containing the
-                indices of vertices where thickness was measured. If None, assumes thickness
-                values correspond to all vertices in order.
+        Raises
+        ------
+        ValueError
+            If number of thickness values doesn't match measurement points
+            or if number of slices is inconsistent.
 
-        Raises:
-            ValueError: 
-                If the number of thickness values doesn't match the number of
-                measurement points, or if the number of slices is inconsistent.
+        Notes
+        -----
+        The function:
+        1. Reads thickness values from CSV file.
+        2. Groups values by slice index.
+        3. Optionally associates values with specific vertices.
+        4. Handles both full contour and profile measurements.
+
+        
         """
         data = np.loadtxt(input_path, delimiter=",", skiprows=1)
         slice_indices = data[:, 0].astype(int)
@@ -1319,17 +1557,43 @@ class CC_Mesh(lapy.TriaMesh):
             self.thickness_values = new_thickness_values
 
     @staticmethod
-    def __make_parent_folder(filename: str):
-        """Make the parent folder of the given filename.
+    def __make_parent_folder(filename: str) -> None:
+        """Create the parent folder for a file if it doesn't exist.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the file whose parent folder should be created.
+
+        Notes
+        -----
+        Creates parent directory with parents=False to avoid creating
+        multiple levels of directories unintentionally.
         """
         output_folder = Path(filename).parent
         output_folder.mkdir(parents=False, exist_ok=True)
 
-    def to_fs_coordinates(self, vox2ras_tkr: np.ndarray, vox_size: tuple[int, int, int]):
+    def to_fs_coordinates(
+        self,
+        vox2ras_tkr: np.ndarray,
+        vox_size: tuple[float, float, float]
+    ) -> None:
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
-        Transforms the mesh vertices from the original coordinate system to the
-        FreeSurfer coordinate system by reordering axes and applying appropriate offsets.
+        Parameters
+        ----------
+        vox2ras_tkr : np.ndarray
+            4x4 voxel to RAS tkr-space transformation matrix.
+        vox_size : tuple[float, float, float]
+            Voxel size in millimeters (x, y, z).
+
+        Notes
+        -----
+        The function:
+        1. Converts coordinates from original to LSA orientation.
+        2. Converts to voxel coordinates using voxel size.
+        3. Centers LR coordinates and flips SI coordinates.
+        4. Applies vox2ras_tkr transformation to get final coordinates.
         """
 
         # to voxel coordinates
@@ -1362,38 +1626,60 @@ class CC_Mesh(lapy.TriaMesh):
         
         
 
-    def write_fssurf(self, filename):
+    def write_fssurf(self, filename: str) -> None:
         """Write the mesh to a FreeSurfer surface file.
 
-        Args:
-            filename (str): Path where to save the FreeSurfer surface file.
+        Parameters
+        ----------
+        filename : str
+            Path where to save the FreeSurfer surface file.
 
-        Returns:
-            The result of the parent class's write_fssurf method.
+        Returns
+        -------
+        None
+            Returns the result of the parent class's write_fssurf method.
+
+        Notes
+        -----
+        Creates parent directory if needed before writing the file.
         """
         self.__make_parent_folder(filename)
         return super().write_fssurf(filename)
 
-    def write_overlay(self, filename):
+    def write_overlay(self, filename: str) -> None:
         """Write the thickness values as a FreeSurfer overlay file.
 
-        Args:
-            filename (str): Path where to save the overlay file.
+        Parameters
+        ----------
+        filename : str
+            Path where to save the overlay file.
 
-        Returns:
-            The result of writing the morph data using nibabel.
+        Returns
+        -------
+        None
+            Returns the result of writing the morph data using nibabel.
+
+        Notes
+        -----
+        Creates parent directory if needed before writing the file.
         """
         self.__make_parent_folder(filename)
         return nib.freesurfer.write_morph_data(filename, self.mesh_vertex_colors)
 
-    def save_thickness_measurement_points(self, filename):
+    def save_thickness_measurement_points(self, filename: str) -> None:
         """Write the thickness measurement points to a CSV file.
 
-        Saves the indices of vertices where thickness was measured for each slice
-        in CSV format: slice_idx,vertex_idx
+        Parameters
+        ----------
+        filename : str
+            Path where to save the CSV file.
 
-        Args:
-            filename (str): Path where to save the CSV file.
+        Notes
+        -----
+        The function saves measurement points in CSV format with:
+        - Header: slice_idx,vertex_idx.
+        - Each measurement point gets its own row.
+        - Skips slices with no measurement points.
         """
         self.__make_parent_folder(filename)
         logger.info(f"Saving thickness measurement points to CSV file: {filename}")
@@ -1405,15 +1691,27 @@ class CC_Mesh(lapy.TriaMesh):
                         f.write(f"{slice_idx},{vertex_idx}\n")
 
     @staticmethod
-    def _load_thickness_measurement_points(filename):
+    def _load_thickness_measurement_points(filename: str) -> list[np.ndarray | None]:
         """Load thickness measurement points from a CSV file.
 
-        Args:
-            filename (str): Path to the CSV file containing measurement points.
+        Parameters
+        ----------
+        filename : str
+            Path to the CSV file containing measurement points.
 
-        Returns:
-            list: List of arrays containing vertex indices for each slice where
-                thickness was measured.
+        Returns
+        -------
+        list[np.ndarray | None]
+            List of arrays containing vertex indices for each slice where
+            thickness was measured. None for slices without measurements.
+
+        Notes
+        -----
+        The function:
+        1. Reads CSV file with format: slice_idx,vertex_idx
+        2. Groups vertex indices by slice index
+        3. Creates a list with length matching max slice index
+        4. Fills list with vertex indices arrays or None for missing slices
         """
         data = np.loadtxt(filename, delimiter=",", skiprows=1)
         slice_indices = data[:, 0].astype(int)

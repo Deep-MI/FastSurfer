@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import nibabel as nib
 import numpy as np
+import SimpleITK as sitk
 from scipy.ndimage import affine_transform
 
 import FastSurferCNN.utils.logging as logging
@@ -7,17 +10,23 @@ import FastSurferCNN.utils.logging as logging
 logger = logging.get_logger(__name__)
 
 
-def make_midplane_affine(orig_affine, slices_to_analyze=1, offset=4):
-    """
-    Creates an affine transformation matrix for midplane slices.
+def make_midplane_affine(orig_affine: np.ndarray, slices_to_analyze: int = 1, 
+                       offset: int = 4) -> np.ndarray:
+    """Create affine transformation matrix for midplane slices.
 
-    Args:
-        orig_affine: Original image affine matrix
-        slices_to_analyze: Number of slices to analyze around midplane (default=1)
-        offset: Additional offset in x direction (default=4)
+    Parameters
+    ----------
+    orig_affine : np.ndarray
+        Original image affine matrix (4x4)
+    slices_to_analyze : int, optional
+        Number of slices to analyze around midplane, by default 1
+    offset : int, optional
+        Additional offset in x direction, by default 4
 
-    Returns:
-        seg_affine: Affine matrix for midplane slices
+    Returns
+    -------
+    np.ndarray
+        4x4 affine matrix for midplane slices
     """
     # Create translation matrix to center on midplane
     orig_to_seg = np.eye(4)
@@ -29,16 +38,23 @@ def make_midplane_affine(orig_affine, slices_to_analyze=1, offset=4):
     return seg_affine
 
 
-def correct_nodding(ac_pt, pc_pt):
-    """
-    Calculates rotation matrix to correct for head nodding based on AC-PC line orientation.
+def correct_nodding(ac_pt: np.ndarray, pc_pt: np.ndarray) -> np.ndarray:
+    """Calculate rotation matrix to correct head nodding.
 
-    Args:
-        ac_pt: Coordinates of the anterior commissure point
-        pc_pt: Coordinates of the posterior commissure point
+    Calculates rotation matrix to align AC-PC line with posterior direction,
+    correcting for head nodding based on AC-PC line orientation.
 
-    Returns:
-        rotation_matrix: 3x3 rotation matrix to align AC-PC line with posterior direction
+    Parameters
+    ----------
+    ac_pt : np.ndarray
+        Coordinates of the anterior commissure point
+    pc_pt : np.ndarray
+        Coordinates of the posterior commissure point
+
+    Returns
+    -------
+    np.ndarray
+        3x3 rotation matrix to align AC-PC line with posterior direction
     """
     ac_pc_vec = pc_pt - ac_pt
     ac_pc_dist = np.linalg.norm(ac_pc_vec)
@@ -74,17 +90,22 @@ def correct_nodding(ac_pt, pc_pt):
     return rotation_matrix
 
 
-def apply_transform_to_pt(pts, T, inv=False):
-    """
-    Applies an homoegenous 4x4 transformation matrix to a point.
+def apply_transform_to_pt(pts: np.ndarray, T: np.ndarray, inv: bool = False) -> np.ndarray:
+    """Apply homogeneous transformation matrix to points.
 
-    Args:
-        pts: Point coordinates to transform
-        T: Transformation matrix
-        inv: If True, applies inverse of transformation (default=False)
+    Parameters
+    ----------
+    pts : np.ndarray
+        Point coordinates to transform, shape (3,) or (3, N)
+    T : np.ndarray
+        4x4 homogeneous transformation matrix
+    inv : bool, optional
+        If True, applies inverse of transformation, by default False
 
-    Returns:
-        Transformed point coordinates
+    Returns
+    -------
+    np.ndarray
+        Transformed point coordinates, shape (3,) or (3, N)
     """
     if inv:
         T = T.copy()
@@ -97,21 +118,35 @@ def apply_transform_to_pt(pts, T, inv=False):
 
 
 def get_mapping_to_standard_space(
-    orig, ac_coords_3d, pc_coords_3d, orig_fsaverage_vox2vox, output_dir
-):
-    """
-    Maps an image to standard space using AC-PC alignment.
+    orig: "nib.Nifti1Image", 
+    ac_coords_3d: np.ndarray, 
+    pc_coords_3d: np.ndarray, 
+    orig_fsaverage_vox2vox: np.ndarray, 
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Get transformations to map image to standard space.
 
-    Args:
-        orig: Original image
-        ac_coords_3d: 3D coordinates of anterior commissure
-        pc_coords_3d: 3D coordinates of posterior commissure
-        orig_fsaverage_vox2vox: Original to fsaverage space transformation matrix
-        output_dir: Directory for output files
+    Parameters
+    ----------
+    orig : nib.Nifti1Image
+        Original image
+    ac_coords_3d : np.ndarray
+        AC coordinates in 3D space
+    pc_coords_3d : np.ndarray
+        PC coordinates in 3D space
+    orig_fsaverage_vox2vox : np.ndarray
+        Transformation matrix from original to fsaverage space
+    output_dir : str or Path
+        Directory to save transformation files
 
-    Returns:
-        tuple: (transformation matrix, AC coords standardized, PC coords standardized,
-               AC coords original, PC coords original)
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Contains:
+        - upright_volume : Upright transformed volume
+        - standardized_volume : Volume in standard space
+        - ac_coords_standardized : AC coordinates in standard space
+        - pc_coords_standardized : PC coordinates in standard space
+        - standardized_affine : Affine matrix for standard space
     """
     image_center = np.array(orig.shape) / 2
 
@@ -168,21 +203,43 @@ def get_mapping_to_standard_space(
     )
 
 
-def apply_transform_and_map_volume(
-    volume, transform, affine, header, output_path=None, order=3, output_size=None
-):
-    """
-    Applies transformation to a volume and saves the result.
+def apply_transform_to_volume(
+    volume: np.ndarray,
+    transform: np.ndarray,
+    affine: np.ndarray,
+    header: nib.freesurfer.mghformat.MGHHeader,
+    output_path: str | Path | None = None,
+    output_size: np.ndarray | None = None,
+    order: int = 1
+) -> np.ndarray:
+    """Apply transformation to a volume and save the result.
 
-    Args:
-        volume: Input volume data
-        transform: Transformation matrix to apply
-        affine: Affine matrix for the output image
-        header: Header for the output image
-        output_path: Path to save transformed volume
+    Parameters
+    ----------
+    volume : np.ndarray
+        Input volume data
+    transform : np.ndarray
+        Transformation matrix to apply
+    affine : np.ndarray
+        Affine matrix for the output image
+    header : nib.freesurfer.mghformat.MGHHeader
+        Header for the output image
+    output_path : str or Path or None, optional
+        Path to save transformed volume, by default None
+    output_size : np.ndarray or None, optional
+        Size of output volume, by default None (uses input size)
+    order : int, optional
+        Order of interpolation, by default 1
 
-    Returns:
-        transformed: Transformed volume data
+    Returns
+    -------
+    np.ndarray
+        Transformed volume data
+
+    Notes
+    -----
+    Uses scipy.ndimage.affine_transform for the transformation.
+    If output_path is provided, saves the result as a MGH file.
     """
 
     if output_size is None:
@@ -199,15 +256,25 @@ def apply_transform_and_map_volume(
     return transformed
 
 
-def make_affine(simpleITKImage):
-    """
-    Creates an affine transformation matrix from a SimpleITK image.
+def make_affine(simpleITKImage: 'sitk.Image') -> np.ndarray:
+    """Create an affine transformation matrix from a SimpleITK image.
 
-    Args:
-        simpleITKImage: Input SimpleITK image
+    Parameters
+    ----------
+    simpleITKImage : sitk.Image
+        Input SimpleITK image
 
-    Returns:
-        affine: 4x4 affine transformation matrix in RAS coordinates
+    Returns
+    -------
+    np.ndarray
+        4x4 affine transformation matrix in RAS coordinates
+
+    Notes
+    -----
+    The function:
+    1. Gets affine transform in LPS coordinates
+    2. Converts to RAS coordinates to match nibabel
+    3. Returns the final 4x4 transformation matrix
     """
     # get affine transform in LPS
     c = [
@@ -226,27 +293,47 @@ def make_affine(simpleITKImage):
 
 
 def map_softlabels_to_orig(
-    outputs_soft,
-    orig_fsaverage_vox2vox,
-    orig,
-    slices_to_analyze,
-    orig_space_segmentation_path=None,
-    fsaverage_middle=128,
-    subdivision_mask=None,
-):
-    """
-    Maps soft labels back to original image space and applies post-processing.
+    outputs_soft: np.ndarray,
+    orig_fsaverage_vox2vox: np.ndarray,
+    orig: np.ndarray,
+    slices_to_analyze: int,
+    orig_space_segmentation_path: str | Path | None = None,
+    fsaverage_middle: int = 128,
+    subdivision_mask: np.ndarray | None = None
+) -> np.ndarray:
+    """Map soft labels back to original image space and apply post-processing.
 
-    # TODO: this could by padding after the transform
+    Parameters
+    ----------
+    outputs_soft : np.ndarray
+        Soft label predictions
+    orig_fsaverage_vox2vox : np.ndarray
+        Original to fsaverage space transformation
+    orig : np.ndarray
+        Original image
+    slices_to_analyze : int
+        Number of slices to analyze
+    orig_space_segmentation_path : str or Path or None, optional
+        Path to save segmentation in original space, by default None
+    fsaverage_middle : int, optional
+        Middle slice index in fsaverage space, by default 128
+    subdivision_mask : np.ndarray or None, optional
+        Mask for subdividing regions, by default None
 
-    Args:
-        outputs_soft: Soft label predictions
-        orig_fsaverage_vox2vox: Original to fsaverage space transformation
-        orig: Original image
-        slices_to_analyze: Number of slices to analyze
+    Returns
+    -------
+    np.ndarray
+        Final segmentation in original image space
 
-    Returns:
-        segmentation_orig_space: Final segmentation in original image space
+    Notes
+    -----
+    The function:
+    1. Pads soft labels to original image size
+    2. Transforms each label channel separately
+    3. Applies post-processing if needed
+    4. Optionally saves result to file
+
+    TODO: This could be optimized by padding after the transform
     """
 
     # map softlabels to original image
@@ -315,17 +402,25 @@ def map_softlabels_to_orig(
     return segmentation_orig_space
 
 
-def interpolate_midplane(orig, orig_fsaverage_vox2vox, slices_to_analyze):
-    """
-    Interpolates image data at the midplane using a grid of points.
+def interpolate_midplane(
+        orig: nib.Nifti1Image, 
+        orig_fsaverage_vox2vox: np.ndarray, 
+        slices_to_analyze: int) -> np.ndarray:
+    """Interpolates image data at the midplane using a grid of points.
 
-    Args:
-        orig: Original image
-        orig_fsaverage_vox2vox: Original to fsaverage space transformation
-        slices_to_analyze: Number of slices to analyze
+    Parameters
+    ----------
+    orig : nib.Nifti1Image
+        Original image
+    orig_fsaverage_vox2vox : np.ndarray
+        Original to fsaverage space transformation matrix
+    slices_to_analyze : int
+        Number of slices to analyze around midplane
 
-    Returns:
-        transformed: Interpolated image data at midplane
+    Returns
+    -------
+    np.ndarray
+        Interpolated image data at midplane
     """
 
     # slice_thickness = 9+slices_to_analyze-1

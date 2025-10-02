@@ -33,8 +33,31 @@ import FastSurferCNN.utils.logging as logging
 logger = logging.get_logger(__name__)
 
 
-def main():
-    """Generate and save fsaverage centroids to a static file."""
+def main() -> None:
+    """Generate and save fsaverage centroids to a static file.
+
+    This script extracts centroids from the fsaverage template segmentation
+    and saves them to a JSON file for fast loading during pipeline execution.
+
+    The script performs the following steps:
+    1. Load fsaverage segmentation from FreeSurfer directory
+    2. Extract centroids for all anatomical structures
+    3. Save centroids to JSON file
+    4. Extract and save affine matrix and header fields
+
+    Raises
+    ------
+    OSError
+        If FREESURFER_HOME environment variable is not set or invalid
+    FileNotFoundError
+        If required fsaverage files are not found
+
+    Notes
+    -----
+    The script saves two files:
+    - fsaverage_centroids.json : Contains centroids for each anatomical structure
+    - fsaverage_data.json : Contains affine matrix and header information
+    """
     
     # Get fsaverage path from FreeSurfer environment
     try:
@@ -97,6 +120,7 @@ def main():
     # Combine affine and header data
     combined_data = {
         "affine": fsaverage_affine.tolist(),  # Convert numpy array to list for JSON serialization
+        "vox2ras_tkr": fsaverage_nib.header.get_vox2ras_tkr().tolist(),
         "header": {
             "dims": dims,
             "delta": delta,

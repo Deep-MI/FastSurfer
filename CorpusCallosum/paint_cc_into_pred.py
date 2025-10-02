@@ -44,13 +44,7 @@ Date: Jul-10-2020
 
 
 def argument_parse():
-    """
-    Create a command line interface and return command line options.
-
-    Returns
-    -------
-    options : argparse.Namespace
-        Namespace object holding options.
+    """Create a command line interface and return command line options.
     """
     parser = argparse.ArgumentParser(usage=HELPTEXT)
     parser.add_argument(
@@ -80,23 +74,25 @@ def argument_parse():
     return args
 
 
-def paint_in_cc(pred: npt.ArrayLike, aseg_cc: npt.ArrayLike) -> npt.ArrayLike:
-    """
-    Paint corpus callosum segmentation into aseg+dkt segmentation map.
-
-    Note, that this function modifies the original array and does not create a copy.
+def paint_in_cc(pred: npt.NDArray[np.int_], aseg_cc: npt.NDArray[np.int_]) -> npt.NDArray[np.int_]:
+    """Paint corpus callosum segmentation into aseg+dkt segmentation map.
 
     Parameters
     ----------
-    asegdkt : npt.ArrayLike
+    pred : npt.NDArray[np.int_]
         Deep-learning segmentation map.
-    aseg_cc : npt.ArrayLike
+    aseg_cc : npt.NDArray[np.int_]
         Aseg segmentation with CC.
 
     Returns
     -------
-    asegdkt
+    npt.NDArray[np.int_]
         Segmentation map with added CC.
+
+    Notes
+    -----
+    This function modifies the original array and does not create a copy.
+    The CC labels (251-255) from aseg_cc are copied into pred.
     """
     cc_mask = (aseg_cc >= 251) & (aseg_cc <= 255)
     pred[cc_mask] = aseg_cc[cc_mask]
