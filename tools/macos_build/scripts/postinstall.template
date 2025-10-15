@@ -1,0 +1,76 @@
+#!/bin/bash
+
+FASTSURFER_HOME="<fastsurfer_home_dir>"
+
+if [[ ! -f "$FASTSURFER_HOME/venv" ]]
+then
+  echo "Creating FastSurfer run environment"
+  <homebrew_dir>/bin/python3.10 -m venv --copies $FASTSURFER_HOME/venv
+fi
+
+source $FASTSURFER_HOME/venv/bin/activate
+python3.10 -m pip install --upgrade pip
+
+export PYTHONPATH=${FASTSURFER_HOME}:${PYTHONPATH}
+
+python3.10 -m pip install -r $FASTSURFER_HOME/requirements.mac.txt
+
+python3.10 $FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py --all
+
+FREESURFER_HOME="/Applications/freesurfer"
+
+ln -sf $FASTSURFER_HOME/venv/bin/python3.10 $FREESURFER_HOME/bin/fspython
+
+# FS calls these for version info, but we don't need them
+# so we link them to mri_info to save space.
+link_files="
+  bin/mri_and
+  bin/mri_aparc2aseg
+  bin/mri_ca_label
+  bin/mri_ca_normalize
+  bin/mri_ca_register
+  bin/mri_compute_overlap
+  bin/mri_compute_seg_overlap
+  bin/mri_em_register
+  bin/mri_fwhm
+  bin/mri_gcut
+  bin/mri_log_likelihood
+  bin/mri_motion_correct.fsl
+  bin/mri_normalize_tp2
+  bin/mri_or
+  bin/mri_relabel_nonwm_hypos
+  bin/mri_remove_neck
+  bin/mri_stats2seg
+  bin/mri_surf2vol
+  bin/mri_surfcluster
+  bin/mri_voldiff
+  bin/mri_watershed
+  bin/mris_divide_parcellation
+  bin/mris_left_right_register
+  bin/mris_surface_stats
+  bin/mris_thickness
+  bin/mris_thickness_diff
+  bin/nu_correct
+  bin/tkregister2_cmdl"
+
+# create target for link with ERROR message if called
+ltrg=$FREESURFER_HOME/bin/not-here.sh
+echo '#!/bin/bash
+if [ "$1" == "-all-info" ]; then
+  echo "$0 not included ..."
+  exit 0
+fi
+echo
+echo "ERROR: The binary $0 is not included, your call is forwarded to not-here.sh"
+echo
+exit 1
+' > $ltrg
+chmod a+x $ltrg
+echo
+for file in $link_files
+do
+  echo "linking $file"
+  ln -sf $ltrg $FREESURFER_HOME/$file 
+done
+
+sed -i '' -e "s|(venv)|($(basename $FASTSURFER_HOME))|g" $FASTSURFER_HOME/venv/bin/activate  
