@@ -29,7 +29,7 @@ PACKAGE_NAME=FastSurfer$VERSION-macos-darwin_${ARCH_TYPE_NAME} # name of the pac
 ID="com.FastSurfer.${VERSION}_${ARCH_TYPE_NAME}" # package identifier (f.e. com.mycompany.productid)
 INSTALLATION_DIR="/Applications" # install location for the content of the package
 OUTPUT_PKG="raw_package/$PACKAGE_NAME.pkg" # raw package file to be created
-INSTALLER_PKG="installer/$PACKAGE_NAME.pkg" # installater to be created
+INSTALLER_PKG="installer/$PACKAGE_NAME.pkg" # installer to be created
 
 # create temporary folder to package and copy FastSurfer over
 STAGED_DIR="FastSurferPackageContent"
@@ -42,7 +42,7 @@ rsync -av --progress $DIR_TO_FASTSURFER/ $FASTSURFER_TO_PACKAGE \
       --exclude Singularity \
       --exclude tools
 
-# install freesurfer into temp foler
+# install freesurfer into temp folder
 if [ "$#" -gt 3 ]; then
     ./install_fs_pruned.sh $STAGED_DIR --upx --url $URL_TO_FREESURFER
 else
