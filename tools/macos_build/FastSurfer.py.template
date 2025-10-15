@@ -1,0 +1,14 @@
+from subprocess import run
+
+proc = run(["/usr/bin/osascript", 
+"-e",
+"tell app \"Terminal\"", 
+"-e",
+"do script \"source /Applications/<fastsurfer>/macos_setup_fastsurfer.sh\"",
+"-e",
+"activate",
+"-e",
+"end tell"
+])
+
+# to-do: print instructions, dont print export calls
