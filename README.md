@@ -76,11 +76,11 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
    ```
    The `--nv` flag is needed to allow FastSurfer to run on the GPU (otherwise FastSurfer will run on the CPU).
 
-   The `--no-home` flag tells singularity to not mount the home directory (see [Singularity documentation](Singularity/README.md#mounting-home) for more info).
+   The `--no-home` flag tells singularity to not mount the home directory (see [Singularity documentation](tools/Singularity/README.md#mounting-home) for more info).
 
    The `-B` flag is used to tell singularity, which folders FastSurfer can read and write to.
  
-   See also __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
+   See also __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](tools/Singularity/README.md#fastsurfer-singularity-image-usage) for details on more singularity flags.  
 
    (b) For __docker__, the syntax is
     ```
@@ -96,7 +96,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace `*f
 
    The `-v` flag is used to tell docker, which folders FastSurfer can read and write to.
  
-   See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-docker)__ for a full FastSurfer run inside a Docker container and [the Docker documentation](Docker/README.md#docker-flags) for more details on the docker flags including `--rm` and `--user`.
+   See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-docker)__ for a full FastSurfer run inside a Docker container and [the Docker documentation](tools/Docker/README.md#docker-flags) for more details on the docker flags including `--rm` and `--user`.
 
 2. For a __native install__, you need to activate your FastSurfer environment (e.g. `conda activate fastsurfer_gpu`) and make sure you have added the FastSurfer path to your `PYTHONPATH` variable, e.g. `export PYTHONPATH=$(pwd)`. 
 
