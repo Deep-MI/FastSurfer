@@ -1,55 +1,96 @@
 name: MAN deploy-docker
 
 on:
-#  release:
-#    types:
-#      - published
-  workflow_dispatch:
+ release:
+   types:
+     - published
 
 jobs:
-  deploy-gpu:
-    runs-on: ubuntu-latest
+  deploy-mac:
+    runs-on: macos-14
     timeout-minutes: 120
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Login to Docker
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build Docker image GPU
-        run: python Docker/build.py --device cuda --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
-      - name: Add additional tags
-        run: |
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-latest
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:latest
-      - name: Push Docker image GPU
-        run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
-  deploy-cpu:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Login to Docker
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build Docker image CPU
-        run: python Docker/build.py --device cpu --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
-      - name: Add additional tags
-        run: |
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-latest
-      - name: Push Docker image CPU
-        run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
+    
+    env:
+      ARTIFACT_NAME: FastSurfer
+      VERSION: 242
+      FREESURFER_URL: https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz
+      UPLOAD_ARTIFACT: true
 
+    steps:
+      - name: Get repository name.
+        run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up python environment
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+      - name: install dependencies
+        run: |
+          python -m pip install py2app
+
+          brew update
+          brew upgrade || true
+          brew install xmlstarlet
+      - name: package app for arm
+        run: tools/macos_build/build_release_package.sh ${{ env.VERSION }} arm ${{ env.FASTSURFER_DIR }} ${{ env.FREESURFER_URL }}
+      - name: package app for intel
+        run: tools/macos_build/build_release_package.sh ${{ env.VERSION }} intel ${{ env.FASTSURFER_DIR }} ${{ env.FREESURFER_URL }}
+      - name: Move artifact.
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          mkdir artifact
+          mv tools/macos_build/installer/* artifact/
+      - uses: actions/upload-artifact@v4
+        if: env.UPLOAD_ARTIFACT == 'true'
+        name: Upload artifact.
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.FASTSURFER_DIR }}/artifact/
+  # deploy-gpu:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 120
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Login to Docker
+  #       uses: docker/login-action@v2
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v2
+  #     - name: Build Docker image GPU
+  #       run: python Docker/build.py --device cuda --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
+  #     - name: Add additional tags
+  #       run: |
+  #         docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-latest
+  #         docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:latest
+  #     - name: Push Docker image GPU
+  #       run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
+  # deploy-cpu:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 120
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Login to Docker
+  #       uses: docker/login-action@v2
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v2
+  #     - name: Build Docker image CPU
+  #       run: python Docker/build.py --device cpu --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
+  #     - name: Add additional tags
+  #       run: |
+  #         docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-latest
+  #     - name: Push Docker image CPU
+  #       run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
