@@ -9,7 +9,7 @@ export FREESURFER_HOME=/Applications/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null
 echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
-echo "See also https://deep-mi.org/FastSurfer/stable/overview/macos.html"
+echo "See also https://deep-mi.org/FastSurfer/stable/overview/MACOS.html"
 
 if ! grep -q "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" ~/.bash_profile; then 
     echo "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" >> ~/.bash_profile; 
