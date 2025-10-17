@@ -4,6 +4,7 @@ on:
  release:
    types:
      - published
+ workflow_dispatch:
 
 jobs:
   deploy-mac:
@@ -15,7 +16,9 @@ jobs:
       VERSION: 242
       FREESURFER_URL: https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz
       UPLOAD_ARTIFACT: true
-
+   strategy:
+    matrix:
+     arch: [intel, arm]
     steps:
       - name: Get repository name.
         run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -34,10 +37,8 @@ jobs:
           brew update
           brew upgrade || true
           brew install xmlstarlet
-      - name: package app for arm
-        run: tools/macos_build/build_release_package.sh ${{ env.VERSION }} arm ${{ env.FASTSURFER_DIR }} ${{ env.FREESURFER_URL }}
-      - name: package app for intel
-        run: tools/macos_build/build_release_package.sh ${{ env.VERSION }} intel ${{ env.FASTSURFER_DIR }} ${{ env.FREESURFER_URL }}
+      - name: package app for ${{ matrix.arch }}
+        run: tools/macos_build/build_release_package.sh ${{ env.VERSION }} ${{ matrix.arch }} ${{ env.FASTSURFER_DIR }} ${{ env.FREESURFER_URL }}
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |

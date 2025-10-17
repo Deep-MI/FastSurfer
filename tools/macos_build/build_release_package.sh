@@ -26,7 +26,7 @@ if [ "$ARCH_TYPE" = "intel" ]; then
 fi
 
 PACKAGE_NAME=FastSurfer$VERSION-macos-darwin_${ARCH_TYPE_NAME} # name of the package displayed in the installer
-ID="com.FastSurfer.${VERSION}_${ARCH_TYPE_NAME}" # package identifier (f.e. com.mycompany.productid)
+ID="ord.deep-mi.FastSurfer.${VERSION}_${ARCH_TYPE_NAME}" # package identifier (f.e. com.mycompany.productid)
 INSTALLATION_DIR="/Applications" # install location for the content of the package
 OUTPUT_PKG="raw_package/$PACKAGE_NAME.pkg" # raw package file to be created
 INSTALLER_PKG="installer/$PACKAGE_NAME.pkg" # installer to be created
@@ -112,11 +112,9 @@ xml ed \
     -t elem \
     -n title \
     -v "${PACKAGE_NAME}" \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-# set background image
-xml ed \
+    $DISTRIBUTION_FILE | \
+{ # set background image
+    xml ed \
     -s /installer-gui-script \
     -t elem \
     -n background \
@@ -124,9 +122,7 @@ xml ed \
     -t attr \
     -n file \
     -v installer_background.png \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
+} | \
 xml ed \
     -i /installer-gui-script/background \
     -t attr \
