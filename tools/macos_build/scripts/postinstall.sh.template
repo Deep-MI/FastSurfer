@@ -1,0 +1,22 @@
+#!/bin/bash
+
+FASTSURFER_HOME="<fastsurfer_home_dir>"
+PYTHON="python<python_version>"
+
+if [[ ! -f "$FASTSURFER_HOME/venv" ]]
+then
+  echo "Creating FastSurfer run environment"
+  "<homebrew_dir>/bin/$PYTHON" -m venv --copies $FASTSURFER_HOME/venv
+fi
+
+source $FASTSURFER_HOME/venv/bin/activate
+$PYTHON -m pip install --upgrade pip
+$PYTHON -m pip install -r $FASTSURFER_HOME/requirements.mac.txt
+
+export PYTHONPATH=${FASTSURFER_HOME}:${PYTHONPATH}
+$PYTHON $FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py --all
+
+FREESURFER_HOME="/Applications/freesurfer"
+link_fs.sh "$FASTSURFER_HOME/venv/bin/$PYTHON" "$FREESURFER_HOME"
+
+sed -i '' -e "s|(venv)|($(basename $FASTSURFER_HOME))|g" $FASTSURFER_HOME/venv/bin/activate  

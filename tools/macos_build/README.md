@@ -4,12 +4,10 @@
 In order to build the MacOS package of FastSurfer, simply run:
 
 ```bash
-./build_release_package.sh <version> <architecture> <path_to_fastsurfer_to_package> [<link_to_freesurfer>]
+./build_release_package.sh <architecture>
 ```
 
-Script creates release package for MacOS, where `<version>` is the release version, `<architecture>` is `arm` for arm64 arch based chips and `intel` for `x86_64` arch based chips.
-`<path_to_fastsurfer_to_package>` is the directory with the fastsurfer to package.
-Link to specific freesurfer distribution might be provided with `<link_to_freesurfer>` argument.
+Script creates release package for MacOS, where `<architecture>` is `arm` for arm64 arch based chips and `intel` for `x86_64` arch based chips.
 
 ### Dependencies for the script
 

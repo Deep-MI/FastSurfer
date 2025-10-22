@@ -101,14 +101,20 @@ documentation = 'https://fastsurfer.org'
 source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 
+[tool.freesurfer]
+version = "7.4.1"
+[tool.freesurfer.urls]
+linux = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-linux-ubuntu22_amd64-{version}.tar.gz"
+macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-macOS-darwin_x86_64-{version}.tar.gz"
+
 [tool.setuptools]
-packages = ['FastSurferCNN','CerebNet','recon_surf']
+packages = ['FastSurferCNN','CerebNet','recon_surf','HypVINN']
 
 [tool.pydocstyle]
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
 match = '^(?!setup|__init__|test_).*\.py'
-match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*'
+match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*,^HypVINN.*'
 add_ignore = 'D100,D104,D107'
 
 [tool.ruff]

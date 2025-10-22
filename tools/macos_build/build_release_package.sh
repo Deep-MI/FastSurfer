@@ -1,116 +1,124 @@
 #!/bin/bash
 
-if [ "$#" -lt 2 ] ; then
+if [[ "$#" != 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo
-  echo "Usage:  build_release_package.sh <arm|intel> <dir_to_fastsurfer> "
+  echo "Usage:  build_release_package.sh <arm|intel>"
   echo
   exit
 fi
 
-# cd into directory with this script 
-dir=${0%/*}
-if [ -d "$dir" ]; then
-  cd "$dir"
-fi 
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
+fi
+build_dir=$(dirname "$THIS_SCRIPT")
+tools_dir=$(dirname "$build_dir")
 
-VERSION=$(python3 ../get_config_value.py --file ../config.yaml --key FASTSURFER.VERSION) # version of the project
-URL_TO_FREESURFER=$(python3 ../get_config_value.py --file ../config.yaml --key FREESURFER_LINK_MACOS) # freesurfer install url 
+FASTSURFER_HOME=$(dirname "$tools_dir") # directory to fastsurfer
+# version of the project
+VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.yaml" --key project.version)
+VERSION_NO_DOTS=${VERSION//./}
+# freesurfer install url
+URL_TO_FREESURFER_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.yaml" --key freesurfer.DOWNLOAD_MACOS)
+sub="{version}"
+URL_TO_FREESURFER="${URL_TO_FREESURFER_TEMP//$sub/$VERSION}"
 ARCH_TYPE=$1 # chip architecture - arm or intel
-DIR_TO_FASTSURFER=$2 # directory to fastsurfer
 
 ARCH_TYPE_NAME="arm64"
-if [ "$ARCH_TYPE" = "intel" ]; then
-    ARCH_TYPE_NAME="x86_64"
-fi
+if [[ "$ARCH_TYPE" = "intel" ]] ; then ARCH_TYPE_NAME="x86_64" ; fi
 
-PACKAGE_NAME=FastSurfer$VERSION-macos-darwin_${ARCH_TYPE_NAME} # name of the package displayed in the installer
-ID="ord.deep-mi.FastSurfer.${VERSION}_${ARCH_TYPE_NAME}" # package identifier (f.e. com.mycompany.productid)
-INSTALLATION_DIR="/Applications" # install location for the content of the package
-OUTPUT_PKG="raw_package/$PACKAGE_NAME.pkg" # raw package file to be created
-INSTALLER_PKG="installer/$PACKAGE_NAME.pkg" # installer to be created
+RESOURCES_DIR="$build_dir/resources"
+# name of the package displayed in the installer
+PACKAGE_NAME=FastSurfer$VERSION_NO_DOTS-macos-darwin_${ARCH_TYPE_NAME}
+# package identifier (f.e. com.mycompany.productid)
+ID="org.deep-mi.FastSurfer.${VERSION_NO_DOTS}_${ARCH_TYPE_NAME}"
+# FIXME: Must this be fixed or can this also be different?
+# install location for the content of the package
+INSTALLATION_DIR="/Applications"
+# raw package file to be created
+OUTPUT_PKG="$build_dir/raw_package/$PACKAGE_NAME.pkg"
+# installer to be created
+INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
 
 # create temporary folder to package and copy FastSurfer over
 STAGED_DIR="FastSurferPackageContent"
 FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
 mkdir $STAGED_DIR
-rsync -av --progress $DIR_TO_FASTSURFER/ $FASTSURFER_TO_PACKAGE \
+rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
       --exclude requirements.txt \
       --exclude requirements.cpu.txt \
       --exclude tools
 
 # install freesurfer into temp folder
-../install_fs_pruned.sh $STAGED_DIR --upx --url $URL_TO_FREESURFER
+"$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --upx --url "$URL_TO_FREESURFER"
 
-SCRIPTS_DIR="./scripts" # directory with scripts executed during installation process (f.e. preinsatll postinstall)
-PYTHON_VERSION=$(python3 ../get_config_value.py --file ../config.yaml --key FASTSURFER.PYTHON_VERSION)
+SCRIPTS_DIR="$tools_dir/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
+PYTHON_VERSION_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.requires-python)
+PYTHON_VERSION="${PYTHON_VERSION_TEMP#python>=}"
 
 # substitute values in postinstall script
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
-cp $SCRIPTS_DIR/postinstall.template $SCRIPTS_DIR/postinstall
+HOMEBREW_DIR=$([[ "$ARCH_TYPE" = "arm" ]] && echo "/opt/homebrew" || echo "/usr/local")
 
-sed -i '' -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" $SCRIPTS_DIR/postinstall
-sed -i '' -e "s|<python_version>|${PYTHON_VERSION}|g" $SCRIPTS_DIR/postinstall  
-if [ "$ARCH_TYPE" = "arm" ]; then
-    sed -i '' -e "s|<homebrew_dir>|/opt/homebrew|g" $SCRIPTS_DIR/postinstall
-else
-    sed -i '' -e "s|<homebrew_dir>|/usr/local|g" $SCRIPTS_DIR/postinstall
-fi
+sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
+    -e "s|<python_version>|${PYTHON_VERSION}|g" \
+    -e "s|<homebrew_dir>|$HOMEBREW_DIR|g" \
+    < "$SCRIPTS_DIR/postinstall.template" \
+    > "$SCRIPTS_DIR/postinstall"
 
 # assemble resources
-mkdir resources
-cp $DIR_TO_FASTSURFER/doc/images/fastsurfer.png resources/
-cp $DIR_TO_FASTSURFER/doc/overview/MACOS.md resources/
-cp $DIR_TO_FASTSURFER/LICENSE resources/LICENSE.txt
+mkdir "$RESOURCES_DIR"
+cp "$FASTSURFER_HOME/doc/images/fastsurfer.png" "$RESOURCES_DIR"
+cp "$FASTSURFER_HOME/doc/overview/MACOS.md" "$RESOURCES_DIR"
+cp "$FASTSURFER_HOME/LICENSE" "$RESOURCES_DIR/LICENSE.txt"
 
 # create fastsurfer applet
-cp FastSurfer.py.template FastSurfer.py
-sed -i '' -e "s|<fastsurfer>|FastSurfer${VERSION}|g" FastSurfer.py
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    < "$build_dir/FastSurfer.py.template" \
+    > "$build_dir/FastSurfer.py"
 
-cp macos_setup_fastsurfer.sh.template macos_setup_fastsurfer.sh
-sed -i '' -e "s|<fastsurfer>|FastSurfer${VERSION}|g" macos_setup_fastsurfer.sh
-sed -i '' -e "s|<python_version>|${PYTHON_VERSION}|g" macos_setup_fastsurfer.sh
-if [ "$ARCH_TYPE" = "arm" ]; then
-    sed -i '' -e "s|<mps_fallback_value>|1|g" macos_setup_fastsurfer.sh
-else
-    sed -i '' -e "s|<mps_fallback_value>|0|g" macos_setup_fastsurfer.sh
-fi
-mv macos_setup_fastsurfer.sh $FASTSURFER_TO_PACKAGE/
+MPS_FALLBACK_VALUE=$([[ "$ARCH_TYPE" = "arm" ]] && echo 1 || echo 0)
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    -e "s|<python_version>|${PYTHON_VERSION}|g" \
+    -e "s|<mps_fallback_value>|${MPS_FALLBACK_VALUE}|g" \
+    < "$build_dir/macos_setup_fastsurfer.sh.template" \
+    > "$build_dir/macos_setup_fastsurfer.sh"
 
-python3 setup.py py2app --iconfile resources/fastsurfer.png
-mv dist/FastSurfer.app $STAGED_DIR/FastSurfer$VERSION.app
+mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
-rm -f FastSurfer.py
-chmod -R 755 $STAGED_DIR/*
+python3 "$build_dir/setup.py" py2app --iconfile "$RESOURCES_DIR/fastsurfer.png"
+mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
+
+rm -f "FastSurfer.py"
+chmod -R 755 "$STAGED_DIR"/*
 
 # create raw package
 mkdir raw_package
 pkgbuild \
-    --root $STAGED_DIR \
-    --version $VERSION \
-    --identifier $ID \
-    --install-location $INSTALLATION_DIR \
-    --scripts $SCRIPTS_DIR \
-    $OUTPUT_PKG
+    --root "$STAGED_DIR" \
+    --version "$VERSION" \
+    --identifier "$ID" \
+    --install-location "$INSTALLATION_DIR" \
+    --scripts "$SCRIPTS_DIR" \
+    "$OUTPUT_PKG"
 
-rm -f $SCRIPTS_DIR/postinstall
+rm -f "$SCRIPTS_DIR/postinstall"
 
 # create distribution file template based on provided package
-RESOURCES="./resources"
-DISTRIBUTION_FILE="resources/distribution.xml"
-productbuild --synthesize --package $OUTPUT_PKG $DISTRIBUTION_FILE
+DISTRIBUTION_FILE="$RESOURCES_DIR/distribution.xml"
+productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
 
 # edit the distribution file
 # set title to package name (f.e. package_name.pkg -> <title>package_name</title>)
-python3 edit_distribution.py --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
+python3 "$build_dir/edit_distribution.py" --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
 
 # create installer package
 mkdir installer
 productbuild \
-    --distribution $DISTRIBUTION_FILE \
-    --resources $RESOURCES \
+    --distribution "$DISTRIBUTION_FILE" \
+    --resources "$RESOURCES_DIR" \
     --package-path raw_package \
-    $INSTALLER_PKG
+    "$INSTALLER_PKG"
 
 # get rid of temporary folder
-rm -rf $STAGED_DIR
-rm -rf resources
+rm -rf "$STAGED_DIR"
+rm -rf "$RESOURCES_DIR"

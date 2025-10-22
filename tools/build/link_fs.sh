@@ -1,28 +1,23 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-FASTSURFER_HOME="<fastsurfer_home_dir>"
-PYTHON="python<python_version>"
+# usage: link_fs.sh [<path-to-python-interpreter> [<FREESURFER_HOME>]]
 
-if [[ ! -f "$FASTSURFER_HOME/venv" ]]
+if [[ "$#" -gt 0 ]] && { [[ "${*/-h/}" != "$*" ]] || [[ "${*/--help/}" != "$*" ]] ; } ; then
+  echo "usage: $0 [<path-to-python-interpreter> [<FREESURFER_HOME>]]"
+  exit 0
+elif [[ "$#" == 1 ]] || [[ "$#" == 2 ]]
 then
-  echo "Creating FastSurfer run environment"
-  <homebrew_dir>/bin/$PYTHON -m venv --copies $FASTSURFER_HOME/venv
+  if [[ ! -e "$1" ]] ; then echo "ERROR: $1 does not exit!" ; exit 1 ; fi
+  PYTHON="$1"
+  if [[ "$#" == 2 ]] ; then FREESURFER_HOME="$2" ; fi
+else
+  PYTHON=$(which python3)
 fi
-
-source $FASTSURFER_HOME/venv/bin/activate
-$PYTHON -m pip install --upgrade pip
-
-export PYTHONPATH=${FASTSURFER_HOME}:${PYTHONPATH}
-
-$PYTHON -m pip install -r $FASTSURFER_HOME/requirements.mac.txt
-
-$PYTHON $FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py --all
-
-sed -i '' -e "s|(venv)|($(basename $FASTSURFER_HOME))|g" $FASTSURFER_HOME/venv/bin/activate  
-
-FREESURFER_HOME="/Applications/freesurfer"
-
-ln -sf $FASTSURFER_HOME/venv/bin/$PYTHON $FREESURFER_HOME/bin/fspython
+if [[ -z "$FREESURFER_HOME" ]] || [[ ! -d "$FREESURFER_HOME" ]]
+then
+  echo "ERROR: FREESURFER_HOME not defined correctly!"
+  exit 1
+fi
 
 # FS calls these for version info, but we don't need them
 # so we link them to mri_info to save space.
@@ -73,5 +68,8 @@ echo
 for file in $link_files
 do
   echo "linking $file"
-  ln -sf $ltrg $FREESURFER_HOME/$file 
+  ln -s "$ltrg" "$FREESURFER_HOME/$file"
 done
+
+# use our python (not really needed in recon-all anyway)
+ln -sf "$PYTHON" "$FREESURFER_HOME/bin/fspython"

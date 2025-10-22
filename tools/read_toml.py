@@ -1,3 +1,5 @@
+#!python3
+
 # Copyright 2024 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,11 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import argparse
 import sys
 from pathlib import Path
 
-import yaml
+# python 3.11 supports tomllib, but we have tomli in fastsurfer
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -63,21 +70,23 @@ def extract_value(config_file: Path | str, key: str) -> str:
     value
         Value under the given key.
     """
-    with open(config_file) as config:
-        try:
-            conf = yaml.safe_load(config)
-            value = conf[key.split('.')[0]]
-            for k in key.split('.')[1:]:
-                value = value[k]
-            return value
-        except yaml.YAMLError as e:
-            print(e) 
-            sys.exit(1)
+    with open(config_file, "rb") as config:
+        conf = tomllib.load(config)
+    try:
+        section, *keys = key.split('.')
+        value = conf[section]
+        for k in keys:
+            value = value[k]
+        return value
 
-    
+    except tomllib.TOMLDecodeError as e:
+        print(e)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     parser = make_parser()
     args = parser.parse_args()
 
-    print(extract_value(args.file,args.key))
+    print(extract_value(args.file, args.key))
     sys.exit(0)

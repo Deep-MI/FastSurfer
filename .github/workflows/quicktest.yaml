@@ -32,7 +32,7 @@ on:
         default: build-cached
         type: string
       freesurfer-build-image:
-        description: 'FreeSurfer build image to build with ("" (default) => deepmi/fastsurfer-build:freesurferXXX; extract version from Docker/install_fs_pruned.sh)'
+        description: 'FreeSurfer build image to build with ("" (default) => deepmi/fastsurfer-build:freesurferXXX; extract version from pyproject.toml)'
         type: string
 
 permissions:
@@ -139,10 +139,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.parse.outputs.DOCKER_IMAGE }}
-      - name: Setup Python 3.10
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+          # python 3.11 is needed to read pyproject.toml (tomllib)
           architecture: 'x64'
           # no cache is needed, no installations and no cache is faster
           # cache: 'pip' # caching pip dependencies
@@ -152,12 +153,9 @@ jobs:
         shell: bash
         id: parse-version
         run: |
-          # get the FreeSurfer version from install_fs_pruned.sh
+          # get the FreeSurfer version from pyproject.toml
           {
-            fslink="$(grep "^fslink=" ./Docker/install_fs_pruned.sh)"
-            fslink="${fslink:7}"
-            if [[ "${fslink:0:1}" == '"' ]] || [[ "${fslink:0:1}" == "'" ]] ; then fslink="${fslink:1:-1}" ; fi
-            fs_version="$(basename "$(dirname "$fslink")")"
+            fs_version="$(python ./tools/read_toml.py --file ./pyproject.toml --key tool.freesurfer.version)"
             fs_version_short="${fs_version//\./}"
             echo "FS_VERSION=$fs_version"
             echo "FS_VERSION_SHORT=$fs_version_short"

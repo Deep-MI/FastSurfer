@@ -1,6 +1,6 @@
 /BUILD.info
-/Docker/BUILD.info
-/Docker/custom-ssl.crt
+/tools/Docker/BUILD.info
+/tools/Docker/custom-ssl.crt
 /.idea/**
 /rough_work/**
 

@@ -22,9 +22,9 @@ Assuming you have singularity installed already (by a system admin), you can bui
 ```bash
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 ```
-Additionally, [the Singularity README](../../tools/Singularity/README.md) contains detailed directions for building your own Singularity images from Docker.
+Additionally, [the Singularity README](SINGULARITY.md) contains detailed directions for building your own Singularity images from Docker.
 
-[Example 2](EXAMPLES.md#example-2-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../tools/Docker/README.md) and [Singularity](../../tools/Singularity/README.md). 
+[Example 2](EXAMPLES.md#example-2-fastsurfer-singularity) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../tools/Docker/README.md) and [Singularity](SINGULARITY.md). 
 
 
 ### Docker

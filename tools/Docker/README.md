@@ -78,7 +78,7 @@ Note, for many HPC users with limited GPUs or with very large datasets, it may b
 Also note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop --> Preferences --> Resources --> Advanced (slide the bar under Memory to 10 GB; see: [Change Docker Desktop settings on Mac](https://docs.docker.com/desktop/settings/mac/) for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker, because the Apple Accelerator (use the experimental MPS device via `--device mps`) can be used. There is no support for MPS-based acceleration through docker at the moment. 
 
 ### General build settings
-The build script `build.py` supports additional args, targets and options, see `python Docker/build.py --help`.
+The build script `build.py` supports additional args, targets and options, see `python tools/Docker/build.py --help`.
 
 Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
 In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of `FastSurferCNN` must be possible) and we only support Python 3.10.
@@ -158,7 +158,7 @@ docker run --rm --security-opt seccomp=unconfined \
 
 In conflict with the official ROCm documentation (above), we also needed to add the group render `--group-add render` (in addition to `--group-add video`).
 
-Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](https://docs.amd.com/en/latest/release/gpu_os_support.html), but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0` [inside docker did the trick](https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm):
+Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus), but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0` [inside docker did the trick](https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm):
 
 ```bash
 docker run --rm --security-opt seccomp=unconfined \
@@ -192,7 +192,7 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
 3. Attestation files are not supported by the standard docker image storage driver. Therefore, images cannot be tested locally. 
    There are two solutions to this limitation.
    1. Directly push to the registry: 
-      Add `--action push` to the build script (the default is `--action load`, which loads the created image into the current docker context, and for the image name, also add the registry name. For example `... python Docker/build.py ... --attest --action push --tag docker.io/<myaccount>/fastsurfer:latest`.
+      Add `--action push` to the build script (the default is `--action load`, which loads the created image into the current docker context, and for the image name, also add the registry name. For example `... python tools/Docker/build.py ... --attest --action push --tag docker.io/<myaccount>/fastsurfer:latest`.
    2. [Install the containerd image storage driver](https://docs.docker.com/storage/containerd/#enable-containerd-image-store-on-docker-engine), which supports attestation: To implement this on Linux, make sure your docker daemon config file `/etc/docker/daemon.json` includes
       ```json
       {
@@ -202,7 +202,7 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
       }
       ```
       Also note, that the image storage location with containerd is not defined by the docker config file `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd) file with `containerd config default > /etc/containerd/config.toml`, in this config file edit the `"root"`-entry (default value is `/var/lib/containerd`).  
-4. Finally, you can now build the FastSurfer image with `python Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
+4. Finally, you can now build the FastSurfer image with `python tools/Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
 
 ## Setting the ssl_verify parameter of mamba
 
@@ -222,7 +222,7 @@ build_dir=$HOME/FastSurfer-build
 img=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
 version=2.4.3
-# the cuda and rocm version can be identified with: python $build_dir/Docker/build.py --help | grep -E ^[[:space:]]+--device
+# the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device
 cuda=126
 cudas=("cuda118" "cuda124" "cuda$cuda")
 rocm=6.2.4
@@ -236,7 +236,7 @@ all_tags=("latest" "gpu-latest" "cuda-v$version" "rocm-v$version" "cpu-latest")
 # build all distinct images
 for dev in cpu "${rocms[@]}" "${cudas[@]}"
 do
-  python3 Docker/build.py --tag $img:$dev-v$version --freesurfer_build_image $img-build:freesurfer741 --attest --device $dev
+  python3 tools/Docker/build.py --tag $img:$dev-v$version --freesurfer_build_image $img-build:freesurfer741 --attest --device $dev
   all_tags+=("$dev-v$version")
 done
 # labels that are just references

@@ -21,9 +21,21 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal, cast, get_args
+
+# python 3.11 supports tomllib, but we have tomli in fastsurfer
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomli as tomllib
+    except ImportError as e:
+        raise RuntimeError(
+            "The FastSurfer build script requires tomli or python 3.11 to load the pyproject.toml file."
+        ) from e
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +72,13 @@ class DEFAULTS:
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
     # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
     # torch 2.6 comes compiled with cu118, cu124, cu126 and rocm6.2.4
+    CUDA="cu126"
+    CUDA_VERSION="12.6"
+    ROCM="rocm6.2.4"
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
-        rocm="rocm6.2.4",
-        cuda="cu126",
+        rocm=ROCM,
+        cuda=CUDA,
     )
     BUILD_BASE_IMAGE = "ubuntu:22.04"
     RUNTIME_BASE_IMAGE = "ubuntu:22.04"
@@ -195,12 +210,12 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
-        choices=["cpu", "cuda", "cu118", "cu124", "cu126", "rocm", "rocm6.2.4"],
+        choices=list(get_args(AllDeviceType)),
         required=True,
-        help="""selection of internal build stages to build for a specific platform.<br>
-                - cuda: defaults to cu126, cuda 12.6<br>
+        help=f"""selection of internal build stages to build for a specific platform.<br>
+                - cuda: defaults to {DEFAULTS.CUDA}, cuda {DEFAULTS.CUDA_VERSION}<br>
                 - cpu: only cpu support<br>
-                - rocm: defaults to rocm6.2.4 (experimental)""",
+                - rocm: defaults to {DEFAULTS.ROCM} (experimental)""",
     )
     parser.add_argument(
         "--tag",
@@ -648,6 +663,9 @@ def main(
         kwargs["cache_to"] = cache.format_cache_from()
 
     fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
+    # read the freesurfer download url from pyproject.toml
+    with open(fastsurfer_home / "pyproject.toml", "rb") as fp:
+        pyproject_freesurfer = tomllib.load(fp)["tool"]["freesurfer"]
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
@@ -659,7 +677,10 @@ def main(
     if device.startswith("cu") and target == "runtime":
         target = "runtime_cuda"
     kwargs["target"] = target
-    kwargs["build_arg"] = [f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}"]
+    kwargs["build_arg"] = [
+        f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}",
+        f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}"
+    ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")
     build_arg_list = [
@@ -677,14 +698,14 @@ def main(
         if ssl_verify is False:
             kwargs["build_arg"].append("MAMBA_SSL_VERIFY=<false>")
         else:
-            _ssl_cert = "./Docker/custom-ssl.crt"
+            _ssl_cert = "tools/Docker/custom-ssl.crt"
             if (fastsurfer_home / _ssl_cert).exists():
                 (fastsurfer_home / _ssl_cert).unlink()
             from shutil import copy2
             copy2(ssl_verify, fastsurfer_home / _ssl_cert)
             kwargs["build_arg"].append(f"MAMBA_SSL_CERTIFICATE={_ssl_cert}")
             kwargs["build_arg"].append(f"MAMBA_SSL_VERIFY=/install/{Path(_ssl_cert).name}")
-    build_filename = fastsurfer_home / "Docker/BUILD.info"
+    build_filename = fastsurfer_home / "tools" / "Docker" / "BUILD.info"
     if has_git():
         version_sections = "+git"
     else:
@@ -729,7 +750,7 @@ def main(
         logger.info("Version info added to the docker image:")
         logger.info(build_info["content"])
 
-    dockerfile = fastsurfer_home / "Docker" / "Dockerfile"
+    dockerfile = fastsurfer_home / "tools" / "Docker" / "Dockerfile"
     try:
         docker_build_image(
             image_tag,
@@ -759,12 +780,9 @@ def default_home() -> Path:
     Returns
     -------
     Path
-        The FASTSURFER_HOME-path.
+        The FastSurfer root path belonging to this build.py file.
     """
-    if "FASTSURFER_HOME" in os.environ:
-        return Path(os.environ["FASTSURFER_HOME"])
-    else:
-        return Path(__file__).parent.parent
+    return Path(__file__).parents[2]
 
 
 if __name__ == "__main__":
