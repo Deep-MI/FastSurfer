@@ -11,16 +11,19 @@
 # all supported recon-surf flags (--hires, --fsaparc etc.).
 
 
-# Link where to find the FreeSurfer tarball: 
-fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz"
-
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
+fi
+# Link where to find the FreeSurfer tarball:
+fslink="default"
 
 if [[ "$#" -lt 1 ]]; then
     echo
-    echo "Usage: install_fs_prunded install_dir [--upx] [--url freesurfer_download_url]"
+    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url]"
     echo 
     echo "--upx is optional, if passed, fs/bin will be packed"
-    echo "--url is optional, if passed, freesurfer will be downloaded from it instead of $fslink"
+    echo "--url is recommended! This is the download link for freesurfer."
+    echo "  The link can be found in pyproject.toml:tool.freesurfer.url!"
     echo
     exit 2
 fi
@@ -35,23 +38,39 @@ upx="false"
 while [[ "$#" -ge 1 ]]; do
   lowercase=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   case $lowercase in
-  --upx)
-    upx="true"
-    shift
-    ;;
-  --url)
-    if [[ "$2" != "default" ]];  then fslink=$2; fi
-    shift
-    shift
-    ;;
-  *)
-    echo "Invalid argument $1"
-    exit 1
-    ;;
+  --upx) upx="true" ; shift ;;
+  --url) fslink=$2 ; shift ; shift ;;
+  *) echo "Invalid argument $1" ; exit 1 ;;
   esac
 done
 fss=$where/fs-tmp
 fsd=$where/freesurfer
+
+if [[ "$fslink" == "default" ]]
+then
+  # --url not provided, try getting it from pyproject.toml
+link=$(python3 <<EOF
+import sys, pathlib
+if sys.version_info >= (3, 11): import tomllib
+else:
+  try: import tomli as tomllib
+  except Exception: sys.exit()
+
+for path in pathlib.Path("$THIS_SCRIPT").parents:
+  try:
+    if (path / "pyproject.toml").exists():
+      with open(path / "pyproject.toml", "rb") as fp: dat = tomllib.load(fp)["tool"]["freesurfer"]
+      print(dat["urls"]["linux"].format(**dat))
+      break
+  except Exception:
+    continue # ignore all errors
+EOF
+)
+  if [[ -n "$link" ]] ; then fslink="$link"
+  else echo "ERROR: Please provide the --url argument, could not find/parse pyproject.toml!" ; exit 1
+  fi
+fi
+
 echo
 echo "Will install FreeSurfer to $fsd"
 echo
@@ -99,61 +118,66 @@ function run_parallel ()
 
 # get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
-aria2c -x 16 -s 16 -c --check-certificate=false -o freesurfer.tar.gz "$fslink"
+if [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink")
+elif [[ -n "$(which curl)" ]] ; then dl=(curl -L --insecure "$fslink")
+else aria2c -x 16 -s 16 -c --check-certificate=false -o freesurfer.tar.gz "$fslink" ; dl=(cat freesurfer.tar.gz)
+fi
 
-tar zxv --no-same-owner -C "$where" \
-  --exclude='freesurfer/average/*.gca' \
-  --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
-  --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
-  --exclude='freesurfer/average/mult-comp-cor' \
-  --exclude='freesurfer/average/samseg' \
-  --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
-  --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
-  --exclude='freesurfer/bin/freeview.bin' \
-  --exclude='freesurfer/bin/freeview' \
-  --exclude='freesurfer/bin/fs_spmreg.glnxa64' \
-  --exclude='freesurfer/bin/mris_decimate_gui.bin' \
-  --exclude='freesurfer/bin/mris_decimate_gui' \
-  --exclude='freesurfer/bin/qdec_glmfit' \
-  --exclude='freesurfer/bin/qdec.bin' \
-  --exclude='freesurfer/bin/qdec' \
-  --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
-  --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
-  --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
-  --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
-  --exclude='freesurfer/diffusion' \
-  --exclude='freesurfer/fsafd' \
-  --exclude='freesurfer/fsfast' \
-  --exclude='freesurfer/lib/cuda' \
-  --exclude='freesurfer/lib/images' \
-  --exclude='freesurfer/lib/qt' \
-  --exclude='freesurfer/lib/tcl' \
-  --exclude='freesurfer/lib/tktools' \
-  --exclude='freesurfer/lib/vtk' \
-  --exclude='freesurfer/matlab' \
-  --exclude='freesurfer/mni-1.4' \
-  --exclude='freesurfer/mni' \
-  --exclude='freesurfer/models' \
-  --exclude='freesurfer/python/bin' \
-  --exclude='freesurfer/python/include' \
-  --exclude='freesurfer/python/lib' \
-  --exclude='freesurfer/python/share' \
-  --exclude='freesurfer/subjects/bert' \
-  --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
-  --exclude='freesurfer/subjects/cvs_avg35' \
-  --exclude='freesurfer/subjects/fsaverage_sym' \
-  --exclude='freesurfer/subjects/fsaverage3' \
-  --exclude='freesurfer/subjects/fsaverage4' \
-  --exclude='freesurfer/subjects/fsaverage5' \
-  --exclude='freesurfer/subjects/fsaverage6' \
-  --exclude='freesurfer/subjects/lh.EC_average' \
-  --exclude='freesurfer/subjects/rh.EC_average' \
-  --exclude='freesurfer/subjects/V1_average' \
-  --exclude='freesurfer/tktools' \
-  --exclude='freesurfer/trctrain' \
-  -f freesurfer.tar.gz
+"${dl[@]}"  | tar zxv --no-same-owner -C "$where" \
+      --exclude='freesurfer/average/*.gca' \
+      --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
+      --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
+      --exclude='freesurfer/average/mult-comp-cor' \
+      --exclude='freesurfer/average/samseg' \
+      --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
+      --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
+      --exclude='freesurfer/bin/freeview.bin' \
+      --exclude='freesurfer/bin/freeview' \
+      --exclude='freesurfer/bin/fs_spmreg.glnxa64' \
+      --exclude='freesurfer/bin/mris_decimate_gui.bin' \
+      --exclude='freesurfer/bin/mris_decimate_gui' \
+      --exclude='freesurfer/bin/qdec_glmfit' \
+      --exclude='freesurfer/bin/qdec.bin' \
+      --exclude='freesurfer/bin/qdec' \
+      --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
+      --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
+      --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
+      --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
+      --exclude='freesurfer/diffusion' \
+      --exclude='freesurfer/fsafd' \
+      --exclude='freesurfer/fsfast' \
+      --exclude='freesurfer/lib/cuda' \
+      --exclude='freesurfer/lib/images' \
+      --exclude='freesurfer/lib/qt' \
+      --exclude='freesurfer/lib/tcl' \
+      --exclude='freesurfer/lib/tktools' \
+      --exclude='freesurfer/lib/vtk' \
+      --exclude='freesurfer/matlab' \
+      --exclude='freesurfer/mni-1.4' \
+      --exclude='freesurfer/mni' \
+      --exclude='freesurfer/models' \
+      --exclude='freesurfer/python/bin' \
+      --exclude='freesurfer/python/include' \
+      --exclude='freesurfer/python/lib' \
+      --exclude='freesurfer/python/share' \
+      --exclude='freesurfer/subjects/bert' \
+      --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
+      --exclude='freesurfer/subjects/cvs_avg35' \
+      --exclude='freesurfer/subjects/fsaverage_sym' \
+      --exclude='freesurfer/subjects/fsaverage3' \
+      --exclude='freesurfer/subjects/fsaverage4' \
+      --exclude='freesurfer/subjects/fsaverage5' \
+      --exclude='freesurfer/subjects/fsaverage6' \
+      --exclude='freesurfer/subjects/lh.EC_average' \
+      --exclude='freesurfer/subjects/rh.EC_average' \
+      --exclude='freesurfer/subjects/V1_average' \
+      --exclude='freesurfer/tktools' \
+      --exclude='freesurfer/trctrain'
 
-rm -rf freesurfer.tar.gz
+if [[ -z "$(which wget)" ]] && [[ -z "$(which curl)" ]]
+then # cleanup the file saved by aria2c
+  rm freesurfer.tar.gz
+fi
 
 # rename download to tmp
 mv $where/freesurfer $fss

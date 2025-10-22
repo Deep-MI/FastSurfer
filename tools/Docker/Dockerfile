@@ -87,7 +87,7 @@ FROM build_base AS build_common
 
 # get install scripts into docker
 ARG MAMBA_SSL_CERTIFICATE=""
-COPY ./env/fastsurfer.yml ./Docker/conda_pack.sh ./Docker/install_env.py ${MAMBA_SSL_CERTIFICATE} /install/
+COPY ./env/fastsurfer.yml ./tools/Docker/conda_pack.sh ./tools/Docker/install_env.py ${MAMBA_SSL_CERTIFICATE} /install/
 
 SHELL ["/bin/bash", "--login", "-c", "-e"]
 # Install conda for gpu
@@ -116,7 +116,7 @@ RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /i
 FROM build_base AS build_freesurfer
 
 # get install scripts into docker
-COPY ./tools/install_fs_pruned.sh /install/
+COPY ./tools/build/install_fs_pruned.sh ./tools/build/link_fs.sh /install/
 SHELL ["/bin/bash", "--login", "-c"]
 
 ARG FREESURFER_URL=default
@@ -124,8 +124,8 @@ ARG FREESURFER_URL=default
 # install freesurfer and point to new python location
 RUN /install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL && \
     rm /opt/freesurfer/bin/fspython && \
-    rm -R /install && \
-    ln -s /venv/bin/python3 /opt/freesurfer/bin/fspython
+    /install/link_fs.sh /venv/bin/python3 /opt/freesurfer && \
+    rm -R /install
 
 
 # =======================================================
@@ -201,7 +201,7 @@ ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
 RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
     python3 -m compileall * && \
     python3 FastSurferCNN/version.py --sections +git+checkpoints+pip \
-      --build_cache Docker/BUILD.info -o BUILD.info
+      --build_cache tools/Docker/BUILD.info -o BUILD.info
 
 # TODO: SBOM info of FastSurfer and FreeSurfer are missing, it is unclear how to add
 #       those at the moment, as the buildscanner syft does not find simple package.json
@@ -221,7 +221,7 @@ RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
 #  the script entrypoint ensures that our conda env is active
 USER nonroot
 WORKDIR "/fastsurfer"
-ENTRYPOINT ["/fastsurfer/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
+ENTRYPOINT ["/fastsurfer/tools/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
 CMD ["--help"]
 
 FROM runtime AS runtime_cuda

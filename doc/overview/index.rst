@@ -11,7 +11,8 @@ User Guide
     FLAGS.md
     OUTPUT_FILES.md
     docker
-    singularity
+    SINGULARITY.md
+    MACOS.md
     EDITING.md
     LONG.md
     SECURITY.md

@@ -271,7 +271,7 @@ fix_links_target = {
     "^/?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\1#\\2ubuntu-\\3-\\4",),
     f"{_up}readme{_end}": ("/index.rst\\1", "/overview/intro.rst\\1"),
     "^/overview/intro(#.*)?$": ("/overview/index.rst\\2",),
-    f"{_up}(singularity|docker)/readme{_end}": ("/overview/\\1.rst\\2",),
+    f"{_up}/tools/docker/readme{_end}": ("/overview/docker.rst\\2",),
     f"{_up}({_re_script_dirs})/readme{_end}": ("/scripts/\\1.rst\\2",),
     f"{_up}license": ("/overview/license.rst",),
 }

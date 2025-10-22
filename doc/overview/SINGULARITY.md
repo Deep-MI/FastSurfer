@@ -1,4 +1,4 @@
-# FastSurfer Singularity Support
+# Singularity Support
 
 For use on HPCs (or in other cases where Docker is not available or preferred) you can easily create a Singularity image from the Docker image. 
 Singularity uses its own image format, so the Docker images must be converted (we publish our releases as docker images available on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags)). 
@@ -12,7 +12,7 @@ Singularity images are files - usually with the extension `.sif`. Here, we save 
 If you want to pick a specific FastSurfer version, you can also change the tag (`latest`) in `deepmi/fastsurfer:latest` to any tag. For example to use the cpu image hosted on [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) use the tag `cpu-latest`.
 
 ## Building your own FastSurfer Singularity Image
-To build a custom FastSurfer Singularity image, the `Docker/build.py` script supports a flag for direct conversion.
+To build a custom FastSurfer Singularity image, the `tools/Docker/build.py` script supports a flag for direct conversion.
 Simply add `--singularity /home/user/my_singlarity_images/fastsurfer-myimage.sif` to the call, which first builds the image with Docker and then converts the image to Singularity.
 
 If you want to manually convert the local Docker image `fastsurfer:myimage`, run:
@@ -21,7 +21,7 @@ If you want to manually convert the local Docker image `fastsurfer:myimage`, run
 singularity build /home/user/my_singlarity_images/fastsurfer-myimage.sif docker-daemon://fastsurfer:myimage
 ```
 
-For more information on how to create your own Docker images, see our [Docker guide](../Docker/README.md).
+For more information on how to create your own Docker images, see our [Docker guide](../../tools/Docker/README.md).
 
 ## FastSurfer Singularity Image Usage
 

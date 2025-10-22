@@ -1,4 +1,4 @@
-name: MAN deploy-docker
+name: MAN release/deploy
 
 on:
   release:
@@ -30,7 +30,7 @@ jobs:
       - name: install dependencies
         run: python -m pip install py2app pyyaml
       - name: package app for ${{ matrix.arch }}
-        run: tools/macos_build/build_release_package.sh ${{ matrix.arch }} ${{ env.FASTSURFER_DIR }}
+        run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
       - name: Move assets.
         if: env.RELEASE_ASSETS == 'true'
         run: |
@@ -57,7 +57,7 @@ jobs:
   #     - name: Set up Docker Buildx
   #       uses: docker/setup-buildx-action@v2
   #     - name: Build Docker image GPU
-  #       run: python Docker/build.py --device cuda --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
+  #       run: python tools/Docker/build.py --device cuda --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
   #     - name: Add additional tags
   #       run: |
   #         docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-latest
@@ -80,7 +80,7 @@ jobs:
   #     - name: Set up Docker Buildx
   #       uses: docker/setup-buildx-action@v2
   #     - name: Build Docker image CPU
-  #       run: python Docker/build.py --device cpu --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
+  #       run: python tools/Docker/build.py --device cpu --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
   #     - name: Add additional tags
   #       run: |
   #         docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-latest

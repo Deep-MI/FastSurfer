@@ -1,13 +1,14 @@
 **/.git
 **/.github
 checkpoints
-Singularity
 doc
 test
 venv
 Tutorial
 **/*.md
-Docker/Dockerfile*
+/tools/Docker/Dockerfile*
+/tools/macos_build
+/tools/export_pip-r.sh
 *.txt
 venv
 /srun_fastsurfer.sh

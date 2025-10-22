@@ -22,7 +22,7 @@ This job sets up the necessary environments for the workflow. It depends on the 
 
 ### Build Singularity Image
 
-This job builds a Docker image and converts it to a Singularity image. It depends on the successful completion of the `prepare-job`. The Docker image is built using a Python script `Docker/build.py` with the `--device cuda --tag fastsurfer_gpu:cuda` flags. The Docker image is then converted to a Singularity image.
+This job builds a Docker image and converts it to a Singularity image. It depends on the successful completion of the `prepare-job`. The Docker image is built using a Python script `tools/Docker/build.py` with the `--device cuda --tag fastsurfer_gpu:cuda` flags. The Docker image is then converted to a Singularity image.
 
 ### Run FastSurfer
 
