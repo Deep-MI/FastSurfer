@@ -116,7 +116,7 @@ RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /i
 FROM build_base AS build_freesurfer
 
 # get install scripts into docker
-COPY ./Docker/install_fs_pruned.sh /install/
+COPY ./tools/install_fs_pruned.sh /install/
 SHELL ["/bin/bash", "--login", "-c"]
 
 ARG FREESURFER_URL=default

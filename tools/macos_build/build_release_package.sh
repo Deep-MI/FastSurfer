@@ -44,9 +44,9 @@ rsync -av --progress $DIR_TO_FASTSURFER/ $FASTSURFER_TO_PACKAGE \
 
 # install freesurfer into temp folder
 if [ "$#" -gt 3 ]; then
-    ./install_fs_pruned.sh $STAGED_DIR --upx --url $URL_TO_FREESURFER
+    ../install_fs_pruned.sh $STAGED_DIR --upx --url $URL_TO_FREESURFER
 else
-    ./install_fs_pruned.sh $STAGED_DIR --upx
+    ../install_fs_pruned.sh $STAGED_DIR --upx
 fi
 
 SCRIPTS_DIR="./scripts" # directory with scripts executed during installation process (f.e. preinsatll postinstall)
@@ -64,9 +64,8 @@ fi
 
 # assemble resources
 mkdir resources
-cp $DIR_TO_FASTSURFER/doc/images/installer_background.png resources/
 cp $DIR_TO_FASTSURFER/doc/images/fastsurfer.png resources/
-cp $DIR_TO_FASTSURFER/doc/overview/INSTRUCTIONS.md resources/
+cp $DIR_TO_FASTSURFER/doc/overview/MACOS.md resources/
 cp $DIR_TO_FASTSURFER/LICENSE resources/LICENSE.txt
 
 # create fastsurfer applet
@@ -107,121 +106,7 @@ productbuild --synthesize --package $OUTPUT_PKG $DISTRIBUTION_FILE
 
 # edit the distribution file
 # set title to package name (f.e. package_name.pkg -> <title>package_name</title>)
-xml ed \
-    -s /installer-gui-script \
-    -t elem \
-    -n title \
-    -v "${PACKAGE_NAME}" \
-    $DISTRIBUTION_FILE | \
-{ # set background image
-    xml ed \
-    -s /installer-gui-script \
-    -t elem \
-    -n background \
-    -i /installer-gui-script/background \
-    -t attr \
-    -n file \
-    -v installer_background.png \
-} | \
-xml ed \
-    -i /installer-gui-script/background \
-    -t attr \
-    -n uti \
-    -v public.png \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -i /installer-gui-script/background \
-    -t attr \
-    -n scaling \
-    -v proportional \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -i /installer-gui-script/background \
-    -t attr \
-    -n alignment \
-    -v bottomleft \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -s /installer-gui-script \
-    -t elem \
-    -n background-darkAqua \
-    -i /installer-gui-script/background-darkAqua \
-    -t attr \
-    -n file \
-    -v installer_background.png \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -i /installer-gui-script/background-darkAqua \
-    -t attr \
-    -n uti \
-    -v public.png \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -i /installer-gui-script/background-darkAqua \
-    -t attr \
-    -n scaling \
-    -v proportional \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -i /installer-gui-script/background-darkAqua \
-    -t attr \
-    -n alignment \
-    -v bottomleft \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-# set license
-xml ed \
-    -s /installer-gui-script \
-    -t elem \
-    -n license \
-    -i /installer-gui-script/license \
-    -t attr \
-    -n file \
-    -v LICENSE.txt \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-xml ed \
-    -i /installer-gui-script/license \
-    -t attr \
-    -n mime-type \
-    -v text/txt \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-# set conclusion
-xml ed \
-    -s /installer-gui-script \
-    -t elem \
-    -n conclusion \
-    -i /installer-gui-script/conclusion \
-    -t attr \
-    -n file \
-    -v INSTRUCTIONS.md \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
-
-
-xml ed \
-    -i /installer-gui-script/conclusion \
-    -t attr \
-    -n mime-type \
-    -v text/txt \
-    $DISTRIBUTION_FILE > "$DISTRIBUTION_FILE.temp"
-mv "$DISTRIBUTION_FILE.temp" $DISTRIBUTION_FILE
+python3.10 edit_distribution.py --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
 
 # create installer package
 mkdir installer
@@ -233,4 +118,4 @@ productbuild \
 
 # get rid of temporary folder
 rm -rf $STAGED_DIR
-rm -rf resources
+# rm -rf resources

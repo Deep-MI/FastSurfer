@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<installer-gui-script minSpecVersion="1">
+    <pkg-ref id="ord.deep-mi.FastSurfer.240_arm64" />
+    <options customize="never" require-scripts="false" hostArchitectures="x86_64,arm64" />
+    <choices-outline>
+        <line choice="default">
+            <line choice="ord.deep-mi.FastSurfer.240_arm64" />
+        </line>
+    </choices-outline>
+    <choice id="default" />
+    <choice id="ord.deep-mi.FastSurfer.240_arm64" visible="false">
+        <pkg-ref id="ord.deep-mi.FastSurfer.240_arm64" />
+    </choice>
+    <pkg-ref id="ord.deep-mi.FastSurfer.240_arm64" version="240" onConclusion="none">FastSurfer240-macos-darwin_arm64.pkg</pkg-ref>
+    <title>FastSurfer240-macos-darwin_arm64</title>
+    <background file="fastsurfer.png" uti="public.png" scaling="proportional" alignment="bottomleft" />
+    <background-darkAqua file="fastsurfer.png" uti="public.png" scaling="proportional" alignment="bottomleft" />
+    <license file="LICENSE.txt" mime-type="text/txt" />
+    <conclusion file="MACOS.md" mime-type="text/txt" />
+</installer-gui-script>

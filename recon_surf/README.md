@@ -92,7 +92,7 @@ Check [Dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find out t
 * The `-B` commands mount your output, and directory with the FreeSurfer license file into the Singularity container. 
   Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license). 
 
-* The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../Singularity/README.md#mounting-home))
+* The `--no-home` command disables the automatic mount of the users home directory (see [Best Practice](../tools/Singularity/README.md#mounting-home))
 
 The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the 
 segmentation module. Also other files from that pipeline will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`). The 
