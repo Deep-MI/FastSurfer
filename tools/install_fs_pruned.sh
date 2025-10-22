@@ -12,7 +12,7 @@
 
 
 # Link where to find the FreeSurfer tarball: 
-fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz"
+fslink="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz"
 
 
 if [[ "$#" -lt 1 ]]; then
@@ -99,57 +99,61 @@ function run_parallel ()
 
 # get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
-wget --no-check-certificate -qO- $fslink  | tar zxv --no-same-owner -C $where \
-      --exclude='freesurfer/average/*.gca' \
-      --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
-      --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
-      --exclude='freesurfer/average/mult-comp-cor' \
-      --exclude='freesurfer/average/samseg' \
-      --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
-      --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
-      --exclude='freesurfer/bin/freeview.bin' \
-      --exclude='freesurfer/bin/freeview' \
-      --exclude='freesurfer/bin/fs_spmreg.glnxa64' \
-      --exclude='freesurfer/bin/mris_decimate_gui.bin' \
-      --exclude='freesurfer/bin/mris_decimate_gui' \
-      --exclude='freesurfer/bin/qdec_glmfit' \
-      --exclude='freesurfer/bin/qdec.bin' \
-      --exclude='freesurfer/bin/qdec' \
-      --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
-      --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
-      --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
-      --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
-      --exclude='freesurfer/diffusion' \
-      --exclude='freesurfer/fsafd' \
-      --exclude='freesurfer/fsfast' \
-      --exclude='freesurfer/lib/cuda' \
-      --exclude='freesurfer/lib/images' \
-      --exclude='freesurfer/lib/qt' \
-      --exclude='freesurfer/lib/tcl' \
-      --exclude='freesurfer/lib/tktools' \
-      --exclude='freesurfer/lib/vtk' \
-      --exclude='freesurfer/matlab' \
-      --exclude='freesurfer/mni-1.4' \
-      --exclude='freesurfer/mni' \
-      --exclude='freesurfer/models' \
-      --exclude='freesurfer/python/bin' \
-      --exclude='freesurfer/python/include' \
-      --exclude='freesurfer/python/lib' \
-      --exclude='freesurfer/python/share' \
-      --exclude='freesurfer/subjects/bert' \
-      --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
-      --exclude='freesurfer/subjects/cvs_avg35' \
-      --exclude='freesurfer/subjects/fsaverage_sym' \
-      --exclude='freesurfer/subjects/fsaverage3' \
-      --exclude='freesurfer/subjects/fsaverage4' \
-      --exclude='freesurfer/subjects/fsaverage5' \
-      --exclude='freesurfer/subjects/fsaverage6' \
-      --exclude='freesurfer/subjects/lh.EC_average' \
-      --exclude='freesurfer/subjects/rh.EC_average' \
-      --exclude='freesurfer/subjects/V1_average' \
-      --exclude='freesurfer/tktools' \
-      --exclude='freesurfer/trctrain'
+aria2c -x 16 -s 16 -c --check-certificate=false -o freesurfer.tar.gz "$fslink"
 
+tar zxv --no-same-owner -C "$where" \
+  --exclude='freesurfer/average/*.gca' \
+  --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
+  --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
+  --exclude='freesurfer/average/mult-comp-cor' \
+  --exclude='freesurfer/average/samseg' \
+  --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
+  --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
+  --exclude='freesurfer/bin/freeview.bin' \
+  --exclude='freesurfer/bin/freeview' \
+  --exclude='freesurfer/bin/fs_spmreg.glnxa64' \
+  --exclude='freesurfer/bin/mris_decimate_gui.bin' \
+  --exclude='freesurfer/bin/mris_decimate_gui' \
+  --exclude='freesurfer/bin/qdec_glmfit' \
+  --exclude='freesurfer/bin/qdec.bin' \
+  --exclude='freesurfer/bin/qdec' \
+  --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
+  --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
+  --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
+  --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
+  --exclude='freesurfer/diffusion' \
+  --exclude='freesurfer/fsafd' \
+  --exclude='freesurfer/fsfast' \
+  --exclude='freesurfer/lib/cuda' \
+  --exclude='freesurfer/lib/images' \
+  --exclude='freesurfer/lib/qt' \
+  --exclude='freesurfer/lib/tcl' \
+  --exclude='freesurfer/lib/tktools' \
+  --exclude='freesurfer/lib/vtk' \
+  --exclude='freesurfer/matlab' \
+  --exclude='freesurfer/mni-1.4' \
+  --exclude='freesurfer/mni' \
+  --exclude='freesurfer/models' \
+  --exclude='freesurfer/python/bin' \
+  --exclude='freesurfer/python/include' \
+  --exclude='freesurfer/python/lib' \
+  --exclude='freesurfer/python/share' \
+  --exclude='freesurfer/subjects/bert' \
+  --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
+  --exclude='freesurfer/subjects/cvs_avg35' \
+  --exclude='freesurfer/subjects/fsaverage_sym' \
+  --exclude='freesurfer/subjects/fsaverage3' \
+  --exclude='freesurfer/subjects/fsaverage4' \
+  --exclude='freesurfer/subjects/fsaverage5' \
+  --exclude='freesurfer/subjects/fsaverage6' \
+  --exclude='freesurfer/subjects/lh.EC_average' \
+  --exclude='freesurfer/subjects/rh.EC_average' \
+  --exclude='freesurfer/subjects/V1_average' \
+  --exclude='freesurfer/tktools' \
+  --exclude='freesurfer/trctrain' \
+  -f freesurfer.tar.gz
+
+rm -rf freesurfer.tar.gz
 
 # rename download to tmp
 mv $where/freesurfer $fss
@@ -414,67 +418,6 @@ do
   echo "touching $file"
   touch $fsd/$file 
 done
-
-# FS calls these for version info, but we don't need them
-# so we link them to mri_info to save space. 
-link_files="
-  bin/mri_and
-  bin/mri_aparc2aseg
-  bin/mri_ca_label
-  bin/mri_ca_normalize
-  bin/mri_ca_register
-  bin/mri_compute_overlap
-  bin/mri_compute_seg_overlap
-  bin/mri_em_register
-  bin/mri_fwhm
-  bin/mri_gcut
-  bin/mri_log_likelihood
-  bin/mri_motion_correct.fsl
-  bin/mri_normalize_tp2
-  bin/mri_or
-  bin/mri_relabel_nonwm_hypos
-  bin/mri_remove_neck
-  bin/mri_stats2seg
-  bin/mri_surf2vol
-  bin/mri_surfcluster
-  bin/mri_voldiff
-  bin/mri_watershed
-  bin/mris_divide_parcellation
-  bin/mris_left_right_register
-  bin/mris_surface_stats
-  bin/mris_thickness
-  bin/mris_thickness_diff
-  bin/nu_correct
-  bin/tkregister2_cmdl"
-
-# create target for link with ERROR message if called
-ltrg=$fsd/bin/not-here.sh
-echo '#!/bin/bash
-if [ "$1" == "-all-info" ]; then
-  echo "$0 not included ..."
-  exit 0
-fi
-echo
-echo "ERROR: The binary $0 is not included, your call is forwarded to not-here.sh"
-echo
-exit 1
-' > $ltrg
-chmod a+x $ltrg
-echo
-for file in $link_files
-do
-  echo "linking $file"
-  ln -s $ltrg $fsd/$file 
-done
-
-# use our python (not really needed in recon-all anyway)
-p3=$(which python3)
-if [ "$p3" == "" ]; then
-  echo "No python3 found, please install first!"
-  echo
-  exit 1
-fi
-ln -s $p3 $fsd/bin/fspython
 
 #cleanup
 rm -rf $fss

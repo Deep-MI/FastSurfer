@@ -1,10 +1,10 @@
 name: MAN deploy-docker
 
 on:
- release:
-   types:
-     - published
- workflow_dispatch:
+  release:
+    types:
+      - published
+  workflow_dispatch:
 
 jobs:
   deploy-mac:
@@ -16,9 +16,9 @@ jobs:
       VERSION: 242
       FREESURFER_URL: https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz
       UPLOAD_ARTIFACT: true
-   strategy:
+  strategy:
     matrix:
-     arch: [intel, arm]
+      arch: [intel, arm]
     steps:
       - name: Get repository name.
         run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV

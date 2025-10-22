@@ -46,13 +46,13 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 * The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
-* [more flags](../doc/overview/FLAGS.md#fastsurfer-flags)
+* [more flags](../../doc/overview/FLAGS.md#fastsurfer-flags)
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 
-All other available flags are identical to the ones explained on the main page [README](../README.md).
+All other available flags are identical to the ones explained on the main page [README](../../README.md).
 
 ### Docker Best Practice
 * Do not mount the user home directory into the docker container as the home directory.
