@@ -12,13 +12,12 @@ jobs:
     timeout-minutes: 120
     
     env:
-      ARTIFACT_NAME: FastSurfer
       VERSION: 242
       FREESURFER_URL: https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz
-      UPLOAD_ARTIFACT: true
-  strategy:
-    matrix:
-      arch: [intel, arm]
+      RELEASE_ASSETS: true
+    strategy:
+      matrix:
+        arch: [intel, arm]
     steps:
       - name: Get repository name.
         run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -36,20 +35,18 @@ jobs:
 
           brew update
           brew upgrade || true
-          brew install xmlstarlet
       - name: package app for ${{ matrix.arch }}
         run: tools/macos_build/build_release_package.sh ${{ env.VERSION }} ${{ matrix.arch }} ${{ env.FASTSURFER_DIR }} ${{ env.FREESURFER_URL }}
-      - name: Move artifact.
-        if: env.UPLOAD_ARTIFACT == 'true'
+      - name: Move assets.
+        if: env.RELEASE_ASSETS == 'true'
         run: |
-          mkdir artifact
-          mv tools/macos_build/installer/* artifact/
-      - uses: actions/upload-artifact@v4
-        if: env.UPLOAD_ARTIFACT == 'true'
-        name: Upload artifact.
+          mkdir assets
+          mv tools/macos_build/installer/* assets/
+      - name: Upload release assets.
+        uses: softprops/action-gh-release@v2
+        if: env.RELEASE_ASSETS == 'true'
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.FASTSURFER_DIR }}/artifact/
+          files: ${{ env.FASTSURFER_DIR }}/assets/*
   # deploy-gpu:
   #   runs-on: ubuntu-latest
   #   timeout-minutes: 120
