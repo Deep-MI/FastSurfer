@@ -388,14 +388,14 @@
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>op</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">callable()</span></code></a></span></dt><dd><p>A callable to update the accumulator. Method’s signature is <code class="xref py py-obj docutils literal notranslate"><span class="pre">(accumulator,</span> <span class="pre">output)</span></code>.
+<dt><strong>op</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">callable()</span></code></a></span></dt><dd><p>A callable to update the accumulator. Method’s signature is <code class="xref py py-obj docutils literal notranslate"><span class="pre">(accumulator,</span> <span class="pre">output)</span></code>.
 For example, to compute arithmetic mean value, <code class="xref py py-obj docutils literal notranslate"><span class="pre">op</span> <span class="pre">=</span> <span class="pre">lambda</span> <span class="pre">a,</span> <span class="pre">x:</span> <span class="pre">a</span> <span class="pre">+</span> <span class="pre">x</span></code>.</p>
 </dd>
-<dt><strong>output_transform</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">callable()</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A callable that is used to transform the <code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code>’s <code class="xref py py-obj docutils literal notranslate"><span class="pre">process_function</span></code>’s output into the
+<dt><strong>output_transform</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">callable()</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>A callable that is used to transform the <code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code>’s <code class="xref py py-obj docutils literal notranslate"><span class="pre">process_function</span></code>’s output into the
 form expected by the metric. This can be useful if, for example, you have a multi-output model and
 you want to compute the metric with respect to one of the outputs.</p>
 </dd>
-<dt><strong>device</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.device</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Device specification in case of distributed computation usage.
+<dt><strong>device</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.device</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Device specification in case of distributed computation usage.
 In most cases, it can be defined as “cuda:local_rank” or “cuda”
 if already set <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.cuda.set_device(local_rank)</span></code>. By default, if a distributed process group is
 initialized and available, the device is set to <code class="xref py py-obj docutils literal notranslate"><span class="pre">cuda</span></code>.</p>
@@ -438,7 +438,7 @@ initialized and available, the device is set to <code class="xref py py-obj docu
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>output</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Tuple of predictions and labels.</p>
+<dt><strong>output</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Tuple of predictions and labels.</p>
 </dd>
 </dl>
 </dd>
@@ -458,13 +458,13 @@ initialized and available, the device is set to <code class="xref py py-obj docu
 </dd>
 <dt><strong>gt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Ground truth image.</p>
 </dd>
-<dt><strong>validate</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>If True, use the scipy implementation of the Dice Similarity. If False, use the numpy implementation.</p>
+<dt><strong>validate</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>If True, use the scipy implementation of the Dice Similarity. If False, use the numpy implementation.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Dice Similarity between pred and gt.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Dice Similarity between pred and gt.</p>
 </dd>
 </dl>
 </dd>
@@ -485,12 +485,12 @@ into binary: background where 0, object everywhere else.</p>
 <dt><strong>reference</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.3)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
 into binary: background where 0, object everywhere else.</p>
 </dd>
-<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.13)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
+<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.14)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
 along each dimension. If a sequence, must be of length equal to
 the input rank; if a single number, this is used for all axes. If
 not specified, a grid spacing of unity is implied.</p>
 </dd>
-<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
+<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
 of the binary objects. This value is passed to
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.morphology.generate_binary_structure</span></code> and should usually be <span class="math notranslate nohighlight">\(&gt; 1\)</span>.
 Note that the connectivity influences the result in the case of the Hausdorff distance.</p>
@@ -499,13 +499,13 @@ Note that the connectivity influences the result in the case of the Hausdorff di
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>hd</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The symmetric Hausdorff Distance between the object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">result</span></code> and the
+<dt><strong>hd</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The symmetric Hausdorff Distance between the object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">result</span></code> and the
 object(s) in <code class="xref py py-obj docutils literal notranslate"><span class="pre">reference</span></code>. The distance unit is the same as for the spacing of
 elements along each dimension, which is usually given in mm.</p>
 </dd>
-<dt><strong>hd50</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 50th percentile of the Hausdorff Distance.</p>
+<dt><strong>hd50</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 50th percentile of the Hausdorff Distance.</p>
 </dd>
-<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the Hausdorff Distance.</p>
+<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the Hausdorff Distance.</p>
 </dd>
 </dl>
 </dd>
@@ -539,12 +539,12 @@ into binary: background where 0, object everywhere else.</p>
 <dt><strong>reference</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.3)"><span>array_like</span></a></span></dt><dd><p>Input data containing objects. Can be any type but will be converted
 into binary: background where 0, object everywhere else.</p>
 </dd>
-<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.13)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
+<dt><strong>voxelspacing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a> or <a class="reference external" href="https://docs.python.org/3/glossary.html#term-sequence" title="(in Python v3.14)"><span>sequence</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The voxelspacing in a distance unit i.e. spacing of elements
 along each dimension. If a sequence, must be of length equal to
 the input rank; if a single number, this is used for all axes. If
 not specified, a grid spacing of unity is implied.</p>
 </dd>
-<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
+<dt><strong>connectivity</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The neighbourhood/connectivity considered when determining the surface
 of the binary objects. This value is passed to
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.morphology.generate_binary_structure</span></code> and should usually be <span class="math notranslate nohighlight">\(&gt; 1\)</span>.
 Note that the connectivity influences the result in the case of the Hausdorff distance.</p>
@@ -553,7 +553,7 @@ Note that the connectivity influences the result in the case of the Hausdorff di
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the symmetric Hausdorff Distance between the object(s) in <code class="docutils literal notranslate"><span class="pre">`result`</span></code> and the
+<dt><strong>hd95</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The 95th percentile of the symmetric Hausdorff Distance between the object(s) in <code class="docutils literal notranslate"><span class="pre">`result`</span></code> and the
 object(s) in <code class="docutils literal notranslate"><span class="pre">`reference`</span></code>. The distance unit is the same as for the spacing of
 elements along each dimension, which is usually given in mm.</p>
 </dd>
@@ -583,7 +583,7 @@ elements along each dimension, which is usually given in mm.</p>
 </dd>
 <dt><strong>true_cls</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Ground truth (categorical).</p>
 </dd>
-<dt><strong>nclass</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of classes (Default value = 79).</p>
+<dt><strong>nclass</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of classes (Default value = 79).</p>
 </dd>
 </dl>
 </dd>
@@ -609,7 +609,7 @@ elements along each dimension, which is usually given in mm.</p>
 </dd>
 <dt><strong>true_cls</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Ground truth (categorical).</p>
 </dd>
-<dt><strong>nclass</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of classes (Default value = 79).</p>
+<dt><strong>nclass</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of classes (Default value = 79).</p>
 </dd>
 </dl>
 </dd>

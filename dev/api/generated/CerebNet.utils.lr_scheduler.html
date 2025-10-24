@@ -403,7 +403,7 @@ decay factor for where the learning rate restarts at.</p>
 <td><p>Load the scheduler's state.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_dict</span></code>()</p></td>
-<td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
+<td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">step</span></code>([epoch])</p></td>
 <td><p>Step could be called after every batch update.</p></td>
@@ -447,7 +447,7 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>cur_epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The number of epoch of the current training stage.</p>
+<dt><strong>cur_epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The number of epoch of the current training stage.</p>
 </dd>
 </dl>
 </dd>
@@ -461,7 +461,7 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>cur_epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The number of epoch of the current training stage.</p>
+<dt><strong>cur_epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The number of epoch of the current training stage.</p>
 </dd>
 </dl>
 </dd>
@@ -477,7 +477,7 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <dd class="field-odd"><dl>
 <dt><strong>optimizer</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.optim.Optimizer</span></code></span></dt><dd><p>The optimizer using to optimize the current network.</p>
 </dd>
-<dt><strong>epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The epoch for which to update the learning rate.</p>
+<dt><strong>epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The epoch for which to update the learning rate.</p>
 </dd>
 </dl>
 </dd>
@@ -514,19 +514,10 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <td><p>Load the scheduler's state.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_dict</span></code>()</p></td>
-<td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
+<td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts.step" title="CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts.step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">step</span></code></a>(metrics[, epoch])</p></td>
 <td><p>Performs an optimization step.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><strong>is_better</strong></p></td>
-<td></td>
 </tr>
 </tbody>
 </table>
@@ -538,9 +529,9 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>metrics</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The value of metrics is used to determine learning rate adjustments.</p>
+<dt><strong>metrics</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The value of metrics is used to determine learning rate adjustments.</p>
 </dd>
-<dt><strong>epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=None</span></dt><dd><p>Number of epochs.</p>
+<dt><strong>epoch</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=None</span></dt><dd><p>Number of epochs.</p>
 </dd>
 </dl>
 </dd>
@@ -570,7 +561,7 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <td><p>Load the scheduler's state.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">state_dict</span></code>()</p></td>
-<td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
+<td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">step</span></code>([epoch])</p></td>
 <td><p>Perform a step.</p></td>
