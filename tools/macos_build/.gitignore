@@ -8,3 +8,4 @@ build
 scripts/postinstall
 scripts_intell/postinstall
 dist/
+resources/
