@@ -2,7 +2,7 @@
 
 export FASTSURFER_HOME=/Applications/<fastsurfer>
 source $FASTSURFER_HOME/venv/bin/activate
-export PYTHONPATH=$FASTSURFER_HOME/venv/lib/python3.10/site-packages:$PYTHONPATH
+export PYTHONPATH=$FASTSURFER_HOME/venv/lib/python<python_version>/site-packages:$PYTHONPATH
 export PYTORCH_ENABLE_MPS_FALLBACK=<mps_fallback_value>
 export FREESURFER_HOME=/Applications/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null
@@ -11,12 +11,14 @@ echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here
 echo "See also https://deep-mi.org/FastSurfer/stable/overview/MACOS.html"
 
 if ! grep -q "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" ~/.bash_profile; then 
-    echo "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" >> ~/.bash_profile; 
+    echo "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" >> ~/.bash_profile;
+    export PATH="$(brew --prefix)/opt/grep/libexec/gnubin:$PATH" 
     echo "GNU grep has been added to path"
 fi
 
 if ! grep -q "export PATH=\"$FASTSURFER_HOME:\$PATH\"" ~/.bash_profile; then 
     echo "export PATH=\"$FASTSURFER_HOME:\$PATH\"" >> ~/.bash_profile; 
+    export PATH="$FASTSURFER_HOME:$PATH"
     echo "FastSurfer dir has been added to path"
 fi
 

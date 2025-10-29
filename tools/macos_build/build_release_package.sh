@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ "$#" -lt 3 ] ; then
+if [ "$#" -lt 2 ] ; then
   echo
-  echo "Usage:  build_release_package.sh <app_version> <arm|intel> <dir_to_fastsurfer> [<url_to_freesurfer>]"
+  echo "Usage:  build_release_package.sh <arm|intel> <dir_to_fastsurfer> "
   echo
   exit
 fi
@@ -13,12 +13,10 @@ if [ -d "$dir" ]; then
   cd "$dir"
 fi 
 
-VERSION=$1 # version of the project
-ARCH_TYPE=$2 # chip architecture - arm or intel
-DIR_TO_FASTSURFER=$3 # directory to fastsurfer
-if [ "$#" -gt 3 ]; then
-    URL_TO_FREESURFER=$4 # freesurfer install url 
-fi
+VERSION=$(python3 ../get_config_value.py --file ../config.yaml --key FASTSURFER.VERSION) # version of the project
+URL_TO_FREESURFER=$(python3 ../get_config_value.py --file ../config.yaml --key FREESURFER_LINK_MACOS) # freesurfer install url 
+ARCH_TYPE=$1 # chip architecture - arm or intel
+DIR_TO_FASTSURFER=$2 # directory to fastsurfer
 
 ARCH_TYPE_NAME="arm64"
 if [ "$ARCH_TYPE" = "intel" ]; then
@@ -38,25 +36,21 @@ mkdir $STAGED_DIR
 rsync -av --progress $DIR_TO_FASTSURFER/ $FASTSURFER_TO_PACKAGE \
       --exclude requirements.txt \
       --exclude requirements.cpu.txt \
-      --exclude Docker \
-      --exclude Singularity \
       --exclude tools
 
 # install freesurfer into temp folder
-if [ "$#" -gt 3 ]; then
-    ../install_fs_pruned.sh $STAGED_DIR --upx --url $URL_TO_FREESURFER
-else
-    ../install_fs_pruned.sh $STAGED_DIR --upx
-fi
+../install_fs_pruned.sh $STAGED_DIR --upx --url $URL_TO_FREESURFER
 
 SCRIPTS_DIR="./scripts" # directory with scripts executed during installation process (f.e. preinsatll postinstall)
+PYTHON_VERSION=$(python3 ../get_config_value.py --file ../config.yaml --key FASTSURFER.PYTHON_VERSION)
 
 # substitute values in postinstall script
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
 cp $SCRIPTS_DIR/postinstall.template $SCRIPTS_DIR/postinstall
 
 sed -i '' -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" $SCRIPTS_DIR/postinstall
-if [ "$ARCH_TYPE" = "arm"      ]; then
+sed -i '' -e "s|<python_version>|${PYTHON_VERSION}|g" $SCRIPTS_DIR/postinstall  
+if [ "$ARCH_TYPE" = "arm" ]; then
     sed -i '' -e "s|<homebrew_dir>|/opt/homebrew|g" $SCRIPTS_DIR/postinstall
 else
     sed -i '' -e "s|<homebrew_dir>|/usr/local|g" $SCRIPTS_DIR/postinstall
@@ -74,6 +68,7 @@ sed -i '' -e "s|<fastsurfer>|FastSurfer${VERSION}|g" FastSurfer.py
 
 cp macos_setup_fastsurfer.sh.template macos_setup_fastsurfer.sh
 sed -i '' -e "s|<fastsurfer>|FastSurfer${VERSION}|g" macos_setup_fastsurfer.sh
+sed -i '' -e "s|<python_version>|${PYTHON_VERSION}|g" macos_setup_fastsurfer.sh
 if [ "$ARCH_TYPE" = "arm" ]; then
     sed -i '' -e "s|<mps_fallback_value>|1|g" macos_setup_fastsurfer.sh
 else
@@ -81,8 +76,8 @@ else
 fi
 mv macos_setup_fastsurfer.sh $FASTSURFER_TO_PACKAGE/
 
-python3.10 setup.py py2app --iconfile resources/fastsurfer.png
-mv dist/FastSurfer.app $STAGED_DIR/
+python3 setup.py py2app --iconfile resources/fastsurfer.png
+mv dist/FastSurfer.app $STAGED_DIR/FastSurfer$VERSION.app
 
 rm -f FastSurfer.py
 chmod -R 755 $STAGED_DIR/*
@@ -106,7 +101,7 @@ productbuild --synthesize --package $OUTPUT_PKG $DISTRIBUTION_FILE
 
 # edit the distribution file
 # set title to package name (f.e. package_name.pkg -> <title>package_name</title>)
-python3.10 edit_distribution.py --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
+python3 edit_distribution.py --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
 
 # create installer package
 mkdir installer
@@ -118,4 +113,4 @@ productbuild \
 
 # get rid of temporary folder
 rm -rf $STAGED_DIR
-# rm -rf resources
+rm -rf resources

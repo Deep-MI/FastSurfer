@@ -53,7 +53,7 @@ def edit_distribution(distribution_file: Path | str, title: str) -> None:
     Parameters
     ----------
     distribution_file : Path, str
-        Path of distribution file.
+        Path to distribution file.
     title : str
         Value for the title tag.
     """
@@ -87,7 +87,6 @@ def edit_distribution(distribution_file: Path | str, title: str) -> None:
 
     
 if __name__ == "__main__":
-    # Command Line options are error checking done here
     parser = make_parser()
     args = parser.parse_args()
 

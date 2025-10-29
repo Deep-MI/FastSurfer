@@ -1,0 +1,6 @@
+FASTSURFER:
+  VERSION: '242'
+  PYTHON_VERSION: '3.10'
+
+FREESURFER_LINK_LINUX: 'https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz'
+FREESURFER_LINK_MACOS: 'https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-macOS-darwin_x86_64-7.4.1.tar.gz'
