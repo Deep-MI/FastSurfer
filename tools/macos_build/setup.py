@@ -6,8 +6,10 @@ Usage:
 """
 
 from setuptools import setup
+import os
 
-APP = ['FastSurfer.py']
+build_dir = os.path.dirname(os.path.realpath(__file__))
+APP = [build_dir + '/FastSurfer.py']
 DATA_FILES = []
 OPTIONS = {}
 

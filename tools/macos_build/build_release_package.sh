@@ -15,12 +15,14 @@ tools_dir=$(dirname "$build_dir")
 
 FASTSURFER_HOME=$(dirname "$tools_dir") # directory to fastsurfer
 # version of the project
-VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.yaml" --key project.version)
+VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.version)
 VERSION_NO_DOTS=${VERSION//./}
+#version of the freesurfer
+FREESURFER_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.freesurfer.version)
 # freesurfer install url
-URL_TO_FREESURFER_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.yaml" --key freesurfer.DOWNLOAD_MACOS)
+URL_TO_FREESURFER_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.freesurfer.urls.macOS)
 sub="{version}"
-URL_TO_FREESURFER="${URL_TO_FREESURFER_TEMP//$sub/$VERSION}"
+URL_TO_FREESURFER="${URL_TO_FREESURFER_TEMP//$sub/$FREESURFER_VERSION}"
 ARCH_TYPE=$1 # chip architecture - arm or intel
 
 ARCH_TYPE_NAME="arm64"
@@ -40,7 +42,7 @@ OUTPUT_PKG="$build_dir/raw_package/$PACKAGE_NAME.pkg"
 INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
 
 # create temporary folder to package and copy FastSurfer over
-STAGED_DIR="FastSurferPackageContent"
+STAGED_DIR="$build_dir/FastSurferPackageContent"
 FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
 mkdir $STAGED_DIR
 rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
@@ -51,7 +53,7 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
 # install freesurfer into temp folder
 "$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --upx --url "$URL_TO_FREESURFER"
 
-SCRIPTS_DIR="$tools_dir/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
+SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
 PYTHON_VERSION_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.requires-python)
 PYTHON_VERSION="${PYTHON_VERSION_TEMP#python>=}"
 
@@ -62,7 +64,7 @@ HOMEBREW_DIR=$([[ "$ARCH_TYPE" = "arm" ]] && echo "/opt/homebrew" || echo "/usr/
 sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
     -e "s|<python_version>|${PYTHON_VERSION}|g" \
     -e "s|<homebrew_dir>|$HOMEBREW_DIR|g" \
-    < "$SCRIPTS_DIR/postinstall.template" \
+    < "$SCRIPTS_DIR/postinstall.sh.template" \
     > "$SCRIPTS_DIR/postinstall"
 
 # assemble resources
@@ -85,14 +87,14 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 
 mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
-python3 "$build_dir/setup.py" py2app --iconfile "$RESOURCES_DIR/fastsurfer.png"
+python3 "$build_dir/setup.py" py2app --iconfile "$RESOURCES_DIR/fastsurfer.png" --dist-dir $build_dir/dist
 mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
 
-rm -f "FastSurfer.py"
+rm -f "$build_dir/FastSurfer.py"
 chmod -R 755 "$STAGED_DIR"/*
 
 # create raw package
-mkdir raw_package
+mkdir $build_dir/raw_package
 pkgbuild \
     --root "$STAGED_DIR" \
     --version "$VERSION" \
@@ -105,6 +107,8 @@ rm -f "$SCRIPTS_DIR/postinstall"
 
 # create distribution file template based on provided package
 DISTRIBUTION_FILE="$RESOURCES_DIR/distribution.xml"
+
+echo $OUTPUT_PKG and $DISTRIBUTION_FILE
 productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
 
 # edit the distribution file
@@ -112,11 +116,11 @@ productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
 python3 "$build_dir/edit_distribution.py" --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
 
 # create installer package
-mkdir installer
+mkdir $build_dir/installer
 productbuild \
     --distribution "$DISTRIBUTION_FILE" \
     --resources "$RESOURCES_DIR" \
-    --package-path raw_package \
+    --package-path $build_dir/raw_package \
     "$INSTALLER_PKG"
 
 # get rid of temporary folder
