@@ -5,8 +5,9 @@ Usage:
     python setup.py py2app
 """
 
-from setuptools import setup
 import os
+
+from setuptools import setup
 
 build_dir = os.path.dirname(os.path.realpath(__file__))
 APP = [build_dir + '/FastSurfer.py']
