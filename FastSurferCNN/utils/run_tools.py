@@ -222,21 +222,19 @@ class Popen(subprocess.Popen):
         err_prefix: str = "!",
     ) -> MessageBuffer:
         """
-        Forwards the stdout and stderr every timeout to file. Returns the full output
-        as a MessageBuffer object.
+        Forwards the stdout and stderr every timeout to file. Returns the full output as a MessageBuffer object.
 
         Parameters
         ----------
-        file: IO.TextIO, optional
-
-        encoding: str, optional
+        file : IO.TextIO, optional
+            The file or stream to which the output should be forwarded.
+        encoding : str, optional
             Charset to encode.
-        timeout: float, optional
-            Interval to let the child process, before returning to the parent (this)
-            process.
-        out_prefix: str, default=""
+        timeout : float, optional
+            Interval to let the child process, before returning to the parent (this) process.
+        out_prefix : str, default=""
             String to prefix lines from the stdout output.
-        err_prefix: str, default="!"
+        err_prefix : str, default="!"
             String to prefix lines from the stderr output.
 
         Returns
