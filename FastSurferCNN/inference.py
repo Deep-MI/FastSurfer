@@ -382,7 +382,7 @@ class Inference:
 
                     # add prediction logits into the output (same as multiplying probabilities)
                     ii[index_of_current_plane] = slice(start_index, end_index)
-                    out[tuple(ii)].add_(pred, alpha=self.alpha.get(plane, 0.4))
+                    out[tuple(ii)].add_(pred.half(), alpha=self.alpha.get(plane, 0.4))
                     start_index = end_index
 
             except:
