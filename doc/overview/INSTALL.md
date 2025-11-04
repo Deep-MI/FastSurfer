@@ -141,7 +141,7 @@ docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/
 ```
 Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.
 
-## MacOS 
+## MacOS
 
 Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU by passing ```--device mps```.
 
