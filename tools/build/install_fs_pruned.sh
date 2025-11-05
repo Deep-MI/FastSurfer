@@ -118,10 +118,10 @@ function run_parallel ()
 
 # get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
-# if [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink")
-# elif [[ -n "$(which curl)" ]] ; then dl=(curl -L --insecure "$fslink")
-aria2c -x 16 -s 16 -c --check-certificate=false -o freesurfer.tar.gz "$fslink" ; dl=(cat freesurfer.tar.gz)
-# fi
+if [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink")
+elif [[ -n "$(which curl)" ]] ; then dl=(curl -L --insecure "$fslink")
+else aria2c -x 16 -s 16 -c --check-certificate=false -o freesurfer.tar.gz "$fslink" ; dl=(cat freesurfer.tar.gz)
+fi
 
 "${dl[@]}"  | tar zxv --no-same-owner -C "$where" \
       --exclude='freesurfer/average/*.gca' \
