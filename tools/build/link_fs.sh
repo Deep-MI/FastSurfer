@@ -20,7 +20,7 @@ then
 fi
 
 # FS calls these for version info, but we don't need them
-# so we link them to mri_info to save space.
+# so we link them to not_here.sh (created below) to save space.
 link_files="
   bin/mri_and
   bin/mri_aparc2aseg
