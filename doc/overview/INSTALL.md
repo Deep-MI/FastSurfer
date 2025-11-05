@@ -164,59 +164,30 @@ docker pull deepmi/fastsurfer:latest
 
 Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker). 
 
-
 ### Native
 
-On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. Access to the built-in AI accelerator (MPS) is also only available on native installations. A native installation also works on older Intel chips.
-
 #### 1. Dependency packages
-If you do not have git, python3.10 or bash (at least 3.2) you can install these via the packet manager brew.
-This installs brew and then git and python3.10:
+If you do not have python3.10 or bash (at least 3.2) you can install these via the packet manager brew.
+This installs brew and then python3.10:
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install git python@3.10
+brew install python@3.10
 ```
 
-#### 2. Python
-Create a python environment, activate it, and upgrade pip: 
+### 2. FastSurfer package
+Install FastSurfer package according to your type of chip architecture and follow the installer instructions.
 
-```sh
-python3.10 -m venv $HOME/python-envs/fastsurfer 
-source $HOME/python-envs/fastsurfer/bin/activate
-python3.10 -m pip install --upgrade pip
-```
+ARM-based chips: [FastSurfer250-dev-macos-darwin_arm64](https://github.com/OtabekRintaro/FastSurfer/releases/download/2.5.0-dev/FastSurfer250-dev-macos-darwin_arm64.pkg)
+Intel chips: [FastSurfer250-dev-macos-darwin_x86_64.pkg](https://github.com/OtabekRintaro/FastSurfer/releases/download/2.5.0-dev/FastSurfer250-dev-macos-darwin_x86_64.pkg)
 
-#### 3. FastSurfer and Requirements
-Clone FastSurfer:
-```sh
-git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
-cd FastSurfer
-export PYTHONPATH="${PYTHONPATH}:$PWD"
-```
+After installation, you can find FastSurfer applet, its source code and freesurfer in the `/Applications` folder.
 
-Install the FastSurfer requirements
-```sh
-python3.10 -m pip install -r requirements.mac.txt
-```
+### 3 Launching FastSurfer
 
-If this step fails, you may need to edit ```requirements.mac.txt``` and exclude version numbers that produce conflicts or break our code. 
-On newer M1 Macs, we also had issues with the h5py package, which could be solved by using brew for help (not sure this is needed any longer):
+Launching FastSurfer applet will open terminal and setup environment for FastSurfer.
 
-```sh
-brew install hdf5
-export HDF5_DIR="$(brew --prefix hdf5)"
-pip3 install --no-binary=h5py h5py
-```
-
-You can also download all network checkpoint files at this point already:
-```sh
-python3.10 FastSurferCNN/download_checkpoints.py --all
-```
-
-Once all dependencies are installed, you can run the FastSurfer segmentation only by calling ```./run_fastsurfer.sh --seg_only ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage). 
-
-To run the full pipeline, install and source also the supported FreeSurfer version according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it will be slow due to the emulation. This is why we recommend using a Linux host system to run FastSurfer on larger datasets.
+Once it is set, you can run the full FastSurfer pipeline only by calling ```run_fastsurfer.sh ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage).
 
 #### 4. Apple AI Accelerator support
 On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
