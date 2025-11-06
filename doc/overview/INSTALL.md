@@ -249,7 +249,7 @@ docker pull deepmi/fastsurfer:latest
 
 Now you can run Fastsurfer the same way as described in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker), for example:
 ```bash
-docker run --gpus all
+docker run --gpus all \
            -v C:/Users/user/my_mri_data:/data \
            -v C:/Users/user/my_fastsurfer_analysis:/output \
            -v C:/Users/user/my_fs_license_dir:/fs_license \
