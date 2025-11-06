@@ -230,7 +230,7 @@ LF="$SUBJECTS_DIR/$tid/scripts/long_prepare_template.log"
 mkdir -p "$(dirname "$LF")"
 
 export PYTHONPATH
-PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH" || echo "")"
 
 ## make sure +eo are unset
 set +eo > /dev/null
