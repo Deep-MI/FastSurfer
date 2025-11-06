@@ -209,8 +209,8 @@ function check_subject_images ()
   done
   if [[ -n "$missing_subject_ids" ]]
   then
-    condition=$([[ -n "$missing_subject_imgs" ]] && echo " or missing")
-    condition+=$([[ -n "$symlink_subject_imgs" ]] && echo " or symlinks")
+    condition=$([[ -n "$missing_subject_imgs" ]] && echo " or missing" || echo "")
+    condition+=$([[ -n "$symlink_subject_imgs" ]] && echo " or symlinks" || echo "")
     echo "$([[ "${condition:4:1}" == m ]] && echo "ERROR" || echo "WARNING"): Some images are ${condition:4}!"
     echo "Subject IDs: ${missing_subject_ids:2}"
     if [[ -n "$missing_subject_imgs" ]] ; then echo "Missing files: ${missing_subject_imgs:2}" ; fi
