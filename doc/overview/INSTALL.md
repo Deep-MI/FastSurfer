@@ -164,11 +164,12 @@ docker pull deepmi/fastsurfer:latest
 
 Continue with the example in [Example 1](EXAMPLES.md#example-1-fastsurfer-docker). 
 
-### Native
+### Package
 
-#### 1. Dependency packages
-If you do not have python3.10 or bash (at least 3.2) you can install these via the packet manager brew.
-This installs brew and then python3.10:
+#### 1. Requirements
+FastSurfer requires pre-installed python3.10+ and bash (at least 3.2). 
+You can install these via the packet manager brew.
+To install brew and then python3.10, execute the following in a Terminal:
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -176,18 +177,18 @@ brew install python@3.10
 ```
 
 ### 2. FastSurfer package
-Install FastSurfer package according to your type of chip architecture and follow the installer instructions.
-
-ARM-based chips: [FastSurfer250-dev-macos-darwin_arm64](https://github.com/OtabekRintaro/FastSurfer/releases/download/2.5.0-dev/FastSurfer250-dev-macos-darwin_arm64.pkg)
-Intel chips: [FastSurfer250-dev-macos-darwin_x86_64.pkg](https://github.com/OtabekRintaro/FastSurfer/releases/download/2.5.0-dev/FastSurfer250-dev-macos-darwin_x86_64.pkg)
+From version 2.5 onward, FastSurfer ships a macOS installer package, which you can download from 
+[github](https://github.com/Deep-MI/FastSurfer/releases/). 
+There are package installers for each both the Apply M-chip architecture (`arm64`) and for legacy intel chips (`x86_64`).
+To install, drag the installer into Applications and follow the installer instructions. 
 
 After installation, you can find FastSurfer applet, its source code and freesurfer in the `/Applications` folder.
 
-### 3 Launching FastSurfer
+### 3. Launching FastSurfer
 
-Launching FastSurfer applet will open terminal and setup environment for FastSurfer.
+To easily get a configured FastSurfer session/terminal, start the FastSurfer applet by launching it from Applications.
 
-Once it is set, you can run the full FastSurfer pipeline only by calling ```run_fastsurfer.sh ....``` with the appropriate command line flags, see the [commandline documentation](../../README.md#usage).
+Once the terminal opens, it is already configured and you can easily run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage).
 
 #### 4. Apple AI Accelerator support
 On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:

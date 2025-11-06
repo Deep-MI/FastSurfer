@@ -51,12 +51,13 @@ Notwithstanding module-specific limitations, resolution should be between 1mm an
 ## Getting started
 
 ### Installation 
-There are two ways to run FastSurfer (links are to installation instructions):
+There are three ways to run FastSurfer (links are to installation instructions):
 
-1. In a container ([Singularity](doc/overview/INSTALL.md#singularity) or [Docker](doc/overview/INSTALL.md#docker)) (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [MacOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
-2. As a native install ([Linux, Windows (install WSL)](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204), and [macOS](doc/overview/INSTALL.md#native)).
+1. For Linux and Windows users, we recommend running FastSurfer in a container [Singularity/Apptainer](doc/overview/INSTALL.md#singularity) or [Docker](doc/overview/INSTALL.md#docker): (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [MacOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
+2. for macOS users, we recommend [installing the FastSurfer package](doc/overview/INSTALL.md#package), and
+3. for developers, the native install gives full control (only documented for [Linux](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204)).
 
-We recommend you use Singularity/Apptainer on Linux (and Windows) host systems and the package installer on macOS systems with M-chip. The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/fswiki/License) file for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md](doc/overview/INSTALL.md) file.
+The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/fswiki/License) file for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md](doc/overview/INSTALL.md) file.
 
 ### Usage
 
