@@ -109,10 +109,12 @@ runs:
         echo "::group::Save ${{ inputs.subject-id }} as an artifact"
     - name: Create archive of Processed subject-data
       shell: bash
+      if: ${{ always() && steps.load-docker.outcome == 'success' }}
       run: |
         # Archive data code
         tar cfz "$DATA_DIR/${{ inputs.subject-id }}.tar.gz" -C "$DATA_DIR" "${{ inputs.subject-id }}"
     - name: Save processed data
+      if: ${{ always() && steps.load-docker.outcome == 'success' }}
       uses: actions/upload-artifact@v4
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
