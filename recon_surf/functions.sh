@@ -132,7 +132,7 @@ function RunBatchJobs()
   # now append their logs to the main log file
   for log in "${LOGS[@]}"
   do
-    cat "$log" >> "$LOG_FILE"
+    tee -a "$LOG_FILE" < "$log"
     rm -f "$log"
   done
   echo "PIDs (${PIDS[*]}) completed and logs appended."
