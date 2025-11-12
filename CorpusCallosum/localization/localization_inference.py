@@ -19,14 +19,14 @@ import torch
 from monai import transforms
 from monai.networks.nets import DenseNet
 
+from CorpusCallosum.data import constants
 from CorpusCallosum.transforms.localization_transforms import CropAroundACPCFixedSize
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 
 
-def load_model(checkpoint_path: str | Path | None = None, 
-             device: torch.device | None = None) -> DenseNet:
+def load_model(device: torch.device | None = None) -> DenseNet:
     """Load trained numerical localization model from checkpoint.
 
     Parameters
@@ -65,7 +65,7 @@ def load_model(checkpoint_path: str | Path | None = None,
                 "checkpoint",
                 filename=CC_YAML,
             )
-    checkpoint_path = cc_config['localization']
+    checkpoint_path = constants.FASTSURFER_ROOT / cc_config['localization']
 
     # Load state dict
     if isinstance(checkpoint_path, str) or isinstance(checkpoint_path, Path):

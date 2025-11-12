@@ -17,6 +17,7 @@ import numpy as np
 import torch
 from monai import transforms
 
+from CorpusCallosum.data import constants
 from CorpusCallosum.transforms.segmentation_transforms import CropAroundACPC
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
@@ -24,7 +25,7 @@ from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
 
 
-def load_model(checkpoint_path: str | None = None, device: torch.device | None = None) -> FastSurferVINN:
+def load_model(device: torch.device | None = None) -> FastSurferVINN:
     """Load trained model from checkpoint.
 
     Parameters
@@ -70,7 +71,7 @@ def load_model(checkpoint_path: str | None = None, device: torch.device | None =
                 "checkpoint",
                 filename=CC_YAML,
             )
-    checkpoint_path = cc_config['segmentation']
+    checkpoint_path = constants.FASTSURFER_ROOT / cc_config['segmentation']
     
     weights = torch.load(checkpoint_path, weights_only=True, map_location=device)
     model.load_state_dict(weights)
