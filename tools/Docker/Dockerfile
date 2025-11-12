@@ -71,7 +71,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ARG FORGE_VERSION=25.3.1-0
+ARG FORGE_VERSION=25.9.1-0
 
 # Install conda
 RUN aria2c -x 8 -s 8 -c --check-certificate=false -o ~/miniforge.sh \
