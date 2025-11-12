@@ -274,7 +274,7 @@ def process_slices(
     subdivisions: list[float],
     subdivision_method: str,
     contour_smoothing: float,
-    debug_image_path: str | None = None,
+    qc_image_path: str | None = None,
     one_debug_image: bool = False,
     thickness_image_path: str | None = None,
     vox_size: tuple[float, float, float] | None = None,
@@ -310,8 +310,8 @@ def process_slices(
         Method for contour subdivision.
     contour_smoothing : float
         Gaussian sigma for contour smoothing.
-    debug_image_path : str or None, optional
-        Path for debug visualization image, by default None.
+    qc_image_path : str or None, optional
+        Path for QC visualization image, by default None.
     one_debug_image : bool, optional
         Whether to save only one debug image, by default False.
     thickness_image_path : str or None, optional
@@ -369,13 +369,13 @@ def process_slices(
                             contour_with_thickness[1], 
                             start_end_idx=(anterior_endpoint_idx, posterior_endpoint_idx))
 
-        if result is not None and debug_image_path is not None:
+        if result is not None and qc_image_path is not None:
             slice_results.append(result)
             # Create visualization
             if verbose:
-                logger.info(f"Saving segmentation qc image to {debug_image_path}")
-            IO_processes.append(create_visualization(subdivision_method, result, midslices, 
-                                                   debug_image_path, ac_coords, pc_coords, vox_size[0]))
+                logger.info(f"Saving segmentation qc image to {qc_image_path}")
+            IO_processes.append(create_visualization(subdivision_method, result, midslices,
+                                                   qc_image_path, ac_coords, pc_coords, vox_size[0]))
     else:
         num_slices = segmentation.shape[0]
         cc_mesh = CC_Mesh(num_slices=num_slices)
@@ -418,22 +418,22 @@ def process_slices(
 
                 if (one_debug_image and slice_idx == num_slices // 2) or not one_debug_image:
                     if not one_debug_image:
-                        debug_path_base, debug_path_ext = str(debug_image_path).rsplit('.', 1)
-                        debug_path_with_postfix = f"{debug_path_base}_slice_{slice_idx}"
-                    
-                        debug_output_path_slice = Path(f"{debug_path_with_postfix}.{debug_path_ext}")
-                        debug_output_path_slice = debug_output_path_slice.with_suffix('.png')
+                        qc_path_base, qc_path_ext = str(qc_image_path).rsplit('.', 1)
+                        qc_path_with_postfix = f"{qc_path_base}_slice_{slice_idx}"
+
+                        qc_output_path_slice = Path(f"{qc_path_with_postfix}.{qc_path_ext}")
+                        qc_output_path_slice = qc_output_path_slice.with_suffix('.png')
                     else:
-                        debug_output_path_slice = debug_image_path
+                        qc_output_path_slice = qc_image_path
                     
                     if verbose:
-                        logger.info(f"Saving segmentation qc image to {debug_output_path_slice}")
+                        logger.info(f"Saving segmentation qc image to {qc_output_path_slice}")
 
                     current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
                     # Create visualization for this slice
-                    IO_processes.append(create_visualization(subdivision_method, result, 
-                                                            midslices[current_slice_in_volume:current_slice_in_volume+1], 
-                                                            debug_output_path_slice, ac_coords, pc_coords, 
+                    IO_processes.append(create_visualization(subdivision_method, result,
+                                                            midslices[current_slice_in_volume:current_slice_in_volume+1],
+                                                            qc_output_path_slice, ac_coords, pc_coords,
                                                             vox_size[0], f' (Slice {slice_idx})'))
 
     if save_template is not None:

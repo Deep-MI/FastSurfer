@@ -13,6 +13,7 @@ from CorpusCallosum.data.constants import (
     FSAVERAGE_CENTROIDS_PATH,
     FSAVERAGE_DATA_PATH,
     FSAVERAGE_MIDDLE,
+    STANDARD_INPUT_PATHS,
     STANDARD_OUTPUT_PATHS,
 )
 from CorpusCallosum.data.read_write import (
@@ -34,7 +35,6 @@ from CorpusCallosum.registration.mapping_helpers import (
 from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
 from CorpusCallosum.shape.cc_postprocessing import (
     check_area_changes,
-    create_visualization,
     make_subdivision_mask,
     process_slices,
 )
@@ -48,35 +48,44 @@ logger = logging.get_logger(__name__)
 def options_parse() -> argparse.Namespace:
     """Parse command line arguments for the pipeline."""
     parser = argparse.ArgumentParser()
+
+    # Specify subject directory + subject ID, OR specify individual MRI and segmentation files + output paths
+    mgroup = parser.add_mutually_exclusive_group()
+    mgroup.add_argument(
+        "--sd",
+        type=Path,
+        help="Root directory in which the case directory is located. "
+             "Must be used together with --sid.",
+    )
     parser.add_argument(
-        "--in_mri",
+        "--sid",
         type=str,
-        required=False,
-        help="Input MRI file path. If not provided, defaults to subject_dir/mri/orig.mgz",
+        help="Name of the case directory. Must be used together with --sd.",
+    )
+    mgroup.add_argument(
+        "--t1",
+        type=Path,
+        help=f"Input MRI file path. Must be used together with --aseg_name. \
+              (default: subject_dir/{STANDARD_INPUT_PATHS['t1']})",
     )
     parser.add_argument(
-        "--cpu",
-        action="store_true",
-        help="Force CPU usage even when CUDA is available",
+        "--aseg_name",
+        type=Path,
+        help=f"Input segmentation file path. Must be used together with --t1. \
+              (default: subject_dir/{STANDARD_INPUT_PATHS['aseg_name']})",
     )
     parser.add_argument(
-        "--aseg",
+        "--device",
         type=str,
-        required=False,
-        help="Input segmentation file path. If not provided, defaults to subject_dir/mri/aparc.DKTatlas+aseg.deep.mgz",
+        default="auto",
+        help="Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1), \
+              Default: auto",
     )
+    
     parser.add_argument(
-        "--subject_dir",
-        type=str,
-        required=False,
-        help="Subject directory containing standard FreeSurfer structure. "
-        "Required if --in_mri and --aseg are not both provided.",
-        default=None,
-    )
-    parser.add_argument("--debug_output_dir", type=str, required=False, default=None,
-                        help="Directory for debug output (default: subject_dir/qc_snapshots)")
-    parser.add_argument(
-        "--num_thickness_points", type=int, default=100, help="Number of points for thickness estimation."
+        "--num_thickness_points", 
+        type=int, default=100, 
+        help="Number of points for thickness estimation."
     )
     parser.add_argument(
         "--subdivisions",
@@ -100,127 +109,176 @@ def options_parse() -> argparse.Namespace:
         "--contour_smoothing",
         type=float,
         default=5,
-        help="Window size for smoothing during contour detection. Default is 5, higher values mean a smoother"
-        "outline, at the cost of precision.",
+        help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother"
+        " CC outline, at the cost of precision. (default: 5)",
     )
     parser.add_argument(
         "--slice_selection",
         type=str,
         default="all",
-        help="Which slices to process. Options: 'middle' (default), 'all', or a specific slice number.",
+        help="Which slices to process. Options: 'middle', 'all', or a specific slice number. \
+              (default: 'all')",
     )
     parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose (shows output paths)",
+        default=False,
+    )
+
+    ######## OUTPUT PATHS #########
+    # 4. Options for advanced, technical parameters
+    advanced = parser.add_argument_group(title="Advanced options", 
+                        description="Custom output paths, useful if no standard case directory is used.")
+    advanced.add_argument("--qc_output_dir",
+        type=Path,
+        required=False,
+        default=None,
+        help="Directory for quality control output (default: subject_dir/qc_snapshots)")
+    advanced.add_argument(
         "--upright_volume_path",
-        type=str,
-        help=f"Path for upright volume output (default: subject_dir/{STANDARD_OUTPUT_PATHS['upright_volume']})",
+        type=Path,
+        help="Path for upright volume output (default: No output)",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--segmentation_path",
-        type=str,
+        type=Path,
         help=f"Path for segmentation output (default: subject_dir/{STANDARD_OUTPUT_PATHS['segmentation']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--postproc_results_path",
-        type=str,
-        help=f"Path for postprocessing results (default: subject_dir/{STANDARD_OUTPUT_PATHS['postproc_results']})",
+        type=Path,
+        help=f"Path for postprocessing results. Contains metrics describing CC shape and volume for each slice \
+               (default: subject_dir/{STANDARD_OUTPUT_PATHS['postproc_results']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--cc_markers_path",
-        type=str,
-        help=f"Path for CC markers output (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_markers']})",
+        type=Path,
+        help=f"Path for CC markers output. Contains metrics describing CC shape and volume \
+               (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_markers']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--upright_lta_path",
-        type=str,
-        help=f"Path for upright LTA transform (default: subject_dir/{STANDARD_OUTPUT_PATHS['upright_lta']})",
+        type=Path,
+        help=f"Path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, but no nodding \
+               correction is applied (default: subject_dir/{STANDARD_OUTPUT_PATHS['upright_lta']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--orient_volume_lta_path",
-        type=str,
-        help="Path for orientation volume LTA transform "
-             f"(default: subject_dir/{STANDARD_OUTPUT_PATHS['orient_volume_lta']})",
+        type=Path,
+        help=f"Path for orientation volume LTA transform. This makes sure the midplane is at 128 in LR direction, \
+              and the AC & PC are on the coordinate line, standardizing the head orientation. \
+              (default: subject_dir/{STANDARD_OUTPUT_PATHS['orient_volume_lta']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--orig_space_segmentation_path",
-        type=str,
-        help="Path for segmentation in original space "
+        type=Path,
+        help="Path for segmentation in the input MRI space "
              f"(default: subject_dir/{STANDARD_OUTPUT_PATHS['orig_space_segmentation']})",
         default=None,
     )
-    parser.add_argument(
-        "--debug_image_path",
-        type=str,
-        help=f"Path for debug visualization image (default: subject_dir/{STANDARD_OUTPUT_PATHS['debug_image']})",
+    advanced.add_argument(
+        "--qc_image_path",
+        type=Path,
+        help=f"Path for QC visualization image (default: subject_dir/{STANDARD_OUTPUT_PATHS['qc_image']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--save_template",
-        type=str,
-        help="Directory path where to save contours.txt and thickness_values.txt files",
+        type=Path,
+        help="Directory path where to save contours.txt and thickness_values.txt files. \
+              These files can be used to visualize the CC shape and volume in 3D.",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--thickness_image_path",
-        type=str,
+        type=Path,
         help=f"Path for thickness image (default: subject_dir/{STANDARD_OUTPUT_PATHS['thickness_image']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--surf_file_path",
-        type=str,
+        type=Path,
         help=f"Path for surf file (default: subject_dir/{STANDARD_OUTPUT_PATHS['surf_file']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--overlay_file_path",
-        type=str,
+        type=Path,
         help=f"Path for overlay file (default: subject_dir/{STANDARD_OUTPUT_PATHS['overlay_file']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--cc_html_path",
-        type=str,
-        help=f"Path for CC HTML file (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_html']})",
+        type=Path,
+        help=f"Path to CC 3D visualization for CC HTML file (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_html']})", 
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--vtk_file_path",
-        type=str,
-        help=f"Path for vtk file (default: subject_dir/{STANDARD_OUTPUT_PATHS['vtk_file']})",
+        type=Path,
+        help=f"Path for vtk file, showing the CC 3D mesh (default: subject_dir/{STANDARD_OUTPUT_PATHS['vtk_file']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--softlabels_cc_path",
-        type=str,
-        help=f"Path for cc softlabels (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_cc']})",
+        type=Path,
+        help=f"Path for cc softlabels. Contains the probability of each voxel being part of the CC \
+              (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_cc']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--softlabels_fn_path",
-        type=str,
-        help=f"Path for fornix softlabels (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_fn']})",
+        type=Path,
+        help=f"Path for fornix softlabels. Contains the probability of each voxel being part of the Fornix \
+              (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_fn']})",
         default=None,
     )
-    parser.add_argument(
+    advanced.add_argument(
         "--softlabels_background_path",
-        type=str,
-        help=f"Path for background softlabels (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_background']})",
+        type=Path,
+        help=f"Path for background softlabels. Contains the probability of each voxel being part of the background \
+              (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_background']})",
         default=None,
     )
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose (shows output paths)", default=False)
+    ############ END OF OUTPUT PATHS ############
+    
 
 
     args = parser.parse_args()
 
-    # Validation logic: either subject_dir OR both in_mri and aseg must be provided
-    if not args.subject_dir and (not args.in_mri or not args.aseg):
-        parser.error("You must specify either --subject_dir OR both --in_mri and --aseg arguments.")
+    # Reconstruct subject_dir from sd and sid (but sd might be stored as out_dir by parser_defaults)
+    sd_value = getattr(args, 'sd', getattr(args, 'out_dir', None))
+    if sd_value and hasattr(args, 'sid') and args.sid:
+        args.subject_dir = str(Path(sd_value) / args.sid)
+    else:
+        args.subject_dir = None
+
+    # Validation logic: must use either directory approach (--sd + --sid) OR file approach (--t1 + --aseg_name)
+    if sd_value:
+        # Using directory approach - make sure sid was also provided
+        if not (hasattr(args, 'sid') and args.sid):
+            parser.error("When using --sd, you must also provide --sid.")
+    elif hasattr(args, 'sid') and args.sid:
+        # If sid is provided without sd, that's an error
+        if not sd_value:
+            parser.error("When using --sid, you must also provide --sd.")
+    elif hasattr(args, 't1') and args.t1:
+        # Using file approach - make sure aseg_name was also provided
+        if not (hasattr(args, 'aseg_name') and args.aseg_name):
+            parser.error("When using --t1, you must also provide --aseg_name.")
+    elif hasattr(args, 'aseg_name') and args.aseg_name:
+        # If aseg_name is provided without t1, that's an error
+        if not (hasattr(args, 't1') and args.t1):
+            parser.error("When using --aseg_name, you must also provide --t1.")
+    else:
+        parser.error("You must specify either --sd and --sid OR both --t1 and --aseg_name.")
 
     # If subject_dir is provided, set default paths for missing arguments
     if args.subject_dir:
@@ -231,11 +289,11 @@ def options_parse() -> argparse.Namespace:
         (subject_dir_path / "stats").mkdir(parents=True, exist_ok=True)
         (subject_dir_path / "transforms").mkdir(parents=True, exist_ok=True)
 
-        if not args.in_mri:
-            args.in_mri = str(subject_dir_path / "mri" / "orig.mgz")
+        if not args.t1:
+            args.t1 = str(subject_dir_path / STANDARD_INPUT_PATHS["t1"])
 
-        if not args.aseg:
-            args.aseg = str(subject_dir_path / "mri" / "aparc.DKTatlas+aseg.deep.mgz")
+        if not args.aseg_name:
+            args.aseg_name = str(subject_dir_path / STANDARD_INPUT_PATHS["aseg_name"])
 
         # Set default output paths if not provided
         for key, value in STANDARD_OUTPUT_PATHS.items():
@@ -445,14 +503,14 @@ def main(
     aseg_path: str | Path,
     output_dir: str | Path,
     slice_selection: str = "middle",
-    debug_output_dir: str | Path = None,
+    qc_output_dir: str | Path = None,
     verbose: bool = False,
     num_thickness_points: int = 100,
     subdivisions: list[float] | None = None,
     subdivision_method: str = "shape",
     contour_smoothing: float = 5,
     save_template: str | Path | None = None,
-    cpu: bool = False,
+    device: str = "auto",
     upright_volume_path: str | Path = None,
     segmentation_path: str | Path = None,
     postproc_results_path: str | Path = None,
@@ -464,7 +522,7 @@ def main(
     cc_html_path: str | Path = None,
     vtk_file_path: str | Path = None,
     orig_space_segmentation_path: str | Path = None,
-    debug_image_path: str | Path = None,
+    qc_image_path: str | Path = None,
     thickness_image_path: str | Path = None,
     softlabels_cc_path: str | Path = None,
     softlabels_fn_path: str | Path = None,
@@ -485,8 +543,8 @@ def main(
         Directory for output files.
     slice_selection : str, optional
         Which slices to process ('middle', 'all', or specific slice number), by default 'middle'.
-    debug_output_dir : str or Path, optional
-        Directory for debug outputs, by default None.
+    qc_output_dir : str or Path, optional
+        Directory for quality control outputs, by default None.
     verbose : bool, optional
         Flag for verbose output, by default False.
     num_thickness_points : int, optional
@@ -499,8 +557,8 @@ def main(
         Gaussian sigma for smoothing during contour detection, by default 5.
     save_template : str or Path, optional
         Directory path where to save contours.txt and thickness_values.txt files, by default None.
-    cpu : bool, optional
-        Force CPU usage even when CUDA is available, by default False.
+    device : str, optional
+        Device to run inference on ('auto', 'cpu', 'cuda', or 'cuda:X'), by default 'auto'.
     upright_volume_path : str or Path, optional
         Path to save upright volume, by default None.
     segmentation_path : str or Path, optional
@@ -523,8 +581,8 @@ def main(
         Path to save VTK file, by default None.
     orig_space_segmentation_path : str or Path, optional
         Path to save segmentation in original space, by default None.
-    debug_image_path : str or Path, optional
-        Path to save debug images, by default None.
+    qc_image_path : str or Path, optional
+        Path to save QC images, by default None.
     thickness_image_path : str or Path, optional
         Path to save thickness visualization, by default None.
     softlabels_cc_path : str or Path, optional
@@ -569,7 +627,7 @@ def main(
     in_mri_path = Path(in_mri_path)
     aseg_path = Path(aseg_path)
     output_dir = Path(output_dir)
-    debug_output_dir = Path(debug_output_dir) if debug_output_dir else None
+    qc_output_dir = Path(qc_output_dir) if qc_output_dir else None
     save_template = Path(save_template) if save_template else None
 
     # Validate subdivision fractions
@@ -599,7 +657,10 @@ def main(
         raise ValueError("MRI is not conformed, please run conform.py or mri_convert to conform the image.")
 
     # load models
-    device = torch.device("cuda" if torch.cuda.is_available() and not cpu else "cpu")
+    if device == "auto":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    else:
+        device = torch.device(device)
     logger.info(f"Using device: {device}")
     
     logger.info("Loading models")
@@ -682,7 +743,7 @@ def main(
         subdivisions=subdivisions,
         subdivision_method=subdivision_method,
         contour_smoothing=contour_smoothing,
-        debug_image_path=debug_image_path,
+        qc_image_path=qc_image_path,
         one_debug_image=True,
         surf_file_path=surf_file_path,
         overlay_file_path=overlay_file_path,
@@ -847,9 +908,14 @@ if __name__ == "__main__":
     options = options_parse()
     main_args = vars(options)
 
+    # Remove parser_defaults arguments that are not needed by main()
+    main_args.pop("sd", None)
+    main_args.pop("out_dir", None)
+    main_args.pop("sid", None)
+
     # Rename keys to match main function parameters
-    main_args["in_mri_path"] = main_args.pop("in_mri")
-    main_args["aseg_path"] = main_args.pop("aseg")
+    main_args["in_mri_path"] = main_args.pop("t1")
+    main_args["aseg_path"] = main_args.pop("aseg_name")
     main_args["output_dir"] = main_args.pop("subject_dir", ".")
 
     main(**main_args)
