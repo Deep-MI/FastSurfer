@@ -112,15 +112,12 @@ def main(
         hypvinn: bool = False,
         cc: bool = False,
         all: bool = False,
-        files: list[str] = None,
+        files: list[str] = (),
         url: str | None = None,
 ) -> int | str:
     if not vinn and not files and not cerebnet and not hypvinn and not cc and not all:
         return ("Specify either files to download or --vinn, --cerebnet, "
                 "--hypvinn, or --all, see help -h.")
-    
-    if files is None:
-        files = []
 
     try:
         # FastSurferVINN checkpoints

@@ -1,7 +1,7 @@
 # Corpus Callosum Pipeline
 
 A deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
-Also segments the fornix, localizes the AC and PC and standardizes the orientation of the brain.
+Also segments the fornix, localizes the anterior and posterior commissure (AC and PC) and standardizes the orientation of the brain.
 
 ## Overview
 
@@ -15,7 +15,9 @@ This pipeline combines localization and segmentation deep learning models to:
 
 ## Quickstart
 
-``` python3 fastsurfer_cc.py --subject_dir /path/to/fastsurfer/output --verbose ```
+```bash
+python3 fastsurfer_cc.py --subject_dir /path/to/fastsurfer/output --verbose
+` ``
 
 Gives all standard outputs. Then corpus callosum morphometry can be found at `stats/callosum.CC.midslice.json`, including 100 thickness measurements and areas of sub-segments.
 Visualization will be placed in `/path/to/fastsurfer/output/qc_snapshots`. For more detailed info see the following sections.

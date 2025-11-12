@@ -93,30 +93,23 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
         center_point = ((ac_center + pc_center) / 2).astype(int)
 
         # Calculate voxel padding based on mm padding
-        voxel_padding_x = self.fixed_size[0] // 2
-        voxel_padding_y = self.fixed_size[1] // 2
+        voxel_padding = np.asarray(self.fixed_size) // 2
 
         # Add random translation if specified
         if self.random_translate > 0:
             random_translate = np.random.randint(-self.random_translate, 
                                                self.random_translate, size=2)
         else:
-            random_translate = (0,0)
-
-
+            random_translate = np.asarray((0, 0))
 
         # Calculate crop boundaries with padding and random translation
-        crop_left = center_point[1] - voxel_padding_x + random_translate[0]
-        crop_right = center_point[1] + voxel_padding_x + random_translate[0]
-        crop_top = center_point[2] - voxel_padding_y + random_translate[1] 
-        crop_bottom = center_point[2] + voxel_padding_y + random_translate[1]
-
+        crops = center_point - voxel_padding + random_translate
+        
         # Ensure crop boundaries are within image
-        #img_shape = d['image'].shape[2:]  # Get spatial dimensions
-        # crop_left = max(0, crop_left)
-        # crop_right = min(img_shape[0], crop_right)
-        # crop_top = max(0, crop_top)
-        # crop_bottom = min(img_shape[1], crop_bottom)
+        img_shape = np.asarray(d['image'].shape[2:])  # Get spatial dimensions
+        crops = np.maximum(0, np.minimum(img_shape, crops + np.asarray(self.fixed_size)) - np.asarray(self.fixed_size))
+        crop_left, crop_top = crops.tolist()
+        crop_right, crop_bottom = (crops + np.asarray(self.fixed_size)).tolist()
 
         # raise error if crop boundaries are out of image
         if crop_left < 0 or crop_right > d['image'].shape[2] or crop_top < 0 or crop_bottom > d['image'].shape[3]:

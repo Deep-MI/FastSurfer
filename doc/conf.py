@@ -12,8 +12,7 @@ import sys
 import os
 from pathlib import Path
 
-# here i added the relative path because sphinx was not able
-# to locate FastSurferCNN module directly for autosummary
+# relative path so sphinx can locate the different modules directly for autosummary
 sys.path.append(os.path.dirname(__file__) + "/..")
 sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
 sys.path.append(os.path.dirname(__file__) + "/sphinx_ext")

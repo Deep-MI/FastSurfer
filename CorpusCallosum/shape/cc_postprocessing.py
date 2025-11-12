@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, SUBSEGEMNT_LABELS
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, SUBSEGMENT_LABELS
 from CorpusCallosum.data.read_write import run_in_background
 from CorpusCallosum.shape.cc_endpoint_heuristic import get_endpoints
 from CorpusCallosum.shape.cc_mesh import CC_Mesh
@@ -628,7 +628,7 @@ def make_subdivision_mask(
     rows, cols = slice_shape
     y_coords, x_coords = np.mgrid[0:rows, 0:cols]
 
-    subsegment_labels_anterior_posterior = SUBSEGEMNT_LABELS.copy()
+    subsegment_labels_anterior_posterior = SUBSEGMENT_LABELS.copy()
     subsegment_labels_anterior_posterior.reverse()
     
     # Initialize with first segment label

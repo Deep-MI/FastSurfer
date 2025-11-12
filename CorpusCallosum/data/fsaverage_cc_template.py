@@ -19,7 +19,9 @@ import nibabel as nib
 import numpy as np
 from scipy import ndimage
 
+from CorpusCallosum.data import constants
 from CorpusCallosum.shape.cc_postprocessing import process_slice
+from FastSurferCNN.utils.brainvolstats import mask_in_array
 
 
 def smooth_contour(contour: tuple[np.ndarray, np.ndarray], window_size: int = 5) -> tuple[np.ndarray, np.ndarray]:
@@ -93,7 +95,7 @@ def load_fsaverage_cc_template() -> tuple[
 
     fsaverage_seg_path = freesurfer_home / 'subjects' / 'fsaverage' / 'mri' / 'aparc+aseg.mgz'
     fsaverage_seg = nib.load(fsaverage_seg_path)
-    segmentation = fsaverage_seg.get_fdata()
+    segmentation = np.asarray(fsaverage_seg.dataobj)
 
     PC = np.array([131, 99])
     AC = np.array([135, 130])
@@ -101,11 +103,7 @@ def load_fsaverage_cc_template() -> tuple[
 
     midslice = segmentation.shape[0]//2 +1
 
-    cc_mask = segmentation[midslice] == 251
-    cc_mask |= segmentation[midslice] == 252
-    cc_mask |= segmentation[midslice] == 253
-    cc_mask |= segmentation[midslice] == 254
-    cc_mask |= segmentation[midslice] == 255
+    cc_mask = mask_in_array(segmentation[midslice], constants.SUBSEGMENT_LABELS)
 
     # Smooth the CC mask to reduce noise and irregularities
 
@@ -120,8 +118,7 @@ def load_fsaverage_cc_template() -> tuple[
     cc_mask_smoothed = cc_mask_smoothed > 0.5
 
     # Use the smoothed mask for further processing
-    cc_mask = cc_mask_smoothed.astype(int)
-    cc_mask[cc_mask > 0] = 192
+    cc_mask = cc_mask_smoothed.astype(int) * 192
 
     (_, contour_with_thickness, anterior_endpoint_idx,
      posterior_endpoint_idx) = process_slice(segmentation=cc_mask[None],

@@ -15,6 +15,7 @@
 import json
 import multiprocessing
 from pathlib import Path
+from typing import overload
 
 import nibabel as nib
 import numpy as np
@@ -52,8 +53,15 @@ def run_in_background(function: callable, debug: bool = False, *args, **kwargs) 
     return process
 
 
+@overload
+def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: None = None) -> dict[int, np.ndarray]:
+    ...
 
-def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None = None) -> dict[int, np.ndarray]:
+@overload
+def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int]) -> tuple[dict[int, np.ndarray], list[int]]:
+    ...
+
+def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None = None):
     """Get centroids of segmentation labels in RAS coordinates.
 
     Parameters
@@ -187,12 +195,7 @@ def load_fsaverage_centroids(centroids_path: str | Path) -> dict[int, np.ndarray
         centroids_data = json.load(f)
     
     # Convert string keys back to integers and lists back to numpy arrays
-    centroids = {}
-    for label_str, centroid_list in centroids_data.items():
-        label_id = int(label_str)
-        centroids[label_id] = np.array(centroid_list)
-    
-    return centroids
+    return {int(label): np.array(centroid) for label, centroid in centroids_data.items()}
 
 
 def load_fsaverage_affine(affine_path: str | Path) -> np.ndarray:
@@ -270,8 +273,8 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[np.ndarray, dict, np.nda
     if "header" not in data:
         raise ValueError("Required field 'header' missing from data file")
     
-    header_fields = ["dims", "delta", "Mdc", "Pxyz_c"]
-    for field in header_fields:
+    required_header_fields = ["dims", "delta", "Mdc", "Pxyz_c"]
+    for field in required_header_fields:
         if field not in data["header"]:
             raise ValueError(f"Required header field missing: {field}")
     

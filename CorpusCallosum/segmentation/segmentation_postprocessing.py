@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+from numpy import typing as npt
 from scipy import integrate, ndimage
 from scipy.spatial.distance import cdist
 from skimage.measure import label
@@ -23,7 +24,7 @@ from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
 logger = logging.get_logger(__name__)
 
 
-def find_component_boundaries(labels_arr: np.ndarray, component_id: int) -> np.ndarray:
+def find_component_boundaries(labels_arr: npt.NDArray[int], component_id: int) -> npt.NDArray[int]:
     """Find boundary voxels of a connected component.
 
     Parameters
@@ -59,19 +60,19 @@ def find_component_boundaries(labels_arr: np.ndarray, component_id: int) -> np.n
 
 
 def find_minimal_connection_path(
-    boundary1: np.ndarray, 
-    boundary2: np.ndarray, 
+    boundary_coords1: np.ndarray, 
+    boundary_coords2: np.ndarray, 
     max_distance: float = 3.0
 ) -> tuple[np.ndarray, np.ndarray] | None:
     """Find the minimal connection path between two component boundaries.
 
     Parameters
     ----------
-    boundary1 : np.ndarray
+    boundary_coords1 : np.ndarray
         Boundary coordinates of first component, shape (N1, 3)
-    boundary2 : np.ndarray
+    boundary_coords2 : np.ndarray
         Boundary coordinates of second component, shape (N2, 3)
-    max_distance : float, optional
+    max_distance : float, default=3.0
         Maximum distance to consider for connection, by default 3.0
 
     Returns
@@ -87,20 +88,18 @@ def find_minimal_connection_path(
     Uses Euclidean distance to find the closest pair of points
     between the two boundaries.
     """
-    if len(boundary1) == 0 or len(boundary2) == 0:
+    if len(boundary_coords1) == 0 or len(boundary_coords2) == 0:
         return None
     
     # Calculate pairwise distances between all boundary points
-    distances = cdist(boundary1, boundary2, metric='euclidean')
+    distances = cdist(boundary_coords1, boundary_coords2, metric='euclidean')
     
     # Find the minimum distance and corresponding points
     min_idx = np.unravel_index(np.argmin(distances), distances.shape)
     min_distance = distances[min_idx]
     
     if min_distance <= max_distance:
-        point1 = boundary1[min_idx[0]]
-        point2 = boundary2[min_idx[1]]
-        return point1, point2
+        return boundary_coords1[min_idx[0]], boundary_coords2[min_idx[1]]
     
     return None
 

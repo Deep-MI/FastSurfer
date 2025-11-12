@@ -24,7 +24,6 @@ import plotly.graph_objects as go
 import pyrr
 import scipy.interpolate
 from scipy.ndimage import gaussian_filter1d
-from whippersnappy.core import snap1
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.cc_endpoint_heuristic import smooth_contour
@@ -1272,6 +1271,14 @@ class CC_Mesh(lapy.TriaMesh):
         3. Cleans up temporary files after use.
 
         """
+        try:
+            from whippersnappy.core import snap1
+        except ImportError:
+            # whippersnappy not installed
+            raise RuntimeError(
+                "The snap_cc_picture method of CCMesh requires whippersnappy, but whippersnappy was not found. "
+                "Please install whippersnappy!"
+            ) from None
         self.__make_parent_folder(output_path)
         # Skip snapshot if there are no faces
         if len(self.t) == 0:
