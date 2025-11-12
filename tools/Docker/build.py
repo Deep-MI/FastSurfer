@@ -1,4 +1,4 @@
-#!/bin/python
+#!python
 
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
@@ -39,10 +39,9 @@ else:
 
 logger = logging.getLogger(__name__)
 
-Target = Literal['runtime', 'build_common', 'build_conda', 'build_freesurfer',
-                 'build_base', 'runtime_cuda']
+Target = Literal["runtime", "build_common", "build_conda", "build_freesurfer", "build_base", "runtime_cuda"]
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu118", "cu124", "cu126", "rocm", "rocm6.2.4"]
+AllDeviceType = Literal["cpu", "cuda", "cu118", "cu126", "cu128", "rocm", "rocm6.2.4", "xpu"]
 DeviceType = Literal["cpu", "cu118", "cu124", "cu126", "rocm6.2.4"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
@@ -72,9 +71,10 @@ class DEFAULTS:
     # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
     # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
     # torch 2.6 comes compiled with cu118, cu124, cu126 and rocm6.2.4
-    CUDA="cu126"
-    CUDA_VERSION="12.6"
-    ROCM="rocm6.2.4"
+    # torch 2.7.1 comes compiled with cu118, cu126, cu128, rocm6.3, and xpu (intel)
+    CUDA="cu128"
+    CUDA_VERSION="12.8"
+    ROCM="rocm6.3"
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
         rocm=ROCM,
@@ -215,7 +215,8 @@ def make_parser() -> argparse.ArgumentParser:
         help=f"""selection of internal build stages to build for a specific platform.<br>
                 - cuda: defaults to {DEFAULTS.CUDA}, cuda {DEFAULTS.CUDA_VERSION}<br>
                 - cpu: only cpu support<br>
-                - rocm: defaults to {DEFAULTS.ROCM} (experimental)""",
+                - rocm: defaults to {DEFAULTS.ROCM} (experimental)<br>
+                - xpu: intel xpu (VERY experimental)""",
     )
     parser.add_argument(
         "--tag",
