@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import meshpy.triangle as triangle
 import numpy as np
 import scipy.interpolate
 from lapy import Solver, TriaMesh
 from lapy.diffgeo import compute_rotated_f
+from meshpy import triangle
 
 from CorpusCallosum.utils.utils import HiddenPrints
 

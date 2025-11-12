@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -116,8 +117,6 @@ def run_inference(
         - segmentation : Binary segmentation map
         - landmarks : Predicted landmark coordinates
     """
-    orig_shape = image_slice.shape
-    
     if device is None:
         #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         device = next(model.parameters()).device
@@ -162,50 +161,26 @@ def run_inference(
     # split into slices with 9 channels each
     # Generate views with sliding window of 9 slices
     batch_size, channels, height, width = inputs.shape
-    views = []
-    for i in range(batch_size - 8):  # -8 to ensure we have 9 slices per view
-        view = inputs[i:i+9]  # Take 9 consecutive slices
-        view = view.reshape(1, 9*channels, height, width)  # Reshape to combine slices into channels
-        views.append(view)
-        
-    inputs = torch.cat(views, dim=0)  # Stack all views into batch dimension
+    inputs = inputs.unfold(0, 9, 1).swapdims(0, 1).reshape(-1, 9*channels, height, width)
 
     # Post-process outputs
     with torch.no_grad():
-        scale_factors = torch.ones((inputs.shape[0], 2), device=device) * (1 / voxel_size)
+        scale_factors = torch.ones((inputs.shape[0], 2), device=device) / voxel_size
         
         outputs = model(inputs, scale_factor=scale_factors)
         
         # average the outputs along the batch dimension
-        outputs_avg = torch.mean(outputs, dim=0).unsqueeze(0)
+        outputs_avg = torch.mean(outputs, dim=0, keepdim=True)
     
         outputs_soft = outputs.cpu().numpy() #transforms.Activations(softmax=True)(outputs) # non_discrete outputs
         outputs = torch.stack([post_trans(i) for i in outputs])
         outputs_avg = torch.stack([post_trans(i) for i in outputs_avg])
         
-        pad_left, pad_right, pad_top, pad_bottom = to_pad
-        # Pad back to original size
-        outputs = np.pad(outputs, ((0,0), (0,0), (pad_left.item(), pad_right.item()), 
-                                   (pad_top.item(), pad_bottom.item())), mode='constant', constant_values=0)
-        outputs_avg = np.pad(outputs_avg, ((0,0), (0,0), (pad_left.item(), pad_right.item()), 
-                                           (pad_top.item(), pad_bottom.item())), mode='constant', constant_values=0)
-        outputs_soft = np.pad(outputs_soft, ((0,0), (0,0), (pad_left.item(), pad_right.item()), 
-                                             (pad_top.item(), pad_bottom.item())), mode='constant', constant_values=0)
-    
-    # restore original shape
-    if orig_shape[-2:] != outputs.shape[-2:]:
-        new_outputs = np.zeros((outputs.shape[0], outputs.shape[1], orig_shape[-2], orig_shape[-1]))
-        new_outputs[:,:,:256,:256] = outputs
-        outputs = new_outputs
-        
-        new_outputs_avg = np.zeros((outputs_avg.shape[0], outputs_avg.shape[1], orig_shape[-2], orig_shape[-1]))
-        new_outputs_avg[:,:,:256,:256] = outputs_avg
-        outputs_avg = new_outputs_avg
-
-        new_outputs_soft = np.zeros((outputs_soft.shape[0], outputs_soft.shape[1], 
-                                     orig_shape[-2], orig_shape[-1]), dtype=np.float32)
-        new_outputs_soft[:,:,:256,:256] = outputs_soft
-        outputs_soft = new_outputs_soft
+        # Pad back to original size, to_pad is a tuple[int, int, int, int]
+        pad_tuples = ((0, 0),) * 2 + (to_pad[:2], to_pad[2:])
+        outputs = np.pad(outputs, pad_tuples, mode='constant', constant_values=0)
+        outputs_avg = np.pad(outputs_avg, pad_tuples, mode='constant', constant_values=0)
+        outputs_soft = np.pad(outputs_soft, pad_tuples, mode='constant', constant_values=0)    
 
     return (
         outputs.transpose(0,2,3,1),
@@ -216,6 +191,8 @@ def run_inference(
 
 
 def load_validation_data(path):
+    from concurrent.futures import ThreadPoolExecutor
+
     import pandas as pd
     data = pd.read_csv(path, index_col=0, header=None)
     data.columns = ["image", "label", "AC_center_x", "AC_center_y", "AC_center_z", 
@@ -227,21 +204,19 @@ def load_validation_data(path):
     labels = data["label"].values
     subj_ids = data.index.values.tolist()
 
-    label_widths = []
-    for label_path in data['label']:
-        label_img =nib.load(label_path)
+    def _load(label_path: str | Path) -> int:
+        label_img = nib.load(label_path)
         
         if label_img.shape[0] > 100:
             # check which slices have non-zero values
-            label = label_img.get_fdata()
-            non_zero_slices = np.any(label > 0, axis=(1,2))
+            label_data = np.asarray(label_img.dataobj)
+            non_zero_slices = np.any(label_data > 0, axis=(1,2))
             first_nonzero = np.argmax(non_zero_slices)
             last_nonzero = len(non_zero_slices) - np.argmax(non_zero_slices[::-1])
-            label_widths.append(last_nonzero - first_nonzero)
+            return last_nonzero - first_nonzero
         else:
-            label_widths.append(label_img.shape[0])
-        
-    
+            return label_img.shape[0]
+    label_widths = ThreadPoolExecutor().map(_load, data["label"])    
     
     return images, ac_centers, pc_centers, label_widths, labels, subj_ids
 
@@ -251,10 +226,7 @@ def one_hot_to_label(one_hot, label_ids=None):
         label_ids = [0, 192, 250]
     label = np.argmax(one_hot, axis=3)
     if label_ids is not None:
-        label = np.where(label == 0, label_ids[0], label)
-        label = np.where(label == 1, label_ids[1], label)
-        label = np.where(label == 2, label_ids[2], label)
-
+        label = np.asarray(label_ids)[label]
     return label
 
 

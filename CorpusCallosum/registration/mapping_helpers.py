@@ -3,30 +3,34 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
+from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
-import FastSurferCNN.utils.logging as logging
+from FastSurferCNN.utils import logging
 
 logger = logging.get_logger(__name__)
 
 
-def make_midplane_affine(orig_affine: np.ndarray, slices_to_analyze: int = 1, 
-                       offset: int = 4) -> np.ndarray:
+def make_midplane_affine(
+        orig_affine: npt.NDArray[float],
+        slices_to_analyze: int = 1,
+        offset: int = 4,
+    ) -> npt.NDArray[float]:
     """Create affine transformation matrix for midplane slices.
 
     Parameters
     ----------
     orig_affine : np.ndarray
-        Original image affine matrix (4x4)
-    slices_to_analyze : int, optional
-        Number of slices to analyze around midplane, by default 1
-    offset : int, optional
-        Additional offset in x direction, by default 4
+        Original image affine matrix (4x4).
+    slices_to_analyze : int, default=1
+        Number of slices to analyze around midplane.
+    offset : int, default=4
+        Additional offset in x direction.
 
     Returns
     -------
     np.ndarray
-        4x4 affine matrix for midplane slices
+        4x4 affine matrix for midplane slices.
     """
     # Create translation matrix to center on midplane
     orig_to_seg = np.eye(4)
@@ -38,7 +42,7 @@ def make_midplane_affine(orig_affine: np.ndarray, slices_to_analyze: int = 1,
     return seg_affine
 
 
-def correct_nodding(ac_pt: np.ndarray, pc_pt: np.ndarray) -> np.ndarray:
+def correct_nodding(ac_pt: npt.NDArray[float], pc_pt: npt.NDArray[float]) -> npt.NDArray[float]:
     """Calculate rotation matrix to correct head nodding.
 
     Calculates rotation matrix to align AC-PC line with posterior direction,
@@ -47,14 +51,14 @@ def correct_nodding(ac_pt: np.ndarray, pc_pt: np.ndarray) -> np.ndarray:
     Parameters
     ----------
     ac_pt : np.ndarray
-        Coordinates of the anterior commissure point
+        Coordinates of the anterior commissure point.
     pc_pt : np.ndarray
-        Coordinates of the posterior commissure point
+        Coordinates of the posterior commissure point.
 
     Returns
     -------
     np.ndarray
-        3x3 rotation matrix to align AC-PC line with posterior direction
+        3x3 rotation matrix to align AC-PC line with posterior direction.
     """
     ac_pc_vec = pc_pt - ac_pt
     ac_pc_dist = np.linalg.norm(ac_pc_vec)
@@ -90,25 +94,24 @@ def correct_nodding(ac_pt: np.ndarray, pc_pt: np.ndarray) -> np.ndarray:
     return rotation_matrix
 
 
-def apply_transform_to_pt(pts: np.ndarray, T: np.ndarray, inv: bool = False) -> np.ndarray:
+def apply_transform_to_pt(pts: npt.NDArray[float], T: npt.NDArray[float], inv: bool = False) -> npt.NDArray[float]:
     """Apply homogeneous transformation matrix to points.
 
     Parameters
     ----------
     pts : np.ndarray
-        Point coordinates to transform, shape (3,) or (3, N)
+        Point coordinates to transform, shape (3,) or (3, N).
     T : np.ndarray
-        4x4 homogeneous transformation matrix
-    inv : bool, optional
-        If True, applies inverse of transformation, by default False
+        4x4 homogeneous transformation matrix.
+    inv : bool, default=False
+        If True, applies inverse of transformation.
 
     Returns
     -------
     np.ndarray
-        Transformed point coordinates, shape (3,) or (3, N)
+        Transformed point coordinates, shape (3,) or (3, N).
     """
     if inv:
-        T = T.copy()
         T = np.linalg.inv(T)
 
     if pts.ndim == 1:
@@ -119,34 +122,35 @@ def apply_transform_to_pt(pts: np.ndarray, T: np.ndarray, inv: bool = False) -> 
 
 def get_mapping_to_standard_space(
     orig: "nib.Nifti1Image", 
-    ac_coords_3d: np.ndarray, 
-    pc_coords_3d: np.ndarray, 
-    orig_fsaverage_vox2vox: np.ndarray, 
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ac_coords_3d: npt.NDArray[float], 
+    pc_coords_3d: npt.NDArray[float], 
+    orig_fsaverage_vox2vox: npt.NDArray[float],
+) -> tuple[npt.NDArray[float], npt.NDArray[float], npt.NDArray[float], npt.NDArray[float], npt.NDArray[float]]:
     """Get transformations to map image to standard space.
 
     Parameters
     ----------
     orig : nib.Nifti1Image
-        Original image
+        Original image.
     ac_coords_3d : np.ndarray
-        AC coordinates in 3D space
+        AC coordinates in 3D space.
     pc_coords_3d : np.ndarray
-        PC coordinates in 3D space
+        PC coordinates in 3D space.
     orig_fsaverage_vox2vox : np.ndarray
-        Transformation matrix from original to fsaverage space
-    output_dir : str or Path
-        Directory to save transformation files
+        Transformation matrix from original to fsaverage space.
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-        Contains:
-        - upright_volume : Upright transformed volume
-        - standardized_volume : Volume in standard space
-        - ac_coords_standardized : AC coordinates in standard space
-        - pc_coords_standardized : PC coordinates in standard space
-        - standardized_affine : Affine matrix for standard space
+    upright_volume : np.ndarray
+        Upright transformed volume.
+    standardized_volume : np.ndarray
+        Volume in standard space.
+    ac_coords_standardized : np.ndarray
+        AC coordinates in standard space.
+    pc_coords_standardized : np.ndarray
+        PC coordinates in standard space.
+    standardized_affine : np.ndarray
+        Affine matrix for standard space.
     """
     image_center = np.array(orig.shape) / 2
 
@@ -156,9 +160,8 @@ def get_mapping_to_standard_space(
     # convert 2D nodding correction to 3D transformation matrix
     nod_correct_3d = np.eye(4)
     nod_correct_3d[1:3, 1:3] = nod_correct_2d[:2, :2]  # Copy rotation part to y,z axes
-    nod_correct_3d[1:3, 3] = nod_correct_2d[
-        :2, 2
-    ]  # Copy translation part to y,z axes (usually no translation)
+    # Copy translation part to y,z axes (usually no translation)
+    nod_correct_3d[1:3, 3] = nod_correct_2d[:2, 2]
 
     ac_coords_after_nodding = apply_transform_to_pt(
         ac_coords_3d, nod_correct_3d, inv=False
@@ -168,9 +171,7 @@ def get_mapping_to_standard_space(
     )
 
     ac_to_center_translation = np.eye(4)
-    ac_to_center_translation[0, 3] = image_center[0] - ac_coords_after_nodding[0]
-    ac_to_center_translation[1, 3] = image_center[1] - ac_coords_after_nodding[1]
-    ac_to_center_translation[2, 3] = image_center[2] - ac_coords_after_nodding[2]
+    ac_to_center_translation[:3, 3] = image_center - ac_coords_after_nodding
 
     # correct nodding
     ac_coords_standardized = apply_transform_to_pt(
@@ -205,8 +206,8 @@ def get_mapping_to_standard_space(
 
 def apply_transform_to_volume(
     volume: np.ndarray,
-    transform: np.ndarray,
-    affine: np.ndarray,
+    transform: npt.NDArray[float],
+    affine: npt.NDArray[float],
     header: nib.freesurfer.mghformat.MGHHeader,
     output_path: str | Path | None = None,
     output_size: np.ndarray | None = None,
@@ -217,24 +218,24 @@ def apply_transform_to_volume(
     Parameters
     ----------
     volume : np.ndarray
-        Input volume data
+        Input volume data.
     transform : np.ndarray
-        Transformation matrix to apply
+        Transformation matrix to apply.
     affine : np.ndarray
-        Affine matrix for the output image
+        Affine matrix for the output image.
     header : nib.freesurfer.mghformat.MGHHeader
-        Header for the output image
-    output_path : str or Path or None, optional
-        Path to save transformed volume, by default None
-    output_size : np.ndarray or None, optional
-        Size of output volume, by default None (uses input size)
-    order : int, optional
-        Order of interpolation, by default 1
+        Header for the output image.
+    output_path : str or Path, optional
+        Path to save transformed volume.
+    output_size : np.ndarray, optional
+        Size of output volume, uses input size by default (`None`).
+    order : int, default=1
+        Order of interpolation.
 
     Returns
     -------
     np.ndarray
-        Transformed volume data
+        Transformed volume data.
 
     Notes
     -----
@@ -256,18 +257,18 @@ def apply_transform_to_volume(
     return transformed
 
 
-def make_affine(simpleITKImage: 'sitk.Image') -> np.ndarray:
+def make_affine(simpleITKImage: 'sitk.Image') -> npt.NDArray[float]:
     """Create an affine transformation matrix from a SimpleITK image.
 
     Parameters
     ----------
     simpleITKImage : sitk.Image
-        Input SimpleITK image
+        Input SimpleITK image.
 
     Returns
     -------
     np.ndarray
-        4x4 affine transformation matrix in RAS coordinates
+        4x4 affine transformation matrix in RAS coordinates.
 
     Notes
     -----
@@ -277,10 +278,7 @@ def make_affine(simpleITKImage: 'sitk.Image') -> np.ndarray:
     3. Returns the final 4x4 transformation matrix
     """
     # get affine transform in LPS
-    c = [
-        simpleITKImage.TransformContinuousIndexToPhysicalPoint(p)
-        for p in ((1, 0, 0), (0, 1, 0), (0, 0, 1), (0, 0, 0))
-    ]
+    c = [simpleITKImage.TransformContinuousIndexToPhysicalPoint(p) for p in np.eye(4)[:, :3]]
     c = np.array(c)
     affine = np.concatenate(
         [np.concatenate([c[0:3] - c[3:], c[3:]], axis=0), [[0.0], [0.0], [0.0], [1.0]]],
@@ -293,8 +291,8 @@ def make_affine(simpleITKImage: 'sitk.Image') -> np.ndarray:
 
 
 def map_softlabels_to_orig(
-    outputs_soft: np.ndarray,
-    orig_fsaverage_vox2vox: np.ndarray,
+    outputs_soft: npt.NDArray[float],
+    orig_fsaverage_vox2vox: npt.NDArray[float],
     orig: np.ndarray,
     slices_to_analyze: int,
     orig_space_segmentation_path: str | Path | None = None,
@@ -306,24 +304,24 @@ def map_softlabels_to_orig(
     Parameters
     ----------
     outputs_soft : np.ndarray
-        Soft label predictions
+        Soft label predictions.
     orig_fsaverage_vox2vox : np.ndarray
-        Original to fsaverage space transformation
+        Original to fsaverage space transformation.
     orig : np.ndarray
-        Original image
+        Original image.
     slices_to_analyze : int
-        Number of slices to analyze
-    orig_space_segmentation_path : str or Path or None, optional
-        Path to save segmentation in original space, by default None
-    fsaverage_middle : int, optional
-        Middle slice index in fsaverage space, by default 128
-    subdivision_mask : np.ndarray or None, optional
-        Mask for subdividing regions, by default None
+        Number of slices to analyze.
+    orig_space_segmentation_path : str or Path, optional
+        Path to save segmentation in original space.
+    fsaverage_middle : int, default=128
+        Middle slice index in fsaverage space.
+    subdivision_mask : np.ndarray, optional
+        Mask for subdividing regions.
 
     Returns
     -------
     np.ndarray
-        Final segmentation in original image space
+        Final segmentation in original image space.
 
     Notes
     -----
@@ -337,17 +335,12 @@ def map_softlabels_to_orig(
     """
 
     # map softlabels to original image
+    pad_lr = (fsaverage_middle - slices_to_analyze // 2, fsaverage_middle + slices_to_analyze // 2 + 1)
+    pad_tuples = (pad_lr,) + ((0, 0),) * (orig.ndim - 1)
     softlabels_transformed = []
     for i in range(outputs_soft.shape[-1]):
-
         # pad to original image size
-        outputs_soft_padded = np.zeros(orig.shape)
-        outputs_soft_padded[
-            fsaverage_middle
-            - slices_to_analyze // 2 : fsaverage_middle
-            + slices_to_analyze // 2
-            + 1
-        ] = outputs_soft[..., i]
+        outputs_soft_padded = np.pad(outputs_soft[..., i], pad_tuples)
 
         s = affine_transform(
             outputs_soft_padded,
@@ -361,15 +354,14 @@ def map_softlabels_to_orig(
     softlabels_orig_space = np.stack(softlabels_transformed, axis=-1)
 
     # apply softmax to softlabels_orig_space
-    softlabels_orig_space = np.exp(softlabels_orig_space) / np.sum(
-        np.exp(softlabels_orig_space), axis=-1, keepdims=True
-    )
+    exp_orig_space = np.exp(softlabels_orig_space)
+    softlabels_orig_space = exp_orig_space / np.sum(exp_orig_space, axis=-1, keepdims=True)
 
     segmentation_orig_space = np.argmax(softlabels_orig_space, axis=-1)
 
     if subdivision_mask is not None:
         # repeat subdivision mask for shape 0 of orig
-        subdivision_mask = np.repeat(subdivision_mask[np.newaxis, :, :], orig.shape[0], axis=0)
+        subdivision_mask = np.repeat(subdivision_mask[np.newaxis], orig.shape[0], axis=0)
         # map subdivision mask to orig space
         subdivision_mask_orig_space = affine_transform(
             subdivision_mask,
@@ -378,19 +370,11 @@ def map_softlabels_to_orig(
             order=0,
         )
 
-        segmentation_orig_space[segmentation_orig_space == 1] = \
-            segmentation_orig_space[segmentation_orig_space == 1] * \
-                subdivision_mask_orig_space[segmentation_orig_space == 1]
+        mask = segmentation_orig_space == 1
+        segmentation_orig_space[mask] *= subdivision_mask_orig_space[mask]
 
-
-    segmentation_orig_space = np.where(
-        segmentation_orig_space == 1, 192, segmentation_orig_space
-    )
-    segmentation_orig_space = np.where(
-        segmentation_orig_space == 2, 250, segmentation_orig_space
-    )
-
-    
+    seg_lut = np.asarray([0, 192, 250])
+    segmentation_orig_space = seg_lut[segmentation_orig_space]
 
     if orig_space_segmentation_path is not None:
         logger.info(f"Saving segmentation in original space to {orig_space_segmentation_path}")

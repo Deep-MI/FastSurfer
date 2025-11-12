@@ -1,11 +1,28 @@
+#!/usr/bin/env python3
+# Copyright 2025 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import argparse
 import json
 from pathlib import Path
+from typing import Literal
 
 # import warnings warnings.filterwarnings("ignore", message="TypedStorage is deprecated")
 import nibabel as nib
 import numpy as np
 import torch
+from monai.networks.nets import DenseNet
+from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import (
@@ -39,14 +56,17 @@ from CorpusCallosum.shape.cc_postprocessing import (
     process_slices,
 )
 from FastSurferCNN.data_loader.conform import is_conform
+from FastSurferCNN.utils.common import find_device
 from recon_surf import lta
 from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
+SliceSelection = Literal["middle", "all"] | int
+SubdivisionMethod = Literal["shape", "vertical", "angular", "eigenvector"]
+    
 
-
-def options_parse() -> argparse.Namespace:
-    """Parse command line arguments for the pipeline."""
+def make_parser() -> argparse.ArgumentParser:
+    """Create the argument parse object for the pipeline."""
     parser = argparse.ArgumentParser()
 
     # Specify subject directory + subject ID, OR specify individual MRI and segmentation files + output paths
@@ -81,10 +101,10 @@ def options_parse() -> argparse.Namespace:
         help="Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1), \
               Default: auto",
     )
-    
+
     parser.add_argument(
-        "--num_thickness_points", 
-        type=int, default=100, 
+        "--num_thickness_points",
+        type=int, default=100,
         help="Number of points for thickness estimation."
     )
     parser.add_argument(
@@ -96,7 +116,6 @@ def options_parse() -> argparse.Namespace:
     )
     parser.add_argument(
         "--subdivision_method",
-        type=str,
         default="shape",
         help="Method for contour subdivision. \
                         Options: shape (Intercallosal subdivision perpendicular to intercallosal line), vertical \
@@ -112,6 +131,10 @@ def options_parse() -> argparse.Namespace:
         help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother"
         " CC outline, at the cost of precision. (default: 5)",
     )
+    def _slice_selection(a: str) -> SliceSelection:
+        if a.lower() in ("middle", "all"):
+            return a.lower()
+        return int(a)
     parser.add_argument(
         "--slice_selection",
         type=str,
@@ -128,7 +151,7 @@ def options_parse() -> argparse.Namespace:
 
     ######## OUTPUT PATHS #########
     # 4. Options for advanced, technical parameters
-    advanced = parser.add_argument_group(title="Advanced options", 
+    advanced = parser.add_argument_group(title="Advanced options",
                         description="Custom output paths, useful if no standard case directory is used.")
     advanced.add_argument("--qc_output_dir",
         type=Path,
@@ -190,7 +213,7 @@ def options_parse() -> argparse.Namespace:
         default=None,
     )
     advanced.add_argument(
-        "--save_template",
+        "--save_template_dir",
         type=Path,
         help="Directory path where to save contours.txt and thickness_values.txt files. \
               These files can be used to visualize the CC shape and volume in 3D.",
@@ -217,7 +240,7 @@ def options_parse() -> argparse.Namespace:
     advanced.add_argument(
         "--cc_html_path",
         type=Path,
-        help=f"Path to CC 3D visualization for CC HTML file (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_html']})", 
+        help=f"Path to CC 3D visualization for CC HTML file (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_html']})",
         default=None,
     )
     advanced.add_argument(
@@ -248,9 +271,14 @@ def options_parse() -> argparse.Namespace:
         default=None,
     )
     ############ END OF OUTPUT PATHS ############
-    
 
 
+    return parser
+
+
+def options_parse() -> argparse.Namespace:
+    """Parse command line arguments for the pipeline."""
+    parser = make_parser()
     args = parser.parse_args()
 
     # Reconstruct subject_dir from sd and sid (but sd might be stored as out_dir by parser_defaults)
@@ -298,7 +326,7 @@ def options_parse() -> argparse.Namespace:
         # Set default output paths if not provided
         for key, value in STANDARD_OUTPUT_PATHS.items():
             if not getattr(args, f"{key}_path") and value is not None:
-                setattr(args, f"{key}_path", str(subject_dir_path / value))
+                setattr(args, f"{key}_path", subject_dir_path / value)
 
         # Set output_dir to subject_dir
         args.output_dir = str(subject_dir_path)
@@ -312,8 +340,8 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-def centroid_registration(aseg_nib: nib.Nifti1Image, verbose: bool = False) -> tuple[
-    np.ndarray, np.ndarray, np.ndarray, nib.Nifti1Header, np.ndarray
+def centroid_registration(aseg_nib: nib.Nifti1Image) -> tuple[
+    npt.NDArray[float], npt.NDArray[float], npt.NDArray[float], nib.Nifti1Header, npt.NDArray[float]
 ]:
     """Perform centroid-based registration between subject and fsaverage space.
 
@@ -324,8 +352,6 @@ def centroid_registration(aseg_nib: nib.Nifti1Image, verbose: bool = False) -> t
     ----------
     aseg_nib : nibabel.Nifti1Image
         Subject's segmentation image.
-    verbose : bool, optional
-        Whether to print progress information, by default False.
 
     Returns
     -------
@@ -346,8 +372,7 @@ def centroid_registration(aseg_nib: nib.Nifti1Image, verbose: bool = False) -> t
     to perform the registration. It matches corresponding anatomical structures
     between the subject's segmentation and fsaverage space.
     """
-    if verbose:
-        print("Centroid registration")
+    logger.info("Starting centroid registration")
 
     # Load pre-computed fsaverage centroids and data from static files
     centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
@@ -365,25 +390,21 @@ def centroid_registration(aseg_nib: nib.Nifti1Image, verbose: bool = False) -> t
     orig_fsaverage_ras2ras = find_rigid(p_mov=centroids_mov.T, p_dst=centroids_dst.T)
 
     # make affine that increases resolution to orig resolution
-    resolution_orig = aseg_nib.header.get_zooms()[0]
-    resolution_trans = np.eye(4)
-    resolution_trans[0, 0] = resolution_orig
-    resolution_trans[1, 1] = resolution_orig
-    resolution_trans[2, 2] = resolution_orig
+    resolution_trans = np.diagflat(list(aseg_nib.header.get_zooms()[:3]) + [1])
 
     orig_fsaverage_vox2vox = (
         np.linalg.inv(resolution_trans @ fsaverage_affine) @ orig_fsaverage_ras2ras @ aseg_nib.affine
     )
     fsaverage_hires_affine = resolution_trans @ fsaverage_affine
-
+    logger.info("Centroid registration successful!")
     return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header, vox2ras_tkr
 
 
 def localize_ac_pc(
     midslices: np.ndarray,
     aseg_nib: "nib.Nifti1Image",
-    orig_fsaverage_vox2vox: np.ndarray,
-    model_localization: "torch.nn.Module",
+    orig_fsaverage_vox2vox: npt.NDArray[float],
+    model_localization: DenseNet,
     slices_to_analyze: int
 ) -> tuple[np.ndarray, np.ndarray]:
     """Localize anterior and posterior commissure points in the brain.
@@ -399,7 +420,7 @@ def localize_ac_pc(
         Subject's segmentation image.
     orig_fsaverage_vox2vox : np.ndarray
         Transformation matrix to fsaverage space.
-    model_localization : torch.nn.Module
+    model_localization : DenseNet
         Trained model for AC-PC detection.
     slices_to_analyze : int
         Number of slices to process.
@@ -413,7 +434,7 @@ def localize_ac_pc(
     """
 
     # get center of third ventricle from aseg and map to fsaverage space
-    third_ventricle_mask = aseg_nib.get_fdata() == 4
+    third_ventricle_mask = np.asarray(aseg_nib.dataobj) == 4
     third_ventricle_center = np.argwhere(third_ventricle_mask).mean(axis=0)
     third_ventricle_center_vox = apply_transform_to_pt(third_ventricle_center, orig_fsaverage_vox2vox, inv=False)
 
@@ -431,12 +452,12 @@ def localize_ac_pc(
 
 def segment_cc(
     midslices: np.ndarray,
-    ac_coords: np.ndarray,
-    pc_coords: np.ndarray,
+    ac_coords: npt.NDArray[float],
+    pc_coords: npt.NDArray[float],
     aseg_nib: "nib.Nifti1Image",
     model_segmentation: "torch.nn.Module",
-    slices_to_analyze: int
-) -> tuple[np.ndarray, np.ndarray]:
+    slices_to_analyze: int,
+) -> tuple[npt.NDArray[bool], npt.NDArray[float]]:
     """Segment the corpus callosum using a trained model.
 
     Performs corpus callosum segmentation on mid-sagittal slices using a trained model,
@@ -460,38 +481,33 @@ def segment_cc(
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        - segmentation : Binary segmentation of the corpus callosum.
-        - outputs_soft : Soft segmentation probabilities.
+    segmentation : np.ndarray
+        Binary segmentation of the corpus callosum.
+    outputs_soft : np.ndarray
+        Soft segmentation probabilities.
     """
     # get 5 mm of slices output with 9 slices per inference
-    midslices_middle = midslices.shape[0] // 2
-    middle_slices_segmentation = midslices[
-        midslices_middle - slices_to_analyze // 2 - 4 : midslices_middle + slices_to_analyze // 2 + 5
-    ]
-    segmentation, inputs, outputs_avg, outputs_soft = segmentation_inference.run_inference_on_slice(
+    midslices_start = midslices.shape[0] // 2 - slices_to_analyze // 2 - 4
+    middle_slices_slab = midslices[midslices_start:midslices_start + slices_to_analyze + 9]
+    pre_clean_segmentation, inputs, outputs_avg, outputs_soft = segmentation_inference.run_inference_on_slice(
         model_segmentation,
-        middle_slices_segmentation,
+        middle_slices_slab,
         AC_center=ac_coords,
         PC_center=pc_coords,
         voxel_size=aseg_nib.header.get_zooms()[0],
     )
 
-    pre_clean_segmentation = segmentation.copy()
-    segmentation, cc_volume_mask = segmentation_postprocessing.clean_cc_segmentation(segmentation)
+    segmentation, cc_volume_mask = segmentation_postprocessing.clean_cc_segmentation(pre_clean_segmentation)
 
     # print a warning if the cc_volume_mask touches the edge of the segmentation
     if (
-        np.any(cc_volume_mask[:, 0, :])
-        or np.any(cc_volume_mask[:, -1, :])
-        or np.any(cc_volume_mask[:, :, 0])
-        or np.any(cc_volume_mask[:, :, -1])
+        np.any(cc_volume_mask[:, [0, -1]])
+        or np.any(cc_volume_mask[:, :, [0, -1]])
     ):
-        print("Warning: CC voume mask touches the edge of the segmentation field-of-view, CC might be truncated")
+        logger.warning("CC volume mask touches the edge of the segmentation field-of-view, CC might be truncated")
 
     # get voxels that were removed during cleaning
-    removed_voxels = pre_clean_segmentation != segmentation
-    outputs_soft[removed_voxels, 1] = 0
+    outputs_soft[pre_clean_segmentation != segmentation, 1] = 0
 
     return segmentation, outputs_soft
 
@@ -499,7 +515,7 @@ def segment_cc(
 
 
 def main(
-    in_mri_path: str | Path,
+    t1_path: str | Path,
     aseg_path: str | Path,
     output_dir: str | Path,
     slice_selection: str = "middle",
@@ -507,9 +523,9 @@ def main(
     verbose: bool = False,
     num_thickness_points: int = 100,
     subdivisions: list[float] | None = None,
-    subdivision_method: str = "shape",
+    subdivision_method: SubdivisionMethod = "shape",
     contour_smoothing: float = 5,
-    save_template: str | Path | None = None,
+    save_template_dir: str | Path | None = None,
     device: str = "auto",
     upright_volume_path: str | Path = None,
     segmentation_path: str | Path = None,
@@ -535,9 +551,9 @@ def main(
 
     Parameters
     ----------
-    in_mri_path : str or Path
+    conf_name : str or Path
         Path to input MRI file.
-    aseg_path : str or Path
+    aseg_name : str or Path
         Path to input segmentation file.
     output_dir : str or Path
         Directory for output files.
@@ -550,47 +566,48 @@ def main(
     num_thickness_points : int, optional
         Number of points for thickness estimation, by default 100.
     subdivisions : list[float], optional
-        List of subdivision fractions for CC subsegmentation, by default None.
-    subdivision_method : str, optional
-        Method for contour subdivision ('shape', 'vertical', 'angular', 'eigenvector'), by default 'shape'.
-    contour_smoothing : float, optional
-        Gaussian sigma for smoothing during contour detection, by default 5.
-    save_template : str or Path, optional
-        Directory path where to save contours.txt and thickness_values.txt files, by default None.
+        List of subdivision fractions for CC subsegmentation.
+    subdivision_method : any of "shape", "vertical", "angular", "eigenvector", default="shape"
+        Method for contour subdivision.
+    contour_smoothing : float, default=5
+        Gaussian sigma for smoothing during contour detection.
+    save_template_dir : str or Path, optional
+        Directory path where to save contours.txt and thickness_values.txt files. \
+        These files can be used to visualize the CC shape and volume in 3D.
     device : str, optional
         Device to run inference on ('auto', 'cpu', 'cuda', or 'cuda:X'), by default 'auto'.
     upright_volume_path : str or Path, optional
-        Path to save upright volume, by default None.
+        Path to save upright volume.
     segmentation_path : str or Path, optional
-        Path to save segmentation, by default None.
+        Path to save segmentation.
     postproc_results_path : str or Path, optional
-        Path to save post-processing results, by default None.
+        Path to save post-processing results.
     cc_markers_path : str or Path, optional
-        Path to save CC markers, by default None.
+        Path to save CC markers.
     upright_lta_path : str or Path, optional
-        Path to save upright LTA transform, by default None.
+        Path to save upright LTA transform.
     orient_volume_lta_path : str or Path, optional
-        Path to save orientation transform, by default None.
+        Path to save orientation transform.
     surf_file_path : str or Path, optional
-        Path to save surface file, by default None.
+        Path to save surface file.
     overlay_file_path : str or Path, optional
-        Path to save overlay file, by default None.
+        Path to save overlay file.
     cc_html_path : str or Path, optional
-        Path to save HTML visualization, by default None.
+        Path to save HTML visualization.
     vtk_file_path : str or Path, optional
-        Path to save VTK file, by default None.
+        Path to save VTK file.
     orig_space_segmentation_path : str or Path, optional
         Path to save segmentation in original space, by default None.
     qc_image_path : str or Path, optional
         Path to save QC images, by default None.
     thickness_image_path : str or Path, optional
-        Path to save thickness visualization, by default None.
+        Path to save thickness visualization.
     softlabels_cc_path : str or Path, optional
-        Path to save CC soft labels, by default None.
+        Path to save CC soft labels.
     softlabels_fn_path : str or Path, optional
-        Path to save fornix soft labels, by default None.
+        Path to save fornix soft labels.
     softlabels_background_path : str or Path, optional
-        Path to save background soft labels, by default None.
+        Path to save background soft labels.
 
     Notes
     -----
@@ -619,27 +636,28 @@ def main(
         logging.setup_logging(None)  # Log to stdout only
     
     logger.info("Starting corpus callosum analysis pipeline")
-    logger.info(f"Input MRI: {in_mri_path}")
+    logger.info(f"Input MRI: {t1_path}")
     logger.info(f"Input segmentation: {aseg_path}")
     logger.info(f"Output directory: {output_dir}")
     
     # Convert all paths to Path objects
-    in_mri_path = Path(in_mri_path)
+    t1_path = Path(t1_path)
     aseg_path = Path(aseg_path)
-    output_dir = Path(output_dir)
-    qc_output_dir = Path(qc_output_dir) if qc_output_dir else None
-    save_template = Path(save_template) if save_template else None
+    if output_dir is not None:
+        output_dir = Path(output_dir)
+    if save_template_dir:
+        save_template_dir = Path(save_template_dir)
 
     # Validate subdivision fractions
-    for i in subdivisions:
-        if i < 0 or i > 1:
-            logger.error(f"Error: Subdivision fractions must be between 0 and 1, but got: {i}")
-            raise ValueError(f"Subdivision fractions must be between 0 and 1, but got: {i}")
+    if any(i < 0 or i > 1 for i in subdivisions):
+        logger.error(f"Error: Subdivision fractions must be between 0 and 1, but got: {subdivisions}")
+        import sys
+        sys.exit(1)
 
     #### setup variables
     IO_processes = []
 
-    orig = nib.load(in_mri_path)
+    orig = nib.load(t1_path)
 
     # 5 mm around the midplane
     slices_to_analyze = int(np.ceil(5 / orig.header.get_zooms()[0]))
@@ -672,7 +690,7 @@ def main(
     logger.info("Performing centroid registration to fsaverage space")
     (orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, 
      fsaverage_hires_affine, fsaverage_header, fsaverage_vox2ras_tkr) = centroid_registration(
-        aseg_nib, verbose=False
+        aseg_nib
     )
 
     if verbose:
@@ -728,14 +746,12 @@ def main(
     
 
     # Create a temporary segmentation image with proper affine for enhanced postprocessing
-    temp_seg_affine = fsaverage_hires_affine @ np.linalg.inv(np.eye(4))
-
     # Process slices based on selection mode
     logger.info(f"Processing slices with selection mode: {slice_selection}")
     slice_results, slice_io_processes = process_slices(
         segmentation=segmentation,
         slice_selection=slice_selection,
-        temp_seg_affine=temp_seg_affine,
+        temp_seg_affine=fsaverage_hires_affine,
         midslices=midslices,
         ac_coords=ac_coords,
         pc_coords=pc_coords,
@@ -753,10 +769,9 @@ def main(
         vox_size=orig.header.get_zooms(),
         vox2ras_tkr=fsaverage_vox2ras_tkr,
         verbose=verbose,
-        save_template=save_template,
+        save_template=save_template_dir,
     )
     IO_processes.extend(slice_io_processes)
-
 
     outer_contours = [slice_result['split_contours'][0] for slice_result in slice_results]
 
@@ -894,7 +909,7 @@ def main(
     )
     logger.info(f"Saving LTA to standardized space: {orient_volume_lta_path}")
     lta.writeLTA(
-        orient_volume_lta_path, orig_to_standardized_ras2ras, in_mri_path, orig.header, in_mri_path, orig.header
+        orient_volume_lta_path, orig_to_standardized_ras2ras, t1_path, orig.header, t1_path, orig.header
     )
 
     for process in IO_processes:
@@ -914,7 +929,7 @@ if __name__ == "__main__":
     main_args.pop("sid", None)
 
     # Rename keys to match main function parameters
-    main_args["in_mri_path"] = main_args.pop("t1")
+    main_args["t1_path"] = main_args.pop("t1")
     main_args["aseg_path"] = main_args.pop("aseg_name")
     main_args["output_dir"] = main_args.pop("subject_dir", ".")
 

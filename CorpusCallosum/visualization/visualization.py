@@ -47,20 +47,10 @@ def plot_standardized_space(
     """
     ax_row[0].set_title("Standardized")
 
-    # Axial view
-    ax_row[0].scatter(ac_coords[2], ac_coords[1], color="red", marker="x")
-    ax_row[0].scatter(pc_coords[2], pc_coords[1], color="blue", marker="x")
-    ax_row[0].imshow(vol[vol.shape[0] // 2], cmap="gray")
-
-    # Sagittal view
-    ax_row[1].scatter(ac_coords[2], ac_coords[0], color="red", marker="x")
-    ax_row[1].scatter(pc_coords[2], pc_coords[0], color="blue", marker="x")
-    ax_row[1].imshow(vol[:, vol.shape[1] // 2], cmap="gray")
-
-    # Coronal view
-    ax_row[2].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
-    ax_row[2].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
-    ax_row[2].imshow(vol[:, :, vol.shape[2] // 2], cmap="gray")
+    for i, (a, b, _) in ((2, 1, "Axial"), (2, 0, "Sagittal"), (1, 0, "Coronal")):
+        ax_row[i].scatter(ac_coords[a], ac_coords[b], color="red", marker="x")
+        ax_row[i].scatter(pc_coords[a], pc_coords[b], color="blue", marker="x")
+        ax_row[i].imshow(vol[(slice(None),) * i + (vol.shape[i] // 2,)], cmap="gray")
 
 
 def visualize_coordinate_spaces(
@@ -105,7 +95,11 @@ def visualize_coordinate_spaces(
 
     Notes
     -----
-    Saves the visualization as 'ac_pc_spaces.png' in the output directory.
+    Saves a visualization of the anterior (red) and posterior (blue) commisure in three different view: 
+    1. the orig image (orig), 
+    2. fs-average standardized image space, and
+    3. standardized image space
+    as a single image named 'ac_pc_spaces.png' in `output_dir`.
     """
     fig, ax = plt.subplots(3, 4)
     ax = ax.T
@@ -174,15 +168,14 @@ def plot_contours(
     """
 
     # scale contour data by vox_size
-    split_contours = (
-        [split_contour / vox_size for split_contour in split_contours] if split_contours is not None else None
-    )
-    midline_equidistant = midline_equidistant / vox_size if midline_equidistant is not None else None
-    levelpaths = [levelpath / vox_size for levelpath in levelpaths] if levelpaths is not None else None
+    if split_contours:
+        split_contours = np.stack(split_contours, axis=0) / vox_size
+    if midline_equidistant:
+        midline_equidistant = midline_equidistant / vox_size
+    if levelpaths:
+        levelpaths = np.stack(levelpaths, axis=0) / vox_size
 
-    NO_PLOTS = 1
-    if split_contours is not None:
-        NO_PLOTS += 1
+    NO_PLOTS = 1 + int(split_contours is not None)
 
     _, ax = plt.subplots(1, NO_PLOTS, sharex=True, sharey=True, figsize=(15, 10))
 
@@ -256,9 +249,7 @@ def plot_midplane(grid_orig: np.ndarray, orig: np.ndarray) -> None:
 
     # Plot every 10th point to avoid overcrowding
     sample_idx = np.arange(0, grid_orig.shape[1], 40)
-    ax.scatter(
-        grid_orig[0, sample_idx], grid_orig[1, sample_idx], grid_orig[2, sample_idx], c="r", alpha=0.1, marker="."
-    )
+    ax.scatter(*grid_orig[:3, sample_idx], c="r", alpha=0.1, marker=".")
 
     # Set labels
     ax.set_xlabel("X")

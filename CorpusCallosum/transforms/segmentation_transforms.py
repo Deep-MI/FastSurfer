@@ -26,12 +26,12 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
     ----------
     keys : list[str]
         Keys of the data dictionary to apply the transform to
-    allow_missing_keys : bool, optional
-        Whether to allow missing keys in the data dictionary, by default False
-    padding_mm : float, optional
-        Padding around AC-PC region in millimeters, by default 10
-    random_translate : float, optional
-        Maximum random translation in voxels, by default 0
+    allow_missing_keys : bool, default=False
+        Whether to allow missing keys in the data dictionary.
+    padding_mm : float, default=10.0
+        Padding around AC-PC region in millimeters.
+    random_translate : float, default=0
+        Maximum random translation in voxels, off by default.
 
     Notes
     -----

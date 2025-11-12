@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -43,8 +44,9 @@ def load_model(device: torch.device | None = None) -> DenseNet:
     DenseNet
         Loaded and initialized model in evaluation mode
     """
-    if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device is None or device == "auto":
+        from FastSurferCNN.utils.common import find_device
+        device = find_device(device)
     
     # Initialize model architecture (must match training)
     model = DenseNet( # densenet201
@@ -96,7 +98,7 @@ def get_transforms() -> transforms.Compose:
         CropAroundACPCFixedSize(
             keys=['image'], 
             fixed_size=(64, 64), 
-            random_translate=0
+            random_translate=0,
         ),
     ]
     return transforms.Compose(tr)
@@ -139,7 +141,7 @@ def preprocess_volume(
             
     return transformed
 
-def run_inference(model: torch.nn.Module,
+def run_inference(model: DenseNet,
                  image_volume: np.ndarray,
                  third_ventricle_center: np.ndarray,
                  device: torch.device | None = None,
@@ -163,12 +165,14 @@ def run_inference(model: torch.nn.Module,
 
     Returns
     -------
-    tuple
-        Tuple containing:
-        - np.ndarray: Predicted PC coordinates
-        - np.ndarray: Predicted AC coordinates  
-        - np.ndarray: Processed input images
-        - tuple: Crop offsets (left, top)
+    pc_ccord : np.ndarray
+        Predicted PC coordinates.
+    ac_coord : np.ndarray
+        Predicted AC coordinates.
+    image : np.ndarray
+        Processed input images.
+    crop_offsets : tuple[int, int]
+        Crop offsets (left, top).
     """
     if device is None:
         device = next(model.parameters()).device
@@ -188,13 +192,7 @@ def run_inference(model: torch.nn.Module,
 
     inputs = inputs.transpose(0, 1)
     batch_size, channels, height, width = inputs.shape
-    views = []
-    for i in range(batch_size - 2):  # -2 to ensure we have 3 slices per view
-        view = inputs[i:i+3]  # Take 3 consecutive slices
-        view = view.reshape(1, 3*channels, height, width)  # Reshape to combine slices into channels
-        views.append(view)
-
-    inputs = torch.cat(views, dim=0)  # Stack all views into batch dimension
+    inputs = inputs.unfold(0, 3, 1).swapdims(0, 1).reshape(-1, 3*channels, height, width)
     
 
     # Run inference
@@ -207,20 +205,13 @@ def run_inference(model: torch.nn.Module,
         #                       dtype=torch.float32,
         #                       device=device)
         outputs = outputs * 64
-        
-    outputs[:, 0] += t_dict['crop_left']
-    outputs[:, 1] += t_dict['crop_top']
-    outputs[:, 2] += t_dict['crop_left']
-    outputs[:, 3] += t_dict['crop_top']
+
+    t_crops = [[t_dict['crop_left'], t_dict['crop_top'], t_dict['crop_left'], t_dict['crop_top']]]
+    outs: np.ndarray = (outputs + torch.tensor(t_crops, dtype=outputs.dtype, device=outputs.device)).numpy()
+    return outs[:, :2], outs[:, 2:], inputs.numpy(), tuple(int(t_dict[k].item()) for k in ['crop_left', 'crop_top'])
 
 
-    return (outputs[:,:2].cpu().numpy(), 
-            outputs[:,2:].cpu().numpy(), 
-            inputs.cpu().numpy(), 
-            (t_dict['crop_left'], t_dict['crop_top']))
-
-
-def run_inference_on_slice(model: torch.nn.Module, 
+def run_inference_on_slice(model: DenseNet,
                            image_slice: np.ndarray, 
                            center_pt: np.ndarray, 
                            debug_output: str | None = None) -> tuple[np.ndarray, np.ndarray]:
@@ -239,9 +230,10 @@ def run_inference_on_slice(model: torch.nn.Module,
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        Detected AC and PC coordinates as (ac_coords, pc_coords)
-        Each coordinate array has shape (2,) containing [y,x] positions
+    ac_coords : np.ndarray
+        Detected AC coordinates with shape (2,) containing its [y,x] positions.
+    pc_coords : np.ndarray
+        Detected PC coordinates with shape (2,) containing its [y,x] positions.
     """
 
     # Run inference

@@ -1,5 +1,7 @@
 import argparse
+import sys
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -9,8 +11,8 @@ from CorpusCallosum.data.read_write import load_fsaverage_data
 from CorpusCallosum.shape.cc_mesh import CC_Mesh
 
 
-def options_parse() -> argparse.Namespace:
-    """Parse command line arguments for the visualization pipeline."""
+def make_parser() -> argparse.ArgumentParser:
+    """Create a command line parser for the visualization pipeline."""
     parser = argparse.ArgumentParser(description="Visualize corpus callosum from template files.")
     parser.add_argument("--contours", type=str, required=False, help="Path to contours.txt file", default=None)
     parser.add_argument("--thickness", type=str, required=True, help="Path to thickness_values.txt file")
@@ -38,12 +40,17 @@ def options_parse() -> argparse.Namespace:
         nargs=2,
         default=None,
         metavar=("MIN", "MAX"),
-        help="Optional fixed range for the colorbar (min max)",
+        required=False,
+        help="Specify the range for the colorbar (2 values: min max). Defaults to automatic choice.",
     )
     parser.add_argument("--legend", type=str, default="Thickness (mm)", help="Legend for the colorbar")
     parser.add_argument("--twoD", action="store_true", help="Generate 2D visualization instead of 3D mesh")
 
-    args = parser.parse_args()
+    return parser
+
+def options_parse() -> argparse.Namespace:
+    """Parse command line arguments for the pipeline."""
+    args = make_parser().parse_args()
 
     # Create output directory if it doesn't exist
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
@@ -62,7 +69,7 @@ def main(
     color_range: tuple[float, float] | None = None,
     legend: str | None = None,
     twoD: bool = False,
-) -> None:
+) -> Literal[0] | str:
     """Main function to visualize corpus callosum from template files.
 
     This function loads contours and thickness values from template files,
@@ -146,21 +153,24 @@ def main(
         cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
         cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
         cc_mesh.write_overlay(str(output_dir / "cc_mesh_overlay.curv"))
-        cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
-
+        try:
+            cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
+        except RuntimeError:
+            return ("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
+                    "`pip install whippersnappy>=1.3.1` !")
+    return 0
 
 if __name__ == "__main__":
-    options = options_parse()
-    main_args = {
-        "contours_path": options.contours,
-        "thickness_path": options.thickness,
-        "measurement_points_path": options.measurement_points,
-        "output_dir": options.output_dir,
-        "resolution": options.resolution,
-        "smoothing_window": options.smoothing_window,
-        "colormap": options.colormap,
-        "color_range": options.color_range,
-        "legend": options.legend,
-        "twoD": options.twoD,
-    }
-    main(**main_args)
+    options = make_parser().parse_args()
+    sys.exit(main(
+        contours_path=options.contours,
+        thickness_path=options.thickness,
+        measurement_points_path=options.measurement_points,
+        output_dir=options.output_dir,
+        resolution=options.resolution,
+        smooth_iterations=options.smooth_iterations,
+        colormap=options.colormap,
+        color_range=options.color_range,
+        legend=options.legend,
+        twoD=options.twoD,
+    ))

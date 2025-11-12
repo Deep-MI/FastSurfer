@@ -13,11 +13,8 @@
 # limitations under the License.
 
 __all__ = [
-    "config",
     "data",
-    "localization",
     "segmentation",
     "transforms",
     "utils",
-    "visualization",
 ]
