@@ -63,19 +63,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install packages needed for build
 RUN apt-get update && apt-get install -y --no-install-recommends \
+      aria2 \
       ca-certificates \
       file \
       git \
-      upx \
-      wget && \
+      upx && \
     apt clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ARG FORGE_VERSION=25.3.1-0
 
 # Install conda
-RUN wget --no-check-certificate -qO ~/miniforge.sh \
-    https://github.com/conda-forge/miniforge/releases/download/${FORGE_VERSION}/Miniforge3-${FORGE_VERSION}-Linux-x86_64.sh && \
+RUN aria2c -x 8 -s 8 -c --check-certificate=false -o ~/miniforge.sh \
+      https://github.com/conda-forge/miniforge/releases/download/${FORGE_VERSION}/Miniforge3-${FORGE_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniforge.sh && \
     ~/miniforge.sh -b -p /opt/miniforge && \
     rm ~/miniforge.sh
