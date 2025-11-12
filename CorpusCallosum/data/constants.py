@@ -16,13 +16,14 @@
 from pathlib import Path
 
 ### Constants
-WEIGHTS_PATH = Path(__file__).parent.parent / "weights"
+WEIGHTS_PATH = Path(__file__).parent.parent.parent / "checkpoints"
 FSAVERAGE_CENTROIDS_PATH = Path(__file__).parent / "fsaverage_centroids.json"
 FSAVERAGE_DATA_PATH = Path(__file__).parent / "fsaverage_data.json"  # Contains both affine and header
 FSAVERAGE_MIDDLE = 128  # Middle slice index in fsaverage space
 CC_LABEL = 192          # Label value for corpus callosum in segmentation
 FORNIX_LABEL = 250      # Label value for fornix in segmentation
 SUBSEGEMNT_LABELS = [251, 252, 253, 254, 255] # labels for subsegments in segmentation
+FASTSURFER_ROOT = Path(__file__).parent.parent.parent # TODO: use FastSurfer function for this
 
 
 STANDARD_OUTPUT_PATHS = {

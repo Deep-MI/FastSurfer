@@ -14,7 +14,6 @@ from CorpusCallosum.data.constants import (
     FSAVERAGE_DATA_PATH,
     FSAVERAGE_MIDDLE,
     STANDARD_OUTPUT_PATHS,
-    WEIGHTS_PATH,
 )
 from CorpusCallosum.data.read_write import (
     convert_numpy_to_json_serializable,
@@ -603,14 +602,9 @@ def main(
     device = torch.device("cuda" if torch.cuda.is_available() and not cpu else "cpu")
     logger.info(f"Using device: {device}")
     
-    logger.info("Loading localization model")
-    model_localization = localization_inference.load_model(
-        str(Path(WEIGHTS_PATH) / "localization_weights_acpc.pth"), device=device
-    )
-    logger.info("Loading segmentation model")
-    model_segmentation = segmentation_inference.load_model(
-        str(Path(WEIGHTS_PATH) / "segmentation_weights_cc_fn.pth"), device=device
-    )
+    logger.info("Loading models")
+    model_localization = localization_inference.load_model(device=device)
+    model_segmentation = segmentation_inference.load_model(device=device)
 
     aseg_nib = nib.load(aseg_path)
 
@@ -700,6 +694,7 @@ def main(
         verbose=verbose,
         save_template=save_template,
     )
+    IO_processes.extend(slice_io_processes)
 
 
     outer_contours = [slice_result['split_contours'][0] for slice_result in slice_results]
@@ -707,8 +702,6 @@ def main(
     if len(outer_contours) > 1 and not check_area_changes(outer_contours, verbose=True):
         logger.warning("Large area changes detected between consecutive slices, "
                        "this is likely due to a segmentation error.")
-
-    IO_processes.extend(slice_io_processes)
 
     # Get middle slice result for backward compatibility
     middle_slice_result = slice_results[len(slice_results) // 2]
@@ -734,24 +727,6 @@ def main(
             orig_space_segmentation_path=orig_space_segmentation_path,
             fsaverage_middle=FSAVERAGE_MIDDLE,
             subdivision_mask=subdivision_mask,
-        )
-    )
-
-    # Save middle slice visualization
-    IO_processes.append(
-        create_visualization(
-            subdivision_method,
-            {
-            "split_contours": middle_slice_result["split_contours"],
-            "midline_equidistant": middle_slice_result["midline_equidistant"],
-            "levelpaths": middle_slice_result["levelpaths"],
-            },
-            midslices,
-            output_dir,
-            ac_coords,
-            pc_coords,
-            orig.header.get_zooms()[0],
-            " (Middle Slice)",
         )
     )
 
