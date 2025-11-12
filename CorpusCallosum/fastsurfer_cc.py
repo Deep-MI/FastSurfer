@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import argparse
 import json
 from pathlib import Path
@@ -63,7 +64,7 @@ from recon_surf.align_points import find_rigid
 logger = logging.get_logger(__name__)
 SliceSelection = Literal["middle", "all"] | int
 SubdivisionMethod = Literal["shape", "vertical", "angular", "eigenvector"]
-    
+
 
 def make_parser() -> argparse.ArgumentParser:
     """Create the argument parse object for the pipeline."""
@@ -104,7 +105,8 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--num_thickness_points",
-        type=int, default=100,
+        type=int,
+        default=100,
         help="Number of points for thickness estimation."
     )
     parser.add_argument(
@@ -137,7 +139,7 @@ def make_parser() -> argparse.ArgumentParser:
         return int(a)
     parser.add_argument(
         "--slice_selection",
-        type=str,
+        type=_slice_selection,
         default="all",
         help="Which slices to process. Options: 'middle', 'all', or a specific slice number. \
               (default: 'all')",
@@ -165,7 +167,8 @@ def make_parser() -> argparse.ArgumentParser:
         default=None,
     )
     advanced.add_argument(
-        "--segmentation_path",
+        "--seg",
+        dest="segmentation_path",
         type=Path,
         help=f"Path for segmentation output (default: subject_dir/{STANDARD_OUTPUT_PATHS['segmentation']})",
         default=None,
@@ -512,37 +515,35 @@ def segment_cc(
     return segmentation, outputs_soft
 
 
-
-
 def main(
-    t1_path: str | Path,
-    aseg_path: str | Path,
-    output_dir: str | Path,
-    slice_selection: str = "middle",
-    qc_output_dir: str | Path = None,
+    conf_name: str | Path,
+    aseg_name: str | Path,
+    subject_dir: str | Path,
+    slice_selection: SliceSelection = "middle",
+    qc_output_dir: str | Path | None = None,
     verbose: bool = False,
     num_thickness_points: int = 100,
     subdivisions: list[float] | None = None,
     subdivision_method: SubdivisionMethod = "shape",
     contour_smoothing: float = 5,
     save_template_dir: str | Path | None = None,
-    device: str = "auto",
-    upright_volume_path: str | Path = None,
-    segmentation_path: str | Path = None,
-    postproc_results_path: str | Path = None,
-    cc_markers_path: str | Path = None,
-    upright_lta_path: str | Path = None,
-    orient_volume_lta_path: str | Path = None,
-    surf_file_path: str | Path = None,
-    overlay_file_path: str | Path = None,
-    cc_html_path: str | Path = None,
-    vtk_file_path: str | Path = None,
-    orig_space_segmentation_path: str | Path = None,
-    qc_image_path: str | Path = None,
-    thickness_image_path: str | Path = None,
-    softlabels_cc_path: str | Path = None,
-    softlabels_fn_path: str | Path = None,
-    softlabels_background_path: str | Path = None,
+    device: str | torch.device = "auto",
+    upright_volume_path: str | Path | None = None,
+    segmentation_path: str | Path | None = None,
+    postproc_results_path: str | Path | None = None,
+    cc_markers_path: str | Path | None = None,
+    upright_lta_path: str | Path | None = None,
+    orient_volume_lta_path: str | Path | None = None,
+    surf_file_path: str | Path | None = None,
+    overlay_file_path: str | Path | None = None,
+    cc_html_path: str | Path | None = None,
+    vtk_file_path: str | Path | None = None,
+    orig_space_segmentation_path: str | Path | None = None,
+    qc_image_path: str | Path | None = None,
+    thickness_image_path: str | Path | None = None,
+    softlabels_cc_path: str | Path | None = None,
+    softlabels_fn_path: str | Path | None = None,
+    softlabels_background_path: str | Path | None = None,
 ) -> None:
     """Main pipeline function for corpus callosum analysis.
 
@@ -555,16 +556,16 @@ def main(
         Path to input MRI file.
     aseg_name : str or Path
         Path to input segmentation file.
-    output_dir : str or Path
-        Directory for output files.
-    slice_selection : str, optional
-        Which slices to process ('middle', 'all', or specific slice number), by default 'middle'.
+    subject_dir : str or Path
+        FastSurfer/FreeSurfer subject directory and directory for output files.
+    slice_selection : "middle", "all" or int, default="middle"
+        Which slices to process.
     qc_output_dir : str or Path, optional
-        Directory for quality control outputs, by default None.
-    verbose : bool, optional
-        Flag for verbose output, by default False.
-    num_thickness_points : int, optional
-        Number of points for thickness estimation, by default 100.
+        Directory for quality control outputs, None deactivates qc snapshots.
+    verbose : bool, default=False
+        Flag for verbose output.
+    num_thickness_points : int, default=100
+        Number of points for thickness estimation.
     subdivisions : list[float], optional
         List of subdivision fractions for CC subsegmentation.
     subdivision_method : any of "shape", "vertical", "angular", "eigenvector", default="shape"
@@ -572,10 +573,10 @@ def main(
     contour_smoothing : float, default=5
         Gaussian sigma for smoothing during contour detection.
     save_template_dir : str or Path, optional
-        Directory path where to save contours.txt and thickness_values.txt files. \
-        These files can be used to visualize the CC shape and volume in 3D.
-    device : str, optional
-        Device to run inference on ('auto', 'cpu', 'cuda', or 'cuda:X'), by default 'auto'.
+        Directory path where to save contours.txt and thickness_values.txt files. These files can be used to visualize
+        the CC shape and volume in 3D. Files are only saved, if a valid directory path is passed.
+    device : str, default="auto"
+        Device to run inference on ('auto', 'cpu', 'cuda', or 'cuda:X').
     upright_volume_path : str or Path, optional
         Path to save upright volume.
     segmentation_path : str or Path, optional
@@ -597,9 +598,9 @@ def main(
     vtk_file_path : str or Path, optional
         Path to save VTK file.
     orig_space_segmentation_path : str or Path, optional
-        Path to save segmentation in original space, by default None.
+        Path to save segmentation in original space.
     qc_image_path : str or Path, optional
-        Path to save QC images, by default None.
+        Path to save QC images.
     thickness_image_path : str or Path, optional
         Path to save thickness visualization.
     softlabels_cc_path : str or Path, optional
@@ -636,15 +637,15 @@ def main(
         logging.setup_logging(None)  # Log to stdout only
     
     logger.info("Starting corpus callosum analysis pipeline")
-    logger.info(f"Input MRI: {t1_path}")
-    logger.info(f"Input segmentation: {aseg_path}")
-    logger.info(f"Output directory: {output_dir}")
+    logger.info(f"Input MRI: {conf_name}")
+    logger.info(f"Input segmentation: {aseg_name}")
+    logger.info(f"Output directory: {subject_dir}")
     
     # Convert all paths to Path objects
-    t1_path = Path(t1_path)
-    aseg_path = Path(aseg_path)
-    if output_dir is not None:
-        output_dir = Path(output_dir)
+    t1_path = Path(conf_name)
+    aseg_path = Path(aseg_name)
+    if subject_dir:
+        subject_dir = Path(subject_dir)
     if save_template_dir:
         save_template_dir = Path(save_template_dir)
 
@@ -675,10 +676,7 @@ def main(
         raise ValueError("MRI is not conformed, please run conform.py or mri_convert to conform the image.")
 
     # load models
-    if device == "auto":
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device(device)
+    device = find_device(device)
     logger.info(f"Using device: {device}")
     
     logger.info("Loading models")

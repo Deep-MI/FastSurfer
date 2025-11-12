@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -20,34 +19,26 @@ import torch
 from monai import transforms
 from monai.networks.nets import DenseNet
 
-from CorpusCallosum.data import constants
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from CorpusCallosum.transforms.localization_transforms import CropAroundACPCFixedSize
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 
-
-def load_model(device: torch.device | None = None) -> DenseNet:
+def load_model(device: torch.device) -> DenseNet:
     """Load trained numerical localization model from checkpoint.
 
     Parameters
     ----------
-    checkpoint_path : str or Path or None, optional
-        Path to model checkpoint, by default None.
-        If None, downloads and uses default checkpoint.
-    device : torch.device or None, optional
-        Device to load model to, by default None.
-        If None, uses CUDA if available, else CPU.
+    device : torch.device
+        Device to load model to.
 
     Returns
     -------
     DenseNet
         Loaded and initialized model in evaluation mode
     """
-    if device is None or device == "auto":
-        from FastSurferCNN.utils.common import find_device
-        device = find_device(device)
-    
+
     # Initialize model architecture (must match training)
     model = DenseNet( # densenet201
         spatial_dims=2,
@@ -64,10 +55,10 @@ def load_model(device: torch.device | None = None) -> DenseNet:
 
     download_checkpoints(cc=True)
     cc_config = load_checkpoint_config_defaults(
-                "checkpoint",
-                filename=CC_YAML,
-            )
-    checkpoint_path = constants.FASTSURFER_ROOT / cc_config['localization']
+        "checkpoint",
+        filename=CC_YAML,
+    )
+    checkpoint_path = FASTSURFER_ROOT / cc_config['localization']
 
     # Load state dict
     if isinstance(checkpoint_path, str) or isinstance(checkpoint_path, Path):
@@ -141,7 +132,7 @@ def preprocess_volume(
             
     return transformed
 
-def run_inference(model: DenseNet,
+def run_inference(model: torch.nn.Module,
                  image_volume: np.ndarray,
                  third_ventricle_center: np.ndarray,
                  device: torch.device | None = None,
@@ -152,7 +143,7 @@ def run_inference(model: DenseNet,
     
     Parameters
     ----------
-    model : torch.nn.Module
+    model : DenseNet
         Trained model for inference
     image_volume : np.ndarray
         Input volume as numpy array

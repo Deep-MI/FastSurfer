@@ -95,8 +95,8 @@ def visualize_coordinate_spaces(
 
     Notes
     -----
-    Saves a visualization of the anterior (red) and posterior (blue) commisure in three different view: 
-    1. the orig image (orig), 
+    Saves a visualization of the anterior (red) and posterior (blue) commisure in three different view:
+    1. the orig image (orig),
     2. fs-average standardized image space, and
     3. standardized image space
     as a single image named 'ac_pc_spaces.png' in `output_dir`.
@@ -187,13 +187,10 @@ def plot_contours(
         ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
         # ax[0].imshow(cc_mask, cmap='autumn')
         ax[current_plot].set_title(title)
-        for i in range(len(split_contours)):
-            ax[current_plot].fill(split_contours[i][0, :], -split_contours[i][1, :], color="steelblue", alpha=0.25)
-            ax[current_plot].plot(
-                split_contours[i][0, :], -split_contours[i][1, :], color="mediumblue", linestyle="dotted", linewidth=0.7
-            )
-
-        ax[current_plot].plot(split_contours[0][0, :], -split_contours[0][1, :], color="mediumblue", linewidth=0.7)
+        for i, this_contour in enumerate(split_contours):
+            ax[current_plot].fill(this_contour[0, :], -this_contour[1, :], color="steelblue", alpha=0.25)
+            kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid" if i != 0 else "dotted"}
+            ax[current_plot].plot(this_contour[0, :], -this_contour[1, :], **kwargs)
         ax[current_plot].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
         ax[current_plot].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
         current_plot += 1
@@ -202,8 +199,8 @@ def plot_contours(
 
     ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
     # ax[2].imshow(cc_mask, cmap='autumn')
-    for i in range(len(levelpaths)):
-        ax[current_plot].plot(levelpaths[i][:, 0], -levelpaths[i][:, 1], color="brown", linewidth=0.8)
+    for this_path in levelpaths:
+        ax[current_plot].plot(this_path[:, 0], -this_path[:, 1], color="brown", linewidth=0.8)
     ax[current_plot].set_title("Midline & Levelpaths")
     ax[current_plot].plot(midline_equidistant[:, 0], -midline_equidistant[:, 1], color="red")
     ax[current_plot].plot(reference_contour[0, :], -reference_contour[1, :], color="red", linewidth=0.5)
