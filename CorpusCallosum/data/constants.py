@@ -15,15 +15,16 @@
 
 from pathlib import Path
 
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+
 ### Constants
-WEIGHTS_PATH = Path(__file__).parent.parent.parent / "checkpoints"
-FSAVERAGE_CENTROIDS_PATH = Path(__file__).parent / "fsaverage_centroids.json"
-FSAVERAGE_DATA_PATH = Path(__file__).parent / "fsaverage_data.json"  # Contains both affine and header
+WEIGHTS_PATH = FASTSURFER_ROOT / "checkpoints"
+FSAVERAGE_CENTROIDS_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "fsaverage_centroids.json"
+FSAVERAGE_DATA_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "fsaverage_data.json"  # Contains both affine and header
 FSAVERAGE_MIDDLE = 128  # Middle slice index in fsaverage space
 CC_LABEL = 192          # Label value for corpus callosum in segmentation
 FORNIX_LABEL = 250      # Label value for fornix in segmentation
 SUBSEGMENT_LABELS = [251, 252, 253, 254, 255] # labels for subsegments in segmentation
-FASTSURFER_ROOT = Path(__file__).parent.parent.parent # TODO: use FastSurfer function for this
 
 
 STANDARD_INPUT_PATHS = {
