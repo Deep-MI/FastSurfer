@@ -76,7 +76,7 @@ Choose one of these input methods:
 - `--upright_lta_path PATH`: Path for upright LTA transform
 - `--orient_volume_lta_path PATH`: Path for orientation volume LTA transform
 - `--orig_space_segmentation_path PATH`: Path for segmentation in original space
-- `--debug_image_path PATH`: Path for debug visualization image
+- `--qc_image_path PATH`: Path for QC visualization image
 
 **Template Saving:**
 - `--save_template PATH`: Directory path to save contours.txt and thickness_values.txt files

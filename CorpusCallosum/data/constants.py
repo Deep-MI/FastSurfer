@@ -26,6 +26,11 @@ SUBSEGEMNT_LABELS = [251, 252, 253, 254, 255] # labels for subsegments in segmen
 FASTSURFER_ROOT = Path(__file__).parent.parent.parent # TODO: use FastSurfer function for this
 
 
+STANDARD_INPUT_PATHS = {
+    "t1": "mri/orig.mgz",
+    "aseg_name": "mri/aparc.DKTatlas+aseg.deep.mgz",
+}
+
 STANDARD_OUTPUT_PATHS = {
     ## images
     "upright_volume": None, # orig.mgz mapped to upright space
@@ -42,7 +47,7 @@ STANDARD_OUTPUT_PATHS = {
     "upright_lta": "mri/transforms/cc_up.lta", # lta transform from orig to upright space
     "orient_volume_lta": "mri/transforms/orient_volume.lta", # lta transform from orig to upright+acpc corrected space
     ## qc
-    "debug_image": "qc_snapshots/callosum.png", # debug image of cc contours
+    "qc_image": "qc_snapshots/callosum.png", # debug image of cc contours
     "thickness_image": "qc_snapshots/callosum_thickness.png", # whippersnappy 3D image of cc thickness
     "cc_html": "qc_snapshots/corpus_callosum.html", # plotly cc visualization
     ## surface
