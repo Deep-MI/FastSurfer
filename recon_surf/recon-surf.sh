@@ -619,6 +619,8 @@ fi
 
 # ============================= CC SEGMENTATION ============================================
 
+
+
 {
   echo " "
   echo "============ Creating and adding CC Segmentation ============"
@@ -627,11 +629,29 @@ fi
 # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
 # Note: if original input segmentation already contains CC, this will exit with ERROR
 # in the future maybe check and skip this step (and next)
-#cmd="mri_cc -aseg $aseg_nocc -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
-#RunIt "$cmd" "$LF"
-# add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
-cmd="$python ${binpath}/../CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
+cmd="$python ${binpath}../CorpusCallosum/fastsurfer_cc.py --subject_dir $SUBJECTS_DIR/$subject --verbose" 
 RunIt "$cmd" "$LF"
+# add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
+cmd="$python ${FASTSURFER_HOME}/CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/callosum_seg_aseg_space.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
+RunIt "$cmd" "$LF"
+# add CC into aseg.auto.mgz as mri_cc did before. Not sure where this is used.
+cmd="$python ${FASTSURFER_HOME}/CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/callosum_seg_aseg_space.mgz -in_pred $mdir/$aseg_nocc -out $mdir/aseg.auto.mgz"
+RunIt "$cmd" "$LF"
+
+
+# {
+#   echo " "
+#   echo "============ Creating and adding CC Segmentation (mri_cc) ============"
+#   echo " "
+# } | tee -a "$LF"
+# # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
+# # Note: if original input segmentation already contains CC, this will exit with ERROR
+# # in the future maybe check and skip this step (and next)
+# cmd="mri_cc -aseg $aseg_nocc -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
+# RunIt "$cmd" "$LF"
+# # add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
+# cmd="$python ${binpath}../CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
+# RunIt "$cmd" "$LF"
 
 
 # ============================= FILLED =====================================================

@@ -183,17 +183,11 @@ def correct_wm_ventricles(
 
                 # Only fill small gaps between CC and ventricle in inferior-superior direction
                 if potential_fill.any():
-
-
                     for z in range(potential_fill.shape[1]):
                         potential_fill_line = potential_fill[:, z]
                         labeled_gaps, num_gaps = ndimage.label(potential_fill_line)
                         cc_line = cc_binary[:, z]
                         vent_line = vent_binary[:, z]
-
-
-                        
-                        
 
                         for gap_label in range(1, num_gaps + 1):
                             gap_mask = labeled_gaps == gap_label
@@ -207,10 +201,6 @@ def correct_wm_ventricles(
 
                             vent_label_location = np.where(vent_line & dilated_gap_mask)[0]
                             vent_label = corrected_pred[x, vent_label_location, z]
-
-                            
-
-
 
                             if np.sum(gap_mask) > max_gap_vox:
                                 continue
