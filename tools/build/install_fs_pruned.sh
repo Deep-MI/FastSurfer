@@ -98,6 +98,7 @@ function run_parallel ()
   j=0
   while [[ "$j" -lt "${#args}" ]]
   do
+    # shellcheck disable=SC2059
     cmd=$(printf "$command" "${args[@]:$j:$num}")
     j=$((j + num))
     $cmd &
@@ -120,10 +121,10 @@ function run_parallel ()
 echo "Downloading FS and unpacking portions ..."
 
 # temp freesurfer dl filename (to save the dl)
-freesurfer_dl="freesurfer_$(date +%s)"
+freesurfer_dl="freesurfer_$(date +%s).tar.gz"
 
 # dl aria2c if that exists, else wget or curl
-if [[ -n "$(which aria2c)" ]] ; then dl=(aria2c -x 16 -s 16 -c --check-certificate=false -o "$freesurfer_dl" "$fslink")
+if [[ -n "$(which aria2c)" ]] ; then dl=(aria2c -x 16 -s 16 -c --check-certificate=false -o "$freesurfer_dl" "$fslink" )
 elif [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink" -O "$freesurfer_dl")
 else dl=(curl -L --insecure "$fslink" -o "$freesurfer_dl")
 fi
