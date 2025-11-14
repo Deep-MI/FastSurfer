@@ -123,9 +123,14 @@ echo "Downloading FS and unpacking portions ..."
 freesurfer_dl="freesurfer_$(date +%s)"
 
 # dl aria2c if that exists, else wget or curl
-if [[ -n "$(which aria2c)" ]] ; then aria2c -x 16 -s 16 -c --check-certificate=false -o $freesurfer_dl "$fslink" 
-elif [[ -n "$(which wget)" ]] ; then wget --no-check-certificate -qO- "$fslink" >> $freesurfer_dl
-else curl -L --insecure "$fslink" >> $freesurfer_dl
+if [[ -n "$(which aria2c)" ]] ; then dl=(aria2c -x 16 -s 16 -c --check-certificate=false -o "$freesurfer_dl" "$fslink")
+elif [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink" -O "$freesurfer_dl")
+else dl=(curl -L --insecure "$fslink" -o "$freesurfer_dl")
+fi
+
+if ! "${dl[@]}" ; then
+  echo "ERROR: Downloading FreeSurfer failed! This is not recoverable, see message above and retry!"
+  exit 1
 fi
 
 tar zxv --no-same-owner -C "$where" \
@@ -178,22 +183,22 @@ tar zxv --no-same-owner -C "$where" \
       --exclude='freesurfer/subjects/V1_average' \
       --exclude='freesurfer/tktools' \
       --exclude='freesurfer/trctrain' \
-      -f $freesurfer_dl
+      -f "$freesurfer_dl"
 
- rm $freesurfer_dl
+rm "$freesurfer_dl"
 
 # rename download to tmp
-mv $where/freesurfer $fss
+mv "$where/freesurfer" "$fss"
 
 # mk directories
-mkdir -p $fsd/average
-mkdir -p $fsd/bin
-mkdir -p $fsd/etc
-mkdir -p $fsd/lib/bem
-mkdir -p $fsd/python/scripts
-mkdir -p $fsd/python/packages/fsbindings
-mkdir -p $fsd/subjects/fsaverage/label
-mkdir -p $fsd/subjects/fsaverage/surf
+mkdir -p "$fsd/average"
+mkdir -p "$fsd/bin"
+mkdir -p "$fsd/etc"
+mkdir -p "$fsd/lib/bem"
+mkdir -p "$fsd/python/scripts"
+mkdir -p "$fsd/python/packages/fsbindings"
+mkdir -p "$fsd/subjects/fsaverage/label"
+mkdir -p "$fsd/subjects/fsaverage/surf"
 
 # We need these
 copy_files="
@@ -423,15 +428,15 @@ echo
 for file in $copy_files
 do
   echo "copying $file"
-  cp -r $fss/$file $fsd/$file
+  cp -r "$fss/$file" "$fsd/$file"
 done
 
 # pack if desired with upx (do this before adding all the links
 if [[ "$upx" == "true" ]] ; then
   echo "finding executables in $fsd/bin/..."
-  exe=$(find $fsd/bin -exec file {} \; | grep ELF | cut -d: -f1)
+  exe=$(find "$fsd/bin" -exec file {} \; | grep ELF | cut -d: -f1)
   echo "packing $fsd/bin/ executables (this can take a while) ..."
-  run_parallel 8 "upx -9 %s %s %s %s" 4 $exe
+  run_parallel 8 "upx -9 %s %s %s %s" 4 "$exe"
 fi
 
 # Modify fsbindings Python package to allow calling scripts like asegstats2table directly:
@@ -443,8 +448,8 @@ echo
 for file in $touch_files
 do
   echo "touching $file"
-  touch $fsd/$file 
+  touch "$fsd/$file"
 done
 
 #cleanup
-rm -rf $fss
+rm -rf "$fss"
