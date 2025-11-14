@@ -19,7 +19,7 @@ from scipy.spatial.distance import cdist
 from skimage.measure import label
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
+from CorpusCallosum.data.constants import CC_LABEL
 
 logger = logging.get_logger(__name__)
 
@@ -204,8 +204,6 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
     # Use the largest component as the reference
     main_component_id = component_sizes[0][0]
 
-
-    
     logger.info(f"Found {len(component_ids)} disconnected components. "
                 f"Attempting to connect smaller components to main component (size: {component_sizes[0][1]})")
     
@@ -425,7 +423,7 @@ def get_cc_volume_contour(cc_contours: list[np.ndarray],
     return integrate.simpson(areas, x=measurement_points)
     
 
-def get_largest_cc(
+def extract_largest_connected_component(
     seg_arr: np.ndarray,
     max_connection_distance: float = 3.0
 ) -> np.ndarray:
@@ -486,24 +484,24 @@ def get_largest_cc(
     return largest_cc
 
 def clean_cc_segmentation(
-    seg_arr: np.ndarray,
+    seg_arr: npt.NDArray[int],
     max_connection_distance: float = 3.0
 ) -> tuple[np.ndarray, np.ndarray]:
     """Clean corpus callosum segmentation by removing non-connected components.
 
     Parameters
     ----------
-    seg_arr : np.ndarray
+    seg_arr : npt.NDArray[int]
         Input segmentation array with CC (192) and fornix (250) labels
-    max_connection_distance : float, optional
-        Maximum distance to connect components, by default 3.0
+    max_connection_distance : float, default=3.0
+        Maximum distance to connect components.
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        - clean_seg : Cleaned segmentation array with only the largest
-          connected component of CC and fornix
-        - mask : Binary mask of the largest connected component
+    clean_seg : np.NDArray[int]
+        Cleaned segmentation array with only the largest connected component of CC and fornix.
+    mask : npt.NDArray[bool]
+        Binary mask of the largest connected component.
 
     Notes
     -----
@@ -513,24 +511,16 @@ def clean_cc_segmentation(
     3. Adds the fornix (label 250)
     4. Removes non-connected components from the combined CC and fornix
     """
+    from functools import partial
+
+    extract_largest = partial(extract_largest_connected_component, max_connection_distance=max_connection_distance)
+
     # Remove non connected components from the CC alone, with minimal connections
-    cc_seg = np.zeros_like(seg_arr)
-    cc_seg[seg_arr == CC_LABEL] = CC_LABEL
-
-    cc_label_cleaned = np.zeros_like(cc_seg)
-    for i in range(cc_seg.shape[0]):
-        cc_label_cleaned[i] = get_largest_cc(cc_seg[None,i], max_connection_distance)
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(1,3)
-        # ax[0].imshow(cc_seg[i])
-        # ax[1].imshow(mask[i])
-        # ax[2].imshow(cc_seg[i] - mask[i]*CC_LABEL) # difference between pre and post clean
-        # plt.show()
-
+    mask = seg_arr == CC_LABEL
+    cc_seg = mask.astype(int) * CC_LABEL
+    cc_label_cleaned = np.concatenate([extract_largest(seg[None]) * CC_LABEL for seg in cc_seg], axis=0)
 
     # Add fornix to the CC labels
-    clean_seg = np.zeros_like(seg_arr)
-    clean_seg[cc_label_cleaned > 0] = CC_LABEL
-    clean_seg[seg_arr == FORNIX_LABEL] = FORNIX_LABEL
+    clean_seg = np.where(mask, cc_label_cleaned, seg_arr)
 
     return clean_seg, cc_label_cleaned > 0

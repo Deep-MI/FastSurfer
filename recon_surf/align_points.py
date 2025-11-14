@@ -127,7 +127,7 @@ def find_rotation(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     return R
 
 
-def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray, verbose: bool = False) -> np.ndarray:
+def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray, verbose: bool = False) -> npt.NDArray[float]:
     """
     Find rigid transformation matrix between two point sets.
 
@@ -142,7 +142,7 @@ def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray, verbose: bool = False) ->
 
     Returns
     -------
-    T
+    np.ndarray
         Homogeneous transformation matrix.
     """
     if p_mov.shape != p_dst.shape:
@@ -160,9 +160,9 @@ def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray, verbose: bool = False) ->
     t = centroid_dst.T - np.dot(R, centroid_mov.T)
     # homogeneous transformation
     m = p_mov.shape[1]
-    T = np.identity(m + 1)
-    T[:m, :m] = R
-    T[:m, m] = t
+    rigid_transform = np.identity(m + 1, dtype=float)
+    rigid_transform[:m, :m] = R
+    rigid_transform[:m, m] = t
     # compute disteances
     if verbose:
         dd = p_mov - p_dst
@@ -170,7 +170,7 @@ def find_rigid(p_mov: npt.NDArray, p_dst: npt.NDArray, verbose: bool = False) ->
         dd = (np.transpose(R @ np.transpose(p_mov)) + t) - p_dst
         print(f"Final avg SSD: {np.sum(dd * dd) / p_mov.shape[0]}")
     # return T, R, t
-    return T
+    return rigid_transform
 
 def find_affine(p_mov: npt.NDArray, p_dst: npt.NDArray) -> np.ndarray:
     """

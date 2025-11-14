@@ -120,7 +120,7 @@ def apply_transform_to_pt(pts: npt.NDArray[float], T: npt.NDArray[float], inv: b
         return (T @ np.concatenate([pts, np.ones((1, pts.shape[1]))]))[:3]
 
 
-def get_mapping_to_standard_space(
+def calc_mapping_to_standard_space(
     orig: "nib.Nifti1Image", 
     ac_coords_3d: npt.NDArray[float], 
     pc_coords_3d: npt.NDArray[float], 
@@ -205,26 +205,26 @@ def get_mapping_to_standard_space(
 
 
 def apply_transform_to_volume(
-    volume: np.ndarray,
+    orig_image: nib.analyze.SpatialImage,
     transform: npt.NDArray[float],
     affine: npt.NDArray[float],
-    header: nib.freesurfer.mghformat.MGHHeader,
+    header: nib.freesurfer.mghformat.MGHHeader | None = None,
     output_path: str | Path | None = None,
     output_size: np.ndarray | None = None,
     order: int = 1
-) -> np.ndarray:
+) -> npt.NDArray[float]:
     """Apply transformation to a volume and save the result.
 
     Parameters
     ----------
-    volume : np.ndarray
-        Input volume data.
+    orig_image : nibabel.analyze.SpatialImage
+        Input volume.
     transform : np.ndarray
         Transformation matrix to apply.
     affine : np.ndarray
         Affine matrix for the output image.
-    header : nib.freesurfer.mghformat.MGHHeader
-        Header for the output image.
+    header : nib.freesurfer.mghformat.MGHHeader, optional
+        Header for the output image, if None will default to orig_image header.
     output_path : str or Path, optional
         Path to save transformed volume.
     output_size : np.ndarray, optional
@@ -234,7 +234,7 @@ def apply_transform_to_volume(
 
     Returns
     -------
-    np.ndarray
+    npt.NDArray[float]
         Transformed volume data.
 
     Notes
@@ -242,18 +242,19 @@ def apply_transform_to_volume(
     Uses scipy.ndimage.affine_transform for the transformation.
     If output_path is provided, saves the result as a MGH file.
     """
-
     if output_size is None:
-        output_size = np.array(volume.shape)
+        output_size = np.array(orig_image.shape)
+    if header is None:
+        header = orig_image.header
     transformed = affine_transform(
-        volume.astype(np.float32),
+        orig_image.get_data(),
         np.linalg.inv(transform),
         output_shape=output_size,
         order=order,
     )
     if output_path is not None:
         logger.info(f"Saving transformed volume to {output_path}")
-        nib.save(nib.MGHImage(transformed, affine, header), output_path)
+        nib.save(nib.MGHImage(transformed.astype(orig_image.get_data_dtype()), affine, header), output_path)
     return transformed
 
 
@@ -293,12 +294,12 @@ def make_affine(simpleITKImage: 'sitk.Image') -> npt.NDArray[float]:
 def map_softlabels_to_orig(
     outputs_soft: npt.NDArray[float],
     orig_fsaverage_vox2vox: npt.NDArray[float],
-    orig: np.ndarray,
+    orig: nib.analyze.SpatialImage,
     slices_to_analyze: int,
     orig_space_segmentation_path: str | Path | None = None,
     fsaverage_middle: int = 128,
-    subdivision_mask: np.ndarray | None = None
-) -> np.ndarray:
+    subdivision_mask: npt.NDArray[int] | None = None
+) -> npt.NDArray[int]:
     """Map soft labels back to original image space and apply post-processing.
 
     Parameters
@@ -307,7 +308,7 @@ def map_softlabels_to_orig(
         Soft label predictions.
     orig_fsaverage_vox2vox : np.ndarray
         Original to fsaverage space transformation.
-    orig : np.ndarray
+    orig : nibabel.analyze.SpatialImage
         Original image.
     slices_to_analyze : int
         Number of slices to analyze.
@@ -315,12 +316,12 @@ def map_softlabels_to_orig(
         Path to save segmentation in original space.
     fsaverage_middle : int, default=128
         Middle slice index in fsaverage space.
-    subdivision_mask : np.ndarray, optional
+    subdivision_mask : npt.NDArray[int], optional
         Mask for subdividing regions.
 
     Returns
     -------
-    np.ndarray
+    npt.NDArray[int]
         Final segmentation in original image space.
 
     Notes

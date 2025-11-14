@@ -25,8 +25,8 @@ def calculate_cc_index(cc_contour: np.ndarray) -> float:
 
     Returns
     -------
-    float
-        Sum of thicknesses at three measurement points divided by AP length.
+    cc_index : float
+        The CC index, which is the sum of thicknesses at three measurement points divided by AP length.
     """
     # Get anterior and posterior points
     anterior_idx = np.argmin(cc_contour[0])  # Leftmost point
@@ -64,14 +64,9 @@ def calculate_cc_index(cc_contour: np.ndarray) -> float:
         signs = np.sign(dots)
         sign_changes = np.where(np.diff(signs))[0]
 
-        intersections = []
-        for idx in sign_changes:
-            # Linear interpolation between points
-            t = -dots[idx] / (dots[idx + 1] - dots[idx])
-            intersection = cc_contour[:, idx] + t * (cc_contour[:, idx + 1] - cc_contour[:, idx])
-            intersections.append(intersection)
-
-        return np.array(intersections)
+        # Linear interpolation between points
+        t = -dots[sign_changes] / (dots[sign_changes + 1] - dots[sign_changes])
+        return cc_contour[:, sign_changes] + t * (cc_contour[:, sign_changes + 1] - cc_contour[:, sign_changes])
 
     # Get three measurements
     most_anterior_pt = cc_contour[:, anterior_idx]
@@ -98,7 +93,7 @@ def calculate_cc_index(cc_contour: np.ndarray) -> float:
     posterior_distance = np.linalg.norm(anterior_intersections[-1] - anterior_intersections[-2])
     top_distance = np.linalg.norm(middle_ints[0] - middle_ints[1])
 
-    index = (anterior_distance + posterior_distance + top_distance) / ap_distance
+    cc_index = (anterior_distance + posterior_distance + top_distance) / ap_distance
 
     # fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -150,4 +145,4 @@ def calculate_cc_index(cc_contour: np.ndarray) -> float:
     # plt.axis('off')
     # plt.show()
 
-    return index
+    return cc_index

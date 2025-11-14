@@ -13,10 +13,14 @@
 # limitations under the License.
 
 from collections.abc import Callable
+from typing import TypeVar
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import typing as npt
 from scipy.spatial import ConvexHull
+
+_TS = TypeVar("_TS", bound=np.number)
 
 
 def minimum_bounding_rectangle(points):
@@ -80,7 +84,7 @@ def minimum_bounding_rectangle(points):
     return rval
 
 
-def get_area_from_subsegments(split_contours):
+def calc_subsegment_area(split_contours: list[npt.NDArray[_TS]]) -> npt.NDArray[_TS]:
     """Calculate area of each subsegment using the shoelace formula.
 
     Parameters
@@ -90,18 +94,14 @@ def get_area_from_subsegments(split_contours):
 
     Returns
     -------
-    np.ndarray
+    subsegment_areas : np.ndarray
         Array containing the area of each subsegment.
     """
     # calculate area of each split contour using the shoelace formula
-    areas = [np.abs(np.trapz(split_contour[1], split_contour[0])) for split_contour in split_contours]
-    area_out = np.zeros(len(areas))
-    for i in range(len(areas)):
-        if i == len(areas) - 1:
-            area_out[i] = areas[i]
-        else:
-            area_out[i] = areas[i] - areas[i + 1]
-    return area_out
+    areas = np.abs([np.trapz(split_contour[1], split_contour[0]) for split_contour in split_contours])
+    if len(areas) == 1:
+        return np.asarray(areas[0])
+    return np.ediff1d(np.asarray(areas)[::-1], to_end=areas[-1])
 
 
 def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=None, extremes=None):
@@ -124,13 +124,10 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
 
     Returns
     -------
+    subsegment_area : list[np.ndarray]
     split_contours : list[np.ndarray]
         List of contour arrays for each subsegment.
-    split_points : np.ndarray
-        Array of split points.
-    edge_directions : np.ndarray
-        Array of edge directions at split points.
-    
+
     """
     # get points after midline length of splits
 
@@ -319,7 +316,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
             ax.axis("equal")
             plt.show()
 
-    return get_area_from_subsegments(split_contours), split_contours
+    return calc_subsegment_area(split_contours), split_contours
 
 
 def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
@@ -458,7 +455,7 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
             ax.axis("equal")
             plt.show()
 
-    return get_area_from_subsegments(split_contours), split_contours
+    return calc_subsegment_area(split_contours), split_contours
 
 
 def subdivide_contour(
@@ -800,7 +797,7 @@ def subdivide_contour(
             ax.axis("equal")
             plt.show()
 
-    return get_area_from_subsegments(split_contours), split_contours
+    return calc_subsegment_area(split_contours), split_contours
 
 
 def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):

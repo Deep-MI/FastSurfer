@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import plotly.graph_objects as go
-import pyrr
 import scipy.interpolate
 from scipy.ndimage import gaussian_filter1d
 
@@ -29,10 +28,18 @@ import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.cc_endpoint_heuristic import smooth_contour
 from CorpusCallosum.shape.cc_thickness import HiddenPrints, make_mesh_from_contour
 
+try:
+    from pyrr import Matrix44
+    HAS_PYRR = True
+except ImportError:
+    HAS_PYRR = False
+    class Matrix44(np.ndarray):
+        pass
+
 logger = logging.get_logger(__name__)
 
 
-class CC_Mesh(lapy.TriaMesh):
+class CCMesh(lapy.TriaMesh):
     """A class for representing and manipulating corpus callosum (CC) meshes.
 
     This class extends lapy.TriaMesh to provide specialized functionality for working with
@@ -73,6 +80,7 @@ class CC_Mesh(lapy.TriaMesh):
         num_slices : int
             Number of slices in the corpus callosum mesh
         """
+        super().__init__(np.zeros((3, 3)), np.zeros((3, 3), dtype=int))
         self.contours = [None] * num_slices
         self.thickness_values = [None] * num_slices
         self.start_end_idx = [None] * num_slices
@@ -139,7 +147,7 @@ class CC_Mesh(lapy.TriaMesh):
 
     def plot_mesh(
         self,
-        output_path: str | None = None,
+        output_path: Path | str | None = None,
         colormap: str = "red_to_yellow",
         thickness_overlay: bool = True,
         show_contours: bool = False,
@@ -156,7 +164,7 @@ class CC_Mesh(lapy.TriaMesh):
 
         Parameters
         ----------
-        output_path : str, optional
+        output_path : Path, str, optional
             Path to save the plot. If None, displays the plot interactively.
         colormap : str, optional
             Which colormap to use, by default "red_to_yellow".
@@ -439,13 +447,12 @@ class CC_Mesh(lapy.TriaMesh):
             fig.write_html(output_path)  # Save as interactive HTML
         else:
             # For non-interactive display, save to a temporary HTML and open in browser
-            import os
             import tempfile
             import webbrowser
 
-            temp_path = os.path.join(tempfile.gettempdir(), "cc_mesh_plot.html")
+            temp_path = Path(tempfile.gettempdir()) / "cc_mesh_plot.html"
             fig.write_html(temp_path)
-            webbrowser.open("file://" + temp_path)
+            webbrowser.open(f"file://{temp_path}")
 
     def get_contour_edge_lengths(self, contour_idx: int) -> np.ndarray:
         """Get the lengths of the edges of a contour.
@@ -1200,13 +1207,13 @@ class CC_Mesh(lapy.TriaMesh):
                 self.mesh_vertex_colors = np.array([])
 
     @staticmethod
-    def __create_cc_viewmat() -> pyrr.Matrix44:
+    def __create_cc_viewmat() -> "Matrix44":
         """Create the view matrix for a nice view of the corpus callosum.
 
         Returns
         -------
-        pyrr.Matrix44
-            4x4 view matrix that provides a standard view of the corpus callosum
+        Matrix44
+            4x4 view matrix that provides a standard view of the corpus callosum (from pyrr).
 
         Notes
         -----
@@ -1218,42 +1225,46 @@ class CC_Mesh(lapy.TriaMesh):
             - -8 degrees around z-axis
         3. Adds a small translation for better centering
         """
+
+        if not HAS_PYRR:
+            raise ImportError("Pyrr not installed, install pyrr with `pip install pyrr`.")
+
         viewLeft = np.array([[0, 0, -1, 0], [-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])  # left w top up // right
-        transl = pyrr.Matrix44.from_translation((0, 0, 0.4))
+        transl = Matrix44.from_translation((0, 0, 0.4))
         viewmat = transl * viewLeft
 
         # rotate 10 degrees around x axis
-        rot = pyrr.Matrix44.from_x_rotation(np.deg2rad(-10))
+        rot = Matrix44.from_x_rotation(np.deg2rad(-10))
         viewmat = viewmat * rot
 
         # rotate 35 degrees around y axis
-        rot = pyrr.Matrix44.from_y_rotation(np.deg2rad(35))
+        rot = Matrix44.from_y_rotation(np.deg2rad(35))
         viewmat = viewmat * rot
 
         # rotate 10 degrees around z axis
-        rot = pyrr.Matrix44.from_z_rotation(np.deg2rad(-8))
+        rot = Matrix44.from_z_rotation(np.deg2rad(-8))
         viewmat = viewmat * rot
 
         return viewmat
 
     def snap_cc_picture(
         self,
-        output_path: str,
-        fssurf_file: str | None = None,
-        overlay_file: str | None = None
+        output_path: Path | str,
+        fssurf_file: Path | str | None = None,
+        overlay_file: Path | str | None = None
     ) -> None:
         """Snap a picture of the corpus callosum mesh.
 
         Parameters
         ----------
-        output_path : str
+        output_path : Path, str
             Path where to save the snapshot image.
-        fssurf_file : str or None, optional
+        fssurf_file : Path, str, optional
             Path to a FreeSurfer surface file to use for the snapshot.
-            If None, the mesh is saved to a temporary file, by default None.
-        overlay_file : str or None, optional
+            If None, the mesh is saved to a temporary file.
+        overlay_file : Path, str, optional
             Path to a FreeSurfer overlay file to use for the snapshot.
-            If None, the mesh is saved to a temporary file, by default None.
+            If None, the mesh is saved to a temporary file.
 
         Raises
         ------
@@ -1269,7 +1280,6 @@ class CC_Mesh(lapy.TriaMesh):
         - Ambient lighting and colorbar settings.
         - Thickness overlay if available.
         3. Cleans up temporary files after use.
-
         """
         try:
             from whippersnappy.core import snap1
@@ -1282,30 +1292,29 @@ class CC_Mesh(lapy.TriaMesh):
         self.__make_parent_folder(output_path)
         # Skip snapshot if there are no faces
         if len(self.t) == 0:
-            print("Warning: Cannot create snapshot - no faces in mesh")
+            logger.warning("Cannot create snapshot - no faces in mesh")
             return
 
         # create temp file
-        if fssurf_file is None:
-            temp_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True)
-            self.write_fssurf(temp_file.name)
+        if fssurf_file:
+            fssurf_file = Path(fssurf_file)
         else:
-            temp_file = Path(fssurf_file)
+            fssurf_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True)
+            self.write_fssurf(fssurf_file.name)
 
-        if overlay_file is None:
-            if hasattr(self, "mesh_vertex_colors"):
-                overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True)
-                # Write thickness values in FreeSurfer .w format
-                nib.freesurfer.write_morph_data(overlay_file.name, self.mesh_vertex_colors)
-                overlaypath = overlay_file.name
-            else:
-                overlaypath = None
+        if overlay_file:
+            overlay_path: str | None = Path(overlay_file).name
+        elif hasattr(self, "mesh_vertex_colors"):
+            overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True)
+            # Write thickness values in FreeSurfer .w format
+            nib.freesurfer.write_morph_data(overlay_file.name, self.mesh_vertex_colors)
+            overlay_path = overlay_file.name
         else:
-            overlaypath = Path(overlay_file).name
+            overlay_path = None
 
         snap1(
-            temp_file.name,
-            overlaypath=overlaypath,
+            fssurf_file.name,
+            overlaypath=overlay_path,
             view=None,
             viewmat=self.__create_cc_viewmat(),
             width=3 * 500,
@@ -1323,8 +1332,10 @@ class CC_Mesh(lapy.TriaMesh):
             caption_scale=0.5,
         )
 
-        temp_file.close()
-        overlay_file.close()
+        if fssurf_file and hasattr(fssurf_file, "close"):
+            fssurf_file.close()
+        if overlay_file and hasattr(overlay_file, "close"):
+            overlay_file.close()
 
     def smooth_(self, iterations: int = 1) -> None:
         """Smooth the mesh while preserving the z-coordinates.
@@ -1345,12 +1356,12 @@ class CC_Mesh(lapy.TriaMesh):
         super().smooth_(iterations)
         self.v[:, 2] = z_values
 
-    def save_contours(self, output_path: str) -> None:
+    def save_contours(self, output_path: Path | str) -> None:
         """Save the contours to a CSV file.
 
         Parameters
         ----------
-        output_path : str
+        output_path : Path, str
             Path where to save the CSV file.
 
         Notes
@@ -1430,12 +1441,12 @@ class CC_Mesh(lapy.TriaMesh):
         self.contours = self.contours + [None] * (max_slices - len(self.contours))
         self.start_end_idx = self.start_end_idx + [None] * (max_slices - len(self.start_end_idx))
 
-    def save_thickness_values(self, output_path: str) -> None:
+    def save_thickness_values(self, output_path: Path | str) -> None:
         """Save thickness values to a CSV file.
 
         Parameters
         ----------
-        output_path : str
+        output_path : Path, str
             Path where to save the CSV file.
 
         Notes
@@ -1564,12 +1575,12 @@ class CC_Mesh(lapy.TriaMesh):
             self.thickness_values = new_thickness_values
 
     @staticmethod
-    def __make_parent_folder(filename: str) -> None:
+    def __make_parent_folder(filename: Path | str) -> None:
         """Create the parent folder for a file if it doesn't exist.
 
         Parameters
         ----------
-        filename : str
+        filename : Path, str
             Path to the file whose parent folder should be created.
 
         Notes
@@ -1577,13 +1588,12 @@ class CC_Mesh(lapy.TriaMesh):
         Creates parent directory with parents=False to avoid creating
         multiple levels of directories unintentionally.
         """
-        output_folder = Path(filename).parent
-        output_folder.mkdir(parents=False, exist_ok=True)
+        Path(filename).parent.mkdir(parents=False, exist_ok=True)
 
     def to_fs_coordinates(
         self,
         vox2ras_tkr: np.ndarray,
-        vox_size: tuple[float, float, float]
+        vox_size: tuple[float, float, float],
     ) -> None:
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
@@ -1591,7 +1601,7 @@ class CC_Mesh(lapy.TriaMesh):
         ----------
         vox2ras_tkr : np.ndarray
             4x4 voxel to RAS tkr-space transformation matrix.
-        vox_size : tuple[float, float, float]
+        vox_size : 3-tuple of floats
             Voxel size in millimeters (x, y, z).
 
         Notes
@@ -1615,7 +1625,6 @@ class CC_Mesh(lapy.TriaMesh):
         # flip SI
         v_vox[:, 1] = -v_vox[:, 1]
 
-
         #v_vox_test = np.round(v_vox).astype(int)
         ## write volume for debugging
         # contour_img = np.zeros(orig.shape)
@@ -1627,24 +1636,14 @@ class CC_Mesh(lapy.TriaMesh):
         # https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
         self.v = (vox2ras_tkr @ np.concatenate([v_vox, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
         self.v = self.v * vox_size[0]
-        
 
-        
-        
-        
-
-    def write_fssurf(self, filename: str) -> None:
+    def write_fssurf(self, filename: Path | str) -> None:
         """Write the mesh to a FreeSurfer surface file.
 
         Parameters
         ----------
-        filename : str
+        filename : Path, str
             Path where to save the FreeSurfer surface file.
-
-        Returns
-        -------
-        None
-            Returns the result of the parent class's write_fssurf method.
 
         Notes
         -----
@@ -1653,18 +1652,13 @@ class CC_Mesh(lapy.TriaMesh):
         self.__make_parent_folder(filename)
         return super().write_fssurf(filename)
 
-    def write_overlay(self, filename: str) -> None:
+    def write_overlay(self, filename: Path | str) -> None:
         """Write the thickness values as a FreeSurfer overlay file.
 
         Parameters
         ----------
-        filename : str
+        filename : Path, str
             Path where to save the overlay file.
-
-        Returns
-        -------
-        None
-            Returns the result of writing the morph data using nibabel.
 
         Notes
         -----
@@ -1673,12 +1667,12 @@ class CC_Mesh(lapy.TriaMesh):
         self.__make_parent_folder(filename)
         return nib.freesurfer.write_morph_data(filename, self.mesh_vertex_colors)
 
-    def save_thickness_measurement_points(self, filename: str) -> None:
+    def save_thickness_measurement_points(self, filename: Path | str) -> None:
         """Write the thickness measurement points to a CSV file.
 
         Parameters
         ----------
-        filename : str
+        filename : Path, str
             Path where to save the CSV file.
 
         Notes

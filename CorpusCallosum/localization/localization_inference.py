@@ -18,12 +18,16 @@ import numpy as np
 import torch
 from monai import transforms
 from monai.networks.nets import DenseNet
+from numpy import typing as npt
 
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from CorpusCallosum.transforms.localization_transforms import CropAroundACPCFixedSize
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+
+PATCH_SIZE = (64, 64)
+
 
 def load_model(device: torch.device) -> DenseNet:
     """Load trained numerical localization model from checkpoint.
@@ -86,18 +90,14 @@ def get_transforms() -> transforms.Compose:
     """
     tr = [
         transforms.ScaleIntensityd(keys=['image'], minv=0, maxv=1),
-        CropAroundACPCFixedSize(
-            keys=['image'], 
-            fixed_size=(64, 64), 
-            random_translate=0,
-        ),
+        CropAroundACPCFixedSize(keys=['image'], fixed_size=PATCH_SIZE, random_translate=0),
     ]
     return transforms.Compose(tr)
 
 
 def preprocess_volume(
     image_volume: np.ndarray,
-    center_pt: np.ndarray,
+    center_pt: npt.NDArray[float],
     transform: transforms.Transform | None = None
 ) -> dict[str, torch.Tensor]:
     """Preprocess a volume for inference.
@@ -105,9 +105,9 @@ def preprocess_volume(
     Parameters
     ----------
     image_volume : np.ndarray
-        Input image volume
+        Input image volume of shape (W, W, D) in RAS.
     center_pt : np.ndarray
-        Center point coordinates for cropping
+        Center point coordinates for cropping on the slice with shape (3,).
     transform : transforms.Transform or None, optional
         Custom transform pipeline, by default None.
         If None, uses default transforms from get_transforms().
@@ -120,24 +120,25 @@ def preprocess_volume(
     if transform is None:
         transform = get_transforms()
 
-    sample = {"image": image_volume, "AC_center": center_pt, "PC_center": center_pt}
+    sample = {"image": image_volume[None], "AC_center": center_pt[1:][None], "PC_center": center_pt[1:][None]}
 
     # Apply transforms
     transformed = transform(sample)
     
     # Add batch dimension if needed
     if torch.is_tensor(transformed["image"]):
-        if len(transformed["image"].shape) == 3:
+        if transformed["image"].ndim == 3:
             transformed["image"] = transformed["image"].unsqueeze(0)
             
     return transformed
 
-def run_inference(model: torch.nn.Module,
-                 image_volume: np.ndarray,
-                 third_ventricle_center: np.ndarray,
-                 device: torch.device | None = None,
-                 transform: transforms.Transform | None = None
-                 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[int, int]]:
+def run_inference(
+        model: torch.nn.Module,
+        image_volume: np.ndarray,
+        third_ventricle_center: np.ndarray,
+        device: torch.device | None = None,
+        transform: transforms.Transform | None = None
+    ) -> tuple[npt.NDArray[float], npt.NDArray[float], np.ndarray, tuple[int, int]]:
     """
     Run inference on an image volume
     
@@ -169,43 +170,34 @@ def run_inference(model: torch.nn.Module,
         device = next(model.parameters()).device
         #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
     # prepend zero to third_ventricle_center
     third_ventricle_center = np.concatenate([np.zeros(1), third_ventricle_center])
     
     # Preprocess
-    t_dict = preprocess_volume(image_volume[None], third_ventricle_center, transform)
-
+    t_dict = preprocess_volume(image_volume, third_ventricle_center, transform)
 
     transformed_original = t_dict['image']
     inputs = transformed_original.to(device)
 
-
     inputs = inputs.transpose(0, 1)
     batch_size, channels, height, width = inputs.shape
     inputs = inputs.unfold(0, 3, 1).swapdims(0, 1).reshape(-1, 3*channels, height, width)
-    
 
     # Run inference
     with torch.no_grad():
-        outputs = model(inputs)
-        
-        # Scale outputs to image size
-        # img_size = torch.tensor([inputs.shape[2], inputs.shape[3], 
-        #                        inputs.shape[2], inputs.shape[3]], 
-        #                       dtype=torch.float32,
-        #                       device=device)
-        outputs = outputs * 64
+        outputs = model(inputs) * torch.as_tensor([PATCH_SIZE + PATCH_SIZE], device=device)
 
-    t_crops = [[t_dict['crop_left'], t_dict['crop_top'], t_dict['crop_left'], t_dict['crop_top']]]
-    outs: np.ndarray = (outputs + torch.tensor(t_crops, dtype=outputs.dtype, device=outputs.device)).numpy()
-    return outs[:, :2], outs[:, 2:], inputs.numpy(), tuple(int(t_dict[k].item()) for k in ['crop_left', 'crop_top'])
+    t_crops = [(t_dict['crop_left'] + t_dict['crop_top']) * 2]
+    outs: npt.NDArray[float] = outputs.cpu().numpy() + np.asarray(t_crops, dtype=float)
+    return outs[:, :2], outs[:, 2:], inputs.cpu().numpy(), (t_dict["crop_left"][0], t_dict["crop_top"][0])
 
 
-def run_inference_on_slice(model: DenseNet,
-                           image_slice: np.ndarray, 
-                           center_pt: np.ndarray, 
-                           debug_output: str | None = None) -> tuple[np.ndarray, np.ndarray]:
+def run_inference_on_slice(
+        model: DenseNet,
+        image_slice: np.ndarray,
+        center_pt: np.ndarray,
+        debug_output: str | None = None,
+) -> tuple[npt.NDArray[float], npt.NDArray[float]]:
     """Run inference on a single slice to detect AC and PC points.
 
     Parameters
@@ -213,7 +205,7 @@ def run_inference_on_slice(model: DenseNet,
     model : torch.nn.Module
         Trained model for AC-PC detection
     image_slice : np.ndarray
-        3D image slice to run inference on
+        3D image mid-slices to run inference on in RAS.
     center_pt : np.ndarray
         Initial center point estimate for cropping
     debug_output : str, optional
@@ -228,7 +220,7 @@ def run_inference_on_slice(model: DenseNet,
     """
 
     # Run inference
-    pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
+    pc_coords, ac_coords, *_ = run_inference(model, image_slice, center_pt)
     center_pt = np.mean(np.concatenate([ac_coords, pc_coords], axis=0), axis=0)
     pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
     pc_coords = np.mean(pc_coords, axis=0)
