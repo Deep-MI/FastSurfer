@@ -382,60 +382,13 @@
           <section id="module-recon_surf.spherically_project_wrapper">
 <span id="recon-surf-spherically-project-wrapper"></span><h1>recon_surf.spherically_project_wrapper<a class="headerlink" href="#module-recon_surf.spherically_project_wrapper" title="Link to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="recon_surf.spherically_project_wrapper.call">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/spherically_project_wrapper.py#L48-L80"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.call" title="Link to this definition">¶</a></dt>
-<dd><p>Run command with arguments.</p>
-<p>Wait for command to complete. Sends output to logging module.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>command</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Command to call.</p>
-</dd>
-<dt><strong>**kwargs</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code></span></dt><dd><p>Keyword arguments.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></dt><dd><p>Returncode of called command.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.spherically_project_wrapper.setup_options">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">setup_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/spherically_project_wrapper.py#L23-L45"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.setup_options" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">setup_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/spherically_project_wrapper.py#L21-L39"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.setup_options" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 <dl class="field-list">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>options</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.Namespace</span></code></a></span></dt><dd><p>Namespace object holding options.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="recon_surf.spherically_project_wrapper.spherical_wrapper">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">spherical_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/spherically_project_wrapper.py#L83-L109"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.spherical_wrapper" title="Link to this definition">¶</a></dt>
-<dd><p>Run the first command. If it fails the fallback command is run instead.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>command1</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Command to call.</p>
-</dd>
-<dt><strong>command2</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Fallback command to call.</p>
-</dd>
-<dt><strong>**kwargs</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code></span></dt><dd><p>Arguments. The same as for the Popen constructor.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">code_1</span></code></dt><dd><p>Return code of command1. If command1 failed return code of command2.</p>
 </dd>
 </dl>
 </dd>
@@ -498,9 +451,7 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">recon_surf.spherically_project_wrapper</a><ul>
-<li><a class="reference internal" href="#recon_surf.spherically_project_wrapper.call"><code class="docutils literal notranslate"><span class="pre">call()</span></code></a></li>
 <li><a class="reference internal" href="#recon_surf.spherically_project_wrapper.setup_options"><code class="docutils literal notranslate"><span class="pre">setup_options()</span></code></a></li>
-<li><a class="reference internal" href="#recon_surf.spherically_project_wrapper.spherical_wrapper"><code class="docutils literal notranslate"><span class="pre">spherical_wrapper()</span></code></a></li>
 </ul>
 </li>
 </ul>
