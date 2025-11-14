@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from logging import getLogger
+
 import numpy as np
+import torch
 from monai.transforms import MapTransform, RandomizableTransform
 
 
@@ -30,8 +33,8 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
         Fixed size of the crop window (width, height)
     allow_missing_keys : bool, optional
         Whether to allow missing keys in the data dictionary, by default False
-    random_translate : float, optional
-        Maximum random translation in voxels, by default 0
+    random_translate : int, default=0
+        Maximum random translation in voxels.
 
     Notes
     -----
@@ -49,30 +52,35 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
         If the crop boundaries extend outside the image dimensions
     """
 
-    def __init__(self, keys: list[str], fixed_size: tuple[int, int], 
-                 allow_missing_keys: bool = False, random_translate: float = 0) -> None:
+    def __init__(
+            self,
+            keys: list[str],
+            fixed_size: tuple[int, int],
+            allow_missing_keys: bool = False,
+            random_translate: int = 0,
+    ) -> None:
         MapTransform.__init__(self, keys, allow_missing_keys)
         RandomizableTransform.__init__(self)
         self.random_translate = random_translate
         self.fixed_size = fixed_size
 
     def __call__(self, data: dict) -> dict:
-        """Apply the transform to the data.
+        """Apply the 2D crop transform to the data.
 
         Parameters
         ----------
         data : dict
-            Dictionary containing the data to transform
+            Dictionary containing the data to transform AND keys AC_center and PC_center, each of shape (B, 2).
 
         Returns
         -------
         dict
             Transformed data dictionary with cropped images and updated coordinates.
             Also includes crop boundary information:
-            - crop_left : int
-            - crop_right : int
-            - crop_top : int
-            - crop_bottom : int
+            - crop_left : list[int]
+            - crop_right : list[int]
+            - crop_top : list[int]
+            - crop_bottom : list[int]
 
         Raises
         ------
@@ -81,54 +89,63 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
         """
         d = dict(data)
 
-        for key in self.keys:
-            if key not in d.keys() and self.allow_missing_keys:
-                continue
+        expected_keys = {"PC_center", "AC_center"} | set(self.keys) if not self.allow_missing_keys else {}
 
-        # Get AC and PC centers
-        pc_center = d['PC_center']
-        ac_center = d['AC_center']
-        
+        if expected_keys & set(d.keys()) != expected_keys:
+            raise ValueError(f"The following keys are missing in the data dictionary: {expected_keys - set(d.keys())}!")
+
+        if any(d[k].ndim != 2 or d[k].shape[1] != 2 for k in ["PC_center", "AC_center"]):
+            raise ValueError("Shape of AC_center or PC_center incorrect, must be (B, 2)!")
+
+        if any(d[k].ndim != 4 for k in self.keys if k in d.keys()):
+            raise ValueError(f"At least one key of {self.keys} does not have a 4-dimensional tensor.")
+
         # calculate center point between AC and PC
-        center_point = ((ac_center + pc_center) / 2).astype(int)
+        center_point = ((d['AC_center'] + d['PC_center']) / 2).astype(int)
 
         # Calculate voxel padding based on mm padding
         voxel_padding = np.asarray(self.fixed_size) // 2
 
-        # Add random translation if specified
-        if self.random_translate > 0:
-            random_translate = np.random.randint(-self.random_translate, 
-                                               self.random_translate, size=2)
-        else:
-            random_translate = np.asarray((0, 0))
+        existing_keys = set(self.keys) & set(d.keys())
+        if len(existing_keys) == 0:
+            getLogger(__name__).warning(f"None of the keys in {self.keys} are present in the data dictionary!")
+            return d
+
+        first_key = tuple(existing_keys)[0]
 
         # Calculate crop boundaries with padding and random translation
-        crops = center_point - voxel_padding + random_translate
-        
+        crops = center_point - voxel_padding
+
+        # Add random translation if specified
+        if self.random_translate > 0:
+            crops += np.random.randint(
+                -self.random_translate,
+                self.random_translate + 1,
+                size=(d[first_key].shape[0], 2),
+            )
+
         # Ensure crop boundaries are within image
-        img_shape = np.asarray(d['image'].shape[2:])  # Get spatial dimensions
-        crops = np.maximum(0, np.minimum(img_shape, crops + np.asarray(self.fixed_size)) - np.asarray(self.fixed_size))
-        crop_left, crop_top = crops.tolist()
-        crop_right, crop_bottom = (crops + np.asarray(self.fixed_size)).tolist()
+        img_shape = np.asarray(d[first_key].shape[2:])  # Get spatial dimensions
+        if any(np.any(img_shape != d[k].shape[2:]) for k in self.keys if k in d.keys()):
+            raise ValueError(f"At least one key of {self.keys} does not have the expected shape.")
+
+        patch_size_with_batch_dim = np.asarray(self.fixed_size)[None]
+        crops = np.maximum(0, np.minimum(img_shape, crops + patch_size_with_batch_dim) - patch_size_with_batch_dim)
+        d["crop_left"], d["crop_top"] = crops.T.tolist()
+        d["crop_right"], d["crop_bottom"] = (crops_end := crops + patch_size_with_batch_dim).T.tolist()
 
         # raise error if crop boundaries are out of image
-        if crop_left < 0 or crop_right > d['image'].shape[2] or crop_top < 0 or crop_bottom > d['image'].shape[3]:
+        if np.any(crops < 0) or np.any(crops_end > np.asarray([d[first_key].shape[2:]])):
             raise ValueError("Crop boundaries are out of image")
 
         # Apply crop to image
         for key in self.keys:
             if key not in d.keys() and self.allow_missing_keys:
                 continue
-                
-            d[key] = d[key][:, :, crop_left:crop_right, crop_top:crop_bottom]
+            arr = [v[:, cl:cr, ct:cb] for v, cl, ct, cr, cb in zip(d[key], *crops.T, *crops_end.T, strict=True)]
+            d[key] = torch.stack(arr, dim=0) if torch.is_tensor(arr[0]) else np.stack(arr, axis=0)
 
-            # Update point coordinates relative to cropped image
-            d['PC_center'][1:] = d['PC_center'][1:] - [crop_left, crop_top]
-            d['AC_center'][1:] = d['AC_center'][1:] - [crop_left, crop_top]
-
-        
-        d['crop_left'] = crop_left
-        d['crop_right'] = crop_right
-        d['crop_top'] = crop_top
-        d['crop_bottom'] = crop_bottom
+        # Update point coordinates relative to cropped image
+        d["PC_center"] = d["PC_center"] - crops
+        d["AC_center"] = d["AC_center"] - crops
         return d

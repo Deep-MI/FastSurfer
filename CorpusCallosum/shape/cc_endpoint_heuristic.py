@@ -228,13 +228,11 @@ def get_endpoints(
 
     rotated_PC_2d = (rot_matrix @ pc_centered) + origin_point
     rotated_AC_2d = (rot_matrix @ ac_centered) + origin_point
-    
 
     # Add z=0 coordinate to make 3D, then remove it after resampling
     contour_3d = np.vstack([contour, np.zeros(contour.shape[1])])
     contour_3d = lapy.tria_mesh.TriaMesh._TriaMesh__resample_polygon(contour_3d.T, 701).T
     contour = contour_3d[:2]
-
     
     contour = contour[:, :-1]
 

@@ -8,7 +8,7 @@ import numpy as np
 from CorpusCallosum.data.constants import FSAVERAGE_DATA_PATH
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.data.read_write import load_fsaverage_data
-from CorpusCallosum.shape.cc_mesh import CC_Mesh
+from CorpusCallosum.shape.cc_mesh import CCMesh
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -110,7 +110,7 @@ def main(
     output_dir = Path(output_dir)
 
     # Load data and create mesh
-    cc_mesh = CC_Mesh(num_slices=1)  # Will be resized when loading data
+    cc_mesh = CCMesh(num_slices=1)  # Will be resized when loading data
 
     _, _, vox2ras_tkr = load_fsaverage_data(FSAVERAGE_DATA_PATH)
 

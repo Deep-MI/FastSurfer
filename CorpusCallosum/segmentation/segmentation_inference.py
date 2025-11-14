@@ -17,6 +17,7 @@ import nibabel as nib
 import numpy as np
 import torch
 from monai import transforms
+from numpy import typing as npt
 
 from CorpusCallosum.data import constants
 from CorpusCallosum.transforms.segmentation_transforms import CropAroundACPC
@@ -24,6 +25,7 @@ from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
+from FastSurferCNN.utils.common import thread_executor as executor
 
 
 def load_model(device: torch.device | None = None) -> FastSurferVINN:
@@ -31,9 +33,6 @@ def load_model(device: torch.device | None = None) -> FastSurferVINN:
 
     Parameters
     ----------
-    checkpoint_path : str or None, optional
-        Path to model checkpoint, by default None.
-        If None, downloads and uses default checkpoint.
     device : torch.device or None, optional
         Device to load model to, by default None.
         If None, uses CUDA if available, else CPU.
@@ -68,10 +67,10 @@ def load_model(device: torch.device | None = None) -> FastSurferVINN:
     model = FastSurferVINN(params)
     
     download_checkpoints(cc=True)
-    cc_config = load_checkpoint_config_defaults(
-                "checkpoint",
-                filename=CC_YAML,
-            )
+    cc_config: dict[str, Path] = load_checkpoint_config_defaults(
+        "checkpoint",
+        filename=CC_YAML,
+    )
     checkpoint_path = constants.FASTSURFER_ROOT / cc_config['segmentation']
     
     weights = torch.load(checkpoint_path, weights_only=True, map_location=device)
@@ -84,12 +83,12 @@ def load_model(device: torch.device | None = None) -> FastSurferVINN:
 def run_inference(
     model: FastSurferVINN,
     image_slice: np.ndarray,
-    AC_center: np.ndarray,
-    PC_center: np.ndarray,
+    ac_center: np.ndarray,
+    pc_center: np.ndarray,
     voxel_size: float,
     device: torch.device | None = None,
     transform: transforms.Transform | None = None
-) -> dict[str, np.ndarray]:
+) -> tuple[npt.NDArray[int], npt.NDArray[float], npt.NDArray[float]]:
     """Run inference on a single image slice.
 
     Parameters
@@ -97,10 +96,10 @@ def run_inference(
     model : FastSurferVINN
         Trained model
     image_slice : np.ndarray
-        Input image as numpy array
-    AC_center : np.ndarray
+        LIA-oriented input image as numpy array of shape (L, I, A).
+    ac_center : np.ndarray
         Anterior commissure coordinates
-    PC_center : np.ndarray
+    pc_center : np.ndarray
         Posterior commissure coordinates
     voxel_size : float
         Voxel size in mm
@@ -112,86 +111,50 @@ def run_inference(
 
     Returns
     -------
-    dict[str, np.ndarray]
-        Dictionary containing:
-        - segmentation : Binary segmentation map
-        - landmarks : Predicted landmark coordinates
+    seg_labels : npt.NDArray[int]
+        The segmentation result.
+    inputs : npt.NDArray[float]
+        The inputs to the model.
+    soft_labels : npt.NDArray[float]
+        The softlabel output.
     """
     if device is None:
-        #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         device = next(model.parameters()).device
         
-    def crop_around_acpc(img: np.ndarray, 
-                    ac: np.ndarray, 
-                    pc: np.ndarray, 
-                    vox_size: float) -> dict[str, np.ndarray]:
-        """Crop image around AC-PC points.
-
-        Parameters
-        ----------
-        img : np.ndarray
-            Input image
-        ac : np.ndarray
-            Anterior commissure coordinates
-        pc : np.ndarray
-            Posterior commissure coordinates
-        vox_size : float
-            Voxel size in mm
-
-        Returns
-        -------
-        dict[str, np.ndarray]
-            Dictionary containing cropped image and metadata
-        """
-        return CropAroundACPC(keys=['image'], padding_mm=35, random_translate=0)(
-            {'image': img, 'AC_center': ac, 'PC_center': pc, 'res': vox_size}
-        )
+    crop_around_acpc = CropAroundACPC(keys=['image'], padding_mm=35, random_translate=0)
+    to_discrete = transforms.AsDiscrete(argmax=True, to_onehot=3)
 
     # Preprocess slice
-    inputs = torch.from_numpy(image_slice[:,None,:256,:256]) # artifact from training script
-    crop_dict = crop_around_acpc(inputs, AC_center, PC_center, voxel_size)
-    inputs, to_pad = crop_dict['image'], crop_dict['to_pad']
-    inputs = transforms.utils.rescale_array(inputs, 0, 1, dtype=np.float32)
-    inputs = inputs.to(device)
-
-    post_trans = transforms.Compose(
-        [transforms.Activations(softmax=True), transforms.AsDiscrete(argmax=True, to_onehot=3)]
-    )
+    _inputs = torch.from_numpy(image_slice[:,None,:256,:256]) # artifact from training script
+    sample = {'image': _inputs, 'AC_center': ac_center, 'PC_center': pc_center, 'res': voxel_size}
+    sample_cropped = crop_around_acpc(sample)
+    _inputs, to_pad = sample_cropped['image'], sample_cropped['to_pad']
+    _inputs = transforms.utils.rescale_array(_inputs, 0, 1, dtype=np.float32).to(device)
 
     # split into slices with 9 channels each
     # Generate views with sliding window of 9 slices
-    batch_size, channels, height, width = inputs.shape
-    inputs = inputs.unfold(0, 9, 1).swapdims(0, 1).reshape(-1, 9*channels, height, width)
+    batch_size, channels, height, width = _inputs.shape
+    _inputs = _inputs.unfold(0, 9, 1).swapdims(-1, 1).reshape(-1, 9*channels, height, width)
 
     # Post-process outputs
     with torch.no_grad():
-        scale_factors = torch.ones((inputs.shape[0], 2), device=device) / voxel_size
+        scale_factors = torch.ones((_inputs.shape[0], 2), device=device) / voxel_size
         
-        outputs = model(inputs, scale_factor=scale_factors)
+        _logits = model(_inputs, scale_factor=scale_factors)
+        _softlabels = transforms.Activations(softmax=True, dim=1)(_logits)
         
-        # average the outputs along the batch dimension
-        outputs_avg = torch.mean(outputs, dim=0, keepdim=True)
-    
-        outputs_soft = outputs.cpu().numpy() #transforms.Activations(softmax=True)(outputs) # non_discrete outputs
-        outputs = torch.stack([post_trans(i) for i in outputs])
-        outputs_avg = torch.stack([post_trans(i) for i in outputs_avg])
-        
+        softlabels = _softlabels.cpu().numpy()
+        _labels = torch.stack([to_discrete(i) for i in _softlabels])
+
         # Pad back to original size, to_pad is a tuple[int, int, int, int]
         pad_tuples = ((0, 0),) * 2 + (to_pad[:2], to_pad[2:])
-        outputs = np.pad(outputs, pad_tuples, mode='constant', constant_values=0)
-        outputs_avg = np.pad(outputs_avg, pad_tuples, mode='constant', constant_values=0)
-        outputs_soft = np.pad(outputs_soft, pad_tuples, mode='constant', constant_values=0)    
+        labels = np.pad(_labels.cpu().numpy(), pad_tuples, mode='constant', constant_values=0)
+        softlabels = np.pad(softlabels, pad_tuples, mode='constant', constant_values=0)
 
-    return (
-        outputs.transpose(0,2,3,1),
-        inputs.cpu().numpy().transpose(0,2,3,1),
-        outputs_avg.transpose(0,2,3,1),
-        outputs_soft.transpose(0,2,3,1),
-    )
+    return [x.transpose(0, 2, 3, 1) for x in (labels, _inputs.cpu().numpy(), softlabels)]
 
 
 def load_validation_data(path):
-    from concurrent.futures import ThreadPoolExecutor
 
     import pandas as pd
     data = pd.read_csv(path, index_col=0, header=None)
@@ -216,7 +179,7 @@ def load_validation_data(path):
             return last_nonzero - first_nonzero
         else:
             return label_img.shape[0]
-    label_widths = ThreadPoolExecutor().map(_load, data["label"])    
+    label_widths = executor().map(_load, data["label"])
     
     return images, ac_centers, pc_centers, label_widths, labels, subj_ids
 
@@ -231,25 +194,27 @@ def one_hot_to_label(one_hot, label_ids=None):
 
 
 
-def run_inference_on_slice(model: FastSurferVINN, 
-                          test_slice: np.ndarray,
-                          AC_center: np.ndarray, 
-                          PC_center: np.ndarray,
-                          voxel_size: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def run_inference_on_slice(
+        model: FastSurferVINN,
+        test_slice: np.ndarray,
+        ac_center: npt.NDArray[float],
+        pc_center: npt.NDArray[float],
+        voxel_size: float,
+) -> tuple[npt.NDArray[int], np.ndarray, npt.NDArray[float]]:
     """Run inference on a single slice.
 
     Parameters
     ----------
     model : FastSurferVINN
-        Trained model for inference
+        Trained model for inference.
     test_slice : np.ndarray
-        Input image slice
-    AC_center : np.ndarray
-        Anterior commissure coordinates
-    PC_center : np.ndarray
-        Posterior commissure coordinates 
+        Input image slice.
+    ac_center : npt.NDArray[float]
+        Anterior commissure coordinates (Inferior and Anterior values).
+    pc_center : npt.NDArray[float]
+        Posterior commissure coordinates (Inferior and Posterior values).
     voxel_size : float
-        Voxel size in mm
+        Voxel size in mm.
 
     Returns
     -------
@@ -257,17 +222,15 @@ def run_inference_on_slice(model: FastSurferVINN,
         Label map after one-hot conversion
     inputs: np.ndarray
         Preprocessed input image
-    outputs_avg: np.ndarray
-        Averaged model outputs
-    outputs_soft: np.ndarray
+    outputs_soft: npt.NDArray[float]
         Softlabel outputs (non-discrete)
     
     """
     # add zero in front of AC_center and PC_center
-    AC_center = np.concatenate([np.zeros(1), AC_center])
-    PC_center = np.concatenate([np.zeros(1), PC_center])
+    ac_center = np.concatenate([np.zeros(1), ac_center])
+    pc_center = np.concatenate([np.zeros(1), pc_center])
 
-    results, inputs, outputs_avg, outputs_soft = run_inference(model, test_slice, AC_center, PC_center, voxel_size)
+    results, inputs, outputs_soft = run_inference(model, test_slice, ac_center, pc_center, voxel_size)
     results = one_hot_to_label(results)
 
-    return results, inputs, outputs_avg, outputs_soft
+    return results, inputs, outputs_soft

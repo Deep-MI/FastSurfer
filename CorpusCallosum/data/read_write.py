@@ -13,75 +13,44 @@
 # limitations under the License.
 
 import json
-import multiprocessing
 from pathlib import Path
-from typing import overload
+from typing import TypedDict
 
 import nibabel as nib
 import numpy as np
+from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
+
+
+class FSAverageHeader(TypedDict):
+    dims: npt.NDArray[int]
+    delta: npt.NDArray[float]
+    Mdc: npt.NDArray[float]
+    Pxyz_c: npt.NDArray[float]
 
 logger = logging.get_logger(__name__)
 
 
-def run_in_background(function: callable, debug: bool = False, *args, **kwargs) -> multiprocessing.Process | None:
-    """Run a function in the background using multiprocessing.
-
-    Parameters
-    ----------
-    function : callable
-        The function to execute.
-    debug : bool, optional
-        If True, run synchronously in current process, by default False.
-    *args
-        Positional arguments to pass to the function.
-    **kwargs
-        Keyword arguments to pass to the function.
-
-    Returns
-    -------
-    multiprocessing.Process or None
-        Process object if running in background, None if in debug mode.
-    """
-    if debug:
-        function(*args, **kwargs)
-        process = None
-    else:
-        process = multiprocessing.Process(target=function, args=args, kwargs=kwargs)
-        process.start()
-    return process
-
-
-@overload
-def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: None = None) -> dict[int, np.ndarray]:
-    ...
-
-@overload
-def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int]) -> tuple[dict[int, np.ndarray], list[int]]:
-    ...
-
-def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None = None):
+def get_centroids_from_nib(seg_img: nib.analyze.SpatialImage, label_ids: list[int] | None = None) \
+        -> dict[int, np.ndarray | None]:
     """Get centroids of segmentation labels in RAS coordinates.
 
     Parameters
     ----------
-    seg_img : nibabel.Nifti1Image
+    seg_img : nibabel.analyze.SpatialImage
         Input segmentation image.
     label_ids : list[int], optional
         List of label IDs to extract centroids for. If None, extracts all non-zero labels.
 
     Returns
     -------
-    dict[int, np.ndarray]
-        If label_ids is None, returns a dict mapping label IDs to their centroids (x,y,z) in RAS coordinates.
-        If label_ids is provided, returns a tuple containing:
-        - dict[int, np.ndarray]: Mapping of found label IDs to their centroids.
-        - list[int]: List of label IDs that were not found in the image.
+    dict[int, np.ndarray | None]
+        A dict mapping label IDs to their centroids (x,y,z) in RAS coordinates, None if label did not exist.
     """
     # Get segmentation data and affine
-    seg_data = seg_img.get_fdata()
-    vox2ras = seg_img.affine
+    seg_data: npt.NDArray[np.integer] = np.asarray(seg_img.dataobj)
+    vox2ras: npt.NDArray[float] = seg_img.affine
     
     # Get unique labels
     if label_ids is None:
@@ -90,61 +59,23 @@ def get_centroids_from_nib(seg_img: nib.Nifti1Image, label_ids: list[int] | None
     else:
         labels = label_ids
     
+    def _calc_ras_centroid(mask_vox: npt.NDArray[np.integer]) -> npt.NDArray[float]:
+        # Calculate centroid in voxel space
+        vox_centroid = np.mean(mask_vox, axis=1, dtype=float)
+
+        # Convert to homogeneous coordinates
+        vox_centroid = np.append(vox_centroid, 1)
+
+        # Transform to RAS coordinates and return without homogeneous coordinate
+        return (vox2ras @ vox_centroid)[:3]
+
     centroids = {}
-    ids_not_found = []
     for label in labels:
         # Get voxel indices for this label
         vox_coords = np.array(np.where(seg_data == label))
-        if vox_coords.size == 0:
-            ids_not_found.append(label)
-            continue
-        # Calculate centroid in voxel space
-        vox_centroid = np.mean(vox_coords, axis=1)
+        centroids[int(label)] = None if vox_coords.size == 0 else _calc_ras_centroid(vox_coords)
         
-        # Convert to homogeneous coordinates
-        vox_centroid = np.append(vox_centroid, 1)
-        
-        # Transform to RAS coordinates
-        ras_centroid = vox2ras @ vox_centroid
-        
-        # Store without homogeneous coordinate
-        centroids[int(label)] = ras_centroid[:3]
-        
-    if label_ids is not None:
-        return centroids, ids_not_found
-    else:
-        return centroids
-
-
-
-def save_nifti_background(
-    io_processes: list, 
-    data: np.ndarray, 
-    affine: np.ndarray, 
-    header: nib.Nifti1Header,
-    filepath: str | Path
-) -> None:
-    """Save a NIfTI image in a background process.
-
-    Creates a MGHImage from the provided data and metadata, then saves it to disk
-    using a background process to avoid blocking the main execution.
-
-    Parameters
-    ----------
-    io_processes : list
-        List to store background process handles.
-    data : np.ndarray
-        Image data array.
-    affine : np.ndarray
-        4x4 affine transformation matrix.
-    header : nib.Nifti1Header
-        NIfTI header object containing metadata.
-    filepath : str or Path
-        Path where the image should be saved.
-    """
-    logger.info(f"Saving NIfTI image to {filepath}")
-    io_processes.append(run_in_background(nib.save, False, 
-                                        nib.MGHImage(data, affine, header), filepath))
+    return centroids
 
 
 def convert_numpy_to_json_serializable(obj: object) -> object:
@@ -173,7 +104,7 @@ def convert_numpy_to_json_serializable(obj: object) -> object:
         return obj
 
 
-def load_fsaverage_centroids(centroids_path: str | Path) -> dict[int, np.ndarray]:
+def load_fsaverage_centroids(centroids_path: str | Path) -> dict[int, npt.NDArray[float]]:
     """Load fsaverage centroids from static JSON file.
 
     Parameters
@@ -198,7 +129,7 @@ def load_fsaverage_centroids(centroids_path: str | Path) -> dict[int, np.ndarray
     return {int(label): np.array(centroid) for label, centroid in centroids_data.items()}
 
 
-def load_fsaverage_affine(affine_path: str | Path) -> np.ndarray:
+def load_fsaverage_affine(affine_path: str | Path) -> npt.NDArray[float]:
     """Load fsaverage affine matrix from static text file.
 
     Parameters
@@ -216,7 +147,7 @@ def load_fsaverage_affine(affine_path: str | Path) -> np.ndarray:
     if not affine_path.exists():
         raise FileNotFoundError(f"Fsaverage affine file not found: {affine_path}")
     
-    affine_matrix = np.loadtxt(affine_path)
+    affine_matrix = np.loadtxt(affine_path).astype(float)
     
     if affine_matrix.shape != (4, 4):
         raise ValueError(f"Expected 4x4 affine matrix, got shape {affine_matrix.shape}")
@@ -224,7 +155,7 @@ def load_fsaverage_affine(affine_path: str | Path) -> np.ndarray:
     return affine_matrix
 
 
-def load_fsaverage_data(data_path: str | Path) -> tuple[np.ndarray, dict, np.ndarray]:
+def load_fsaverage_data(data_path: str | Path) -> tuple[npt.NDArray[float], FSAverageHeader, npt.NDArray[float]]:
     """Load fsaverage affine matrix and header fields from static JSON file.
 
     Parameters
@@ -257,9 +188,7 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[np.ndarray, dict, np.nda
         If the file is not valid JSON.
     ValueError
         If required fields are missing.
-        
     """
-    
     data_path = Path(data_path)
     if not data_path.exists():
         raise FileNotFoundError(f"Fsaverage data file not found: {data_path}")
@@ -281,9 +210,12 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[np.ndarray, dict, np.nda
     # Convert lists back to numpy arrays
     affine_matrix = np.array(data["affine"])
     vox2ras_tkr = np.array(data["vox2ras_tkr"])
-    header_data = data["header"].copy()
-    header_data["Mdc"] = np.array(header_data["Mdc"])
-    header_data["Pxyz_c"] = np.array(header_data["Pxyz_c"])
+    header_data = FSAverageHeader(
+        dims=data["header"]["dims"],
+        delta=data["header"]["delta"],
+        Mdc=np.array(data["header"]["Mdc"]),
+        Pxyz_c=np.array(data["header"]["Pxyz_c"]),
+    )
     
     # Validate affine matrix shape
     if affine_matrix.shape != (4, 4):

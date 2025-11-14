@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Literal, overload
 
 import numpy as np
 import scipy.interpolate
@@ -44,11 +45,19 @@ def compute_curvature(path: np.ndarray) -> np.ndarray:
     return angle_diffs
 
 
+@overload
+def convert_to_ras(contour: np.ndarray, vox2ras_matrix: np.ndarray, get_parameters: Literal[False] = False) \
+        -> np.ndarray: ...
+
+@overload
+def convert_to_ras(contour: np.ndarray, vox2ras_matrix: np.ndarray, get_parameters: Literal[True]) \
+        -> tuple[np.ndarray, bool, bool, bool]: ...
+
 def convert_to_ras(
     contour: np.ndarray,
     vox2ras_matrix: np.ndarray,
-    get_parameters: bool = False
-) -> np.ndarray | tuple[np.ndarray, bool, bool, bool]:
+    return_parameters: bool = False
+):
     """Convert contour coordinates from voxel space to RAS space.
 
     Parameters
@@ -57,19 +66,19 @@ def convert_to_ras(
         Array of shape (2, N) or (3, N) containing contour coordinates.
     vox2ras_matrix : np.ndarray
         4x4 voxel to RAS transformation matrix.
-    get_parameters : bool, optional
-        If True, return additional transformation parameters, by default False.
+    return_parameters : bool, default=False
+        If True, return additional transformation parameters (see below).
 
     Returns
     -------
-    np.ndarray | tuple[np.ndarray, bool, bool, bool]
-        If get_parameters is False:
+    contour : p.ndarray
         Transformed contour coordinates.
-        If get_parameters is True:
-        - anterior_reversed : bool - Whether anterior axis was reversed.
-        - superior_reversed : bool - Whether superior axis was reversed.
-        - swap_axes : bool - Whether axes were swapped.
-    
+    anterior_reversed : bool
+        Only if return_parameters is True, whether anterior axis was reversed.
+    superior_reversed : bool
+        Only if return_parameters is True, whether superior axis was reversed.
+    swap_axes : bool
+        Only if return_parameters is True, whether axes were swapped.
     """
     # converting to AS (no left-right dimension), out of plane movement is ignores,
     # so we only do scaling, axes swapping and flipping - no rotation
@@ -89,8 +98,8 @@ def convert_to_ras(
             contour = contour[[1, 0]]
 
         # determine if axis were reversed
-        superior_reversed = (axis_swaps[2, :] == -1).any()
-        anterior_reversed = (axis_swaps[1, :] == -1).any()
+        superior_reversed = np.any(axis_swaps[2, :] == -1)
+        anterior_reversed = np.any(axis_swaps[1, :] == -1)
 
         # flip axes if necessary
         if superior_reversed:
@@ -104,18 +113,20 @@ def convert_to_ras(
         # voxel * vox_size = mm
         contour = (contour.T * scaling[1:]).T
 
-        if get_parameters:
+        if return_parameters:
             return contour, anterior_reversed, superior_reversed, swap_axes
         else:
             return contour
 
-    # # Add a third dimension (z) with 0 and a fourth dimension (homogeneous coordinate) with 1
+    # Add a third dimension (z) with 0 and a fourth dimension (homogeneous coordinate) with 1
     elif contour.shape[0] == 3:
         contour_homogeneous = np.vstack([contour, np.ones(contour.shape[1])])
 
         # Apply the transformation
         contour = (vox2ras_matrix @ contour_homogeneous)[:3, :]
         return contour
+    else:
+        raise ValueError("Invalid shape of contour")
 
 
 def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint_idx):
@@ -134,14 +145,13 @@ def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint
 
     Returns
     -------
-    tuple
-        - contour : np.ndarray
-            Rolled contour points.
-        - anterior_endpoint_idx : int
-            Updated anterior endpoint index.
-        - posterior_endpoint_idx : int
-            Updated posterior endpoint index.
-    """
+    contour : np.ndarray
+        Rolled contour points.
+    anterior_endpoint_idx : int
+        Updated anterior endpoint index.
+    posterior_endpoint_idx : int
+        Updated posterior endpoint index.
+"""
     contour = np.roll(contour, -idx, axis=0)
     anterior_endpoint_idx = (anterior_endpoint_idx - idx) % contour.shape[0]
     posterior_endpoint_idx = (posterior_endpoint_idx - idx) % contour.shape[0]
@@ -316,9 +326,10 @@ def cc_thickness(
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        - thickness_values : Array of thickness measurements.
-        - measurement_points : Array of points where thickness was measured.
+    thickness_values : np.ndarray
+        Array of thickness measurements.
+    measurement_points : np.ndarray
+        Array of points where thickness was measured.
 
     Notes
     -----
