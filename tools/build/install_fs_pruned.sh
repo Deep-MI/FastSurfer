@@ -118,12 +118,17 @@ function run_parallel ()
 
 # get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
-if [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink")
-elif [[ -n "$(which curl)" ]] ; then dl=(curl -L --insecure "$fslink")
-else aria2c -x 16 -s 16 -c --check-certificate=false -o freesurfer.tar.gz "$fslink" ; dl=(cat freesurfer.tar.gz)
+
+# temp freesurfer dl filename (to save the dl)
+freesurfer_dl="freesurfer_$(date +%s)"
+
+# dl aria2c if that exists, else wget or curl
+if [[ -n "$(which aria2c)" ]] ; then aria2c -x 16 -s 16 -c --check-certificate=false -o $freesurfer_dl "$fslink" 
+elif [[ -n "$(which wget)" ]] ; then wget --no-check-certificate -qO- "$fslink" >> $freesurfer_dl
+else curl -L --insecure "$fslink" >> $freesurfer_dl
 fi
 
-"${dl[@]}"  | tar zxv --no-same-owner -C "$where" \
+tar zxv --no-same-owner -C "$where" \
       --exclude='freesurfer/average/*.gca' \
       --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
       --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
@@ -172,12 +177,10 @@ fi
       --exclude='freesurfer/subjects/rh.EC_average' \
       --exclude='freesurfer/subjects/V1_average' \
       --exclude='freesurfer/tktools' \
-      --exclude='freesurfer/trctrain'
+      --exclude='freesurfer/trctrain' \
+      -f $freesurfer_dl
 
-if [[ -z "$(which wget)" ]] && [[ -z "$(which curl)" ]]
-then # cleanup the file saved by aria2c
-  rm freesurfer.tar.gz
-fi
+ rm $freesurfer_dl
 
 # rename download to tmp
 mv $where/freesurfer $fss

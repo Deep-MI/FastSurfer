@@ -180,7 +180,7 @@ brew install python@3.10
 From version 2.5 onward, FastSurfer ships a macOS installer package, which you can download from 
 [github](https://github.com/Deep-MI/FastSurfer/releases/). 
 There are package installers for both the Apple M-chip architecture (`arm64`) and for legacy Intel chips (`x86_64`).
-To install, drag the installer into Applications and follow the installer instructions. 
+To install, double-click the installer and follow the installer instructions. 
 
 After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the `/Applications` folder.
 
