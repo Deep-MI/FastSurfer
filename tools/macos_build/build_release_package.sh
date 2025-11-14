@@ -55,7 +55,7 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
 PYTHON_VERSION_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.requires-python)
-PYTHON_VERSION="${PYTHON_VERSION_TEMP#python>=}"
+PYTHON_VERSION="${PYTHON_VERSION_TEMP#>=}"
 
 # substitute values in postinstall script
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
@@ -66,6 +66,8 @@ sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
     -e "s|<homebrew_dir>|$HOMEBREW_DIR|g" \
     < "$SCRIPTS_DIR/postinstall.sh.template" \
     > "$SCRIPTS_DIR/postinstall"
+
+chmod +x "$SCRIPTS_DIR/postinstall"
 
 # assemble resources
 mkdir "$RESOURCES_DIR"
@@ -87,7 +89,7 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 
 mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
-python3 "$build_dir/setup.py" py2app --iconfile "$RESOURCES_DIR/fastsurfer.png" --dist-dir $build_dir/dist
+python3 "$build_dir/setup.py" py2app --iconfile "$RESOURCES_DIR/fastsurfer.png" --dist-dir "$build_dir/dist"
 mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
 
 rm -f "$build_dir/FastSurfer.py"
@@ -108,7 +110,6 @@ rm -f "$SCRIPTS_DIR/postinstall"
 # create distribution file template based on provided package
 DISTRIBUTION_FILE="$RESOURCES_DIR/distribution.xml"
 
-echo $OUTPUT_PKG and $DISTRIBUTION_FILE
 productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
 
 # edit the distribution file
@@ -124,5 +125,4 @@ productbuild \
     "$INSTALLER_PKG"
 
 # get rid of temporary folder
-rm -rf "$STAGED_DIR"
-rm -rf "$RESOURCES_DIR"
+rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build"

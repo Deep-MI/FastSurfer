@@ -13,10 +13,3 @@ To full run fastsurfer:
 ```bash
 run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license </path/to/freesurfer/license>
 ```
-
-Some files of **FreeSurfer** binaries require bypassing MacOS security, which is
-significantly easier to do with the following command than manually and one by one. 
-
-```bash
-xattr -dr com.apple.quarantine /Applications/freesurfer/*
-```
