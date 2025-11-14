@@ -89,7 +89,9 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 
 mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
-python3 "$build_dir/setup.py" py2app --iconfile "$RESOURCES_DIR/fastsurfer.png" --dist-dir "$build_dir/dist"
+pushd "$build_dir" || exit 1
+python3 "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png" --dist-dir "$build_dir/dist"
+popd || exit 1
 mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
 
 rm -f "$build_dir/FastSurfer.py"
