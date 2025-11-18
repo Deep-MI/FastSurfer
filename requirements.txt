@@ -15,7 +15,7 @@
 
 # Python 3.10.16
 absl-py==2.1.0
-Brotli==1.1.0
+Brotli==1.2.0
 cached-property==1.5.2
 certifi==2024.12.14
 cffi==1.17.1
