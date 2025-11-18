@@ -103,6 +103,8 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 
 [tool.freesurfer]
 version = "7.4.1"
+# The following URLs use the {version} placeholder, which should be replaced
+# with the actual version string using Python's .format(version=...).
 [tool.freesurfer.urls]
 linux = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-linux-ubuntu22_amd64-{version}.tar.gz"
 macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-macOS-darwin_x86_64-{version}.tar.gz"

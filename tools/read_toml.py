@@ -78,7 +78,8 @@ def extract_value(config_file: Path | str, key: str) -> str:
         for k in keys:
             value = value[k]
         return value
-
+    except KeyError as e:
+        raise ValueError(f"Key {key} not found in configuration file") from e
     except tomllib.TOMLDecodeError as e:
         print(e)
         sys.exit(1)

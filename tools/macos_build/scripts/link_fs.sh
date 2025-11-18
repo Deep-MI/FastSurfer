@@ -7,7 +7,7 @@ if [[ "$#" -gt 0 ]] && { [[ "${*/-h/}" != "$*" ]] || [[ "${*/--help/}" != "$*" ]
   exit 0
 elif [[ "$#" == 1 ]] || [[ "$#" == 2 ]]
 then
-  if [[ ! -e "$1" ]] ; then echo "ERROR: $1 does not exit!" ; exit 1 ; fi
+  if [[ ! -e "$1" ]] ; then echo "ERROR: $1 does not exist!" ; exit 1 ; fi
   PYTHON="$1"
   if [[ "$#" == 2 ]] ; then FREESURFER_HOME="$2" ; fi
 else
