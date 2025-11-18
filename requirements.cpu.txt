@@ -29,7 +29,7 @@ filelock==3.17.0
 fonttools==4.55.8
 fsspec==2024.12.0
 grpcio==1.67.1
-h2==4.1.0
+h2==4.3.0
 h5py==3.12.1
 hpack==4.1.0
 humanize==4.11.0
