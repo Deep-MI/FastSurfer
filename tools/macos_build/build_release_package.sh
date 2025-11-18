@@ -44,7 +44,7 @@ INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
 # create temporary folder to package and copy FastSurfer over
 STAGED_DIR="$build_dir/FastSurferPackageContent"
 FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
-mkdir $STAGED_DIR
+mkdir -p "$STAGED_DIR"
 rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
       --exclude requirements.txt \
       --exclude requirements.cpu.txt \
@@ -70,7 +70,7 @@ sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
 chmod +x "$SCRIPTS_DIR/postinstall"
 
 # assemble resources
-mkdir "$RESOURCES_DIR"
+mkdir -p "$RESOURCES_DIR"
 cp "$FASTSURFER_HOME/doc/images/fastsurfer.png" "$RESOURCES_DIR"
 cp "$FASTSURFER_HOME/doc/overview/MACOS.md" "$RESOURCES_DIR"
 cp "$FASTSURFER_HOME/LICENSE" "$RESOURCES_DIR/LICENSE.txt"
@@ -98,7 +98,7 @@ rm -f "$build_dir/FastSurfer.py"
 chmod -R 755 "$STAGED_DIR"/*
 
 # create raw package
-mkdir $build_dir/raw_package
+mkdir -p "$build_dir/raw_package"
 pkgbuild \
     --root "$STAGED_DIR" \
     --version "$VERSION" \
@@ -119,7 +119,7 @@ productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
 python3 "$build_dir/edit_distribution.py" --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
 
 # create installer package
-mkdir $build_dir/installer
+mkdir -p "$build_dir/installer"
 productbuild \
     --distribution "$DISTRIBUTION_FILE" \
     --resources "$RESOURCES_DIR" \

@@ -25,13 +25,11 @@ After successful installation, FastSurfer applet and its source code will appear
 If you would want to run FastSurfer, you could either use terminal or FastSurfer applet. Though, running applet is recommended as it opens shell terminal and sets up environment for FastSurfer.
 
 #### FastSurfer Flags
-* The `--fs_license` points to your FreeSurfer license which needs to be available on your computer in the `my_fs_license_dir` that was mapped above. 
-* The `--t1` points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data => /data)
-* The `--sid` is the subject ID name (output folder name)
-* The `--sd` points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis => /output)
+* The `--fs_license` points to your FreeSurfer license. 
+* The `--t1` points to the t1-weighted MRI image to analyse (full, absolute path).
+* The `--sid` is the subject ID name (folder name in output directory).
+* The `--sd` points to the output directory.
 * [more flags](../../doc/overview/FLAGS.md#fastsurfer-flags)
-
-Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-v` arguments. 
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files. 
 

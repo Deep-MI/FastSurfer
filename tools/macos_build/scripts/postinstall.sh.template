@@ -4,7 +4,7 @@ FASTSURFER_HOME="<fastsurfer_home_dir>"
 PYTHON="python<python_version>"
 SCRIPT_DIR="$(dirname $0)"
 
-if [[ ! -f "$FASTSURFER_HOME/venv" ]]
+if [[ ! -d "$FASTSURFER_HOME/venv" ]]
 then
   echo "Creating FastSurfer run environment"
   "<homebrew_dir>/bin/$PYTHON" -m venv --copies "$FASTSURFER_HOME/venv"

@@ -74,7 +74,7 @@ If you are using pip, make sure pip is updated as older versions will fail.
 We recommend to install conda as your python environment. If you don't have conda on your system, an admin needs to install it:
 
 ```bash
-FORGE_VERSION=25.9.1-0
+FORGE_VERSION=25.9.1-0  # find the recent miniforge version at https://github.com/conda-forge/miniforge/releases
 wget --no-check-certificate -qO ~/miniforge.sh https://github.com/conda-forge/miniforge/releases/download/${FORGE_VERSION}/Miniforge3-${FORGE_VERSION}-Linux-x86_64.sh
 chmod +x ~/miniforge.sh
 sudo ~/miniforge.sh -b -p /opt/miniforge && \
