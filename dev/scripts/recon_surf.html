@@ -201,7 +201,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/singularity.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
@@ -553,7 +554,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">-B</span></code> commands mount your output, and directory with the FreeSurfer license file into the Singularity container.
 Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-home</span></code> command disables the automatic mount of the users home directory (see <a class="reference internal" href="../overview/singularity.html"><span class="doc std std-ref">Best Practice</span></a>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-home</span></code> command disables the automatic mount of the users home directory (see <a class="reference internal" href="../overview/SINGULARITY.html#mounting-home"><span class="std std-ref">Best Practice</span></a>)</p></li>
 </ul>
 <p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> and <code class="docutils literal notranslate"><span class="pre">--asegdkt_segfile</span></code> flags point to the already existing conformed T1 input and segmentation from the
 segmentation module. Also other files from that pipeline will be reused (e.g. the <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>). The

@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Manual Edits" href="EDITING.html"><link rel="prev" title="Docker Support" href="docker.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Running FastSurfer as MacOS package" href="MACOS.html"><link rel="prev" title="Docker Support" href="docker.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
         <title>Singularity Support - FastSurfer</title>
@@ -202,6 +202,7 @@
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
@@ -361,7 +362,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/overview/singularity.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/overview/SINGULARITY.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -394,7 +395,7 @@ If you want to pick a specific FastSurfer version, you can also change the tag (
 </section>
 <section id="building-your-own-fastsurfer-singularity-image">
 <h2>Building your own FastSurfer Singularity Image<a class="headerlink" href="#building-your-own-fastsurfer-singularity-image" title="Link to this heading">¶</a></h2>
-<p>To build a custom FastSurfer Singularity image, the <code class="docutils literal notranslate"><span class="pre">Docker/build.py</span></code> script supports a flag for direct conversion.
+<p>To build a custom FastSurfer Singularity image, the <code class="docutils literal notranslate"><span class="pre">tools/Docker/build.py</span></code> script supports a flag for direct conversion.
 Simply add <code class="docutils literal notranslate"><span class="pre">--singularity</span> <span class="pre">/home/user/my_singlarity_images/fastsurfer-myimage.sif</span></code> to the call, which first builds the image with Docker and then converts the image to Singularity.</p>
 <p>If you want to manually convert the local Docker image <code class="docutils literal notranslate"><span class="pre">fastsurfer:myimage</span></code>, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span>/home/user/my_singlarity_images/fastsurfer-myimage.sif<span class="w"> </span>docker-daemon://fastsurfer:myimage
@@ -424,7 +425,7 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--nv</span></code>: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code>: Do not transfer the environment variables from the host to the container.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see <a class="reference internal" href="#"><span class="doc std std-ref">Best Practice</span></a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see <a class="reference internal" href="#mounting-home"><span class="std std-ref">Best Practice</span></a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-B</span></code>: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs).</p></li>
 </ul>
 </section>
@@ -476,12 +477,12 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="EDITING.html">
+          <a class="next-page" href="MACOS.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Manual Edits</div>
+                <div class="title">Running FastSurfer as MacOS package</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

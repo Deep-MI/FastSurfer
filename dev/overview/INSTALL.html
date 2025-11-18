@@ -201,7 +201,8 @@
 <li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
@@ -395,8 +396,8 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
 </pre></div>
 </div>
-<p>Additionally, <a class="reference internal" href="singularity.html"><span class="doc std std-ref">the Singularity README</span></a> contains detailed directions for building your own Singularity images from Docker.</p>
-<p><a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-singularity"><span class="std std-ref">Example 2</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: <a class="reference internal" href="docker.html"><span class="doc std std-ref">Docker</span></a> and <a class="reference internal" href="singularity.html"><span class="doc std std-ref">Singularity</span></a>.</p>
+<p>Additionally, <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">the Singularity README</span></a> contains detailed directions for building your own Singularity images from Docker.</p>
+<p><a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-singularity"><span class="std std-ref">Example 2</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: <a class="reference internal" href="docker.html"><span class="doc std std-ref">Docker</span></a> and <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">Singularity</span></a>.</p>
 </section>
 <section id="docker">
 <h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
@@ -404,7 +405,7 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
 </pre></div>
 </div>
-<p><a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/dev/Docker/README.md">build your own image</a>.</p>
+<p><a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to <a class="reference internal" href="docker.html"><span class="doc std std-ref">build your own image</span></a>.</p>
 <p>If you are using the <strong>rootless mode</strong>, you have to install the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA Container Toolkit</a> and follow the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode">configuration for the rootless mode</a>. Otherwise, running FastSurfer with Docker will give you this error message <code class="docutils literal notranslate"><span class="pre">docker:</span> <span class="pre">Error</span> <span class="pre">response</span> <span class="pre">from</span> <span class="pre">daemon:</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">select</span> <span class="pre">device</span> <span class="pre">driver</span> <span class="pre">&quot;&quot;</span> <span class="pre">with</span> <span class="pre">capabilities:</span> <span class="pre">[[gpu]]</span></code>.</p>
 </section>
 <section id="native-ubuntu-20-04-or-ubuntu-22-04">
@@ -432,10 +433,11 @@ sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> <
 <section id="conda-for-python">
 <h4>2. Conda for python<a class="headerlink" href="#conda-for-python" title="Link to this heading">¶</a></h4>
 <p>We recommend to install conda as your python environment. If you don’t have conda on your system, an admin needs to install it:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>--no-check-certificate<span class="w"> </span>-qO<span class="w"> </span>~/miniconda.sh<span class="w"> </span>https://repo.continuum.io/miniconda/Miniconda3-py38_4.11.0-Linux-x86_64.sh
-chmod<span class="w"> </span>+x<span class="w"> </span>~/miniconda.sh
-sudo<span class="w"> </span>~/miniconda.sh<span class="w"> </span>-b<span class="w"> </span>-p<span class="w"> </span>/opt/conda<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-rm<span class="w"> </span>~/miniconda.sh<span class="w"> </span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">FORGE_VERSION</span><span class="o">=</span><span class="m">25</span>.9.1-0<span class="w">  </span><span class="c1"># find the recent miniforge version at https://github.com/conda-forge/miniforge/releases</span>
+wget<span class="w"> </span>--no-check-certificate<span class="w"> </span>-qO<span class="w"> </span>~/miniforge.sh<span class="w"> </span>https://github.com/conda-forge/miniforge/releases/download/<span class="si">${</span><span class="nv">FORGE_VERSION</span><span class="si">}</span>/Miniforge3-<span class="si">${</span><span class="nv">FORGE_VERSION</span><span class="si">}</span>-Linux-x86_64.sh
+chmod<span class="w"> </span>+x<span class="w"> </span>~/miniforge.sh
+sudo<span class="w"> </span>~/miniforge.sh<span class="w"> </span>-b<span class="w"> </span>-p<span class="w"> </span>/opt/miniforge<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+rm<span class="w"> </span>~/miniforge.sh<span class="w"> </span>
 </pre></div>
 </div>
 </section>
@@ -454,7 +456,7 @@ rm<span class="w"> </span>~/miniconda.sh<span class="w"> </span>
 conda<span class="w"> </span>activate<span class="w"> </span>fastsurfer
 </pre></div>
 </div>
-<p>If you do not have an NVIDIA GPU, you can create appropriate ymls on the fly with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">./Docker/install_env.py</span> <span class="pre">-m</span> <span class="pre">$MODE</span> <span class="pre">-i</span> <span class="pre">./env/FastSurfer.yml</span> <span class="pre">-o</span> <span class="pre">./fastsurfer_$MODE.yml</span></code>. Here <code class="docutils literal notranslate"><span class="pre">$MODE</span></code> can be for example <code class="docutils literal notranslate"><span class="pre">cpu</span></code>, see also <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">./Docker/install_env.py</span> <span class="pre">--help</span></code> for other options like rocm or cuda versions. Finally, replace <code class="docutils literal notranslate"><span class="pre">./env/fastsurfer.yml</span></code>  with your custom environment file <code class="docutils literal notranslate"><span class="pre">./fastsurfer_$MODE.yml</span></code>.
+<p>If you do not have an NVIDIA GPU, you can create appropriate ymls on the fly with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">./tools/Docker/install_env.py</span> <span class="pre">-m</span> <span class="pre">$MODE</span> <span class="pre">-i</span> <span class="pre">./env/FastSurfer.yml</span> <span class="pre">-o</span> <span class="pre">./fastsurfer_$MODE.yml</span></code>. Here <code class="docutils literal notranslate"><span class="pre">$MODE</span></code> can be for example <code class="docutils literal notranslate"><span class="pre">cpu</span></code>, see also <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">./tools/Docker/install_env.py</span> <span class="pre">--help</span></code> for other options like rocm or cuda versions. Finally, replace <code class="docutils literal notranslate"><span class="pre">./env/fastsurfer.yml</span></code>  with your custom environment file <code class="docutils literal notranslate"><span class="pre">./fastsurfer_$MODE.yml</span></code>.
 If you only want to run the surface pipeline, use <code class="docutils literal notranslate"><span class="pre">./env/fastsurfer_reconsurf.yml</span></code>.</p>
 <p>Next, add the fastsurfer directory to the python path (make sure you have changed into it already):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="si">}</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">&quot;</span>
@@ -480,7 +482,7 @@ If you only want to run the surface pipeline, use <code class="docutils literal 
 <h3>AMD GPUs (experimental)<a class="headerlink" href="#amd-gpus-experimental" title="Link to this heading">¶</a></h3>
 <p>We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using ROCm. For this to work you need to make sure you are using a supported (or semi-supported) GPU and the correct kernel version. AMD kernel modules need to be installed on the host system according to ROCm installation instructions and additional groups need to be setup and your user added to them, see https://rocm.docs.amd.com/projects/install-on-linux/en/latest/ .</p>
 <p>Build the Docker container with ROCm support.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
 </pre></div>
 </div>
 <p>You will need to add a couple of flags to your docker run command for AMD, see <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> for <code class="docutils literal notranslate"><span class="pre">**other-docker-flags**</span></code> or <code class="docutils literal notranslate"><span class="pre">**fastsurfer-flags**</span></code>:</p>
@@ -509,53 +511,31 @@ Start it and set Memory to 15 GB under Preferences -&gt; Resources (or the large
 </div>
 <p>Continue with the example in <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a>.</p>
 </section>
-<section id="native">
-<h3>Native<a class="headerlink" href="#native" title="Link to this heading">¶</a></h3>
-<p>On modern Macs with the Apple Silicon M1 or M2 ARM-based chips, we recommend a native installation as it runs much faster than Docker in our tests. Access to the built-in AI accelerator (MPS) is also only available on native installations. A native installation also works on older Intel chips.</p>
-<section id="dependency-packages">
-<h4>1. Dependency packages<a class="headerlink" href="#dependency-packages" title="Link to this heading">¶</a></h4>
-<p>If you do not have git, python3.10 or bash (at least 3.2) you can install these via the packet manager brew.
-This installs brew and then git and python3.10:</p>
+<section id="package">
+<h3>Package<a class="headerlink" href="#package" title="Link to this heading">¶</a></h3>
+<section id="requirements">
+<h4>1. Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h4>
+<p>FastSurfer requires pre-installed python3.10+ and bash (at least 3.2).
+You can install these via the packet manager brew.
+To install brew and then python3.10, execute the following in a Terminal:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>/bin/bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="k">)</span><span class="s2">&quot;</span>
-brew<span class="w"> </span>install<span class="w"> </span>git<span class="w"> </span>python@3.10
+brew<span class="w"> </span>install<span class="w"> </span>python@3.10
 </pre></div>
 </div>
 </section>
-<section id="python">
-<h4>2. Python<a class="headerlink" href="#python" title="Link to this heading">¶</a></h4>
-<p>Create a python environment, activate it, and upgrade pip:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python3.10<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span><span class="nv">$HOME</span>/python-envs/fastsurfer<span class="w"> </span>
-<span class="nb">source</span><span class="w"> </span><span class="nv">$HOME</span>/python-envs/fastsurfer/bin/activate
-python3.10<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
-</pre></div>
-</div>
 </section>
-<section id="fastsurfer-and-requirements">
-<h4>3. FastSurfer and Requirements<a class="headerlink" href="#fastsurfer-and-requirements" title="Link to this heading">¶</a></h4>
-<p>Clone FastSurfer:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>https://github.com/Deep-MI/FastSurfer.git
-<span class="nb">cd</span><span class="w"> </span>FastSurfer
-<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="si">}</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">&quot;</span>
-</pre></div>
-</div>
-<p>Install the FastSurfer requirements</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python3.10<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.mac.txt
-</pre></div>
-</div>
-<p>If this step fails, you may need to edit <code class="docutils literal notranslate"><span class="pre">requirements.mac.txt</span></code> and exclude version numbers that produce conflicts or break our code.
-On newer M1 Macs, we also had issues with the h5py package, which could be solved by using brew for help (not sure this is needed any longer):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>brew<span class="w"> </span>install<span class="w"> </span>hdf5
-<span class="nb">export</span><span class="w"> </span><span class="nv">HDF5_DIR</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>brew<span class="w"> </span>--prefix<span class="w"> </span>hdf5<span class="k">)</span><span class="s2">&quot;</span>
-pip3<span class="w"> </span>install<span class="w"> </span>--no-binary<span class="o">=</span>h5py<span class="w"> </span>h5py
-</pre></div>
-</div>
-<p>You can also download all network checkpoint files at this point already:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python3.10<span class="w"> </span>FastSurferCNN/download_checkpoints.py<span class="w"> </span>--all
-</pre></div>
-</div>
-<p>Once all dependencies are installed, you can run the FastSurfer segmentation only by calling <code class="docutils literal notranslate"><span class="pre">./run_fastsurfer.sh</span> <span class="pre">--seg_only</span> <span class="pre">....</span></code> with the appropriate command line flags, see the <a class="reference internal" href="../index.html"><span class="doc std std-ref">commandline documentation</span></a>.</p>
-<p>To run the full pipeline, install and source also the supported FreeSurfer version according to their <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads">Instructions</a>. There is a freesurfer email list, if you run into problems during this step. Note, that currently FreeSurfer for MacOS supports no ARM, but only Intel, so on modern M-chips it will be slow due to the emulation. This is why we recommend using a Linux host system to run FastSurfer on larger datasets.</p>
+<section id="fastsurfer-package">
+<h3>2. FastSurfer package<a class="headerlink" href="#fastsurfer-package" title="Link to this heading">¶</a></h3>
+<p>From version 2.5 onward, FastSurfer ships a macOS installer package, which you can download from
+<a class="reference external" href="https://github.com/Deep-MI/FastSurfer/releases/">github</a>.
+There are package installers for both the Apple M-chip architecture (<code class="docutils literal notranslate"><span class="pre">arm64</span></code>) and for legacy Intel chips (<code class="docutils literal notranslate"><span class="pre">x86_64</span></code>).
+To install, double-click the installer and follow the installer instructions.</p>
+<p>After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the <code class="docutils literal notranslate"><span class="pre">/Applications</span></code> folder.</p>
 </section>
+<section id="launching-fastsurfer">
+<h3>3. Launching FastSurfer<a class="headerlink" href="#launching-fastsurfer" title="Link to this heading">¶</a></h3>
+<p>To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications.</p>
+<p>Once the terminal opens, it is already configured and you can easily run the full FastSurfer pipeline by typing and executing <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">&lt;fastsurfer-flags&gt;</span></code>, where you replace <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer-flags&gt;</span></code> with the appropriate <a class="reference internal" href="../index.html"><span class="doc std std-ref">commandline flags of FastSurfer</span></a>.</p>
 <section id="apple-ai-accelerator-support">
 <h4>4. Apple AI Accelerator support<a class="headerlink" href="#apple-ai-accelerator-support" title="Link to this heading">¶</a></h4>
 <p>On modern M-Chips you can try the Apple Silicon AI Accelerator by setting <code class="docutils literal notranslate"><span class="pre">PYTORCH_ENABLE_MPS_FALLBACK</span></code> and passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code> for the segmentation module to make use of the fast GPU:</p>
@@ -610,7 +590,7 @@ pip3<span class="w"> </span>install<span class="w"> </span>--no-binary<span clas
 </pre></div>
 </div>
 <p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a>, for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
@@ -703,10 +683,12 @@ pip3<span class="w"> </span>install<span class="w"> </span>--no-binary<span clas
 </li>
 <li><a class="reference internal" href="#macos">MacOS</a><ul>
 <li><a class="reference internal" href="#docker-currently-only-supported-for-intel-cpus">Docker (currently only supported for Intel CPUs)</a></li>
-<li><a class="reference internal" href="#native">Native</a><ul>
-<li><a class="reference internal" href="#dependency-packages">1. Dependency packages</a></li>
-<li><a class="reference internal" href="#python">2. Python</a></li>
-<li><a class="reference internal" href="#fastsurfer-and-requirements">3. FastSurfer and Requirements</a></li>
+<li><a class="reference internal" href="#package">Package</a><ul>
+<li><a class="reference internal" href="#requirements">1. Requirements</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fastsurfer-package">2. FastSurfer package</a></li>
+<li><a class="reference internal" href="#launching-fastsurfer">3. Launching FastSurfer</a><ul>
 <li><a class="reference internal" href="#apple-ai-accelerator-support">4. Apple AI Accelerator support</a></li>
 </ul>
 </li>

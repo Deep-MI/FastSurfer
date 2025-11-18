@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Singularity Support" href="singularity.html"><link rel="prev" title="Output files" href="OUTPUT_FILES.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Singularity Support" href="SINGULARITY.html"><link rel="prev" title="Output files" href="OUTPUT_FILES.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
         <title>Docker Support - FastSurfer</title>
@@ -201,7 +201,8 @@
 <li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="singularity.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
@@ -464,7 +465,7 @@ Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;vers
 <p>Also note, in order to run our Docker containers on a Mac, users need to increase docker memory to 10 GB by overwriting the settings under Docker Desktop –&gt; Preferences –&gt; Resources –&gt; Advanced (slide the bar under Memory to 10 GB; see: <a class="reference external" href="https://docs.docker.com/desktop/settings/mac/">Change Docker Desktop settings on Mac</a> for details). For the new Apple silicon chips (M1,etc), we noticed that a native install runs much faster than docker, because the Apple Accelerator (use the experimental MPS device via <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code>) can be used. There is no support for MPS-based acceleration through docker at the moment.</p>
 <section id="general-build-settings">
 <h3>General build settings<a class="headerlink" href="#general-build-settings" title="Link to this heading">¶</a></h3>
-<p>The build script <code class="docutils literal notranslate"><span class="pre">build.py</span></code> supports additional args, targets and options, see <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">Docker/build.py</span> <span class="pre">--help</span></code>.</p>
+<p>The build script <code class="docutils literal notranslate"><span class="pre">build.py</span></code> supports additional args, targets and options, see <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">--help</span></code>.</p>
 <p>Note, that the build script’s main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
 In general, if you specify <code class="docutils literal notranslate"><span class="pre">--dry_run</span></code> the command will not be executed but sent to stdout, so you can run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">build.py</span> <span class="pre">--device</span> <span class="pre">cuda</span> <span class="pre">--dry_run</span> <span class="pre">|</span> <span class="pre">bash</span></code> as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of <code class="docutils literal notranslate"><span class="pre">FastSurferCNN</span></code> must be possible) and we only support Python 3.10.</p>
 <p>By default, the build script will tag your image as <code class="docutils literal notranslate"><span class="pre">&quot;fastsurfer:[{device}-]{version_tag}&quot;</span></code>, where <code class="docutils literal notranslate"><span class="pre">{version_tag}</span></code> is <code class="docutils literal notranslate"><span class="pre">{version-identifer</span> <span class="pre">from</span> <span class="pre">pyproject.toml}_{current</span> <span class="pre">git-hash}</span></code> and <code class="docutils literal notranslate"><span class="pre">{device}</span></code> is the value to <code class="docutils literal notranslate"><span class="pre">--device</span></code> (omitted for <code class="docutils literal notranslate"><span class="pre">cuda</span></code>), but a custom tag can be specified by <code class="docutils literal notranslate"><span class="pre">--tag</span> <span class="pre">{tag_name}</span></code>.</p>
@@ -530,7 +531,7 @@ https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-star
 </pre></div>
 </div>
 <p>In conflict with the official ROCm documentation (above), we also needed to add the group render <code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">render</span></code> (in addition to <code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">video</span></code>).</p>
-<p>Note, we tested on an AMD Radeon Pro W6600, which is <a class="reference external" href="https://docs.amd.com/en/latest/release/gpu_os_support.html">not officially supported</a>, but setting <code class="docutils literal notranslate"><span class="pre">HSA_OVERRIDE_GFX_VERSION=10.3.0</span></code> <a class="reference external" href="https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm">inside docker did the trick</a>:</p>
+<p>Note, we tested on an AMD Radeon Pro W6600, which is <a class="reference external" href="https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus">not officially supported</a>, but setting <code class="docutils literal notranslate"><span class="pre">HSA_OVERRIDE_GFX_VERSION=10.3.0</span></code> <a class="reference external" href="https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm">inside docker did the trick</a>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--security-opt<span class="w"> </span><span class="nv">seccomp</span><span class="o">=</span>unconfined<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--device<span class="o">=</span>/dev/kfd<span class="w"> </span>--device<span class="o">=</span>/dev/dri<span class="w"> </span>--group-add<span class="w"> </span>video<span class="w"> </span>--group-add<span class="w"> </span>render<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
@@ -566,7 +567,7 @@ https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-star
 There are two solutions to this limitation.</p>
 <ol class="arabic">
 <li><p>Directly push to the registry:
-Add <code class="docutils literal notranslate"><span class="pre">--action</span> <span class="pre">push</span></code> to the build script (the default is <code class="docutils literal notranslate"><span class="pre">--action</span> <span class="pre">load</span></code>, which loads the created image into the current docker context, and for the image name, also add the registry name. For example <code class="docutils literal notranslate"><span class="pre">...</span> <span class="pre">python</span> <span class="pre">Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span> <span class="pre">--action</span> <span class="pre">push</span> <span class="pre">--tag</span> <span class="pre">docker.io/&lt;myaccount&gt;/fastsurfer:latest</span></code>.</p></li>
+Add <code class="docutils literal notranslate"><span class="pre">--action</span> <span class="pre">push</span></code> to the build script (the default is <code class="docutils literal notranslate"><span class="pre">--action</span> <span class="pre">load</span></code>, which loads the created image into the current docker context, and for the image name, also add the registry name. For example <code class="docutils literal notranslate"><span class="pre">...</span> <span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span> <span class="pre">--action</span> <span class="pre">push</span> <span class="pre">--tag</span> <span class="pre">docker.io/&lt;myaccount&gt;/fastsurfer:latest</span></code>.</p></li>
 <li><p><a class="reference external" href="https://docs.docker.com/storage/containerd/#enable-containerd-image-store-on-docker-engine">Install the containerd image storage driver</a>, which supports attestation: To implement this on Linux, make sure your docker daemon config file <code class="docutils literal notranslate"><span class="pre">/etc/docker/daemon.json</span></code> includes</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;features&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -579,7 +580,7 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 </li>
 </ol>
 </li>
-<li><p>Finally, you can now build the FastSurfer image with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span></code>. This will add the additional flags to the docker build command.</p></li>
+<li><p>Finally, you can now build the FastSurfer image with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span></code>. This will add the additional flags to the docker build command.</p></li>
 </ol>
 </section>
 <section id="setting-the-ssl-verify-parameter-of-mamba">
@@ -597,7 +598,7 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <span class="nv">img</span><span class="o">=</span>deepmi/fastsurfer
 <span class="c1"># the version can be identified with: $build_dir/run_fastsurfer.sh --version</span>
 <span class="nv">version</span><span class="o">=</span><span class="m">2</span>.4.3
-<span class="c1"># the cuda and rocm version can be identified with: python $build_dir/Docker/build.py --help | grep -E ^[[:space:]]+--device</span>
+<span class="c1"># the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device</span>
 <span class="nv">cuda</span><span class="o">=</span><span class="m">126</span>
 <span class="nv">cudas</span><span class="o">=(</span><span class="s2">&quot;cuda118&quot;</span><span class="w"> </span><span class="s2">&quot;cuda124&quot;</span><span class="w"> </span><span class="s2">&quot;cuda</span><span class="nv">$cuda</span><span class="s2">&quot;</span><span class="o">)</span>
 <span class="nv">rocm</span><span class="o">=</span><span class="m">6</span>.2.4
@@ -611,7 +612,7 @@ git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w">
 <span class="c1"># build all distinct images</span>
 <span class="k">for</span><span class="w"> </span>dev<span class="w"> </span><span class="k">in</span><span class="w"> </span>cpu<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">rocms</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudas</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span>
 <span class="k">do</span>
-<span class="w">  </span>python3<span class="w"> </span>Docker/build.py<span class="w"> </span>--tag<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$dev</span>-v<span class="nv">$version</span><span class="w"> </span>--freesurfer_build_image<span class="w"> </span><span class="nv">$img</span>-build:freesurfer741<span class="w"> </span>--attest<span class="w"> </span>--device<span class="w"> </span><span class="nv">$dev</span>
+<span class="w">  </span>python3<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--tag<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$dev</span>-v<span class="nv">$version</span><span class="w"> </span>--freesurfer_build_image<span class="w"> </span><span class="nv">$img</span>-build:freesurfer741<span class="w"> </span>--attest<span class="w"> </span>--device<span class="w"> </span><span class="nv">$dev</span>
 <span class="w">  </span><span class="nv">all_tags</span><span class="o">+=(</span><span class="s2">&quot;</span><span class="nv">$dev</span><span class="s2">-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="o">)</span>
 <span class="k">done</span>
 <span class="c1"># labels that are just references</span>
@@ -630,7 +631,7 @@ docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="singularity.html">
+          <a class="next-page" href="SINGULARITY.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
