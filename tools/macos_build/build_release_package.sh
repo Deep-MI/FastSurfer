@@ -48,7 +48,8 @@ mkdir -p "$STAGED_DIR"
 rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
       --exclude requirements.txt \
       --exclude requirements.cpu.txt \
-      --exclude tools
+      --exclude tools \
+      --exclude .git
 
 # install freesurfer into temp folder
 "$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --upx --url "$URL_TO_FREESURFER"
@@ -90,7 +91,7 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
 pushd "$build_dir" || exit 1
-python3 "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png" --dist-dir "$build_dir/dist"
+python3 "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png"
 popd || exit 1
 mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
 
