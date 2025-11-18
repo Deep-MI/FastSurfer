@@ -9,3 +9,4 @@ scripts/postinstall
 scripts_intell/postinstall
 dist/
 resources/
+FastSurferPackageContent/

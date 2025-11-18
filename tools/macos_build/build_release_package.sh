@@ -33,7 +33,6 @@ RESOURCES_DIR="$build_dir/resources"
 PACKAGE_NAME=FastSurfer$VERSION_NO_DOTS-macos-darwin_${ARCH_TYPE_NAME}
 # package identifier (f.e. com.mycompany.productid)
 ID="org.deep-mi.FastSurfer.${VERSION_NO_DOTS}_${ARCH_TYPE_NAME}"
-# FIXME: Must this be fixed or can this also be different?
 # install location for the content of the package
 INSTALLATION_DIR="/Applications"
 # raw package file to be created
@@ -53,6 +52,12 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
 
 # install freesurfer into temp folder
 "$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --upx --url "$URL_TO_FREESURFER"
+
+if [[ ! -d "$STAGED_DIR/freesurfer" ]]
+then
+  echo "FreeSurfer install was unsuccessful!"
+  exit 1
+fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
 PYTHON_VERSION_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.requires-python)

@@ -31,6 +31,7 @@ jobs:
         run: |
           python -m pip install py2app tomli
           
+          # update system to the newest version, not pin pointing package version on purpose
           brew update  
           brew upgrade || true
           brew install aria2
