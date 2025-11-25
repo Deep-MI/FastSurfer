@@ -136,30 +136,28 @@ def plot_contours(
     vox_size: float | None = None,
     title: str = "",
 ) -> None:
-    """Plot contours and subdivisions of the corpus callosum.
+    """Creates a figure of the countours (shape) and the subdivisions of the corpus callosum.
 
     Parameters
     ----------
     transformed : np.ndarray
         Transformed image data
     split_contours : list[np.ndarray], optional
-        List of contour arrays for each subdivision, by default None
+        List of contour arrays for each subdivision (ignore countours on None)
     midline_equidistant : np.ndarray, optional
-        Midline points at equidistant spacing, by default None
+        Midline points at equidistant spacing (ignore midline on None).
     levelpaths : list[np.ndarray], optional
-        List of level paths for visualization, by default None
+        List of level paths for visualization (ignore level paths on None).
     output_path : str or Path, optional
-        Path to save the plot, by default None
+        Path to save the plot (do not save on None).
     ac_coords : np.ndarray, optional
-        AC coordinates for visualization, by default None
+        AC coordinates for visualization (ignore AC on None).
     pc_coords : np.ndarray, optional
-        PC coordinates for visualization, by default None
+        PC coordinates for visualization (ignore PC on None).
     vox_size : float, optional
-        Voxel size for scaling, by default None
-    title : str, optional
-        Title for the plot, by default ""
-    debug : bool, optional
-        Whether to show debug information, by default False
+        Voxel size for scaling
+    title : str, default=""
+        Title for the plot.
 
     Notes
     -----
@@ -175,49 +173,46 @@ def plot_contours(
     if levelpaths:
         levelpaths = np.stack(levelpaths, axis=0) / vox_size
 
-    NO_PLOTS = 1 + int(split_contours is not None)
+    has_first_plot = bool(split_contours) or bool(ac_coords) or bool(pc_coords)
+    num_plots = 1 + int(has_first_plot)
 
-    _, ax = plt.subplots(1, NO_PLOTS, sharex=True, sharey=True, figsize=(15, 10))
+    _, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
 
     # NOTE: For all plots imshow shows y inverted
     current_plot = 0
 
-
-    if split_contours is not None:
+    if has_first_plot:
         ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
-        # ax[0].imshow(cc_mask, cmap='autumn')
         ax[current_plot].set_title(title)
+    if split_contours:
         for i, this_contour in enumerate(split_contours):
             ax[current_plot].fill(this_contour[0, :], -this_contour[1, :], color="steelblue", alpha=0.25)
             kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid" if i != 0 else "dotted"}
             ax[current_plot].plot(this_contour[0, :], -this_contour[1, :], **kwargs)
+    if ac_coords:
         ax[current_plot].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
+    if pc_coords:
         ax[current_plot].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
-        current_plot += 1
+    current_plot += int(has_first_plot)
 
     reference_contour = split_contours[0]
-
     ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
-    # ax[2].imshow(cc_mask, cmap='autumn')
     for this_path in levelpaths:
         ax[current_plot].plot(this_path[:, 0], -this_path[:, 1], color="brown", linewidth=0.8)
     ax[current_plot].set_title("Midline & Levelpaths")
     ax[current_plot].plot(midline_equidistant[:, 0], -midline_equidistant[:, 1], color="red")
     ax[current_plot].plot(reference_contour[0, :], -reference_contour[1, :], color="red", linewidth=0.5)
 
+    padding = 30
     for a in ax.flatten():
         a.set_aspect("equal", adjustable="box")
         a.axis("off")
-
-    # get bounding box of contours
-    padding = 30
-    ax[0].set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
-    ax[0].set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
+        # get bounding box of contours
+        a.set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
+        a.set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    # plt.show()
 
 
 def plot_midplane(grid_orig: np.ndarray, orig: np.ndarray) -> None:

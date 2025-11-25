@@ -21,6 +21,7 @@ import numpy as np
 from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
+from FastSurferCNN.utils.parallel import thread_executor
 
 
 class FSAverageHeader(TypedDict):
@@ -59,23 +60,21 @@ def get_centroids_from_nib(seg_img: nib.analyze.SpatialImage, label_ids: list[in
     else:
         labels = label_ids
     
-    def _calc_ras_centroid(mask_vox: npt.NDArray[np.integer]) -> npt.NDArray[float]:
-        # Calculate centroid in voxel space
-        vox_centroid = np.mean(mask_vox, axis=1, dtype=float)
-
-        # Convert to homogeneous coordinates
-        vox_centroid = np.append(vox_centroid, 1)
-
-        # Transform to RAS coordinates and return without homogeneous coordinate
-        return (vox2ras @ vox_centroid)[:3]
-
-    centroids = {}
-    for label in labels:
+    def _each_label(label):
         # Get voxel indices for this label
-        vox_coords = np.array(np.where(seg_data == label))
-        centroids[int(label)] = None if vox_coords.size == 0 else _calc_ras_centroid(vox_coords)
-        
-    return centroids
+        if np.any(mask := seg_data == label):
+            # Calculate centroid in voxel space
+            vox_centroid = np.mean(np.where(mask), axis=1, dtype=float)
+
+            # Convert to homogeneous coordinates
+            vox_centroid_hom = np.append(vox_centroid, 1)
+
+            # Transform to RAS coordinates and return without homogeneous coordinate
+            return int(label), (vox2ras @ vox_centroid_hom)[:3]
+        else:
+            return int(label), None
+
+    return dict(thread_executor().map(_each_label, labels))
 
 
 def convert_numpy_to_json_serializable(obj: object) -> object:

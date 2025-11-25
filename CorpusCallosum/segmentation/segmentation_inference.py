@@ -25,7 +25,7 @@ from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
-from FastSurferCNN.utils.common import thread_executor as executor
+from FastSurferCNN.utils.parallel import thread_executor
 
 
 def load_model(device: torch.device | None = None) -> FastSurferVINN:
@@ -179,7 +179,7 @@ def load_validation_data(path):
             return last_nonzero - first_nonzero
         else:
             return label_img.shape[0]
-    label_widths = executor().map(_load, data["label"])
+    label_widths = thread_executor().map(_load, data["label"])
     
     return images, ac_centers, pc_centers, label_widths, labels, subj_ids
 

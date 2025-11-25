@@ -19,7 +19,7 @@ from lapy import Solver, TriaMesh
 from lapy.diffgeo import compute_rotated_f
 from meshpy import triangle
 
-from CorpusCallosum.utils.utils import HiddenPrints
+from FastSurferCNN.utils.common import suppress_stdout
 
 
 def compute_curvature(path: np.ndarray) -> np.ndarray:
@@ -275,20 +275,7 @@ def make_mesh_from_contour(
     of the contour. The contour must not have duplicate points.
     """
 
-    facets = np.vstack(
-        (
-            np.arange(len(contour_2d)),
-            ((np.arange(len(contour_2d)) + 1) % len(contour_2d)),
-        )
-    ).T
-
-    # plot vertices and facets
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # ax.scatter(contour_2d[:,0], contour_2d[:,1], label='Contour')
-    # ax.plot(contour_2d[:,0], contour_2d[:,1], 'k-', label='Contour')
-    # ax.plot(contour_2d[facets[:,0],0], contour_2d[facets[:,0],1], 'r-', label='Facets')
-    # plt.show()
+    facets = np.vstack((np.arange(len(contour_2d)), ((np.arange(len(contour_2d)) + 1) % len(contour_2d)))).T
 
     # use meshpy to create mesh
     info = triangle.MeshInfo()
@@ -296,7 +283,7 @@ def make_mesh_from_contour(
     info.set_facets(facets)
     # NOTE: crashes if contour has duplicate points !!
     mesh = triangle.build(
-        info, max_volume=max_volume, min_angle=min_angle, verbose=verbose
+        info, max_volume=max_volume, min_angle=min_angle, verbose=verbose,
     )
 
     mesh_points = np.array(mesh.points)
@@ -342,93 +329,56 @@ def cc_thickness(
 
     # standardize contour indices, to get consistent levelpath directions
     contour_2d, anterior_endpoint_idx, posterior_endpoint_idx = set_contour_zero_idx(
-        contour_2d, anterior_endpoint_idx, anterior_endpoint_idx, posterior_endpoint_idx
+        contour_2d, anterior_endpoint_idx, anterior_endpoint_idx, posterior_endpoint_idx,
     )
 
     mesh_points, mesh_trias = make_mesh_from_contour(contour_2d)
-
-    # plot mesh points with index next to point
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # ax.plot(mesh_points[:,0], mesh_points[:,1], label='Mesh Points')
-    # for i in range(len(mesh_points)):
-    #     ax.text(mesh_points[i,0], mesh_points[i,1], str(i), fontsize=7)
-    # plt.show()
 
     # make points 3D by appending z=0
     mesh_points3d = np.append(mesh_points, np.zeros((mesh_points.shape[0], 1)), axis=1)
 
     # compute poisson
-    with HiddenPrints():
+    with suppress_stdout():
         tria = TriaMesh(mesh_points3d, mesh_trias)
-    # extract boundary curve
-    bdr = np.array(tria.boundary_loops()[0])
+        # extract boundary curve
+        bdr = np.array(tria.boundary_loops()[0])
 
-    # find index of endpoints in bdr list
-    iidx1 = np.where(bdr == anterior_endpoint_idx)[0][0]
-    iidx2 = np.where(bdr == posterior_endpoint_idx)[0][0]
+        # find index of endpoints in bdr list
+        iidx1 = np.where(bdr == anterior_endpoint_idx)[0][0]
+        iidx2 = np.where(bdr == posterior_endpoint_idx)[0][0]
 
-    # create boundary condition (0 at endpoints, -1 on one side, 1 on the other):
-    if iidx1 > iidx2:
-        tmp = iidx2
-        iidx2 = iidx1
-        iidx1 = tmp
-    dcond = np.ones(bdr.shape)
-    dcond[iidx1] = 0
-    dcond[iidx2] = 0
-    dcond[iidx1 + 1 : iidx2] = -1
+        # create boundary condition (0 at endpoints, -1 on one side, 1 on the other):
+        if iidx1 > iidx2:
+            iidx1, iidx2 = iidx2, iidx1
+        dcond = np.ones(bdr.shape)
+        dcond[iidx1] = 0
+        dcond[iidx2] = 0
+        dcond[iidx1 + 1 : iidx2] = -1
 
-    # Extract path
-    with HiddenPrints():
+        # Extract path
         fem = Solver(tria)
         vfunc = fem.poisson(0, (bdr, dcond))
-    level = 0
-    midline_equidistant, midline_length = tria.level_path(
-        vfunc, level, n_points=n_points + 2
-    )
-    midline_equidistant = midline_equidistant[:, :2]
+        midline_equidistant, midline_length = tria.level_path(vfunc, level=0., n_points=n_points + 2)
+        midline_equidistant = midline_equidistant[:, :2]
 
-    # try:
-    with HiddenPrints():
         gf = compute_rotated_f(tria, vfunc)
-    # except Exception as e:
-    # Lot contour and path
-    # import matplotlib.pyplot as plt
-    # import matplotlib.tri as tri
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # # Plot contours
-    # ax.plot(contour_2d[:,0], contour_2d[:,1], 'k-', label='Contour', marker='o', markersize=3)
-    # ax.plot(midline_equidistant[:,0], midline_equidistant[:,1], 'g-', label='Level0', marker='o', markersize=2)
-    # # plot mesh
-    # mtpltlb_tria = tri.Triangulation(tria.v[:,0], tria.v[:,1], triangles=tria.t)
-    # ax.triplot(mtpltlb_tria, 'k-', alpha=0.2, linewidth=0.5)
-    # # Plot final endpoint estimates
-    # ax.plot(contour_2d[:,0][anterior_endpoint_idx], contour_2d[:,1][anterior_endpoint_idx], 'r*',
-    #             markersize=15, label='Final estimate')
-    # ax.plot(contour_2d[:,0][posterior_endpoint_idx], contour_2d[:,1][posterior_endpoint_idx], 'r*',
-    #             markersize=15, label='Final estimate')
-    # ax.legend()
-    # #ax.set_title(f'Subject: {subj_id}')
-    # plt.show()
 
-    # interpolate midline to get levels to evaluate
-    gf_interp = scipy.interpolate.griddata(
-        tria.v[:, 0:2], gf, midline_equidistant[:, 0:2], method="cubic"
-    )
+        # interpolate midline to get levels to evaluate
+        level_of_rotated_laplace = scipy.interpolate.griddata(
+            tria.v[:, 0:2], gf, midline_equidistant[:, 0:2], method="cubic",
+        )
 
     # get levels to evaluate
-    # level_length = tria.level_length(gf, gf_interp)
-
     levelpaths = []
     levelpath_lengths = []
     levelpath_tria_idx = []
 
+    # now, on the rotated laplace function, sample equally spaced (on midline: level_of_rotated_laplace) levelpaths
     contour_with_thickness = [contour_2d.copy(), np.full(contour_2d.shape[0], np.nan)]
-    for i in range(1, n_points + 1):
-        level = gf_interp[i]
+    for current_level in level_of_rotated_laplace[1:-1]:
         # levelpath starts at index zero
         lvlpath, lvlpath_length, tria_idx = tria.level_path(
-            gf, level, get_tria_idx=True
+            gf, current_level, get_tria_idx=True,
         )
 
         levelpaths.append(lvlpath)
@@ -439,10 +389,10 @@ def cc_thickness(
         levelpath_end = lvlpath[-1, :2]
 
         contour_with_thickness, inserted_idx_start = insert_point_with_thickness(
-            contour_with_thickness, levelpath_start, lvlpath_length, get_index=True
+            contour_with_thickness, levelpath_start, lvlpath_length, get_index=True,
         )
         contour_with_thickness, inserted_idx_end = insert_point_with_thickness(
-            contour_with_thickness, levelpath_end, lvlpath_length, get_index=True
+            contour_with_thickness, levelpath_end, lvlpath_length, get_index=True,
         )
 
         # keep track of start and end indices
@@ -456,91 +406,9 @@ def cc_thickness(
         if inserted_idx_end >= posterior_endpoint_idx:
             posterior_endpoint_idx += 1
 
-    # import matplotlib.pyplot as plt
-
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # cont = contour_with_thickness[0]
-    # ax.plot(cont[:,0], cont[:,1], 'k-', label='Contour', marker='o', markersize=3)
-    # ax.scatter(cont[:,0][anterior_endpoint_idx], cont[:,1][anterior_endpoint_idx], c='r', 
-    # label='Anterior Endpoint', marker='o')
-    # ax.scatter(cont[:,0][posterior_endpoint_idx], cont[:,1][posterior_endpoint_idx], c='b', 
-    # label='Posterior Endpoint', marker='o')
-    # ax.legend()
-    # plt.show()
-
-    # thickness_measurement_points_top = []
-    # thickness_measurement_points_bottom = []
-    # for i in range(len(levelpaths)):
-    #     thickness_measurement_points_top.append(levelpaths[i][0,:2])
-    #     thickness_measurement_points_bottom.append(levelpaths[i][-1,:2])
-
-    # thickness_measurement_points_top = np.array(thickness_measurement_points_top)
-    # thickness_measurement_points_bottom = np.array(thickness_measurement_points_bottom)
-    # thickness_measurement_points = np.concatenate([thickness_measurement_points_top, 
-    # thickness_measurement_points_bottom], axis=0).T
-
-    # # Create a figure with subplots
-    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-
-    # # Plot 1: Contour
-    # ax1.plot(contour_2d[:,0], -contour_2d[:,1], 'b-', linewidth=2, label='Contour')
-    # ax1.set_title('Corpus Callosum Contour')
-    # ax1.set_xlabel('X')
-    # ax1.set_ylabel('Y')
-    # ax1.axis('equal')
-    # ax1.invert_yaxis()
-    # ax1.legend()
-
-    # # Plot 2: Thickness measurement points
-    # print(thickness_measurement_points.shape)
-    # ax2.plot(thickness_measurement_points[0, :100], -thickness_measurement_points[1, :100], 'ro', 
-    # markersize=3, label='Thickness Points (start)')
-    # ax2.plot(thickness_measurement_points[0, 100:], -thickness_measurement_points[1, 100:], 'go', 
-    # markersize=3, label='Thickness Points (end)')
-    # ax2.set_title('Thickness Measurement Points')
-    # ax2.set_xlabel('X')
-    # ax2.set_ylabel('Y')
-    # ax2.axis('equal')
-    # ax2.invert_yaxis()
-    # ax2.legend()
-    # plt.show()
-
     # get curvature of path3d_resampled
     curvature = compute_curvature(midline_equidistant)
     out_curvature = np.abs(np.degrees(np.mean(curvature))) / len(curvature)
-    # print(f'Curvature: {out_curvature:.2f}')
-    # print(f'Length of midline: ', f'{midline_length:.2f}')
-    # print(f'Thickness: {np.mean(levelpath_lengths):.2f}')
-
-    # import matplotlib.pyplot as plt
-    # import matplotlib.tri as tri
-    # fig, ax = plt.subplots(figsize=(5, 4))
-    # mtpltlb_tria = tri.Triangulation(tria.v[:,0], tria.v[:,1], triangles=tria.t)
-    # triang = plt.tricontourf(mtpltlb_tria, gf, cmap='autumn', alpha=0.2)
-    # ax.plot(midline_equidistant[:,0], midline_equidistant[:,1], 'r-', label=f'Levelsets')#, marker='o', markersize=2)
-    # #ax.plot(contour_2d[:,0], contour_2d[:,1], 'k-', label='Contour', alpha=0.6)
-
-    # for i in range(len(levelpaths)):
-    #     if levelpaths[i] is not None:
-    #         ax.plot(levelpaths[i][:,0], levelpaths[i][:,1], 'r-', marker='o', markersize=0) # , 
-    # label=f'Level {levelpath_lengths[i]:.2f}'
-    # ax.plot(midline_equidistant[:,0], midline_equidistant[:,1], '-', label='Midline', alpha=1, 
-    # color='darkgoldenrod')#, marker='o', markersize=2)
-
-    # #plt.colorbar(colorscale, label='Level values')
-    # # plot mesh
-    # ax.triplot(tria.v[:,0], tria.v[:,1], tria.t, 'k-', alpha=0.2, linewidth=0.5)
-    # #ax.scatter(path3d_resampled[99,0], path3d_resampled[99,1], c='g', s=20)
-
-    # ax.set_aspect('equal')
-    # #plt.title('Levelpath on rotated Poisson')
-    # plt.legend()
-    # # invert x axis
-    # ax.invert_xaxis()
-    # plt.tight_layout()
-    # plt.axis('off')
-    # plt.savefig(f'levelsets.png', dpi=300, bbox_inches='tight')
-    # plt.show()
 
     return (
         midline_length,

@@ -22,11 +22,13 @@ import nibabel as nib
 import numpy as np
 import plotly.graph_objects as go
 import scipy.interpolate
+from plotly.io import write_html as plotly_write_html
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.cc_endpoint_heuristic import smooth_contour
-from CorpusCallosum.shape.cc_thickness import HiddenPrints, make_mesh_from_contour
+from CorpusCallosum.shape.cc_thickness import make_mesh_from_contour
+from FastSurferCNN.utils.common import suppress_stdout
 
 try:
     from pyrr import Matrix44
@@ -444,14 +446,14 @@ class CCMesh(lapy.TriaMesh):
 
         if output_path is not None:
             self.__make_parent_folder(output_path)
-            fig.write_html(output_path)  # Save as interactive HTML
+            plotly_write_html(fig, output_path, include_plotlyjs="cdn")  # Save as interactive HTML
         else:
             # For non-interactive display, save to a temporary HTML and open in browser
             import tempfile
             import webbrowser
 
             temp_path = Path(tempfile.gettempdir()) / "cc_mesh_plot.html"
-            fig.write_html(temp_path)
+            plotly_write_html(fig, temp_path, include_plotlyjs="cdn")
             webbrowser.open(f"file://{temp_path}")
 
     def get_contour_edge_lengths(self, contour_idx: int) -> np.ndarray:
@@ -556,7 +558,8 @@ class CCMesh(lapy.TriaMesh):
         3. Solves Poisson equation for level sets
         4. Extracts level paths and interpolates thickness values
         """
-        with HiddenPrints():
+
+        with suppress_stdout():
             cc_tria = lapy.TriaMesh(points, trias)
         # extract boundary curve
         bdr = np.array(cc_tria.boundary_loops()[0])
@@ -576,7 +579,7 @@ class CCMesh(lapy.TriaMesh):
         dcond[iidx1 + 1 : iidx2] = -1
 
         # Extract path
-        with HiddenPrints():
+        with suppress_stdout():
             fem = lapy.Solver(cc_tria)
             vfunc = fem.poisson(0, (bdr, dcond))
             if num_points is not None:
