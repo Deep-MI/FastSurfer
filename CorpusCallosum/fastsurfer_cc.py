@@ -15,8 +15,10 @@
 
 import argparse
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Literal, cast
+from time import perf_counter_ns
+from typing import Literal, TypeVar, cast
 
 import nibabel as nib
 import numpy as np
@@ -49,30 +51,116 @@ from CorpusCallosum.registration.mapping_helpers import (
 )
 from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
 from CorpusCallosum.shape.cc_postprocessing import (
+    SliceSelection,
     SubdivisionMethod,
     check_area_changes,
     make_subdivision_mask,
     recon_cc_surf_measures_multi,
 )
 from FastSurferCNN.data_loader.conform import is_conform
+from FastSurferCNN.segstats import HelpFormatter
 from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.common import SubjectDirectory, find_device
-from FastSurferCNN.utils.common import thread_executor as executor
-from recon_surf import lta
+from FastSurferCNN.utils.parallel import shutdown_executors, thread_executor
+from FastSurferCNN.utils.parser_defaults import modify_argument
 from recon_surf.align_points import find_rigid
+from recon_surf.lta import write_lta
 
 logger = logging.get_logger(__name__)
-SliceSelection = Literal["middle", "all"] | int
+_TPathLike = TypeVar("_TPathLike", str, Path, Literal[None])
+
+
+
+class ReplaceQCOutputDir(Path):
+    """
+    A helper class to validate `qc_output_dir` dependent paths.
+
+    Replaces {qc_output_dir} at the start of filename with the correct qc_output_dir.
+    Also returns None, if qc_output_dir was None.
+    """
+
+    def __init__(self, a: Path | str | None):
+        if a is None:
+            a = "{None}"
+        if "{qc_output_dir}" in str(a).removeprefix("{qc_output_dir}/"):
+            raise ValueError("If the argument contains {qc_output_dir}, it must start with '{qc_output_dir}/'!")
+        super().__init__(a)
+
+    def replace_qc_dir(self, qc_output_dir: _TPathLike) -> Path | None:
+        """
+        Helper function to replace {qc_output_dir} at the start of filename with the correct qc_output_dir.
+
+        Also returns None, if qc_output_dir was None.
+
+        Notes
+        -----
+        This function implements
+        """
+        if str(self) == "{None}":
+            return None
+        elif "{qc_output_dir}" not in str(self):
+            return self
+        elif qc_output_dir is None:
+            return None
+
+        return Path(str(self).replace("{qc_output_dir}", str(qc_output_dir)))
+
+
+class ArgumentDefaultsHelpFormatter(HelpFormatter):
+    """Help message formatter which adds default values to argument help."""
+
+    def _get_help_string(self, action):
+        """
+        Add the default value to the option help message.
+        """
+        help = action.help
+        if help is None:
+            help = ''
+
+        if "%(default)" not in help and not getattr(action, "required", False):
+            if action.default is not argparse.SUPPRESS and not getattr(action.default, "DO_NOT_PRINT_DEFAULT", False):
+                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+                if action.option_strings or action.nargs in defaulting_nargs:
+                    help += " (not used by default)" if action.default is None else " (default: %(default)s)"
+        return help
+
+
+class _FixFloatFormattingList(list):
+    def __init__(self, items: Iterable, item_format_spec: str):
+        self._format_spec = item_format_spec
+        super().__init__(items)
+
+    def __str__(self):
+        return "[" + ", ".join(map(lambda x: format(x, self._format_spec), self)) + "]"
+
+
+def _do_not_print(value):
+    class _DoNotPrintGeneric(type(value)):
+        DO_NOT_PRINT_DEFAULT = True
+
+    return _DoNotPrintGeneric(value)
 
 
 def make_parser() -> argparse.ArgumentParser:
     """Create the argument parse object for the pipeline."""
     from FastSurferCNN.utils.parser_defaults import add_arguments
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=_do_not_print(0),
+        help="Enable verbose (pass twice for debug-output).",
+    )
     # Specify subject directory + subject ID, OR specify individual MRI and segmentation files + output paths
     add_arguments(parser, ["sd", "sid", "conformed_name", "aseg_name", "device"])
+
+    def _set_help_sid(action):
+        action.help = "The subject id to use."
+    modify_argument(parser, "--sid", _set_help_sid)
 
     parser.add_argument(
         "--num_thickness_points",
@@ -85,25 +173,26 @@ def make_parser() -> argparse.ArgumentParser:
         type=float,
         metavar="FRAC",
         nargs=4,
-        default=[1/6, 1/2, 2/3, 3/4],
+        default=_FixFloatFormattingList([1 / 6, 1 / 2, 2 / 3, 3 / 4], ".3f"),
         help="List of FOUR subdivision fractions for the corpus callosum subsegmentation.",
     )
     parser.add_argument(
         "--subdivision_method",
-        default="shape",
-        help="Method for contour subdivision. \
-              Options: shape (Intercallosal subdivision perpendicular to intercallosal line), vertical \
-              (orthogonal to the most anterior and posterior points in the AC/PC standardized CC contour), \
-              angular (subdivision based on equally spaced angles, as proposed by Hampel and colleagues), \
-              eigenvector (primary direction, same as FreeSurfers mri_cc)",
+        default=_do_not_print("shape"),
+        help="Method for contour subdivision. Options: <br>"
+             "- shape (default): Intercallosal subdivision perpendicular to intercallosal line, <br>"
+             "- vertical: orthogonal to the most anterior and posterior points in the AC/PC standardized CC contour, "
+             "<br>"
+             "- angular: subdivision based on equally spaced angles, as proposed by Hampel and colleagues, <br>"
+             "- eigenvector: primary direction, same as FreeSurfers mri_cc.",
         choices=["shape", "vertical", "angular", "eigenvector"],
     )
     parser.add_argument(
         "--contour_smoothing",
         type=float,
         default=5,
-        help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother"
-        " CC outline, at the cost of precision. (default: 5)",
+        help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother CC outline, at the "
+             "cost of precision.",
     )
     def _slice_selection(a: str) -> SliceSelection:
         if a.lower() in ("middle", "all"):
@@ -112,140 +201,135 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--slice_selection",
         type=_slice_selection,
-        default="all",
-        help="Which slices to process. Options: 'middle', 'all', or a specific slice number. \
-              (default: 'all')",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="Enable verbose (pass twice for debug-output).",
+        default=_do_not_print("all"),
+        help="Which slices to process. Options: 'middle', 'all' (default), or a specific slice number.",
     )
 
     ######## OUTPUT PATHS #########
     # 4. Options for advanced, technical parameters
     advanced = parser.add_argument_group(
         title="Advanced options",
-        description="Custom output paths, useful if no standard case directory is used.",
+        description="Custom output paths, useful if no standard case directory is used. Relative paths are always "
+                    "relative to the subject_dir defined via --sd and --sid!",
     )
-    advanced.add_argument("--qc_output_dir",
-        type=Path,
+    add_arguments(advanced, ["threads"])
+    advanced.add_argument(
+        "--qc_output_dir",
+        type=path_or_none,
         required=False,
         default=None,
-        help="Directory for quality control output (default: subject_dir/qc_snapshots)")
+        help="Enables quality control output (paths starting with {qc_output_dir} by default) and sets {qc_output_dir} "
+             "(the FastSurfer standard is 'qc_snapshots' to save these files in subject_dir/qc_snapshots).",
+    )
     advanced.add_argument(
-        "--upright_volume_path",
-        type=Path,
-        help="Path for upright volume output (default: No output)",
+        "--upright_volume",
+        type=path_or_none,
+        help="Path for upright volume output.",
         default=None,
     )
     advanced.add_argument(
-        "--seg",
-        dest="segmentation_path",
-        type=Path,
-        help=f"Path for segmentation output (default: subject_dir/{STANDARD_OUTPUT_PATHS['segmentation']})",
-        default=None,
+        "--segmentation", "--seg",
+        type=path_or_none,
+        help="Path for corpus callosum and fornix segmentation 3D image.",
+        default=Path(STANDARD_OUTPUT_PATHS["segmentation"]),
     )
     advanced.add_argument(
-        "--postproc_results_path",
-        type=Path,
-        help=f"Path for postprocessing results. Contains metrics describing CC shape and volume for each slice \
-               (default: subject_dir/{STANDARD_OUTPUT_PATHS['postproc_results']})",
-        default=None,
+        "--cc_measures",
+        type=path_or_none,
+        help="Path for surface-based corpus callosum measures describing shape and volume for each image slice.",
+        default=Path(STANDARD_OUTPUT_PATHS["cc_measures"]),
     )
     advanced.add_argument(
-        "--cc_markers_path",
-        type=Path,
-        help=f"Path for CC markers output. Contains metrics describing CC shape and volume \
-               (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_markers']})",
-        default=None,
+        "--cc_mid_measures",
+        type=path_or_none,
+        help="Path for surface-based corpus callosum measures of the midslice describing CC shape and volume.",
+        default=STANDARD_OUTPUT_PATHS["cc_markers"],
     )
     advanced.add_argument(
-        "--upright_lta_path",
-        type=Path,
-        help=f"Path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, but no nodding \
-               correction is applied (default: subject_dir/{STANDARD_OUTPUT_PATHS['upright_lta']})",
-        default=None,
+        "--upright_lta",
+        type=path_or_none,
+        help="Path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, but no nodding "
+             "correction is applied.",
+        default=STANDARD_OUTPUT_PATHS["upright_lta"],
     )
     advanced.add_argument(
-        "--orient_volume_lta_path",
-        type=Path,
-        help=f"Path for orientation volume LTA transform. This makes sure the midplane is at 128 in LR direction, \
-              and the AC & PC are on the coordinate line, standardizing the head orientation. \
-              (default: subject_dir/{STANDARD_OUTPUT_PATHS['orient_volume_lta']})",
-        default=None,
+        "--orient_volume_lta",
+        type=path_or_none,
+        help="Path for orientation volume LTA transform. This makes sure the midplane is at 128 in LR direction, and "
+             "the anterior and posterior commisures are on the coordinate line, standardizing the head orientation.",
+        default=STANDARD_OUTPUT_PATHS["orient_volume_lta"],
     )
     advanced.add_argument(
-        "--orig_space_segmentation_path",
-        type=Path,
-        help="Path for segmentation in the input MRI space "
-             f"(default: subject_dir/{STANDARD_OUTPUT_PATHS['orig_space_segmentation']})",
-        default=None,
+        "--segmentation_in_orig",
+        type=path_or_none,
+        help="Path for corpus callosum and fornix segmentation in the input MRI space.",
+        default=STANDARD_OUTPUT_PATHS["segmentation_in_orig"],
     )
     advanced.add_argument(
-        "--qc_image_path",
-        type=Path,
-        help=f"Path for QC visualization image (default: subject_dir/{STANDARD_OUTPUT_PATHS['qc_image']})",
-        default=None,
+        "--qc_image",
+        type=ReplaceQCOutputDir,
+        help="Path for QC visualization image (if it starts with {qc_output_dir}, that is replace by --qc_output_dir).",
+        default=STANDARD_OUTPUT_PATHS["qc_image"],
     )
     advanced.add_argument(
         "--save_template_dir",
-        type=Path,
-        help="Directory path where to save contours.txt and thickness_values.txt files. \
-              These files can be used to visualize the CC shape and volume in 3D.",
+        type=path_or_none,
+        help="Directory path where to save contours.txt and thickness_values.txt files. These files can be used to "
+             "visualize the CC shape and volume in 3D.",
         default=None,
     )
     advanced.add_argument(
-        "--thickness_image_path",
-        type=Path,
-        help=f"Path for thickness image (default: subject_dir/{STANDARD_OUTPUT_PATHS['thickness_image']})",
+        "--thickness_image",
+        type=ReplaceQCOutputDir,
+        help="Path for thickness image (if it starts with {qc_output_dir}, that is replace by --qc_output_dir).",
+        default=STANDARD_OUTPUT_PATHS["thickness_image"],
+    )
+    advanced.add_argument(
+        "--surf",
+        dest="cc_surf",
+        type=path_or_none,
+        help="Path for surf file.",
+        default=STANDARD_OUTPUT_PATHS["cc_surf"],
+    )
+    advanced.add_argument(
+        "--thickness_overlay",
+        type=path_or_none,
+        help="Path for corpus callosum thickness overlay file.",
+        default=STANDARD_OUTPUT_PATHS["cc_thickness_overlay"],
+    )
+    advanced.add_argument(
+        "--cc_interactive_html", "--cc_html",
+        dest="cc_html",
+        type=ReplaceQCOutputDir,
+        help="Path to the corpus callosum interactive 3D visualization HTML file (if it starts with {qc_output_dir}, "
+             "that is replace by --qc_output_dir).",
+        default=STANDARD_OUTPUT_PATHS["cc_html"],
+    )
+    advanced.add_argument(
+        "--cc_surf_vtk",
+        type=path_or_none,
+        help=f"Path for vtk file, showing the CC 3D mesh. Example: {STANDARD_OUTPUT_PATHS['cc_surf_vtk']}.",
         default=None,
     )
     advanced.add_argument(
-        "--surf_file_path",
-        type=Path,
-        help=f"Path for surf file (default: subject_dir/{STANDARD_OUTPUT_PATHS['surf_file']})",
+        "--softlabels_cc",
+        type=path_or_none,
+        help=f"Path for corpus callosum softlabels, which contains the soft labels of each voxel. "
+             f"Example: {STANDARD_OUTPUT_PATHS['softlabels_cc']}.",
         default=None,
     )
     advanced.add_argument(
-        "--overlay_file_path",
-        type=Path,
-        help=f"Path for overlay file (default: subject_dir/{STANDARD_OUTPUT_PATHS['overlay_file']})",
+        "--softlabels_fn",
+        type=path_or_none,
+        help=f"Path for fornix softlabels, which contains the soft labels of each voxel. "
+             f"Example: {STANDARD_OUTPUT_PATHS['softlabels_fn']}.",
         default=None,
     )
     advanced.add_argument(
-        "--cc_html_path",
-        type=Path,
-        help=f"Path to CC 3D visualization for CC HTML file (default: subject_dir/{STANDARD_OUTPUT_PATHS['cc_html']})",
-        default=None,
-    )
-    advanced.add_argument(
-        "--vtk_file_path",
-        type=Path,
-        help=f"Path for vtk file, showing the CC 3D mesh (default: subject_dir/{STANDARD_OUTPUT_PATHS['vtk_file']})",
-        default=None,
-    )
-    advanced.add_argument(
-        "--softlabels_cc_path",
-        type=Path,
-        help=f"Path for cc softlabels. Contains the probability of each voxel being part of the CC \
-              (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_cc']})",
-        default=None,
-    )
-    advanced.add_argument(
-        "--softlabels_fn_path",
-        type=Path,
-        help=f"Path for fornix softlabels. Contains the probability of each voxel being part of the Fornix \
-              (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_fn']})",
-        default=None,
-    )
-    advanced.add_argument(
-        "--softlabels_background_path",
-        type=Path,
-        help=f"Path for background softlabels. Contains the probability of each voxel being part of the background \
-              (default: subject_dir/{STANDARD_OUTPUT_PATHS['softlabels_background']})",
+        "--softlabels_background",
+        type=path_or_none,
+        help=f"Path for background softlabels, which contains the probability of each voxel. "
+             f"Example: {STANDARD_OUTPUT_PATHS['softlabels_background']}.",
         default=None,
     )
     ############ END OF OUTPUT PATHS ############
@@ -258,7 +342,7 @@ def options_parse() -> argparse.Namespace:
     args = parser.parse_args()
 
     # Reconstruct subject_dir from sd and sid (but sd might be stored as out_dir by parser_defaults)
-    sd_value = getattr(args, 'sd', getattr(args, 'out_dir', None))
+    sd_value = getattr(args, 'out_dir', None)
     if sd_value and hasattr(args, 'sid') and args.sid:
         args.subject_dir = Path(sd_value) / args.sid
     else:
@@ -286,33 +370,25 @@ def options_parse() -> argparse.Namespace:
 
     # If subject_dir is provided, set default paths for missing arguments
     if args.subject_dir:
-        subject_dir_path = args.subject_dir
-
         # Create standard FreeSurfer subdirectories
-        (subject_dir_path / "mri").mkdir(parents=True, exist_ok=True)
-        (subject_dir_path / "stats").mkdir(parents=True, exist_ok=True)
-        (subject_dir_path / "transforms").mkdir(parents=True, exist_ok=True)
-
         if not args.conf_name:
-            args.conf_name = str(subject_dir_path / STANDARD_INPUT_PATHS["conf_name"])
+            args.conf_name = args.subject_dir / STANDARD_INPUT_PATHS["conf_name"]
 
         if not args.aseg_name:
-            args.aseg_name = str(subject_dir_path / STANDARD_INPUT_PATHS["aseg_name"])
+            args.aseg_name = args.subject_dir / STANDARD_INPUT_PATHS["aseg_name"]
 
-        # Set default output paths if not provided
-        for key, value in STANDARD_OUTPUT_PATHS.items():
-            if not getattr(args, f"{key}_path") and value is not None:
-                setattr(args, f"{key}_path", subject_dir_path / value)
-
-        # Set output_dir to subject_dir
-        args.output_dir = str(subject_dir_path)
+    all_paths = ("segmentation", "segmentation_in_orig", "cc_measures", "upright_lta", "orient_volume_lta", "cc_surf",
+                 "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures",  "cc_thickness_overlay",
+                 "qc_image", "thickness_image", "cc_html")
 
     # Create parent directories for all output paths
-    for path_name in STANDARD_OUTPUT_PATHS.keys():
-        path = getattr(args, f"{path_name}_path")
-        if path is not None:
-            Path(path).parent.mkdir(parents=False, exist_ok=True)
-
+    for path_name in all_paths:
+        path: ReplaceQCOutputDir | Path | None = getattr(args, path_name, None)
+        if isinstance(path, ReplaceQCOutputDir):
+            path = path.replace_qc_dir(getattr(args, "qc_output_dir", None))
+        if isinstance(path, Path) and not args.subject_dir and not path.is_absolute():
+            parser.error(f"Must specify --sd and --sid if any path is relative but {path} for {path_name} is relative.")
+        setattr(args, path_name, path)
     return args
 
 
@@ -352,7 +428,7 @@ def centroid_registration(aseg_nib: nib.analyze.SpatialImage) -> tuple[
 
     # Load pre-computed fsaverage centroids and data from static files
     centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
-    fsaverage_affine, fsaverage_header, vox2ras_tkr = load_fsaverage_data(FSAVERAGE_DATA_PATH)
+    fsaverage_data_future = thread_executor().submit(load_fsaverage_data, FSAVERAGE_DATA_PATH)
 
     centroids_mov = get_centroids_from_nib(aseg_nib, label_ids=list(centroids_dst.keys()))
 
@@ -367,9 +443,9 @@ def centroid_registration(aseg_nib: nib.analyze.SpatialImage) -> tuple[
     # make affine that increases resolution to orig resolution
     resolution_trans: npt.NDArray[float] = np.diagflat(list(aseg_nib.header.get_zooms()[:3]) + [1]).astype(float)
 
-    orig_fsaverage_vox2vox: npt.NDArray[float] = (
-        np.linalg.inv(resolution_trans @ fsaverage_affine) @ orig_fsaverage_ras2ras @ aseg_nib.affine
-    )
+    fsaverage_affine, fsaverage_header, vox2ras_tkr = fsaverage_data_future.result()
+    _highres_fsaverage: npt.NDArray[float] = np.linalg.inv(resolution_trans @ fsaverage_affine)
+    orig_fsaverage_vox2vox: npt.NDArray[float] = _highres_fsaverage @ orig_fsaverage_ras2ras @ aseg_nib.affine
     fsaverage_hires_affine: npt.NDArray[float] = resolution_trans @ fsaverage_affine
     logger.info("Centroid registration successful!")
     return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header, vox2ras_tkr
@@ -488,7 +564,6 @@ def main(
     aseg_name: str | Path,
     subject_dir: str | Path,
     slice_selection: SliceSelection = "middle",
-    #TODO: qc_output_dir is currently unused ?!
     qc_output_dir: str | Path | None = None,
     num_thickness_points: int = 100,
     subdivisions: list[float] | None = None,
@@ -496,22 +571,22 @@ def main(
     contour_smoothing: float = 5,
     save_template_dir: str | Path | None = None,
     device: str | torch.device = "auto",
-    upright_volume_path: str | Path | None = None,
-    segmentation_path: str | Path | None = None,
-    postproc_results_path: str | Path | None = None,
-    cc_markers_path: str | Path | None = None,
-    upright_lta_path: str | Path | None = None,
-    orient_volume_lta_path: str | Path | None = None,
-    surf_file_path: str | Path | None = None,
-    overlay_file_path: str | Path | None = None,
-    cc_html_path: str | Path | None = None,
-    vtk_file_path: str | Path | None = None,
-    orig_space_segmentation_path: str | Path | None = None,
-    qc_image_path: str | Path | None = None,
-    thickness_image_path: str | Path | None = None,
-    softlabels_cc_path: str | Path | None = None,
-    softlabels_fn_path: str | Path | None = None,
-    softlabels_background_path: str | Path | None = None,
+    upright_volume: str | Path | None = None,
+    segmentation: str | Path | None = None,
+    cc_measures: str | Path | None = None,
+    cc_mid_measures: str | Path | None = None,
+    upright_lta: str | Path | None = None,
+    orient_volume_lta: str | Path | None = None,
+    cc_surf: str | Path | None = None,
+    cc_thickness_overlay: str | Path | None = None,
+    cc_html: str | Path | None = None,
+    cc_surf_vtk: str | Path | None = None,
+    segmentation_in_orig: str | Path | None = None,
+    qc_image: str | Path | None = None,
+    thickness_image: str | Path | None = None,
+    softlabels_cc: str | Path | None = None,
+    softlabels_fn: str | Path | None = None,
+    softlabels_background: str | Path | None = None,
 ) -> None:
     """Main pipeline function for corpus callosum analysis.
 
@@ -529,7 +604,7 @@ def main(
     slice_selection : "middle", "all" or int, default="middle"
         Which slices to process.
     qc_output_dir : str or Path, optional
-        Directory for quality control outputs, None deactivates qc snapshots.
+        Directory for quality control outputs, activates qc_image, thickness_image, cc_html.
     num_thickness_points : int, default=100
         Number of points for thickness estimation.
     subdivisions : list[float], optional
@@ -543,37 +618,37 @@ def main(
         the CC shape and volume in 3D. Files are only saved, if a valid directory path is passed.
     device : str, default="auto"
         Device to run inference on ('auto', 'cpu', 'cuda', or 'cuda:X').
-    upright_volume_path : str or Path, optional
+    upright_volume : str or Path, optional
         Path to save upright volume.
-    segmentation_path : str or Path, optional
+    segmentation : str or Path, optional
         Path to save segmentation.
-    postproc_results_path : str or Path, optional
+    cc_measures : str or Path, optional
         Path to save post-processing results.
-    cc_markers_path : str or Path, optional
+    cc_mid_measures : str or Path, optional
         Path to save CC markers.
-    upright_lta_path : str or Path, optional
+    upright_lta : str or Path, optional
         Path to save upright LTA transform.
-    orient_volume_lta_path : str or Path, optional
+    orient_volume_lta : str or Path, optional
         Path to save orientation transform.
-    surf_file_path : str or Path, optional
+    cc_surf : str or Path, optional
         Path to save surface file.
-    overlay_file_path : str or Path, optional
+    cc_thickness_overlay : str or Path, optional
         Path to save overlay file.
-    cc_html_path : str or Path, optional
+    cc_html : str or Path, optional
         Path to save HTML visualization.
-    vtk_file_path : str or Path, optional
+    cc_surf_vtk : str or Path, optional
         Path to save VTK file.
-    orig_space_segmentation_path : str or Path, optional
+    segmentation_in_orig : str or Path, optional
         Path to save segmentation in original space.
-    qc_image_path : str or Path, optional
+    qc_image : str or Path, optional
         Path to save QC images.
-    thickness_image_path : str or Path, optional
+    thickness_image : str or Path, optional
         Path to save thickness visualization.
-    softlabels_cc_path : str or Path, optional
+    softlabels_cc : str or Path, optional
         Path to save CC soft labels.
-    softlabels_fn_path : str or Path, optional
+    softlabels_fn : str or Path, optional
         Path to save fornix soft labels.
-    softlabels_background_path : str or Path, optional
+    softlabels_background : str or Path, optional
         Path to save background soft labels.
 
     Notes
@@ -594,6 +669,8 @@ def main(
     5. Performs enhanced post-processing analysis.
     6. Saves results and visualizations.
     """
+    start = perf_counter_ns()
+
     import sys
 
     if subdivisions is None:
@@ -605,7 +682,7 @@ def main(
     logger.info(f"Input MRI: {conf_name}")
     logger.info(f"Input segmentation: {aseg_name}")
     logger.info(f"Output directory: {subject_dir}")
-    
+
     # Convert all paths to Path objects
     sd = SubjectDirectory(
         subject_dir.parent,
@@ -613,22 +690,22 @@ def main(
         conf_name=conf_name,
         aseg_name=aseg_name,
         save_template_dir=save_template_dir,
-        upright_volume=upright_volume_path,
-        cc_segmentation=segmentation_path,
-        cc_postproc_results=postproc_results_path,
-        cc_markers=cc_markers_path,
-        upright_lta=upright_lta_path,
-        cc_orient_volume_lta=orient_volume_lta_path,
-        cc_surf=surf_file_path,
-        cc_overlay=overlay_file_path,
-        cc_html=cc_html_path,
-        cc_mesh=vtk_file_path,
-        cc_orig_segfile=orig_space_segmentation_path,
-        cc_qc_images=qc_image_path,
-        cc_thickness_image=thickness_image_path,
-        cc_softlabels_cc=softlabels_cc_path,
-        cc_softlabels_fn=softlabels_fn_path,
-        cc_softlabels_background=softlabels_background_path,
+        upright_volume=upright_volume,
+        cc_segmentation=segmentation,
+        cc_measures=cc_measures,
+        cc_mid_measures=cc_mid_measures,
+        upright_lta=upright_lta,
+        cc_orient_volume_lta=orient_volume_lta,
+        cc_surf=cc_surf,
+        cc_thickness_overlay=cc_thickness_overlay,
+        cc_html=cc_html,
+        cc_mesh=cc_surf_vtk,
+        cc_orig_segfile=segmentation_in_orig,
+        cc_qc_image=qc_image,
+        cc_thickness_image=thickness_image,
+        cc_softlabels_cc=softlabels_cc,
+        cc_softlabels_fn=softlabels_fn,
+        cc_softlabels_background=softlabels_background,
     )
 
     # Validate subdivision fractions
@@ -639,7 +716,7 @@ def main(
     #### setup variables
     io_futures = []
 
-    orig = nib.load(sd.conf_name)
+    orig = cast(nib.analyze.SpatialImage, nib.load(sd.conf_name))
 
     # 5 mm around the midplane (making sure to get rl by as_closest_canonical)
     slices_to_analyze = int(np.ceil(5 / nib.as_closest_canonical(orig).header.get_zooms()[0])) // 2 * 2 + 1
@@ -658,7 +735,7 @@ def main(
     # load models
     device = find_device(device)
     logger.info(f"Using device: {device}")
-    
+
     logger.info("Loading models")
     model_localization = localization_inference.load_model(device=device)
     model_segmentation = segmentation_inference.load_model(device=device)
@@ -676,7 +753,7 @@ def main(
     # start saving upright volume
     if sd.has_attribute("upright_volume"):
         io_futures.append(
-            executor().submit(
+            thread_executor().submit(
                 apply_transform_to_volume,
                 orig,
                 orig2fsavg_vox2vox,
@@ -705,7 +782,7 @@ def main(
     for i, (attr, name) in enumerate((("background",) * 2, ("cc", "Corpus Callosum"), ("fn", "Fornix"))):
         if sd.has_attribute(f"cc_softlabels_{attr}"):
             logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
-            io_futures.append(executor().submit(
+            io_futures.append(thread_executor().submit(
                 nib.save,
                 nib.MGHImage(cc_fn_softlabels[..., i], seg_affine, orig.header),
                 sd.filename_by_attribute(f"cc_softlabels_{attr}"),
@@ -713,6 +790,7 @@ def main(
 
     # Create a temporary segmentation image with proper affine for enhanced postprocessing
     # Process slices based on selection mode
+
     logger.info(f"Processing slices with selection mode: {slice_selection}")
     slice_results, slice_io_futures = recon_cc_surf_measures_multi(
         segmentation=cc_fn_seg_labels,
@@ -742,27 +820,26 @@ def main(
     middle_slice_result = slice_results[len(slice_results) // 2]
 
     if len(middle_slice_result['split_contours']) <= 5:
-        subdivision_mask = make_subdivision_mask(
+        cc_subseg_midslice = make_subdivision_mask(
             cc_fn_seg_labels.shape[1:],
             middle_slice_result['split_contours'],
             orig.header.get_zooms(),
         )
     else:
         logger.warning("Too many subsegments for lookup table, skipping sub-divion of output segmentation.")
-        subdivision_mask = None
+        cc_subseg_midslice = None
 
-    # map soft labels to original space (in parallel because this takes a while)
-    io_futures.append(executor().submit(
+    # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
+    io_futures.append(thread_executor().submit(
         map_softlabels_to_orig,
-        outputs_soft=cc_fn_softlabels,
+        cc_fn_softlabels=cc_fn_softlabels,
         orig_fsaverage_vox2vox=orig2fsavg_vox2vox,
         orig=orig,
-        slices_to_analyze=slices_to_analyze,
-        orig_space_segmentation_path=orig_space_segmentation_path,
+        orig_space_segmentation_path=segmentation_in_orig,
         fsaverage_middle=FSAVERAGE_MIDDLE,
-        subdivision_mask=subdivision_mask,
+        cc_subseg_midslice=cc_subseg_midslice,
     ))
-    io_futures.append(executor().submit(
+    io_futures.append(thread_executor().submit(
         nib.save,
         nib.MGHImage(cc_fn_seg_labels, seg_affine, orig.header),
         sd.filename_by_attribute("cc_segmentation"),
@@ -795,26 +872,26 @@ def main(
     additional_metrics = {}
     if len(outer_contours) > 1:
         cc_volume_voxel = segmentation_postprocessing.get_cc_volume_voxel(
-            desired_width_mm=5, 
+            desired_width_mm=5,
             cc_mask=cc_fn_seg_labels == CC_LABEL,
             voxel_size=orig.header.get_zooms()
         )
         cc_volume_contour = segmentation_postprocessing.get_cc_volume_contour(
-            cc_contours=outer_contours, 
+            cc_contours=outer_contours,
             voxel_size=orig.header.get_zooms()
         )
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
         logger.info(f"CC volume contour: {cc_volume_contour}")
-        
+
         additional_metrics["cc_5mm_volume"] = cc_volume_voxel
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
-    
+
 
     # get ac and pc in all spaces
     ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE, ac_coords))
     pc_coords_3d = np.hstack((FSAVERAGE_MIDDLE, pc_coords))
-    standardized_to_orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig = (
+    standardized2orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig = (
         calc_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig2fsavg_vox2vox)
     )
 
@@ -836,45 +913,57 @@ def main(
     # Convert numpy arrays to lists for JSON serialization
     output_metrics_middle_slice = convert_numpy_to_json_serializable(output_metrics_middle_slice | additional_metrics)
 
-    logger.info(f"Saving CC markers to {sd.filename_by_attribute('cc_markers')}")
-    with open(sd.filename_by_attribute("cc_markers"), "w") as f:
-        json.dump(output_metrics_middle_slice, f, indent=4)
+    if sd.has_attribute("cc_mid_measures"):
+        logger.info(f"Saving CC markers to {sd.filename_by_attribute('cc_mid_measures')}")
+        sd.filename_by_attribute("cc_mid_measures").parent.mkdir(exist_ok=True, parents=True)
+        with open(sd.filename_by_attribute("cc_mid_measures"), "w") as f:
+            json.dump(output_metrics_middle_slice, f, indent=4)
 
-    per_slice_output_dict = convert_numpy_to_json_serializable(per_slice_output_dict | additional_metrics)
-
-    # Save slice-wise postprocessing results to JSON
-    with open(sd.filename_by_attribute("cc_postproc_results"), "w") as f:
-        json.dump(per_slice_output_dict, f, indent=4)
-
-    logger.info(f"Multiple slice post-processing results saved to {sd.filename_by_attribute('cc_postproc_results')}")
+    if sd.has_attribute("cc_measures"):
+        per_slice_output_dict = convert_numpy_to_json_serializable(per_slice_output_dict | additional_metrics)
+        sd.filename_by_attribute("cc_measures").parent.mkdir(exist_ok=True, parents=True)
+        # Save slice-wise postprocessing results to JSON
+        with open(sd.filename_by_attribute("cc_measures"), "w") as f:
+            json.dump(per_slice_output_dict, f, indent=4)
+        logger.info(f"Multiple slice post-processing results saved to {sd.filename_by_attribute('cc_measures')}")
 
     # save lta to fsaverage space
-    logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
-    lta.writeLTA(
-        sd.filename_by_attribute("upright_lta"),
-        orig2fsavg_ras2ras,
-        sd.filename_by_attribute("aseg_name"),
-        aseg_nib.header,
-        "fsaverage",
-        fsavg_header,
-    )
 
-    # save lta to standardized space (fsaverage + nodding + ac to center)
-    orig2standardized_ras2ras = orig.affine @ np.linalg.inv(standardized_to_orig_vox2vox) @ np.linalg.inv(orig.affine)
-    logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
-    lta.writeLTA(
-        sd.filename_by_attribute("cc_orient_volume_lta"),
-        orig2standardized_ras2ras,
-        sd.conf_name,
-        orig.header,
-        sd.conf_name,
-        orig.header,
-    )
+    if sd.has_attribute("upright_lta"):
+        sd.filename_by_attribute("cc_mid_measures").parent.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
+        io_futures.append(thread_executor().submit(write_lta,
+            sd.filename_by_attribute("upright_lta"),
+            orig2fsavg_ras2ras,
+            sd.filename_by_attribute("aseg_name"),
+            aseg_nib.header,
+            "fsaverage",
+            fsavg_header,
+        ))
 
-    for e in filter(lambda x: x and isinstance(x, Exception), (fut.exception() for fut in io_futures)):
-        logger.exception(e)
+    if sd.has_attribute("cc_orient_volume_lta"):
+        sd.filename_by_attribute("cc_orient_volume_lta").parent.mkdir(exist_ok=True, parents=True)
+        # save lta to standardized space (fsaverage + nodding + ac to center)
+        orig2standardized_ras2ras = orig.affine @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
+        logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
+        io_futures.append(thread_executor().submit(write_lta,
+            sd.filename_by_attribute("cc_orient_volume_lta"),
+            orig2standardized_ras2ras,
+            sd.conf_name,
+            orig.header,
+            sd.conf_name,
+            orig.header,
+        ))
 
-    logger.info("CorpusCallosum analysis pipeline completed successfully")
+    # this waits for all io to finish
+    for fut in io_futures:
+        e = fut.exception()
+        if e and isinstance(e, Exception):
+            logger.exception(e)
+    shutdown_executors()
+
+    duration = (perf_counter_ns() - start) / 1e9
+    logger.info(f"CorpusCallosum analysis pipeline completed successfully in {duration:.2f} seconds.")
 
 
 if __name__ == "__main__":
@@ -890,25 +979,25 @@ if __name__ == "__main__":
         slice_selection=options.slice_selection,
         qc_output_dir=options.qc_output_dir,
         num_thickness_points=options.num_thickness_points,
-        subdivisions=options.subdivisions,
-        subdivision_method=options.subdivision_method,
+        subdivisions=list(options.subdivisions), # default value is type _fmt_list (does not pickle)
+        subdivision_method=str(options.subdivision_method), # default value is type do not print (does not pickle)
         contour_smoothing=options.contour_smoothing,
         save_template_dir=options.save_template_dir,
         device=options.device,
-        upright_volume_path=options.upright_volume_path,
-        segmentation_path=options.segmentation_path,
-        postproc_results_path=options.postproc_results_path,
-        cc_markers_path=options.cc_markers_path,
-        upright_lta_path=options.upright_lta_path,
-        orient_volume_lta_path=options.orient_volume_lta_path,
-        surf_file_path=options.surf_file_path,
-        overlay_file_path=options.overlay_file_path,
-        cc_html_path=options.cc_html_path,
-        vtk_file_path=options.vtk_file_path,
-        orig_space_segmentation_path=options.orig_space_segmentation_path,
-        qc_image_path=options.qc_image_path,
-        thickness_image_path=options.thickness_image_path,
-        softlabels_cc_path=options.softlabels_cc_path,
-        softlabels_fn_path=options.softlabels_fn_path,
-        softlabels_background_path=options.softlabels_background_path,
+        upright_volume=options.upright_volume,
+        segmentation=options.segmentation,
+        cc_measures=options.cc_measures,
+        cc_mid_measures=options.cc_mid_measures,
+        upright_lta=options.upright_lta,
+        orient_volume_lta=options.orient_volume_lta,
+        cc_surf=options.cc_surf,
+        cc_thickness_overlay=options.thickness_overlay,
+        cc_html=options.cc_html,
+        cc_surf_vtk=options.cc_surf_vtk,
+        segmentation_in_orig=options.segmentation_in_orig,
+        qc_image=options.qc_image,
+        thickness_image=options.thickness_image,
+        softlabels_cc=options.softlabels_cc,
+        softlabels_fn=options.softlabels_fn,
+        softlabels_background=options.softlabels_background,
     )

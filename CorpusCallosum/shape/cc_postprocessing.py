@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import concurrent.futures
-from pathlib import Path
+from functools import partial
 from typing import Literal, get_args
 
 import numpy as np
@@ -31,12 +31,12 @@ from CorpusCallosum.shape.cc_subsegment_contour import (
     transform_to_acpc_standard,
 )
 from CorpusCallosum.shape.cc_thickness import cc_thickness, convert_to_ras
-from CorpusCallosum.utils.utils import HiddenPrints
 from CorpusCallosum.visualization.visualization import plot_contours
-from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
-from FastSurferCNN.utils.common import thread_executor as executor
+from FastSurferCNN.utils.common import SubjectDirectory, suppress_stdout, update_docstring
+from FastSurferCNN.utils.parallel import process_executor, thread_executor
 
 SubdivisionMethod = Literal["shape", "vertical", "angular", "eigenvector"]
+SliceSelection = Literal["middle", "all"] | int
 
 logger = logging.get_logger(__name__)
 
@@ -45,61 +45,6 @@ LIA_ORIENTATION = np.zeros((3,3))
 LIA_ORIENTATION[0,0] = -1
 LIA_ORIENTATION[1,2] = 1
 LIA_ORIENTATION[2,1] = -1
-
-
-@update_docstring(SubdivisionMethod=str(get_args(SubdivisionMethod))[1:-1])
-def async_create_visualization(
-        subdivision_method: SubdivisionMethod,
-        result: dict,
-        midslices_data: np.ndarray,
-        output_image_path: str | Path,
-        ac_coords: np.ndarray,
-        pc_coords: np.ndarray,
-        vox_size: float,
-        title_suffix: str = "",
-) -> concurrent.futures.Future:
-    """Create visualization plots based on subdivision method.
-
-    Parameters
-    ----------
-    subdivision_method : {SubdivisionMethod}
-        The subdivision method being used.
-    result : dict
-        Dictionary containing processing results with split_contours.
-    midslices_data : np.ndarray
-        Slice data for visualization.
-    output_image_path : Path, str
-        Path to save visualization.
-    ac_coords : np.ndarray
-        AC coordinates.
-    pc_coords : np.ndarray
-        PC coordinates.
-    vox_size : float
-        Voxel size in mm.
-    title_suffix : str, optional
-        Additional text to append to the title, by default "".
-
-    Returns
-    -------
-    multiprocessing.Process
-        Process object for background execution.
-    """
-    title = f"CC Subsegmentation by {subdivision_method} {title_suffix}"
-
-    args_dict = {
-        "debug": True,
-        "transformed": midslices_data,
-        "split_contours": result["split_contours"],
-        "midline_equidistant": result["midline_equidistant"],
-        "levelpaths": result["levelpaths"],
-        "output_path": output_image_path,
-        "ac_coords": ac_coords,
-        "pc_coords": pc_coords,
-        "vox_size": vox_size,
-        "title": title,
-    }
-
-    return executor().submit(plot_contours, **args_dict)
 
 
 def create_slice_affine(temp_seg_affine: np.ndarray, slice_idx: int, fsaverage_middle: int) -> np.ndarray:
@@ -127,7 +72,7 @@ def create_slice_affine(temp_seg_affine: np.ndarray, slice_idx: int, fsaverage_m
 @update_docstring(SubdivisionMethod=str(get_args(SubdivisionMethod))[1:-1])
 def recon_cc_surf_measures_multi(
     segmentation: np.ndarray,
-    slice_selection: str,
+    slice_selection: SliceSelection,
     temp_seg_affine: np.ndarray,
     midslices: np.ndarray,
     ac_coords: np.ndarray,
@@ -137,7 +82,6 @@ def recon_cc_surf_measures_multi(
     subdivision_method: SubdivisionMethod,
     contour_smoothing: float,
     subject_dir: SubjectDirectory,
-    qc_image_path: str | None = None,
     vox_size: tuple[float, float, float] | None = None,
     vox2ras_tkr: np.ndarray | None = None,
 ) -> tuple[list, list[concurrent.futures.Future]]:
@@ -167,8 +111,6 @@ def recon_cc_surf_measures_multi(
         Gaussian sigma for contour smoothing.
     subject_dir : SubjectDirectory
         The SubjectDirectory object managing file names in the subject directory.
-    qc_image_path : Path, str, optional
-        Path for QC visualization image.
     vox_size : 3-tuple of floats, optional
         Voxel size in millimeters (x, y, z).
     vox2ras_tkr : np.ndarray, optional
@@ -184,104 +126,90 @@ def recon_cc_surf_measures_multi(
     slice_results = []
     io_futures = []
 
-    if slice_selection == "middle":
-        cc_mesh = CCMesh(num_slices=1)
-        cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(vox_size[0])
-
-        # Process only the middle slice
-        slice_idx = segmentation.shape[0] // 2
-        slice_affine = create_slice_affine(temp_seg_affine, slice_idx, FSAVERAGE_MIDDLE)
-
-        result, contour_with_thickness, *endpoint_idxs = recon_cc_surf_measure(
-            segmentation,
-            slice_idx,
-            ac_coords,
-            pc_coords,
-            slice_affine,
-            num_thickness_points,
-            subdivisions,
-            subdivision_method,
-            contour_smoothing,
-            vox_size[0],
+    if subdivision_method == "angular" and not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
+        raise ValueError(
+            f"Angular subdivision method (Hampel) only supports equidistant subdivision, "
+            f"but got: {subdivisions}. No measures are computed.",
         )
 
-        cc_mesh.add_contour(0, *contour_with_thickness, start_end_idx=endpoint_idxs)
+    _each_slice = partial(recon_cc_surf_measure,
+        segmentation,
+        ac_coords=ac_coords,
+        pc_coords=pc_coords,
+        num_thickness_points=num_thickness_points,
+        subdivisions=subdivisions,
+        subdivision_method=subdivision_method,
+        contour_smoothing=contour_smoothing,
+        vox_size=vox_size[0],
+    )
 
-        if result is not None and qc_image_path is not None:
-            slice_results.append(result)
-            # Create visualization
-            logger.info(f"Saving segmentation qc image to {qc_image_path}")
-            io_futures.append(async_create_visualization(
-                subdivision_method,
-                result,
-                midslices,
-                qc_image_path,
-                ac_coords,
-                pc_coords,
-                vox_size[0],
-            ))
-    else:
+    # Process multiple slices or specific slice
+    if slice_selection == "middle":
+        num_slices = 1
+        # Process only the middle slice
+        slice_iterator = [segmentation.shape[0] // 2]
+    elif slice_selection == "all":
         num_slices = segmentation.shape[0]
-        cc_mesh = CCMesh(num_slices=num_slices)
-        cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-        cc_mesh.set_resolution(vox_size[0])
+        start_slice = 0
+        end_slice = segmentation.shape[0]
+        slice_iterator = range(start_slice, end_slice)
+    else:  # specific slice number
+        num_slices = 1
+        slice_iterator = [int(slice_selection)]
 
-        # Process multiple slices or specific slice
-        if slice_selection == "all":
-            start_slice = 0
-            end_slice = segmentation.shape[0]
-        else:  # specific slice number
-            slice_idx = int(slice_selection)
-            start_slice = slice_idx
-            end_slice = slice_idx + 1
+    it_affine = map(partial(create_slice_affine, temp_seg_affine, fsaverage_middle=FSAVERAGE_MIDDLE), slice_iterator)
 
-        for slice_idx in range(start_slice, end_slice):
-            logger.info(f"Calculating CC measurements for slice {slice_idx+1} of {end_slice-start_slice}")
+    iterator = process_executor().map(_each_slice, iter(slice_iterator), it_affine, chunksize=1)
+    cc_mesh = CCMesh(num_slices=num_slices)
+    cc_mesh.set_acpc_coords(ac_coords, pc_coords)
+    cc_mesh.set_resolution(vox_size[0])
 
-            # Update affine for this slice
-            slice_affine = create_slice_affine(temp_seg_affine, slice_idx, FSAVERAGE_MIDDLE)
+    def _yield_iterator():
+        for _slice_idx in slice_iterator:
+            try:
+                yield _slice_idx, *next(iterator)
+            except ValueError as e:
+                logger.error(f"Slice {_slice_idx} failed with error: {e}")
+                logger.exception(e)
+            except StopIteration:
+                logger.error(f"Unexpectedly skipping slice {_slice_idx} in CC surfaces.")
+                return
 
-            # Process this slice
-            result, contour_with_thickness, *endpoint_idxs = recon_cc_surf_measure(
-                segmentation,
-                slice_idx,
-                ac_coords,
-                pc_coords,
-                slice_affine,
-                num_thickness_points,
-                subdivisions,
-                subdivision_method,
-                contour_smoothing,
-                vox_size[0],
+    for i, (slice_idx, result, contour_with_thickness, *endpoint_idxs) in enumerate(_yield_iterator()):
+        # insert
+        progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
+        logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
+        cc_mesh.add_contour(slice_idx, *contour_with_thickness, start_end_idx=endpoint_idxs)
+        if result is None:
+            continue
+
+        slice_results.append(result)
+
+        if logger.getEffectiveLevel() <= logging.INFO and subject_dir.has_attribute("cc_qc_image"):
+            qc_img = subject_dir.filename_by_attribute("cc_qc_image")
+            if logger.getEffectiveLevel() <= logging.DEBUG:
+                qc_img = (qc_img.parent / f"{qc_img.stem}_slice_{slice_idx}{qc_img.suffix}").with_suffix(".png")
+
+            if logger.getEffectiveLevel() <= logging.DEBUG or slice_idx == num_slices // 2:
+                logger.info(f"Saving segmentation qc image to {qc_img}")
+
+            current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
+            # Create visualization for this slice
+            io_futures.append(
+                thread_executor().submit(
+                    plot_contours,
+                    transformed=midslices[current_slice_in_volume:current_slice_in_volume+1],
+                    split_contours=result["split_contours"],
+                    midline_equidistant=result["midline_equidistant"],
+                    levelpaths=result["levelpaths"],
+                    output_path=qc_img,
+                    ac_coords=ac_coords,
+                    pc_coords=pc_coords,
+                    vox_size=vox_size[0],
+                    title=f"CC Subsegmentation by {subdivision_method} (Slice {slice_idx})",
+                )
             )
 
-            # insert
-            cc_mesh.add_contour(slice_idx, *contour_with_thickness, start_end_idx=endpoint_idxs)
-
-            if result is not None:
-                slice_results.append(result)
-
-                if logger.getEffectiveLevel() <= logging.INFO and subject_dir.has_attribute("cc_qc_image"):
-                    qc_img = subject_dir.filename_by_attribute("cc_qc_image")
-                    if logger.getEffectiveLevel() <= logging.DEBUG:
-                        qc_img = (qc_img.parent / f"{qc_img.stem}_slice_{slice_idx}{qc_img.suffix}").with_suffix(".png")
-
-                    if logger.getEffectiveLevel() <= logging.DEBUG or slice_idx == num_slices // 2:
-                        logger.info(f"Saving segmentation qc image to {qc_img}")
-
-                        current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
-                        # Create visualization for this slice
-                        io_futures.append(async_create_visualization(
-                            subdivision_method,
-                            result,
-                            midslices[current_slice_in_volume:current_slice_in_volume+1],
-                            qc_img,
-                            ac_coords,
-                            pc_coords,
-                            vox_size[0],
-                            f" (Slice {slice_idx})",
-                        ))
 
     if subject_dir.has_attribute("save_template_dir"):
         template_dir = subject_dir.filename_by_attribute("save_template_dir")
@@ -289,38 +217,49 @@ def recon_cc_surf_measures_multi(
         template_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
                     f"thickness_measurement_points.txt) to {template_dir}")
-        cc_mesh.save_contours(template_dir / "contours.txt")
-        cc_mesh.save_thickness_values(template_dir / "thickness_values.txt")
-        cc_mesh.save_thickness_measurement_points(template_dir / "thickness_measurement_points.txt")
+        for fut in [
+            thread_executor().submit(cc_mesh.save_contours, template_dir / "contours.txt"),
+            thread_executor().submit(cc_mesh.save_thickness_values, template_dir / "thickness_values.txt"),
+            thread_executor().submit(cc_mesh.save_thickness_measurement_points,
+                                 template_dir / "thickness_measurement_points.txt"),
+        ]:
+            if fut.exception():
+                logger.exception(fut.exception())
 
-
-    if len(cc_mesh.contours) > 1 and subject_dir.has_attribute("cc_html"):
+    mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
+    if len(cc_mesh.contours) > 1 and any(subject_dir.has_attribute(f"cc_{n}") for n in mesh_outputs):
         cc_mesh.fill_thickness_values()
         cc_mesh.create_mesh()
         cc_mesh.smooth_(1)
-        logger.info(f"Saving CC 3D visualization to {subject_dir.filename_by_attribute('cc_html')}")
-        cc_mesh.plot_mesh(output_path=subject_dir.filename_by_attribute("cc_html"), show_mesh_edges=True)
+        if subject_dir.has_attribute("cc_html"):
+            logger.info(f"Saving CC 3D visualization to {subject_dir.filename_by_attribute('cc_html')}")
+            io_futures.append(thread_executor().submit(
+                cc_mesh.plot_mesh,
+                output_path=subject_dir.filename_by_attribute("cc_html"),
+                show_mesh_edges=True,
+            ))
 
         if subject_dir.has_attribute("cc_mesh"):
             vtk_file_path = subject_dir.filename_by_attribute("cc_mesh")
             logger.info(f"Saving vtk file to {vtk_file_path}")
-            cc_mesh.write_vtk(vtk_file_path)
+            io_futures.append(thread_executor().submit(cc_mesh.write_vtk, vtk_file_path))
 
         cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr, vox_size=vox_size)
-        if subject_dir.has_attribute("overlay_file"):
-            overlay_file_path = subject_dir.filename_by_attribute("overlay_file")
+        if subject_dir.has_attribute("cc_thickness_overlay"):
+            overlay_file_path = subject_dir.filename_by_attribute("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
-            cc_mesh.write_overlay(overlay_file_path)
+            io_futures.append(thread_executor().submit(cc_mesh.write_overlay, overlay_file_path))
 
-        if subject_dir.has_attribute("cc_surf_file"):
-            surf_file_path = subject_dir.filename_by_attribute("cc_surf_file")
+        if subject_dir.has_attribute("cc_surf"):
+            surf_file_path = subject_dir.filename_by_attribute("cc_surf")
             logger.info(f"Saving surf file to {surf_file_path}")
-            cc_mesh.write_fssurf(surf_file_path)
+            io_futures.append(thread_executor().submit(cc_mesh.write_fssurf, surf_file_path))
 
-        if subject_dir.has_attribute("thickness_image"):
-            thickness_image_path = subject_dir.filename_by_attribute("thickness_image")
+        if subject_dir.has_attribute("cc_thickness_image"):
+            thickness_image_path = subject_dir.filename_by_attribute("cc_thickness_image")
             logger.info(f"Saving thickness image to {thickness_image_path}")
-            with HiddenPrints():
+            # note: suppress_stdout is not thread-safe! But it works fine, if only one thread uses it...
+            with suppress_stdout():
                 cc_mesh.snap_cc_picture(thickness_image_path)
 
 
@@ -334,14 +273,14 @@ def recon_cc_surf_measures_multi(
 def recon_cc_surf_measure(
     segmentation: np.ndarray,
     slice_idx: int,
+    affine: np.ndarray,
     ac_coords: np.ndarray,
     pc_coords: np.ndarray,
-    affine: np.ndarray,
     num_thickness_points: int,
     subdivisions: list[float],
     subdivision_method: SubdivisionMethod,
     contour_smoothing: float,
-    vox_size: float
+    vox_size: float,
 ) -> tuple[dict[str, float | int | np.ndarray | list[float]], np.ndarray, int, int]:
     """Reconstruct surfaces and compute measures for a single slice for the corpus callosum.
 
@@ -351,12 +290,12 @@ def recon_cc_surf_measure(
         3D segmentation array.
     slice_idx : int
         Index of the slice to process.
+    affine : np.ndarray
+        4x4 affine transformation matrix.
     ac_coords : np.ndarray
         Anterior commissure coordinates.
     pc_coords : np.ndarray
         Posterior commissure coordinates.
-    affine : np.ndarray
-        4x4 affine transformation matrix.
     num_thickness_points : int
         Number of points for thickness estimation.
     subdivisions : list[float]
@@ -447,9 +386,10 @@ def recon_cc_surf_measure(
         areas, split_contours = subdivide_contour(contour_acpc, subdivisions, plot=False)
     elif subdivision_method == "angular":
         if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
-            logger.error("Error: Angular subdivision method (Hampel) only supports equidistant subdivision, "
-                         f"but got: {subdivisions}. No measures are computed.")
-            return {}, contour_with_thickness, *endpoint_idxs
+            raise ValueError(
+                f"Angular subdivision method (Hampel) only supports equidistant subdivision, "
+                f"but got: {subdivisions}. No measures are computed.",
+            )
         areas, split_contours = hampel_subdivide_contour(contour_acpc, num_rays=len(subdivisions), plot=False)
     elif subdivision_method == "eigenvector":
         pt0, pt1 = get_primary_eigenvector(contour_acpc)

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 ### Constants
@@ -34,25 +32,25 @@ STANDARD_INPUT_PATHS = {
 
 STANDARD_OUTPUT_PATHS = {
     ## images
-    "upright_volume": None, # orig.mgz mapped to upright space
+    "upright_volume": None,  # orig.mgz mapped to upright space
     ## segmentations
-    "segmentation": "mri/callosum_seg_upright.mgz", # corpus callosum segmentation in upright space
-    "orig_space_segmentation": "mri/callosum_seg_aseg_space.mgz", # cc segmentation in input segmentations space
-    "softlabels_cc": "mri/callosum_seg_soft.mgz", # cc softlabels  in upright space
-    "softlabels_fn": "mri/fornix_seg_soft.mgz", # fornix softlabels in upright space
-    "softlabels_background": "mri/background_seg_soft.mgz", # background softlabels in upright space
+    "segmentation": "mri/callosum.CC.upright.mgz",  # corpus callosum segmentation in upright space
+    "segmentation_in_orig": "mri/callosum.CC.orig.mgz",  # cc segmentation in input segmentations space
+    "softlabels_cc": "mri/callosum.CC.soft.mgz",  # cc softlabels  in upright space
+    "softlabels_fn": "mri/fornix.CC.soft.mgz",  # fornix softlabels in upright space
+    "softlabels_background": "mri/background.CC.soft.mgz",  # background softlabels in upright space
     ## stats
-    "cc_markers": "stats/callosum.CC.midslice.json", # cc metrics for middle slice
-    "postproc_results": "stats/callosum.CC.all_slices.json", # cc metrics for all slices
+    "cc_markers": "stats/callosum.CC.midslice.json",  # cc metrics for middle slice
+    "cc_measures": "stats/callosum.CC.all_slices.json",  # cc metrics for all slices
     ## transforms
-    "upright_lta": "mri/transforms/cc_up.lta", # lta transform from orig to upright space
-    "orient_volume_lta": "mri/transforms/orient_volume.lta", # lta transform from orig to upright+acpc corrected space
+    "upright_lta": "mri/transforms/cc_up.lta",  # lta transform from orig to upright space
+    "orient_volume_lta": "mri/transforms/orient_volume.lta",  # lta transform from orig to upright+acpc corrected space
     ## qc
-    "qc_image": "qc_snapshots/callosum.png", # debug image of cc contours
-    "thickness_image": "qc_snapshots/callosum_thickness.png", # whippersnappy 3D image of cc thickness
-    "cc_html": "qc_snapshots/corpus_callosum.html", # plotly cc visualization
+    "qc_image": "{qc_output_dir}/callosum.png",  # debug image of cc contours
+    "thickness_image": "{qc_output_dir}/callosum.thickness.png",  # whippersnappy 3D image of cc thickness
+    "cc_html": "{qc_output_dir}/corpus_callosum.html",  # plotly cc visualization
     ## surface
-    "surf_file": "surf/callosum.surf", # cc surface file
-    "overlay_file": "surf/callosum.thickness.w", # cc surface overlay file
-    "vtk_file": "surf/callosum_mesh.vtk", # vtk file of cc mesh
+    "cc_surf": "surf/callosum.surf",  # cc surface file
+    "cc_thickness_overlay": "surf/callosum.thickness.w",  # cc surface overlay file
+    "cc_surf_vtk": "surf/callosum.vtk",  # vtk file of cc mesh
 }

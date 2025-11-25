@@ -6,7 +6,9 @@ import SimpleITK as sitk
 from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
+from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
 from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.parallel import thread_executor
 
 logger = logging.get_logger(__name__)
 
@@ -292,31 +294,28 @@ def make_affine(simpleITKImage: 'sitk.Image') -> npt.NDArray[float]:
 
 
 def map_softlabels_to_orig(
-    outputs_soft: npt.NDArray[float],
+    cc_fn_softlabels: npt.NDArray[float],
     orig_fsaverage_vox2vox: npt.NDArray[float],
     orig: nib.analyze.SpatialImage,
-    slices_to_analyze: int,
     orig_space_segmentation_path: str | Path | None = None,
     fsaverage_middle: int = 128,
-    subdivision_mask: npt.NDArray[int] | None = None
+    cc_subseg_midslice: npt.NDArray[int] | None = None
 ) -> npt.NDArray[int]:
     """Map soft labels back to original image space and apply post-processing.
 
     Parameters
     ----------
-    outputs_soft : np.ndarray
+    cc_fn_softlabels : np.ndarray
         Soft label predictions.
     orig_fsaverage_vox2vox : np.ndarray
         Original to fsaverage space transformation.
     orig : nibabel.analyze.SpatialImage
         Original image.
-    slices_to_analyze : int
-        Number of slices to analyze.
     orig_space_segmentation_path : str or Path, optional
         Path to save segmentation in original space.
     fsaverage_middle : int, default=128
         Middle slice index in fsaverage space.
-    subdivision_mask : npt.NDArray[int], optional
+    cc_subseg_midslice : npt.NDArray[int], optional
         Mask for subdividing regions.
 
     Returns
@@ -327,64 +326,50 @@ def map_softlabels_to_orig(
     Notes
     -----
     The function:
-    1. Pads soft labels to original image size
-    2. Transforms each label channel separately
-    3. Applies post-processing if needed
-    4. Optionally saves result to file
-
-    TODO: This could be optimized by padding after the transform
+    1. Transforms background, cc, and fornix label channels separately.
+    2. Transform CC subsegmentation from midslice to orig and paint into segmentation if `cc_subseg_midslice` is passed.
+    4. Saves result to `orig_space_segmentation_path` if passed.
     """
-
+    slices_to_analyze = cc_fn_softlabels.shape[0]
     # map softlabels to original image
-    pad_lr = (fsaverage_middle - slices_to_analyze // 2, fsaverage_middle + slices_to_analyze // 2 + 1)
-    pad_tuples = (pad_lr,) + ((0, 0),) * (orig.ndim - 1)
-    softlabels_transformed = []
-    for i in range(outputs_soft.shape[-1]):
-        # pad to original image size
-        outputs_soft_padded = np.pad(outputs_soft[..., i], pad_tuples)
+    slab2fsaverage_vox2vox = np.eye(4)
+    slab2fsaverage_vox2vox[0, 3] = -(fsaverage_middle - slices_to_analyze // 2)
+    slab2orig_vox2vox = orig_fsaverage_vox2vox @ slab2fsaverage_vox2vox
 
-        s = affine_transform(
-            outputs_soft_padded,
-            orig_fsaverage_vox2vox,
-            output_shape=orig.shape,
-            order=1,
-            cval=1.0 if i == 0 else 0.0,
-        )
-        softlabels_transformed.append(s)
+    def _map_softlabel_to_orig(i: int, data: np.ndarray) -> np.ndarray:
+        return affine_transform(data, slab2orig_vox2vox, output_shape=orig.shape, order=1, cval=float(i == 0))
 
-    softlabels_orig_space = np.stack(softlabels_transformed, axis=-1)
+    _softlabels = np.moveaxis(cc_fn_softlabels, -1, 0)
+    softlabels_transformed = thread_executor().map(_map_softlabel_to_orig, *zip(*enumerate(_softlabels), strict=True))
 
-    # apply softmax to softlabels_orig_space
-    exp_orig_space = np.exp(softlabels_orig_space)
-    softlabels_orig_space = exp_orig_space / np.sum(exp_orig_space, axis=-1, keepdims=True)
+    softlabels_orig_space = np.stack(list(softlabels_transformed), axis=-1)
+    seg_orig_space = np.argmax(softlabels_orig_space, axis=-1)
+    # map to freesurfer labels
+    seg_lut = np.asarray([0, CC_LABEL, FORNIX_LABEL])
+    seg_orig_space = seg_lut[seg_orig_space]
 
-    segmentation_orig_space = np.argmax(softlabels_orig_space, axis=-1)
-
-    if subdivision_mask is not None:
-        # repeat subdivision mask for shape 0 of orig
-        subdivision_mask = np.repeat(subdivision_mask[np.newaxis], orig.shape[0], axis=0)
+    if cc_subseg_midslice is not None:
         # map subdivision mask to orig space
-        subdivision_mask_orig_space = affine_transform(
-            subdivision_mask,
+        midslice2fsaverage_vox2vox = np.eye(4)
+        midslice2fsaverage_vox2vox[0, 3] = -fsaverage_middle
+        cc_subseg_orig_space = affine_transform(
+            cc_subseg_midslice[None],
             orig_fsaverage_vox2vox,
             output_shape=orig.shape,
             order=0,
+            mode="nearest",
         )
 
-        mask = segmentation_orig_space == 1
-        segmentation_orig_space[mask] *= subdivision_mask_orig_space[mask]
-
-    seg_lut = np.asarray([0, 192, 250])
-    segmentation_orig_space = seg_lut[segmentation_orig_space]
+        seg_orig_space = np.where(seg_orig_space == CC_LABEL, cc_subseg_orig_space, seg_orig_space)
 
     if orig_space_segmentation_path is not None:
         logger.info(f"Saving segmentation in original space to {orig_space_segmentation_path}")
         nib.save(
-            nib.MGHImage(segmentation_orig_space, orig.affine, orig.header),
+            nib.MGHImage(seg_orig_space, orig.affine, orig.header),
             orig_space_segmentation_path,
         )
 
-    return segmentation_orig_space
+    return seg_orig_space
 
 
 def interpolate_midplane(

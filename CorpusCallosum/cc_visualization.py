@@ -168,7 +168,7 @@ if __name__ == "__main__":
         measurement_points_path=options.measurement_points,
         output_dir=options.output_dir,
         resolution=options.resolution,
-        smooth_iterations=options.smooth_iterations,
+        smoothing_window=options.smoothing_window,
         colormap=options.colormap,
         color_range=options.color_range,
         legend=options.legend,

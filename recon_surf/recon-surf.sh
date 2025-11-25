@@ -619,41 +619,52 @@ fi
 
 # ============================= CC SEGMENTATION ============================================
 
-
-
-{
-  echo " "
-  echo "============ Creating and adding CC Segmentation ============"
-  echo " "
-} | tee -a "$LF"
-# create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
-# Note: if original input segmentation already contains CC, this will exit with ERROR
-# in the future maybe check and skip this step (and next)
-cmd="$python ${binpath}../CorpusCallosum/fastsurfer_cc.py --subject_dir $SUBJECTS_DIR/$subject --verbose" 
-RunIt "$cmd" "$LF"
-# add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
-cmd="$python ${FASTSURFER_HOME}/CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/callosum_seg_aseg_space.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
-RunIt "$cmd" "$LF"
-# add CC into aseg.auto.mgz as mri_cc did before. Not sure where this is used.
-cmd="$python ${FASTSURFER_HOME}/CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/callosum_seg_aseg_space.mgz -in_pred $mdir/$aseg_nocc -out $mdir/aseg.auto.mgz"
-RunIt "$cmd" "$LF"
-
-
-# {
-#   echo " "
-#   echo "============ Creating and adding CC Segmentation (mri_cc) ============"
-#   echo " "
-# } | tee -a "$LF"
-# # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
-# # Note: if original input segmentation already contains CC, this will exit with ERROR
-# # in the future maybe check and skip this step (and next)
-# cmd="mri_cc -aseg $aseg_nocc -o aseg.auto.mgz -lta $mdir/transforms/cc_up.lta $subject"
-# RunIt "$cmd" "$LF"
-# # add CC into aparc.DKTatlas+aseg.deep (not sure if this is really needed)
-# cmd="$python ${binpath}../CorpusCallosum/paint_cc_into_pred.py -in_cc $mdir/aseg.auto.mgz -in_pred $asegdkt_segfile -out $mdir/aparc.DKTatlas+aseg.deep.withCC.mgz"
-# RunIt "$cmd" "$LF"
-
-
+# here, we are only generating the "necessary" files for the pipeline to recon-surf pipeline to
+# complete, people should use the seg pipeline to get extended results.
+callosum_seg="callosum_seg_aseg_space.mgz"
+callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
+aseg_auto="aseg.auto.mgz"
+CorpusCallosumDir="$FASTSURFER_HOME/CorpusCallosum"
+updated_cc_seg=0
+if [[ ! -e "$mdir/$aseg_auto" ]] || [[ ! -e "$mdir/$callosum_seg" ]] || [[ "$edits" == 1 ]]
+then
+  {
+    echo " "
+    echo "============ Creating and adding CC Segmentation ============"
+    echo " "
+  } | tee -a "$LF"
+fi
+# here, in edits mode we also check, if the corpus callosum should be updated based on an updated aseg.nocc
+if [[ ! -e "$mdir/$callosum_seg" ]] || \
+  { [[ "$edits" == 1 ]] && [[ "$(date -r "$mdir/$aseg_nocc" "+%s")" -gt "$(date -r "$mdir/$callosum_seg" "+%s")" ]] ; }
+then
+  {
+    echo "Segmenting the corpus callosum, so mri/$aseg_nocc exists. If you are interested in detailed"
+    echo "  and extended analysis and statistics of the Corpus Callosum, use the corpus callosum pipeline"
+    echo "  of the segmentation pipeline (in run_fastsurfer.sh, i.e. run without --no_cc)."
+  }
+  updated_cc_seg=1
+  # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
+  # Note: if original input segmentation already contains CC, this will exit with ERROR
+  # in the future maybe check and skip this step (and next)
+  cmda=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$SUBJECTS_DIR" --sid "$subject"
+        "--aseg_name" "$mdir/$aseg_nocc" "--segmentation_in_orig" "$mdir/$callosum_seg"
+        --threads "$threads"
+        # qc_snapshots are only defined by the seg_only pipeline
+        # limit the processing things to do here
+        --slice_selection "middle" --cc_measures "none" --cc_mid_measures "none" --surf "none"
+        --thickness_overlay "none")
+  run_it "$LF" "${cmda[@]}"
+fi
+# do not move below statement up, fastsurfer_cc.py uses the $callosum_seg variable
+if [[ "$edits" == 1 ]] && [[ -e "$mdir/$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
+cmd_paint_cc_into_pred=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$mdir/$callosum_seg" -in_pred)
+if [[ ! -e "$mdir/$aseg_auto" ]] || [[ "$updated_cc_seg" == 1 ]]
+then
+  # add CC into aseg.auto.mgz as mri_cc did before. Not sure where this is used.
+  cmda=("${cmd_paint_cc_into_pred[@]}" "$mdir/$aseg_nocc" "-out" "$mdir/$aseg_auto")
+  run_it "$LF" "${cmda[@]}"
+fi
 # ============================= FILLED =====================================================
 
 {

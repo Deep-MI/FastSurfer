@@ -32,6 +32,7 @@ fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
 hypvinndir="$FASTSURFER_HOME/HypVINN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
+CorpusCallosumDir="$FASTSURFER_HOME/CorpusCallosum"
 
 # Regular flags defaults
 subject=""
@@ -49,6 +50,7 @@ hypo_segfile=""
 hypo_statsfile=""
 hypvinn_flags=()
 hypvinn_regmode="coreg"
+cc_flags=()
 conformed_name=""
 conformed_name_t2=""
 norm_name=""
@@ -70,6 +72,7 @@ native_image="false"
 run_asegdkt_module="1"
 run_cereb_module="1"
 run_hypvinn_module="1"
+run_cc_module="1"
 threads_seg="1"
 threads_surf="1"
 # python3.10 -s excludes user-directory package inclusion
@@ -212,6 +215,11 @@ SEGMENTATION PIPELINE:
                             \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
   --no_biasfield          Deactivate the calculation of partial volume-corrected
                             statistics.
+
+  CORPUS CALLOSUM MODULE:
+  --no_cc                Skip the segmentation and analysis of the corpus callosum.
+  --qc_snap              Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
+                           to simplify the QC process.
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
@@ -458,6 +466,10 @@ case $key in
   --mask_name) mask_name="$1" ; warn_seg_only+=("$key" "$1") ; warn_base+=("$key" "$1") ; shift ;;
   --merged_segfile) merged_segfile="$1" ; shift ;;
 
+  # corupus callosum module options
+  #=============================================================
+  --no_cc) run_cc_module="0" ;;
+
   # cereb module options
   #=============================================================
   --no_cereb) run_cereb_module="0" ;;
@@ -480,7 +492,7 @@ case $key in
     ;;
 
   # several options that set a variable
-  --qc_snap) hypvinn_flags+=(--qc_snap) ;;
+  --qc_snap) hypvinn_flags+=(--qc_snap) ; cc_flags+=("--qc_output_dir" "qc_snapshots") ;;
 
   ##############################################################
   # surf-pipeline options
@@ -588,6 +600,8 @@ fi
 if [[ -z "$merged_segfile" ]] ; then merged_segfile="$subject_dir/mri/fastsurfer.merged.mgz" ; fi
 if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="$subject_dir/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
 if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="$subject_dir/mri/aseg.auto_noCCseg.mgz"; fi
+if [[ -z "$aseg_auto_segfile" ]] ; then aseg_auto_segfile="$subject_dir/mri/aseg.auto.mgz"; fi
+if [[ -z "$callosum_seg" ]] ; then callosum_seg="$subject_dir/mri/callosum.CC.orig.mgz"; fi
 if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="$subject_dir/stats/aseg+DKT.stats" ; fi
 if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="$subject_dir/stats/aseg+DKT.VINN.stats" ; fi
 if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="$subject_dir/stats/aseg.VINN.stats" ; fi
@@ -701,6 +715,18 @@ then
   if [[ ! -f "$asegdkt_segfile" ]]
   then
     echo "ERROR: To run the cerebellum segmentation but no asegdkt, the aseg segmentation must already exist."
+    echo "  You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
+    echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
+    echo "  specify the absolute path and name via --asegdkt_segfile"
+    exit 1
+  fi
+fi
+
+if [[ "$run_seg_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] && [[ "$run_cc_module" == "1" ]]; }
+then
+  if [[ ! -f "$asegdkt_segfile" ]]
+  then
+    echo "ERROR: To run the corpus callosum module but no asegdkt, the aseg segmentation must already exist."
     echo "  You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
     echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
     echo "  specify the absolute path and name via --asegdkt_segfile"
@@ -1075,6 +1101,88 @@ then
         echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
       } | tee -a "$seg_log"
       "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+    fi
+  fi
+
+  if [[ "$run_cc_module" ]]
+  then
+    # ============================= CC SEGMENTATION ============================================
+
+    # generate file names of for the analysis
+    asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
+    asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
+    aseg_auto_statsfile="$(add_file_suffix "$aseg_auto_statsfile" "withCC")"
+    # note: callosum manedit currently only affects inpainting and not internal FastSurferCC processing (surfaces etc)
+    callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
+    # generate callosum segmentation, mesh, shape and downstream measure files
+    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --threads "$threads_seg"
+         "--aseg_name" "$asegdkt_segfile" "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
+    {
+      echo_quoted "${cmd[@]}"
+      "${cmd[@]}"
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: FastSurferCC corpus callosum analysis failed!" ; exit 1 ; fi
+      if [[ "$edits" == 1 ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
+
+      # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
+      cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
+           "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
+      echo_quoted "${cmd[@]}"
+      "${cmd[@]}"
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
+
+      if [[ "$run_biasfield" == 1 ]]
+      then
+        # TODO: decide how to measure the size of the white matter, maybe import measures from previous?
+        # TODO: decide whether to include the fornix PV-corrected volume
+        # PV list here and not asegdkt_segfile: 192 Fornix
+        cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
+             --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+             --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
+                   54 58 60 63 77 192 251 252 253 254 255
+                   1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
+                   1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+                   2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
+                   2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+             --threads "$threads_seg" --empty --excludeid 0
+             --segstatsfile "$aseg_withcc_vinn_statsfile"
+             measures
+             # the following measures are unaffected by CC and do not need to be recomputed
+             --import Mask --file "$asegdkt_vinn_statsfile"
+             # recompute the measures based on "better" volumes:
+             --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
+                       SubCortGray rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
+        )
+        echo_quoted "${cmd[@]}"
+        "${cmd[@]}"
+        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then
+          echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!" ; exit 1
+          # this will only terminate the subshell
+        fi
+      fi
+    } 2>&1 | tee -a "$seg_log"
+    code="${PIPESTATUS[0]}"
+    if [[ "$code" != 0 ]]; then exit 1; fi # forward subshell exit to main script
+
+    if [[ "$run_biasfield" == 1 ]]
+    then
+      {
+        # TODO: decide how to measure the size of the white matter
+        # TODO: decide whether to include the fornix PV-corrected volume
+        # PV list here and not asegdkt_segfile: 192 Fornix
+        cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
+             --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+             --threads "$threads_seg" --empty --excludeid 0
+             --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+                   192 251 252 253 254 255
+             --segstatsfile "$aseg_auto_statsfile"
+             measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
+        )
+        echo_quoted "${cmd[@]}"
+        "${cmd[@]}" 2>&1
+        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
+      } | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
+
     fi
   fi
 
