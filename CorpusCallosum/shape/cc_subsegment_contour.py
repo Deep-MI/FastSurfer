@@ -146,8 +146,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
     edge_ortho_vectors = np.column_stack((-edge_directions[:, 1], edge_directions[:, 0]))
     edge_ortho_vectors = edge_ortho_vectors / np.linalg.norm(edge_ortho_vectors, axis=1)[:, None]
 
-    split_contours = []
-    split_contours.append(contour)
+    split_contours = [contour]
 
     for pt_idx, split_point in enumerate(split_points):
         intersections = []
@@ -277,8 +276,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
         # convert area_weights into fraction of total line length
         # e.g. area_weights=[1/6, 1/2, 2/3, 3/4] to ['1/6', '2/3', ...]
         # cumulative difference
-        area_weights_diff = []
-        area_weights_diff.append(area_weights[0])
+        area_weights_diff = [area_weights[0]]
         for i in range(1, len(area_weights)):
             area_weights_diff.append(area_weights[i] - area_weights[i - 1])
         area_weights_diff.append(1 - area_weights[-1])
