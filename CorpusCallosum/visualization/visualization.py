@@ -136,14 +136,14 @@ def plot_contours(
     vox_size: float | None = None,
     title: str = "",
 ) -> None:
-    """Creates a figure of the countours (shape) and the subdivisions of the corpus callosum.
+    """Creates a figure of the contours (shape) and the subdivisions of the corpus callosum.
 
     Parameters
     ----------
     transformed : np.ndarray
         Transformed image data
     split_contours : list[np.ndarray], optional
-        List of contour arrays for each subdivision (ignore countours on None)
+        List of contour arrays for each subdivision (ignore contours on None)
     midline_equidistant : np.ndarray, optional
         Midline points at equidistant spacing (ignore midline on None).
     levelpaths : list[np.ndarray], optional
