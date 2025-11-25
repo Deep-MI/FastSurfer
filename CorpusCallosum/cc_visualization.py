@@ -14,25 +14,53 @@ from CorpusCallosum.shape.cc_mesh import CCMesh
 def make_parser() -> argparse.ArgumentParser:
     """Create a command line parser for the visualization pipeline."""
     parser = argparse.ArgumentParser(description="Visualize corpus callosum from template files.")
-    parser.add_argument("--contours", type=str, required=False, help="Path to contours.txt file", default=None)
-    parser.add_argument("--thickness", type=str, required=True, help="Path to thickness_values.txt file")
+    parser.add_argument(
+        "--contours", 
+        type=str, 
+        required=False, 
+        help="Path to contours.txt file if not provided, uses fsaverage template.", 
+        metavar="CONTOURS_PATH", 
+        default=None
+    )
+    parser.add_argument(
+        "--thickness", 
+        type=str, 
+        required=True, 
+        help="Path to thickness_values.txt file.",
+        metavar="THICKNESS_VALUES_PATH"
+    )
     parser.add_argument(
         "--measurement_points",
         type=str,
         required=True,
-        help="Path to measurement points file containing the original vertex indices where thickness was measured",
+        help="Path to measurement points file containing the original vertex indices where thickness was measured.",
     )
-    parser.add_argument("--output_dir", type=str, required=True, help="Directory for output files")
-    parser.add_argument("--resolution", type=float, default=1.0, help="Resolution in mm for the mesh")
+    parser.add_argument("--output_dir", 
+        type=str, 
+        required=True, 
+        help="Directory for output files.",
+        metavar="OUTPUT_DIR"
+    )
     parser.add_argument(
-        "--smoothing_window", type=int, default=5, help="Window size for smoothing the contour"
+        "--resolution", 
+        type=float, 
+        default=1.0, 
+        help="Resolution in mm for the mesh.",
+        metavar="RESOLUTION"
+    )
+    parser.add_argument(
+        "--smoothing_window", 
+        type=int, 
+        default=5, 
+        help="Window size for smoothing the contour.",
+        metavar="SMOOTHING_WINDOW"
     )
     parser.add_argument(
         "--colormap",
         type=str,
         default="red_to_yellow",
         choices=["red_to_blue", "blue_to_red", "red_to_yellow", "yellow_to_red"],
-        help="Colormap to use for thickness visualization",
+        help="Colormap to use for thickness visualization.",
     )
     parser.add_argument(
         "--color_range",
@@ -41,10 +69,21 @@ def make_parser() -> argparse.ArgumentParser:
         default=None,
         metavar=("MIN", "MAX"),
         required=False,
-        help="Specify the range for the colorbar (2 values: min max). Defaults to automatic choice.",
+        help="Specify the range for the colorbar (2 values: min max). Defaults to automatic choice. \
+              (e.g. --color_range 0 10).",
     )
-    parser.add_argument("--legend", type=str, default="Thickness (mm)", help="Legend for the colorbar")
-    parser.add_argument("--twoD", action="store_true", help="Generate 2D visualization instead of 3D mesh")
+    parser.add_argument(
+        "--legend", 
+        type=str, 
+        default="Thickness (mm)", 
+        help="Legend for the colorbar.",
+        metavar="LEGEND")
+    parser.add_argument(
+        "--twoD", 
+        action="store_true", 
+        help="Generate 2D visualization instead of 3D mesh.",
+        metavar="TWO_D"
+    )
 
     return parser
 
