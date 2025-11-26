@@ -84,7 +84,7 @@ def minimum_bounding_rectangle(points):
     return rval
 
 
-def calc_subsegment_area(split_contours: list[npt.NDArray[_TS]]) -> npt.NDArray[_TS]:
+def calc_subsegment_areas(split_contours: list[npt.NDArray[_TS]]) -> npt.NDArray[_TS]:
     """Calculate area of each subsegment using the shoelace formula.
 
     Parameters
@@ -124,8 +124,9 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
 
     Returns
     -------
-    subsegment_area : list[np.ndarray]
-    split_contours : list[np.ndarray]
+    subsegment_areas : list of float
+        List of subsegment areas.
+    split_contours : list of np.ndarray
         List of contour arrays for each subsegment.
 
     """
@@ -314,7 +315,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_area(split_contours), split_contours
+    return calc_subsegment_areas(split_contours), split_contours
 
 
 def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
@@ -355,11 +356,8 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
     # get angle of lower edge of rectangle to x-axis
     angle_lower_edge = np.arctan2(
         lowest_points[1, 1] - lowest_points[0, 1], lowest_points[1, 0] - lowest_points[0, 0]
-    )  # % (np.pi)
+    ) 
 
-    # steps = np.pi / num_rays
-
-    # print(np.degrees(angle_lower_edge))
     # get angles for equally spaced rays
     angles = np.linspace(-angle_lower_edge, -angle_lower_edge + np.pi, num_rays + 2, endpoint=True)  # + np.pi *3
     angles = angles[1:-1]
@@ -453,7 +451,7 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_area(split_contours), split_contours
+    return calc_subsegment_areas(split_contours), split_contours
 
 
 def subdivide_contour(
@@ -519,17 +517,6 @@ def subdivide_contour(
 
         if hline_anchor is not None:
             extremes = (np.array([max_x, hline_anchor[1]]), np.array([min_x, hline_anchor[1]]))
-
-        # only keep x values of extremes and set y 5 mm below most inferior point of contour
-        # if hline_anchor is None:
-        #     most_inferior_point = np.min(contour[1])
-        #     extremes = (np.array([extremes[0][0], most_inferior_point - 5]), 
-        #                   np.array([extremes[1][0], most_inferior_point - 5]))
-        # else:
-        #     # get y difference between extremes and hline_anchor
-        #     y_diff = extremes[1][1] - hline_anchor[1]
-        #     extremes = (np.array([extremes[0][0], extremes[0][1] - y_diff]), 
-        #                       np.array([extremes[1][0], extremes[1][1] - y_diff]))
     else:
         extremes = (contour[:, min_x_index].copy(), contour[:, max_x_index].copy())
         # Calculate the line between the extreme points
@@ -557,18 +544,6 @@ def subdivide_contour(
             intersection = start_point + line_unit_vector * np.dot(hline_anchor - start_point, line_unit_vector)
             # get distance closest point on line to hline_anchor
             distance = np.linalg.norm(intersection - hline_anchor)
-
-            # import matplotlib.pyplot as plt
-            # plt.close()
-            # fig, ax = plt.subplots(1,1,figsize=(8, 6))
-            # ax.plot(contour[0], contour[1], 'b-', label='Original Contour')
-            # ax.plot(hline_anchor[0], hline_anchor[1], 'ro', label='Hline Anchor')
-            # ax.plot(intersection[0], intersection[1], 'go', label='Intersection')
-            # ax.plot(start_point[0], start_point[1], 'bo', label='Start Point')
-            # ax.plot(end_point[0], end_point[1], 'go', label='End Point')
-            # ax.legend()
-            # plt.show()
-
             # move start and end point the same distance
             start_point = extremes[0] + distance * perp_vector
             end_point = extremes[1] + distance * perp_vector
@@ -639,53 +614,11 @@ def subdivide_contour(
                 (first_intersection[:, None], contour[:, first_index:second_index], second_intersection[:, None])
             )
 
-            # import matplotlib.pyplot as plt
-            # plt.close()
-            # fig, ax = plt.subplots(1,1,figsize=(8, 6))
-            # ax.plot(contour[0], contour[1], 'b-', label='Original Contour')
-            # ax.plot(contour[0][0], contour[1][0], 'bo', label='First contour point')
-            # ax.plot(first_intersection[0], first_intersection[1], 'ro', label='First Intersection')
-            # ax.plot(second_intersection[0], second_intersection[1], 'go', label='Second Intersection')
-            # # ax.plot(contour[:, :first_index][0], contour[:, :first_index][1]+0.5, 'r-', label='First Segment')
-            # # ax.plot(contour[:, second_index+1:][0], contour[:, second_index+1:][1]+1, 'g-', label='Second Segment')
-            # ax.plot(contour[:, first_index:second_index][0], 
-            #         contour[:, first_index:second_index][1]+0.5, 'r-', label='Segment')
-            # ax.plot(start_to_cutoff[0], start_to_cutoff[1], 'g-', label='Start to Cutoff')
-            # ax.legend()
-            # plt.show()
 
             # connect first and second half
             split_contours.append(start_to_cutoff)
         else:
             raise ValueError("No intersections found, this should not happen")
-
-    # if plot:
-    #     import matplotlib.pyplot as plt
-    #     plt.figure(figsize=(8, 6))
-    #     plt.plot(contour[0], contour[1], 'b-', label='Original Contour')
-    #     plt.plot(extremes[0][0], extremes[0][1], 'rx', markersize=8, label='Start Point')
-    #     plt.plot(extremes[1][0], extremes[1][1], 'gx', markersize=8, label='End Point')
-    #     for i, split_contour in enumerate(split_contours):
-    #         plt.plot(split_contour[0], split_contour[1], label=f'Split {i+1}')
-    #         plt.scatter(split_contour[0], split_contour[1], s=10)  # Plot vertices
-    #     plt.title('Split Contours')
-    #     plt.xlabel('X')
-    #     plt.ylabel('Y')
-    #     plt.legend()
-    #     plt.axis('equal')
-    #     plt.show()
-
-    #     # same plot but segment are moved apart by 5 mm
-    #     plt.figure(figsize=(8, 6))
-    #     for i, split_contour in enumerate(split_contours):
-    #         plt.plot(split_contour[0], split_contour[1]+i*5, label=f'Split {i+1}')
-    #         plt.scatter(split_contour[0], split_contour[1]+i*5, s=10)  # Plot vertices
-    #     plt.title('Split Contours')
-    #     plt.xlabel('X')
-    #     plt.ylabel('Y')
-    #     plt.legend()
-    #     plt.axis('equal')
-    #     plt.show()
 
     if plot:
         # make vline at every split point
@@ -795,7 +728,7 @@ def subdivide_contour(
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_area(split_contours), split_contours
+    return calc_subsegment_areas(split_contours), split_contours
 
 
 def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
@@ -885,7 +818,7 @@ def preprocess_cc(cc_label_nib, paths_csv, subj_id):
         2D coordinates of posterior commissure.
     
     """
-    cc_mask = cc_label_nib.get_fdata() == 192
+    cc_mask = np.asarray(cc_label_nib.dataobj) == 192
     cc_mask = cc_mask[cc_mask.shape[0] // 2]
 
     posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r":"PC_center_s"].to_numpy().astype(float)

@@ -28,17 +28,23 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
     Parameters
     ----------
     keys : list[str]
-        Keys of the data dictionary to apply the transform to
+        Keys of the data dictionary to apply the transform to.
     fixed_size : tuple[int, int]
-        Fixed size of the crop window (width, height)
+        Fixed size of the crop window (width, height).
     allow_missing_keys : bool, optional
-        Whether to allow missing keys in the data dictionary, by default False
+        Whether to allow missing keys in the data dictionary, by default False.
     random_translate : int, default=0
         Maximum random translation in voxels.
+
+    Raises
+    ------
+    ValueError
+        If the crop boundaries extend outside the image dimensions.
 
     Notes
     -----
     The transform expects the following keys in the data dictionary:
+
     - AC_center : np.ndarray
         Coordinates of anterior commissure
     - PC_center : np.ndarray
@@ -46,10 +52,6 @@ class CropAroundACPCFixedSize(RandomizableTransform, MapTransform):
     - image : np.ndarray
         Input image to crop
 
-    Raises
-    ------
-    ValueError
-        If the crop boundaries extend outside the image dimensions
     """
 
     def __init__(

@@ -38,7 +38,13 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output_dir", 
         type=str, 
         required=True, 
-        help="Directory for output files.",
+        help="Directory for output files. Writes: \\\
+            cc_mesh.html - Interactive 3D mesh visualization (HTML file) \\\
+            midslice_2d.png - 2D midslice visualization of the corpus callosum \\\
+            cc_mesh.vtk - VTK mesh file format \\\
+            cc_mesh.fssurf - FreeSurfer surface file \\\
+            cc_mesh_overlay.curv - FreeSurfer curvature overlay file \\\
+            cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=1.3.1)",
         metavar="OUTPUT_DIR"
     )
     parser.add_argument(
@@ -60,7 +66,7 @@ def make_parser() -> argparse.ArgumentParser:
         type=str,
         default="red_to_yellow",
         choices=["red_to_blue", "blue_to_red", "red_to_yellow", "yellow_to_red"],
-        help="Colormap to use for thickness visualization.",
+        help="Colormap to use for thickness visualization, lower to higher values.",
     )
     parser.add_argument(
         "--color_range",
@@ -82,7 +88,6 @@ def make_parser() -> argparse.ArgumentParser:
         "--twoD", 
         action="store_true", 
         help="Generate 2D visualization instead of 3D mesh.",
-        metavar="TWO_D"
     )
 
     return parser

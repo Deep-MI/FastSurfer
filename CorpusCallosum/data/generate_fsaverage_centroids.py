@@ -76,16 +76,16 @@ def main() -> None:
     except KeyError as err:
         raise OSError("FREESURFER_HOME environment variable is not set") from err
     
-    print(f"Loading fsaverage segmentation from: {fsaverage_aseg_path}")
+    logger.info(f"Loading fsaverage segmentation from: {fsaverage_aseg_path}")
     
     # Load fsaverage segmentation
     fsaverage_nib = nib.load(fsaverage_aseg_path)
     
     # Extract centroids
-    print("Extracting centroids from fsaverage...")
+    logger.info("Extracting centroids from fsaverage...")
     centroids_dst = get_centroids_from_nib(fsaverage_nib)
     
-    print(f"Found {len(centroids_dst)} anatomical structures with centroids")
+    logger.info(f"Found {len(centroids_dst)} anatomical structures with centroids")
     
     # Convert to JSON-serializable format
     centroids_serializable = convert_numpy_to_json_serializable(centroids_dst)
@@ -96,11 +96,11 @@ def main() -> None:
     with open(centroids_output_path, 'w') as f:
         json.dump(centroids_serializable, f, indent=2)
     
-    print(f"Fsaverage centroids saved to: {centroids_output_path}")
-    print(f"Centroids file size: {centroids_output_path.stat().st_size} bytes")
+    logger.info(f"Fsaverage centroids saved to: {centroids_output_path}")
+    logger.info(f"Centroids file size: {centroids_output_path.stat().st_size} bytes")
     
     # Extract and save fsaverage affine matrix and header fields
-    print("Extracting fsaverage affine matrix and header fields...")
+    logger.info("Extracting fsaverage affine matrix and header fields...")
     fsaverage_affine = fsaverage_nib.affine.astype(float)  # Convert to float for JSON serialization
     
     # Extract header fields needed for LTA
@@ -138,28 +138,28 @@ def main() -> None:
     with open(combined_output_path, 'w') as f:
         json.dump(combined_data_serializable, f, indent=2)
     
-    print(f"Fsaverage affine and header data saved to: {combined_output_path}")
-    print(f"Combined file size: {combined_output_path.stat().st_size} bytes")
-    print(f"Affine matrix shape: {fsaverage_affine.shape}")
-    print(f"Header dims: {dims}, delta: {delta}")
+    logger.info(f"Fsaverage affine and header data saved to: {combined_output_path}")
+    logger.info(f"Combined file size: {combined_output_path.stat().st_size} bytes")
+    logger.info(f"Affine matrix shape: {fsaverage_affine.shape}")
+    logger.info(f"Header dims: {dims}, delta: {delta}")
     
     # Print some statistics
     label_ids = list(centroids_dst.keys())
-    print(f"Label IDs range: {min(label_ids)} to {max(label_ids)}")
-    print("Sample centroids:")
+    logger.info(f"Label IDs range: {min(label_ids)} to {max(label_ids)}")
+    logger.info("Sample centroids:")
     for label_id in sorted(label_ids)[:5]:
         centroid = centroids_dst[label_id]
-        print(f"  Label {label_id}: [{centroid[0]:.2f}, {centroid[1]:.2f}, {centroid[2]:.2f}]")
-    
-    print("Fsaverage affine matrix:")
-    print(fsaverage_affine)
-    
-    print("Fsaverage header fields:")
-    print(f"  dims: {dims}")
-    print(f"  delta: {delta}")
-    print(f"  Mdc shape: {Mdc.shape}")
-    print(f"  Pxyz_c: {Pxyz_c}")
-    print("Combined data structure created successfully")
+        logger.info(f"  Label {label_id}: [{centroid[0]:.2f}, {centroid[1]:.2f}, {centroid[2]:.2f}]")
+
+    logger.info("Fsaverage affine matrix:")
+    logger.info(fsaverage_affine)
+
+    logger.info("Fsaverage header fields:")
+    logger.info(f"  dims: {dims}")
+    logger.info(f"  delta: {delta}")
+    logger.info(f"  Mdc shape: {Mdc.shape}")
+    logger.info(f"  Pxyz_c: {Pxyz_c}")
+    logger.info("Combined data structure created successfully")
 
 
 if __name__ == "__main__":

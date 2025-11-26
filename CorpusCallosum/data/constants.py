@@ -22,15 +22,16 @@ FSAVERAGE_DATA_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_d
 FSAVERAGE_MIDDLE = 128  # Middle slice index in fsaverage space
 CC_LABEL = 192          # Label value for corpus callosum in segmentation
 FORNIX_LABEL = 250      # Label value for fornix in segmentation
+THIRD_VENTRICLE_LABEL = 4 # Label value for third ventricle in segmentation
 SUBSEGMENT_LABELS = [251, 252, 253, 254, 255] # labels for subsegments in segmentation
 
 
-STANDARD_INPUT_PATHS = {
+DEFAULT_INPUT_PATHS = {
     "conf_name": "mri/orig.mgz",
     "aseg_name": "mri/aparc.DKTatlas+aseg.deep.mgz",
 }
 
-STANDARD_OUTPUT_PATHS = {
+DEFAULT_OUTPUT_PATHS = {
     ## images
     "upright_volume": None,  # orig.mgz mapped to upright space
     ## segmentations

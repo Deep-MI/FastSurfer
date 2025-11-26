@@ -28,11 +28,12 @@ from numpy import typing as npt
 
 from CorpusCallosum.data.constants import (
     CC_LABEL,
+    DEFAULT_INPUT_PATHS,
+    DEFAULT_OUTPUT_PATHS,
     FSAVERAGE_CENTROIDS_PATH,
     FSAVERAGE_DATA_PATH,
     FSAVERAGE_MIDDLE,
-    STANDARD_INPUT_PATHS,
-    STANDARD_OUTPUT_PATHS,
+    THIRD_VENTRICLE_LABEL,
 )
 from CorpusCallosum.data.read_write import (
     FSAverageHeader,
@@ -231,45 +232,45 @@ def make_parser() -> argparse.ArgumentParser:
         "--segmentation", "--seg",
         type=path_or_none,
         help="Path for corpus callosum and fornix segmentation 3D image.",
-        default=Path(STANDARD_OUTPUT_PATHS["segmentation"]),
+        default=Path(DEFAULT_OUTPUT_PATHS["segmentation"]),
     )
     advanced.add_argument(
         "--cc_measures",
         type=path_or_none,
         help="Path for surface-based corpus callosum measures describing shape and volume for each image slice.",
-        default=Path(STANDARD_OUTPUT_PATHS["cc_measures"]),
+        default=Path(DEFAULT_OUTPUT_PATHS["cc_measures"]),
     )
     advanced.add_argument(
         "--cc_mid_measures",
         type=path_or_none,
         help="Path for surface-based corpus callosum measures of the midslice describing CC shape and volume.",
-        default=STANDARD_OUTPUT_PATHS["cc_markers"],
+        default=DEFAULT_OUTPUT_PATHS["cc_markers"],
     )
     advanced.add_argument(
         "--upright_lta",
         type=path_or_none,
         help="Path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, but no nodding "
              "correction is applied.",
-        default=STANDARD_OUTPUT_PATHS["upright_lta"],
+        default=DEFAULT_OUTPUT_PATHS["upright_lta"],
     )
     advanced.add_argument(
         "--orient_volume_lta",
         type=path_or_none,
         help="Path for orientation volume LTA transform. This makes sure the midplane is at 128 in LR direction, and "
              "the anterior and posterior commisures are on the coordinate line, standardizing the head orientation.",
-        default=STANDARD_OUTPUT_PATHS["orient_volume_lta"],
+        default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
     )
     advanced.add_argument(
         "--segmentation_in_orig",
         type=path_or_none,
         help="Path for corpus callosum and fornix segmentation in the input MRI space.",
-        default=STANDARD_OUTPUT_PATHS["segmentation_in_orig"],
+        default=DEFAULT_OUTPUT_PATHS["segmentation_in_orig"],
     )
     advanced.add_argument(
         "--qc_image",
         type=ReplaceQCOutputDir,
         help="Path for QC visualization image (if it starts with {qc_output_dir}, that is replace by --qc_output_dir).",
-        default=STANDARD_OUTPUT_PATHS["qc_image"],
+        default=DEFAULT_OUTPUT_PATHS["qc_image"],
     )
     advanced.add_argument(
         "--save_template_dir",
@@ -282,20 +283,20 @@ def make_parser() -> argparse.ArgumentParser:
         "--thickness_image",
         type=ReplaceQCOutputDir,
         help="Path for thickness image (if it starts with {qc_output_dir}, that is replace by --qc_output_dir).",
-        default=STANDARD_OUTPUT_PATHS["thickness_image"],
+        default=DEFAULT_OUTPUT_PATHS["thickness_image"],
     )
     advanced.add_argument(
         "--surf",
         dest="cc_surf",
         type=path_or_none,
         help="Path for surf file.",
-        default=STANDARD_OUTPUT_PATHS["cc_surf"],
+        default=DEFAULT_OUTPUT_PATHS["cc_surf"],
     )
     advanced.add_argument(
         "--thickness_overlay",
         type=path_or_none,
         help="Path for corpus callosum thickness overlay file.",
-        default=STANDARD_OUTPUT_PATHS["cc_thickness_overlay"],
+        default=DEFAULT_OUTPUT_PATHS["cc_thickness_overlay"],
     )
     advanced.add_argument(
         "--cc_interactive_html", "--cc_html",
@@ -303,33 +304,33 @@ def make_parser() -> argparse.ArgumentParser:
         type=ReplaceQCOutputDir,
         help="Path to the corpus callosum interactive 3D visualization HTML file (if it starts with {qc_output_dir}, "
              "that is replace by --qc_output_dir).",
-        default=STANDARD_OUTPUT_PATHS["cc_html"],
+        default=DEFAULT_OUTPUT_PATHS["cc_html"],
     )
     advanced.add_argument(
         "--cc_surf_vtk",
         type=path_or_none,
-        help=f"Path for vtk file, showing the CC 3D mesh. Example: {STANDARD_OUTPUT_PATHS['cc_surf_vtk']}.",
+        help=f"Path for vtk file, showing the CC 3D mesh. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_cc",
         type=path_or_none,
         help=f"Path for corpus callosum softlabels, which contains the soft labels of each voxel. "
-             f"Example: {STANDARD_OUTPUT_PATHS['softlabels_cc']}.",
+             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_cc']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_fn",
         type=path_or_none,
         help=f"Path for fornix softlabels, which contains the soft labels of each voxel. "
-             f"Example: {STANDARD_OUTPUT_PATHS['softlabels_fn']}.",
+             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_fn']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_background",
         type=path_or_none,
         help=f"Path for background softlabels, which contains the probability of each voxel. "
-             f"Example: {STANDARD_OUTPUT_PATHS['softlabels_background']}.",
+             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_background']}.",
         default=None,
     )
     ############ END OF OUTPUT PATHS ############
@@ -372,10 +373,10 @@ def options_parse() -> argparse.Namespace:
     if args.subject_dir:
         # Create standard FreeSurfer subdirectories
         if not args.conf_name:
-            args.conf_name = args.subject_dir / STANDARD_INPUT_PATHS["conf_name"]
+            args.conf_name = args.subject_dir / DEFAULT_INPUT_PATHS["conf_name"]
 
         if not args.aseg_name:
-            args.aseg_name = args.subject_dir / STANDARD_INPUT_PATHS["aseg_name"]
+            args.aseg_name = args.subject_dir / DEFAULT_INPUT_PATHS["aseg_name"]
 
     all_paths = ("segmentation", "segmentation_in_orig", "cc_measures", "upright_lta", "orient_volume_lta", "cc_surf",
                  "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures",  "cc_thickness_overlay",
@@ -485,7 +486,7 @@ def localize_ac_pc(
     """
 
     # get center of third ventricle from aseg and map to fsaverage space
-    third_ventricle_mask = np.asarray(aseg_nib.dataobj) == 4
+    third_ventricle_mask = np.asarray(aseg_nib.dataobj) == THIRD_VENTRICLE_LABEL
     third_ventricle_center = np.argwhere(third_ventricle_mask).mean(axis=0)
     third_ventricle_center_vox = apply_transform_to_pt(third_ventricle_center, orig_fsaverage_vox2vox, inv=False)
 
@@ -795,7 +796,7 @@ def main(
     slice_results, slice_io_futures = recon_cc_surf_measures_multi(
         segmentation=cc_fn_seg_labels,
         slice_selection=slice_selection,
-        temp_seg_affine=fsavg_affine,
+        upright_affine=fsavg_affine,
         midslices=midslices,
         ac_coords=ac_coords,
         pc_coords=pc_coords,
@@ -816,7 +817,7 @@ def main(
             "Large area changes detected between consecutive slices, this is likely due to a segmentation error."
         )
 
-    # Get middle slice result for backward compatibility
+    # Get middle slice result
     middle_slice_result = slice_results[len(slice_results) // 2]
 
     if len(middle_slice_result['split_contours']) <= 5:

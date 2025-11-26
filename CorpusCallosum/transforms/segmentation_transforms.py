@@ -25,7 +25,7 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
     Parameters
     ----------
     keys : list[str]
-        Keys of the data dictionary to apply the transform to
+        Keys of the data dictionary to apply the transform to.
     allow_missing_keys : bool, default=False
         Whether to allow missing keys in the data dictionary.
     padding_mm : float, default=10.0
@@ -36,12 +36,14 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
     Notes
     -----
     The transform expects the following keys in the data dictionary:
+
     - AC_center : np.ndarray
         Coordinates of anterior commissure
     - PC_center : np.ndarray
         Coordinates of posterior commissure
     - res : float
         Voxel resolution in mm
+
     """
     
     def __init__(self, keys: list[str], allow_missing_keys: bool = False, 
@@ -57,12 +59,12 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
         Parameters
         ----------
         data : dict
-            Dictionary containing the data to transform
+            Dictionary containing the data to transform.
 
         Returns
         -------
         dict
-            Transformed data dictionary
+            Transformed data dictionary.
         """
         d = dict(data)
 
@@ -110,17 +112,18 @@ class CropAroundACPCtrack(CropAroundACPC):
     Parameters
     ----------
     keys : list[str]
-        Keys of the data dictionary to apply the transform to
+        Keys of the data dictionary to apply the transform to.
     allow_missing_keys : bool, optional
-        Whether to allow missing keys in the data dictionary, by default False
+        Whether to allow missing keys in the data dictionary, by default False.
     padding_mm : float, optional
-        Padding around AC-PC region in millimeters, by default 10
+        Padding around AC-PC region in millimeters, by default 10.
     random_translate : float, optional
-        Maximum random translation in voxels, by default 0
+        Maximum random translation in voxels, by default 0.
 
     Notes
     -----
     The transform expects the following keys in the data dictionary:
+
     - AC_center : np.ndarray
         Coordinates of anterior commissure
     - PC_center : np.ndarray
@@ -129,6 +132,7 @@ class CropAroundACPCtrack(CropAroundACPC):
         Original coordinates of anterior commissure
     - PC_center_original : np.ndarray
         Original coordinates of posterior commissure
+
     """
 
     def __call__(self, data: dict) -> dict:
@@ -137,12 +141,12 @@ class CropAroundACPCtrack(CropAroundACPC):
         Parameters
         ----------
         data : dict
-            Dictionary containing the data to transform
+            Dictionary containing the data to transform.
 
         Returns
         -------
         dict
-            Transformed data dictionary with updated AC and PC coordinates
+            Transformed data dictionary with updated AC and PC coordinates.
         """
 
         

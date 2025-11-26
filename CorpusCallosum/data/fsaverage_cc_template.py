@@ -134,6 +134,7 @@ def load_fsaverage_cc_template() -> tuple[
     outside_contour = contour_with_thickness[0].T
 
 
+    # make sure the CC stays in shape despite smoothing by moving endpoints outwards
     outside_contour[0][anterior_endpoint_idx] -= 55
     outside_contour[0][posterior_endpoint_idx] += 30
 
@@ -143,31 +144,5 @@ def load_fsaverage_cc_template() -> tuple[
     outside_contour_smoothed = smooth_contour(outside_contour_smoothed, window_size=30)
     outside_contour = outside_contour_smoothed
 
-
-    # Plot CC contour with levelsets
-
-    # midline_equidistant = output_dict['midline_equidistant']
-    # levelpaths = output_dict['levelpaths']
-    # plt.figure(figsize=(12, 8))
-
-    # plt.plot(outside_contour[0], outside_contour[1], 'k-', linewidth=2)
-
-    # # Plot the midline
-    # if midline_equidistant is not None:
-    #     midline_x, midline_y = zip(*midline_equidistant)
-    #     plt.plot(midline_x, midline_y, 'r-', linewidth=2, label='Midline')
-
-    # # Plot the level paths
-    # if levelpaths:
-    #     for i, path in enumerate(levelpaths):
-    #         path_x, path_y = path[:,0], path[:,1]
-    #         plt.plot(path_x, path_y, 'g--', linewidth=1, alpha=0.7, label=f'Level path {i+1}' if i == 0 else "")
-    #         plt.plot(path_x, path_y, 'gx', markersize=4, alpha=0.7)
-
-    # plt.axis('equal')
-    # plt.title('Corpus Callosum Contour with Levelsets')
-    # plt.legend(loc='best')
-    # plt.grid(True, linestyle='--', alpha=0.7)
-    # plt.show()
 
     return outside_contour, anterior_endpoint_idx, posterior_endpoint_idx

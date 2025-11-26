@@ -30,13 +30,13 @@ def plot_standardized_space(
     Parameters
     ----------
     ax_row : list[plt.Axes]
-        Row of axes to plot on (should be length 3)
+        Row of axes to plot on (should be length 3).
     vol : np.ndarray
-        Volume data to visualize
+        Volume data to visualize.
     ac_coords : np.ndarray
-        AC coordinates in standardized space
+        AC coordinates in standardized space.
     pc_coords : np.ndarray
-        PC coordinates in standardized space
+        PC coordinates in standardized space.
 
     Notes
     -----
@@ -73,25 +73,25 @@ def visualize_coordinate_spaces(
     Parameters
     ----------
     orig : nibabel.Nifti1Image
-        Original image volume
+        Original image volume.
     upright : np.ndarray
-        Volume in fsaverage space
+        Volume in fsaverage space.
     standardized : np.ndarray
-        Volume in standardized space
+        Volume in standardized space.
     ac_coords_orig : np.ndarray
-        AC coordinates in original space
+        AC coordinates in original space.
     pc_coords_orig : np.ndarray
-        PC coordinates in original space
+        PC coordinates in original space.
     ac_coords_3d : np.ndarray
-        AC coordinates in fsaverage space
+        AC coordinates in fsaverage space.
     pc_coords_3d : np.ndarray
-        PC coordinates in fsaverage space
+        PC coordinates in fsaverage space.
     ac_coords_standardized : np.ndarray
-        AC coordinates in standardized space
+        AC coordinates in standardized space.
     pc_coords_standardized : np.ndarray
-        PC coordinates in standardized space
+        PC coordinates in standardized space.
     output_plot_path : str or Path
-        Directory to save visualization
+        Directory to save visualization.
 
     Notes
     -----
@@ -105,7 +105,7 @@ def visualize_coordinate_spaces(
     ax = ax.T
 
     # Original space - using plot_standardized_space
-    plot_standardized_space(ax[0], orig.get_fdata(), ac_coords_orig, pc_coords_orig)
+    plot_standardized_space(ax[0], np.asarray(orig.dataobj), ac_coords_orig, pc_coords_orig)
     ax[0, 0].set_title("Orig")
 
     # Fsaverage space
@@ -141,9 +141,9 @@ def plot_contours(
     Parameters
     ----------
     transformed : np.ndarray
-        Transformed image data
+        Transformed image data.
     split_contours : list[np.ndarray], optional
-        List of contour arrays for each subdivision (ignore contours on None)
+        List of contour arrays for each subdivision (ignore contours on None).
     midline_equidistant : np.ndarray, optional
         Midline points at equidistant spacing (ignore midline on None).
     levelpaths : list[np.ndarray], optional
@@ -155,7 +155,7 @@ def plot_contours(
     pc_coords : np.ndarray, optional
         PC coordinates for visualization (ignore PC on None).
     vox_size : float, optional
-        Voxel size for scaling
+        Voxel size for scaling.
     title : str, default=""
         Title for the plot.
 
@@ -221,9 +221,9 @@ def plot_midplane(grid_orig: np.ndarray, orig: np.ndarray) -> None:
     Parameters
     ----------
     grid_orig : np.ndarray
-        Grid points in original space, shape (3, N)
+        Grid points in original space, shape (3, N).
     orig : np.ndarray
-        Original image for dimension reference
+        Original image for dimension reference.
 
     Notes
     -----

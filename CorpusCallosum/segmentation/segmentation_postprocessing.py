@@ -30,14 +30,14 @@ def find_component_boundaries(labels_arr: npt.NDArray[int], component_id: int) -
     Parameters
     ----------
     labels_arr : np.ndarray
-        Labeled array from connected components analysis
+        Labeled array from connected components analysis.
     component_id : int
-        ID of the component to find boundaries for
+        ID of the component to find boundaries for.
 
     Returns
     -------
     np.ndarray
-        Array of shape (N, 3) containing boundary coordinates
+        Array of shape (N, 3) containing boundary coordinates.
 
     Notes
     -----
@@ -69,19 +69,21 @@ def find_minimal_connection_path(
     Parameters
     ----------
     boundary_coords1 : np.ndarray
-        Boundary coordinates of first component, shape (N1, 3)
+        Boundary coordinates of first component, shape (N1, 3).
     boundary_coords2 : np.ndarray
-        Boundary coordinates of second component, shape (N2, 3)
+        Boundary coordinates of second component, shape (N2, 3).
     max_distance : float, default=3.0
-        Maximum distance to consider for connection, by default 3.0
+        Maximum distance to consider for connection, by default 3.0.
 
     Returns
     -------
     tuple[np.ndarray, np.ndarray] or None
         If a valid connection is found:
-            - point1 : Coordinates on first boundary
-            - point2 : Coordinates on second boundary
-        None if no connection within max_distance is found
+
+        - point1 : Coordinates on first boundary
+        - point2 : Coordinates on second boundary
+
+        None if no connection within max_distance is found.
 
     Notes
     -----
@@ -113,14 +115,14 @@ def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple
     Parameters
     ----------
     point1 : np.ndarray
-        Starting point coordinates, shape (3,)
+        Starting point coordinates, shape (3,).
     point2 : np.ndarray
-        Ending point coordinates, shape (3,)
+        Ending point coordinates, shape (3,).
 
     Returns
     -------
     list[tuple[int, int, int]]
-        List of (x, y, z) coordinates forming the connection line
+        List of (x, y, z) coordinates forming the connection line.
 
     Notes
     -----
@@ -166,14 +168,14 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
     Parameters
     ----------
     seg_arr : np.ndarray
-        Input binary segmentation array
+        Input binary segmentation array.
     max_connection_distance : float, optional
-        Maximum distance to connect components, by default 3.0
+        Maximum distance to connect components, by default 3.0.
 
     Returns
     -------
     np.ndarray
-        Segmentation array with minimal connections added between nearby components
+        Segmentation array with minimal connections added between nearby components.
 
     Notes
     -----
@@ -289,16 +291,16 @@ def get_cc_volume_voxel(
     Parameters
     ----------
     desired_width_mm : int
-        Desired width of the CC in millimeters
+        Desired width of the CC in millimeters.
     cc_mask : np.ndarray
-        Binary mask of the corpus callosum
+        Binary mask of the corpus callosum.
     voxel_size : tuple[float, float, float]
-        Voxel size in millimeters (x, y, z)
+        Voxel size in millimeters (x, y, z).
 
     Returns
     -------
     float
-        Volume of the CC in cubic millimeters
+        Volume of the CC in cubic millimeters.
 
     Raises
     ------
@@ -353,17 +355,15 @@ def get_cc_volume_contour(cc_contours: list[np.ndarray],
 
     Parameters
     ----------
-    desired_width_mm : int
-        Desired width of the CC in millimeters
     cc_contours : list[np.ndarray]
-        List of CC contours for each slice in the left-right direction
+        List of CC contours for each slice in the left-right direction.
     voxel_size : tuple[float, float, float]
-        Voxel size in millimeters (x, y, z)
+        Voxel size in millimeters (x, y, z).
 
     Returns
     -------
     float
-        Volume of the CC in cubic millimeters
+        Volume of the CC in cubic millimeters.
 
     Raises
     ------
@@ -432,14 +432,14 @@ def extract_largest_connected_component(
     Parameters
     ----------
     seg_arr : np.ndarray
-        Input binary segmentation array
+        Input binary segmentation array.
     max_connection_distance : float, optional
-        Maximum distance to connect components, by default 3.0
+        Maximum distance to connect components, by default 3.0.
 
     Returns
     -------
     np.ndarray
-        Binary mask of the largest connected component
+        Binary mask of the largest connected component.
 
     Notes
     -----
@@ -492,7 +492,7 @@ def clean_cc_segmentation(
     Parameters
     ----------
     seg_arr : npt.NDArray[int]
-        Input segmentation array with CC (192) and fornix (250) labels
+        Input segmentation array with CC (192) and fornix (250) labels.
     max_connection_distance : float, default=3.0
         Maximum distance to connect components.
 
