@@ -295,6 +295,7 @@ tmpLF=$(mktemp)
 LF=$tmpLF
 
 function log() { echo "$@" | tee -a "$LF" ; }
+# shellcheck disable=SC2059
 function logf() { printf "$@" | tee -a "$LF" ; }
 
 log "Log of FastSurfer SLURM script"
@@ -336,6 +337,7 @@ then
 else
   # all debug messages go into logfile no matter what, but here, not to the console
   function debug () { echo "$@" >> "$LF" ;  }
+  # shellcheck disable=SC2059
   function debugf () { printf "$@" >> "$LF" ;  }
   if [[ "$submit_jobs" == "false" ]]
   then
