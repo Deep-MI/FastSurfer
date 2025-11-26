@@ -367,7 +367,7 @@ case $key in
     then
       export FS_LICENSE="$1"
     else
-      echo "ERROR: Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name. Exiting..."
+      echo "ERROR: Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name."
       exit 1
     fi
     shift # past value
@@ -478,6 +478,7 @@ case $key in
     fi
     shift # past value
     ;;
+
   # several options that set a variable
   --qc_snap) hypvinn_flags+=(--qc_snap) ;;
 
@@ -507,6 +508,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 # make sure FastSurfer is in the PYTHONPATH
 export PYTHONPATH
 PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH" || echo "")"
+subject_dir="$sd/$subject"
 
 ########################################## VERSION AND QUIT HERE ########################################
 # make sure the python  executable is valid and found
@@ -583,28 +585,28 @@ then
 fi
 
 # DEFAULT FILE NAMES
-if [[ -z "$merged_segfile" ]] ; then merged_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz" ; fi
-if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
-if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"; fi
-if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="${sd}/${subject}/stats/aseg+DKT.stats" ; fi
-if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="${sd}/${subject}/stats/aseg+DKT.VINN.stats" ; fi
-if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="${sd}/${subject}/stats/aseg.VINN.stats" ; fi
-if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz" ; fi
-if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats" ; fi
-if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="${sd}/${subject}/mri/hypothalamus.HypVINN.nii.gz" ; fi
-if [[ -z "$hypo_statsfile" ]] ; then hypo_statsfile="${sd}/${subject}/stats/hypothalamus.HypVINN.stats" ; fi
-if [[ -z "$mask_name" ]] ; then mask_name="${sd}/${subject}/mri/mask.mgz" ; fi
-if [[ -z "$conformed_name" ]] ; then conformed_name="${sd}/${subject}/mri/orig.mgz"; fi
-if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="${sd}/${subject}/mri/T2orig.mgz" ; fi
-if [[ -z "$norm_name" ]] ; then norm_name="${sd}/${subject}/mri/orig_nu.mgz" ; fi
-if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="${sd}/${subject}/mri/T2_nu.mgz" ;  fi
-if [[ -z "$seg_log" ]] ; then seg_log="${sd}/${subject}/scripts/deep-seg.log" ; fi
-if [[ -z "$build_log" ]] ; then build_log="${sd}/${subject}/scripts/build.log" ; fi
+if [[ -z "$merged_segfile" ]] ; then merged_segfile="$subject_dir/mri/fastsurfer.merged.mgz" ; fi
+if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="$subject_dir/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
+if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="$subject_dir/mri/aseg.auto_noCCseg.mgz"; fi
+if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="$subject_dir/stats/aseg+DKT.stats" ; fi
+if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="$subject_dir/stats/aseg+DKT.VINN.stats" ; fi
+if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="$subject_dir/stats/aseg.VINN.stats" ; fi
+if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="$subject_dir/mri/cerebellum.CerebNet.nii.gz" ; fi
+if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="$subject_dir/stats/cerebellum.CerebNet.stats" ; fi
+if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="$subject_dir/mri/hypothalamus.HypVINN.nii.gz" ; fi
+if [[ -z "$hypo_statsfile" ]] ; then hypo_statsfile="$subject_dir/stats/hypothalamus.HypVINN.stats" ; fi
+if [[ -z "$mask_name" ]] ; then mask_name="$subject_dir/mri/mask.mgz" ; fi
+if [[ -z "$conformed_name" ]] ; then conformed_name="$subject_dir/mri/orig.mgz"; fi
+if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="$subject_dir/mri/T2orig.mgz" ; fi
+if [[ -z "$norm_name" ]] ; then norm_name="$subject_dir/mri/orig_nu.mgz" ; fi
+if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  fi
+if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
+if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
 # T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
 if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == 1 ]]
 then
   if [[ ! -f "$t2" ]] ; then echo "ERROR: T2 file $t2 does not exist!" ; exit 1 ; fi
-  copy_name_T2="${sd}/${subject}/mri/orig/T2.001.mgz"
+  copy_name_T2="$subject_dir/mri/orig/T2.001.mgz"
 fi
 
 if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
@@ -743,7 +745,8 @@ then
       do
         if [[ -f "$FREESURFER_HOME/$filename" ]]
         then
-          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite." | tee -a "$tmpLF"
+          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite." | \
+            tee -a "$tmpLF"
           export FS_LICENSE="$FREESURFER_HOME/$filename"
           break
         fi
@@ -776,7 +779,7 @@ then
     echo "WARNING: --t1 was passed but will be overwritten with T1 from base template." | tee -a "$tmpLF"
   fi
   # base can only be run with the template image from base-setup:
-  t1="$sd/$subject/mri/orig.mgz"
+  t1="$subject_dir/mri/orig.mgz"
   if [[ "${#warn_base[@]}" -gt 0 ]] ; then
     echo "ERROR: Specifying '${warn_base[*]}' is not supported for base (template) creation."
     exit 1
@@ -831,6 +834,7 @@ if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
 # from now on, we can and will log to LF directly
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
+# shellcheck disable=SC2064
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -a \"$seg_log\" ; }" SIGINT SIGTERM
 
 # create the build log, file with all version info in parallel
@@ -842,23 +846,23 @@ if [[ "$run_seg_pipeline" != "1" ]]
 then
   {
     echo "INFO: Running run_fastsurfer.sh without segmentation pipeline;"
-    echo "  expecting previous --seg_only run in ${sd}/${subject}."
+    echo "  expecting previous --seg_only run in $subject_dir."
   } | tee -a "$seg_log"
 fi
 
 # mapfile builtin requires bash 4 (BASH_VERSINFO is available in bash 3)
 if [[ "${BASH_VERSINFO[0]}" -gt 3 ]]
 then
-  pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
-    function filter_log_build()
-    {
-      # filter expected files $LF and scripts/BUILD.log
-      IFS=""
-      while read -r file ; do
-        if [[ "${sd}/${subject}/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
-      done
-    }
+  function filter_log_build()
+  {
+    # filter expected files $LF and scripts/BUILD.log
+    IFS=""
+    while read -r file ; do
+      if [[ "$sdir/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+    done
+  }
 
+  pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
     mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
   popd > /dev/null || exit 1
   if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
@@ -896,7 +900,7 @@ then
     then
       echo "ERROR: FastSurfer asegdkt segmentation failed QC checks." | tee -a "$seg_log"
       exit 1
-    elif [[ "${exit_code}" -ne 0 ]]
+    elif [[ "${exit_code}" != 0 ]]
     then
       echo "ERROR: FastSurfer asegdkt segmentation failed." | tee -a "$seg_log"
       exit 1
@@ -915,7 +919,7 @@ then
         echo_quoted "${cmd[@]}" | tee -a "$seg_log"
         "${cmd[@]}" | tee -a "$seg_log"
         exit_code="${PIPESTATUS[0]}"
-        if [[ "${exit_code}" -ne 0 ]]
+        if [[ "${exit_code}" != 0 ]]
         then
           echo "ERROR: Reduction of asegdkt to aseg failed." | tee -a "$seg_log"
           exit 1
@@ -936,14 +940,18 @@ then
       cmd=("nib-convert" "$t2" "$copy_name_T2")
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
+      # do not terminate if this fails
 
       echo "INFO: Robust scaling (partial conforming) of T2 image..."
       cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
            --no_iso_vox --no_img_size -i "$t2" -o "$conformed_name_t2")
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
+      exit_code=$?
       echo "Done."
+      exit $exit_code  # this will only terminate the subshell
     } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: Robust scaling of T2 failed!" | tee -a "$seg_log" ; exit 1 ; fi
   fi
 
   if [[ "$run_biasfield" == "1" ]]
@@ -955,8 +963,9 @@ then
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${cmd[@]}" 2>&1
+      exit $?  # this will only terminate the subshell
     } | tee -a "$seg_log"
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Biasfield correction failed!" | tee -a "$seg_log"
       exit 1
@@ -965,7 +974,7 @@ then
     if [[ "$run_talairach_registration" == "true" ]]
     then
       cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log"
-           --dir "$sd/$subject/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
+           --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
       if [[ "$long" == "1" ]] ; then cmd+=(--long "$basedir") ; fi
       if [[ "$edits" == "1" ]] ; then cmd+=(--edits) ; fi
       if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
@@ -974,7 +983,7 @@ then
         echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
       "${cmd[@]}"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
         exit 1
@@ -1005,8 +1014,9 @@ then
       {
         echo_quoted "${cmd[@]}"
         "${cmd[@]}" 2>&1
+        exit $?  # this will only terminate the subshell
       } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
         exit 1
@@ -1026,8 +1036,9 @@ then
       {
         echo_quoted "${cmd[@]}"
         "${cmd[@]}" 2>&1
+        exit $?  # this will only terminate the subshell
       } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
         exit 1
@@ -1047,7 +1058,7 @@ then
         echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
       "${cmd[@]}" 2>&1 | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: T2 Biasfield correction failed!" | tee -a "$seg_log"
         exit 1
@@ -1089,7 +1100,7 @@ then
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"  # no tee, directly logging to $seg_log
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
       exit 1
@@ -1117,7 +1128,7 @@ then
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${cmd[@]}"
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Hypothalamus Segmentation failed!" | tee -a "$seg_log"
       exit 1
@@ -1146,7 +1157,7 @@ then
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${cmd[@]}"
-  if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
+  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
   popd > /dev/null || return
 fi
 

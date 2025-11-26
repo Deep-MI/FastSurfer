@@ -83,7 +83,7 @@ function check_hpc_work ()
     echo "The hpc_work directory $1 is not defined or does not exists."
     exit 1
   fi
-  if [[ "$#" -gt 1 ]] && [[ "$2" == "true" ]] && [[ "$(ls $1 | wc -w)" -gt "0" ]]; then
+  if [[ "$#" -gt 1 ]] && [[ "$2" == "true" ]] && [[ "$(ls "$1" | wc -w)" -gt "0" ]]; then
     echo "The hpc_work directory $1 not empty."
     exit 1
   fi
@@ -320,21 +320,22 @@ function make_cleanup_job ()
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
     echo "fi"
-  } > $clean_cmd_file
+  } > "$clean_cmd_file"
 
-  chmod +x $clean_cmd_file
-  echo "sbatch --parsable ${clean_slurm_sched[*]}" | tee -a $logfile
-  echo "--- sbatch script $clean_cmd_filename ---"
-  cat $clean_cmd_file
+  chmod +x "$clean_cmd_file"
+  echo "sbatch --parsable ${clean_slurm_sched[*]}" | tee -a "$logfile"
+  echo "--- sbatch script $clean_cmd_file ---"
+  cat "$clean_cmd_file"
   echo "--- end of script ---"
 
   if [[ "$submit_jobs" == "false" ]]
   then
-    echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a $logfile
+    echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a "$logfile"
     export clean_jobid=CLEAN_JOB_ID
   else
-    export clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
-    echo "Submitted Cleanup Jobs $clean_jobid" | tee -a $logfile
+    clean_jobid=$(sbatch --parsable "${clean_slurm_sched[*]}")
+    export clean_jobid
+    echo "Submitted Cleanup Jobs $clean_jobid" | tee -a "$logfile"
   fi
 }
 
@@ -381,12 +382,12 @@ function make_copy_job ()
     echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
     echo "wait"
     echo "echo \"Finished!\""
-  } > $copy_cmd_file
+  } > "$copy_cmd_file"
 
-  chmod +x $copy_cmd_file
+  chmod +x "$copy_cmd_file"
   echo "sbatch --parsable ${copy_slurm_sched[*]}" | tee -a "$logfile"
   echo "--- sbatch script $copy_cmd_filename ---"
-  cat $copy_cmd_file
+  cat "$copy_cmd_file"
   echo "--- end of script ---"
 
   if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
@@ -394,7 +395,8 @@ function make_copy_job ()
     echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
     export copy_jobid=COPY_JOB_ID
   else
-    export copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
+    copy_jobid=$(sbatch --parsable "${copy_slurm_sched[*]}")
+    export copy_jobid
     echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
 }

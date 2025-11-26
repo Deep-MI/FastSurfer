@@ -218,6 +218,7 @@ function softlink_or_copy()
         if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
       fi
     } | tee -a "$LF"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit 1; fi # forward subshell exit to main script
   fi
 }
 
