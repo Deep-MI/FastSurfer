@@ -16,7 +16,7 @@
 # IMPORTS
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar
 
 import nibabel as nib
 import numpy as np
@@ -63,6 +63,7 @@ CLASS_NAMES = {
 subseg_labels = {"cereb_subseg": np.array(list(CLASS_NAMES.values()))}
 
 AT = TypeVar("AT", np.ndarray, torch.Tensor)
+AffineMatrix4x4 = np.ndarray[tuple[Literal[4], Literal[4]], np.dtype[float]]
 
 
 class LTADict(TypedDict):
@@ -70,7 +71,7 @@ class LTADict(TypedDict):
     nxforms: int
     mean: list[float]
     sigma: float
-    lta: npt.NDArray[float]
+    lta: AffineMatrix4x4
     src_valid: int
     src_filename: str
     src_volume: list[int]

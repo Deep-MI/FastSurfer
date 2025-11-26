@@ -14,34 +14,53 @@
 
 # IMPORTS
 import os
-from collections.abc import Callable, Iterable, Iterator
-from concurrent.futures import Executor, Future
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import (
-    Any,
-    TypeVar,
-)
 
 import torch
 
 from FastSurferCNN.utils import logging, parser_defaults
+from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
+from FastSurferCNN.utils.threads import thread_executor
 
 __all__ = [
     "assert_no_root",
     "find_device",
     "handle_cuda_memory_exception",
-    "iterate",
-    "SerialExecutor",
-    "pipeline",
     "SubjectList",
     "SubjectDirectory",
+    "suppress_stdout",
+    "suppress_stderr",
+    "update_docstring",
 ]
 
-from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
-
 LOGGER = logging.getLogger(__name__)
-_T = TypeVar("_T")
-_Ti = TypeVar("_Ti")
+
+
+@contextmanager
+def suppress_stdout():
+    """
+    Contextmanager that suppresses all output on stdout.
+
+    Notes
+    -----
+    This Context Manager does not work with multiple threads, as `sys.stdout` is shared between threads.
+    """
+    with open(os.devnull, "w") as devnull, redirect_stdout(devnull) as rdo:
+        yield rdo
+
+
+@contextmanager
+def suppress_stderr():
+    """
+    Contextmanager that suppresses all output on stderr.
+
+    Notes
+    -----
+    This Context Manager does not work with multiple threads, as `sys.stdout` is shared between threads.
+    """
+    with open(os.devnull, "w") as devnull, redirect_stderr(devnull) as rdo:
+        yield rdo
 
 
 def find_device(
@@ -104,6 +123,17 @@ def find_device(
     # Define device and transfer model
     logger.info(f"Using {flag_name}: {device}")
     return device
+
+
+def update_docstring(**kwargs):
+    """
+    Make custom replacements in the docstring.
+    """
+
+    def stub(f):
+        f.__doc__ = f.__doc__.format(**kwargs)
+        return f
+    return stub
 
 
 def assert_no_root() -> bool:
@@ -171,80 +201,6 @@ def handle_cuda_memory_exception(exception: BaseException) -> bool:
         return False
 
 
-def pipeline(
-    pool: Executor,
-    func: Callable[[_Ti], _T],
-    iterable: Iterable[_Ti],
-    *,
-    pipeline_size: int = 1,
-) -> Iterator[tuple[_Ti, _T]]:
-    """
-    Pipeline a function to be executed in the pool.
-
-    Analogous to iterate, but run func in a different
-    thread for the next element while the current element is returned.
-
-    Parameters
-    ----------
-    pool : Executor
-        Thread pool executor for parallel execution.
-    func : callable
-        Function to use.
-    iterable : Iterable
-        Iterable containing input elements.
-    pipeline_size : int, default=1
-        Size of the processing pipeline.
-
-    Yields
-    ------
-    element : _Ti
-        Elements
-    _T
-        Results of func corresponding to element: func(element).
-    """
-    # do pipeline loading the next element
-    from collections import deque
-
-    futures_queue = deque()
-    import itertools
-
-    for i, element in zip(itertools.count(-pipeline_size), iterable):
-        # pre-load next element/data
-        futures_queue.append((element, pool.submit(func, element)))
-        if i >= 0:
-            element, future = futures_queue.popleft()
-            yield element, future.result()
-    while len(futures_queue) > 0:
-        element, future = futures_queue.popleft()
-        yield element, future.result()
-
-
-def iterate(
-    pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti],
-) -> Iterator[tuple[_Ti, _T]]:
-    """
-    Iterate over iterable, yield pairs of elements and func(element).
-
-    Parameters
-    ----------
-    pool : Executor
-        The Executor object (dummy object to have a common API with pipeline).
-    func : callable
-        Function to use.
-    iterable : Iterable
-        Iterable to draw objects to process with func from.
-
-    Yields
-    ------
-    element : _Ti
-        Elements
-    _T
-        Results of func corresponding to element: func(element).
-    """
-    for element in iterable:
-        yield element, func(element)
-
-
 class SubjectDirectory:
     """
     Represent a subject directory.
@@ -282,7 +238,7 @@ class SubjectDirectory:
         """
         self._subject_dir = Path.cwd() if subject_dir is None else Path(subject_dir)
         for k, v in kwargs.items():
-            if subject_dir is None and not Path(v).is_absolute() and not k == "id":
+            if subject_dir is None and not Path(v).is_absolute() and k != "id":
                 raise ValueError(f"subject/out directory not defined, but {k} ('{v}') is relative!")
             setattr(self, "_" + k, v)
 
@@ -1047,69 +1003,6 @@ class SubjectList:
 
         This is performed asynchronously internally.
         """
-        from concurrent.futures import ThreadPoolExecutor
-
         def is_file(p: Path):
             return p.is_file()
-        with ThreadPoolExecutor(len(self._subjects)) as pool:
-            return all(pool.map(is_file, self._subjects))
-
-
-class SerialExecutor(Executor):
-    """
-    Represent a serial executor.
-    """
-
-    def map(
-        self,
-        fn: Callable[..., _T],
-        *iterables: Iterable[Any],
-        timeout: float | None = None,
-        chunksize: int = -1,
-    ) -> Iterator[_T]:
-        """
-        The map function.
-
-        Parameters
-        ----------
-        fn : Callable[..., _T]
-            A callable function to be applied to the items in the iterables.
-        *iterables : Iterable[Any]
-            One or more iterable objects.
-        timeout : Optional[float]
-            Maximum number of seconds to wait for a result. Default is None.
-        chunksize : int
-            The size of the chunks, default value is -1.
-
-        Returns
-        -------
-        Iterator[_T]
-            An iterator that yields the results of applying 'fn' to the items of
-            'iterables'.
-        """
-        return map(fn, *iterables)
-
-    def submit(self, __fn: Callable[..., _T], *args, **kwargs) -> "Future[_T]":
-        """
-        A callable function that returns a Future representing the result.
-
-        Parameters
-        ----------
-        __fn : Callable[..., _T]
-            A callable function to be executed.
-        *args :
-            Potential arguments to be passed to the callable function.
-        **kwargs :
-            Keyword arguments to be passed to the callable function.
-
-        Returns
-        -------
-        "Future[_T]"
-            A Future object representing the execution result of the callable function.
-        """
-        f = Future()
-        try:
-            f.set_result(__fn(*args, **kwargs))
-        except Exception as e:
-            f.set_exception(e)
-        return f
+        return all(thread_executor().map(is_file, self._subjects))

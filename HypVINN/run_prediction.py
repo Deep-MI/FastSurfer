@@ -30,7 +30,8 @@ from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     load_checkpoint_config_defaults,
 )
-from FastSurferCNN.utils.common import SerialExecutor
+from FastSurferCNN.utils.common import update_docstring
+from FastSurferCNN.utils.threads import SerialExecutor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
@@ -138,18 +139,7 @@ def option_parse() -> argparse.ArgumentParser:
     return parser
 
 
-def _update_docstring(**kwargs):
-    """
-    Make custom replacements in the docstring.
-    """
-
-    def stub(f):
-        f.__doc__ = f.__doc__.format(**kwargs)
-        return f
-    return stub
-
-
-@_update_docstring(HYPVINN_SEG_NAME=HYPVINN_SEG_NAME, HYPVINN_MASK_NAME=HYPVINN_MASK_NAME)
+@update_docstring(HYPVINN_SEG_NAME=HYPVINN_SEG_NAME, HYPVINN_MASK_NAME=HYPVINN_MASK_NAME)
 def main(
         out_dir: Path,
         t2: Path | None,

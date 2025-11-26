@@ -84,7 +84,7 @@ class Popen(subprocess.Popen):
             Time in seconds to wait, before checking if the process is still alive.
 
         Yields
-        -------
+        ------
         MessageBuffer
             A MessageBuffer object with stdout and stderr information.
         """
