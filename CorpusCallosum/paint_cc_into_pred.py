@@ -295,7 +295,7 @@ if __name__ == "__main__":
     voxel_size = tuple(aseg_image.header.get_zooms())
     pred_corrected = correct_wm_ventricles(aseg_data, fornix_mask, voxel_size)
 
-    print(f"Writing segmentation with corpus callosum to: {options.output}")
+    logger.info(f"Writing segmentation with corpus callosum to: {options.output}")
     pred_with_cc_fin = nib.MGHImage(pred_corrected, aseg_image.affine, aseg_image.header)
     io_fut = thread_executor().submit(pred_with_cc_fin.to_filename, options.output)
 
@@ -314,10 +314,10 @@ if __name__ == "__main__":
     initial_cc = np.sum(mask_in_array(aseg_data, SUBSEGMENT_LABELS))
     initial_fornix = np.sum(aseg_data == FORNIX_LABEL)
     initial_wm = np.sum((aseg_data == 2) | (aseg_data == 41))
-    print(f"Initial segmentation: CC={initial_cc}, Fornix={initial_fornix}, WM={initial_wm}")
+    logger.info(f"Initial segmentation: CC={initial_cc}, Fornix={initial_fornix}, WM={initial_wm}")
 
     after_paint_cc = np.sum(mask_in_array(pred_with_cc, SUBSEGMENT_LABELS))
-    print(f"After painting CC: {after_paint_cc} CC voxels added")
+    logger.info(f"After painting CC: {after_paint_cc} CC voxels added")
 
     # Count final labels
     final_cc = np.sum(mask_in_array(pred_corrected, SUBSEGMENT_LABELS))
@@ -325,8 +325,10 @@ if __name__ == "__main__":
     final_wm = np.sum((pred_corrected == 2) | (pred_corrected == 41))
     final_ventricles = np.sum((pred_corrected == 4) | (pred_corrected == 43))
 
-    logger.info(f"Final segmentation: CC={final_cc}, Fornix={final_fornix}, WM={final_wm}, Ventricles={final_ventricles}")
-    logger.info(f"Changes: CC +{final_cc-initial_cc}, Fornix {final_fornix-initial_fornix}, WM {final_wm-initial_wm}")
+    logger.info(f"Final segmentation: CC={final_cc}, Fornix={final_fornix},\
+                 WM={final_wm}, Ventricles={final_ventricles}")
+    logger.info(f"Changes: CC +{final_cc-initial_cc}, Fornix {final_fornix-initial_fornix},\
+                 WM {final_wm-initial_wm}")
 
     if rta_fut is not None:
         _ = rta_fut.result()
