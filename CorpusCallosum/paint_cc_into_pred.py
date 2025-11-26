@@ -17,6 +17,7 @@
 
 import argparse
 import sys
+from functools import partial
 from pathlib import Path
 from typing import TypeVar, cast
 
@@ -160,16 +161,15 @@ def correct_wm_ventricles(
     # Combine all WM labels
     all_wm_mask = (aseg_cc == 2) | (aseg_cc == 41)
 
-
     # 1. Fill space between CC and ventricles
     # Only fill small gaps (up to 3 voxels) between CC and ventricle boundaries
     #for ventricle_label, ventricle_mask in [(4, left_ventricle_mask), (43, right_ventricle_mask)]:
     
     # Process each slice independently
     for x in range(corrected_pred.shape[0]):
-        cc_slice = cc_mask
+        cc_slice = cc_mask[x]
         #vent_slice = ventricle_mask
-        all_wm_slice = all_wm_mask
+        all_wm_slice = all_wm_mask[x]
 
         if all_wm_slice.any() and cc_slice.any():
 
@@ -185,14 +185,12 @@ def correct_wm_ventricles(
                 if np.any(component_mask & cc_dilated):
                     corrected_pred[x][component_mask] = 0  # Set to background
 
-
             if fornix_mask[x].any():
                 fornix_slice = fornix_mask[x]
                 # count WM labels overlapping with fornix
                 left_wm_overlap = np.sum(fornix_slice & (aseg_cc == 2))
                 right_wm_overlap = np.sum(fornix_slice & (aseg_cc == 41))
                 corrected_pred[x][fornix_slice] = 2 + (left_wm_overlap > right_wm_overlap) * 39  # Left WM / Right WM
-
 
             vent_slice = all_ventricle_mask
             potential_fill = np.asarray([False])
@@ -261,7 +259,6 @@ def correct_wm_ventricles(
 
                             corrected_pred[x, y, :][gap_mask  & (corrected_pred[x, y, :] == 0)] = vent_label
 
-
     return corrected_pred
 
 
@@ -269,21 +266,33 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = argument_parse()
 
+    logging.setup_logging()
+
     logger.info(f"Reading inputs: {options.input_cc} {options.input_pred}...")
     cc_seg_image = cast(nib.analyze.SpatialImage, nib.load(options.input_cc))
     cc_seg_data = np.asanyarray(cc_seg_image.dataobj)
     aseg_image = cast(nib.analyze.SpatialImage, nib.load(options.input_pred))
     aseg_data = np.asanyarray(aseg_image.dataobj)
 
-    cc_conformed = is_conform(cc_seg_image, vox_size=None, img_size=None, verbose=False)
-    pred_conformed = is_conform(aseg_image, vox_size=None, img_size=None, dtype=np.integer, verbose=False)
-    if not cc_conformed:
-        sys.exit("Error: CC input image is not conformed (LIA orientation, uint8 dtype). \
-                 Please conform the image using the conform.py script.")
-    if not pred_conformed:
-        sys.exit("Error: Prediction input image is not conformed (LIA orientation, integer dtype). \
-                  Please conform the image using the conform.py script.")
-    if not np.allclose(cc_conformed, pred_conformed):
+    def _is_conform(img, dtype, verbose):
+        return is_conform(img, vox_size=None, img_size=None, verbose=verbose, dtype=dtype)
+
+    conform_args = (cc_seg_image, aseg_image), (np.uint8, np.integer)
+    conform_checks = list(thread_executor().map(partial(_is_conform, verbose=False), *conform_args))
+
+    if not all(conform_checks):
+        names = []
+        dtypes = []
+        for conform_check, img, dtype, name in zip(conform_checks, *conform_args, ("CC", "Prediction"), strict=True):
+            if not conform_check:
+                _is_conform(img, dtype, verbose=True)
+                names.append(name)
+                dtypes.append(dtype.name if hasattr(dtype, "name") else str(dtype))
+        sys.exit(
+            f"Error: {' and '.join(names)} input image is not conformed (LIA orientation, {'/'.join(dtypes)} dtype). "
+            "Please conform the image(s) using the conform.py script."
+        )
+    if not np.allclose(cc_seg_image.affine, aseg_image.affine):
         sys.exit("Error: The affine matrices of the aseg and the corpus callosum images are not the same.")
 
     # Paint CC into prediction
