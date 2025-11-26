@@ -40,7 +40,7 @@ def load_model(device: torch.device) -> DenseNet:
     Returns
     -------
     DenseNet
-        Loaded and initialized model in evaluation mode
+        Loaded and initialized model in evaluation mode.
     """
 
     # Initialize model architecture (must match training)
@@ -115,11 +115,15 @@ def preprocess_volume(
     Returns
     -------
     dict[str, torch.Tensor]
-        Dictionary containing preprocessed image tensor
+        Dictionary containing preprocessed image tensor.
     """
     if transform is None:
         transform = get_transforms()
 
+    # During training we used AC/PC coordinates, but during inference
+    # we approximate this by the center of the third ventricle.
+    # Therefore we put in the third ventricle center as dummy AC/PC coordinates
+    # for cropping the image.
     sample = {"image": image_volume[None], "AC_center": center_pt[1:][None], "PC_center": center_pt[1:][None]}
 
     # Apply transforms
@@ -145,15 +149,15 @@ def run_inference(
     Parameters
     ----------
     model : DenseNet
-        Trained model for inference
+        Trained model for inference.
     image_volume : np.ndarray
-        Input volume as numpy array
+        Input volume as numpy array.
     third_ventricle_center : np.ndarray
-        Initial center point estimate for cropping
+        Initial center point estimate for cropping.
     device : torch.device, optional
-        Device to run inference on, by default None
+        Device to run inference on, by default None.
     transform : transforms.Transform, optional
-        Custom transform pipeline, by default None
+        Custom transform pipeline, defaults to preconfigured transforms of `get_transforms`.
 
     Returns
     -------
@@ -168,7 +172,6 @@ def run_inference(
     """
     if device is None:
         device = next(model.parameters()).device
-        #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # prepend zero to third_ventricle_center
     third_ventricle_center = np.concatenate([np.zeros(1), third_ventricle_center])
@@ -203,13 +206,13 @@ def run_inference_on_slice(
     Parameters
     ----------
     model : torch.nn.Module
-        Trained model for AC-PC detection
+        Trained model for AC-PC detection.
     image_slice : np.ndarray
         3D image mid-slices to run inference on in RAS.
     center_pt : np.ndarray
-        Initial center point estimate for cropping
+        Initial center point estimate for cropping.
     debug_output : str, optional
-        Path to save debug visualization, by default None
+        Path to save debug visualization, by default None.
 
     Returns
     -------

@@ -297,7 +297,7 @@ def cc_thickness(
     anterior_endpoint_idx: int,
     posterior_endpoint_idx: int,
     n_points: int = 100
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[float, float, float, np.ndarray, list[np.ndarray], list[np.ndarray], int, int]:
     """Calculate corpus callosum thickness using Laplace equation.
 
     Parameters
@@ -313,10 +313,22 @@ def cc_thickness(
 
     Returns
     -------
-    thickness_values : np.ndarray
-        Array of thickness measurements.
-    measurement_points : np.ndarray
-        Array of points where thickness was measured.
+    midline_length : float
+        Total length of the midline.
+    thickness : float
+        Mean thickness across all level paths.
+    curvature : float
+        Mean absolute curvature in degrees.
+    midline_equidistant : np.ndarray
+        Equidistant points along the midline.
+    levelpaths : list[np.ndarray]
+        Level paths for thickness measurement.
+    contour_with_thickness : list[np.ndarray]
+        Contour coordinates with thickness information.
+    anterior_endpoint_idx : int
+        Updated index of anterior endpoint.
+    posterior_endpoint_idx : int
+        Updated index of posterior endpoint.
 
     Notes
     -----

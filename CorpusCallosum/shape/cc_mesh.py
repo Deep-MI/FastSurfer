@@ -197,11 +197,11 @@ class CCMesh(lapy.TriaMesh):
         assert self.v is not None and self.t is not None, "Mesh has not been created yet"
 
         if len(self.v) == 0:
-            print("Warning: No vertices in mesh to plot")
+            logger.warning("Warning: No vertices in mesh to plot")
             return
 
         if len(self.t) == 0:
-            print("Warning: No faces in mesh to plot")
+            logger.warning("Warning: No faces in mesh to plot")
             return
 
         # Define available colormaps
@@ -236,7 +236,7 @@ class CCMesh(lapy.TriaMesh):
 
         # Select the colormap
         if colormap not in colormaps:
-            print(f"Warning: Unknown colormap '{colormap}'. Using 'red_to_blue' instead.")
+            logger.warning(f"Warning: Unknown colormap '{colormap}'. Using 'red_to_blue' instead.")
             colormap = "red_to_blue"
 
         selected_colormap = colormaps[colormap]
@@ -741,7 +741,7 @@ class CCMesh(lapy.TriaMesh):
         # Filter out None contours and get their indices
         valid_contours = [(i, c) for i, c in enumerate(self.contours) if c is not None]
         if not valid_contours:
-            print("Warning: No valid contours found")
+            logger.warning("Warning: No valid contours found")
             self.v = np.array([])
             self.t = np.array([])
             return

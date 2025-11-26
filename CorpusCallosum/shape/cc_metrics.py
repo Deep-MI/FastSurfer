@@ -14,6 +14,9 @@
 
 import numpy as np
 
+import FastSurferCNN.utils.logging as logging
+
+logger = logging.get_logger(__name__)
 
 def calculate_cc_index(cc_contour: np.ndarray) -> float:
     """Calculate CC index based on three perpendicular measurements.
@@ -80,8 +83,8 @@ def calculate_cc_index(cc_contour: np.ndarray) -> float:
     middle_ints = get_intersections(midpoint, perpendicular_unit)
 
     if len(middle_ints) != 2:
-        print(
-            f"WARNING: The perpendicular line should intersect the contour twice, "
+        logger.warning(
+            f"The perpendicular line should intersect the contour twice, "
             f"but it intersects {len(middle_ints)} times"
         )
 
@@ -95,54 +98,5 @@ def calculate_cc_index(cc_contour: np.ndarray) -> float:
 
     cc_index = (anterior_distance + posterior_distance + top_distance) / ap_distance
 
-    # fig, ax = plt.subplots(figsize=(8, 6))
-
-    # # Plot the CC contour
-    # ax.plot(cc_contour[0], cc_contour[1], 'k-', linewidth=1)
-    # # add line from last to first
-    # ax.plot([cc_contour[0,-1], cc_contour[0,0]], [cc_contour[1,-1], cc_contour[1,0]],
-    #         'k-', linewidth=1)
-
-    # # Plot AP line
-    # ax.plot([cc_contour[0,anterior_idx], cc_contour[0,posterior_idx]],
-    #         [cc_contour[1,anterior_idx], cc_contour[1,posterior_idx]],
-    #         'r--', linewidth=1)#, label='Anterior-posterior line')
-
-    # # Plot the three measurement lines
-    # for i, ints in enumerate(zip(anterior_intersections[:-1], anterior_intersections[1:])):
-
-    #     if i != 1:
-    #         ax.plot([ints[0][0], ints[1][0]], [ints[0][1], ints[1][1]],
-    #                 'b-', linewidth=1, label='Measurement line horizontal' if i==0 else None)
-
-    # ax.plot([middle_ints[0,0], middle_ints[1,0]], [middle_ints[0,1], middle_ints[1,1]],
-    #         'g-', linewidth=1, label='Measurement lines vertical')
-
-    # print(middle_ints[0,], middle_ints[1,1])
-    # print(midpoint[1], midpoint[0])
-    # ax.plot([middle_ints[0,0], midpoint[0]], [middle_ints[0,1], midpoint[1]],
-    #         'r--', linewidth=1)#, label='Superior-inferior line')
-
-    # #plt.scatter(midpoint[0], midpoint[1], color='green', s=20)
-
-    # ax.set_aspect('equal')
-    # ax.legend()
-    # # add gray background to CC contour
-    # # Fill the inside of the contour with a gray shade
-    # from matplotlib.path import Path
-    # from matplotlib.patches import PathPatch
-
-    # # Create a path from the contour points
-    # contour_path = Path(np.array([cc_contour[0], cc_contour[1]]).T)
-
-    # # Create a patch from the path and add it to the axes
-    # patch = PathPatch(contour_path, facecolor='gray', alpha=0.2, edgecolor=None)
-    # ax.add_patch(patch)
-
-    # # invert x
-    # ax.invert_xaxis()
-    # #ax.set_title('CC Index Measurement Lines')
-    # plt.axis('off')
-    # plt.show()
 
     return cc_index

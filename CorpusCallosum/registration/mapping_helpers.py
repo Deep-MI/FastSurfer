@@ -86,13 +86,6 @@ def correct_nodding(ac_pt: npt.NDArray[float], pc_pt: npt.NDArray[float]) -> npt
         ]
     )
 
-    # plot vector ac_pc_vec and posterior_vector
-    # fig, ax = plt.subplots()
-    # ax.quiver(0, 0, ac_pc_vec[0], ac_pc_vec[1], color='red', label='ac_pc_vec')
-    # ax.quiver(0, 0, posterior_vector[0], posterior_vector[1], color='blue', label='posterior_vector')
-    # ax.legend()
-    # plt.show()
-
     return rotation_matrix
 
 
@@ -260,7 +253,7 @@ def apply_transform_to_volume(
     return transformed
 
 
-def make_affine(simpleITKImage: 'sitk.Image') -> npt.NDArray[float]:
+def make_affine(simpleITKImage: sitk.Image) -> npt.NDArray[float]:
     """Create an affine transformation matrix from a SimpleITK image.
 
     Parameters
@@ -381,16 +374,16 @@ def interpolate_midplane(
     Parameters
     ----------
     orig : nib.Nifti1Image
-        Original image
+        Original image.
     orig_fsaverage_vox2vox : np.ndarray
-        Original to fsaverage space transformation matrix
+        Original to fsaverage space transformation matrix.
     slices_to_analyze : int
-        Number of slices to analyze around midplane
+        Number of slices to analyze around midplane.
 
     Returns
     -------
     np.ndarray
-        Interpolated image data at midplane
+        Interpolated image data at midplane.
     """
 
     # slice_thickness = 9+slices_to_analyze-1
@@ -420,7 +413,7 @@ def interpolate_midplane(
     from scipy.ndimage import map_coordinates
 
     transformed = map_coordinates(
-        orig.get_fdata(),
+        np.asarray(orig.dataobj),
         grid_orig[0:3, :],  # use only x,y,z coordinates (drop homogeneous coordinate)
         order=2,
         mode="constant",

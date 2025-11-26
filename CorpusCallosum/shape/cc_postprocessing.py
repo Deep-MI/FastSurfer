@@ -47,12 +47,12 @@ LIA_ORIENTATION[1,2] = 1
 LIA_ORIENTATION[2,1] = -1
 
 
-def create_slice_affine(temp_seg_affine: np.ndarray, slice_idx: int, fsaverage_middle: int) -> np.ndarray:
+def create_slice_affine(upright_affine: np.ndarray, slice_idx: int, fsaverage_middle: int) -> np.ndarray:
     """Create slice-specific affine transformation matrix.
 
     Parameters
     ----------
-    temp_seg_affine : np.ndarray
+    upright_affine : np.ndarray
         Base 4x4 affine transformation matrix.
     slice_idx : int
         Index of the slice to transform.
@@ -64,7 +64,7 @@ def create_slice_affine(temp_seg_affine: np.ndarray, slice_idx: int, fsaverage_m
     np.ndarray
         Modified 4x4 affine transformation matrix for the specific slice.
     """
-    slice_affine = temp_seg_affine.copy()
+    slice_affine = upright_affine.copy()
     slice_affine[0, 3] = -fsaverage_middle + slice_idx
     return slice_affine
 
@@ -73,7 +73,7 @@ def create_slice_affine(temp_seg_affine: np.ndarray, slice_idx: int, fsaverage_m
 def recon_cc_surf_measures_multi(
     segmentation: np.ndarray,
     slice_selection: SliceSelection,
-    temp_seg_affine: np.ndarray,
+    upright_affine: np.ndarray,
     midslices: np.ndarray,
     ac_coords: np.ndarray,
     pc_coords: np.ndarray,
@@ -93,8 +93,8 @@ def recon_cc_surf_measures_multi(
         3D segmentation array.
     slice_selection : str
         Which slices to process ('middle', 'all', or slice number).
-    temp_seg_affine : np.ndarray
-        Base affine transformation matrix.
+    upright_affine : np.ndarray
+        Base affine transformation matrix (fsaverage, upright space).
     midslices : np.ndarray
         Array of mid-sagittal slices.
     ac_coords : np.ndarray
@@ -157,7 +157,7 @@ def recon_cc_surf_measures_multi(
         num_slices = 1
         slice_iterator = [int(slice_selection)]
 
-    it_affine = map(partial(create_slice_affine, temp_seg_affine, fsaverage_middle=FSAVERAGE_MIDDLE), slice_iterator)
+    it_affine = map(partial(create_slice_affine, upright_affine, fsaverage_middle=FSAVERAGE_MIDDLE), slice_iterator)
 
     iterator = process_executor().map(_each_slice, iter(slice_iterator), it_affine, chunksize=1)
     cc_mesh = CCMesh(num_slices=num_slices)
@@ -309,8 +309,9 @@ def recon_cc_surf_measure(
 
     Returns
     -------
-    dict of measures
+    measures : dict
         Dictionary containing measurements if successful, including:
+
         - cc_index : float - Corpus callosum shape index.
         - circularity : float - Shape circularity measure.
         - areas : np.ndarray - Areas of subdivided regions.
@@ -326,8 +327,11 @@ def recon_cc_surf_measure(
         - thickness_measurement_points : np.ndarray - Points where thickness was measured.
         - slice_index : int - Index of the processed slice.
     contour_with_thickness : np.ndarray
+        Contour points with thickness information.
     anterior_endpoint_index : int
+        Index of the anterior endpoint on the contour.
     posterior_endpoint_index : int
+        Index of the posterior endpoint on the contour.
 
     Raises
     ------

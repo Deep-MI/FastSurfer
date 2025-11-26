@@ -25,6 +25,7 @@ import numpy as np
 from numpy import typing as npt
 from scipy import ndimage
 
+import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import FORNIX_LABEL, SUBSEGMENT_LABELS
 from FastSurferCNN.data_loader.conform import is_conform
 from FastSurferCNN.reduce_to_aseg import reduce_to_aseg_and_save
@@ -33,6 +34,8 @@ from FastSurferCNN.utils.brainvolstats import mask_in_array
 from FastSurferCNN.utils.parallel import thread_executor
 
 _T = TypeVar("_T", bound=np.number)
+
+logger = logging.get_logger(__name__)
 
 HELPTEXT = """
 Script to add corpus callosum segmentation (CC, FreeSurfer IDs 251-255) to
@@ -266,7 +269,7 @@ if __name__ == "__main__":
     # Command Line options are error checking done here
     options = argument_parse()
 
-    print(f"Reading inputs: {options.input_cc} {options.input_pred}...")
+    logger.info(f"Reading inputs: {options.input_cc} {options.input_pred}...")
     cc_seg_image = cast(nib.analyze.SpatialImage, nib.load(options.input_cc))
     cc_seg_data = np.asanyarray(cc_seg_image.dataobj)
     aseg_image = cast(nib.analyze.SpatialImage, nib.load(options.input_pred))
@@ -287,7 +290,7 @@ if __name__ == "__main__":
     pred_with_cc = paint_in_cc(aseg_data, cc_seg_data)
 
     # Apply WM and ventricle corrections
-    print("Applying white matter and ventricle corrections...")
+    logger.info("Applying white matter and ventricle corrections...")
     fornix_mask = cc_seg_data == FORNIX_LABEL
     voxel_size = tuple(aseg_image.header.get_zooms())
     pred_corrected = correct_wm_ventricles(aseg_data, fornix_mask, voxel_size)
@@ -322,8 +325,8 @@ if __name__ == "__main__":
     final_wm = np.sum((pred_corrected == 2) | (pred_corrected == 41))
     final_ventricles = np.sum((pred_corrected == 4) | (pred_corrected == 43))
 
-    print(f"Final segmentation: CC={final_cc}, Fornix={final_fornix}, WM={final_wm}, Ventricles={final_ventricles}")
-    print(f"Changes: CC +{final_cc-initial_cc}, Fornix {final_fornix-initial_fornix}, WM {final_wm-initial_wm}")
+    logger.info(f"Final segmentation: CC={final_cc}, Fornix={final_fornix}, WM={final_wm}, Ventricles={final_ventricles}")
+    logger.info(f"Changes: CC +{final_cc-initial_cc}, Fornix {final_fornix-initial_fornix}, WM {final_wm-initial_wm}")
 
     if rta_fut is not None:
         _ = rta_fut.result()

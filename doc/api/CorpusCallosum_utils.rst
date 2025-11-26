@@ -7,4 +7,3 @@ CorpusCallosum.utils
     :toctree: generated/
 
     checkpoint
-    utils

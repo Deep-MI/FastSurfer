@@ -15,6 +15,31 @@ The segmentation module outputs the files shown in the table below. The two prim
 | scripts   | deep-seg.log                 | asegdkt | logfile                                                            |
 | stats     | aseg+DKT.stats               | asegdkt | table of cortical and subcortical segmentation statistics          |
 
+
+## Corpus Callosum module
+
+The Corpus Callosum module outputs the files in the table shown below. It creates detailed segmentations and shape analysis of the corpus callosum.
+
+| directory       | filename                       | module | description                                                                                                  |
+|:----------------|--------------------------------|--------|--------------------------------------------------------------------------------------------------------------|
+| mri             | callosum_seg_upright.mgz       | cc     | corpus callosum segmentation in upright space                                                                |
+| mri             | callosum_seg_aseg_space.mgz    | cc     | corpus callosum segmentation in conformed image orientation                                                  |
+| mri             | callosum_seg_soft.mgz          | cc     | corpus callosum soft labels                                                                                  |
+| mri             | fornix_seg_soft.mgz            | cc     | fornix soft labels                                                                                           |
+| mri             | background_seg_soft.mgz        | cc     | background soft labels                                                                                       |
+| mri/transforms  | cc_up.lta                      | cc     | transform from original to upright space                                                                     |
+| mri/transforms  | orient_volume.lta              | cc     | transform to standardized space                                                                              |
+| stats           | callosum.CC.midslice.json      | cc     | measurements from the middle sagittal slice (landmarks, area, thickness, etc.)                               |
+| stats           | callosum.CC.all_slices.json    | cc     | comprehensive per-slice analysis (only when using `--slice_selection all`)                                   |
+| qc_snapshots    | callosum.png                   | cc     | debug visualization of contours and thickness                                                                |
+| qc_snapshots    | callosum_thickness.png         | cc     | 3D thickness visualization (with `--slice_selection all`)                                                    |
+| qc_snapshots    | corpus_callosum.html           | cc     | interactive 3D mesh visualization (with `--slice_selection all`)                                             |
+| surf            | callosum.surf                  | cc     | FreeSurfer surface format (with `--slice_selection all`)                                                     |
+| surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (with `--slice_selection all`)                           |
+| surf            | callosum_mesh.vtk              | cc     | VTK format mesh file for 3D visualization (with `--slice_selection all`)                                     |
+
+
+
 ## Cerebnet module
 
 The cerebellum module outputs the files in the table shown below. Unless switched off by the `--no_cereb` argument, this module is automatically run whenever the segmentation module is run. It adds two files, an image with the sub-segmentation of the cerebellum and a text file with summary statistics.

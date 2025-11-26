@@ -24,15 +24,19 @@ Modules (all run by default):
    - the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, experimental beyond that).
    - performs bias-field correction and calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
-2. `cereb:` [CerebNet](CerebNet/README.md) for cerebellum sub-segmentation (deactivate with `--no_cereb`)
+2. `cc`: [CorpusCallosum](CorpusCallosum/README.md) for corpus callosum segmentation and shape analysis (deactivate with `--no_cc`)
+   - requires `asegdkt_segfile` (segmentation) and conformed mri (orig.mgz), outputs CC segmentation, thickness, and shape metrics.
+   - standardizes brain orientation based on AC/PC landmarks (orient_volume.lta).
+3. `cereb:` [CerebNet](CerebNet/README.md) for cerebellum sub-segmentation (deactivate with `--no_cereb`)
    - requires `asegdkt_segfile`, outputs cerebellar sub-segmentation with detailed WM/GM delineation.
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), which will be resampled to 1mm isotropic images (no native high-res support).
    - calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
-3. `hypothal`: [HypVINN](HypVINN/README.md) for hypothalamus subsegmentation (deactivate with `--no_hypothal`)
+4. `hypothal`: [HypVINN](HypVINN/README.md) for hypothalamus subsegmentation (deactivate with `--no_hypothal`)
    - outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
    - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if `--no_bias_field` is passed).
+
 
 ### Surface reconstruction
 - approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
@@ -125,6 +129,8 @@ All the examples can be found here: [FASTSURFER_EXAMPLES](doc/overview/EXAMPLES.
 Modules output can be found here: [FastSurfer_Output_Files](doc/overview/OUTPUT_FILES.md)
 - [Segmentation module](doc/overview/OUTPUT_FILES.md#segmentation-module)
 - [Cerebnet module](doc/overview/OUTPUT_FILES.md#cerebnet-module)
+- [HypVINN module](doc/overview/OUTPUT_FILES.md#hypvinn-module)
+- [Corpus Callosum module](doc/overview/OUTPUT_FILES.md#corpus-callosum-module)
 - [Surface module](doc/overview/OUTPUT_FILES.md#surface-module)
 
 <!-- start of system requirements -->
@@ -146,7 +152,7 @@ The default device is the GPU. The view-aggregation device can be switched to CP
 
 ## Expert usage
 Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation. 
-This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation](CerebNet/README.md), [hypothalamic sub-segmentation](HypVINN/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
+This is documented in READMEs in subfolders, for example: [whole brain segmentation only with FastSurferVINN](FastSurferCNN/README.md), [cerebellum sub-segmentation](CerebNet/README.md), [hypothalamic sub-segmentation](HypVINN/README.md), [corpus callosum analysis](CorpusCallosum/README.md) and [surface pipeline only (recon-surf)](recon_surf/README.md).
 
 Specifically, the segmentation modules feature options for optimized parallelization of batch processing.
 
