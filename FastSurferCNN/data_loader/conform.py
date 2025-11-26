@@ -666,7 +666,7 @@ def conform(
         Conform the image to this image size, e.g. a specific smaller size (for example for high-res), or automatically
         determine the image size from the field of view ('fov' or 'auto', the former may yield non-cube-images). `None`
         disables this criterion.
-    dtype : type, None, default=np.unit8
+    dtype : type, None, default=np.uint8
         The dtype to enforce in the image (default: UCHAR, as mri_convert -c). `None` disregards this criterion.
     orientation : "soft-<orientationcode>", "<orientationcode>", "native", None, default="lia"
         Which orientation of the data/affine to force, <orientationcode> is [rlapsi]{3}, ie.e. any of lia, ras, etc.,
@@ -906,7 +906,7 @@ def is_conform(
         img: nib.analyze.SpatialImage,
         vox_size: VoxSizeOption | None = 1.0,
         img_size: ImageSizeOption | None = 256,
-        dtype: type | None = np.uint8,
+        dtype: npt.DTypeLike | None = np.uint8,
         orientation: OrientationType | None = "lia",
         verbose: bool = True,
         vox_eps: float = 1e-4,
@@ -1012,7 +1012,7 @@ def is_conform(
         checks["Dtype None"] = "IGNORED", dtype_text
     else:
         _dtype: npt.DTypeLike = to_dtype(dtype)
-        _dtype_name = _dtype.name if hasattr(_dtype, "name") else str(dtype)
+        _dtype_name = _dtype.name if hasattr(_dtype, "name") else str(getattr(np.dtype(_dtype), "name", dtype))
         checks[f"Dtype {_dtype_name}"] = np.issubdtype(img.get_data_dtype(), _dtype), dtype_text
 
     _is_conform = all(map(lambda x: x[0], checks.values()))
@@ -1037,7 +1037,7 @@ def is_conform(
     return _is_conform
 
 
-def to_dtype(dtype: str | np.dtype | type) -> npt.DTypeLike:
+def to_dtype(dtype: str | np.dtype | type | npt.DTypeLike) -> npt.DTypeLike:
     """
     Make sure to convert dtype to a numpy compatible dtype.
 
@@ -1061,7 +1061,8 @@ def to_dtype(dtype: str | np.dtype | type) -> npt.DTypeLike:
             return np.unsignedinteger
         elif hasattr(np, suptype):
             return getattr(np, suptype)
-    return np.dtype(dtype)
+        return np.dtype(dtype)
+    return dtype
 
 
 def is_orientation(

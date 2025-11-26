@@ -26,7 +26,6 @@ See Also
 
 # IMPORTS
 import argparse
-import copy
 import sys
 from collections.abc import Iterator, Sequence
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
@@ -48,20 +47,10 @@ from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
 from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import vox_size as _vox_size
 from FastSurferCNN.utils.checkpoint import get_checkpoints, load_checkpoint_config_defaults
-from FastSurferCNN.utils.common import (
-    SerialExecutor,
-    SubjectDirectory,
-    SubjectList,
-    find_device,
-    handle_cuda_memory_exception,
-    pipeline,
-)
+from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
-
-##
-# Global Variables
-##
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT, SubjectDirectoryConfig
+from FastSurferCNN.utils.threads import SerialExecutor, pipeline
 
 LOGGER = logging.getLogger(__name__)
 CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
@@ -550,6 +539,10 @@ def make_parser():
         ["asegdkt_segfile", "conformed_name", "brainmask_name", "aseg_name", "sd", "seg_log", "qc_log"],
     )
 
+    def _add_sd_help(action: argparse.Action) -> None:
+        action.help += " Optional if full path is defined for --pred_name."
+    parser_defaults.modify_argument(parser, "--sd", _add_sd_help)
+
     # 3. Checkpoint to load
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
     parser = parser_defaults.add_plane_flags(parser, "checkpoint", files, CHECKPOINT_PATHS_FILE)
@@ -683,7 +676,7 @@ def main(
             store_aseg = subject.can_resolve_filename(aseg_name)
             if store_brainmask or store_aseg:
                 LOGGER.info("Creating brainmask based on segmentation...")
-                bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
+                bm = rta.create_mask(pred_data, 5, 4)
             if store_brainmask:
                 # get mask
                 mask_name = subject.filename_in_subject_folder(brainmask_name)

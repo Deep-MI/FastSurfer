@@ -28,7 +28,8 @@ Values can also be extracted by
 
 import argparse
 import types
-from collections.abc import Iterable, Mapping
+from argparse import _ActionsContainer
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import Field, dataclass
 from pathlib import Path
 from typing import Literal, Optional, Protocol, TypeVar, get_args, get_origin
@@ -40,7 +41,7 @@ from FastSurferCNN.utils.arg_types import img_size as __image_size
 from FastSurferCNN.utils.arg_types import orientation as __orientation
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.dataclasses import field, get_field
-from FastSurferCNN.utils.threads import get_num_threads
+from FastSurferCNN.utils.threads import get_num_threads, set_num_threads
 
 FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
@@ -185,8 +186,9 @@ class SubjectDirectoryConfig:
     sid: Optional[str] = field(  # noqa: UP045
         flags=("--sid",),
         default=None,
-        help="Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject "
-             "processing, use remove suffix if sid is not second to last element of input file passed to --t1",
+        help="The subject id to use, if not passed we try to extract the subject id from the path passed to --t1. "
+             "For multi-subject processing, use --remove_suffix if sid is not the second to last element of input file "
+             "passed to --t1.",
     )
     search_tag: str = field(
         flags=("--tag",),
@@ -209,8 +211,7 @@ class SubjectDirectoryConfig:
     )
     out_dir: Optional[Path] = field(  # noqa: UP045
         default=None,
-        help="Directory in which evaluation results should be written. Will be created if it does not exist. Optional "
-             "if full path is defined for --pred_name.",
+        help="Directory in which evaluation results should be written. Will be created if it does not exist.",
     )
 
 
@@ -340,7 +341,7 @@ ALL_FLAGS = {
         "--threads",
         dest="threads",
         default=get_num_threads(),
-        type=int,
+        type=set_num_threads,
         help=f"Number of threads to use (defaults to number of hardware threads: {get_num_threads()})",
     ),
     "async_io": __arg(
@@ -446,3 +447,31 @@ def add_plane_flags(
             default=path,
         )
     return parser
+
+
+def modify_argument(parser: _ActionsContainer, option_string: str, callback: Callable[[argparse.Action], None]) -> bool:
+    """
+    Modify the Action object of a specific action found by its options string.
+
+    Parameters
+    ----------
+    parser : argparse._ActionContainer
+        The Action container to find the action in.
+    option_string : str
+        The option string to find the action by.
+    callback : callable[[argparse.Action]]
+        The callback to modify the action.
+
+    Returns
+    -------
+    bool
+        Whether the action could be found.
+    """
+    for action in parser._actions:
+        if option_string in action.option_strings:
+            callback(action)
+            return True
+    for action_container in parser._action_groups:
+        if modify_argument(action_container, option_string, callback):
+            return True
+    return False

@@ -25,10 +25,10 @@ if TYPE_CHECKING:
     import pandas as pd
     from numpy import typing as npt
 
-    from CerebNet.datasets.utils import LTADict
+    from CerebNet.datasets.utils import AffineMatrix4x4, LTADict
 
 MeasureTuple = tuple[str, str, int | float, str]
-ImageTuple = tuple["nib.analyze.SpatialImage", "np.ndarray"]
+ImageTuple = tuple["nib.analyze.SpatialImage", np.ndarray[tuple[int, ...], np.dtype[np.number]]]
 UnitString = Literal["unitless", "mm^3"]
 MeasureString = Union[str, "Measure"]
 AnyBufferType = Union[
@@ -51,18 +51,19 @@ DerivedAggOperation = Literal["sum", "ratio", "by_vox_vol"]
 AnyMeasure = Union["AbstractMeasure", str]
 PVMode = Literal["vox", "pv"]
 ClassesType = Sequence[int]
-ClassesOrCondType = ClassesType | Callable[["npt.NDArray[int]"], "npt.NDArray[bool]"]
+_TShape = TypeVar("_TShape", bound=tuple[int, ...])
+CondType = Callable[["np.ndarray[_TShape, np.dtype[np.number]]"], "np.ndarray[_TShape, np.dtype[bool]]"]
+ClassesOrCondType = ClassesType | CondType
 MaskSign = Literal["abs", "pos", "neg"]
-_ToBoolCallback = Callable[["npt.NDArray[int]"], "npt.NDArray[bool]"]
 
 
 class ReadFileHook(Protocol[T_BufferType]):
 
     @overload
-    def __call__(self, file: Path, blocking: True = True) -> T_BufferType: ...
+    def __call__(self, file: Path, blocking: Literal[True] = True) -> T_BufferType: ...
 
     @overload
-    def __call__(self, file: Path, blocking: False) -> None: ...
+    def __call__(self, file: Path, blocking: Literal[False]) -> None: ...
 
     def __call__(self, file: Path, b: bool = True) -> T_BufferType | None: ...
 
@@ -159,7 +160,7 @@ def read_mesh_file(path: Path) -> "lapy.TriaMesh":
     return mesh
 
 
-def read_lta_transform_file(path: Path) -> "npt.NDArray[float]":
+def read_lta_transform_file(path: Path) -> "AffineMatrix4x4":
     """
     Read and extract the first lta transform from an LTA file.
 
@@ -170,14 +171,14 @@ def read_lta_transform_file(path: Path) -> "npt.NDArray[float]":
 
     Returns
     -------
-    matrix : npt.NDArray[float]
+    matrix : AffineMatrix4x4
         Matrix of shape (4, 4).
     """
     from CerebNet.datasets.utils import read_lta
     return read_lta(path)["lta"][0, 0]
 
 
-def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
+def read_xfm_transform_file(path: Path) -> "AffineMatrix4x4":
     """
     Read XFM talairach transform.
 
@@ -188,7 +189,7 @@ def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
 
     Returns
     -------
-    tal
+    tal : AffineMatrix4x4
         The talairach transform matrix.
 
     Raises
@@ -211,7 +212,7 @@ def read_xfm_transform_file(path: Path) -> "npt.NDArray[float]":
         raise err from e
 
 
-def read_transform_file(path: Path) -> "npt.NDArray[float]":
+def read_transform_file(path: Path) -> "AffineMatrix4x4":
     """
     Read xfm or lta transform file.
 
@@ -234,20 +235,27 @@ def read_transform_file(path: Path) -> "npt.NDArray[float]":
             f"The extension {path.suffix} is not '.xfm' or '.lta' and not recognized.")
 
 
-def mask_in_array(arr: "npt.NDArray", items: "npt.ArrayLike") -> "npt.NDArray[bool]":
+def mask_in_array(
+        arr: np.ndarray[_TShape, np.dtype[np.unsignedinteger]],
+        items: "npt.ArrayLike",
+        /,
+        max_index: np.unsignedinteger | None = None,
+) -> np.ndarray[_TShape, np.dtype[bool]]:
     """
     Efficient function to generate a mask of elements in `arr`, which are also in items.
 
     Parameters
     ----------
-    arr : npt.NDArray
+    arr : ndarray of integer
         An array with data, most likely int.
     items : npt.ArrayLike
         Which elements of `arr` in arr should yield True.
+    max_index : integer, optional
+        The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
     Returns
     -------
-    mask : npt.NDArray[bool]
+    mask : np.ndarray of boolean
         A binary array, true, where elements in `arr` are in `items`.
 
     See Also
@@ -260,33 +268,38 @@ def mask_in_array(arr: "npt.NDArray", items: "npt.ArrayLike") -> "npt.NDArray[bo
     elif _items.size == 1:
         return np.asarray(arr == _items.flat[0])
     else:
-        max_index = max(np.max(items), np.max(arr))
+        if max_index is None:
+            max_index = max(np.max(items), np.max(arr))
         if max_index >= 2 ** 16:
             logging.getLogger(__name__).warning(
                 f"labels in arr are larger than {2 ** 16 - 1}, this is not recommended!"
             )
         lookup = np.zeros(max_index + 1, dtype=bool)
-        lookup[_items] = True
+        lookup[np.asarray(_items)] = True
         return lookup[arr]
 
 
 def mask_not_in_array(
-        arr: "npt.NDArray",
+        arr: np.ndarray[_TShape, np.dtype[np.unsignedinteger]],
         items: "npt.ArrayLike",
+        /,
+        max_index: np.unsignedinteger | None = None,
 ) -> "npt.NDArray[bool]":
     """
     Inverse of mask_in_array.
 
     Parameters
     ----------
-    arr : npt.NDArray
+    arr : ndarray of integer
         An array with data, most likely int.
     items : npt.ArrayLike
-        Which elements of `arr` in arr should yield False.
+        Which elements of `arr` in arr should yield True.
+    max_index : integer, optional
+        The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
     Returns
     -------
-    mask : npt.NDArray[bool]
+    mask : np.ndarray of boolean
         A binary array, true, where elements in `arr` are not in `items`.
 
     See Also
@@ -299,15 +312,56 @@ def mask_not_in_array(
     elif _items.size == 1:
         return np.asarray(arr != _items.flat[0])
     else:
-        max_index = max(np.max(items), np.max(arr))
+        if max_index is None:
+            max_index = max(np.max(items), np.max(arr))
         if max_index >= 2 ** 16:
             logging.getLogger(__name__).warning(
                 f"labels in arr are larger than {2 ** 16 - 1}, this is not recommended!"
             )
         lookup = np.ones(max_index + 1, dtype=bool)
-        lookup[_items] = False
+        lookup[np.asarray(_items)] = False
         return lookup[arr]
 
+
+def hemi_mask_aseg(
+        arr: np.ndarray[_TShape, np.dtype[np.integer]],
+        hemi : Literal["left", "right"],
+) -> np.ndarray[_TShape, np.dtype[bool]]:
+    """
+    Determine for each voxel if it is more likely left hemisphere or right hemisphere.
+
+    Parameters
+    ----------
+    arr : ndarray of integer
+        An array with data, most likely int.
+    hemi : "left", "right"
+        Whether to get the left or right hemisphere mask.
+
+    Returns
+    -------
+    mask : np.ndarray of boolean
+        A binary array, true, where elements in `arr` are not in `items`.
+
+    See Also
+    --------
+    mask_in_array
+    """
+    left_aseg = (2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 30, 31)
+    right_aseg = (41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62, 63)
+
+    is_left = mask_in_array(arr, left_aseg)
+    is_right = mask_in_array(arr, right_aseg)
+    from scipy.ndimage import uniform_filter
+
+    _leftness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_left.astype(np.float32), size=7)
+    _rightness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_right.astype(np.float32), size=7)
+
+    if hemi.lower() in ("left", "lh"):
+        return np.greater(_leftness, _rightness)
+    elif hemi.lower() in ("right", "rh"):
+        return np.greater(_rightness, _leftness)
+
+    raise ValueError(f"Invalid hemisphere: {hemi}.")
 
 class AbstractMeasure(metaclass=abc.ABCMeta):
     """
@@ -722,6 +776,7 @@ class PVMeasure(AbstractMeasure):
         if unit != "mm^3":
             raise ValueError("unit must be mm^3 for PVMeasure!")
         self._classes = classes
+        self._vox_vol: float | None = None
         super().__init__(name, description, unit)
         self._pv_value = None
 
@@ -820,7 +875,7 @@ class VolumeMeasure(Measure[ImageTuple]):
     ):
         if callable(classes_or_cond):
             self._classes: ClassesType | None = None
-            self._cond: _ToBoolCallback = classes_or_cond
+            self._cond: CondType = classes_or_cond
         else:
             if len(classes_or_cond) == 0:
                 raise ValueError(f"No operation passed to {type(self).__name__}.")
@@ -828,8 +883,7 @@ class VolumeMeasure(Measure[ImageTuple]):
             from functools import partial
             self._cond = partial(mask_in_array, items=self._classes)
         if unit not in ["unitless", "mm^3"]:
-            raise ValueError("unit must be either 'mm^3' or 'unitless' for " +
-                             type(self).__name__)
+            raise ValueError(f"unit must be either 'mm^3' or 'unitless' for {type(self).__name__}!")
         super().__init__(segfile, name, description, unit,
                          self.read_file if read_file is None else read_file)
 
@@ -904,7 +958,7 @@ class MaskMeasure(VolumeMeasure):
         # self._erode: int = erode
         super().__init__(maskfile, self.mask, name, description, unit, read_file)
 
-    def mask(self, data: "npt.NDArray[int]") -> "npt.NDArray[bool]":
+    def mask(self, data: np.ndarray[_TShape, np.number]) -> np.ndarray[_TShape, np.dtype[bool]]:
         """Generates a mask from data similar to mri_binarize + erosion."""
         # if self._sign == "abs":
         #     data = np.abs(data)
@@ -2048,26 +2102,21 @@ class Manager(dict[str, AbstractMeasure]):
             )
         elif key in ("lhWM-hypointensities", "rhWM-hypointensities"):
             # lateralized counting of class 77 WM hypo intensities
-            def mask_77_lat(arr):
+            def mask_77_lat(arr: np.ndarray[_TShape, np.dtype[np.integer]]) -> np.ndarray[_TShape, np.dtype[bool]]:
                 """
                 This function returns a lateralized mask of hypo-WM (class 77).
 
                 This is achieved by looking at surrounding labels and associating them
                 with left or right (this is not 100% robust when there is no clear
-                classes with left aseg labels present, but it is cheap to perform.
+                classes with left aseg labels present, but it is cheap to perform).
                 """
                 mask = arr == 77
-                left_aseg = (2, 4, 5, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 30, 31)
-                is_left = mask_in_array(arr, left_aseg)
-                from scipy.ndimage import uniform_filter
-                is_left = uniform_filter(is_left.astype(np.float32), size=7) > 0.2
-                is_side = np.logical_not(is_left) if hemi == "rh" else is_left
-                return np.logical_and(mask, is_side)
+                return np.logical_and(hemi_mask_aseg(arr, side), mask)
 
             return VolumeMeasure(
                 self._seg_from_file,
                 mask_77_lat,
-                f"{side}WhiteMatterHypoIntensities",
+                f"{hemi}WhiteMatterHypoIntensities",
                 f"Volume of {side} White matter hypointensities",
                 "mm^3"
             )
@@ -2277,6 +2326,8 @@ class Manager(dict[str, AbstractMeasure]):
                 measure_host=self,
                 operation="ratio",
             )
+        else:
+            raise NotImplementedError(f"The default value for key={key} is not implemented.")
 
     def __iter__(self) -> list[AbstractMeasure]:
         """
