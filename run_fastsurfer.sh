@@ -1111,7 +1111,7 @@ then
     # generate file names of for the analysis
     asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
     asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
-    aseg_auto_statsfile="$(add_file_suffix "$aseg_auto_statsfile" "withCC")"
+    aseg_auto_statsfile="$(basename "$aseg_vinn_statsfile")/aseg.auto.mgz"
     # note: callosum manedit currently only affects inpainting and not internal FastSurferCC processing (surfaces etc)
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
     # generate callosum segmentation, mesh, shape and downstream measure files
@@ -1132,25 +1132,28 @@ then
 
       if [[ "$run_biasfield" == 1 ]]
       then
-        # TODO: decide how to measure the size of the white matter, maybe import measures from previous?
-        # TODO: decide whether to include the fornix PV-corrected volume
-        # PV list here and not asegdkt_segfile: 192 Fornix
         cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
              --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
              --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
-                   54 58 60 63 77 192 251 252 253 254 255
+                   54 58 60 63 77 251 252 253 254 255
                    1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
                    1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
                    2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
                    2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
              --threads "$threads_seg" --empty --excludeid 0
-             --segstatsfile "$aseg_withcc_vinn_statsfile"
+             --segstatsfile "$asegdkt_withcc_vinn_statsfile"
              measures
              # the following measures are unaffected by CC and do not need to be recomputed
-             --import Mask --file "$asegdkt_vinn_statsfile"
-             # recompute the measures based on "better" volumes:
-             --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
-                       SubCortGray rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
+             --import SubCortGray Mask
+        )
+        if [[ "$run_talairach_registration" == "true" ]]
+        then
+          cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
+        fi
+        cmd+=(--file "$asegdkt_vinn_statsfile"
+              # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
+              --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
+                        rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
         )
         echo_quoted "${cmd[@]}"
         "${cmd[@]}"
@@ -1166,14 +1169,11 @@ then
     if [[ "$run_biasfield" == 1 ]]
     then
       {
-        # TODO: decide how to measure the size of the white matter
-        # TODO: decide whether to include the fornix PV-corrected volume
-        # PV list here and not asegdkt_segfile: 192 Fornix
         cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
              --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
              --threads "$threads_seg" --empty --excludeid 0
              --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
-                   192 251 252 253 254 255
+                   251 252 253 254 255
              --segstatsfile "$aseg_auto_statsfile"
              measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
         )
