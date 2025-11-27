@@ -28,7 +28,7 @@ from skimage.measure import label
 from FastSurferCNN.utils import logging
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 from FastSurferCNN.utils.logging import setup_logging
-from FastSurferCNN.utils.threads import thread_executor
+from FastSurferCNN.utils.parallel import thread_executor
 
 _T = TypeVar("_T", bound=np.number)
 _TDType = np.dtype[_T]
@@ -180,7 +180,7 @@ def create_mask(aseg_data: np.ndarray[_TShape, _TDType], dnum: int, enum: int) -
     return datab.astype(np.uint8)
 
 
-def flip_wm_islands(aseg_data : np.ndarray[_TShape, _TDType]) -> np.ndarray[_TShape, _TDType]:
+def flip_wm_islands(aseg_data: np.ndarray[_TShape, _TDType]) -> np.ndarray[_TShape, _TDType]:
     """
     Flip labels of disconnected white matter islands to the other hemisphere (works for all data orientations, LIA/etc).
 
@@ -204,7 +204,7 @@ def flip_wm_islands(aseg_data : np.ndarray[_TShape, _TDType]) -> np.ndarray[_TSh
     rh_wm = 41
     rh_gm = 42
 
-    def _islands(data: np.ndarray[_TShape, np.dtype], _label: int) -> np.ndarray[_TShape, np.dtype[bool]]:
+    def _islands(data: np.ndarray[_TShape, _TDType], _label: int) -> np.ndarray[_TShape, np.dtype[bool]]:
         # for lh get largest component and islands
         mask = data == _label
         labels = label(mask, background=0)
@@ -238,7 +238,7 @@ def create_mask_and_save(
         seg_affine: np.ndarray[tuple[int, int], np.dtype[float]],
         seg_header: nib.analyze.SpatialHeader,
         filename: Path | None = None,
-) -> np.ndarray[_TShape, np.dtype[bool]]:
+) -> np.ndarray[_TShape, np.dtype[np.uint8]]:
     """Convenience function for brainmask generation plus saving."""
     mask_data = create_mask(seg, 5, 4)
     if filename is not None:

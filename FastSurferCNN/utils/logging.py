@@ -14,12 +14,13 @@
 
 # IMPORTS
 import logging as _logging
-from collections.abc import Iterable
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, FileHandler, Logger, StreamHandler, basicConfig, getLogger
 from logging import getLogger as get_logger
 from os import environ as _environ
 from pathlib import Path as _Path
 from sys import stdout as _stdout
+
+VALID_LOG_LEVEL_STRINGS = ("INFO", "DEBUG", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL")
 
 
 def setup_logging(log_file_path: _Path | str | None = None, log_level: int | None = None) -> None:
@@ -44,8 +45,12 @@ def setup_logging(log_file_path: _Path | str | None = None, log_level: int | Non
 
         handlers.append(FileHandler(filename=log_file_path, mode="a"))
 
-    log_level = _environ.get("FASTSURFER_LOG_LEVEL", "INFO").upper()
-    if log_level not in ("INFO", "DEBUG", "WARNING", "WARN", "ERROR", "CRITICAL", "FATAL"):
+    if log_level is None:
+        log_level = _environ.get("FASTSURFER_LOG_LEVEL", "INFO").upper()
+    if isinstance(log_level, str):
+        log_level = log_level.upper()
+
+    if not isinstance(log_level, str) or log_level not in VALID_LOG_LEVEL_STRINGS:
         try:
             log_number = int(log_level)
             if log_number < 0:

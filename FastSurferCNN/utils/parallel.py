@@ -21,11 +21,12 @@ from FastSurferCNN.utils import logging
 
 __all__ = [
     "iterate",
+    "get_num_threads",
+    "pipeline",
+    "process_executor",
     "serial_executor",
     "set_num_threads",
     "SerialExecutor",
-    "pipeline",
-    "process_executor",
     "thread_executor",
 ]
 
@@ -102,14 +103,22 @@ class ParallelConfig:
 
     @classmethod
     def shutdown(cls, wait = True, *, cancel_futures = False):
-        """This is a cleanup function and should only be called at the end of a script!"""
+        """
+        This is a cleanup function and should only be called at the end of a script!
+
+        This first shuts down the `process_executor` and then the `thread_executor`.
+
+        Notes
+        -----
+        The executors are not shut down at the same time, but rather, if wait is True, we first wait for the
+        `process_executor` to "finish" shutting down.
+        """
         if cls._process_pool is not None:
-            cls._process_pool.shutdown(wait=False, cancel_futures=cancel_futures)
+            cls._process_pool.shutdown(wait=wait, cancel_futures=cancel_futures)
+            cls._process_pool = None
         if cls._thread_pool is not None:
             cls._thread_pool.shutdown(wait=wait, cancel_futures=cancel_futures)
             cls._thread_pool = None
-        if cls._process_pool is not None:
-            cls._process_pool.shutdown(wait=wait, cancel_futures=cancel_futures)
 
 
 get_num_threads = ParallelConfig.get_num_threads

@@ -20,8 +20,8 @@ from pathlib import Path
 import torch
 
 from FastSurferCNN.utils import logging, parser_defaults
+from FastSurferCNN.utils.parallel import thread_executor
 from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
-from FastSurferCNN.utils.threads import thread_executor
 
 __all__ = [
     "assert_no_root",
@@ -57,7 +57,7 @@ def suppress_stderr():
 
     Notes
     -----
-    This Context Manager does not work with multiple threads, as `sys.stdout` is shared between threads.
+    This Context Manager does not work with multiple threads, as `sys.stderr` is shared between threads.
     """
     with open(os.devnull, "w") as devnull, redirect_stderr(devnull) as rdo:
         yield rdo

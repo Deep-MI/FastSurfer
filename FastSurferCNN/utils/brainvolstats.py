@@ -293,7 +293,7 @@ def mask_not_in_array(
     arr : ndarray of integer
         An array with data, most likely int.
     items : npt.ArrayLike
-        Which elements of `arr` in arr should yield True.
+        Which elements of `arr` in arr should yield False.
     max_index : integer, optional
         The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
@@ -325,7 +325,7 @@ def mask_not_in_array(
 
 def hemi_mask_aseg(
         arr: np.ndarray[_TShape, np.dtype[np.integer]],
-        hemi : Literal["left", "right"],
+        hemi: Literal["left", "right"],
 ) -> np.ndarray[_TShape, np.dtype[bool]]:
     """
     Determine for each voxel if it is more likely left hemisphere or right hemisphere.
@@ -333,14 +333,15 @@ def hemi_mask_aseg(
     Parameters
     ----------
     arr : ndarray of integer
-        An array with data, most likely int.
-    hemi : "left", "right"
-        Whether to get the left or right hemisphere mask.
+        An array with segmentation labels.
+    hemi : {"left", "right"}
+        Which hemisphere mask to compute ("left" or "right").
 
     Returns
     -------
     mask : np.ndarray of boolean
-        A binary array, true, where elements in `arr` are not in `items`.
+        A boolean array of the same shape as `arr`, where True indicates voxels that are more likely to belong to the
+        specified hemisphere (`hemi`).
 
     See Also
     --------

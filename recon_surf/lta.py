@@ -20,13 +20,12 @@ import numpy.typing as npt
 
 # Collection of functions related to FreeSurfer's LTA (linear transform array) files:
 
-
-def writeLTA(
+def write_lta(
         filename: Path | str,
-        T: npt.ArrayLike,
+        affine: npt.ArrayLike,
         src_fname: Path | str,
         src_header: dict,
-        dst_fname: Path| str,
+        dst_fname: Path | str,
         dst_header: dict
 ) -> None:
     """
@@ -36,7 +35,7 @@ def writeLTA(
     ----------
     filename : Path, str
         File to write on.
-    T : npt.ArrayLike
+    affine : npt.ArrayLike
         Linear transform array to be saved.
     src_fname : Path, str
         Source filename.
@@ -58,9 +57,9 @@ def writeLTA(
     fields = ("dims", "delta", "Mdc", "Pxyz_c")
     for field in fields:
         if field not in src_header:
-            raise ValueError(f"writeLTA Error: src_header format missing field: {field}")
+            raise ValueError(f"write_lta Error: src_header format missing field: {field}")
         if field not in dst_header:
-            raise ValueError(f"writeLTA Error: dst_header format missing field: {field}")
+            raise ValueError(f"write_lta Error: dst_header format missing field: {field}")
 
     src_dims = str(src_header["dims"][0:3])
     src_vsize = str(src_header["delta"][0:3])
@@ -81,13 +80,13 @@ def writeLTA(
         "mean      = 0.0 0.0 0.0\n"
         "sigma     = 1.0\n"
         "1 4 4\n"
-        f"{T}\n"
+        f"{affine}\n"
         "src volume info\n"
         "valid = 1  # volume info valid\n"
         f"filename = {src_fname}\n"
         f"volume = {src_dims}\n"
         f"voxelsize = {src_vsize}\n"
-        f"xras   = {src_v2r[0, :]}\n" 
+        f"xras   = {src_v2r[0, :]}\n"
         f"yras   = {src_v2r[1, :]}\n"
         f"zras   = {src_v2r[2, :]}\n"
         f"cras   = {src_c}\n"
