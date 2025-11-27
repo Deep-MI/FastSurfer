@@ -362,10 +362,10 @@ def read_lta(file: Path | str) -> LTADict:
     from functools import partial
 
     import numpy as np
-    parameter_pattern = re.compile("^\s*([^=]+)\s*=\s*([^#]*)\s*(#.*)")
+    parameter_pattern = re.compile("^\\s*([^=]+)\\s*=\\s*([^#]*)\\s*(#.*)")
     vol_info_pattern = re.compile("^(.*) volume info$")
-    shape_pattern = re.compile("^(\s*\d+)+$")
-    matrix_pattern = re.compile("^(-?\d+\.\S+\s+)+$")
+    shape_pattern = re.compile("^(\\s*\\d+)+$")
+    matrix_pattern = re.compile("^(-?\\d+\\.\\S+\\s+)+$")
 
     _Type = TypeVar("_Type", bound=type)
 
