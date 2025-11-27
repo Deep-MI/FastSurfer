@@ -19,6 +19,8 @@ from typing import (
 
 import numpy as np
 
+from FastSurferCNN.utils.common import update_docstring
+
 if TYPE_CHECKING:
     import lapy
     import nibabel as nib
@@ -55,6 +57,9 @@ _TShape = TypeVar("_TShape", bound=tuple[int, ...])
 CondType = Callable[["np.ndarray[_TShape, np.dtype[np.number]]"], "np.ndarray[_TShape, np.dtype[bool]]"]
 ClassesOrCondType = ClassesType | CondType
 MaskSign = Literal["abs", "pos", "neg"]
+
+ASEG_LEFT_CLASSES = (2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 30, 31)
+ASEG_RIGHT_CLASSES = (41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62, 63)
 
 
 class ReadFileHook(Protocol[T_BufferType]):
@@ -269,7 +274,9 @@ def mask_in_array(
         return np.asarray(arr == _items.flat[0])
     else:
         if max_index is None:
-            max_index = max(np.max(items), np.max(arr))
+            # 2 ** 10 = 4096
+            max_index = np.iinfo(arr.dtype).max if np.iinfo(arr.dtype).max < 4096 else np.max(items)
+            max_index = max(max_index, np.max(arr))
         if max_index >= 2 ** 16:
             logging.getLogger(__name__).warning(
                 f"labels in arr are larger than {2 ** 16 - 1}, this is not recommended!"
@@ -312,21 +319,32 @@ def mask_not_in_array(
     elif _items.size == 1:
         return np.asarray(arr != _items.flat[0])
     else:
-        if max_index is None:
-            max_index = max(np.max(items), np.max(arr))
-        if max_index >= 2 ** 16:
-            logging.getLogger(__name__).warning(
-                f"labels in arr are larger than {2 ** 16 - 1}, this is not recommended!"
-            )
+        max_index = __infer_check_max_index(arr, items, max_index)
         lookup = np.ones(max_index + 1, dtype=bool)
         lookup[np.asarray(_items)] = False
         return lookup[arr]
 
 
-def hemi_mask_aseg(
+def __infer_check_max_index(
+        arr: np.ndarray[_TShape, np.dtype[np.unsignedinteger]],
+        items: "npt.ArrayLike",
+        max_index: int | None,
+) -> int:
+    if max_index is None:
+        # 2 ** 10 = 4096
+        _max_index = np.iinfo(arr.dtype).max if np.iinfo(arr.dtype).max < 4096 else np.max(arr)
+        _max_index = max(_max_index, np.max(items))
+        if _max_index >= 2**16:
+            logging.getLogger(__name__).warning(f"labels in arr are larger than {2**16 - 1}, this is not recommended!")
+        return _max_index
+    return max_index
+
+
+@update_docstring(left_classes=ASEG_LEFT_CLASSES, right_classes=ASEG_RIGHT_CLASSES)
+def hemi_masks_from_aseg(
         arr: np.ndarray[_TShape, np.dtype[np.integer]],
-        hemi: Literal["left", "right"],
-) -> np.ndarray[_TShape, np.dtype[bool]]:
+        window_size: int = 7,
+) -> tuple[np.ndarray[_TShape, np.dtype[bool]], np.ndarray[_TShape, np.dtype[bool]]]:
     """
     Determine for each voxel if it is more likely left hemisphere or right hemisphere.
 
@@ -334,35 +352,31 @@ def hemi_mask_aseg(
     ----------
     arr : ndarray of integer
         An array with segmentation labels.
-    hemi : {"left", "right"}
-        Which hemisphere mask to compute ("left" or "right").
+    window_size : int, default=7
+        The size of the smoothing filter to use for left/right voting.
 
     Returns
     -------
-    mask : np.ndarray of boolean
+    mask_left : np.ndarray of boolean
         A boolean array of the same shape as `arr`, where True indicates voxels that are more likely to belong to the
-        specified hemisphere (`hemi`).
+        left hemisphere.
+    mask_right : np.ndarray of boolean
+        A boolean array of the same shape as `arr`, where True indicates voxels that are more likely to belong to the
+        left hemisphere.
 
-    See Also
-    --------
-    mask_in_array
+    Notes
+    -----
+    Classes `{left_classes}` vote left and classes `{right_classes}` vote right.
     """
-    left_aseg = (2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 30, 31)
-    right_aseg = (41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62, 63)
-
-    is_left = mask_in_array(arr, left_aseg)
-    is_right = mask_in_array(arr, right_aseg)
+    is_left = mask_in_array(arr, ASEG_LEFT_CLASSES)
+    is_right = mask_in_array(arr, ASEG_RIGHT_CLASSES)
     from scipy.ndimage import uniform_filter
 
-    _leftness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_left.astype(np.float32), size=7)
-    _rightness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_right.astype(np.float32), size=7)
+    _leftness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_left.astype(np.float32), size=window_size)
+    _rightness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_right.astype(np.float32), size=window_size)
 
-    if hemi.lower() in ("left", "lh"):
-        return np.greater(_leftness, _rightness)
-    elif hemi.lower() in ("right", "rh"):
-        return np.greater(_rightness, _leftness)
+    return np.greater(_leftness, _rightness), np.greater(_rightness, _leftness)
 
-    raise ValueError(f"Invalid hemisphere: {hemi}.")
 
 class AbstractMeasure(metaclass=abc.ABCMeta):
     """
@@ -2112,7 +2126,8 @@ class Manager(dict[str, AbstractMeasure]):
                 classes with left aseg labels present, but it is cheap to perform).
                 """
                 mask = arr == 77
-                return np.logical_and(hemi_mask_aseg(arr, side), mask)
+                side_index = {"Left": 0, "Right": 1}[side]
+                return np.logical_and(hemi_masks_from_aseg(arr)[side_index], mask)
 
             return VolumeMeasure(
                 self._seg_from_file,
