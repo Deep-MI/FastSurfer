@@ -362,18 +362,29 @@ def hemi_masks_from_aseg(
         left hemisphere.
     mask_right : np.ndarray of boolean
         A boolean array of the same shape as `arr`, where True indicates voxels that are more likely to belong to the
-        left hemisphere.
+        right hemisphere.
 
     Notes
     -----
     Classes `{left_classes}` vote left and classes `{right_classes}` vote right.
     """
-    is_left = mask_in_array(arr, ASEG_LEFT_CLASSES)
-    is_right = mask_in_array(arr, ASEG_RIGHT_CLASSES)
-    from scipy.ndimage import uniform_filter
+    import threading
 
-    _leftness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_left.astype(np.float32), size=window_size)
-    _rightness: np.ndarray[_TShape, np.dtype[np.float32]] = uniform_filter(is_right.astype(np.float32), size=window_size)
+    from scipy.ndimage import uniform_filter
+    # if we are currently already multi-threading, do not add more multi-threading
+    if threading.current_thread() != threading.main_thread():
+        from FastSurferCNN.utils.parallel import thread_executor
+        _map = thread_executor().map
+    else:
+        _map = map
+
+    def __ness(classes):
+        return uniform_filter(mask_in_array(arr, classes).astype(np.float32), size=window_size)
+
+    _leftness: np.ndarray[_TShape, np.dtype[np.float32]]
+    _rightness: np.ndarray[_TShape, np.dtype[np.float32]]
+
+    _leftness, _rightness = _map(__ness, (ASEG_LEFT_CLASSES, ASEG_RIGHT_CLASSES))
 
     return np.greater(_leftness, _rightness), np.greater(_rightness, _leftness)
 
