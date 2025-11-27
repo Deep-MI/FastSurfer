@@ -206,7 +206,7 @@ class RandomBiasField:
             AUGMENTATION.BIAS_FIELD_COEFFICIENTS
             Magnitude :math:`n` of polynomial coefficients.
             If a tuple :math:`(a, b)` is specified, then
-            :math:`n \sim \mathcal{U}(a, b)`.
+            :math:`n \\sim \\mathcal{U}(a, b)`.
             AUGMENTATION.BIAS_FIELD_ORDER
             Order of the basis polynomial functions.
             AUGMENTATION.PROB

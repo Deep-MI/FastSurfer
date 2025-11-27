@@ -43,6 +43,9 @@ from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.dataclasses import field, get_field
 from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads
 
+T_AddArgs = TypeVar("T_AddArgs", bound="CanAddArguments")
+
+
 FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
 PLANE_HELP = {
@@ -352,8 +355,6 @@ ALL_FLAGS = {
              "log, but speed up the segmentation specifically for slow file systems.",
     ),
 }
-
-T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)
 
 
 def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:

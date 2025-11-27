@@ -316,7 +316,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         help="Keep ids for the table that do not exist in the segmentation "
              "(default: drop).",
     )
-    advanced = add_arguments(advanced, ["device", "sid", "sd"])
+    add_arguments(advanced, ["device", "sid", "sd"])
     advanced.add_argument(
         "--lut",
         type=Path,
@@ -538,7 +538,7 @@ def _check_arg_path(
     ------
     ValueError
         If attribute does not exist, is not a Path (or convertible to a Path), or if
-        the file does not exist, but reuire_exist is True.
+        the file does not exist, but `require_exist` is True.
     """
     if (_attr_val := getattr(__args, __attr), None) is None:
         raise ValueError(f"No {__attr} passed.")
@@ -601,8 +601,7 @@ def check_shape_affine(
     """
     if img1.shape != img2.shape or not np.allclose(img1.affine, img2.affine):
         raise RuntimeError(
-            f"The shapes or affines of the {name1} and the {name2} image are not "
-            f"similar, both must be the same!"
+            f"The shapes or affines of the {name1} and the {name2} image are not similar, both must be the same!"
         )
 
 
@@ -689,8 +688,7 @@ def infer_labels_excludeid(
     data: "npt.NDArray[int]",
 ) -> tuple["npt.NDArray[int]", list[int]]:
     """
-    Infer the labels and excluded ids from command line arguments, the lookup table, or
-    the segmentation image.
+    Infer the labels and excluded ids from command line arguments, the lookup table, or the segmentation image.
 
     Parameters
     ----------
@@ -1385,7 +1383,7 @@ def write_statsfile(
 
 def read_statsfile(path: Path) -> tuple[dict[str, MeasureTuple | str], pd.DataFrame]:
     """
-    Read the stats table of a stats file. The file must have columns (')
+    Read the stats table of a stats file.
 
     Parameters
     ----------
