@@ -268,9 +268,9 @@
 <li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.misc.html">FastSurferCNN.utils.misc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.parallel.html">FastSurferCNN.utils.parallel</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.parser_defaults.html">FastSurferCNN.utils.parser_defaults</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/generated/FastSurferCNN.utils.threads.html">FastSurferCNN.utils.threads</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -607,10 +607,10 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.check_affine_in_nifti">check_affine_in_nifti() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.utils.checkpoint.html#FastSurferCNN.utils.checkpoint.check_and_download_ckpts">check_and_download_ckpts() (in module FastSurferCNN.utils.checkpoint)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.utils.misc.html#FastSurferCNN.utils.misc.check_path">check_path() (in module FastSurferCNN.utils.misc)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.check_shape_affine">check_shape_affine() (in module FastSurferCNN.segstats)</a>
@@ -704,6 +704,8 @@
 </li>
         </ul></li>
         <li><a href="api/generated/FastSurferCNN.reduce_to_aseg.html#FastSurferCNN.reduce_to_aseg.create_mask">create_mask() (in module FastSurferCNN.reduce_to_aseg)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.reduce_to_aseg.html#FastSurferCNN.reduce_to_aseg.create_mask_and_save">create_mask_and_save() (in module FastSurferCNN.reduce_to_aseg)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.data_loader.data_utils.html#FastSurferCNN.data_loader.data_utils.create_weight_mask">create_weight_mask() (in module FastSurferCNN.data_loader.data_utils)</a>
 </li>
@@ -974,26 +976,26 @@
 </li>
         </ul></li>
         <li>
+    FastSurferCNN.utils.parallel
+
+        <ul>
+          <li><a href="api/generated/FastSurferCNN.utils.parallel.html#module-FastSurferCNN.utils.parallel">module</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
     FastSurferCNN.utils.parser_defaults
 
         <ul>
           <li><a href="api/generated/FastSurferCNN.utils.parser_defaults.html#module-FastSurferCNN.utils.parser_defaults">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     FastSurferCNN.utils.run_tools
 
         <ul>
           <li><a href="api/generated/FastSurferCNN.utils.run_tools.html#module-FastSurferCNN.utils.run_tools">module</a>
-</li>
-        </ul></li>
-        <li>
-    FastSurferCNN.utils.threads
-
-        <ul>
-          <li><a href="api/generated/FastSurferCNN.utils.threads.html#module-FastSurferCNN.utils.threads">module</a>
 </li>
         </ul></li>
         <li>
@@ -1217,7 +1219,7 @@
           <li><a href="api/generated/HypVINN.inference.html#HypVINN.inference.Inference.get_num_classes">(HypVINN.inference.Inference method)</a>
 </li>
         </ul></li>
-        <li><a href="api/generated/FastSurferCNN.utils.threads.html#FastSurferCNN.utils.threads.get_num_threads">get_num_threads() (in module FastSurferCNN.utils.threads)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.get_num_threads">get_num_threads() (in module FastSurferCNN.utils.parallel)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.inference.html#FastSurferCNN.inference.Inference.get_plane">get_plane() (FastSurferCNN.inference.Inference method)</a>
 
@@ -1376,7 +1378,7 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.data_loader.conform.html#FastSurferCNN.data_loader.conform.is_orientation">is_orientation() (in module FastSurferCNN.data_loader.conform)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.iterate">iterate() (in module FastSurferCNN.utils.common)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.iterate">iterate() (in module FastSurferCNN.utils.parallel)</a>
 </li>
         <li><a href="api/generated/recon_surf.N4_bias_correct.html#recon_surf.N4_bias_correct.itk_n4_bfcorrection">itk_n4_bfcorrection() (in module recon_surf.N4_bias_correct)</a>
 </li>
@@ -1504,10 +1506,10 @@
         </ul></li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectList.make_subjects_dir">make_subjects_dir() (FastSurferCNN.utils.common.SubjectList method)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SerialExecutor.map">map() (FastSurferCNN.utils.common.SerialExecutor method)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.Mapper.map">map() (FastSurferCNN.utils.mapper.Mapper method)</a>
 
         <ul>
-          <li><a href="api/generated/FastSurferCNN.utils.mapper.html#FastSurferCNN.utils.mapper.Mapper.map">(FastSurferCNN.utils.mapper.Mapper method)</a>
+          <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.SerialExecutor.map">(FastSurferCNN.utils.parallel.SerialExecutor method)</a>
 </li>
         </ul></li>
         <li><a href="api/generated/FastSurferCNN.data_loader.data_utils.html#FastSurferCNN.data_loader.data_utils.map_aparc_aseg2label">map_aparc_aseg2label() (in module FastSurferCNN.data_loader.data_utils)</a>
@@ -1549,6 +1551,8 @@
         <li><a href="api/generated/CerebNet.utils.meters.html#CerebNet.utils.meters.TestMeter.metrics_per_class">metrics_per_class() (CerebNet.utils.meters.TestMeter method)</a>
 </li>
         <li><a href="api/generated/recon_surf.smooth_aparc.html#recon_surf.smooth_aparc.mode_filter">mode_filter() (in module recon_surf.smooth_aparc)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.utils.parser_defaults.html#FastSurferCNN.utils.parser_defaults.modify_argument">modify_argument() (in module FastSurferCNN.utils.parser_defaults)</a>
 </li>
         <li>
     module
@@ -1642,11 +1646,11 @@
 </li>
           <li><a href="api/generated/FastSurferCNN.utils.misc.html#module-FastSurferCNN.utils.misc">FastSurferCNN.utils.misc</a>
 </li>
+          <li><a href="api/generated/FastSurferCNN.utils.parallel.html#module-FastSurferCNN.utils.parallel">FastSurferCNN.utils.parallel</a>
+</li>
           <li><a href="api/generated/FastSurferCNN.utils.parser_defaults.html#module-FastSurferCNN.utils.parser_defaults">FastSurferCNN.utils.parser_defaults</a>
 </li>
           <li><a href="api/generated/FastSurferCNN.utils.run_tools.html#module-FastSurferCNN.utils.run_tools">FastSurferCNN.utils.run_tools</a>
-</li>
-          <li><a href="api/generated/FastSurferCNN.utils.threads.html#module-FastSurferCNN.utils.threads">FastSurferCNN.utils.threads</a>
 </li>
           <li><a href="api/generated/FastSurferCNN.version.html#module-FastSurferCNN.version">FastSurferCNN.version</a>
 </li>
@@ -1789,7 +1793,7 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.patch_neighbors">patch_neighbors() (in module FastSurferCNN.segstats)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.pipeline">pipeline() (in module FastSurferCNN.utils.common)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.pipeline">pipeline() (in module FastSurferCNN.utils.parallel)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.run_prediction.html#FastSurferCNN.run_prediction.RunModelOnData.pipeline_conform_and_save_orig">pipeline_conform_and_save_orig() (FastSurferCNN.run_prediction.RunModelOnData method)</a>
 </li>
@@ -1923,8 +1927,6 @@
           <li><a href="api/generated/recon_surf.paint_cc_into_pred.html#module-recon_surf.paint_cc_into_pred">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     recon_surf.rewrite_mc_surface
 
@@ -1932,6 +1934,8 @@
           <li><a href="api/generated/recon_surf.rewrite_mc_surface.html#module-recon_surf.rewrite_mc_surface">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     recon_surf.rewrite_oriented_surface
 
@@ -1968,6 +1972,8 @@
 </li>
         </ul></li>
         <li><a href="api/generated/FastSurferCNN.reduce_to_aseg.html#FastSurferCNN.reduce_to_aseg.reduce_to_aseg">reduce_to_aseg() (in module FastSurferCNN.reduce_to_aseg)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.reduce_to_aseg.html#FastSurferCNN.reduce_to_aseg.reduce_to_aseg_and_save">reduce_to_aseg_and_save() (in module FastSurferCNN.reduce_to_aseg)</a>
 </li>
         <li><a href="api/generated/CerebNet.utils.lr_scheduler.html#CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts">ReduceLROnPlateauWithRestarts (class in CerebNet.utils.lr_scheduler)</a>
 </li>
@@ -2049,7 +2055,7 @@
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SubjectDirectory.segfile">segfile (FastSurferCNN.utils.common.SubjectDirectory property)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SerialExecutor">SerialExecutor (class in FastSurferCNN.utils.common)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.SerialExecutor">SerialExecutor (class in FastSurferCNN.utils.parallel)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.inference.html#FastSurferCNN.inference.Inference.set_cfg">set_cfg() (FastSurferCNN.inference.Inference method)</a>
 
@@ -2065,18 +2071,20 @@
           <li><a href="api/generated/HypVINN.inference.html#HypVINN.inference.Inference.set_model">(HypVINN.inference.Inference method)</a>
 </li>
         </ul></li>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.set_num_threads">set_num_threads() (in module FastSurferCNN.utils.parallel)</a>
+</li>
         <li><a href="api/generated/CerebNet.data_loader.dataset.html#CerebNet.data_loader.dataset.SubjectDataset.set_plane">set_plane() (CerebNet.data_loader.dataset.SubjectDataset method)</a>
 </li>
         <li><a href="api/generated/CerebNet.utils.misc.html#CerebNet.utils.misc.set_summary_path">set_summary_path() (in module CerebNet.utils.misc)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.run_prediction.html#FastSurferCNN.run_prediction.set_up_cfgs">set_up_cfgs() (in module FastSurferCNN.run_prediction)</a>
 
         <ul>
           <li><a href="api/generated/HypVINN.run_prediction.html#HypVINN.run_prediction.set_up_cfgs">(in module HypVINN.run_prediction)</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/generated/FastSurferCNN.run_prediction.html#FastSurferCNN.run_prediction.RunModelOnData.set_up_model_params">set_up_model_params() (FastSurferCNN.run_prediction.RunModelOnData method)</a>
 </li>
         <li><a href="api/generated/FastSurferCNN.utils.logging.html#FastSurferCNN.utils.logging.setup_logging">setup_logging() (in module FastSurferCNN.utils.logging)</a>
@@ -2093,6 +2101,8 @@
           <li><a href="api/generated/recon_surf.spherically_project_wrapper.html#recon_surf.spherically_project_wrapper.setup_options">(in module recon_surf.spherically_project_wrapper)</a>
 </li>
         </ul></li>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.SerialExecutor.shutdown">shutdown() (FastSurferCNN.utils.parallel.SerialExecutor method)</a>
+</li>
         <li><a href="api/generated/CerebNet.data_loader.data_utils.html#CerebNet.data_loader.data_utils.slice_lia2ras">slice_lia2ras() (in module CerebNet.data_loader.data_utils)</a>
 </li>
         <li><a href="api/generated/CerebNet.data_loader.data_utils.html#CerebNet.data_loader.data_utils.slice_ras2lia">slice_ras2lia() (in module CerebNet.data_loader.data_utils)</a>
@@ -2121,7 +2131,11 @@
 </li>
         <li><a href="api/generated/CerebNet.datasets.load_data.html#CerebNet.datasets.load_data.SubjectLoader">SubjectLoader (class in CerebNet.datasets.load_data)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.SerialExecutor.submit">submit() (FastSurferCNN.utils.common.SerialExecutor method)</a>
+        <li><a href="api/generated/FastSurferCNN.utils.parallel.html#FastSurferCNN.utils.parallel.SerialExecutor.submit">submit() (FastSurferCNN.utils.parallel.SerialExecutor method)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.suppress_stderr">suppress_stderr() (in module FastSurferCNN.utils.common)</a>
+</li>
+        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.suppress_stdout">suppress_stdout() (in module FastSurferCNN.utils.common)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -2213,6 +2227,8 @@
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/generated/FastSurferCNN.utils.common.html#FastSurferCNN.utils.common.update_docstring">update_docstring() (in module FastSurferCNN.utils.common)</a>
+</li>
         <li><a href="api/generated/FastSurferCNN.utils.misc.html#FastSurferCNN.utils.misc.update_num_steps">update_num_steps() (in module FastSurferCNN.utils.misc)</a>
 </li>
         <li><a href="api/generated/CerebNet.utils.misc.html#CerebNet.utils.misc.update_results_dir">update_results_dir() (in module CerebNet.utils.misc)</a>
@@ -2257,18 +2273,18 @@
 </li>
         <li><a href="api/generated/recon_surf.create_annotation.html#recon_surf.create_annotation.write_annot">write_annot() (in module recon_surf.create_annotation)</a>
 </li>
-        <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.write_statsfile">write_statsfile() (in module FastSurferCNN.segstats)</a>
+        <li><a href="api/generated/recon_surf.lta.html#recon_surf.lta.write_lta">write_lta() (in module recon_surf.lta)</a>
 </li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/generated/FastSurferCNN.segstats.html#FastSurferCNN.segstats.write_statsfile">write_statsfile() (in module FastSurferCNN.segstats)</a>
+</li>
         <li><a href="api/generated/CerebNet.utils.meters.html#CerebNet.utils.meters.Meter.write_summary">write_summary() (CerebNet.utils.meters.Meter method)</a>
 
         <ul>
           <li><a href="api/generated/FastSurferCNN.utils.meters.html#FastSurferCNN.utils.meters.Meter.write_summary">(FastSurferCNN.utils.meters.Meter method)</a>
 </li>
         </ul></li>
-        <li><a href="api/generated/recon_surf.lta.html#recon_surf.lta.writeLTA">writeLTA() (in module recon_surf.lta)</a>
-</li>
         <li><a href="api/generated/recon_surf.map_surf_label.html#recon_surf.map_surf_label.writeSurfLabel">writeSurfLabel() (in module recon_surf.map_surf_label)</a>
 </li>
     </ul></td>

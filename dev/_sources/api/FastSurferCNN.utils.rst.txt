@@ -17,8 +17,8 @@ FastSurferCNN.utils
     meters
     metrics
     misc
+    parallel
     parser_defaults
     run_tools
-    threads
 
 

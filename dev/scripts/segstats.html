@@ -270,9 +270,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.misc.html">FastSurferCNN.utils.misc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.parallel.html">FastSurferCNN.utils.parallel</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.parser_defaults.html">FastSurferCNN.utils.parser_defaults</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.threads.html">FastSurferCNN.utils.threads</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -453,10 +453,10 @@
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--sid</kbd></dt>
-<dd><p>Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject processing, use remove suffix if sid is not second to last element of input file passed to –t1</p>
+<dd><p>The subject id to use, if not passed we try to extract the subject id from the path passed to –t1. For multi-subject processing, use –remove_suffix if sid is not the second to last element of input file passed to –t1.</p>
 </dd>
 <dt><kbd>--sd</kbd></dt>
-<dd><p>Directory in which evaluation results should be written. Will be created if it does not exist. Optional if full path is defined for –pred_name.</p>
+<dd><p>Directory in which evaluation results should be written. Will be created if it does not exist.</p>
 </dd>
 <dt><kbd>--lut</kbd></dt>
 <dd><p>Path and name of LUT to use.</p>

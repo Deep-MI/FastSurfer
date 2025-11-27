@@ -270,9 +270,9 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.misc.html">FastSurferCNN.utils.misc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.parallel.html">FastSurferCNN.utils.parallel</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.parser_defaults.html">FastSurferCNN.utils.parser_defaults</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
-<li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.threads.html">FastSurferCNN.utils.threads</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -383,21 +383,21 @@
           <section id="module-recon_surf.lta">
 <span id="recon-surf-lta"></span><h1>recon_surf.lta<a class="headerlink" href="#module-recon_surf.lta" title="Link to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="recon_surf.lta.writeLTA">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.lta.</span></span><span class="sig-name descname"><span class="pre">writeLTA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_header</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/lta.py#L22-L107"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.lta.writeLTA" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="recon_surf.lta.write_lta">
+<span class="sig-prename descclassname"><span class="pre">recon_surf.lta.</span></span><span class="sig-name descname"><span class="pre">write_lta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">affine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_header</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/recon_surf/lta.py#L23-L103"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.lta.write_lta" title="Link to this definition">¶</a></dt>
 <dd><p>Write linear transform array info to an .lta file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>filename</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>File to write on.</p>
+<dt><strong>filename</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>File to write on.</p>
 </dd>
-<dt><strong>T</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>Linear transform array to be saved.</p>
+<dt><strong>affine</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>Linear transform array to be saved.</p>
 </dd>
-<dt><strong>src_fname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Source filename.</p>
+<dt><strong>src_fname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Source filename.</p>
 </dd>
 <dt><strong>src_header</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Dict</span></code></span></dt><dd><p>Source header.</p>
 </dd>
-<dt><strong>dst_fname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Destination filename.</p>
+<dt><strong>dst_fname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Destination filename.</p>
 </dd>
 <dt><strong>dst_header</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Dict</span></code></span></dt><dd><p>Destination header.</p>
 </dd>
@@ -476,7 +476,7 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">recon_surf.lta</a><ul>
-<li><a class="reference internal" href="#recon_surf.lta.writeLTA"><code class="docutils literal notranslate"><span class="pre">writeLTA()</span></code></a></li>
+<li><a class="reference internal" href="#recon_surf.lta.write_lta"><code class="docutils literal notranslate"><span class="pre">write_lta()</span></code></a></li>
 </ul>
 </li>
 </ul>
