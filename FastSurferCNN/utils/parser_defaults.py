@@ -41,7 +41,7 @@ from FastSurferCNN.utils.arg_types import img_size as __image_size
 from FastSurferCNN.utils.arg_types import orientation as __orientation
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.dataclasses import field, get_field
-from FastSurferCNN.utils.threads import get_num_threads, set_num_threads
+from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads
 
 FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}

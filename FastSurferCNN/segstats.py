@@ -43,8 +43,8 @@ from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as robust_thr
 from FastSurferCNN.utils.arg_types import int_ge_zero as id_type
 from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size_type
 from FastSurferCNN.utils.brainvolstats import Manager, MeasureTuple, read_measure_file
+from FastSurferCNN.utils.parallel import get_num_threads
 from FastSurferCNN.utils.parser_defaults import add_arguments
-from FastSurferCNN.utils.threads import get_num_threads
 
 # Constants
 USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg> "

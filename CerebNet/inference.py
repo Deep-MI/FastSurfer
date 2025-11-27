@@ -34,7 +34,7 @@ from FastSurferCNN.utils import PLANES, Plane, logging
 from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, Mapper, TSVLookupTable
-from FastSurferCNN.utils.threads import SerialExecutor, get_num_threads
+from FastSurferCNN.utils.parallel import SerialExecutor, get_num_threads
 
 if TYPE_CHECKING:
     import yacs.config
@@ -430,9 +430,9 @@ class Inference:
         start_time = time.time()
         with logging_redirect_tqdm():
             if self._async_io:
-                from FastSurferCNN.utils.threads import pipeline as iterate
+                from FastSurferCNN.utils.parallel import pipeline as iterate
             else:
-                from FastSurferCNN.utils.threads import iterate
+                from FastSurferCNN.utils.parallel import iterate
             iter_subjects = iterate(self.pool, self._get_subject_dataset, subject_dirs)
             futures = []
             for idx, (subject, _data) in tqdm(enumerate(iter_subjects), total=len(subject_dirs), desc="Subject"):

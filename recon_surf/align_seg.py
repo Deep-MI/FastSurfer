@@ -397,7 +397,7 @@ if __name__ == "__main__":
 
     # write transform lta
     print(f"writing: {options.outlta}")
-    lta.writeLTA(
+    lta.write_lta(
         options.outlta, T, options.srcseg, srcheader, options.trgseg, trgheader
     )
 

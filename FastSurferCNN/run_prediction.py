@@ -23,7 +23,6 @@ See Also
 `run_prediction.py --help`
 """
 
-
 # IMPORTS
 import argparse
 import sys
@@ -49,8 +48,8 @@ from FastSurferCNN.utils.arg_types import vox_size as _vox_size
 from FastSurferCNN.utils.checkpoint import get_checkpoints, load_checkpoint_config_defaults
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
+from FastSurferCNN.utils.parallel import SerialExecutor, pipeline
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT, SubjectDirectoryConfig
-from FastSurferCNN.utils.threads import SerialExecutor, pipeline
 
 LOGGER = logging.getLogger(__name__)
 CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"

@@ -67,8 +67,8 @@ def t1_to_t2_registration(
     """
     import shutil
 
+    from FastSurferCNN.utils.parallel import get_num_threads
     from FastSurferCNN.utils.run_tools import Popen
-    from FastSurferCNN.utils.threads import get_num_threads
 
     if threads <= 0:
         threads = get_num_threads()
