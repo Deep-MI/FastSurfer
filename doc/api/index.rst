@@ -17,14 +17,14 @@ FastSurfer API
     CerebNet.models.rst
     CerebNet.utils.rst
     CorpusCallosum.rst
-    CorpusCallosum_data.rst
-    CorpusCallosum_localization.rst
-    CorpusCallosum_registration.rst
-    CorpusCallosum_segmentation.rst
-    CorpusCallosum_shape.rst
-    CorpusCallosum_transforms.rst
-    CorpusCallosum_utils.rst
-    CorpusCallosum_visualization.rst
+    CorpusCallosum.data.rst
+    CorpusCallosum.localization.rst
+    CorpusCallosum.registration.rst
+    CorpusCallosum.segmentation.rst
+    CorpusCallosum.shape.rst
+    CorpusCallosum.transforms.rst
+    CorpusCallosum.utils.rst
+    CorpusCallosum.visualization.rst
     HypVINN.rst
     HypVINN.dataloader.rst
     HypVINN.models.rst

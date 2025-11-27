@@ -10,8 +10,7 @@ For detailed documentation, please refer to:
 ## Quickstart
 
 ```bash
-python3 fastsurfer_cc.py --subject_dir /path/to/fastsurfer/output --verbose
+python3 fastsurfer_cc.py --sd /path/to/fastsurfer/output --sid test-case --verbose
 ```
 
-Gives all standard outputs. Then corpus callosum morphometry can be found at `stats/callosum.CC.midslice.json`, including 100 thickness measurements and areas of sub-segments.
-Visualization will be placed in `/path/to/fastsurfer/output/qc_snapshots`.
+Gives all standard outputs. The corpus callosum morphometry can be found at `stats/callosum.CC.midslice.json` including 100 thickness measurements and the areas of sub-segments.
