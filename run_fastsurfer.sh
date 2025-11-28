@@ -469,6 +469,8 @@ case $key in
   # corupus callosum module options
   #=============================================================
   --no_cc) run_cc_module="0" ;;
+  # TODO: remove this dev flag
+  --upright) cc_flags+=("--upright_volume" "mri/upright.mgz") ;;
 
   # cereb module options
   #=============================================================

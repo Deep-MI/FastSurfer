@@ -6,4 +6,4 @@ CorpusCallosum.localization
 .. autosummary::
     :toctree: generated/
 
-    localization_inference
+    inference

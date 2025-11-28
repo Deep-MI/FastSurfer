@@ -6,5 +6,5 @@ CorpusCallosum.segmentation
 .. autosummary::
     :toctree: generated/
 
-    segmentation_inference
+    inference
     segmentation_postprocessing

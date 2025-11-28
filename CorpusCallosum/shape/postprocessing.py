@@ -20,18 +20,18 @@ from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, FSAVERAGE_MIDDLE, SUBSEGMENT_LABELS
-from CorpusCallosum.shape.cc_endpoint_heuristic import get_endpoints
-from CorpusCallosum.shape.cc_mesh import CCMesh
-from CorpusCallosum.shape.cc_metrics import calculate_cc_index
-from CorpusCallosum.shape.cc_subsegment_contour import (
+from CorpusCallosum.shape.endpoint_heuristic import get_endpoints
+from CorpusCallosum.shape.mesh import CCMesh
+from CorpusCallosum.shape.metrics import calculate_cc_index
+from CorpusCallosum.shape.subsegment_contour import (
     get_primary_eigenvector,
     hampel_subdivide_contour,
     subdivide_contour,
     subsegment_midline_orthogonal,
     transform_to_acpc_standard,
 )
-from CorpusCallosum.shape.cc_thickness import cc_thickness, convert_to_ras
-from CorpusCallosum.visualization.visualization import plot_contours
+from CorpusCallosum.shape.thickness import cc_thickness, convert_to_ras
+from CorpusCallosum.utils.visualization import plot_contours
 from FastSurferCNN.utils.common import SubjectDirectory, suppress_stdout, update_docstring
 from FastSurferCNN.utils.parallel import process_executor, thread_executor
 
@@ -580,14 +580,6 @@ def make_subdivision_mask(
         
         # All points to the right of this line belong to the next segment or beyond
         subdivision_mask[points_right_of_line] = subsegment_labels_anterior_posterior[segment_idx + 1]
-        
-        # Debug visualization (optional)
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(figsize=(10, 8))
-        # ax.imshow(subdivision_mask, cmap="tab10")
-        # ax.plot([line_start[0], line_end[0]], [line_start[1], line_end[1]], "r-", linewidth=2)
-        # ax.set_title(f"After subdivision line {segment_idx}")
-        # plt.show()
 
     return subdivision_mask
 

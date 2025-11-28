@@ -20,7 +20,7 @@ from monai import transforms
 from monai.networks.nets import DenseNet
 from numpy import typing as npt
 
-from CorpusCallosum.transforms.localization_transforms import CropAroundACPCFixedSize
+from CorpusCallosum.transforms.localization import CropAroundACPCFixedSize
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
