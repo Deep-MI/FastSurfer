@@ -72,42 +72,6 @@ logger = logging.get_logger(__name__)
 _TPathLike = TypeVar("_TPathLike", str, Path, Literal[None])
 
 
-
-class ReplaceQCOutputDir(Path):
-    """
-    A helper class to validate `qc_output_dir` dependent paths.
-
-    Replaces {qc_output_dir} at the start of filename with the correct qc_output_dir.
-    Also returns None, if qc_output_dir was None.
-    """
-
-    def __init__(self, a: Path | str | None):
-        if a is None:
-            a = "{None}"
-        if "{qc_output_dir}" in str(a).removeprefix("{qc_output_dir}/"):
-            raise ValueError("If the argument contains {qc_output_dir}, it must start with '{qc_output_dir}/'!")
-        super().__init__(a)
-
-    def replace_qc_dir(self, qc_output_dir: _TPathLike) -> Path | None:
-        """
-        Helper function to replace {qc_output_dir} at the start of filename with the correct qc_output_dir.
-
-        Also returns None, if qc_output_dir was None.
-
-        Notes
-        -----
-        This function implements
-        """
-        if str(self) == "{None}":
-            return None
-        elif "{qc_output_dir}" not in str(self):
-            return self
-        elif qc_output_dir is None:
-            return None
-
-        return Path(str(self).replace("{qc_output_dir}", str(qc_output_dir)))
-
-
 class ArgumentDefaultsHelpFormatter(HelpFormatter):
     """Help message formatter which adds default values to argument help."""
 
@@ -215,14 +179,6 @@ def make_parser() -> argparse.ArgumentParser:
     )
     add_arguments(advanced, ["threads"])
     advanced.add_argument(
-        "--qc_output_dir",
-        type=path_or_none,
-        required=False,
-        default=None,
-        help="Enables quality control output (paths starting with {qc_output_dir} by default) and sets {qc_output_dir} "
-             "(the FastSurfer standard is 'qc_snapshots' to save these files in subject_dir/qc_snapshots).",
-    )
-    advanced.add_argument(
         "--upright_volume",
         type=path_or_none,
         help="Path for upright volume output.",
@@ -268,8 +224,8 @@ def make_parser() -> argparse.ArgumentParser:
     )
     advanced.add_argument(
         "--qc_image",
-        type=ReplaceQCOutputDir,
-        help="Path for QC visualization image (if it starts with {qc_output_dir}, that is replace by --qc_output_dir).",
+        type=path_or_none,
+        help="Path for QC visualization image .",
         default=DEFAULT_OUTPUT_PATHS["qc_image"],
     )
     advanced.add_argument(
@@ -281,8 +237,8 @@ def make_parser() -> argparse.ArgumentParser:
     )
     advanced.add_argument(
         "--thickness_image",
-        type=ReplaceQCOutputDir,
-        help="Path for thickness image (if it starts with {qc_output_dir}, that is replace by --qc_output_dir).",
+        type=path_or_none,
+        help="Path for thickness image.",
         default=DEFAULT_OUTPUT_PATHS["thickness_image"],
     )
     advanced.add_argument(
@@ -301,9 +257,8 @@ def make_parser() -> argparse.ArgumentParser:
     advanced.add_argument(
         "--cc_interactive_html", "--cc_html",
         dest="cc_html",
-        type=ReplaceQCOutputDir,
-        help="Path to the corpus callosum interactive 3D visualization HTML file (if it starts with {qc_output_dir}, "
-             "that is replace by --qc_output_dir).",
+        type=path_or_none,
+        help="Path to the corpus callosum interactive 3D visualization HTML file.",
         default=DEFAULT_OUTPUT_PATHS["cc_html"],
     )
     advanced.add_argument(
@@ -384,12 +339,9 @@ def options_parse() -> argparse.Namespace:
 
     # Create parent directories for all output paths
     for path_name in all_paths:
-        path: ReplaceQCOutputDir | Path | None = getattr(args, path_name, None)
-        if isinstance(path, ReplaceQCOutputDir):
-            path = path.replace_qc_dir(getattr(args, "qc_output_dir", None))
+        path: Path | None = getattr(args, path_name, None)
         if isinstance(path, Path) and not args.subject_dir and not path.is_absolute():
             parser.error(f"Must specify --sd and --sid if any path is relative but {path} for {path_name} is relative.")
-        setattr(args, path_name, path)
     return args
 
 
@@ -565,7 +517,6 @@ def main(
     aseg_name: str | Path,
     subject_dir: str | Path,
     slice_selection: SliceSelection = "middle",
-    qc_output_dir: str | Path | None = None,
     num_thickness_points: int = 100,
     subdivisions: list[float] | None = None,
     subdivision_method: SubdivisionMethod = "shape",
@@ -604,8 +555,6 @@ def main(
         FastSurfer/FreeSurfer subject directory and directory for output files.
     slice_selection : "middle", "all" or int, default="middle"
         Which slices to process.
-    qc_output_dir : str or Path, optional
-        Directory for quality control outputs, activates qc_image, thickness_image, cc_html.
     num_thickness_points : int, default=100
         Number of points for thickness estimation.
     subdivisions : list[float], optional
@@ -978,7 +927,6 @@ if __name__ == "__main__":
         aseg_name=options.aseg_name,
         subject_dir=options.subject_dir,
         slice_selection=options.slice_selection,
-        qc_output_dir=options.qc_output_dir,
         num_thickness_points=options.num_thickness_points,
         subdivisions=list(options.subdivisions), # default value is type _fmt_list (does not pickle)
         subdivision_method=str(options.subdivision_method), # default value is type do not print (does not pickle)

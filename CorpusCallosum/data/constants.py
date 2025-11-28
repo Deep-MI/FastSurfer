@@ -47,9 +47,9 @@ DEFAULT_OUTPUT_PATHS = {
     "upright_lta": "mri/transforms/cc_up.lta",  # lta transform from orig to upright space
     "orient_volume_lta": "mri/transforms/orient_volume.lta",  # lta transform from orig to upright+acpc corrected space
     ## qc
-    "qc_image": "{qc_output_dir}/callosum.png",  # debug image of cc contours
-    "thickness_image": "{qc_output_dir}/callosum.thickness.png",  # whippersnappy 3D image of cc thickness
-    "cc_html": "{qc_output_dir}/corpus_callosum.html",  # plotly cc visualization
+    "qc_image": None, #"callosum.png",  # debug image of cc contours
+    "thickness_image": None, # "callosum.thickness.png",  # whippersnappy 3D image of cc thickness
+    "cc_html": None, # "corpus_callosum.html",  # plotly cc visualization
     ## surface
     "cc_surf": "surf/callosum.surf",  # cc surface file
     "cc_thickness_overlay": "surf/callosum.thickness.w",  # cc surface overlay file
