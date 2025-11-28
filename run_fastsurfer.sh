@@ -492,7 +492,11 @@ case $key in
     ;;
 
   # several options that set a variable
-  --qc_snap) hypvinn_flags+=(--qc_snap) ; cc_flags+=("--qc_output_dir" "qc_snapshots") ;;
+  --qc_snap)
+    hypvinn_flags+=(--qc_snap) ;
+    cc_flags+=(--qc_image "qc_snapshots/callosum.png" --thickness_image "qc_snapshots/callosum.thickness.png"
+               --cc_html "qc_snapshots/corpus_callosum.html")
+    ;;
 
   ##############################################################
   # surf-pipeline options
