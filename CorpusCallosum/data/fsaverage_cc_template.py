@@ -20,7 +20,7 @@ import numpy as np
 from scipy import ndimage
 
 from CorpusCallosum.data import constants
-from CorpusCallosum.shape.cc_postprocessing import recon_cc_surf_measure
+from CorpusCallosum.shape.postprocessing import recon_cc_surf_measure
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 
 

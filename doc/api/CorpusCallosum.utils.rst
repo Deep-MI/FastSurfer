@@ -7,3 +7,5 @@ CorpusCallosum.utils
     :toctree: generated/
 
     checkpoint
+    mapping_helpers
+    visualization

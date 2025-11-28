@@ -42,21 +42,22 @@ from CorpusCallosum.data.read_write import (
     load_fsaverage_centroids,
     load_fsaverage_data,
 )
-from CorpusCallosum.localization import localization_inference
-from CorpusCallosum.registration.mapping_helpers import (
-    apply_transform_to_pt,
-    apply_transform_to_volume,
-    calc_mapping_to_standard_space,
-    interpolate_midplane,
-    map_softlabels_to_orig,
-)
-from CorpusCallosum.segmentation import segmentation_inference, segmentation_postprocessing
-from CorpusCallosum.shape.cc_postprocessing import (
+from CorpusCallosum.localization import inference as localization_inference
+from CorpusCallosum.segmentation import inference as segmentation_inference
+from CorpusCallosum.segmentation import segmentation_postprocessing
+from CorpusCallosum.shape.postprocessing import (
     SliceSelection,
     SubdivisionMethod,
     check_area_changes,
     make_subdivision_mask,
     recon_cc_surf_measures_multi,
+)
+from CorpusCallosum.utils.mapping_helpers import (
+    apply_transform_to_pt,
+    apply_transform_to_volume,
+    calc_mapping_to_standard_space,
+    interpolate_midplane,
+    map_softlabels_to_orig,
 )
 from FastSurferCNN.data_loader.conform import is_conform
 from FastSurferCNN.segstats import HelpFormatter
@@ -669,10 +670,13 @@ def main(
     orig = cast(nib.analyze.SpatialImage, nib.load(sd.conf_name))
 
     # 5 mm around the midplane (making sure to get rl by as_closest_canonical)
-    slices_to_analyze = int(np.ceil(5 / nib.as_closest_canonical(orig).header.get_zooms()[0])) // 2 * 2 + 1
+    vox_size = nib.as_closest_canonical(orig).header.get_zooms()[0]
+    slices_to_analyze = int(np.ceil(5 / vox_size))
+    if slices_to_analyze % 2 == 0:
+        slices_to_analyze += 1
 
     logger.info(
-        f"Segmenting {slices_to_analyze} slices (5 mm width at {orig.header.get_zooms()[0]} mm resolution, "
+        f"Segmenting {slices_to_analyze} slices (5 mm width at {vox_size} mm resolution, "
         "center around the mid-sagittal plane)"
     )
 

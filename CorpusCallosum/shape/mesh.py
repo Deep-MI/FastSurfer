@@ -26,8 +26,8 @@ from plotly.io import write_html as plotly_write_html
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.shape.cc_endpoint_heuristic import smooth_contour
-from CorpusCallosum.shape.cc_thickness import make_mesh_from_contour
+from CorpusCallosum.shape.endpoint_heuristic import smooth_contour
+from CorpusCallosum.shape.thickness import make_mesh_from_contour
 from FastSurferCNN.utils.common import suppress_stdout
 
 try:
@@ -996,18 +996,6 @@ class CCMesh(lapy.TriaMesh):
         plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])][:100])[
             ::-1
         ]
-        # double plot values with linear interpolation
-
-        # Create bar plot of thickness values
-        # fig, ax = plt.subplots(figsize=(10, 4))
-        # ax.bar(range(len(plot_values)), plot_values)
-        # ax.set_xlabel('Point Index')
-        # ax.set_ylabel('Thickness (mm)')
-        # ax.set_title('Thickness Distribution')
-        # ax.set_ylim(0, 0.06)
-        # ax.invert_xaxis()
-        # plt.tight_layout()
-        # plt.show()
 
         points, trias = make_mesh_from_contour(self.contours[contour_idx], max_volume=0.5, min_angle=25, verbose=False)
 
@@ -1146,22 +1134,11 @@ class CCMesh(lapy.TriaMesh):
         # Plot the outside contour on top for clear boundary
         plt.plot(outside_contour[0], outside_contour[1], "k-", linewidth=2, label="CC Contour", transform=transform)
 
-        # plot levelpaths
-        # for i, path in enumerate(levelpaths):
-        #    plt.plot(path[:,0], path[:,1], 'k--', linewidth=1, alpha=0.2, transform=transform)
-        # plot midline
-        # if midline_equidistant is not None:
-        #     midline_x, midline_y = zip(*midline_equidistant)
-        #     plt.plot(midline_x, midline_y, 'k--', linewidth=2, transform=transform, alpha=0.2)
-
         plt.axis("equal")
         plt.title(title, fontsize=14, fontweight="bold")
         # plt.legend(loc='best')
         plt.gca().invert_xaxis()
         plt.axis("off")
-        # plt.tight_layout()
-        # plt.ylim(-105, -75)
-        # plt.xlim(181, 101)
         if save_path is not None:
             self.__make_parent_folder(save_path)
             plt.savefig(save_path, dpi=300)

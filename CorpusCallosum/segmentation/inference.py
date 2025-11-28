@@ -21,7 +21,7 @@ from monai import transforms
 from numpy import typing as npt
 
 from CorpusCallosum.data import constants
-from CorpusCallosum.transforms.segmentation_transforms import CropAroundACPC
+from CorpusCallosum.transforms.segmentation import CropAroundACPC
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints

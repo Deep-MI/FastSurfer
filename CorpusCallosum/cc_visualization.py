@@ -8,7 +8,7 @@ import numpy as np
 from CorpusCallosum.data.constants import FSAVERAGE_DATA_PATH
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.data.read_write import load_fsaverage_data
-from CorpusCallosum.shape.cc_mesh import CCMesh
+from CorpusCallosum.shape.mesh import CCMesh
 
 
 def make_parser() -> argparse.ArgumentParser:
