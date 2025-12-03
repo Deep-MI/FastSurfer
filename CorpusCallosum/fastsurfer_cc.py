@@ -16,6 +16,7 @@
 import argparse
 import json
 from collections.abc import Iterable
+from functools import partial
 from pathlib import Path
 from time import perf_counter_ns
 from typing import Literal, TypeVar, cast
@@ -25,6 +26,7 @@ import numpy as np
 import torch
 from monai.networks.nets import DenseNet
 from numpy import typing as npt
+from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import (
     CC_LABEL,
@@ -37,8 +39,8 @@ from CorpusCallosum.data.constants import (
 )
 from CorpusCallosum.data.read_write import (
     FSAverageHeader,
+    calc_ras_centroids_from_seg,
     convert_numpy_to_json_serializable,
-    get_centroids_from_nib,
     load_fsaverage_centroids,
     load_fsaverage_data,
 )
@@ -49,6 +51,7 @@ from CorpusCallosum.shape.postprocessing import (
     SliceSelection,
     SubdivisionMethod,
     check_area_changes,
+    create_sag_slice_vox2vox,
     make_subdivision_mask,
     recon_cc_surf_measures_multi,
 )
@@ -56,18 +59,17 @@ from CorpusCallosum.utils.mapping_helpers import (
     apply_transform_to_pt,
     apply_transform_to_volume,
     calc_mapping_to_standard_space,
-    interpolate_midplane,
     map_softlabels_to_orig,
 )
-from FastSurferCNN.data_loader.conform import is_conform
+from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.segstats import HelpFormatter
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import AffineMatrix4x4, logging
 from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.common import SubjectDirectory, find_device
+from FastSurferCNN.utils.lta import write_lta
 from FastSurferCNN.utils.parallel import shutdown_executors, thread_executor
 from FastSurferCNN.utils.parser_defaults import modify_argument
 from recon_surf.align_points import find_rigid
-from recon_surf.lta import write_lta
 
 logger = logging.get_logger(__name__)
 _TPathLike = TypeVar("_TPathLike", str, Path, Literal[None])
@@ -353,9 +355,8 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-def centroid_registration(aseg_nib: nib.analyze.SpatialImage) -> tuple[
-    npt.NDArray[float], npt.NDArray[float], npt.NDArray[float], FSAverageHeader, npt.NDArray[float]
-]:
+def register_centroids_to_fsavg(aseg_nib: nib.analyze.SpatialImage) \
+        -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, FSAverageHeader, AffineMatrix4x4]:
     """Perform centroid-based registration between subject and fsaverage space.
 
     Computes a rigid transformation between the subject's segmentation and fsaverage space
@@ -368,15 +369,15 @@ def centroid_registration(aseg_nib: nib.analyze.SpatialImage) -> tuple[
 
     Returns
     -------
-    orig_fsaverage_vox2vox : np.ndarray
+    aseg2fsaverage_vox2vox : AffineMatrix4x4
         Transformation matrix from original to fsaverage voxel space.
-    orig_fsaverage_ras2ras : np.ndarray
+    aseg2fsaverage_ras2ras : AffineMatrix4x4
         Transformation matrix from original to fsaverage RAS space.
-    fsaverage_hires_affine : np.ndarray
+    fsaverage_hires_vox2ras : AffineMatrix4x4
         High-resolution fsaverage affine matrix.
     fsaverage_header : FSAverageHeader
         FSAverage header fields for LTA writing.
-    vox2ras_tkr : np.ndarray
+    fsaverage_vox2ras_tkr : AffineMatrix4x4
         Voxel to RAS tkr-space transformation matrix.
 
     Notes
@@ -388,36 +389,43 @@ def centroid_registration(aseg_nib: nib.analyze.SpatialImage) -> tuple[
     logger.info("Starting centroid registration")
 
     # Load pre-computed fsaverage centroids and data from static files
-    centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
     fsaverage_data_future = thread_executor().submit(load_fsaverage_data, FSAVERAGE_DATA_PATH)
+    ras_centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
 
-    centroids_mov = get_centroids_from_nib(aseg_nib, label_ids=list(centroids_dst.keys()))
+    ras_centroids_mov = calc_ras_centroids_from_seg(aseg_nib, label_ids=list(ras_centroids_dst.keys()))
 
     # get the set of joint labels
-    joint_centroid_labels = [lbl for lbl, v in centroids_mov.items() if v is not None]
+    joint_centroid_labels = [lbl for lbl, v in ras_centroids_mov.items() if v is not None]
 
-    centroids_mov = np.array([centroids_mov[lbl] for lbl in joint_centroid_labels]).T
-    centroids_dst = np.array([centroids_dst[lbl] for lbl in joint_centroid_labels]).T
+    ras_centroids_mov = np.array([ras_centroids_mov[lbl] for lbl in joint_centroid_labels]).T
+    ras_centroids_dst = np.array([ras_centroids_dst[lbl] for lbl in joint_centroid_labels]).T
 
-    orig_fsaverage_ras2ras: npt.NDArray[float]  = find_rigid(p_mov=centroids_mov.T, p_dst=centroids_dst.T)
+    aseg2fsaverage_ras2ras: AffineMatrix4x4 = find_rigid(p_mov=ras_centroids_mov.T, p_dst=ras_centroids_dst.T)
 
     # make affine that increases resolution to orig resolution
-    resolution_trans: npt.NDArray[float] = np.diagflat(list(aseg_nib.header.get_zooms()[:3]) + [1]).astype(float)
+    aseg_zooms = list(nib.as_closest_canonical(aseg_nib).header.get_zooms()[:3])
+    resolution_trans: AffineMatrix4x4 = np.diagflat([aseg_zooms[0], aseg_zooms[2], aseg_zooms[1], 1]).astype(float)
 
-    fsaverage_affine, fsaverage_header, vox2ras_tkr = fsaverage_data_future.result()
-    _highres_fsaverage: npt.NDArray[float] = np.linalg.inv(resolution_trans @ fsaverage_affine)
-    orig_fsaverage_vox2vox: npt.NDArray[float] = _highres_fsaverage @ orig_fsaverage_ras2ras @ aseg_nib.affine
-    fsaverage_hires_affine: npt.NDArray[float] = resolution_trans @ fsaverage_affine
+    fsaverage_vox2ras, fsavg_header, vox2ras_tkr = fsaverage_data_future.result()
+    fsavg_header["delta"] = np.asarray([aseg_zooms[0], aseg_zooms[2], aseg_zooms[1]]) # vox sizes in lia
+    # fsavg_hires_vox2ras translation should be 128 always (independent of resolution)
+    fsavg_hires_vox2ras: AffineMatrix4x4 = np.concatenate(
+        [(resolution_trans @ fsaverage_vox2ras)[:, :3], fsaverage_vox2ras[:, 3:4]],
+        axis=1,
+    )
+    fsavg_header["dims"] = np.ceil(fsavg_header["dims"] @ np.linalg.inv(resolution_trans[:3, :3])).astype(int).tolist()
+
+    aseg2fsavg_vox2vox: AffineMatrix4x4 = np.linalg.inv(fsavg_hires_vox2ras) @ aseg2fsaverage_ras2ras @ aseg_nib.affine
     logger.info("Centroid registration successful!")
-    return orig_fsaverage_vox2vox, orig_fsaverage_ras2ras, fsaverage_hires_affine, fsaverage_header, vox2ras_tkr
+    return aseg2fsavg_vox2vox, aseg2fsaverage_ras2ras, fsavg_hires_vox2ras, fsavg_header, vox2ras_tkr
 
 
 def localize_ac_pc(
-    midslices: np.ndarray,
+    orig_data: np.ndarray,
     aseg_nib: nib.analyze.SpatialImage,
-    orig_fsaverage_vox2vox: npt.NDArray[float],
+    orig2midslice_vox2vox: AffineMatrix4x4,
     model_localization: DenseNet,
-    num_slices_to_analyze: int
+    resample_shape: tuple[int, int, int],
 ) -> tuple[npt.NDArray[float], npt.NDArray[float]]:
     """Localize anterior and posterior commissure points in the brain.
 
@@ -426,15 +434,15 @@ def localize_ac_pc(
 
     Parameters
     ----------
-    midslices : np.ndarray
-        Array of mid-sagittal slices.
+    orig_data : np.ndarray
+        Array of intensity data.
     aseg_nib : nibabel.analyze.SpatialImage
         Subject's segmentation image in native subject space.
-    orig_fsaverage_vox2vox : np.ndarray
+    orig2midslice_vox2vox : np.ndarray
         Transformation matrix from subject/native space to fsaverage space (in lia).
     model_localization : DenseNet
         Trained model for AC-PC detection.
-    num_slices_to_analyze : int
+    resample_shape : 3-tuple of ints
         Number of slices to process.
 
     Returns
@@ -444,17 +452,27 @@ def localize_ac_pc(
     pc_coords : np.ndarray
         Coordinates of the posterior commissure.
     """
+    num_slices_to_analyze = resample_shape[0]
+    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:] # 2 for context slices
+    _midslices_fut = thread_executor().submit(
+        affine_transform,
+        orig_data,
+        np.linalg.inv(orig2midslice_vox2vox), # inverse is required for affine_transform
+        output_shape=resample_shape,
+        order=2, # unclear, why this is not order=3
+        mode="constant",
+        cval=0,
+        prefilter=True, # unclear, why we are using a smoothing filter here
+    )
 
-    # get center of third ventricle from aseg and map to fsaverage space
+    # get center of third ventricle from aseg and map to fsaverage space (voxel coordinates)
     third_ventricle_mask = np.asarray(aseg_nib.dataobj) == THIRD_VENTRICLE_LABEL
     third_ventricle_center = np.argwhere(third_ventricle_mask).mean(axis=0)
-    third_ventricle_center_vox = apply_transform_to_pt(third_ventricle_center, orig_fsaverage_vox2vox, inv=False)
+    third_ventricle_center_vox = apply_transform_to_pt(third_ventricle_center, orig2midslice_vox2vox, inv=False)
 
-    # get 5 mm of slices output with 3 slices per inference
-    midslices_start = midslices.shape[0] // 2 - num_slices_to_analyze // 2 - 1
-    middle_slices_localization = midslices[midslices_start:midslices_start + num_slices_to_analyze + 3]
+    # get 5 mm of slices with 3 slices per inference (cropping num_slices_to_analyze + 2 slices around the center)
     ac_coords, pc_coords = localization_inference.run_inference_on_slice(
-        model_localization, middle_slices_localization, third_ventricle_center_vox[1:],
+        model_localization, _midslices_fut.result(), third_ventricle_center_vox[1:],
     )
 
     return ac_coords, pc_coords
@@ -466,7 +484,6 @@ def segment_cc(
     pc_coords: npt.NDArray[float],
     aseg_nib: "nib.Nifti1Image",
     model_segmentation: "torch.nn.Module",
-    slices_to_analyze: int,
 ) -> tuple[npt.NDArray[bool], npt.NDArray[float]]:
     """Segment the corpus callosum using a trained model.
 
@@ -485,8 +502,6 @@ def segment_cc(
         Subject's cc_seg_labels image.
     model_segmentation : torch.nn.Module
         Trained model for CC cc_seg_labels.
-    slices_to_analyze : int
-        Number of slices to process.
 
     Returns
     -------
@@ -495,15 +510,12 @@ def segment_cc(
     cc_softlabels : np.ndarray
         Soft cc_seg_labels probabilities.
     """
-    # get 5 mm of slices output with 9 slices per inference
-    midslices_start = midslices.shape[0] // 2 - slices_to_analyze // 2 - 4
-    middle_slices_slab = midslices[midslices_start:midslices_start + slices_to_analyze + 9]
     pre_clean_segmentation, inputs, cc_softlabels = segmentation_inference.run_inference_on_slice(
         model_segmentation,
-        middle_slices_slab,
+        midslices,
         ac_center=ac_coords,
         pc_center=pc_coords,
-        voxel_size=aseg_nib.header.get_zooms()[0],
+        voxel_size=nib.as_closest_canonical(aseg_nib).header.get_zooms()[2:0:-1],  # convert from RAS to LIA
     )
 
     cc_seg_labels, cc_volume_mask = segmentation_postprocessing.clean_cc_segmentation(pre_clean_segmentation)
@@ -674,78 +686,108 @@ def main(
     #### setup variables
     io_futures = []
 
+    _aseg_fut = thread_executor().submit(nib.load, sd.filename_by_attribute("aseg_name"))
     orig = cast(nib.analyze.SpatialImage, nib.load(sd.conf_name))
 
-    # 5 mm around the midplane (making sure to get rl by as_closest_canonical)
-    vox_size = nib.as_closest_canonical(orig).header.get_zooms()[0]
-    slices_to_analyze = int(np.ceil(5 / vox_size))
+    # check that the image is conformed, i.e. isotropic 1mm voxels, 256^3 size, LIA orientation
+    if not is_conform(orig, vox_size=None, img_size=None, orientation=None):
+        logger.info("Internally conforming orig to soft-LIA.")
+        orig = conform(orig, vox_size=None, img_size=None, orientation=None)
+
+    # 5 mm around the midplane (guaranteed to be aligned RAS by as_closest_canonical)
+    vox_size_ras: tuple[float, float, float] = nib.as_closest_canonical(orig).header.get_zooms()
+    vox_size = vox_size_ras[0], vox_size_ras[2], vox_size_ras[1]  # convert from RAS to LIA
+    slices_to_analyze = int(np.ceil(5 / vox_size[0]))
+    # slices_to_analyze must be odd
     if slices_to_analyze % 2 == 0:
         slices_to_analyze += 1
 
     logger.info(
-        f"Segmenting {slices_to_analyze} slices (5 mm width at {vox_size} mm resolution, "
+        f"Segmenting {slices_to_analyze} slices (5 mm width at {vox_size[0]} mm resolution, "
         "center around the mid-sagittal plane)"
     )
-
-    if not is_conform(orig, vox_size='min', img_size=None):
-        if is_conform(orig, vox_size=None, img_size=None):
-            logger.warning("fastsurfer_cc currently requires isotropic images.")
-        logger.error("MRI is not conformed, please run conform.py or mri_convert to conform the image.")
-        sys.exit(1)
 
     # load models
     device = find_device(device)
     logger.info(f"Using device: {device}")
 
     logger.info("Loading models")
-    model_localization = localization_inference.load_model(device=device)
-    model_segmentation = segmentation_inference.load_model(device=device)
+    _model_localization = thread_executor().submit(localization_inference.load_model, device=device)
+    _model_segmentation = thread_executor().submit(segmentation_inference.load_model, device=device)
 
-    aseg_nib = cast(nib.analyze.SpatialImage, nib.load(sd.filename_by_attribute("aseg_name")))
+    aseg_img = cast(nib.analyze.SpatialImage, _aseg_fut.result())
+
+    if not np.allclose(aseg_img.affine, orig.affine):
+        logger.error("Input MRI and segmentation are not aligned! Please check your input files.")
+        sys.exit(1)
 
     logger.info("Performing centroid registration to fsaverage space")
-    orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_affine, fsavg_header, fsavg_vox2ras_tkr = centroid_registration(
-        aseg_nib
+    orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, fsavg_header, fsavg_vox2ras_tkr = (
+        register_centroids_to_fsavg(aseg_img)
     )
-    logger.info("Interpolating midplane slices")
-    # this is a fast interpolation to not block the main thread
-    midslices = interpolate_midplane(orig, orig2fsavg_vox2vox, slices_to_analyze)
 
-    # start saving upright volume
+    # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
+        # upright == fsaverage-aligned
         io_futures.append(
             thread_executor().submit(
                 apply_transform_to_volume,
                 orig,
                 orig2fsavg_vox2vox,
-                fsavg_affine,
+                fsavg_vox2ras,
                 output_path=sd.filename_by_attribute("upright_volume"),
-                output_size=np.array([256, 256, 256]),
+                output_size=fsavg_header["dims"],
             )
         )
 
+    # calculate affine for segmentation volume
+    affine_x_offset = partial(create_sag_slice_vox2vox, fsaverage_middle=FSAVERAGE_MIDDLE / vox_size[0])
+    fsavg2midslab_in_vox2vox: AffineMatrix4x4 = affine_x_offset(slices_to_analyze // 2)
+    # first, midslice->fsaverage in vox2vox, then vox2ras in fsaverage space
+    midslab_vox2ras: AffineMatrix4x4 = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_in_vox2vox)
+
+    # calculate vox2vox for input resampling volumes
+    def _orig2midslab_vox2vox(extra_slices: int) -> AffineMatrix4x4:
+        fsavg2midslab = affine_x_offset(slices_to_analyze // 2 + extra_slices //  2)
+        # first, orig->fsaverage in vox2vox, then fsaverage->midslab in vox2vox
+        return fsavg2midslab @ orig2fsavg_vox2vox
+
     #### do localization and segmentation inference
     logger.info("Starting AC/PC localization")
+    target_shape = (slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2])
     ac_coords, pc_coords = localize_ac_pc(
-        midslices, aseg_nib, orig2fsavg_vox2vox, model_localization, slices_to_analyze,
+        np.asarray(orig.dataobj),
+        aseg_img,
+        _orig2midslab_vox2vox(extra_slices=2),
+        _model_localization.result(),
+        target_shape,
     )
     logger.info("Starting corpus callosum segmentation")
+    target_shape = (slices_to_analyze + 8, fsavg_header["dims"][1], fsavg_header["dims"][2])  # 8 for context slices
+    midslices = affine_transform(
+        np.asarray(orig.dataobj),
+        np.linalg.inv(_orig2midslab_vox2vox(extra_slices=8)), # inverse is required for affine_transform
+        output_shape=target_shape,
+        order=2, # @ClePol unclear, why this is not order=3
+        mode="constant",
+        cval=0,
+        prefilter=True, # unclear, why we are using a smoothing filter here
+    )
     cc_fn_seg_labels, cc_fn_softlabels = segment_cc(
-        midslices, ac_coords, pc_coords, aseg_nib, model_segmentation, slices_to_analyze,
+        midslices,
+        ac_coords,
+        pc_coords,
+        aseg_img,
+        _model_segmentation.result(),
     )
 
-    # calculate affine for segmentation volume
-    orig_to_seg = np.eye(4)
-    orig_to_seg[0, 3] = -FSAVERAGE_MIDDLE + slices_to_analyze // 2
-    seg_affine = fsavg_affine @ np.linalg.inv(orig_to_seg)
-
-    # save softlabels
+    # save segmentation softlabels
     for i, (attr, name) in enumerate((("background",) * 2, ("cc", "Corpus Callosum"), ("fn", "Fornix"))):
         if sd.has_attribute(f"cc_softlabels_{attr}"):
             logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
             io_futures.append(thread_executor().submit(
                 nib.save,
-                nib.MGHImage(cc_fn_softlabels[..., i], seg_affine, orig.header),
+                nib.MGHImage(cc_fn_softlabels[..., i], midslab_vox2ras, orig.header),
                 sd.filename_by_attribute(f"cc_softlabels_{attr}"),
             ))
 
@@ -756,7 +798,7 @@ def main(
     slice_results, slice_io_futures = recon_cc_surf_measures_multi(
         segmentation=cc_fn_seg_labels,
         slice_selection=slice_selection,
-        upright_affine=fsavg_affine,
+        fsavg_vox2ras=fsavg_vox2ras,
         midslices=midslices,
         ac_coords=ac_coords,
         pc_coords=pc_coords,
@@ -764,7 +806,7 @@ def main(
         subdivisions=subdivisions,
         subdivision_method=subdivision_method,
         contour_smoothing=contour_smoothing,
-        vox_size=orig.header.get_zooms(),
+        vox_size=vox_size,
         vox2ras_tkr=fsavg_vox2ras_tkr,
         subject_dir=sd,
     )
@@ -779,7 +821,6 @@ def main(
 
     # Get middle slice result
     middle_slice_result = slice_results[len(slice_results) // 2]
-
     if len(middle_slice_result['split_contours']) <= 5:
         cc_subseg_midslice = make_subdivision_mask(
             cc_fn_seg_labels.shape[1:],
@@ -787,24 +828,26 @@ def main(
             orig.header.get_zooms(),
         )
     else:
-        logger.warning("Too many subsegments for lookup table, skipping sub-divion of output segmentation.")
+        logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
         cc_subseg_midslice = None
 
-    # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
-    io_futures.append(thread_executor().submit(
-        map_softlabels_to_orig,
-        cc_fn_softlabels=cc_fn_softlabels,
-        orig_fsaverage_vox2vox=orig2fsavg_vox2vox,
-        orig=orig,
-        orig_space_segmentation_path=segmentation_in_orig,
-        fsaverage_middle=FSAVERAGE_MIDDLE,
-        cc_subseg_midslice=cc_subseg_midslice,
-    ))
+    # save segmentation labels, this
     if sd.has_attribute("cc_segmentation"):
         io_futures.append(thread_executor().submit(
             nib.save,
-            nib.MGHImage(cc_fn_seg_labels, seg_affine, orig.header),
+            nib.MGHImage(cc_fn_seg_labels, midslab_vox2ras, orig.header),
             sd.filename_by_attribute("cc_segmentation"),
+        ))
+    # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
+    if sd.has_attribute("cc_orig_segfile"):
+        io_futures.append(thread_executor().submit(
+            map_softlabels_to_orig,
+            cc_fn_softlabels=cc_fn_softlabels,
+            orig_fsaverage_vox2vox=orig2fsavg_vox2vox,
+            orig=orig,
+            orig_space_segmentation_path=sd.filename_by_attribute("cc_orig_segfile"),
+            fsaverage_middle=FSAVERAGE_MIDDLE,
+            cc_subseg_midslice=cc_subseg_midslice,
         ))
 
     METRICS = [
@@ -824,10 +867,8 @@ def main(
 
     # Create enhanced output dictionary with all slice results
     per_slice_output_dict = {
-        "slices": [
-            convert_numpy_to_json_serializable({metric: result[metric] for metric in METRICS})
-            for result in slice_results
-        ],
+        "slices": [convert_numpy_to_json_serializable({metric: result[metric] for metric in METRICS})
+                   for result in slice_results],
     }
 
     ########## Save outputs ##########
@@ -835,20 +876,24 @@ def main(
     if len(outer_contours) > 1:
         cc_volume_voxel = segmentation_postprocessing.get_cc_volume_voxel(
             desired_width_mm=5,
-            cc_mask=cc_fn_seg_labels == CC_LABEL,
-            voxel_size=orig.header.get_zooms()
-        )
-        cc_volume_contour = segmentation_postprocessing.get_cc_volume_contour(
-            cc_contours=outer_contours,
-            voxel_size=orig.header.get_zooms()
+            cc_mask=np.equal(cc_fn_seg_labels, CC_LABEL),
+            voxel_size=vox_size, # in LIA order
         )
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
-        logger.info(f"CC volume contour: {cc_volume_contour}")
+        # FIXME: Create a proper mesh and use cc_mesh.volume for this volume
+        try:
+            cc_volume_contour = segmentation_postprocessing.get_cc_volume_contour(
+                cc_contours=outer_contours,
+                voxel_size=vox_size, # in LIA order
+            )
+            logger.info(f"CC volume contour: {cc_volume_contour}")
+        except AssertionError as e:
+            logger.warning("Could not compute CC volume from contours, setting to NaN")
+            logger.exception(e)
+            cc_volume_contour = float('nan')
 
         additional_metrics["cc_5mm_volume"] = cc_volume_voxel
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
-
-
 
     # get ac and pc in all spaces
     ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE, ac_coords))
@@ -865,7 +910,7 @@ def main(
     additional_metrics["ac_center_upright"] = ac_coords_3d
     additional_metrics["pc_center_upright"] = pc_coords_3d
     additional_metrics["slices_in_segmentation"] = slices_to_analyze
-    additional_metrics["voxel_size"] = [float(x) for x in orig.header.get_zooms()]
+    additional_metrics["voxel_size"] = np.asarray(orig.header.get_zooms(), dtype=float).tolist()
     additional_metrics["num_thickness_points"] = num_thickness_points
     additional_metrics["subdivision_method"] = subdivision_method
     additional_metrics["subdivision_ratios"] = subdivisions
@@ -894,11 +939,12 @@ def main(
     if sd.has_attribute("upright_lta"):
         sd.filename_by_attribute("cc_mid_measures").parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
-        io_futures.append(thread_executor().submit(write_lta,
-            sd.filename_by_attribute("upright_lta"),
+        io_futures.append(thread_executor().submit(
+            write_lta,
+           sd.filename_by_attribute("upright_lta"),
             orig2fsavg_ras2ras,
             sd.filename_by_attribute("aseg_name"),
-            aseg_nib.header,
+            aseg_img.header,
             "fsaverage",
             fsavg_header,
         ))
@@ -908,7 +954,8 @@ def main(
         # save lta to standardized space (fsaverage + nodding + ac to center)
         orig2standardized_ras2ras = orig.affine @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
         logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
-        io_futures.append(thread_executor().submit(write_lta,
+        io_futures.append(thread_executor().submit(
+            write_lta,
             sd.filename_by_attribute("cc_orient_volume_lta"),
             orig2standardized_ras2ras,
             sd.conf_name,

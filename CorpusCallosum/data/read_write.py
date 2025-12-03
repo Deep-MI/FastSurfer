@@ -21,6 +21,7 @@ import numpy as np
 from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
+from FastSurferCNN.utils import AffineMatrix4x4
 from FastSurferCNN.utils.parallel import thread_executor
 
 
@@ -33,9 +34,9 @@ class FSAverageHeader(TypedDict):
 logger = logging.get_logger(__name__)
 
 
-def get_centroids_from_nib(seg_img: nib.analyze.SpatialImage, label_ids: list[int] | None = None) \
+def calc_ras_centroids_from_seg(seg_img: nib.analyze.SpatialImage, label_ids: list[int] | None = None) \
         -> dict[int, np.ndarray | None]:
-    """Get centroids of segmentation labels in RAS coordinates.
+    """Get centroids of segmentation labels in RAS coordinates, accepts any affine/data layout.
 
     Parameters
     ----------
@@ -51,7 +52,7 @@ def get_centroids_from_nib(seg_img: nib.analyze.SpatialImage, label_ids: list[in
     """
     # Get segmentation data and affine
     seg_data: npt.NDArray[np.integer] = np.asarray(seg_img.dataobj)
-    vox2ras: npt.NDArray[float] = seg_img.affine
+    vox2ras: AffineMatrix4x4 = seg_img.affine
     
     # Get unique labels
     if label_ids is None:
@@ -82,7 +83,7 @@ def convert_numpy_to_json_serializable(obj: object) -> object:
 
     Parameters
     ----------
-    obj : object
+    obj : dict, list, array, number, serializable
         Object to convert to JSON serializable type.
 
     Returns
@@ -154,7 +155,7 @@ def load_fsaverage_affine(affine_path: str | Path) -> npt.NDArray[float]:
     return affine_matrix
 
 
-def load_fsaverage_data(data_path: str | Path) -> tuple[npt.NDArray[float], FSAverageHeader, npt.NDArray[float]]:
+def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAverageHeader, AffineMatrix4x4]:
     """Load fsaverage affine matrix and header fields from static JSON file.
 
     Parameters
@@ -164,7 +165,7 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[npt.NDArray[float], FSAv
 
     Returns
     -------
-    affine_matrix : np.ndarray
+    affine_matrix : AffineMatrix4x4
         4x4 affine transformation matrix.
     header_fields : dict
         Header fields needed for LTA:
@@ -176,7 +177,7 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[npt.NDArray[float], FSAv
                 3x3 direction cosines matrix.
             - Pxyz_c : np.ndarray
                 RAS center coordinates [x,y,z].
-    vox2ras_tkr : np.ndarray
+    vox2ras_tkr : AffineMatrix4x4
         Voxel to RAS tkr-space transformation matrix.
 
     Raises

@@ -120,18 +120,19 @@ def load_fsaverage_cc_template() -> tuple[
     # Use the smoothed mask for further processing
     cc_mask = cc_mask_smoothed.astype(int) * 192
 
-    (_, contour_with_thickness, anterior_endpoint_idx,
-     posterior_endpoint_idx) = recon_cc_surf_measure(segmentation=cc_mask[None],
-                                                     slice_idx=0,
-                                                     ac_coords=AC,
-                                                     pc_coords=PC,
-                                                     affine=fsaverage_seg.affine,
-                                                     num_thickness_points=100,
-                                                     subdivisions=[1/6, 1/2, 2/3, 3/4],
-                                                     subdivision_method="shape",
-                                                     contour_smoothing=5,
-                                                     vox_size=1)
-    outside_contour = contour_with_thickness[0].T
+    _, contour_with_thickness, (anterior_endpoint_idx, posterior_endpoint_idx) = recon_cc_surf_measure(
+        segmentation=cc_mask[None],
+        slice_idx=0,
+        ac_coords=AC,
+        pc_coords=PC,
+        affine=fsaverage_seg.affine,
+        num_thickness_points=100,
+        subdivisions=[1/6, 1/2, 2/3, 3/4],
+        subdivision_method="shape",
+        contour_smoothing=5,
+        vox_size=(1., 1., 1.), # fsaverage is in 1mm isotropic
+    )
+    outside_contour = contour_with_thickness[:2].T
 
 
     # make sure the CC stays in shape despite smoothing by moving endpoints outwards

@@ -1117,7 +1117,7 @@ then
     # generate file names of for the analysis
     asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
     asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
-    aseg_auto_statsfile="$(basename "$aseg_vinn_statsfile")/aseg.auto.mgz"
+    aseg_auto_statsfile="$(dirname "$aseg_vinn_statsfile")/aseg.auto.mgz"
     # note: callosum manedit currently only affects inpainting and not internal FastSurferCC processing (surfaces etc)
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
     # generate callosum segmentation, mesh, shape and downstream measure files

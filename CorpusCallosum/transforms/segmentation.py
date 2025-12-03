@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+from typing import Literal
 
 import numpy as np
 from monai.transforms import MapTransform, RandomizableTransform
@@ -68,36 +70,45 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
         """
         d = dict(data)
 
-        if 'AC_center_original' not in d:
-            d['AC_center_original'] = d['AC_center'].copy()
-        if 'PC_center_original' not in d:
-            d['PC_center_original'] = d['PC_center'].copy()
+        if "AC_center_original" not in d:
+            d["AC_center_original"] = d["AC_center"].copy()
+        if "PC_center_original" not in d:
+            d["PC_center_original"] = d["PC_center"].copy()
 
         if self.random_translate > 0:
             random_translate = np.random.randint(-self.random_translate, self.random_translate, size=2)
         else:
             random_translate = (0,0,0)
-        
-        for key in self.keys:
-            if key not in d.keys() and self.allow_missing_keys:
-                continue
 
-            pc_center = d['PC_center']
-            ac_center = d['AC_center']
-            
-            ac_pc_bottomleft = (np.min([ac_center[1], pc_center[1]]).astype(int), 
-                               np.min([ac_center[2], pc_center[2]]).astype(int))
-            ac_pc_topright = (np.max([ac_center[1], pc_center[1]]).astype(int), 
-                             np.max([ac_center[2], pc_center[2]]).astype(int))
+        pc_center = d["PC_center"]
+        ac_center = d["AC_center"]
 
-            voxel_padding = round(self.padding_mm / d['res'])
+        ac_pc = np.stack([ac_center, pc_center], axis=0)
 
-            crop_left = ac_pc_bottomleft[0]-int(voxel_padding*1.5)+random_translate[0]
-            crop_right = ac_pc_topright[0]+voxel_padding//2+random_translate[0]
-            crop_top = ac_pc_bottomleft[1]-voxel_padding+random_translate[1]
-            crop_bottom = ac_pc_topright[1]+voxel_padding+random_translate[1]
+        ac_pc_bottomleft = np.min(ac_pc, axis=0).astype(int)
+        ac_pc_topright = np.max(ac_pc, axis=0).astype(int)
 
-            d['to_pad'] = crop_left, d[key].shape[2]-crop_right, crop_top, d[key].shape[3]-crop_bottom
+        VoxPadType = np.ndarray[tuple[Literal[2]], np.dtype[int]]
+        voxel_padding: VoxPadType = np.round(self.padding_mm / d["res"]).astype(int)
+
+        crop_left = ac_pc_bottomleft[1] - int(voxel_padding[0] * 1.5) + random_translate[0]
+        crop_right = ac_pc_topright[1] + voxel_padding[0] // 2 + random_translate[0]
+        crop_top = ac_pc_bottomleft[2] - voxel_padding[1] + random_translate[1]
+        crop_bottom = ac_pc_topright[2] + voxel_padding[1] + random_translate[1]
+
+        keys_to_process = [key for key in self.keys if key in d.keys()]
+
+        if not self.allow_missing_keys and set(keys_to_process) != set(self.keys):
+            raise ValueError("Some keys are missing in the data dictionary.")
+
+        if len(keys_to_process) == 0:
+            logging.getLogger(__name__).warning("No keys to process.")
+            return d
+
+        first_key = keys_to_process[0]
+        d["to_pad"] = crop_left, d[first_key].shape[2] - crop_right, crop_top, d[first_key].shape[3] - crop_bottom
+
+        for key in keys_to_process:
             d[key] = d[key][:, :, crop_left:crop_right, crop_top:crop_bottom]
 
         return d
@@ -154,16 +165,16 @@ class CropAroundACPCtrack(CropAroundACPC):
         d = super().__call__(data)
         
         # Get the crop coordinates that were used
-        pad_left, pad_right, pad_top, pad_bottom = d['to_pad']
+        pad_left, pad_right, pad_top, pad_bottom = d["to_pad"]
 
         # Adjust AC and PC center coordinates based on cropping
-        if 'AC_center' in d:
-            d['AC_center'][1] = d['AC_center_original'][1] - pad_left.item()
-            d['AC_center'][2] = d['AC_center_original'][2] - pad_top.item()
+        if "AC_center" in d:
+            d["AC_center"][1] = d["AC_center_original"][1] - pad_left.item()
+            d["AC_center"][2] = d["AC_center_original"][2] - pad_top.item()
             
-        if 'PC_center' in d:
-            d['PC_center'][1] = d['PC_center_original'][1] - pad_left.item() 
-            d['PC_center'][2] = d['PC_center_original'][2] - pad_top.item()
+        if "PC_center" in d:
+            d["PC_center"][1] = d["PC_center_original"][1] - pad_left.item()
+            d["PC_center"][2] = d["PC_center_original"][2] - pad_top.item()
 
         return d
     

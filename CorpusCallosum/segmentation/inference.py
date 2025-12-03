@@ -86,7 +86,7 @@ def run_inference(
     image_slice: np.ndarray,
     ac_center: np.ndarray,
     pc_center: np.ndarray,
-    voxel_size: float,
+    voxel_size: tuple[float, float],
     device: torch.device | None = None,
     transform: transforms.Transform | None = None
 ) -> tuple[npt.NDArray[int], npt.NDArray[float], npt.NDArray[float]]:
@@ -102,8 +102,8 @@ def run_inference(
         Anterior commissure coordinates.
     pc_center : np.ndarray
         Posterior commissure coordinates.
-    voxel_size : float
-        Voxel size in mm.
+    voxel_size : a pair of floats
+        Voxel size fo inferior/superior and anterior/posterior direction in mm.
     device : torch.device or None, optional
         Device to run inference on, by default None.
         If None, uses the device of the model.
@@ -126,8 +126,8 @@ def run_inference(
     to_discrete = transforms.AsDiscrete(argmax=True, to_onehot=3)
 
     # Preprocess slice
-    _inputs = torch.from_numpy(image_slice[:,None,:256,:256]) # artifact from training script
-    sample = {'image': _inputs, 'AC_center': ac_center, 'PC_center': pc_center, 'res': voxel_size}
+    _inputs = torch.from_numpy(image_slice[:,None]) #,:256,:256]) # artifact from training script
+    sample = {'image': _inputs, 'AC_center': ac_center, 'PC_center': pc_center, 'res': np.asarray(voxel_size)}
     sample_cropped = crop_around_acpc(sample)
     _inputs, to_pad = sample_cropped['image'], sample_cropped['to_pad']
     _inputs = transforms.utils.rescale_array(_inputs, 0, 1, dtype=np.float32).to(device)
@@ -139,7 +139,7 @@ def run_inference(
 
     # Post-process outputs
     with torch.no_grad():
-        scale_factors = torch.ones((_inputs.shape[0], 2), device=device) / voxel_size
+        scale_factors = torch.ones((_inputs.shape[0], 2), device=device) / torch.asarray([voxel_size], device=device)
         
         _logits = model(_inputs, scale_factor=scale_factors)
         _softlabels = transforms.Activations(softmax=True, dim=1)(_logits)
@@ -265,7 +265,7 @@ def run_inference_on_slice(
         test_slice: np.ndarray,
         ac_center: npt.NDArray[float],
         pc_center: npt.NDArray[float],
-        voxel_size: float,
+        voxel_size: tuple[float, float],
 ) -> tuple[npt.NDArray[int], np.ndarray, npt.NDArray[float]]:
     """Run inference on a single slice.
 
@@ -279,8 +279,8 @@ def run_inference_on_slice(
         Anterior commissure coordinates (Inferior and Anterior values).
     pc_center : npt.NDArray[float]
         Posterior commissure coordinates (Inferior and Posterior values).
-    voxel_size : float
-        Voxel size in mm.
+    voxel_size : a pair of floats
+        Voxel sizes in superior/inferior and anterior/posterior direction in mm.
 
     Returns
     -------

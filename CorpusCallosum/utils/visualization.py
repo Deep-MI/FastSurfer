@@ -133,7 +133,7 @@ def plot_contours(
     output_path: str | Path | None = None,
     ac_coords: np.ndarray | None = None,
     pc_coords: np.ndarray | None = None,
-    vox_size: float | None = None,
+    vox_size: tuple[float, float, float] | None = None,
     title: str = "",
 ) -> None:
     """Creates a figure of the contours (shape) and the subdivisions of the corpus callosum.
@@ -154,8 +154,9 @@ def plot_contours(
         AC coordinates for visualization (ignore AC on None).
     pc_coords : np.ndarray, optional
         PC coordinates for visualization (ignore PC on None).
-    vox_size : float, optional
-        Voxel size for scaling.
+    vox_size : triplet of floats, optional
+        LIA-oriented voxel size for scaling, optional if none of split_contours, midline_equidistant, or levelpaths are
+        provided.
     title : str, default=""
         Title for the plot.
 
@@ -165,15 +166,18 @@ def plot_contours(
     If output_path is provided, saves the plot to that location.
     """
 
-    # scale contour data by vox_size
-    if split_contours:
-        split_contours = np.stack(split_contours, axis=0) / vox_size
-    if midline_equidistant:
-        midline_equidistant = midline_equidistant / vox_size
-    if levelpaths:
-        levelpaths = np.stack(levelpaths, axis=0) / vox_size
+    if vox_size is None and None in (split_contours, midline_equidistant, levelpaths):
+        raise ValueError("vox_size must be provided if split_contours, midline_equidistant, or levelpaths are given.")
 
-    has_first_plot = bool(split_contours) or bool(ac_coords) or bool(pc_coords)
+    # convert vox_size from LIA to AS
+    vox_size_ras = np.asarray([vox_size[0], vox_size[2], vox_size[1]]) if vox_size is not None else None
+
+    # scale contour data by vox_size to convert from AS to AS-aligned voxel space
+    _split_contours = [] if split_contours is None else [sp / vox_size_ras[1:, None] for sp in split_contours]
+    _midline_equi = np.zeros((0, 2)) if midline_equidistant is None else midline_equidistant / vox_size_ras[None, 1:]
+    _levelpaths = [] if levelpaths is None else [lp / vox_size_ras[None, 1:] for lp in levelpaths]
+
+    has_first_plot = not (len(_split_contours) == 0 and ac_coords is None and pc_coords is None)
     num_plots = 1 + int(has_first_plot)
 
     _, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
@@ -184,32 +188,36 @@ def plot_contours(
     if has_first_plot:
         ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
         ax[current_plot].set_title(title)
-    if split_contours:
-        for i, this_contour in enumerate(split_contours):
+    if _split_contours:
+        for i, this_contour in enumerate(_split_contours):
             ax[current_plot].fill(this_contour[0, :], -this_contour[1, :], color="steelblue", alpha=0.25)
             kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid" if i != 0 else "dotted"}
             ax[current_plot].plot(this_contour[0, :], -this_contour[1, :], **kwargs)
-    if ac_coords:
+    if ac_coords is not None:
         ax[current_plot].scatter(ac_coords[1], ac_coords[0], color="red", marker="x")
-    if pc_coords:
+    if pc_coords is not None:
         ax[current_plot].scatter(pc_coords[1], pc_coords[0], color="blue", marker="x")
     current_plot += int(has_first_plot)
 
-    reference_contour = split_contours[0]
     ax[current_plot].imshow(transformed[transformed.shape[0] // 2], cmap="gray")
-    for this_path in levelpaths:
+    for this_path in _levelpaths:
         ax[current_plot].plot(this_path[:, 0], -this_path[:, 1], color="brown", linewidth=0.8)
     ax[current_plot].set_title("Midline & Levelpaths")
-    ax[current_plot].plot(midline_equidistant[:, 0], -midline_equidistant[:, 1], color="red")
-    ax[current_plot].plot(reference_contour[0, :], -reference_contour[1, :], color="red", linewidth=0.5)
+    if _midline_equi.shape[0] > 0:
+        ax[current_plot].plot(_midline_equi[:, 0], -_midline_equi[:, 1], color="red")
+    if _split_contours:
+        reference_contour = _split_contours[0]
+        ax[current_plot].plot(reference_contour[0, :], -reference_contour[1, :], color="red", linewidth=0.5)
 
     padding = 30
     for a in ax.flatten():
         a.set_aspect("equal", adjustable="box")
         a.axis("off")
-        # get bounding box of contours
-        a.set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
-        a.set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
+        if _split_contours:
+            reference_contour = _split_contours[0]
+            # get bounding box of contours
+            a.set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
+            a.set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=300, bbox_inches="tight")

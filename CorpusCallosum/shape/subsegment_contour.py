@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -104,7 +104,14 @@ def calc_subsegment_areas(split_contours: list[npt.NDArray[_TS]]) -> npt.NDArray
     return np.ediff1d(np.asarray(areas)[::-1], to_end=areas[-1])
 
 
-def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=None, extremes=None):
+def subsegment_midline_orthogonal(
+        midline: np.ndarray[tuple[int, Literal[2]], np.dtype[float]],
+        area_weights: np.ndarray[tuple[int], np.dtype[float]],
+        contour: np.ndarray[tuple[Literal[2], int], np.dtype[_TS]],
+        plot: bool = True,
+        ax=None,
+        extremes=None,
+):
     """Subsegment contour orthogonally to the midline based on area weights.
 
     Parameters
@@ -114,7 +121,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
     area_weights : np.ndarray
         Array of weights for area-based subdivision.
     contour : np.ndarray
-        Array of shape (2, M) containing contour points.
+        Array of shape (2, M) containing contour points in as space.
     plot : bool, optional
         Whether to plot the results, by default True.
     ax : matplotlib.axes.Axes, optional
@@ -130,6 +137,7 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
         List of contour arrays for each subsegment.
 
     """
+    # FIXME: why does this code return subsegments that include all previous segments?
     # get points after midline length of splits
 
     # get vertex closest to midline end
@@ -148,6 +156,44 @@ def subsegment_midline_orthogonal(midline, area_weights, contour, plot=True, ax=
     edge_ortho_vectors = edge_ortho_vectors / np.linalg.norm(edge_ortho_vectors, axis=1)[:, None]
 
     split_contours = [contour]
+
+    # FIXME: double loop should be vectorized, see commented code below for an initial attempt (not tested)
+    #        also, finding intersections can be done more efficiently, instead of solving linear system for each segment
+    #        we could just look for changes in the sign of cross products
+    # mid_to_contour: np.ndarray = contour[:, :, None] - split_points[:, None]
+    # mid_to_contour_length = np.linalg.norm(mid_to_contour, axis=0)
+    # mid_to_contour_norm = mid_to_contour / mid_to_contour_length[None]
+    # sin_theta = mid_to_contour_norm[0] * edge_ortho_vectors[1] - mid_to_contour_norm[1] * edge_ortho_vectors[0]
+    # index_on_contour, index_on_segment = np.where(sin_theta[:-1] * sin_theta[1:] < 0)
+    # sin_theta_x = sin_theta[index_on_segment]
+    # cos_theta_x = np.sqrt(1 - sin_theta_x * sin_theta_x)
+    # rot_mat = np.array([[cos_theta_x, -sin_theta_x], [sin_theta_x, cos_theta_x]])
+    # # rotate mid_to_contour by sin_theta
+    # _mid_to_intersection = rot_mat.transpose(0, -1) @ mid_to_contour[:, None, (index_on_contour, index_on_segment)]
+    # mid_to_intersection = cos_theta_x * _mid_to_intersection[:, 0, :]
+    # intersection_points = split_points[:, index_on_segment] + mid_to_intersection
+    # mid_to_intersection_length = np.linalg.norm(mid_to_intersection, axis=0)
+    #
+    #
+    # for segment_idx in range(split_points.shape[1]):
+    #     mask = index_on_segment == segment_idx
+    #     if any(mask):
+    #         # first_index and second_index are the indices on the contour
+    #         # _first_index and _second_index are the indices on the intersection_points of this segment
+    #         _first_index, _second_index, *_ = np.argsort(mid_to_intersection_length[mask])
+    #         first_index, second_index = index_on_contour[mask][[_first_index, _second_index]]
+    #         if first_index > second_index:
+    #             first_index, second_index = second_index, first_index
+    #             _first_index, _second_index = _second_index, _first_index
+    #         # connect first and second half
+    #         start_to_cutoff = np.hstack(
+    #             (
+    #                 contour[:, :first_index + 1], # includes first_index
+    #                 intersection_points[:, mask][:, [_first_index, _second_index]],
+    #                 contour[:, second_index + 1 :], # excludes second_index
+    #             )
+    #         )
+    #         split_contours.append(start_to_cutoff)
 
     for pt_idx, split_point in enumerate(split_points):
         intersections = []

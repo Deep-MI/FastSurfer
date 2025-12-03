@@ -53,6 +53,7 @@ def convert_to_ras(contour: np.ndarray, vox2ras_matrix: np.ndarray, get_paramete
 def convert_to_ras(contour: np.ndarray, vox2ras_matrix: np.ndarray, get_parameters: Literal[True]) \
         -> tuple[np.ndarray, bool, bool, bool]: ...
 
+
 def convert_to_ras(
     contour: np.ndarray,
     vox2ras_matrix: np.ndarray,
@@ -71,8 +72,8 @@ def convert_to_ras(
 
     Returns
     -------
-    contour : p.ndarray
-        Transformed contour coordinates.
+    contour : np.ndarray
+        Transformed contour coordinates of shape (3, N).
     anterior_reversed : bool
         Only if return_parameters is True, whether anterior axis was reversed.
     superior_reversed : bool
@@ -80,11 +81,11 @@ def convert_to_ras(
     swap_axes : bool
         Only if return_parameters is True, whether axes were swapped.
     """
-    # converting to AS (no left-right dimension), out of plane movement is ignores,
+    # converting to AS (no left-right dimension), out of plane movement is ignored,
     # so we only do scaling, axes swapping and flipping - no rotation
     # translation is ignored
     if contour.shape[0] == 2:
-        # get only axis swaps
+        # get only axis swaps from the rotation part of the vox2ras matrix
         axis_swaps = np.round(vox2ras_matrix[:3, :3], 0)
         permutation = np.argwhere(axis_swaps != 0)[:, 1]
         assert len(permutation) == 3
@@ -92,8 +93,8 @@ def convert_to_ras(
         idx_superior = np.argwhere(permutation == 2)
         idx_anterior = np.argwhere(permutation == 1)
 
-        swap_axes = idx_anterior > idx_superior
-        if swap_axes:
+        # swap axes if indicated from vox2ras
+        if swap_axes := idx_anterior > idx_superior:
             # swap anterior and superior
             contour = contour[[1, 0]]
 
@@ -112,6 +113,9 @@ def convert_to_ras(
 
         # voxel * vox_size = mm
         contour = (contour.T * scaling[1:]).T
+
+        # append a 0-R coordinate
+        contour = np.concatenate([np.zeros((1, contour.shape[1])), contour], axis=0)
 
         if return_parameters:
             return contour, anterior_reversed, superior_reversed, swap_axes
@@ -199,49 +203,69 @@ def find_closest_edge(point, contour):
     return np.argmin(distances)
 
 
+@overload
 def insert_point_with_thickness(
-    contour_with_thickness: list[np.ndarray],
+    contour_in_as_space: np.ndarray,
+    contour_thickness: np.ndarray,
     point: np.ndarray,
     thickness_value: float,
-    get_index: bool = False
-) -> tuple[list[np.ndarray], int] | list[np.ndarray]:
-    """Insert a point and its thickness value into the contour.
+    return_index: Literal[False] = False,
+) -> tuple[np.ndarray, np.ndarray]: ...
+
+
+@overload
+def insert_point_with_thickness(
+    contour_in_as_space: np.ndarray,
+    contour_thickness: np.ndarray,
+    point: np.ndarray,
+    thickness_value: float,
+    return_index: Literal[True],
+) -> tuple[np.ndarray, np.ndarray, int] | list[np.ndarray, np.ndarray]:
+    ...
+
+
+def insert_point_with_thickness(
+    contour_in_as_space: np.ndarray,
+    contour_thickness: np.ndarray,
+    point: np.ndarray,
+    thickness_value: float,
+    return_index: bool = False
+) -> tuple[np.ndarray, np.ndarray, int] | tuple[np.ndarray, np.ndarray]:
+    """Inserts a point and its thickness value into the contour.
 
     Parameters
     ----------
-    contour_with_thickness : list[np.ndarray]
-        List containing [contour_points, thickness_values].
+    contour_in_as_space : np.ndarray
+        Array of coordinates of the contour in AS space, shape (N, 2).
+    contour_thickness : np.ndarray
+        Array of thickness values of the contour, shape (N,).
     point : np.ndarray
         2D point to insert, shape (2,).
     thickness_value : float
         Thickness value corresponding to the point.
-    get_index : bool, optional
+    return_index : bool, default=False
         If True, return the index where point was inserted, by default False.
 
     Returns
     -------
-    tuple[list[np.ndarray], int] or list[np.ndarray]
-        If get_index is True:
-            - Updated contour_with_thickness.
-            - Index where point was inserted.
-        If get_index is False:
-            - Updated contour_with_thickness.
+    contour_in_as_space : np.ndarray
+        Updated contour of shape (N+1, 2).
+    contour_thickness : np.ndarray
+        Updated thickness values of shape (N+1,).
+    insertion_index : int
+        The index, where the point was inserted (only if return_index is True).
     """
     # Find closest edge for the point
-    edge_idx = find_closest_edge(point, contour_with_thickness[0])
+    edge_idx = find_closest_edge(point, contour_in_as_space)
 
     # Insert point between edge endpoints
-    contour_with_thickness[0] = np.insert(
-        contour_with_thickness[0], edge_idx + 1, point, axis=0
-    )
-    contour_with_thickness[1] = np.insert(
-        contour_with_thickness[1], edge_idx + 1, thickness_value
-    )
+    contour_in_as_space = np.insert(contour_in_as_space, edge_idx + 1, point, axis=0)
+    contour_thickness = np.insert(contour_thickness, edge_idx + 1, thickness_value)
 
-    if get_index:
-        return contour_with_thickness, edge_idx + 1
+    if return_index:
+        return contour_in_as_space, contour_thickness, edge_idx + 1
     else:
-        return contour_with_thickness
+        return contour_in_as_space, contour_thickness
 
 
 def make_mesh_from_contour(
@@ -294,20 +318,17 @@ def make_mesh_from_contour(
 
 def cc_thickness(
     contour_2d: np.ndarray,
-    anterior_endpoint_idx: int,
-    posterior_endpoint_idx: int,
+    endpoint_idx: tuple[int, int],
     n_points: int = 100
-) -> tuple[float, float, float, np.ndarray, list[np.ndarray], list[np.ndarray], int, int]:
+) -> tuple[float, float, float, np.ndarray, list[np.ndarray], np.ndarray, tuple[int, int]]:
     """Calculate corpus callosum thickness using Laplace equation.
 
     Parameters
     ----------
     contour_2d : np.ndarray
         Array of shape (N, 2) containing contour points.
-    anterior_endpoint_idx : int
-        Index of anterior endpoint in contour.
-    posterior_endpoint_idx : int
-        Index of posterior endpoint in contour.
+    endpoint_idx : pair of ints
+        Indices of anterior and posterior endpoints in contour.
     n_points : int, optional
         Number of points for thickness measurement, by default 100.
 
@@ -320,15 +341,13 @@ def cc_thickness(
     curvature : float
         Mean absolute curvature in degrees.
     midline_equidistant : np.ndarray
-        Equidistant points along the midline.
+        Equidistant points along the midline in same space as contour2d.
     levelpaths : list[np.ndarray]
-        Level paths for thickness measurement.
-    contour_with_thickness : list[np.ndarray]
-        Contour coordinates with thickness information.
-    anterior_endpoint_idx : int
-        Updated index of anterior endpoint.
-    posterior_endpoint_idx : int
-        Updated index of posterior endpoint.
+        Level paths for thickness measurement in same space as contour2d.
+    contour_with_thickness : np.ndarray
+        Contour coordinates with thickness information in same space as contour2d of shape (N+2, 3).
+    endpoint_indices : pair of ints
+        Pair of updated indices of anterior and posterior endpoint.
 
     Notes
     -----
@@ -338,22 +357,23 @@ def cc_thickness(
     3. Solving Laplace equation to get level sets
     4. Computing thickness along level sets
     """
+    anterior_endpoint_idx, posterior_endpoint_idx = endpoint_idx
 
-    # standardize contour indices, to get consistent levelpath directions
+    # standardize contour indices to start at anterior_endpoint_idx, to get consistent levelpath directions
     contour_2d, anterior_endpoint_idx, posterior_endpoint_idx = set_contour_zero_idx(
         contour_2d, anterior_endpoint_idx, anterior_endpoint_idx, posterior_endpoint_idx,
     )
 
-    mesh_points, mesh_trias = make_mesh_from_contour(contour_2d)
+    mesh_points_contour_space, mesh_trias = make_mesh_from_contour(contour_2d)
 
-    # make points 3D by appending z=0
-    mesh_points3d = np.append(mesh_points, np.zeros((mesh_points.shape[0], 1)), axis=1)
+    # make points 3D by appending z=0, asz space therefore is the contour space (usually AS space) with a zero z-dim
+    mesh_points_asz = np.append(mesh_points_contour_space, np.zeros((mesh_points_contour_space.shape[0], 1)), axis=1)
 
     # compute poisson
     with suppress_stdout():
-        tria = TriaMesh(mesh_points3d, mesh_trias)
+        tria_asz = TriaMesh(mesh_points_asz, mesh_trias)
         # extract boundary curve
-        bdr = np.array(tria.boundary_loops()[0])
+        bdr = np.array(tria_asz.boundary_loops()[0])
 
         # find index of endpoints in bdr list
         iidx1 = np.where(bdr == anterior_endpoint_idx)[0][0]
@@ -368,67 +388,69 @@ def cc_thickness(
         dcond[iidx1 + 1 : iidx2] = -1
 
         # Extract path
-        fem = Solver(tria)
+        fem = Solver(tria_asz)
         vfunc = fem.poisson(0, (bdr, dcond))
-        midline_equidistant, midline_length = tria.level_path(vfunc, level=0., n_points=n_points + 2)
-        midline_equidistant = midline_equidistant[:, :2]
+        midline_length: float
+        midline_equidistant_asz, midline_length = tria_asz.level_path(vfunc, level=0., n_points=n_points + 2)
+        midline_equidistant_contour_space: np.ndarray = midline_equidistant_asz[:, :2]
 
-        gf = compute_rotated_f(tria, vfunc)
+        gf = compute_rotated_f(tria_asz, vfunc)
 
         # interpolate midline to get levels to evaluate
-        level_of_rotated_laplace = scipy.interpolate.griddata(
-            tria.v[:, 0:2], gf, midline_equidistant[:, 0:2], method="cubic",
+        level_of_rotated_laplace_contour_space = scipy.interpolate.griddata(
+            tria_asz.v[:, 0:2], gf, midline_equidistant_asz[:, 0:2], method="cubic",
         )
 
     # get levels to evaluate
-    levelpaths = []
+    levelpaths_contour_space: list[np.ndarray] = []
     levelpath_lengths = []
     levelpath_tria_idx = []
 
     # now, on the rotated laplace function, sample equally spaced (on midline: level_of_rotated_laplace) levelpaths
-    contour_with_thickness = [contour_2d.copy(), np.full(contour_2d.shape[0], np.nan)]
-    for current_level in level_of_rotated_laplace[1:-1]:
+    contour_thickness = np.full(contour_2d.shape[0], np.nan)
+    for current_level in level_of_rotated_laplace_contour_space[1:-1]:
         # levelpath starts at index zero
-        lvlpath, lvlpath_length, tria_idx = tria.level_path(
-            gf, current_level, get_tria_idx=True,
-        )
+        levelpath_asz, lvlpath_length, tria_idx = tria_asz.level_path(gf, current_level, get_tria_idx=True)
 
-        levelpaths.append(lvlpath)
+        levelpaths_contour_space.append(levelpath_asz[:, :2])
         levelpath_lengths.append(lvlpath_length)
         levelpath_tria_idx.append(tria_idx)
 
-        levelpath_start = lvlpath[0, :2]
-        levelpath_end = lvlpath[-1, :2]
+        levelpath_start = levelpath_asz[0, :2]
+        levelpath_end = levelpath_asz[-1, :2]
 
-        contour_with_thickness, inserted_idx_start = insert_point_with_thickness(
-            contour_with_thickness, levelpath_start, lvlpath_length, get_index=True,
+        contour_2d, contour_thickness, inserted_idx_start = insert_point_with_thickness(
+            contour_2d, contour_thickness, levelpath_start, lvlpath_length, return_index=True,
         )
-        contour_with_thickness, inserted_idx_end = insert_point_with_thickness(
-            contour_with_thickness, levelpath_end, lvlpath_length, get_index=True,
-        )
-
-        # keep track of start and end indices
+        # keep track of start index
         if inserted_idx_start <= anterior_endpoint_idx:
             anterior_endpoint_idx += 1
-        if inserted_idx_end <= anterior_endpoint_idx:
-            anterior_endpoint_idx += 1
-
         if inserted_idx_start >= posterior_endpoint_idx:
             posterior_endpoint_idx += 1
+
+        contour_2d, contour_thickness, inserted_idx_end = insert_point_with_thickness(
+            contour_2d, contour_thickness, levelpath_end, lvlpath_length, return_index=True,
+        )
+        # keep track of end index
+        if inserted_idx_end <= anterior_endpoint_idx:
+            anterior_endpoint_idx += 1
         if inserted_idx_end >= posterior_endpoint_idx:
             posterior_endpoint_idx += 1
 
+    contour_2d_with_thickness = np.concatenate([contour_2d, contour_thickness[:, None]], axis=1)
+
     # get curvature of path3d_resampled
-    curvature = compute_curvature(midline_equidistant)
-    out_curvature = np.abs(np.degrees(np.mean(curvature))) / len(curvature)
+    curvature = compute_curvature(midline_equidistant_contour_space)
+    mean_curvature: float = np.abs(np.degrees(np.mean(curvature))).item() / len(curvature)
+    mean_thickness: float = np.mean(levelpath_lengths).item()
+    endpoints: tuple[int, int] = (anterior_endpoint_idx, posterior_endpoint_idx)
 
     return (
         midline_length,
-        np.mean(levelpath_lengths),
-        out_curvature,
-        midline_equidistant,
-        levelpaths,
-        contour_with_thickness,
-        anterior_endpoint_idx,
-        posterior_endpoint_idx,
+        mean_thickness,
+        mean_curvature,
+        midline_equidistant_contour_space,
+        levelpaths_contour_space,
+        contour_2d_with_thickness,
+        endpoints,
     )
