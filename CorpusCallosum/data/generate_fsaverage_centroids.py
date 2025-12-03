@@ -26,7 +26,7 @@ from pathlib import Path
 
 import nibabel as nib
 import numpy as np
-from read_write import convert_numpy_to_json_serializable, get_centroids_from_nib
+from read_write import convert_numpy_to_json_serializable, calc_ras_centroids_from_seg
 
 import FastSurferCNN.utils.logging as logging
 
@@ -83,7 +83,7 @@ def main() -> None:
     
     # Extract centroids
     logger.info("Extracting centroids from fsaverage...")
-    centroids_dst = get_centroids_from_nib(fsaverage_nib)
+    centroids_dst = calc_ras_centroids_from_seg(fsaverage_nib)
     
     logger.info(f"Found {len(centroids_dst)} anatomical structures with centroids")
     

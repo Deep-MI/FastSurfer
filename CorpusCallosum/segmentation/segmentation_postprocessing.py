@@ -280,7 +280,7 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
 def get_cc_volume_voxel(
     desired_width_mm: int,
     cc_mask: np.ndarray,
-    voxel_size: tuple[float, float, float]
+    voxel_size: tuple[float, float, float],
 ) -> float:
     """Calculate the volume of the corpus callosum in cubic millimeters.
 
@@ -293,9 +293,9 @@ def get_cc_volume_voxel(
     desired_width_mm : int
         Desired width of the CC in millimeters.
     cc_mask : np.ndarray
-        Binary mask of the corpus callosum.
-    voxel_size : tuple[float, float, float]
-        Voxel size in millimeters (x, y, z).
+        Binary mask of the corpus callosum in LIA orientation.
+    voxel_size : triplet of floats
+        LIA-oriented Voxel size in millimeters (x, y, z).
 
     Returns
     -------
@@ -320,19 +320,20 @@ def get_cc_volume_voxel(
 
 
     # Calculate voxel volume
-    voxel_volume = np.prod(voxel_size)
+    voxel_volume: float = np.prod(voxel_size, dtype=float)
+    voxel_width: float = voxel_size[0]
 
     # Get width of CC mask in voxels by finding the extent in x dimension
     width_vox = np.sum(np.any(cc_mask, axis=(1,2)))
 
     # we are in LIA, so 0 is L/R resolution
-    width_mm = width_vox * voxel_size[0]
+    width_mm = width_vox * voxel_width
 
     if width_mm == desired_width_mm:
         return np.sum(cc_mask) * voxel_volume
     elif width_mm > desired_width_mm:
         # remainder on the left/right side of the CC mask
-        desired_width_vox = desired_width_mm / voxel_size[0]
+        desired_width_vox = desired_width_mm / voxel_width
         fraction_of_voxel_at_edge = (desired_width_vox % 1) / 2
 
         if fraction_of_voxel_at_edge > 0: 
@@ -351,15 +352,18 @@ def get_cc_volume_voxel(
     else:
         raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
 
-def get_cc_volume_contour(cc_contours: list[np.ndarray], 
-                         voxel_size: tuple[float, float, float]) -> float:
+
+def get_cc_volume_contour(
+        cc_contours: list[np.ndarray],
+        voxel_size: tuple[float, float, float],
+) -> float:
     """Calculate the volume of the corpus callosum using Simpson's rule.
 
     Parameters
     ----------
     cc_contours : list[np.ndarray]
         List of CC contours for each slice in the left-right direction.
-    voxel_size : tuple[float, float, float]
+    voxel_size : triplet of floats
         Voxel size in millimeters (x, y, z).
 
     Returns
@@ -378,20 +382,28 @@ def get_cc_volume_contour(cc_contours: list[np.ndarray],
     using Simpson's rule. If the CC width is larger than desired_width_mm, the voxels on 
     the edges are calculated as partial volumes to achieve the desired width.
     """
+    # FIXME: This function is a shape-tool, it should therefore not be in segmentation.postprocessing...
+    # FIXME: this code currently produces volume estimates more that 50% off of the volume_based estimate in
+    #        get_cc_volume_voxel...
+
     if len(cc_contours) < 3:
         raise ValueError("Need at least 3 contours for Simpson's rule integration")
-    
+
+    # FIXME: why can we not multiply by those numbers in line below other FIXME comment
+    #        converting this to a warning for now...
+    if voxel_size[1] == voxel_size[2]:
+        logger.warning("voxel sizes in get_cc_volume_contour, currently volume must be isotropic!")
     # Calculate cross-sectional areas for each contour
     areas = []
-    
     for contour in cc_contours:
-        contour = contour.copy()
-        assert voxel_size[1] == voxel_size[2], "volume must be isotropic"
-        contour *= voxel_size[1]
         # Calculate area using the shoelace formula for polygon area
         if contour.shape[1] < 3:
             areas.append(0.0)
         else:
+            # FIXME: we are multiplying by voxel size here and below "Convert from voxel^2 to mm^2", e.g.
+            #        x = contour[0] * voxel_size[1]
+            #        y = contour[1] * voxel_size[2]
+            contour = contour * voxel_size[1]
             x = contour[0]
             y = contour[1]
             # Shoelace formula: A = 0.5 * |sum(x_i * y_{i+1} - x_{i+1} * y_i)|
@@ -399,31 +411,31 @@ def get_cc_volume_contour(cc_contours: list[np.ndarray],
             # Convert from voxel^2 to mm^2
             area_mm2 = area * voxel_size[1] * voxel_size[2]  # y * z voxel dimensions
             areas.append(area_mm2)
-    
+
     areas = np.array(areas)
-    
+
     # Calculate spacing between slices (left-right direction)
     lr_spacing = voxel_size[0]  # x-direction voxel size
 
-    measurement_points = np.arange(-voxel_size[0]*(areas.shape[0]//2), 
-                                    voxel_size[0]*((areas.shape[0]+1)//2), lr_spacing)
-    
-    # interpolate areas at 0.25 and 5
-    areas_interpolated = np.interp(x=[-2.5, 2.5], 
-                                   xp=measurement_points, 
-                                   fp=areas)
+    measurement_points = np.arange(-voxel_size[0]*(areas.shape[0]//2),
+                                   voxel_size[0]*((areas.shape[0]+1)//2), lr_spacing)
 
+    # FIXME: why interpolate at 0.25? Also, why do we need interpolaton at all?
+    # interpolate areas at 0.25 and 5
+    areas_interpolated = np.interp(x=[-2.5, 2.5],
+                                   xp=measurement_points,
+                                   fp=areas)
 
     # remove measurement points that are outside of the desired range
     # not sure if this can happen, but let's be safe
     outside_range = (measurement_points < -2.5) | (measurement_points > 2.5)
     measurement_points = [-2.5] + measurement_points[~outside_range].tolist() + [2.5]
     areas = [areas_interpolated[0]] + areas[~outside_range].tolist() + [areas_interpolated[1]]
-    
-    
+
+
     # can also use trapezoidal rule
     return integrate.simpson(areas, x=measurement_points)
-    
+
 
 def extract_largest_connected_component(
     seg_arr: np.ndarray,

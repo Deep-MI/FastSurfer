@@ -26,6 +26,7 @@ from plotly.io import write_html as plotly_write_html
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.shape.endpoint_heuristic import smooth_contour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
 from FastSurferCNN.utils.common import suppress_stdout
@@ -74,7 +75,7 @@ class CCMesh(lapy.TriaMesh):
         List of vertex indices where thickness was originally measured.
     """
 
-    def __init__(self, num_slices):
+    def __init__(self, num_slices: int):
         """Initialize a CC_Mesh object.
 
         Parameters
@@ -83,15 +84,21 @@ class CCMesh(lapy.TriaMesh):
             Number of slices in the corpus callosum mesh
         """
         super().__init__(np.zeros((3, 3)), np.zeros((3, 3), dtype=int))
-        self.contours = [None] * num_slices
-        self.thickness_values = [None] * num_slices
-        self.start_end_idx = [None] * num_slices
-        self.ac_coords = None
-        self.pc_coords = None
-        self.resolution = None
+        self.contours: list[np.ndarray | None] = [None] * num_slices
+        self.thickness_values: list[np.ndarray | None] = [None] * num_slices
+        self.start_end_idx: list[int | None] = [None] * num_slices
+        self.ac_coords: np.ndarray | None = None
+        self.pc_coords: np.ndarray | None = None
+        self.resolution: tuple[float, float, float] | None = None
+        # FIXME: v and t do not get properly initialized and all the data in the base class are basically unvalidated
+        #        this class needs to be reworked to either:
+        #        A) properly inherit from TriaMesh, calling super().__init__ with the correct values, or
+        #        B) converting it into a Factory class that then outputs a correct TriaMesh object.
+        #        Currently, there are no real behavior "guarantees" of objects, as the internal state of the object is
+        #        very chaotic and uncontrolled with almost no safeguards (and/or debugging).
         self.v = None
         self.t = None
-        self.original_thickness_vertices = [None] * num_slices
+        self.original_thickness_vertices: list[np.ndarray | None] = [None] * num_slices
 
     def add_contour(
         self,
@@ -137,13 +144,13 @@ class CCMesh(lapy.TriaMesh):
         self.ac_coords = ac_coords
         self.pc_coords = pc_coords
 
-    def set_resolution(self, resolution: float):
+    def set_resolution(self, resolution: tuple[float, float, float]):
         """Set the spatial resolution of the mesh.
 
         Parameters
         ----------
-        resolution : float
-            Spatial resolution in millimeters.
+        resolution : triplet of floats
+            LIA-oriented spatial resolution of the mesh.
         """
         self.resolution = resolution
 
@@ -342,7 +349,7 @@ class CCMesh(lapy.TriaMesh):
 
             # Calculate z coordinates for each slice - use same calculation as in create_mesh
             lr_center = self.v[len(self.v) // 2][2]
-            z_coordinates = np.arange(num_slices) * self.resolution - (num_slices // 2) * self.resolution + lr_center
+            z_coordinates = (np.arange(num_slices) - (num_slices // 2)) * self.resolution[0] + lr_center
 
             for i in range(num_slices):
                 if self.contours[i] is not None:
@@ -747,9 +754,7 @@ class CCMesh(lapy.TriaMesh):
             return
 
         # Calculate z coordinates for each slice
-        z_coordinates = (
-            np.arange(len(valid_contours)) * self.resolution - (len(valid_contours) // 2) * self.resolution + lr_center
-        )
+        z_coordinates = (np.arange(len(valid_contours)) - len(valid_contours) // 2) * self.resolution[0] + lr_center
 
         # Build vertices list with z-coordinates
         vertices = []
@@ -1190,6 +1195,7 @@ class CCMesh(lapy.TriaMesh):
             self.fsinfo = None
             # Skip parent initialization since we have no faces
         else:
+            #FIXME: based on this call and CCMesh.__init__, this whole class probably needs a rework.
             super().__init__(np.vstack(vertices), np.vstack(faces))
 
         if thickness_values is not None:
@@ -1587,7 +1593,6 @@ class CCMesh(lapy.TriaMesh):
     def to_fs_coordinates(
         self,
         vox2ras_tkr: np.ndarray,
-        vox_size: tuple[float, float, float],
     ) -> None:
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
@@ -1595,16 +1600,18 @@ class CCMesh(lapy.TriaMesh):
         ----------
         vox2ras_tkr : np.ndarray
             4x4 voxel to RAS tkr-space transformation matrix.
-        vox_size : 3-tuple of floats
-            Voxel size in millimeters (x, y, z).
 
         Notes
         -----
+        Mesh coordinates seem to be in ASR (Anterior-Superior-Right) orientation, with the coordinate system origin on
+        *the* midslice.
+
         The function:
-        1. Converts coordinates from original to LSA orientation.
-        2. Converts to voxel coordinates using voxel size.
-        3. Centers LR coordinates and flips SI coordinates.
-        4. Applies vox2ras_tkr transformation to get final coordinates.
+        1. convert from mesh coordinates (LSA and voxel coordinates) to fsaverage voxel coordinates (LIA, origin).
+           a. Converts coordinates from ASR to LSA orientation.
+           b. Converts to voxel coordinates using voxel size.
+           c. Centers LR coordinates and flips SI coordinates.
+        2. Applies vox2ras_tkr transformation to get final coordinates.
         """
 
         # to voxel coordinates
@@ -1613,9 +1620,13 @@ class CCMesh(lapy.TriaMesh):
         # to LSA
         v_vox = v_vox[:, [2, 1, 0]]
         # to voxel
-        v_vox /= vox_size[0]
+        # FIXME: why are the vertex positions multiplied by voxel size here?
+        #        removed => for center LR, now dividing by resolution => convert fsaverage middle from mm to vox
+        #                => remove the conversion back to mm in the end
+        #        all other operations are independent of order of operations (distributive)
+        # v_vox /= vox_size[0]
         # center LR
-        v_vox[:, 0] += 256 // 2
+        v_vox[:, 0] += FSAVERAGE_MIDDLE / self.resolution[0]
         # flip SI
         v_vox[:, 1] = -v_vox[:, 1]
 
@@ -1629,7 +1640,8 @@ class CCMesh(lapy.TriaMesh):
         # Torig: mri_info --vox2ras-tkr orig.mgz 
         # https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
         self.v = (vox2ras_tkr @ np.concatenate([v_vox, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
-        self.v = self.v * vox_size[0]
+        # FIXME: why are the vertex positions multiplied by voxel size here?
+        # self.v = self.v * vox_size[0]
 
     def write_fssurf(self, filename: Path | str) -> None:
         """Write the mesh to a FreeSurfer surface file.

@@ -139,7 +139,7 @@ def preprocess_volume(
 def run_inference(
         model: torch.nn.Module,
         image_volume: np.ndarray,
-        third_ventricle_center: np.ndarray,
+        patch_center: np.ndarray,
         device: torch.device | None = None,
         transform: transforms.Transform | None = None
     ) -> tuple[npt.NDArray[float], npt.NDArray[float], np.ndarray, tuple[int, int]]:
@@ -152,7 +152,7 @@ def run_inference(
         Trained model for inference.
     image_volume : np.ndarray
         Input volume as numpy array.
-    third_ventricle_center : np.ndarray
+    patch_center : np.ndarray
         Initial center point estimate for cropping.
     device : torch.device, optional
         Device to run inference on, by default None.
@@ -174,10 +174,10 @@ def run_inference(
         device = next(model.parameters()).device
 
     # prepend zero to third_ventricle_center
-    third_ventricle_center = np.concatenate([np.zeros(1), third_ventricle_center])
+    patch_center_3d = np.concatenate([np.zeros(1), patch_center])
     
     # Preprocess
-    t_dict = preprocess_volume(image_volume, third_ventricle_center, transform)
+    t_dict = preprocess_volume(image_volume, patch_center_3d, transform)
 
     transformed_original = t_dict['image']
     inputs = transformed_original.to(device)

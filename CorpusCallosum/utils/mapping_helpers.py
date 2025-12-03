@@ -7,7 +7,7 @@ from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import logging, AffineMatrix4x4
 from FastSurferCNN.utils.parallel import thread_executor
 
 logger = logging.get_logger(__name__)
@@ -201,8 +201,8 @@ def calc_mapping_to_standard_space(
 
 def apply_transform_to_volume(
     orig_image: nib.analyze.SpatialImage,
-    transform: npt.NDArray[float],
-    affine: npt.NDArray[float],
+    vox2vox: AffineMatrix4x4,
+    affine: AffineMatrix4x4,
     header: nib.freesurfer.mghformat.MGHHeader | None = None,
     output_path: str | Path | None = None,
     output_size: np.ndarray | None = None,
@@ -214,14 +214,14 @@ def apply_transform_to_volume(
     ----------
     orig_image : nibabel.analyze.SpatialImage
         Input volume.
-    transform : np.ndarray
-        Transformation matrix to apply.
-    affine : np.ndarray
-        Affine matrix for the output image.
+    vox2vox : np.ndarray
+        Transformation matrix to apply to the data, this is from input-to-output space.
+    affine : AffineMatrix4x4, optional
+        vox2ras matrix of the output image, only relevant if output_path is given.
     header : nib.freesurfer.mghformat.MGHHeader, optional
-        Header for the output image, if None will default to orig_image header.
+        Header for the output image, only relevant if output_path is given, if None will default to orig_image header.
     output_path : str or Path, optional
-        Path to save transformed volume.
+        If output_path is provided, saves the result under this path.
     output_size : np.ndarray, optional
         Size of output volume, uses input size by default (`None`).
     order : int, default=1
@@ -234,23 +234,21 @@ def apply_transform_to_volume(
 
     Notes
     -----
-    Uses scipy.ndimage.affine_transform for the transformation.
-    If output_path is provided, saves the result as a MGH file.
+    Uses `scipy.ndimage.affine_transform` for the transformation, and inverts vox2vox internally as required by
+    `affine_transform`.
     """
     if output_size is None:
         output_size = np.array(orig_image.shape)
     if header is None:
         header = orig_image.header
-    transformed = affine_transform(
-        orig_image.get_data(),
-        np.linalg.inv(transform),
-        output_shape=output_size,
-        order=order,
-    )
+    # transform / resample the volume with vox2vox, note this needs to be the inverse of input2output vox2vox!
+    # affine_transform definition is: input_coord = matrix @ output_coord + offset ( == MATRIX_HOM @ output_coord_hom)
+    # --> output_coord = inv(matrix) @ (input_coord - offset) ( == inv(MATRIX_HOM) @ input_coord_hom)
+    resampled = affine_transform(orig_image.get_fdata(), np.linalg.inv(vox2vox), output_shape=output_size, order=order)
     if output_path is not None:
         logger.info(f"Saving transformed volume to {output_path}")
-        nib.save(nib.MGHImage(transformed.astype(orig_image.get_data_dtype()), affine, header), output_path)
-    return transformed
+        nib.save(nib.MGHImage(resampled.astype(orig_image.get_data_dtype()), affine, header), output_path)
+    return resampled
 
 
 def make_affine(simpleITKImage: sitk.Image) -> npt.NDArray[float]:
@@ -387,7 +385,7 @@ def interpolate_midplane(
     """
 
     # slice_thickness = 9+slices_to_analyze-1
-    # make grid of 9 slices in the fsaverage middle 
+    # make grid of 9 slices in the fsaverage middle
     # (cube from 123.5,0.5,0.5 to 132.5,255.5,255.5 (incudling end points, 1mm spacing))
     x_coords = np.linspace(
         124 - slices_to_analyze // 2,

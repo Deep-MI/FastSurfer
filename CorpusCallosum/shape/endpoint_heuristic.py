@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Literal, overload
 
 import lapy
 import numpy as np
 import scipy.ndimage
 import skimage.measure
 from scipy.ndimage import label
+
+from FastSurferCNN.utils import Vector2d
 
 
 def smooth_contour(x: np.ndarray, y: np.ndarray, window_size: int) -> tuple[np.ndarray, np.ndarray]:
@@ -136,8 +139,8 @@ def extract_cc_contour(cc_mask: np.ndarray, contour_smoothing: int = 5) -> np.nd
     ----------
     cc_mask : np.ndarray
         Binary mask of the corpus callosum.
-    contour_smoothing : int, optional
-        Window size for contour smoothing, by default 5.
+    contour_smoothing : int, default=5
+        Window size for contour smoothing.
 
     Returns
     -------
@@ -163,38 +166,62 @@ def extract_cc_contour(cc_mask: np.ndarray, contour_smoothing: int = 5) -> np.nd
 
     return contour
 
+
+@overload
 def get_endpoints(
-    cc_mask: np.ndarray,
-    AC_2d: np.ndarray,
-    PC_2d: np.ndarray,
-    resolution: float,
-    return_coordinates: bool = True,
+    cc_mask: np.ndarray[tuple[int, int], np.dtype[bool]],
+    ac_2d: Vector2d,
+    pc_2d: Vector2d,
+    resolution: tuple[float, float],
+    return_coordinates: Literal[True],
     contour_smoothing: int = 5
-) -> tuple[np.ndarray, np.ndarray, np.ndarray] | tuple[np.ndarray, int, int]:
+) -> tuple[np.ndarray, tuple[int, int], tuple[Vector2d, Vector2d]]: ...
+
+
+@overload
+def get_endpoints(
+    cc_mask: np.ndarray[tuple[int, int], np.dtype[bool]],
+    ac_2d: Vector2d,
+    pc_2d: Vector2d,
+    resolution: tuple[float, float],
+    return_coordinates: Literal[False] = False,
+    contour_smoothing: int = 5
+) -> tuple[np.ndarray, tuple[int, int]]: ...
+
+
+def get_endpoints(
+    cc_mask: np.ndarray[tuple[int, int], np.dtype[bool]],
+    ac_2d: Vector2d,
+    pc_2d: Vector2d,
+    resolution: tuple[float, float],
+    return_coordinates: bool = False,
+    contour_smoothing: int = 5
+):
     """Determine endpoints of CC by finding points closest to AC and PC.
 
     Parameters
     ----------
-    cc_mask : np.ndarray
+    cc_mask : np.ndarray of shape (H, W) and type bool
         Binary mask of the corpus callosum.
-    AC_2d : np.ndarray
+    ac_2d : np.ndarray of shape (2,) and type float
         2D coordinates of the anterior commissure.
-    PC_2d : np.ndarray
+    pc_2d : np.ndarray of shape (2,) and type float
         2D coordinates of the posterior commissure.
-    resolution : float
-        Image resolution in mm.
-    return_coordinates : bool, optional
-        If True, return endpoint coordinates, otherwise return indices, by default True.
-    contour_smoothing : int, optional
-        Window size for contour smoothing, by default 5.
+    resolution : pair of floats
+        Inslice image resolution in mm (inferior/superior and anterior/posterior directions).
+    return_coordinates : bool, default=False
+        If True, return endpoint coordinates.
+    contour_smoothing : int, default=5
+        Window size for contour smoothing.
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray, np.ndarray] | tuple[np.ndarray, int, int]
-        If return_coordinates is True:
-            (contour, anterior_point, posterior_point).
-        If return_coordinates is False:
-            (contour, anterior_index, posterior_index).
+    contour_rotated : np.ndarray
+        The contour rotated to AC-PC alignment.
+    anterior_posterior_point_indices : pair of ints
+        Indices of anterior and posterior points in the contour.
+    anterior_posterior_point_coordinates : tuple[np.ndarray, np.ndarray]
+        Only if return_coordinates is True: Coordinates of anterior and posterior points rotated to AP-PC alignment.
 
     Notes
     -----
@@ -203,7 +230,7 @@ def get_endpoints(
     image_size = cc_mask.shape
 
     # Calculate angle between AC-PC line and horizontal using numpy
-    ac_pc_vector = PC_2d - AC_2d
+    ac_pc_vector = pc_2d - ac_2d
     horizontal_vector = np.array([0, -20])
     # Calculate angle using dot product formula: cos(theta) = (a·b)/(|a||b|)
     dot_product = np.dot(ac_pc_vector, horizontal_vector)
@@ -223,11 +250,11 @@ def get_endpoints(
     rot_matrix = np.array([[np.cos(-theta), -np.sin(-theta)], [np.sin(-theta), np.cos(-theta)]])
 
     # Translate points to origin, rotate, then translate back
-    pc_centered = PC_2d - origin_point
-    ac_centered = AC_2d - origin_point
+    pc_centered = pc_2d - origin_point
+    ac_centered = ac_2d - origin_point
 
-    rotated_PC_2d = (rot_matrix @ pc_centered) + origin_point
-    rotated_AC_2d = (rot_matrix @ ac_centered) + origin_point
+    rotated_pc_2d = (rot_matrix @ pc_centered) + origin_point
+    rotated_ac_2d = (rot_matrix @ ac_centered) + origin_point
 
     # Add z=0 coordinate to make 3D, then remove it after resampling
     contour_3d = np.vstack([contour, np.zeros(contour.shape[1])])
@@ -236,28 +263,26 @@ def get_endpoints(
     
     contour = contour[:, :-1]
 
-    rotated_AC_2d = np.array(rotated_AC_2d).astype(float)
-    rotated_PC_2d = np.array(rotated_PC_2d).astype(float)
+    rotated_ac_2d = np.array(rotated_ac_2d).astype(float)
+    rotated_pc_2d = np.array(rotated_pc_2d).astype(float)
 
     # move posterior commisure 5 mm posterior
-    rotated_PC_2d = rotated_PC_2d + np.array([10 * resolution, -5 * resolution])
+    # FIXME: why is the move 10mm inferior not commented?
+    # FIXME: multiplication means moving less for smaller voxels, why not division?
+    #        changed to division, 5 mm / voxel size => number of voxels to move
+    rotated_pc_2d = rotated_pc_2d + np.array([10, -5]) / resolution
 
     # move anterior commisure 1.5 mm anterior
-    rotated_AC_2d = rotated_AC_2d + np.array([0, 5 * resolution])
+    # FIXME: why does the documentation say 1.5mm when the code says 5mm?
+    rotated_ac_2d = rotated_ac_2d + np.array([0, 5]) / resolution
 
     # find point in contour closest to AC
-    AC_startpoint_idx = np.argmin(np.linalg.norm(contour - rotated_AC_2d[:, None], axis=0))
+    ac_startpoint_idx = np.argmin(np.linalg.norm(contour - rotated_ac_2d[:, None], axis=0))
 
     # find point in contour closest to PC
-    PC_startpoint_idx = np.argmin(np.linalg.norm(contour - rotated_PC_2d[:, None], axis=0))
+    pc_startpoint_idx = np.argmin(np.linalg.norm(contour - rotated_pc_2d[:, None], axis=0))
 
     # rotate startpoints to original orientation
-    # Create rotation matrix
-    rot_matrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-
-    # rotate contour to original orientation
-    contour_rotated = np.zeros_like(contour)
-
     origin_point = np.array(origin_point).astype(float)
     # Create rotation matrix
     rot_matrix = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
@@ -267,16 +292,8 @@ def get_endpoints(
     contour_rotated = (rot_matrix @ contour_centered) + origin_point[:, None]
 
     if return_coordinates:
-        AC_contour_point = contour[:, AC_startpoint_idx]
-        PC_contour_point = contour[:, PC_startpoint_idx]
+        start_point_ac, start_point_pc = contour_rotated[:, [ac_startpoint_idx, pc_startpoint_idx]].T
 
-        # Translate points to origin, rotate, then translate back
-        ac_centered = AC_contour_point - origin_point
-        pc_centered = PC_contour_point - origin_point
-
-        start_point_A = (rot_matrix @ ac_centered) + origin_point
-        start_point_P = (rot_matrix @ pc_centered) + origin_point
-
-        return contour_rotated, start_point_A, start_point_P
+        return contour_rotated, (ac_startpoint_idx, pc_startpoint_idx), (start_point_ac, start_point_pc)
     else:
-        return contour_rotated, AC_startpoint_idx, PC_startpoint_idx
+        return contour_rotated, (ac_startpoint_idx, pc_startpoint_idx)
