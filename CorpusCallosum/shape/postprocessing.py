@@ -148,6 +148,7 @@ def recon_cc_surf_measures_multi(
         num_slices = 1
         # Process only the middle slice
         slice_iterator = [segmentation.shape[0] // 2]
+        start_slice = segmentation.shape[0] // 2
     elif slice_selection == "all":
         num_slices = segmentation.shape[0]
         start_slice = 0
@@ -156,6 +157,7 @@ def recon_cc_surf_measures_multi(
     else:  # specific slice number
         num_slices = 1
         slice_iterator = [int(slice_selection)]
+        start_slice = int(slice_selection)
 
     it_affine = map(partial(create_slice_affine, upright_affine, fsaverage_middle=FSAVERAGE_MIDDLE), slice_iterator)
 
@@ -168,7 +170,7 @@ def recon_cc_surf_measures_multi(
         for _slice_idx in slice_iterator:
             try:
                 yield _slice_idx, *next(iterator)
-            except ValueError as e:
+            except Exception as e:
                 logger.error(f"Slice {_slice_idx} failed with error: {e}")
                 logger.exception(e)
             except StopIteration:
@@ -179,7 +181,7 @@ def recon_cc_surf_measures_multi(
         # insert
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
-        cc_mesh.add_contour(slice_idx, *contour_with_thickness, start_end_idx=endpoint_idxs)
+        cc_mesh.add_contour(start_slice-slice_idx, *contour_with_thickness, start_end_idx=endpoint_idxs)
         if result is None:
             continue
 
