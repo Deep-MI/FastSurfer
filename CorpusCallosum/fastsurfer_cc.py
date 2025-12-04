@@ -139,8 +139,9 @@ def make_parser() -> argparse.ArgumentParser:
         type=float,
         metavar="FRAC",
         default=_FixFloatFormattingList([1 / 6, 1 / 2, 2 / 3, 3 / 4], ".3f"),
-        help="List of subdivision fractions for the corpus callosum subsegmentation"
-          "(allows for an arbitrary number of fractions).",
+        help="List of subdivision fractions for the corpus callosum subsegmentation."
+          "The method allows for an arbitrary number of fractions."
+          "By default it uses following Hofer-Frahms convention."
     )
     parser.add_argument(
         "--subdivision_method",
@@ -939,8 +940,8 @@ if __name__ == "__main__":
         subject_dir=options.subject_dir,
         slice_selection=options.slice_selection,
         num_thickness_points=options.num_thickness_points,
-        subdivisions=list(options.subdivisions), # default value is type _fmt_list (does not pickle)
-        subdivision_method=str(options.subdivision_method), # default value is type do not print (does not pickle)
+        subdivisions=list(options.subdivisions),
+        subdivision_method=str(options.subdivision_method),
         contour_smoothing=options.contour_smoothing,
         save_template_dir=options.save_template_dir,
         device=options.device,
