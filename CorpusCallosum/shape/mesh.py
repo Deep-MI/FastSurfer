@@ -968,6 +968,7 @@ class CCMesh(lapy.TriaMesh):
         title: str | None = None,
         save_path: str | None = None,
         colorbar: bool = True,
+        mode: str = "p-value",
     ) -> matplotlib.figure.Figure:
         """Plot a contour with levelset visualization.
 
@@ -986,14 +987,15 @@ class CCMesh(lapy.TriaMesh):
             Path to save the plot. If None, displays interactively, by default None.
         colorbar : bool, optional
             Whether to show the colorbar, by default True.
-
+        mode: str, optional
+            Mode of the plot, by default "p-value". Can be "p-value" or "icc".
         Returns
         -------
         matplotlib.figure.Figure
             The created figure object.
         """
 
-        plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])][:100])[
+        plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])])[
             ::-1
         ]
 
@@ -1002,7 +1004,7 @@ class CCMesh(lapy.TriaMesh):
         # make points 3D by adding zero
         points = np.column_stack([points, np.zeros(len(points))])
 
-        levelpaths, _ = self._create_levelpaths(contour_idx, points, trias, num_points=99)
+        levelpaths, _ = self._create_levelpaths(contour_idx, points, trias, num_points=len(plot_values)-2)
 
         outside_contour = self.contours[contour_idx].T
 
@@ -1079,9 +1081,16 @@ class CCMesh(lapy.TriaMesh):
         # Apply the mask to only show values inside the contour
         masked_values = np.where(mask, grid_values, np.nan)
 
-        # Sample colormaps (e.g., 'binary' and 'gist_heat_r')
-        colors1 = plt.cm.binary([0.4] * 128)
-        colors2 = plt.cm.hot(np.linspace(0.8, 0.1, 128))
+
+        if mode == "p-value":
+            # Sample colormaps
+            colors1 = plt.cm.binary([0.4] * 128)
+            colors2 = plt.cm.hot(np.linspace(0.8, 0.1, 128))
+
+            
+        else:
+            colors1 = plt.cm.Blues(np.linspace(0, 1, 128))
+            colors2 = plt.cm.binary([0.4] * 128)
 
         # Combine the color samples
         colors = np.vstack((colors2, colors1))
@@ -1105,7 +1114,7 @@ class CCMesh(lapy.TriaMesh):
             alpha=1,
             interpolation="bilinear",
             vmin=0,
-            vmax=0.10,
+            vmax=0.10 if mode == "p-value" else 1,
             transform=transform,
         )
 
@@ -1117,19 +1126,24 @@ class CCMesh(lapy.TriaMesh):
             alpha=1,
             interpolation="bilinear",
             vmin=0,
-            vmax=0.10,
+            vmax=0.10 if mode == "p-value" else 1,
             # norm=LogNorm(vmin=1e-3, vmax=0.1),  # Set minimum to avoid log(0)
             transform=transform,
         )
 
+        
+
         if colorbar:
             # Add a colorbar
             cbar = plt.colorbar(aspect=10)
-            cbar.ax.set_ylim(0.001, 0.054)
-            cbar.ax.set_yticks([0.0, 0.01, 0.02, 0.03, 0.04, 0.05])
-            # cbar.ax.set_yticks([0.001, 0.01, 0.05])
-            # cbar.ax.set_yticklabels(['0.001', '0.01', '0.05'])
-            cbar.set_label("p-value (log scale)")
+            if mode == "p-value":
+                cbar.ax.set_ylim(0.001, 0.054)
+                cbar.ax.set_yticks([0.0, 0.01, 0.02, 0.03, 0.04, 0.05])
+                cbar.set_label("p-value (log scale)")
+            elif mode == "icc":
+                cbar.ax.set_ylim(0, 1)
+                cbar.ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+                cbar.ax.set_label("Intraclass correlation coefficient")
 
         # Plot the outside contour on top for clear boundary
         plt.plot(outside_contour[0], outside_contour[1], "k-", linewidth=2, label="CC Contour", transform=transform)
