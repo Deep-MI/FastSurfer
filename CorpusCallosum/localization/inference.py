@@ -183,8 +183,7 @@ def run_inference(
     inputs = transformed_original.to(device)
 
     inputs = inputs.transpose(0, 1)
-    batch_size, channels, height, width = inputs.shape
-    inputs = inputs.unfold(0, 3, 1).swapdims(0, 1).reshape(-1, 3*channels, height, width)
+    inputs = inputs.unfold(0, 3, 1).transpose(1, -1)[..., 0]
 
     # Run inference
     with torch.no_grad():
@@ -199,6 +198,7 @@ def run_inference_on_slice(
         model: DenseNet,
         image_slice: np.ndarray,
         center_pt: np.ndarray,
+        num_iterations: int = 2,
         debug_output: str | None = None,
 ) -> tuple[npt.NDArray[float], npt.NDArray[float]]:
     """Run inference on a single slice to detect AC and PC points.
@@ -211,23 +211,26 @@ def run_inference_on_slice(
         3D image mid-slices to run inference on in RAS.
     center_pt : np.ndarray
         Initial center point estimate for cropping.
+    num_iterations : int, default=2
+        Number of refinement iterations to run.
     debug_output : str, optional
         Path to save debug visualization, by default None.
 
     Returns
     -------
     ac_coords : np.ndarray
-        Detected AC coordinates with shape (2,) containing its [y,x] positions.
+        Detected AC voxel coordinates with shape (2,) containing its [y,x] positions.
     pc_coords : np.ndarray
-        Detected PC coordinates with shape (2,) containing its [y,x] positions.
+        Detected PC voxel coordinates with shape (2,) containing its [y,x] positions.
     """
 
     # Run inference
-    pc_coords, ac_coords, *_ = run_inference(model, image_slice, center_pt)
-    center_pt = np.mean(np.concatenate([ac_coords, pc_coords], axis=0), axis=0)
-    pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
-    pc_coords = np.mean(pc_coords, axis=0)
-    ac_coords = np.mean(ac_coords, axis=0)
+    for i in range(num_iterations):
+        pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
+        center_pt = np.mean(np.stack([ac_coords, pc_coords], axis=0), axis=(0, 1))
+    # average ac and pc coords across sagittal slices
+    pc_coords = np.mean(pc_coords, axis=0, keepdims=True)
+    ac_coords = np.mean(ac_coords, axis=0, keepdims=True)
 
     if debug_output is not None:
         import matplotlib.pyplot as plt
@@ -235,12 +238,12 @@ def run_inference_on_slice(
         fig, ax = plt.subplots(1, 1, figsize=(10, 8))
         ax.imshow(image_slice[image_slice.shape[0]//2, :, :], cmap='gray')
         # Plot points on all views
-        ax.scatter(pc_coords[1], pc_coords[0], c='r', marker='x', label='PC')
-        ax.scatter(ac_coords[1], ac_coords[0], c='b', marker='x', label='AC')
+        ax.scatter(pc_coords[:, 1], pc_coords[:, 0], c='r', marker='x', label='PC')
+        ax.scatter(ac_coords[:, 1], ac_coords[:, 0], c='b', marker='x', label='AC')
         # make a box where the crop is
-        ax.add_patch(Rectangle((crop_top, crop_left), 64, 64, fill=False, color='r', linewidth=2))        
+        ax.add_patch(Rectangle((crop_top, crop_left), 64, 64, fill=False, color='r', linewidth=2))
         plt.savefig(debug_output, bbox_inches='tight')
         plt.close()
 
 
-    return ac_coords, pc_coords
+    return ac_coords[0], pc_coords[0]
