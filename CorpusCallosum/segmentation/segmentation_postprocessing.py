@@ -335,11 +335,13 @@ def get_cc_volume_voxel(
         desired_width_vox = desired_width_mm / voxel_size[0]
         fraction_of_voxel_at_edge = (desired_width_vox % 1) / 2
 
-        if fraction_of_voxel_at_edge > 0:
-            desired_width_vox = int(np.floor(desired_width_vox) + 1)
-            desired_width_vox = desired_width_vox + 1 if desired_width_vox % 2 == 0 else desired_width_vox
+        if fraction_of_voxel_at_edge > 0: 
+            # make sure the assumentation is correct that the CC mask has an odd number of voxels 
+            # and the leftmost and rightmost voxels are the edges at the desired width
+            cc_width_vox = int(np.floor(desired_width_vox) + 1)
+            cc_width_vox = cc_width_vox + 1 if cc_width_vox % 2 == 0 else cc_width_vox
 
-            assert cc_mask.shape[0] == desired_width_vox, (f"CC mask should have {desired_width_vox} voxels, "
+            assert cc_mask.shape[0] == cc_width_vox, (f"CC mask should have {cc_width_vox} voxels, "
                                                           f"but has {cc_mask.shape[0]}")
 
         left_partial_volume = np.sum(cc_mask[0]) * voxel_volume * fraction_of_voxel_at_edge

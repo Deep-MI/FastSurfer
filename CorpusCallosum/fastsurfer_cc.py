@@ -138,9 +138,9 @@ def make_parser() -> argparse.ArgumentParser:
         "--subdivisions",
         type=float,
         metavar="FRAC",
-        nargs=4,
         default=_FixFloatFormattingList([1 / 6, 1 / 2, 2 / 3, 3 / 4], ".3f"),
-        help="List of FOUR subdivision fractions for the corpus callosum subsegmentation.",
+        help="List of subdivision fractions for the corpus callosum subsegmentation"
+          "(allows for an arbitrary number of fractions).",
     )
     parser.add_argument(
         "--subdivision_method",
@@ -333,16 +333,22 @@ def options_parse() -> argparse.Namespace:
 
         if not args.aseg_name:
             args.aseg_name = args.subject_dir / DEFAULT_INPUT_PATHS["aseg_name"]
+    else:
+        print("WARNING: Not providing subject_dir leads to discarding of files with relative paths!")
+        args.subject_dir = Path("/dev/null/no-subject-dir-set")
 
     all_paths = ("segmentation", "segmentation_in_orig", "cc_measures", "upright_lta", "orient_volume_lta", "cc_surf",
-                 "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures",  "cc_thickness_overlay",
+                 "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures", "thickness_overlay",
                  "qc_image", "thickness_image", "cc_html")
 
     # Create parent directories for all output paths
     for path_name in all_paths:
         path: Path | None = getattr(args, path_name, None)
         if isinstance(path, Path) and not args.subject_dir and not path.is_absolute():
-            parser.error(f"Must specify --sd and --sid if any path is relative but {path} for {path_name} is relative.")
+            # set path to none in arguments
+            # FIXME: Should there be a check, if a specific "path_name" is mandatory?
+            print(f"WARNING: Not writing {path_name}, because --sd and --sid are not specified and {path} is relative.")
+            setattr(args, path_name, None)
     return args
 
 
@@ -793,11 +799,12 @@ def main(
         fsaverage_middle=FSAVERAGE_MIDDLE,
         cc_subseg_midslice=cc_subseg_midslice,
     ))
-    io_futures.append(thread_executor().submit(
-        nib.save,
-        nib.MGHImage(cc_fn_seg_labels, seg_affine, orig.header),
-        sd.filename_by_attribute("cc_segmentation"),
-    ))
+    if sd.has_attribute("cc_segmentation"):
+        io_futures.append(thread_executor().submit(
+            nib.save,
+            nib.MGHImage(cc_fn_seg_labels, seg_affine, orig.header),
+            sd.filename_by_attribute("cc_segmentation"),
+        ))
 
     METRICS = [
         "areas",
