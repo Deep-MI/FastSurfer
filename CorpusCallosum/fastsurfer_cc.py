@@ -338,20 +338,30 @@ def options_parse() -> argparse.Namespace:
             args.aseg_name = args.subject_dir / DEFAULT_INPUT_PATHS["aseg_name"]
     else:
         print("WARNING: Not providing subject_dir leads to discarding of files with relative paths!")
-        args.subject_dir = Path("/dev/null/no-subject-dir-set")
+        args.subject_dir = None
+        for arg, path in (("--aseg_name", args.aseg_name), ("--conformed_name", args.conf_name)):
+            if path is None or not Path(path).is_absolute():
+                parser.error(
+                    f"When not passing --sd <path>, arguments of --aseg_name and --conformed_name must be "
+                    f"absolute! But the argument passed to {arg} was {path}, i.e. not absolute."
+                )
 
-    all_paths = ("segmentation", "segmentation_in_orig", "cc_measures", "upright_lta", "orient_volume_lta", "cc_surf",
-                 "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures", "thickness_overlay",
-                 "qc_image", "thickness_image", "cc_html")
+        all_paths = ("segmentation", "segmentation_in_orig", "cc_measures", "upright_lta", "orient_volume_lta",
+                     "cc_surf", "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures",
+                     "thickness_overlay", "qc_image", "thickness_image", "cc_html")
 
-    # Create parent directories for all output paths
-    for path_name in all_paths:
-        path: Path | None = getattr(args, path_name, None)
-        if isinstance(path, Path) and not args.subject_dir and not path.is_absolute():
-            # set path to none in arguments
-            # FIXME: Should there be a check, if a specific "path_name" is mandatory?
-            print(f"WARNING: Not writing {path_name}, because --sd and --sid are not specified and {path} is relative.")
-            setattr(args, path_name, None)
+        warnings_paths = []
+        # Create parent directories for all output paths
+        for path_name in all_paths:
+            path: Path | None = getattr(args, path_name, None)
+            if isinstance(path, Path) and not args.subject_dir and not path.is_absolute():
+                # set path to none in arguments
+                warnings_paths.append(path_name)
+                setattr(args, path_name, None)
+        if warnings_paths:
+            _warnings_paths = "' '".join(warnings_paths)
+            print(f"WARNING: Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
+                  f"its paths are relative.")
     return args
 
 
@@ -646,7 +656,7 @@ def main(
     if subdivisions is None:
         subdivisions = [1 / 6, 1 / 2, 2 / 3, 3 / 4]
 
-    subject_dir = Path(subject_dir)
+    subject_dir = Path("/dev/null/no-subject-dir" if subject_dir is None else subject_dir)
 
     logger.info("Starting corpus callosum analysis pipeline")
     logger.info(f"Input MRI: {conf_name}")

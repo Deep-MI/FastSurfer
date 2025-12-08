@@ -130,7 +130,7 @@ def plot_contours(
     split_contours: list[np.ndarray] | None = None,
     midline_equidistant: np.ndarray | None = None,
     levelpaths: list[np.ndarray] | None = None,
-    output_path: str | Path | None = None,
+    output_path: str | Path | list[Path] | None = None,
     ac_coords: np.ndarray | None = None,
     pc_coords: np.ndarray | None = None,
     vox_size: tuple[float, float, float] | None = None,
@@ -148,7 +148,7 @@ def plot_contours(
         Midline points at equidistant spacing (ignore midline on None).
     levelpaths : list[np.ndarray], optional
         List of level paths for visualization (ignore level paths on None).
-    output_path : str or Path, optional
+    output_path : str or Path or list of Paths, optional
         Path to save the plot (do not save on None).
     ac_coords : np.ndarray, optional
         AC coordinates for visualization (ignore AC on None).
@@ -180,7 +180,7 @@ def plot_contours(
     has_first_plot = not (len(_split_contours) == 0 and ac_coords is None and pc_coords is None)
     num_plots = 1 + int(has_first_plot)
 
-    _, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
+    fig, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
 
     # NOTE: For all plots imshow shows y inverted
     current_plot = 0
@@ -219,5 +219,9 @@ def plot_contours(
             a.set_xlim(reference_contour[0, :].min() - padding, reference_contour[0, :].max() + padding)
             a.set_ylim((-reference_contour[1, :]).max() + padding, (-reference_contour[1, :]).min() - padding)
 
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    if output_path is None:
+        return plt.show()
+    for _output_path in (output_path if isinstance(output_path, (list, tuple)) else [output_path]):
+        Path(_output_path).parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(_output_path, dpi=300, bbox_inches="tight")
+    return None

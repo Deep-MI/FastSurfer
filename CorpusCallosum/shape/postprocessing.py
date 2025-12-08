@@ -222,17 +222,21 @@ def recon_cc_surf_measures_multi(
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         cc_measures, contour_in_as_space_and_thickness, endpoint_idxs = _results
         contour_in_as_space, thickness_values = np.split(contour_in_as_space_and_thickness, (2,), axis=1)
-        cc_mesh.add_contour(start_slice-slice_idx, contour_in_as_space, thickness_values[:, 0], start_end_idx=endpoint_idxs)
+        cc_mesh.add_contour(start_slice - slice_idx, contour_in_as_space, thickness_values[:, 0], endpoint_idxs)
         if cc_measures is None:
             # this should not happen, but just in case
             logger.warning(f"Slice index {slice_idx+1}{progress} returned result `None`")
 
         slice_cc_measures.append(cc_measures)
 
-        if logger.getEffectiveLevel() <= logging.INFO and subject_dir.has_attribute("cc_qc_image"):
+        if  subject_dir.has_attribute("cc_qc_image"):
             qc_img = subject_dir.filename_by_attribute("cc_qc_image")
             if logger.getEffectiveLevel() <= logging.DEBUG:
-                qc_img = (qc_img.parent / f"{qc_img.stem}_slice_{slice_idx}{qc_img.suffix}").with_suffix(".png")
+                qc_slice_img = (qc_img.parent / f"{qc_img.stem}_slice_{slice_idx}{qc_img.suffix}").with_suffix(".png")
+                if slice_idx == num_slices // 2:
+                    qc_img = qc_img, qc_slice_img
+                else:
+                    qc_img = qc_slice_img
 
             if logger.getEffectiveLevel() <= logging.DEBUG or slice_idx == num_slices // 2:
                 logger.info(f"Saving segmentation qc image to {qc_img}")
@@ -250,7 +254,7 @@ def recon_cc_surf_measures_multi(
                     ac_coords=ac_coords,
                     pc_coords=pc_coords,
                     vox_size=vox_size,
-                    title=f"CC Subsegmentation by {subdivision_method} (Slice {slice_idx})",
+                    title=f"CC Subsegmentation by {subdivision_method} (Slice {slice_idx + 1})",
                 )
             )
 
@@ -545,7 +549,7 @@ def get_unique_contour_points(split_contours: list[tuple[np.ndarray, np.ndarray]
 def make_subdivision_mask(
     slice_shape: tuple[int, int],
     split_contours: list[tuple[np.ndarray, np.ndarray]],
-    vox_size: tuple[float, float, float]
+    vox_size: tuple[float, float, float],
 ) -> np.ndarray:
     """Create a mask for subdividing the corpus callosum based on split contours.
 
@@ -557,7 +561,7 @@ def make_subdivision_mask(
         List of contours defining the subdivisions.
         Each contour is a tuple of x and y coordinates.
     vox_size : triplet of floats
-
+        The voxel sizes of the image grid in LIA orientation.
 
     Returns
     -------
@@ -574,7 +578,6 @@ def make_subdivision_mask(
     4. For each subdivision line:
     - Tests which points lie to the right of the line.
     - Updates labels for those points.
-
     """
 
     # unique contour points are the points where sub-division lines were inserted
