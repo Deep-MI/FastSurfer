@@ -26,7 +26,7 @@ from pathlib import Path
 
 import nibabel as nib
 import numpy as np
-from read_write import convert_numpy_to_json_serializable, calc_ras_centroids_from_seg
+from read_write import calc_ras_centroids_from_seg, convert_numpy_to_json_serializable
 
 import FastSurferCNN.utils.logging as logging
 

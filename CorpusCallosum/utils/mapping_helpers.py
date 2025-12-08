@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 import nibabel as nib
 import numpy as np
@@ -7,8 +8,10 @@ from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
-from FastSurferCNN.utils import logging, AffineMatrix4x4
+from FastSurferCNN.utils import AffineMatrix4x4, logging
 from FastSurferCNN.utils.parallel import thread_executor
+
+Vector3D = np.ndarray[tuple[Literal[3]], np.dtype[float]]
 
 logger = logging.get_logger(__name__)
 
@@ -117,10 +120,10 @@ def apply_transform_to_pt(pts: npt.NDArray[float], T: npt.NDArray[float], inv: b
 
 def calc_mapping_to_standard_space(
     orig: "nib.Nifti1Image", 
-    ac_coords_3d: npt.NDArray[float], 
-    pc_coords_3d: npt.NDArray[float], 
-    orig_fsaverage_vox2vox: npt.NDArray[float],
-) -> tuple[npt.NDArray[float], npt.NDArray[float], npt.NDArray[float], npt.NDArray[float], npt.NDArray[float]]:
+    ac_coords_3d: Vector3D,
+    pc_coords_3d: Vector3D,
+    orig_fsaverage_vox2vox: AffineMatrix4x4,
+) -> tuple[AffineMatrix4x4, Vector3D, Vector3D, Vector3D, Vector3D]:
     """Get transformations to map image to standard space.
 
     Parameters
@@ -131,7 +134,7 @@ def calc_mapping_to_standard_space(
         AC coordinates in 3D space.
     pc_coords_3d : np.ndarray
         PC coordinates in 3D space.
-    orig_fsaverage_vox2vox : np.ndarray
+    orig_fsaverage_vox2vox : AffineMatrix4x4
         Transformation matrix from original to fsaverage space.
 
     Returns
@@ -153,50 +156,44 @@ def calc_mapping_to_standard_space(
     nod_correct_2d = correct_nodding(ac_coords_3d[1:3], pc_coords_3d[1:3])
 
     # convert 2D nodding correction to 3D transformation matrix
-    nod_correct_3d = np.eye(4)
+    nod_correct_3d: AffineMatrix4x4 = np.eye(4, dtype=float)
     nod_correct_3d[1:3, 1:3] = nod_correct_2d[:2, :2]  # Copy rotation part to y,z axes
     # Copy translation part to y,z axes (usually no translation)
     nod_correct_3d[1:3, 3] = nod_correct_2d[:2, 2]
 
-    ac_coords_after_nodding = apply_transform_to_pt(
-        ac_coords_3d, nod_correct_3d, inv=False
+    ac_coords_after_nodding: Vector3D = apply_transform_to_pt(
+        ac_coords_3d, nod_correct_3d, inv=False,
     )
-    pc_coords_after_nodding = apply_transform_to_pt(
-        pc_coords_3d, nod_correct_3d, inv=False
+    pc_coords_after_nodding: Vector3D = apply_transform_to_pt(
+        pc_coords_3d, nod_correct_3d, inv=False,
     )
 
-    ac_to_center_translation = np.eye(4)
+    ac_to_center_translation: AffineMatrix4x4 = np.eye(4, dtype=float)
     ac_to_center_translation[:3, 3] = image_center - ac_coords_after_nodding
 
     # correct nodding
-    ac_coords_standardized = apply_transform_to_pt(
-        ac_coords_after_nodding, ac_to_center_translation, inv=False
+    ac_coords_standardized: Vector3D = apply_transform_to_pt(
+        ac_coords_after_nodding, ac_to_center_translation, inv=False,
     )
-    pc_coords_standardized = apply_transform_to_pt(
-        pc_coords_after_nodding, ac_to_center_translation, inv=False
+    pc_coords_standardized: Vector3D = apply_transform_to_pt(
+        pc_coords_after_nodding, ac_to_center_translation, inv=False,
     )
 
-    standardized_to_orig_vox2vox = (
+    standardized_to_orig_vox2vox: AffineMatrix4x4 = (
         np.linalg.inv(orig_fsaverage_vox2vox)
         @ np.linalg.inv(nod_correct_3d)
         @ np.linalg.inv(ac_to_center_translation)
     )
 
     # calculate ac & pc in space of mri input image
-    ac_coords_orig = apply_transform_to_pt(
-        ac_coords_standardized, standardized_to_orig_vox2vox, inv=False
+    ac_coords_orig: Vector3D = apply_transform_to_pt(
+        ac_coords_standardized, standardized_to_orig_vox2vox, inv=False,
     )
-    pc_coords_orig = apply_transform_to_pt(
-        pc_coords_standardized, standardized_to_orig_vox2vox, inv=False
+    pc_coords_orig: Vector3D = apply_transform_to_pt(
+        pc_coords_standardized, standardized_to_orig_vox2vox, inv=False,
     )
-
-    return (
-        standardized_to_orig_vox2vox,
-        ac_coords_standardized,
-        pc_coords_standardized,
-        ac_coords_orig,
-        pc_coords_orig,
-    )
+    #FIXME: incorrect docstring
+    return standardized_to_orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig
 
 
 def apply_transform_to_volume(
@@ -217,13 +214,13 @@ def apply_transform_to_volume(
     vox2vox : np.ndarray
         Transformation matrix to apply to the data, this is from input-to-output space.
     affine : AffineMatrix4x4, optional
-        vox2ras matrix of the output image, only relevant if output_path is given.
-    header : nib.freesurfer.mghformat.MGHHeader, optional
+        The vox2ras matrix of the output image, only relevant if output_path is given.
+    header : nibabel.freesurfer.mghformat.MGHHeader, optional
         Header for the output image, only relevant if output_path is given, if None will default to orig_image header.
     output_path : str or Path, optional
         If output_path is provided, saves the result under this path.
     output_size : np.ndarray, optional
-        Size of output volume, uses input size by default (`None`).
+        Size of output volume, uses input size by default `None`.
     order : int, default=1
         Order of interpolation.
 

@@ -224,13 +224,18 @@ def run_inference_on_slice(
         Detected PC voxel coordinates with shape (2,) containing its [y,x] positions.
     """
 
+    if num_iterations < 1:
+        raise ValueError("localization inference with less than 1 iteration is invalid!")
+
+    pc_coords, ac_coords = center_pt[None], center_pt[None]
+    crop_left, crop_top = 0, 0
     # Run inference
-    for i in range(num_iterations):
+    for _ in range(num_iterations):
         pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
         center_pt = np.mean(np.stack([ac_coords, pc_coords], axis=0), axis=(0, 1))
     # average ac and pc coords across sagittal slices
-    pc_coords = np.mean(pc_coords, axis=0, keepdims=True)
-    ac_coords = np.mean(ac_coords, axis=0, keepdims=True)
+    _pc_coords = np.mean(pc_coords, axis=0)
+    _ac_coords = np.mean(ac_coords, axis=0)
 
     if debug_output is not None:
         import matplotlib.pyplot as plt
@@ -245,5 +250,4 @@ def run_inference_on_slice(
         plt.savefig(debug_output, bbox_inches='tight')
         plt.close()
 
-
-    return ac_coords[0], pc_coords[0]
+    return _ac_coords, _pc_coords

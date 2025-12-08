@@ -952,8 +952,8 @@ class CCMesh(lapy.TriaMesh):
         ----------
         contour_idx : int
             Index of the contour to smooth.
-        window_size : int, optional
-            Size of the smoothing window, by default 5.
+        window_size : int, default=5
+            Size of the smoothing window.
 
         Notes
         -----
@@ -969,6 +969,7 @@ class CCMesh(lapy.TriaMesh):
     def plot_cc_contour_with_levelsets(
         self,
         contour_idx: int = 0,
+        #FIXME: levelpaths is not used
         levelpaths: list | None = None,
         title: str | None = None,
         save_path: str | None = None,
@@ -982,28 +983,26 @@ class CCMesh(lapy.TriaMesh):
 
         Parameters
         ----------
-        contour_idx : int, optional
+        contour_idx : int, default=0
             Index of the contour to plot, by default 0.
-        levelpaths : list or None, optional
-            List of levelset paths. If None, uses stored levelpaths, by default None.
-        title : str or None, optional
-            Title for the plot, by default None.
-        save_path : str or None, optional
-            Path to save the plot. If None, displays interactively, by default None.
-        colorbar : bool, optional
-            Whether to show the colorbar, by default True.
-        mode: str, optional
-            Mode of the plot, by default "p-value". Can be "p-value" or "icc".
+        levelpaths : list, optional
+            List of levelset paths. If None, uses stored levelpaths.
+        title : str, optional
+            Title for the plot.
+        save_path : str, optional
+            Path to save the plot. If None, displays interactively.
+        colorbar : bool, default=True
+            Whether to show the colorbar.
+        mode : {"p-value", "icc"}, default="p-value"
+            Mode of the plot.
+        
         Returns
         -------
         matplotlib.figure.Figure
             The created figure object.
         """
 
-        plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])])[
-            ::-1
-        ]
-
+        plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])])[::-1]
         points, trias = make_mesh_from_contour(self.contours[contour_idx], max_volume=0.5, min_angle=25, verbose=False)
 
         # make points 3D by adding zero
@@ -1077,7 +1076,7 @@ class CCMesh(lapy.TriaMesh):
         # Use griddata to perform smooth interpolation - using 'linear' instead of 'cubic'
         # and properly formatting the input points
         grid_values = scipy.interpolate.griddata(
-            (all_level_points_x, all_level_points_y), all_level_values, (x_grid, y_grid), method="linear", fill_value=0
+            (all_level_points_x, all_level_points_y), all_level_values, (x_grid, y_grid), method="linear", fill_value=0,
         )
 
         # smooth the grid_values
@@ -1086,16 +1085,15 @@ class CCMesh(lapy.TriaMesh):
         # Apply the mask to only show values inside the contour
         masked_values = np.where(mask, grid_values, np.nan)
 
-
         if mode == "p-value":
             # Sample colormaps
             colors1 = plt.cm.binary([0.4] * 128)
             colors2 = plt.cm.hot(np.linspace(0.8, 0.1, 128))
-
-            
-        else:
+        elif mode == "icc":
             colors1 = plt.cm.Blues(np.linspace(0, 1, 128))
             colors2 = plt.cm.binary([0.4] * 128)
+        else:
+            raise ValueError(f"Invalid mode '{mode}'")
 
         # Combine the color samples
         colors = np.vstack((colors2, colors1))
@@ -1113,7 +1111,7 @@ class CCMesh(lapy.TriaMesh):
         # Plot the filled contour with interpolated colors
         plt.imshow(
             masked_values,
-            extent=[x_min - margin, x_max + margin, y_min - margin, y_max + margin],
+            extent=(x_min - margin, x_max + margin, y_min - margin, y_max + margin),
             origin="lower",
             cmap=cmap,
             alpha=1,
@@ -1125,7 +1123,7 @@ class CCMesh(lapy.TriaMesh):
 
         plt.imshow(
             masked_values,
-            extent=[x_min - margin, x_max + margin, y_min - margin, y_max + margin],
+            extent=(x_min - margin, x_max + margin, y_min - margin, y_max + margin),
             origin="lower",
             cmap=cmap,
             alpha=1,
@@ -1135,8 +1133,6 @@ class CCMesh(lapy.TriaMesh):
             # norm=LogNorm(vmin=1e-3, vmax=0.1),  # Set minimum to avoid log(0)
             transform=transform,
         )
-
-        
 
         if colorbar:
             # Add a colorbar
@@ -1605,13 +1601,12 @@ class CCMesh(lapy.TriaMesh):
         -----
         Mesh coordinates seem to be in ASR (Anterior-Superior-Right) orientation, with the coordinate system origin on
         *the* midslice.
-
-        The function:
-        1. convert from mesh coordinates (LSA and voxel coordinates) to fsaverage voxel coordinates (LIA, origin).
-           a. Converts coordinates from ASR to LSA orientation.
-           b. Converts to voxel coordinates using voxel size.
-           c. Centers LR coordinates and flips SI coordinates.
-        2. Applies vox2ras_tkr transformation to get final coordinates.
+        The function performs the following:
+        1. Convert from mesh coordinates (LSA and voxel coordinates) to fsaverage voxel coordinates (LIA, origin).
+        a. Convert coordinates from ASR to LSA orientation.
+        b. Convert to voxel coordinates using voxel size.
+        c. Center LR coordinates and flips SI coordinates.
+        2. Apply vox2ras_tkr transformation to get final coordinates.
         """
 
         # to voxel coordinates
