@@ -103,7 +103,7 @@ def run_inference(
     pc_center : np.ndarray
         Posterior commissure coordinates.
     voxel_size : a pair of floats
-        Voxel size fo inferior/superior and anterior/posterior direction in mm.
+        Voxel size of inferior/superior and anterior/posterior direction in mm.
     device : torch.device or None, optional
         Device to run inference on, by default None.
         If None, uses the device of the model.
