@@ -361,7 +361,7 @@ def recon_cc_surf_measure(
         Dictionary containing measurements if successful.
     contour_with_thickness : np.ndarray
         Contour points with thickness information.
-    endpoint_indices : paor of ints
+    endpoint_indices : pair of ints
         Indices of the anterior and posterior endpoints on the contour.
 
     Raises
