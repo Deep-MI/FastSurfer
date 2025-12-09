@@ -27,9 +27,8 @@ from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
-from CorpusCallosum.shape.endpoint_heuristic import smooth_contour
+from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
-from FastSurferCNN.utils.common import suppress_stdout
 
 try:
     from pyrr import Matrix44
@@ -40,6 +39,256 @@ except ImportError:
         pass
 
 logger = logging.get_logger(__name__)
+
+
+
+def _create_cap(
+    points: np.ndarray,
+    trias: np.ndarray,
+    contour: CCContour,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Create a cap mesh for one end of the corpus callosum.
+
+    Parameters
+    ----------
+    points : np.ndarray
+        Array of shape (N, 2) containing mesh points
+    trias : np.ndarray
+        Array of shape (M, 3) containing triangle indices
+    contour : CCContour
+        CCContour object to create cap for
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray, np.ndarray]
+        - level_vertices : Array of vertices for the cap mesh
+        - level_faces : Array of face indices for the cap mesh
+        - level_colors : Array of thickness values for each vertex
+
+    Notes
+    -----
+    The function:
+    1. Creates level paths using _create_levelpaths
+    2. Resamples level paths to fixed number of points
+    3. Creates triangles between consecutive level paths
+    4. Smooths thickness values for visualization
+    """
+    levelpaths, thickness_values = contour._create_levelpaths(points, trias)
+
+    # Create mesh from level paths
+    level_vertices = []
+    level_faces = []
+    level_colors = []
+    vertex_counter = 0
+    sorted_thickness_values = np.array(thickness_values)
+
+    # smooth thickness values
+    for _ in range(3):
+        sorted_thickness_values = gaussian_filter1d(sorted_thickness_values, sigma=5)
+
+    NUM_LEVELPOINTS = 50
+
+    assert len(sorted_thickness_values) == len(levelpaths)
+
+    # TODO: handle gap between first/last levelpath and contour
+    for idx, levelpath1 in enumerate(levelpaths):
+        levelpath1 = lapy.TriaMesh._TriaMesh__iterative_resample_polygon(levelpath1, NUM_LEVELPOINTS)
+        level_vertices.append(levelpath1)
+        level_colors.append(np.full((len(levelpath1)), sorted_thickness_values[idx]))
+        if idx + 1 < len(levelpaths):
+            levelpath2 = lapy.TriaMesh._TriaMesh__iterative_resample_polygon(levelpaths[idx + 1], NUM_LEVELPOINTS)
+
+            # Create faces between the two paths by connecting vertices
+            faces_between = []
+            i, j = 0, 0
+
+            while i < len(levelpath1) - 1 and j < len(levelpath2) - 1:
+                faces_between.append([i, i + 1, len(levelpath1) + j])
+                faces_between.append([i + 1, len(levelpath1) + j + 1, len(levelpath1) + j])
+
+                i += 1
+                j += 1
+
+            while i < len(levelpath1) - 1:
+                faces_between.append([i, i + 1, len(levelpath1) + j])
+                i += 1
+
+            while j < len(levelpath2) - 1:
+                faces_between.append([i, len(levelpath1) + j + 1, len(levelpath1) + j])
+                j += 1
+
+            if faces_between:
+                faces_between = np.array(faces_between)
+                level_faces.append(faces_between + vertex_counter)
+
+        vertex_counter += len(levelpath1)
+
+    # Convert to numpy arrays
+    level_vertices = np.vstack(level_vertices)
+    level_faces = np.vstack(level_faces)
+    level_colors = np.concatenate(level_colors)
+
+    return level_vertices, level_faces, level_colors
+
+
+def make_triangles_between_contours(contour1: np.ndarray, contour2: np.ndarray) -> np.ndarray:
+    """Create a triangular mesh between two contours using a robust method.
+
+    Parameters
+    ----------
+    contour1 : np.ndarray
+        First contour points of shape (N, 2).
+    contour2 : np.ndarray
+        Second contour points of shape (M, 2).
+
+    Returns
+    -------
+    np.ndarray
+        Array of triangle indices of shape (K, 3) where K is the number of triangles.
+
+    Notes
+    -----
+    The function:
+    1. Finds closest point on contour2 to first point of contour1
+    2. Creates triangles by connecting corresponding points
+    3. Handles contours with different numbers of points
+    4. Creates two triangles to form a quad between each pair of points
+    """
+    start_idx_c1 = 0
+    # get closest point on contour2 to contour1[0]
+    start_idx_c2 = np.argmin(np.linalg.norm(contour2 - contour1[0], axis=1))
+
+    triangles = []
+    n1 = len(contour1)
+    n2 = len(contour2)
+
+    for i in range(n1):
+        # Current and next indices for contour1
+        c1_curr = (start_idx_c1 + i) % n1
+        c1_next = (start_idx_c1 + i + 1) % n1
+
+        # Current and next indices for contour2, offset by n1 to account for vertex stacking
+        c2_curr = ((start_idx_c2 + i) % n2) + n1
+        c2_next = ((start_idx_c2 + i + 1) % n2) + n1
+
+        # Create two triangles to form a quad between the contours
+        triangles.append([c1_curr, c2_curr, c1_next])
+        triangles.append([c2_curr, c2_next, c1_next])
+
+    return np.array(triangles)
+
+
+
+def create_CC_mesh_from_contours(contours: list[CCContour], 
+                lr_center: float = 0, 
+                closed: bool = False, 
+                smooth: int = 0) -> None:
+    """Create a surface mesh by triangulating between consecutive contours.
+
+    Parameters
+    ----------
+    contours : list[CCContour]
+        List of CCContour objects to create mesh from.
+    lr_center : float, optional
+        Center position in the left-right axis, by default 0.
+    closed : bool, optional
+        Whether to create a closed mesh by adding caps, by default False.
+    smooth : int, optional
+        Number of smoothing iterations to apply, by default 0.
+
+    Raises
+    ------
+    Warning
+        If no valid contours are found.
+
+    Notes
+    -----
+    The function:
+    1. Filters out None contours.
+    2. Calculates z-coordinates for each slice.
+    3. Creates triangles between adjacent contours.
+    4. Optionally:
+    - Creates caps at both ends.
+    - Applies smoothing.
+    - Colors caps based on thickness values.
+    
+    """
+
+    # Check that all contours have the same resolution
+    resolution = contours[0].resolution
+    for idx, contour in enumerate(contours[1:], start=1):
+        if not np.isclose(contour.resolution, resolution):
+            raise ValueError(
+                f"All contours must have the same resolution. "
+                f"Expected {resolution}, but contour at index {idx} has {contour.resolution}."
+            )
+
+
+    # Calculate z coordinates for each slice
+    z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
+
+    # Build vertices list with z-coordinates
+    vertices = []
+    faces = []
+    vertex_start_indices = []  # Track starting index for each contour
+    current_index = 0
+
+    for i, contour in enumerate(contours):
+        vertex_start_indices.append(current_index)
+        vertices.append(np.hstack([contour.contour, np.full((len(contour.contour), 1), z_coordinates[i])]))
+
+        # Check if there's a next valid contour to connect to
+        if i + 1 < len(contours):
+            contour2 = contours[i + 1]
+            faces_between = make_triangles_between_contours(contour.contour, contour2.contour)
+            faces.append(faces_between + current_index)
+
+        current_index += len(contour.contour)
+
+    vertex_values = np.concatenate([contour.thickness_values for contour in contours])
+
+    
+
+    if smooth > 0:
+        tmp_mesh = CCMesh(vertices, faces, vertex_values=vertex_values)
+        tmp_mesh.smooth_(smooth)
+        vertices = tmp_mesh.v
+        faces = tmp_mesh.t
+        vertex_values = tmp_mesh.mesh_vertex_colors
+
+    if closed:
+        # Close the mesh by creating caps on both ends
+        # Left cap (first slice) - use counterclockwise orientation
+        left_side_points, left_side_trias = make_mesh_from_contour(vertices[: vertex_start_indices[1]][..., :2])
+        left_side_points = np.hstack([left_side_points, np.full((len(left_side_points), 1), z_coordinates[0])])
+
+        # Right cap (last slice) - reverse points for proper orientation
+        right_side_points, right_side_trias = make_mesh_from_contour(vertices[vertex_start_indices[-1] :][..., :2])
+        right_side_points = np.hstack([right_side_points, np.full((len(right_side_points), 1), z_coordinates[-1])])
+
+        color_sides = True
+        if color_sides:
+            left_side_points, left_side_trias, left_side_colors = _create_cap(
+                left_side_points, left_side_trias, 0
+            )
+            right_side_points, right_side_trias, right_side_colors = _create_cap(
+                right_side_points, right_side_trias, len(contours) - 1
+            )
+
+            # reverse right side trias
+            right_side_trias = right_side_trias[:, ::-1]
+
+        left_side_trias = left_side_trias + current_index
+        current_index += len(left_side_points)
+
+        right_side_trias = right_side_trias + current_index
+        current_index += len(right_side_points)
+
+        vertices = [vertices, left_side_points, right_side_points]
+        faces = [faces, left_side_trias, right_side_trias]
+        vertex_values = [vertex_values, left_side_colors, right_side_colors]
+
+    return CCMesh(vertices, faces, vertex_values=vertex_values, resolution=resolution)
 
 
 class CCMesh(lapy.TriaMesh):
@@ -75,83 +324,24 @@ class CCMesh(lapy.TriaMesh):
         List of vertex indices where thickness was originally measured.
     """
 
-    def __init__(self, num_slices: int):
+    def __init__(self, 
+                 vertices: list | np.ndarray, 
+                 faces: list | np.ndarray, 
+                 vertex_values: list | np.ndarray | None = None,
+                 resolution: float = 1.0):
         """Initialize a CC_Mesh object.
 
         Parameters
         ----------
-        num_slices : int
-            Number of slices in the corpus callosum mesh
+        vertices : list or numpy.ndarray
+            List of vertex coordinates or array of shape (N, 3).
+        faces : list or numpy.ndarray
+            List of face indices or array of shape (M, 3).
+        vertex_values : list or numpy.ndarray, optional
+            Vertex values for each vertex (CC thickness values)
         """
-        super().__init__(np.zeros((3, 3)), np.zeros((3, 3), dtype=int))
-        self.contours: list[np.ndarray | None] = [None] * num_slices
-        self.thickness_values: list[np.ndarray | None] = [None] * num_slices
-        self.start_end_idx: list[int | None] = [None] * num_slices
-        self.ac_coords: np.ndarray | None = None
-        self.pc_coords: np.ndarray | None = None
-        self.resolution: tuple[float, float, float] | None = None
-        # FIXME: v and t do not get properly initialized and all the data in the base class are basically unvalidated
-        #        this class needs to be reworked to either:
-        #        A) properly inherit from TriaMesh, calling super().__init__ with the correct values, or
-        #        B) converting it into a Factory class that then outputs a correct TriaMesh object.
-        #        Currently, there are no real behavior "guarantees" of objects, as the internal state of the object is
-        #        very chaotic and uncontrolled with almost no safeguards (and/or debugging).
-        self.v = None
-        self.t = None
-        self.original_thickness_vertices: list[np.ndarray | None] = [None] * num_slices
-
-    def add_contour(
-        self,
-        slice_idx: int,
-        contour: np.ndarray,
-        thickness_values: np.ndarray,
-        start_end_idx: tuple[int, int] | None = None,
-    ):
-        """Add a contour and its associated thickness values for a specific slice.
-
-        Parameters
-        ----------
-        slice_idx : int
-            Index of the slice where the contour should be added.
-        contour : np.ndarray
-            Array of shape (N, 2) containing 2D contour points.
-        thickness_values : np.ndarray
-            Array of thickness measurements for each contour point.
-        start_end_idx : tuple[int, int], optional
-            Tuple containing start and end indices for the contour.
-            If None, defaults to (0, len(contour)//2).
-        """
-        self.contours[slice_idx] = contour
-        self.thickness_values[slice_idx] = thickness_values
-        # write vertex indices where thickness values are not nan
-        self.original_thickness_vertices[slice_idx] = np.where(~np.isnan(thickness_values))[0]
-
-        if start_end_idx is None:
-            self.start_end_idx[slice_idx] = (0, len(contour) // 2)
-        else:
-            self.start_end_idx[slice_idx] = start_end_idx
-
-    def set_acpc_coords(self, ac_coords: np.ndarray, pc_coords: np.ndarray):
-        """Set the coordinates of the anterior and posterior commissure.
-
-        Parameters
-        ----------
-        ac_coords : np.ndarray
-            3D coordinates of the anterior commissure.
-        pc_coords : np.ndarray
-            3D coordinates of the posterior commissure.
-        """
-        self.ac_coords = ac_coords
-        self.pc_coords = pc_coords
-
-    def set_resolution(self, resolution: tuple[float, float, float]):
-        """Set the spatial resolution of the mesh.
-
-        Parameters
-        ----------
-        resolution : triplet of floats
-            LIA-oriented spatial resolution of the mesh.
-        """
+        super().__init__(np.vstack(vertices), np.vstack(faces))
+        self.mesh_vertex_colors = vertex_values
         self.resolution = resolution
 
     def plot_mesh(
@@ -159,10 +349,8 @@ class CCMesh(lapy.TriaMesh):
         output_path: Path | str | None = None,
         colormap: str = "red_to_yellow",
         thickness_overlay: bool = True,
-        show_contours: bool = False,
         show_grid: bool = False,
         color_range: tuple[float, float] | None = None,
-        show_mesh_edges: bool = False,
         legend: str = "",
         threshold: tuple[float, float] | None = None,
     ):
@@ -343,79 +531,6 @@ class CCMesh(lapy.TriaMesh):
 
         fig.add_trace(go.Mesh3d(**mesh_args))
 
-        if show_contours:
-            # Add contour polylines for reference
-            num_slices = len(self.contours)
-
-            # Calculate z coordinates for each slice - use same calculation as in create_mesh
-            lr_center = self.v[len(self.v) // 2][2]
-            z_coordinates = (np.arange(num_slices) - (num_slices // 2)) * self.resolution[0] + lr_center
-
-            for i in range(num_slices):
-                if self.contours[i] is not None:
-                    # Use slice position for z coordinate
-                    z_coord = z_coordinates[i]
-                    contour = self.contours[i]
-
-                    # Create 3D points with fixed z coordinate
-                    v_i = np.hstack([contour, np.full((len(contour), 1), z_coord)])
-
-                    # Close the contour by adding the first point at the end
-                    v_i = np.vstack([v_i, v_i[0]])
-
-                    fig.add_trace(
-                        go.Scatter3d(
-                            x=v_i[:, 0],
-                            y=v_i[:, 1],
-                            z=v_i[:, 2],
-                            mode="lines",
-                            line=dict(color="white", width=2),
-                            opacity=0.5,
-                            hoverinfo="skip",
-                            showlegend=False,
-                        )
-                    )
-        if show_mesh_edges:  # show the mesh edges
-            edge_color = "darkgray"
-            vertices_in_first_contour = len(self.contours[0])
-
-            vertices_to_plot_first = np.concatenate([self.v[:vertices_in_first_contour], self.v[None, 0]])
-            # Add mesh edges for first 900 vertices as one continuous line
-            fig.add_trace(
-                go.Scatter3d(
-                    x=vertices_to_plot_first[:, 0],
-                    y=vertices_to_plot_first[:, 1],
-                    z=vertices_to_plot_first[:, 2],
-                    mode="lines",
-                    line=dict(color=edge_color, width=8),
-                    opacity=1,
-                    hoverinfo="skip",
-                    showlegend=False,
-                )
-            )
-
-            vertices_in_last_contour = len(self.contours[-1])
-
-            vertices_before_last_contour = np.sum([len(c) for c in self.contours[:-1]])
-            vertices_to_plot_last = np.concatenate(
-                [
-                    self.v[vertices_before_last_contour : vertices_before_last_contour + vertices_in_last_contour],
-                    self.v[None, vertices_before_last_contour],
-                ]
-            )
-            fig.add_trace(
-                go.Scatter3d(
-                    x=vertices_to_plot_last[:, 0],
-                    y=vertices_to_plot_last[:, 1],
-                    z=vertices_to_plot_last[:, 2],
-                    mode="lines",
-                    line=dict(color=edge_color, width=8),
-                    opacity=1,
-                    hoverinfo="skip",
-                    showlegend=False,
-                )
-            )
-
         # Calculate axis ranges to maintain equal aspect ratio
         ranges = []
         for i in range(3):
@@ -463,428 +578,8 @@ class CCMesh(lapy.TriaMesh):
             plotly_write_html(fig, temp_path, include_plotlyjs="cdn")
             webbrowser.open(f"file://{temp_path}")
 
-    def get_contour_edge_lengths(self, contour_idx: int) -> np.ndarray:
-        """Get the lengths of the edges of a contour.
 
-        Parameters
-        ----------
-        contour_idx : int
-            Index of the contour to get the edge lengths for.
 
-        Returns
-        -------
-        np.ndarray
-            Array of edge lengths for the contour.
-
-        Notes
-        -----
-        Edge lengths are calculated as Euclidean distances between consecutive points
-        in the contour.
-        """
-        edges = np.diff(self.contours[contour_idx], axis=0)
-        return np.sqrt(np.sum(edges**2, axis=1))
-
-    @staticmethod
-    def make_triangles_between_contours(contour1: np.ndarray, contour2: np.ndarray) -> np.ndarray:
-        """Create a triangular mesh between two contours using a robust method.
-
-        Parameters
-        ----------
-        contour1 : np.ndarray
-            First contour points of shape (N, 2).
-        contour2 : np.ndarray
-            Second contour points of shape (M, 2).
-
-        Returns
-        -------
-        np.ndarray
-            Array of triangle indices of shape (K, 3) where K is the number of triangles.
-
-        Notes
-        -----
-        The function:
-        1. Finds closest point on contour2 to first point of contour1
-        2. Creates triangles by connecting corresponding points
-        3. Handles contours with different numbers of points
-        4. Creates two triangles to form a quad between each pair of points
-        """
-        start_idx_c1 = 0
-        # get closest point on contour2 to contour1[0]
-        start_idx_c2 = np.argmin(np.linalg.norm(contour2 - contour1[0], axis=1))
-
-        triangles = []
-        n1 = len(contour1)
-        n2 = len(contour2)
-
-        for i in range(n1):
-            # Current and next indices for contour1
-            c1_curr = (start_idx_c1 + i) % n1
-            c1_next = (start_idx_c1 + i + 1) % n1
-
-            # Current and next indices for contour2, offset by n1 to account for vertex stacking
-            c2_curr = ((start_idx_c2 + i) % n2) + n1
-            c2_next = ((start_idx_c2 + i + 1) % n2) + n1
-
-            # Create two triangles to form a quad between the contours
-            triangles.append([c1_curr, c2_curr, c1_next])
-            triangles.append([c2_curr, c2_next, c1_next])
-
-        return np.array(triangles)
-
-    def _create_levelpaths(
-        self,
-        contour_idx: int,
-        points: np.ndarray,
-        trias: np.ndarray,
-        num_points: int | None = None
-    ) -> tuple[list[np.ndarray], list[float]]:
-        """Create level paths for thickness measurements.
-
-        Parameters
-        ----------
-        contour_idx : int
-            Index of the contour to process
-        points : np.ndarray
-            Array of shape (N, 2) containing mesh points
-        trias : np.ndarray
-            Array of shape (M, 3) containing triangle indices
-        num_points : int or None, optional
-            Number of points to sample along the midline, by default None
-
-        Returns
-        -------
-        tuple[list[np.ndarray], list[float]]
-            - levelpaths : List of arrays containing level path coordinates
-            - thickness_values : List of thickness values for each level path
-
-        Notes
-        -----
-        The function:
-        1. Creates a triangular mesh from the points
-        2. Finds boundary points and endpoints
-        3. Solves Poisson equation for level sets
-        4. Extracts level paths and interpolates thickness values
-        """
-
-        with suppress_stdout():
-            cc_tria = lapy.TriaMesh(points, trias)
-        # extract boundary curve
-        bdr = np.array(cc_tria.boundary_loops()[0])
-
-        # find index of endpoints in bdr list
-        iidx1 = np.where(bdr == self.start_end_idx[contour_idx][0])[0][0]
-        iidx2 = np.where(bdr == self.start_end_idx[contour_idx][1])[0][0]
-
-        # create boundary condition (0 at endpoints, -1 on one side, 1 on the other):
-        if iidx1 > iidx2:
-            tmp = iidx2
-            iidx2 = iidx1
-            iidx1 = tmp
-        dcond = np.ones(bdr.shape)
-        dcond[iidx1] = 0
-        dcond[iidx2] = 0
-        dcond[iidx1 + 1 : iidx2] = -1
-
-        # Extract path
-        with suppress_stdout():
-            fem = lapy.Solver(cc_tria)
-            vfunc = fem.poisson(0, (bdr, dcond))
-            if num_points is not None:
-                # TODO: do midline stuff
-                level = 0
-                midline_equidistant, midline_length = cc_tria.level_path(vfunc, level, n_points=num_points + 2)
-                midline_equidistant = midline_equidistant[:, :2]
-                eval_points = midline_equidistant
-            else:
-                eval_points = self.contours[contour_idx]
-            gf = lapy.diffgeo.compute_rotated_f(cc_tria, vfunc)
-
-        # interpolate midline to get levels to evaluate
-        gf_interp = scipy.interpolate.griddata(cc_tria.v[:, 0:2], gf, eval_points, method="nearest")
-
-        # sort by value
-        sorting_idx_gf = np.argsort(gf_interp)
-        gf_interp = gf_interp[sorting_idx_gf]
-        sorted_thickness_values = self.thickness_values[contour_idx][sorting_idx_gf]
-
-        # get levels to evaluate
-        # level_length = tria.level_length(gf, gf_interp)
-
-        levelpaths = []
-        thickness_values = []
-
-        for i in range(0, len(eval_points)):
-            level = gf_interp[i]
-            # levelpath starts at index zero
-            if level == 0:
-                continue
-            lvlpath, lvlpath_length, tria_idx = cc_tria.level_path(gf, level, get_tria_idx=True)
-
-            levelpaths.append(lvlpath)
-            thickness_values.append(sorted_thickness_values[i])
-
-        return levelpaths, thickness_values
-
-    def _create_cap(
-        self,
-        points: np.ndarray,
-        trias: np.ndarray,
-        contour_idx: int
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Create a cap mesh for one end of the corpus callosum.
-
-        Parameters
-        ----------
-        points : np.ndarray
-            Array of shape (N, 2) containing mesh points
-        trias : np.ndarray
-            Array of shape (M, 3) containing triangle indices
-        contour_idx : int
-            Index of the contour to create cap for
-
-        Returns
-        -------
-        tuple[np.ndarray, np.ndarray, np.ndarray]
-            - level_vertices : Array of vertices for the cap mesh
-            - level_faces : Array of face indices for the cap mesh
-            - level_colors : Array of thickness values for each vertex
-
-        Notes
-        -----
-        The function:
-        1. Creates level paths using _create_levelpaths
-        2. Resamples level paths to fixed number of points
-        3. Creates triangles between consecutive level paths
-        4. Smooths thickness values for visualization
-        """
-        levelpaths, thickness_values = self._create_levelpaths(contour_idx, points, trias)
-
-        # Create mesh from level paths
-        level_vertices = []
-        level_faces = []
-        level_colors = []
-        vertex_counter = 0
-        sorted_thickness_values = np.array(thickness_values)
-
-        # smooth thickness values
-        from scipy.ndimage import gaussian_filter1d
-
-        for _ in range(3):
-            sorted_thickness_values = gaussian_filter1d(sorted_thickness_values, sigma=5)
-
-        NUM_LEVELPOINTS = 50
-
-        assert len(sorted_thickness_values) == len(levelpaths)
-
-        # TODO: handle gap between first/last levelpath and contour
-        for idx, levelpath1 in enumerate(levelpaths):
-            levelpath1 = lapy.TriaMesh._TriaMesh__iterative_resample_polygon(levelpath1, NUM_LEVELPOINTS)
-            level_vertices.append(levelpath1)
-            level_colors.append(np.full((len(levelpath1)), sorted_thickness_values[idx]))
-            if idx + 1 < len(levelpaths):
-                levelpath2 = lapy.TriaMesh._TriaMesh__iterative_resample_polygon(levelpaths[idx + 1], NUM_LEVELPOINTS)
-
-                # Create faces between the two paths by connecting vertices
-                faces_between = []
-                i, j = 0, 0
-
-                while i < len(levelpath1) - 1 and j < len(levelpath2) - 1:
-                    faces_between.append([i, i + 1, len(levelpath1) + j])
-                    faces_between.append([i + 1, len(levelpath1) + j + 1, len(levelpath1) + j])
-
-                    i += 1
-                    j += 1
-
-                while i < len(levelpath1) - 1:
-                    faces_between.append([i, i + 1, len(levelpath1) + j])
-                    i += 1
-
-                while j < len(levelpath2) - 1:
-                    faces_between.append([i, len(levelpath1) + j + 1, len(levelpath1) + j])
-                    j += 1
-
-                if faces_between:
-                    faces_between = np.array(faces_between)
-                    level_faces.append(faces_between + vertex_counter)
-
-            vertex_counter += len(levelpath1)
-
-        # Convert to numpy arrays
-        level_vertices = np.vstack(level_vertices)
-        level_faces = np.vstack(level_faces)
-        level_colors = np.concatenate(level_colors)
-
-        return level_vertices, level_faces, level_colors
-
-    def create_mesh(self, lr_center: float = 0, closed: bool = False, smooth: int = 0) -> None:
-        """Create a surface mesh by triangulating between consecutive contours.
-
-        Parameters
-        ----------
-        lr_center : float, optional
-            Center position in the left-right axis, by default 0.
-        closed : bool, optional
-            Whether to create a closed mesh by adding caps, by default False.
-        smooth : int, optional
-            Number of smoothing iterations to apply, by default 0.
-
-        Raises
-        ------
-        Warning
-            If no valid contours are found.
-
-        Notes
-        -----
-        The function:
-        1. Filters out None contours.
-        2. Calculates z-coordinates for each slice.
-        3. Creates triangles between adjacent contours.
-        4. Optionally:
-        - Creates caps at both ends.
-        - Applies smoothing.
-        - Colors caps based on thickness values.
-        
-        """
-        # Filter out None contours and get their indices
-        valid_contours = [(i, c) for i, c in enumerate(self.contours) if c is not None]
-        if not valid_contours:
-            logger.warning("Warning: No valid contours found")
-            self.v = np.array([])
-            self.t = np.array([])
-            return
-
-        # Calculate z coordinates for each slice
-        z_coordinates = (np.arange(len(valid_contours)) - len(valid_contours) // 2) * self.resolution[0] + lr_center
-
-        # Build vertices list with z-coordinates
-        vertices = []
-        faces = []
-        vertex_start_indices = []  # Track starting index for each contour
-        current_index = 0
-
-        for i, (_, contour) in enumerate(valid_contours):
-            vertex_start_indices.append(current_index)
-            vertices.append(np.hstack([contour, np.full((len(contour), 1), z_coordinates[i])]))
-
-            # Check if there's a next valid contour to connect to
-            if i + 1 < len(valid_contours):
-                next_idx, contour2 = valid_contours[i + 1]
-                faces_between = self.make_triangles_between_contours(contour, contour2)
-                faces.append(faces_between + current_index)
-
-            current_index += len(contour)
-
-        self.set_mesh(vertices, faces, self.thickness_values)
-
-        if smooth > 0:
-            self.smooth_(smooth)
-
-        if closed:
-            # Close the mesh by creating caps on both ends
-            # Left cap (first slice) - use counterclockwise orientation
-            left_side_points, left_side_trias = make_mesh_from_contour(self.v[: vertex_start_indices[1]][..., :2])
-            left_side_points = np.hstack([left_side_points, np.full((len(left_side_points), 1), z_coordinates[0])])
-
-            # Right cap (last slice) - reverse points for proper orientation
-            right_side_points, right_side_trias = make_mesh_from_contour(self.v[vertex_start_indices[-1] :][..., :2])
-            right_side_points = np.hstack([right_side_points, np.full((len(right_side_points), 1), z_coordinates[-1])])
-
-            color_sides = True
-            if color_sides:
-                left_side_points, left_side_trias, left_side_colors = self._create_cap(
-                    left_side_points, left_side_trias, 0
-                )
-                right_side_points, right_side_trias, right_side_colors = self._create_cap(
-                    right_side_points, right_side_trias, len(self.contours) - 1
-                )
-
-                # reverse right side trias
-                right_side_trias = right_side_trias[:, ::-1]
-
-            left_side_trias = left_side_trias + current_index
-            current_index += len(left_side_points)
-
-            right_side_trias = right_side_trias + current_index
-            current_index += len(right_side_points)
-
-            self.set_mesh(
-                [self.v, left_side_points, right_side_points],
-                [self.t, left_side_trias, right_side_trias],
-                [self.mesh_vertex_colors, left_side_colors, right_side_colors],
-            )
-
-    def fill_thickness_values(self) -> None:
-        """Interpolate missing thickness values using weighted averaging.
-
-        Notes
-        -----
-        The function:
-        1. Processes each contour with missing thickness values.
-        2. For each missing value:
-        - Finds two closest points with known thickness.
-        - Calculates distances along contour.
-        - Computes weighted average based on inverse distance.
-        3. Updates thickness values in place.
-
-        The weights are calculated as inverse distances to ensure closer
-        points have more influence on the interpolated value.
-
-        """
-
-        # For each contour with missing thickness values
-        for i in range(len(self.contours)):
-            if self.contours[i] is None or self.thickness_values[i] is None:
-                continue
-
-            thickness = self.thickness_values[i]
-            edge_lengths = self.get_contour_edge_lengths(i)
-
-            # Find indices of points with known thickness
-            known_idx = np.where(~np.isnan(thickness))[0]
-
-            # For each point with unknown thickness
-            for j in range(len(thickness)):
-                if not np.isnan(thickness[j]):
-                    continue
-
-                # Find two closest points with known thickness
-                distances = np.zeros(len(known_idx))
-                for k, idx in enumerate(known_idx):
-                    # Calculate distance along contour by summing edge lengths
-                    if idx > j:
-                        distances[k] = np.sum(edge_lengths[j:idx])
-                    else:
-                        distances[k] = np.sum(edge_lengths[idx:j])
-
-                # Get indices of two closest points
-                closest_indices = known_idx[np.argsort(distances)[:2]]
-                closest_distances = np.sort(distances)[:2]
-
-                # Calculate weights based on inverse distance
-                weights = 1.0 / closest_distances
-                weights = weights / np.sum(weights)
-
-                # Calculate weighted average thickness
-                thickness[j] = np.sum(weights * thickness[closest_indices])
-
-            self.thickness_values[i] = thickness
-
-    def smooth_thickness_values(self, iterations: int = 1) -> None:
-        """Smooth the thickness values using a Gaussian filter.
-
-        Parameters
-        ----------
-        iterations : int, optional
-            Number of smoothing iterations, by default 1.
-
-        Notes
-        -----
-        Applies Gaussian smoothing with sigma=5 to thickness values
-        for each slice that has measurements.
-        """
-        for i in range(len(self.thickness_values)):
-            if self.thickness_values[i] is not None:
-                self.thickness_values[i] = gaussian_filter1d(self.thickness_values[i], sigma=5)
 
     def plot_contour(self, slice_idx: int, output_path: str) -> None:
         """Plot a single contour with thickness values.
@@ -945,26 +640,7 @@ class CCMesh(lapy.TriaMesh):
         plt.tight_layout()
         plt.savefig(output_path, dpi=300)
 
-    def smooth_contour(self, contour_idx: int, window_size: int = 5) -> None:
-        """Smooth a contour using a moving average filter.
 
-        Parameters
-        ----------
-        contour_idx : int
-            Index of the contour to smooth.
-        window_size : int, default=5
-            Size of the smoothing window.
-
-        Notes
-        -----
-        Uses smooth_contour from cc_endpoint_heuristic module to:
-        1. Extract x and y coordinates.
-        2. Apply moving average smoothing.
-        3. Update contour with smoothed coordinates.
-        """
-        x, y = self.contours[contour_idx].T
-        x, y = smooth_contour(x, y, window_size)
-        self.contours[contour_idx] = np.array([x, y]).T
 
     def plot_cc_contour_with_levelsets(
         self,
@@ -1161,46 +837,7 @@ class CCMesh(lapy.TriaMesh):
             plt.show()
         return fig
 
-    def set_mesh(self, 
-                 vertices: list | np.ndarray, 
-                 faces: list | np.ndarray, 
-                 thickness_values: list | np.ndarray | None = None) -> None:
-        """Set the mesh vertices, faces, and optional thickness values.
-
-        Parameters
-        ----------
-        vertices : list or numpy.ndarray
-            List of vertex coordinates or array of shape (N, 3).
-        faces : list or numpy.ndarray
-            List of face indices or array of shape (M, 3).
-        thickness_values : list or numpy.ndarray, optional
-            Thickness values for each vertex.
-
-        Returns
-        -------
-        None
-            The function does not return anything.
-        """
-        # Handle case when there are no faces (single contour)
-        if not faces:
-            # For single contour, just store vertices without creating a mesh
-            vertices_array = np.vstack(vertices) if vertices else np.array([]).reshape(0, 3)
-            self.v = vertices_array
-            self.t = np.array([]).reshape(0, 3)
-            # Initialize fsinfo attribute that lapy expects
-            self.fsinfo = None
-            # Skip parent initialization since we have no faces
-        else:
-            #FIXME: based on this call and CCMesh.__init__, this whole class probably needs a rework.
-            super().__init__(np.vstack(vertices), np.vstack(faces))
-
-        if thickness_values is not None:
-            # Filter out empty thickness arrays and concatenate
-            valid_thickness = [tv for tv in thickness_values if tv is not None and len(tv) > 0]
-            if valid_thickness:
-                self.mesh_vertex_colors = np.concatenate(valid_thickness)
-            else:
-                self.mesh_vertex_colors = np.array([])
+    
 
     @staticmethod
     def __create_cc_viewmat() -> "Matrix44":
@@ -1352,223 +989,6 @@ class CCMesh(lapy.TriaMesh):
         super().smooth_(iterations)
         self.v[:, 2] = z_values
 
-    def save_contours(self, output_path: Path | str) -> None:
-        """Save the contours to a CSV file.
-
-        Parameters
-        ----------
-        output_path : Path, str
-            Path where to save the CSV file.
-
-        Notes
-        -----
-        The function saves contours in CSV format with:
-        - Header: slice_idx,x,y.
-        - Special lines indicating new contours with endpoint indices.
-        - Each point gets its own row with slice index and coordinates.
-        """
-        logger.info(f"Saving contours to CSV file: {output_path}")
-        with open(output_path, "w") as f:
-            # Write header
-            f.write("slice_idx,x,y\n")
-            # Write data
-            for slice_idx, contour in enumerate(self.contours):
-                if contour is not None:  # Skip empty slices
-                    f.write(
-                        f"New contour, anterior_endpoint_idx={self.start_end_idx[slice_idx][0]}, "
-                        f"posterior_endpoint_idx={self.start_end_idx[slice_idx][1]}\n"
-                    )
-                    for point in contour:
-                        f.write(f"{slice_idx},{point[0]},{point[1]}\n")
-
-    def load_contours(self, input_path: str) -> None:
-        """Load contours from a CSV file.
-
-        Parameters
-        ----------
-        input_path : str
-            Path to the CSV file containing the contours.
-
-        Raises
-        ------
-        ValueError
-            If the file format doesn't match expected structure.
-
-        Notes
-        -----
-        The function:
-        1. Reads CSV file with format matching save_contours output.
-        2. Processes special lines for endpoint indices.
-        3. Reconstructs contours and endpoint indices for each slice.
-        4. Converts lists to fixed-size arrays with None padding.
-        """
-        current_points = []
-        self.contours = []
-        self.start_end_idx = []
-
-        with open(input_path) as f:
-            # Skip header
-            next(f)
-
-            for line in f:
-                if line.startswith("New contour"):
-                    # If we have points from previous contour, save them
-                    if current_points:
-                        self.contours.append(np.array(current_points))
-                        current_points = []
-
-                    # Extract anterior and posterior endpoint indices
-                    # Format: "New contour, anterior_endpoint_idx=X,posterior_endpoint_idx=Y"
-                    parts = line.strip().split(",")
-                    anterior_idx = int(parts[1].split("=")[1])
-                    posterior_idx = int(parts[2].split("=")[1])
-                    self.start_end_idx.append((anterior_idx, posterior_idx))
-                else:
-                    # Parse point data
-                    slice_idx, x, y = line.strip().split(",")
-                    current_points.append([float(x), float(y)])
-
-            # Don't forget to add the last contour
-            if current_points:
-                self.contours.append(np.array(current_points))
-
-        # Convert lists to fixed-size arrays
-        max_slices = max(len(self.contours), len(self.start_end_idx))
-        self.contours = self.contours + [None] * (max_slices - len(self.contours))
-        self.start_end_idx = self.start_end_idx + [None] * (max_slices - len(self.start_end_idx))
-
-    def save_thickness_values(self, output_path: Path | str) -> None:
-        """Save thickness values to a CSV file.
-
-        Parameters
-        ----------
-        output_path : Path, str
-            Path where to save the CSV file.
-
-        Notes
-        -----
-        The function saves thickness values in CSV format with:
-        - Header: slice_idx,thickness.
-        - Each thickness value gets its own row with slice index.
-        - Skips slices with no thickness values.
-        """
-        logger.info(f"Saving thickness data to CSV file: {output_path}")
-        with open(output_path, "w") as f:
-            # Write header
-            f.write("slice_idx,thickness\n")
-            # Write data
-            for slice_idx, thickness in enumerate(self.thickness_values):
-                if thickness is not None:  # Skip empty slices
-                    for value in thickness:
-                        f.write(f"{slice_idx},{value}\n")
-
-    def load_thickness_values(
-        self,
-        input_path: str,
-        original_thickness_vertices_path: str | None = None
-    ) -> None:
-        """Load thickness values from a CSV file.
-
-        Parameters
-        ----------
-        input_path : str
-            Path to the CSV file containing thickness values.
-        original_thickness_vertices_path : str or None, optional
-            Path to a file containing the indices of vertices where thickness
-            was measured, by default None.
-
-        Raises
-        ------
-        ValueError
-            If number of thickness values doesn't match measurement points
-            or if number of slices is inconsistent.
-
-        Notes
-        -----
-        The function:
-        1. Reads thickness values from CSV file.
-        2. Groups values by slice index.
-        3. Optionally associates values with specific vertices.
-        4. Handles both full contour and profile measurements.
-
-        
-        """
-        data = np.loadtxt(input_path, delimiter=",", skiprows=1)
-        slice_indices = data[:, 0].astype(int)
-        values = data[:, 1]
-
-        # Group values by slice_idx
-        unique_slices = np.unique(slice_indices)
-
-        # split data into slices
-        loaded_thickness_values = [None] * (max(unique_slices) + 1)
-        for slice_idx in unique_slices:
-            mask = slice_indices == slice_idx
-            loaded_thickness_values[slice_idx] = values[mask]
-
-        if original_thickness_vertices_path is None:
-            # check that the number of thickness values for each slice is equal to the number of points in the contour
-            for slice_idx, thickness in enumerate(loaded_thickness_values):
-                if thickness is not None:
-                    assert len(thickness) == len(self.contours[slice_idx]), (
-                        "Number of thickness values does not match number of points in the contour, maybe you need to "
-                        "provide the measurement points file"
-                    )
-            # fill original_thickness_vertices with all indices
-            self.original_thickness_vertices = [
-                np.arange(len(self.contours[slice_idx])) for slice_idx in range(len(self.contours))
-            ]
-        else:
-            loaded_original_thickness_vertices = self._load_thickness_measurement_points(
-                original_thickness_vertices_path
-            )
-
-            if len(loaded_original_thickness_vertices) != len(loaded_thickness_values):
-                raise ValueError(
-                    "Number of slices in measurement points does not match number of "
-                    "slices in provided thickness values"
-                )
-
-            # check that original_thickness_vertices is equal to number of measurement points for each slice
-            for slice_idx, vertex_indices in enumerate(loaded_original_thickness_vertices):
-                if len(vertex_indices) // 2 == len(loaded_thickness_values[slice_idx]) or len(
-                    vertex_indices
-                ) // 2 == np.sum(~np.isnan(loaded_thickness_values[slice_idx])):
-                    is_thickness_profile = True
-                elif len(vertex_indices) == len(loaded_thickness_values[slice_idx]) or len(vertex_indices) == np.sum(
-                    ~np.isnan(loaded_thickness_values[slice_idx])
-                ):
-                    is_thickness_profile = False
-                else:
-                    raise ValueError("Number of measurement points does not match number of thickness values")
-
-            # create nan thickness value array for each slice
-            new_thickness_values = [
-                np.full(len(self.contours[slice_idx]), np.nan) for slice_idx in range(len(self.contours))
-            ]
-            for slice_idx, vertex_indices in enumerate(loaded_original_thickness_vertices):
-                if is_thickness_profile:
-                    new_thickness_values[slice_idx][vertex_indices] = np.concatenate(
-                        [loaded_thickness_values[slice_idx], loaded_thickness_values[slice_idx][::-1]]
-                    )
-                else:
-                    try:
-                        new_thickness_values[slice_idx][vertex_indices] = loaded_thickness_values[slice_idx][
-                            ~np.isnan(loaded_thickness_values[slice_idx])]
-                    except IndexError as err:
-                        logger.error(
-                            f"Tried to load "
-                            f"{loaded_thickness_values[slice_idx][~np.isnan(loaded_thickness_values[slice_idx])]} "
-                            f"values, but template has {new_thickness_values[slice_idx][vertex_indices]} values, "
-                            "supply a correct template to visualize the thickness values"
-                        )
-                        raise ValueError(
-                            f"Tried to load "
-                            f"{loaded_thickness_values[slice_idx][~np.isnan(loaded_thickness_values[slice_idx])]} "
-                            f"values, but template has {new_thickness_values[slice_idx][vertex_indices]} values, "
-                            "supply a correct template to visualize the thickness values"
-                        ) from err
-            self.thickness_values = new_thickness_values
 
     @staticmethod
     def __make_parent_folder(filename: Path | str) -> None:
@@ -1621,7 +1041,7 @@ class CCMesh(lapy.TriaMesh):
         #        all other operations are independent of order of operations (distributive)
         # v_vox /= vox_size[0]
         # center LR
-        v_vox[:, 0] += FSAVERAGE_MIDDLE / self.resolution[0]
+        v_vox[:, 0] += FSAVERAGE_MIDDLE / self.resolution
         # flip SI
         v_vox[:, 1] = -v_vox[:, 1]
 
@@ -1653,7 +1073,7 @@ class CCMesh(lapy.TriaMesh):
         self.__make_parent_folder(filename)
         return super().write_fssurf(filename)
 
-    def write_overlay(self, filename: Path | str) -> None:
+    def write_morph_data(self, filename: Path | str) -> None:
         """Write the thickness values as a FreeSurfer overlay file.
 
         Parameters
@@ -1667,64 +1087,3 @@ class CCMesh(lapy.TriaMesh):
         """
         self.__make_parent_folder(filename)
         return nib.freesurfer.write_morph_data(filename, self.mesh_vertex_colors)
-
-    def save_thickness_measurement_points(self, filename: Path | str) -> None:
-        """Write the thickness measurement points to a CSV file.
-
-        Parameters
-        ----------
-        filename : Path, str
-            Path where to save the CSV file.
-
-        Notes
-        -----
-        The function saves measurement points in CSV format with:
-        - Header: slice_idx,vertex_idx.
-        - Each measurement point gets its own row.
-        - Skips slices with no measurement points.
-        """
-        self.__make_parent_folder(filename)
-        logger.info(f"Saving thickness measurement points to CSV file: {filename}")
-        with open(filename, "w") as f:
-            f.write("slice_idx,vertex_idx\n")
-            for slice_idx, vertex_indices in enumerate(self.original_thickness_vertices):
-                if vertex_indices is not None:
-                    for vertex_idx in vertex_indices:
-                        f.write(f"{slice_idx},{vertex_idx}\n")
-
-    @staticmethod
-    def _load_thickness_measurement_points(filename: str) -> list[np.ndarray | None]:
-        """Load thickness measurement points from a CSV file.
-
-        Parameters
-        ----------
-        filename : str
-            Path to the CSV file containing measurement points.
-
-        Returns
-        -------
-        list[np.ndarray | None]
-            List of arrays containing vertex indices for each slice where
-            thickness was measured. None for slices without measurements.
-
-        Notes
-        -----
-        The function:
-        1. Reads CSV file with format: slice_idx,vertex_idx
-        2. Groups vertex indices by slice index
-        3. Creates a list with length matching max slice index
-        4. Fills list with vertex indices arrays or None for missing slices
-        """
-        data = np.loadtxt(filename, delimiter=",", skiprows=1)
-        slice_indices = data[:, 0].astype(int)
-        vertex_indices = data[:, 1].astype(int)
-
-        # Group values by slice_idx
-        unique_slices = np.unique(slice_indices)
-
-        # split data into slices
-        original_thickness_vertices = [None] * (max(unique_slices) + 1)
-        for slice_idx in unique_slices:
-            mask = slice_indices == slice_idx
-            original_thickness_vertices[slice_idx] = vertex_indices[mask]
-        return original_thickness_vertices

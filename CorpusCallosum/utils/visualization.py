@@ -14,6 +14,7 @@
 
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
@@ -168,6 +169,9 @@ def plot_contours(
 
     if vox_size is None and None in (split_contours, midline_equidistant, levelpaths):
         raise ValueError("vox_size must be provided if split_contours, midline_equidistant, or levelpaths are given.")
+    
+    if output_path is not None:
+        matplotlib.use('Agg')  # Use non-GUI backend
 
     # convert vox_size from LIA to AS
     vox_size_ras = np.asarray([vox_size[0], vox_size[2], vox_size[1]]) if vox_size is not None else None
