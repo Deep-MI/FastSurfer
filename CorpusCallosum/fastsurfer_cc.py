@@ -183,112 +183,113 @@ def make_parser() -> argparse.ArgumentParser:
     )
     add_arguments(advanced, ["threads"])
     advanced.add_argument(
-        "--upright_volume",
-        type=path_or_none,
-        help="Path for upright volume output.",
-        default=None,
-    )
-    advanced.add_argument(
         "--segmentation", "--seg",
         type=path_or_none,
-        help="Path for corpus callosum and fornix segmentation 3D image.",
+        help="Output path for corpus callosum and fornix segmentation output.",
         default=Path(DEFAULT_OUTPUT_PATHS["segmentation"]),
+    )
+    advanced.add_argument(
+        "--segmentation_in_orig",
+        type=path_or_none,
+        help="Output path for corpus callosum and fornix segmentation output in the input MRI space.",
+        default=DEFAULT_OUTPUT_PATHS["segmentation_in_orig"],
     )
     advanced.add_argument(
         "--cc_measures",
         type=path_or_none,
-        help="Path for surface-based corpus callosum measures describing shape and volume for each image slice.",
+        help="Output path for surface-based corpus callosum measures describing shape and volume for each image slice.",
         default=Path(DEFAULT_OUTPUT_PATHS["cc_measures"]),
     )
     advanced.add_argument(
         "--cc_mid_measures",
         type=path_or_none,
-        help="Path for surface-based corpus callosum measures of the midslice describing CC shape and volume.",
+        help="Output path for surface-based corpus callosum measures of the midslice describing CC shape and volume.",
         default=DEFAULT_OUTPUT_PATHS["cc_markers"],
     )
     advanced.add_argument(
         "--upright_lta",
         type=path_or_none,
-        help="Path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, but no nodding "
-             "correction is applied.",
+        help="Output path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, "
+             "but no nodding correction is applied.",
         default=DEFAULT_OUTPUT_PATHS["upright_lta"],
+    )
+    advanced.add_argument(
+        "--upright_volume",
+        type=path_or_none,
+        help="Output path for upright volume (input image with cc_up.lta applied).",
+        default=None,
     )
     advanced.add_argument(
         "--orient_volume_lta",
         type=path_or_none,
-        help="Path for orientation volume LTA transform. This makes sure the midplane is at 128 in LR direction, and "
-             "the anterior and posterior commisures are on the coordinate line, standardizing the head orientation.",
+        help="Output path for orientation volume LTA transform. This makes sure the midplane is the volume center, "
+             "the anterior and posterior commisures are on the coordinate line, and the posterior commissure is "
+             "at the origin - standardizing the head position.",
         default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
-    )
-    advanced.add_argument(
-        "--segmentation_in_orig",
-        type=path_or_none,
-        help="Path for corpus callosum and fornix segmentation in the input MRI space.",
-        default=DEFAULT_OUTPUT_PATHS["segmentation_in_orig"],
     )
     advanced.add_argument(
         "--qc_image",
         type=path_or_none,
-        help="Path for QC visualization image .",
+        help="Output path for QC visualization image.",
         default=DEFAULT_OUTPUT_PATHS["qc_image"],
     )
     advanced.add_argument(
         "--save_template_dir",
         type=path_or_none,
         help="Directory path where to save contours.txt and thickness_values.txt files. These files can be used to "
-             "visualize the CC shape and volume in 3D.",
+             "visualize the CC shape and volume with the cc_visualization.py script.",
         default=None,
     )
     advanced.add_argument(
         "--thickness_image",
         type=path_or_none,
-        help="Path for thickness image.",
+        help="Output path for thickness image.",
         default=DEFAULT_OUTPUT_PATHS["thickness_image"],
     )
     advanced.add_argument(
         "--surf",
         dest="cc_surf",
         type=path_or_none,
-        help="Path for surf file.",
+        help="Output path for surf file.",
         default=DEFAULT_OUTPUT_PATHS["cc_surf"],
     )
     advanced.add_argument(
         "--thickness_overlay",
         type=path_or_none,
-        help="Path for corpus callosum thickness overlay file.",
+        help="Output path for corpus callosum thickness overlay file.",
         default=DEFAULT_OUTPUT_PATHS["cc_thickness_overlay"],
     )
     advanced.add_argument(
         "--cc_interactive_html", "--cc_html",
         dest="cc_html",
         type=path_or_none,
-        help="Path to the corpus callosum interactive 3D visualization HTML file.",
+        help="Output path to the corpus callosum interactive 3D visualization HTML file.",
         default=DEFAULT_OUTPUT_PATHS["cc_html"],
     )
     advanced.add_argument(
         "--cc_surf_vtk",
         type=path_or_none,
-        help=f"Path for vtk file, showing the CC 3D mesh. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
+        help=f"Output path for vtk file, showing the CC 3D mesh. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_cc",
         type=path_or_none,
-        help=f"Path for corpus callosum softlabels, which contains the soft labels of each voxel. "
+        help=f"Output path for corpus callosum softlabels, which contains the soft labels of each voxel. "
              f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_cc']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_fn",
         type=path_or_none,
-        help=f"Path for fornix softlabels, which contains the soft labels of each voxel. "
+        help=f"Output path for fornix softlabels, which contains the soft labels of each voxel. "
              f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_fn']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_background",
         type=path_or_none,
-        help=f"Path for background softlabels, which contains the probability of each voxel. "
+        help=f"Output path for background softlabels, which contains the probability of each voxel. "
              f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_background']}.",
         default=None,
     )
