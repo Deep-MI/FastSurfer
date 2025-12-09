@@ -19,8 +19,9 @@ import numpy as np
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, FSAVERAGE_MIDDLE, SUBSEGMENT_LABELS
+from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.endpoint_heuristic import get_endpoints
-from CorpusCallosum.shape.mesh import CCMesh
+from CorpusCallosum.shape.mesh import CCMesh, create_CC_mesh_from_contours
 from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
     get_primary_eigenvector,
@@ -213,16 +214,14 @@ def recon_cc_surf_measures_multi(
     per_slice_vox2ras = fsavg_vox2ras @ np.stack(list(map(_gen_fsavg2slice_vox2vox, slices_to_recon)), axis=0)
 
     per_slice_recon = process_executor().map(_each_slice, slices_to_recon, per_slice_vox2ras, chunksize=1)
-    cc_mesh = CCMesh(num_slices=num_slices)
-    cc_mesh.set_acpc_coords(ac_coords, pc_coords)
-    cc_mesh.set_resolution(vox_size)
+    cc_contours = []
 
     for i, (slice_idx, _results) in enumerate(zip(slices_to_recon, per_slice_recon, strict=True)):
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         cc_measures, contour_in_as_space_and_thickness, endpoint_idxs = _results
         contour_in_as_space, thickness_values = np.split(contour_in_as_space_and_thickness, (2,), axis=1)
-        cc_mesh.add_contour(start_slice - slice_idx, contour_in_as_space, thickness_values[:, 0], endpoint_idxs)
+        cc_contours.append(CCContour(contour_in_as_space, thickness_values[:, 0], endpoint_idxs, resolution=vox_size[0]))
         if cc_measures is None:
             # this should not happen, but just in case
             logger.warning(f"Slice index {slice_idx+1}{progress} returned result `None`")
@@ -265,27 +264,24 @@ def recon_cc_surf_measures_multi(
         template_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
                     f"thickness_measurement_points.txt) to {template_dir}")
-        io_futures.extend([
-            thread_executor().submit(cc_mesh.save_contours, template_dir / "contours.txt"),
-            thread_executor().submit(cc_mesh.save_thickness_values, template_dir / "thickness_values.txt"),
-            thread_executor().submit(
-                cc_mesh.save_thickness_measurement_points,
-                template_dir / "thickness_measurement_points.txt",
-            ),
-        ])
+        for j in range(len(cc_contours)):
+            io_futures.extend([
+                thread_executor().submit(cc_contours[j].save_contour, template_dir / f"contour_{j}.txt"),
+                thread_executor().submit(cc_contours[j].save_thickness_values,
+                                         template_dir / f"thickness_values_{j}.txt"),
+                thread_executor().submit(cc_contours[j].save_thickness_measurement_points,
+                                         template_dir / f"thickness_measurement_points_{j}.txt"),
+            ])
 
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
-    if len(cc_mesh.contours) > 1 and any(subject_dir.has_attribute(f"cc_{n}") for n in mesh_outputs):
-        cc_mesh.fill_thickness_values()
-        cc_mesh.create_mesh()
-        cc_mesh.smooth_(1)
+    if len(cc_contours) > 1 and any(subject_dir.has_attribute(f"cc_{n}") for n in mesh_outputs):
+        for j in range(len(cc_contours)):
+            cc_contours[j].fill_thickness_values()
+        cc_mesh = create_CC_mesh_from_contours(cc_contours, smooth=1)
         if subject_dir.has_attribute("cc_html"):
             logger.info(f"Saving CC 3D visualization to {subject_dir.filename_by_attribute('cc_html')}")
             io_futures.append(thread_executor().submit(
-                cc_mesh.plot_mesh,
-                output_path=subject_dir.filename_by_attribute("cc_html"),
-                show_mesh_edges=True,
-            ))
+                cc_mesh.plot_mesh,output_path=subject_dir.filename_by_attribute("cc_html")))
 
         if subject_dir.has_attribute("cc_mesh"):
             vtk_file_path = subject_dir.filename_by_attribute("cc_mesh")
@@ -296,7 +292,7 @@ def recon_cc_surf_measures_multi(
         if subject_dir.has_attribute("cc_thickness_overlay"):
             overlay_file_path = subject_dir.filename_by_attribute("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
-            io_futures.append(thread_executor().submit(cc_mesh.write_overlay, overlay_file_path))
+            io_futures.append(thread_executor().submit(cc_mesh.write_morph_data, overlay_file_path))
 
         if subject_dir.has_attribute("cc_surf"):
             surf_file_path = subject_dir.filename_by_attribute("cc_surf")
