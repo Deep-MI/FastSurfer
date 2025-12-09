@@ -16,12 +16,9 @@ import tempfile
 from pathlib import Path
 
 import lapy
-import matplotlib
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import plotly.graph_objects as go
-import scipy.interpolate
 from plotly.io import write_html as plotly_write_html
 from scipy.ndimage import gaussian_filter1d
 
@@ -269,10 +266,10 @@ def create_CC_mesh_from_contours(contours: list[CCContour],
         color_sides = True
         if color_sides:
             left_side_points, left_side_trias, left_side_colors = _create_cap(
-                left_side_points, left_side_trias, 0
+                left_side_points, left_side_trias, contours[0]
             )
             right_side_points, right_side_trias, right_side_colors = _create_cap(
-                right_side_points, right_side_trias, len(contours) - 1
+                right_side_points, right_side_trias, contours[-1]
             )
 
             # reverse right side trias
@@ -304,24 +301,14 @@ class CCMesh(lapy.TriaMesh):
 
     Attributes
     ----------
-    contours : list[np.ndarray]
-        List of numpy arrays containing 2D contour points for each slice.
-    thickness_values : list[np.ndarray]
-        List of thickness measurements for each contour point.
-    start_end_idx : list[tuple[int, int]]
-        List of tuples containing start and end indices for each contour.
-    ac_coords : np.ndarray
-        Coordinates of the anterior commissure.
-    pc_coords : np.ndarray
-        Coordinates of the posterior commissure.
-    resolution : float
-        Spatial resolution of the mesh.
     v : np.ndarray
         Vertex coordinates of the mesh.
     t : np.ndarray
         Triangle indices of the mesh.
-    original_thickness_vertices : list[np.ndarray]
-        List of vertex indices where thickness was originally measured.
+    mesh_vertex_colors : np.ndarray
+        Vertex values for each vertex (CC thickness values)
+    resolution : float
+        Spatial resolution of the mesh in millimeters.
     """
 
     def __init__(self, 
@@ -339,6 +326,8 @@ class CCMesh(lapy.TriaMesh):
             List of face indices or array of shape (M, 3).
         vertex_values : list or numpy.ndarray, optional
             Vertex values for each vertex (CC thickness values)
+        resolution : float, optional
+            Spatial resolution of the mesh in millimeters, by default 1.0.
         """
         super().__init__(np.vstack(vertices), np.vstack(faces))
         self.mesh_vertex_colors = vertex_values
@@ -579,266 +568,6 @@ class CCMesh(lapy.TriaMesh):
             webbrowser.open(f"file://{temp_path}")
 
 
-
-
-    def plot_contour(self, slice_idx: int, output_path: str) -> None:
-        """Plot a single contour with thickness values.
-
-        Parameters
-        ----------
-        slice_idx : int
-            Index of the slice to plot.
-        output_path : str
-            Path where to save the plot.
-
-        Raises
-        ------
-        ValueError
-            If the contour for the specified slice is not set.
-
-        Notes
-        -----
-        Creates a 2D visualization with:
-        - Points colored by thickness values.
-        - Gray points for missing thickness values.
-        - Connected contour line.
-        - Grid, labels, and legend.
-        """
-        self.__make_parent_folder(output_path)
-
-        if self.contours[slice_idx] is None:
-            raise ValueError(f"Contour for slice {slice_idx} is not set")
-
-        contour = self.contours[slice_idx]
-
-        plt.figure(figsize=(15, 10))
-        # Get thickness values for this slice
-        thickness = self.thickness_values[slice_idx]
-
-        # Plot points with colors based on thickness
-        for i in range(len(contour)):
-            if np.isnan(thickness[i]):
-                plt.plot(contour[i, 0], contour[i, 1], "o", color="gray", markersize=1)
-            else:
-                # Map thickness to color from red to yellow
-                plt.plot(
-                    contour[i, 0],
-                    contour[i, 1],
-                    "o",
-                    color=plt.cm.YlOrRd(thickness[i] / np.nanmax(thickness)),
-                    markersize=1,
-                )
-
-        # Connect points with lines
-        plt.plot(contour[:, 0], contour[:, 1], "-", color="black", alpha=0.3, label="Contour")
-        plt.axis("equal")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.title(f"CC contour for slice {slice_idx}")
-        plt.legend()
-        plt.grid(True)
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300)
-
-
-
-    def plot_cc_contour_with_levelsets(
-        self,
-        contour_idx: int = 0,
-        #FIXME: levelpaths is not used
-        levelpaths: list | None = None,
-        title: str | None = None,
-        save_path: str | None = None,
-        colorbar: bool = True,
-        mode: str = "p-value",
-    ) -> matplotlib.figure.Figure:
-        """Plot a contour with levelset visualization.
-
-        Creates a visualization of a contour with interpolated levelsets, useful for
-        analyzing the thickness distribution across the corpus callosum.
-
-        Parameters
-        ----------
-        contour_idx : int, default=0
-            Index of the contour to plot, by default 0.
-        levelpaths : list, optional
-            List of levelset paths. If None, uses stored levelpaths.
-        title : str, optional
-            Title for the plot.
-        save_path : str, optional
-            Path to save the plot. If None, displays interactively.
-        colorbar : bool, default=True
-            Whether to show the colorbar.
-        mode : {"p-value", "icc"}, default="p-value"
-            Mode of the plot.
-        
-        Returns
-        -------
-        matplotlib.figure.Figure
-            The created figure object.
-        """
-
-        plot_values = np.array(self.thickness_values[contour_idx][~np.isnan(self.thickness_values[contour_idx])])[::-1]
-        points, trias = make_mesh_from_contour(self.contours[contour_idx], max_volume=0.5, min_angle=25, verbose=False)
-
-        # make points 3D by adding zero
-        points = np.column_stack([points, np.zeros(len(points))])
-
-        levelpaths, _ = self._create_levelpaths(contour_idx, points, trias, num_points=len(plot_values)-2)
-
-        outside_contour = self.contours[contour_idx].T
-
-        # Create a grid of points covering the contour area with higher resolution
-        x_min, x_max = np.min(outside_contour[0]), np.max(outside_contour[0])
-        y_min, y_max = np.min(outside_contour[1]), np.max(outside_contour[1])
-        margin = 1
-        resolution = 0.05  # Higher resolution for smoother interpolation
-        x_grid, y_grid = np.meshgrid(
-            np.arange(x_min - margin, x_max + margin, resolution), np.arange(y_min - margin, y_max + margin, resolution)
-        )
-
-        # Create a path from the outside contour
-        contour_path = matplotlib.path.Path(np.column_stack([outside_contour[0], outside_contour[1]]))
-
-        # Check which points are inside the contour
-        points = np.column_stack([x_grid.flatten(), y_grid.flatten()])
-        mask = contour_path.contains_points(points).reshape(x_grid.shape)
-
-        # Collect all levelpath points and their corresponding values
-        # Extend each levelpath at both ends to improve extrapolation
-        all_level_points_x = []
-        all_level_points_y = []
-        all_level_values = []
-
-        for i, path in enumerate(levelpaths):
-            if len(path) == 1:
-                all_level_points_x.append(path[0][0])
-                all_level_points_y.append(path[0][1])
-                all_level_values.append(plot_values[i])
-                continue
-
-            # make levelpath
-            path = lapy.TriaMesh._TriaMesh__resample_polygon(path, 1000)
-
-            # Extend at the beginning: add point in direction opposite to first segment
-            first_segment = path[1] - path[0]
-            # standardize length of first segment
-            first_segment = first_segment / np.linalg.norm(first_segment) * 10
-            extension_start = path[0] - first_segment
-            all_level_points_x.append(extension_start[0])
-            all_level_points_y.append(extension_start[1])
-            all_level_values.append(plot_values[i])
-
-            # Add original path points
-            for point in path:
-                all_level_points_x.append(point[0])
-                all_level_points_y.append(point[1])
-                all_level_values.append(plot_values[i])
-
-            # Extend at the end: add point in direction of last segment
-            last_segment = path[-1] - path[-2]
-            # standardize length of last segment
-            last_segment = last_segment / np.linalg.norm(last_segment) * 10
-            extension_end = path[-1] + last_segment
-            all_level_points_x.append(extension_end[0])
-            all_level_points_y.append(extension_end[1])
-            all_level_values.append(plot_values[i])
-
-        # Convert to numpy arrays
-        all_level_points_x = np.array(all_level_points_x)
-        all_level_points_y = np.array(all_level_points_y)
-        all_level_values = np.array(all_level_values)
-
-        # Use griddata to perform smooth interpolation - using 'linear' instead of 'cubic'
-        # and properly formatting the input points
-        grid_values = scipy.interpolate.griddata(
-            (all_level_points_x, all_level_points_y), all_level_values, (x_grid, y_grid), method="linear", fill_value=0,
-        )
-
-        # smooth the grid_values
-        grid_values = scipy.ndimage.gaussian_filter(grid_values, sigma=5, radius=5)
-
-        # Apply the mask to only show values inside the contour
-        masked_values = np.where(mask, grid_values, np.nan)
-
-        if mode == "p-value":
-            # Sample colormaps
-            colors1 = plt.cm.binary([0.4] * 128)
-            colors2 = plt.cm.hot(np.linspace(0.8, 0.1, 128))
-        elif mode == "icc":
-            colors1 = plt.cm.Blues(np.linspace(0, 1, 128))
-            colors2 = plt.cm.binary([0.4] * 128)
-        else:
-            raise ValueError(f"Invalid mode '{mode}'")
-
-        # Combine the color samples
-        colors = np.vstack((colors2, colors1))
-
-        # Create a new colormap
-        cmap = matplotlib.colors.LinearSegmentedColormap.from_list("my_colormap", colors)
-
-        # Plot CC contour with levelsets
-        fig = plt.figure(figsize=(10, 3))
-        # Apply a 10-degree rotation to the entire plot
-        base = plt.gca().transData
-        transform = matplotlib.transforms.Affine2D().rotate_deg(10)
-        transform = transform + base
-
-        # Plot the filled contour with interpolated colors
-        plt.imshow(
-            masked_values,
-            extent=(x_min - margin, x_max + margin, y_min - margin, y_max + margin),
-            origin="lower",
-            cmap=cmap,
-            alpha=1,
-            interpolation="bilinear",
-            vmin=0,
-            vmax=0.10 if mode == "p-value" else 1,
-            transform=transform,
-        )
-
-        plt.imshow(
-            masked_values,
-            extent=(x_min - margin, x_max + margin, y_min - margin, y_max + margin),
-            origin="lower",
-            cmap=cmap,
-            alpha=1,
-            interpolation="bilinear",
-            vmin=0,
-            vmax=0.10 if mode == "p-value" else 1,
-            # norm=LogNorm(vmin=1e-3, vmax=0.1),  # Set minimum to avoid log(0)
-            transform=transform,
-        )
-
-        if colorbar:
-            # Add a colorbar
-            cbar = plt.colorbar(aspect=10)
-            if mode == "p-value":
-                cbar.ax.set_ylim(0.001, 0.054)
-                cbar.ax.set_yticks([0.0, 0.01, 0.02, 0.03, 0.04, 0.05])
-                cbar.set_label("p-value (log scale)")
-            elif mode == "icc":
-                cbar.ax.set_ylim(0, 1)
-                cbar.ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
-                cbar.ax.set_label("Intraclass correlation coefficient")
-
-        # Plot the outside contour on top for clear boundary
-        plt.plot(outside_contour[0], outside_contour[1], "k-", linewidth=2, label="CC Contour", transform=transform)
-
-        plt.axis("equal")
-        plt.title(title, fontsize=14, fontweight="bold")
-        # plt.legend(loc='best')
-        plt.gca().invert_xaxis()
-        plt.axis("off")
-        if save_path is not None:
-            self.__make_parent_folder(save_path)
-            plt.savefig(save_path, dpi=300)
-        else:
-            plt.show()
-        return fig
-
-    
-
     @staticmethod
     def __create_cc_viewmat() -> "Matrix44":
         """Create the view matrix for a nice view of the corpus callosum.
@@ -932,22 +661,19 @@ class CCMesh(lapy.TriaMesh):
         if fssurf_file:
             fssurf_file = Path(fssurf_file)
         else:
-            fssurf_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True)
-            self.write_fssurf(fssurf_file.name)
+            fssurf_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True).name
+        self.write_fssurf(fssurf_file)
 
         if overlay_file:
-            overlay_path: str | None = Path(overlay_file).name
-        elif hasattr(self, "mesh_vertex_colors"):
-            overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True)
-            # Write thickness values in FreeSurfer .w format
-            nib.freesurfer.write_morph_data(overlay_file.name, self.mesh_vertex_colors)
-            overlay_path = overlay_file.name
+            overlay_file: str | None = Path(overlay_file)
         else:
-            overlay_path = None
+            overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True).name
+        # Write thickness values in FreeSurfer '*.w' overlay format
+        self.write_morph_data(overlay_file)
 
         snap1(
-            fssurf_file.name,
-            overlaypath=overlay_path,
+            fssurf_file,
+            overlaypath=overlay_file,
             view=None,
             viewmat=self.__create_cc_viewmat(),
             width=3 * 500,

@@ -8,43 +8,37 @@ import numpy as np
 from CorpusCallosum.data.constants import FSAVERAGE_DATA_PATH
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.data.read_write import load_fsaverage_data
-from CorpusCallosum.shape.mesh import CCMesh
+from CorpusCallosum.shape.contour import CCContour
+from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
 
 
 def make_parser() -> argparse.ArgumentParser:
     """Create a command line parser for the visualization pipeline."""
     parser = argparse.ArgumentParser(description="Visualize corpus callosum from template files.")
     parser.add_argument(
-        "--contours", 
-        type=str, 
-        required=False, 
-        help="Path to contours.txt file if not provided, uses fsaverage template.", 
-        metavar="CONTOURS_PATH", 
-        default=None
-    )
-    parser.add_argument(
-        "--thickness", 
-        type=str, 
-        required=True, 
-        help="Path to thickness_values.txt file.",
-        metavar="THICKNESS_VALUES_PATH"
-    )
-    parser.add_argument(
-        "--measurement_points",
+        "--template_dir",
         type=str,
         required=True,
-        help="Path to measurement points file containing the original vertex indices where thickness was measured.",
+        help=(
+            "Path to a template directory containing per-slice files named "
+            "thickness_values_<idx>.txt, and optionally contour_<idx>.txt "
+            "and thickness_measurement_points_<idx>.txt. If contour_<idx>.txt "
+            "and thickness_measurement_points_<idx>.txt are not provided, "
+            "uses fsaverage template."
+        ),
+        metavar="TEMPLATE_DIR",
+        default=None,
     )
     parser.add_argument("--output_dir", 
         type=str, 
         required=True, 
-        help="Directory for output files. Writes: \\\
-            cc_mesh.html - Interactive 3D mesh visualization (HTML file) \\\
-            midslice_2d.png - 2D midslice visualization of the corpus callosum \\\
-            cc_mesh.vtk - VTK mesh file format \\\
-            cc_mesh.fssurf - FreeSurfer surface file \\\
-            cc_mesh_overlay.curv - FreeSurfer curvature overlay file \\\
-            cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=1.3.1)",
+        help="Directory for output files. Writes: "
+            "cc_mesh.html - Interactive 3D mesh visualization (HTML file) "
+            "midslice_2d.png - 2D midslice visualization of the corpus callosum "
+            "cc_mesh.vtk - VTK mesh file format "
+            "cc_mesh.fssurf - FreeSurfer surface file "
+            "cc_mesh_overlay.curv - FreeSurfer curvature overlay file "
+            "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=1.3.1)",
         metavar="OUTPUT_DIR"
     )
     parser.add_argument(
@@ -94,7 +88,8 @@ def make_parser() -> argparse.ArgumentParser:
 
 def options_parse() -> argparse.Namespace:
     """Parse command line arguments for the pipeline."""
-    args = make_parser().parse_args()
+    parser = make_parser()
+    args = parser.parse_args()
 
     # Create output directory if it doesn't exist
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
@@ -102,10 +97,60 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
+
+
+def load_contours_from_template_dir(
+    template_dir: Path, resolution: float, smoothing_window: int
+) -> list[CCContour]:
+    """Load all contours and thickness data from a template directory."""
+    thickness_files = sorted(template_dir.glob("thickness_values_*.txt"))
+    if not thickness_files:
+        raise FileNotFoundError(
+            f"No thickness files found in template directory {template_dir}. "
+            "Expected files named thickness_values_<idx>.txt and "
+            "optionally contour_<idx>.txt and thickness_measurement_points_<idx>.txt."
+        )
+    
+    fsaverage_contour = None
+
+    contours: list[CCContour] = []
+    for thickness_file in thickness_files:
+        try:
+            idx = int(thickness_file.stem.split("_")[-1])
+        except ValueError:
+            # skip files that do not follow the expected naming
+            continue
+
+        contour_file = template_dir / f"contour_{idx}.txt"
+
+        if not contour_file.exists():
+            # get length of thickness values
+            thickness_values = np.loadtxt(thickness_file, dtype=str)
+            # get the non nan thickness values (excluding header), so we know how many points to sample
+            num_thickness_values = np.sum(~np.isnan(np.array(thickness_values[1:],dtype=float)))
+            if fsaverage_contour is None:
+                fsaverage_contour = load_fsaverage_cc_template()
+                # create measurment points (points = 2 x levelpaths) accorindg to number of thickness values
+                fsaverage_contour.create_levelpaths(num_points=num_thickness_values // 2, update_data=True)
+            current_contour = fsaverage_contour.copy()
+            current_contour.load_thickness_values(thickness_file)
+            
+        else:
+            # this is kinda ugly - maybe we need to overload the constructor to load the contour and thickness values?
+            current_contour = CCContour(np.empty((0, 2)), np.empty((0,)), resolution=resolution)
+            current_contour.load_contour(contour_file)
+            current_contour.load_thickness_values(thickness_file)
+        
+        current_contour.fill_thickness_values()
+        contours.append(current_contour)
+
+    if not contours:
+        raise ValueError(f"No valid contours could be loaded from {template_dir}")
+    return contours
+
+
 def main(
-    contours_path: str | Path | None,
-    thickness_path: str | Path,
-    measurement_points_path: str | Path,
+    template_dir: str | Path,
     output_dir: str | Path,
     resolution: float = 1.0,
     smoothing_window: int = 5,
@@ -114,102 +159,55 @@ def main(
     legend: str | None = None,
     twoD: bool = False,
 ) -> Literal[0] | str:
-    """Main function to visualize corpus callosum from template files.
-
-    This function loads contours and thickness values from template files,
-    creates a CC_Mesh object, and generates visualizations.
-
-    Parameters
-    ----------
-    contours_path : str or Path or None
-        Path to contours.txt file.
-    thickness_path : str or Path
-        Path to thickness_values.txt file.
-    measurement_points_path : str or Path
-        Path to file containing original vertex indices where thickness was measured.
-    output_dir : str or Path
-        Directory for output files.
-    resolution : float, optional
-        Resolution in mm for the mesh, by default 1.0.
-    smoothing_window : int, optional
-        Window size for smoothing the contour, by default 5.
-    colormap : str, optional
-        Colormap to use for visualization, by default "red_to_yellow".
-        Options:
-        - "red_to_blue": Red -> Orange -> Grey -> Light Blue -> Blue
-        - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
-        - "red_to_yellow": Red -> Yellow -> Light Blue -> Blue
-        - "yellow_to_red": Yellow -> Light Blue -> Blue -> Red
-    color_range : tuple[float, float], optional
-        Fixed range (min, max) for the colorbar, by default None.
-    legend : str, optional
-        Legend for the colorbar, by default None.
-    twoD : bool, optional
-        If True, generate 2D visualization instead of 3D mesh, by default False.
-    """
-    # Convert paths to Path objects
-    contours_path = Path(contours_path) if contours_path is not None else None
-    thickness_path = Path(thickness_path)
-    measurement_points_path = Path(measurement_points_path)
+    """Visualize corpus callosum templates in 2D or 3D."""
     output_dir = Path(output_dir)
-
-    # Load data and create mesh
-    cc_mesh = CCMesh(num_slices=1)  # Will be resized when loading data
+    color_range = tuple(color_range) if color_range is not None else None
 
     _, _, vox2ras_tkr = load_fsaverage_data(FSAVERAGE_DATA_PATH)
 
-    if contours_path is not None:
-        cc_mesh.load_contours(str(contours_path))
-    else:
-        cc_contour, anterior_endpoint_idx, posterior_endpoint_idx = load_fsaverage_cc_template()
-        cc_mesh.contours[0] = np.stack(cc_contour).T
-        cc_mesh.start_end_idx[0] = [anterior_endpoint_idx, posterior_endpoint_idx]
+    contours = load_contours_from_template_dir(
+        Path(template_dir), resolution=resolution, smoothing_window=smoothing_window
+    )
 
-    cc_mesh.load_thickness_values(str(thickness_path), str(measurement_points_path))
-    cc_mesh.set_resolution(resolution)
-
+    # 2D visualization
+    mid_contour = contours[len(contours) // 2]
     if twoD:
-        # cc_mesh.smooth_contour(contour_idx=0, window_size=5)
-        cc_mesh.plot_cc_contour_with_levelsets(
-            contour_idx=0, levelpaths=None, title=None, save_path=str(output_dir / "cc_thickness_2d.png"), colorbar=True
+        mid_contour.plot_cc_contour_with_levelsets(
+            title=None,
+            save_path=str(output_dir / "cc_thickness_2d.png"),
+            colorbar=True,
         )
-    else:
-        cc_mesh.fill_thickness_values()
-        # Create and process mesh
-        cc_mesh.create_mesh(smooth=smoothing_window, closed=False)
+        return 0
 
-        # Generate visualizations
-        cc_mesh.plot_mesh(
-            colormap=colormap,
-            color_range=color_range,
-            thickness_overlay=True,
-            show_contours=False,
-            show_mesh_edges=True,
-            legend=legend,
-        )
-        cc_mesh.plot_mesh(str(output_dir / "cc_mesh.html"), thickness_overlay=True)
+    # 3D visualization
+    cc_mesh = create_CC_mesh_from_contours(contours, smooth=0)
 
-        cc_mesh.plot_cc_contour_with_levelsets(
-            contour_idx=len(cc_mesh.contours) // 2, save_path=str(output_dir / "midslice_2d.png")
-        )
+    plot_kwargs = dict(
+        colormap=colormap,
+        color_range=color_range,
+        thickness_overlay=True,
+        legend=legend or "",
+    )
+    cc_mesh.plot_mesh(**plot_kwargs)
+    cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
-        cc_mesh.to_fs_coordinates(vox_size=[resolution, resolution, resolution], vox2ras_tkr=vox2ras_tkr)
-        cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
-        cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
-        cc_mesh.write_overlay(str(output_dir / "cc_mesh_overlay.curv"))
-        try:
-            cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
-        except RuntimeError:
-            return ("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
-                    "`pip install whippersnappy>=1.3.1` !")
+    mid_contour.plot_cc_contour_with_levelsets(save_path=str(output_dir / "midslice_2d.png"))
+
+    cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr)
+    cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
+    cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
+    cc_mesh.write_morph_data(str(output_dir / "cc_mesh_overlay.curv"))
+    try:
+        cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
+    except RuntimeError:
+        return ("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
+                "`pip install whippersnappy>=1.3.1` !")
     return 0
 
 if __name__ == "__main__":
-    options = make_parser().parse_args()
+    options = options_parse()
     sys.exit(main(
-        contours_path=options.contours,
-        thickness_path=options.thickness,
-        measurement_points_path=options.measurement_points,
+        template_dir=options.template_dir,
         output_dir=options.output_dir,
         resolution=options.resolution,
         smoothing_window=options.smoothing_window,

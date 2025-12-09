@@ -20,6 +20,7 @@ import numpy as np
 from scipy import ndimage
 
 from CorpusCallosum.data import constants
+from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.postprocessing import recon_cc_surf_measure
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 
@@ -132,12 +133,11 @@ def load_fsaverage_cc_template() -> tuple[
         contour_smoothing=5,
         vox_size=(1., 1., 1.), # fsaverage is in 1mm isotropic
     )
-    outside_contour = contour_with_thickness[:2].T
-
+    outside_contour = contour_with_thickness[:,:2].T
 
     # make sure the CC stays in shape despite smoothing by moving endpoints outwards
-    outside_contour[0][anterior_endpoint_idx] -= 55
-    outside_contour[0][posterior_endpoint_idx] += 30
+    outside_contour[0,anterior_endpoint_idx] -= 55
+    outside_contour[0,posterior_endpoint_idx] += 30
 
     # Apply smoothing to the outside contour
     outside_contour_smoothed = smooth_contour(outside_contour, window_size=11)
@@ -145,5 +145,10 @@ def load_fsaverage_cc_template() -> tuple[
     outside_contour_smoothed = smooth_contour(outside_contour_smoothed, window_size=30)
     outside_contour = outside_contour_smoothed
 
+    fsaverage_contour = CCContour(np.array(outside_contour).T, 
+                                  np.zeros(len(outside_contour[0])), 
+                                  endpoint_idxs=(anterior_endpoint_idx, posterior_endpoint_idx), 
+                                  resolution=1.0)
 
-    return outside_contour, anterior_endpoint_idx, posterior_endpoint_idx
+
+    return fsaverage_contour

@@ -265,13 +265,9 @@ def recon_cc_surf_measures_multi(
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
                     f"thickness_measurement_points.txt) to {template_dir}")
         for j in range(len(cc_contours)):
-            io_futures.extend([
-                thread_executor().submit(cc_contours[j].save_contour, template_dir / f"contour_{j}.txt"),
-                thread_executor().submit(cc_contours[j].save_thickness_values,
-                                         template_dir / f"thickness_values_{j}.txt"),
-                thread_executor().submit(cc_contours[j].save_thickness_measurement_points,
-                                         template_dir / f"thickness_measurement_points_{j}.txt"),
-            ])
+            # NOTE: this does not seem to be thread-safe, do not parallelize!
+            cc_contours[j].save_contour(template_dir / f"contour_{j}.txt")
+            cc_contours[j].save_thickness_values(template_dir / f"thickness_values_{j}.txt")
 
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
     if len(cc_contours) > 1 and any(subject_dir.has_attribute(f"cc_{n}") for n in mesh_outputs):
