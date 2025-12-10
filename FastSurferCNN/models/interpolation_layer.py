@@ -144,40 +144,25 @@ class _ZoomNd(nn.Module):
         should be equal to `target_voxelsize / source_voxelsize`.
         """
         if self._N == -1:
-            raise RuntimeError(
-                "Direct instantiation of _InterpolateNd is not supported."
-            )
+            raise RuntimeError("Direct instantiation of _InterpolateNd is not supported.")
 
         if input_tensor.dim() != 2 + self._N:
-            raise ValueError(
-                f"Expected {self._N+2}-dimensional input tensor, got {input_tensor.dim()}"
-            )
+            raise ValueError(f"Expected {self._N+2}-dimensional input tensor, got {input_tensor.dim()}")
 
         if len(self._target_shape) == 0:
-            raise AttributeError(
-                "The target_shape was not set, but a valid value is required."
-            )
+            raise AttributeError("The target_shape was not set, but a valid value is required.")
 
-        scales_chunks = list(
-            zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]), strict=False)
-        )
+        scales_chunks = list(zip(*self._fix_scale_factors(scale_factors, input_tensor.shape[0]), strict=False))
         if len(scales_chunks) == 0:
-            raise ValueError(
-                f"Invalid scale_factors {scale_factors}, no chunks returned."
-            )
+            raise ValueError(f"Invalid scale_factors {scale_factors}, no chunks returned.")
         scales, chunks = map(list, scales_chunks)
 
         interp, scales_out = [], []
 
         # Pytorch Tensor shape BxCxHxW --> loop over batches, interpolate single images, concatenate output at end
-        for tensor, scale_f, num in zip(
-            torch.split(input_tensor, chunks, dim=0), scales, chunks, strict=False
-        ):
+        for tensor, scale_f, num in zip(torch.split(input_tensor, chunks, dim=0), scales, chunks, strict=False):
             if rescale:
-                if isinstance(scale_f, list):
-                    scale_f = [1 / sf for sf in scale_f]
-                else:
-                    scale_f = torch.div(1, scale_f)
+                scale_f = [1 / sf for sf in scale_f] if isinstance(scale_f, list) else torch.div(1, scale_f)
             image, sf = self._interpolate(tensor, scale_f)
             interp.append(image)
             scales_out.extend([sf] * num)
@@ -453,11 +438,7 @@ class Zoom2d(_ZoomNd):
         _T.Tuple[Tensor, T_Scale]
             The interpolated tensor and its scaling factor.
         """
-        scale_factor = (
-            scale_factor.tolist()
-            if isinstance(scale_factor, np.ndarray)
-            else scale_factor
-        )
+        scale_factor = scale_factor.tolist() if isinstance(scale_factor, np.ndarray) else scale_factor
         if isinstance(scale_factor, Tensor) and scale_factor.shape == (2,):
             pass
         elif isinstance(scale_factor, _T.Sequence) and len(scale_factor) == 2:

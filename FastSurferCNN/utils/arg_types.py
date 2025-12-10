@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from itertools import permutations, product
+from pathlib import Path
 from typing import Literal, cast
 
 import nibabel as nib
@@ -279,3 +280,22 @@ def unquote_str(value: str) -> str:
     if val.startswith("'") and val.endswith("'"):
         return val[1:-1]
     return val
+
+
+def path_or_none(a: str) -> Path | None:
+    """
+    Convert a string into None, if it reads "none" or is empty, else convert to a Path.
+
+    Parameters
+    ----------
+    a : str
+        String to convert to Path.
+
+    Returns
+    -------
+    Path or None
+        Return None if `a` is empty or case-insensitive "none" else return a as Path.
+    """
+    if a.lower() in ("none", ""):
+        return None
+    return Path(a)

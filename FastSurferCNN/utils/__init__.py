@@ -13,28 +13,69 @@
 # limitations under the License.
 
 __all__ = [
+    "AffineMatrix4x4",
     "checkpoint",
     "common",
+    "Image2d",
+    "Image3d",
+    "Image4d",
     "load_config",
     "logging",
     "lr_scheduler",
     "mapper",
+    "Mask2d",
+    "Mask3d",
+    "Mask4d",
     "meters",
     "metrics",
     "misc",
+    "nibabelImage",
+    "nibabelHeader",
     "parser_defaults",
-    "threads",
+    "parallel",
     "Plane",
     "PlaneAxial",
     "PlaneCoronal",
     "PlaneSagittal",
     "PLANES",
+    "RotationMatrix3x3",
+    "ScalarType",
+    "Shape2d",
+    "Shape3d",
+    "Shape4d",
+    "ShapeType",
+    "Vector2d",
+    "Vector3d",
 ]
 
-from typing import Literal, get_args
+from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar
 
+if TYPE_CHECKING:
+    from nibabel.analyze import SpatialHeader as nibabelHeader
+    from nibabel.analyze import SpatialImage as nibabelImage
+else:
+    class nibabelImage: ...
+    class nibabelHeader: ...
+
+from numpy import bool_, dtype, float_, ndarray, number
+
+AffineMatrix4x4 = ndarray[tuple[Literal[4], Literal[4]], dtype[float_]]
 PlaneAxial = Literal["axial"]
 PlaneCoronal = Literal["coronal"]
 PlaneSagittal = Literal["sagittal"]
 Plane = PlaneAxial | PlaneCoronal | PlaneSagittal
 PLANES: tuple[PlaneAxial, PlaneCoronal, PlaneSagittal] = ("axial", "coronal", "sagittal")
+ScalarType = TypeVar("ScalarType", bound=number)
+Vector2d = ndarray[tuple[Literal[2]], dtype[float_]]
+Vector3d = ndarray[tuple[Literal[3]], dtype[float_]]
+Shape2d = tuple[int, int]
+Shape3d = tuple[int, int, int]
+Shape4d = tuple[int, int, int, int]
+ShapeType = TypeVar("ShapeType", bound=tuple[int, ...])
+Image2d = ndarray[Shape2d, dtype[ScalarType]]
+Image3d = ndarray[Shape3d, dtype[ScalarType]]
+Image4d = ndarray[Shape4d, dtype[ScalarType]]
+Mask2d = ndarray[Shape2d, dtype[bool_]]
+Mask3d = ndarray[Shape3d, dtype[bool_]]
+Mask4d = ndarray[Shape4d, dtype[bool_]]
+RotationMatrix3x3 = ndarray[tuple[Literal[3], Literal[3]], dtype[float_]]

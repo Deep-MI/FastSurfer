@@ -19,18 +19,19 @@ from typing import (
 
 import numpy as np
 
+from CerebNet.datasets.utils import LTADict
+from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, nibabelImage
 from FastSurferCNN.utils.common import update_docstring
+from FastSurferCNN.utils.parallel import SerialExecutor, thread_executor
 
 if TYPE_CHECKING:
     import lapy
-    import nibabel as nib
     import pandas as pd
     from numpy import typing as npt
 
-    from CerebNet.datasets.utils import AffineMatrix4x4, LTADict
 
 MeasureTuple = tuple[str, str, int | float, str]
-ImageTuple = tuple["nib.analyze.SpatialImage", np.ndarray[tuple[int, ...], np.dtype[np.number]]]
+ImageTuple = tuple[nibabelImage, np.ndarray[tuple[int, ...], np.dtype[np.number]]]
 UnitString = Literal["unitless", "mm^3"]
 MeasureString = Union[str, "Measure"]
 AnyBufferType = Union[
@@ -48,13 +49,13 @@ T_BufferType = TypeVar(
         "lapy.TriaMesh",
         "np.ndarray",
         "pd.DataFrame",
+        "LTADict",
     ])
 DerivedAggOperation = Literal["sum", "ratio", "by_vox_vol"]
 AnyMeasure = Union["AbstractMeasure", str]
 PVMode = Literal["vox", "pv"]
 ClassesType = Sequence[int]
-_TShape = TypeVar("_TShape", bound=tuple[int, ...])
-CondType = Callable[["np.ndarray[_TShape, np.dtype[np.number]]"], "np.ndarray[_TShape, np.dtype[bool]]"]
+CondType = Callable[[np.ndarray[ShapeType, np.dtype[np.number]]], np.ndarray[ShapeType, np.dtype[np.bool_]]]
 ClassesOrCondType = ClassesType | CondType
 MaskSign = Literal["abs", "pos", "neg"]
 
@@ -241,11 +242,11 @@ def read_transform_file(path: Path) -> "AffineMatrix4x4":
 
 
 def mask_in_array(
-        arr: np.ndarray[_TShape, np.dtype[np.unsignedinteger]],
+        arr: np.ndarray[ShapeType, np.dtype[np.unsignedinteger]],
         items: "npt.ArrayLike",
         /,
         max_index: np.unsignedinteger | None = None,
-) -> np.ndarray[_TShape, np.dtype[bool]]:
+) -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
     """
     Efficient function to generate a mask of elements in `arr`, which are also in items.
 
@@ -287,7 +288,7 @@ def mask_in_array(
 
 
 def mask_not_in_array(
-        arr: np.ndarray[_TShape, np.dtype[np.unsignedinteger]],
+        arr: np.ndarray[ShapeType, np.dtype[np.unsignedinteger]],
         items: "npt.ArrayLike",
         /,
         max_index: np.unsignedinteger | None = None,
@@ -326,7 +327,7 @@ def mask_not_in_array(
 
 
 def __infer_check_max_index(
-        arr: np.ndarray[_TShape, np.dtype[np.unsignedinteger]],
+        arr: np.ndarray[ShapeType, np.dtype[np.unsignedinteger]],
         items: "npt.ArrayLike",
         max_index: int | None,
 ) -> int:
@@ -342,9 +343,9 @@ def __infer_check_max_index(
 
 @update_docstring(left_classes=ASEG_LEFT_CLASSES, right_classes=ASEG_RIGHT_CLASSES)
 def hemi_masks_from_aseg(
-        arr: np.ndarray[_TShape, np.dtype[np.integer]],
+        arr: np.ndarray[ShapeType, np.dtype[np.integer]],
         window_size: int = 7,
-) -> tuple[np.ndarray[_TShape, np.dtype[bool]], np.ndarray[_TShape, np.dtype[bool]]]:
+) -> tuple[np.ndarray[ShapeType, np.dtype[np.bool_]], np.ndarray[ShapeType, np.dtype[np.bool_]]]:
     """
     Determine for each voxel if it is more likely left hemisphere or right hemisphere.
 
@@ -381,8 +382,8 @@ def hemi_masks_from_aseg(
     def __ness(classes):
         return uniform_filter(mask_in_array(arr, classes).astype(np.float32), size=window_size)
 
-    _leftness: np.ndarray[_TShape, np.dtype[np.float32]]
-    _rightness: np.ndarray[_TShape, np.dtype[np.float32]]
+    _leftness: np.ndarray[ShapeType, np.dtype[np.float32]]
+    _rightness: np.ndarray[ShapeType, np.dtype[np.float32]]
 
     _leftness, _rightness = _map(__ness, (ASEG_LEFT_CLASSES, ASEG_RIGHT_CLASSES))
 
@@ -984,7 +985,7 @@ class MaskMeasure(VolumeMeasure):
         # self._erode: int = erode
         super().__init__(maskfile, self.mask, name, description, unit, read_file)
 
-    def mask(self, data: np.ndarray[_TShape, np.number]) -> np.ndarray[_TShape, np.dtype[bool]]:
+    def mask(self, data: np.ndarray[ShapeType, np.dtype[np.number]]) -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
         """Generates a mask from data similar to mri_binarize + erosion."""
         # if self._sign == "abs":
         #     data = np.abs(data)
@@ -1259,8 +1260,8 @@ class DerivedMeasure(AbstractMeasure):
 
         Notes
         -----
-        Might trigger a race condition if the function hook `read_subject_on_parents`
-        depends on this method finishing first, e.g. because of thread availability.
+        Might trigger a race condition if the function hook `read_subject_on_parents` depends on this method finishing
+        first, e.g. because of thread availability.
         """
         if super().read_subject(subject_dir):
             return self.read_subject_on_parents(self._subject_dir)
@@ -1454,7 +1455,7 @@ class Manager(dict[str, AbstractMeasure]):
         legacy_freesurfer : bool, default=False
             FreeSurfer compatibility mode.
         """
-        from concurrent.futures import Future, ThreadPoolExecutor
+        from concurrent.futures import Future
         from copy import deepcopy
 
         def _check_measures(x):
@@ -1464,15 +1465,7 @@ class Manager(dict[str, AbstractMeasure]):
         self._default_measures = deepcopy(self.__DEFAULT_MEASURES)
         if not isinstance(measures, Sequence) or any(map(_check_measures, measures)):
             raise ValueError("measures must be sequences of str.")
-        if executor is None:
-            self._executor = ThreadPoolExecutor(8)
-        elif isinstance(executor, ThreadPoolExecutor):
-            self._executor = executor
-        else:
-            raise TypeError(
-                "executor must be a futures.concurrent.ThreadPoolExecutor to ensure "
-                "proper multitask behavior."
-            )
+
         self._io_futures: list[Future] = []
         self.__update_context: list[AbstractMeasure] = []
         self._on_missing = on_missing
@@ -1517,7 +1510,7 @@ class Manager(dict[str, AbstractMeasure]):
 
     @property
     def executor(self) -> Executor:
-        return self._executor
+        return thread_executor()
 
     # @property
     # def lut(self) -> Optional["pd.DataFrame"]:
@@ -1648,8 +1641,7 @@ class Manager(dict[str, AbstractMeasure]):
 
     def start_read_subject(self, subject_dir: Path) -> None:
         """
-        Start the threads to read the subject in subject_dir, pairs with
-        `wait_read_subject`.
+        Start the threads to read the subject in subject_dir, pairs with `wait_read_subject`.
 
         Parameters
         ----------
@@ -1776,7 +1768,7 @@ class Manager(dict[str, AbstractMeasure]):
                 # calls read_subject on all measures, redundant io operations are
                 # handled/skipped through Manager.make_read_hook and the internal
                 # caching of files within the _cache attribute of Manager.
-                self._io_futures.append(self._executor.submit(_read, x))
+                self._io_futures.append(thread_executor().submit(_read, x))
         return True
 
     def extract_key_args(self, measure: str) -> tuple[str, list[str]]:
@@ -1855,7 +1847,7 @@ class Manager(dict[str, AbstractMeasure]):
                 if blocking:
                     out = read_func(file)
                 else:
-                    out = self._executor.submit(read_func, file)
+                    out = thread_executor().submit(read_func, file)
                 self._cache[file] = out
             if not blocking:
                 return
@@ -2128,7 +2120,8 @@ class Manager(dict[str, AbstractMeasure]):
             )
         elif key in ("lhWM-hypointensities", "rhWM-hypointensities"):
             # lateralized counting of class 77 WM hypo intensities
-            def mask_77_lat(arr: np.ndarray[_TShape, np.dtype[np.integer]]) -> np.ndarray[_TShape, np.dtype[bool]]:
+            def mask_77_lat(arr: np.ndarray[ShapeType, np.dtype[np.integer]]) \
+                    -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
                 """
                 This function returns a lateralized mask of hypo-WM (class 77).
 
@@ -2147,12 +2140,35 @@ class Manager(dict[str, AbstractMeasure]):
                 f"Volume of {side} White matter hypointensities",
                 "mm^3"
             )
+        elif key in ("lhFornix", "rhFornix"):
+            # lateralized counting of class 192 Fornix
+            def mask_192_lat(arr: np.ndarray[ShapeType, np.dtype[np.integer]]) \
+                    -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
+                """
+                This function returns a lateralized mask of the Fornix (class 192).
+
+                This is achieved by looking at surrounding labels and associating them
+                with left or right (this is not 100% robust when there is no clear
+                classes with left aseg labels present, but it is cheap to perform).
+                """
+                mask = arr == 192
+                side_index = {"Left": 0, "Right": 1}[side]
+                return np.logical_and(hemi_masks_from_aseg(arr)[side_index], mask)
+
+            return VolumeMeasure(
+                self._seg_from_file,
+                mask_192_lat,
+                f"{hemi}Fornix",
+                f"Volume of the {side} Fornix",
+                "mm^3"
+            )
         elif key in ("lhCerebralWhiteMatter", "rhCerebralWhiteMatter"):
             # SurfaceVolume
             # 9/10 => l/rCerebralWM
             parents = [
                 f"{hemi}WhiteMatterVol",
                 f"{hemi}WM-hypointensities",
+                f"{hemi}Fornix",
                 (0.5, "CorpusCallosumVol"),
             ]
             return DerivedMeasure(
@@ -2390,19 +2406,10 @@ class Manager(dict[str, AbstractMeasure]):
             For each non-derived and non-PV measure, a future object that is associated
             with the call to the measure.
         """
-
-        def run(f: Callable[[], int | float]) -> Future[int | float]:
-            out = Future()
-            out.set_result(f())
-            return out
-
-        if isinstance(compute_threads, Executor):
-            run = compute_threads.submit
+        run = compute_threads.submit if isinstance(compute_threads, Executor) else SerialExecutor().submit
 
         invalid_types = (DerivedMeasure, PVMeasure)
-        self._compute_futures = [
-            run(this) for this in self.values() if not isinstance(this, invalid_types)
-        ]
+        self._compute_futures = [run(this) for this in self.values() if not isinstance(this, invalid_types)]
         return self._compute_futures
 
     def needs_pv_calculation(self) -> bool:

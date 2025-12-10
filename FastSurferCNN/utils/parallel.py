@@ -27,6 +27,7 @@ __all__ = [
     "serial_executor",
     "set_num_threads",
     "SerialExecutor",
+    "shutdown_executors",
     "thread_executor",
 ]
 

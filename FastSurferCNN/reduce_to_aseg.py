@@ -25,14 +25,13 @@ import scipy.ndimage
 from skimage.filters import gaussian
 from skimage.measure import label
 
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelHeader, nibabelImage
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 from FastSurferCNN.utils.logging import setup_logging
 from FastSurferCNN.utils.parallel import thread_executor
 
 _T = TypeVar("_T", bound=np.number)
 _TDType = np.dtype[_T]
-_TShape = TypeVar("_TShape", bound=tuple[int, ...])
 
 
 LOGGER = logging.getLogger(__name__)
@@ -104,7 +103,7 @@ def options_parse():
     return options
 
 
-def reduce_to_aseg(data_inseg: np.ndarray[_TShape, _TDType]) -> np.ndarray[_TShape, _TDType]:
+def reduce_to_aseg(data_inseg: np.ndarray[ShapeType, _TDType]) -> np.ndarray[ShapeType, _TDType]:
     """
     Reduce the input segmentation to a simpler segmentation (for all data orientations, LIA/etc).
 
@@ -127,7 +126,8 @@ def reduce_to_aseg(data_inseg: np.ndarray[_TShape, _TDType]) -> np.ndarray[_TSha
     return data_inseg
 
 
-def create_mask(aseg_data: np.ndarray[_TShape, _TDType], dnum: int, enum: int) -> np.ndarray[_TShape, np.dtype[bool]]:
+def create_mask(aseg_data: np.ndarray[ShapeType, _TDType], dnum: int, enum: int) \
+        -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
     """
     Create dilated mask (works for all data orientations, LIA/etc).
 
@@ -180,7 +180,7 @@ def create_mask(aseg_data: np.ndarray[_TShape, _TDType], dnum: int, enum: int) -
     return datab.astype(np.uint8)
 
 
-def flip_wm_islands(aseg_data: np.ndarray[_TShape, _TDType]) -> np.ndarray[_TShape, _TDType]:
+def flip_wm_islands(aseg_data: np.ndarray[ShapeType, _TDType]) -> np.ndarray[ShapeType, _TDType]:
     """
     Flip labels of disconnected white matter islands to the other hemisphere (works for all data orientations, LIA/etc).
 
@@ -204,7 +204,7 @@ def flip_wm_islands(aseg_data: np.ndarray[_TShape, _TDType]) -> np.ndarray[_TSha
     rh_wm = 41
     rh_gm = 42
 
-    def _islands(data: np.ndarray[_TShape, _TDType], _label: int) -> np.ndarray[_TShape, np.dtype[bool]]:
+    def _islands(data: np.ndarray[ShapeType, _TDType], _label: int) -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
         # for lh get largest component and islands
         mask = data == _label
         labels = label(mask, background=0)
@@ -234,11 +234,11 @@ def flip_wm_islands(aseg_data: np.ndarray[_TShape, _TDType]) -> np.ndarray[_TSha
 
 
 def create_mask_and_save(
-        seg: np.ndarray[_TShape, np.dtype],
-        seg_affine: np.ndarray[tuple[int, int], np.dtype[float]],
-        seg_header: nib.analyze.SpatialHeader,
+        seg: np.ndarray[ShapeType, np.dtype],
+        seg_affine: AffineMatrix4x4,
+        seg_header: nibabelHeader,
         filename: Path | None = None,
-) -> np.ndarray[_TShape, np.dtype[np.uint8]]:
+) -> np.ndarray[ShapeType, np.dtype[np.uint8]]:
     """Convenience function for brainmask generation plus saving."""
     mask_data = create_mask(seg, 5, 4)
     if filename is not None:
@@ -249,11 +249,11 @@ def create_mask_and_save(
 
 
 def reduce_to_aseg_and_save(
-        seg: np.ndarray[_TShape, np.dtype],
-        seg_affine: np.ndarray[tuple[int, int], np.dtype[float]],
-        seg_header: nib.analyze.SpatialHeader,
+        seg: np.ndarray[ShapeType, np.dtype],
+        seg_affine: AffineMatrix4x4,
+        seg_header: nibabelHeader,
         filename: Path | None = None,
-) -> np.ndarray[_TShape, np.dtype[np.uint8]]:
+) -> np.ndarray[ShapeType, np.dtype[np.uint8]]:
     """Convenience function for reduce_to_aseg plus saving."""
     _data = reduce_to_aseg(seg)
 
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     setup_logging()
 
     LOGGER.info(f"Reading in aparc+aseg: {options.input_seg} ...")
-    inseg = cast(nib.analyze.SpatialImage, nib.load(options.input_seg))
+    inseg = cast(nibabelImage, nib.load(options.input_seg))
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
     inseg_affine = inseg.affine

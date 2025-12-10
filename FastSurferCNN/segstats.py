@@ -19,38 +19,29 @@
 import argparse
 import logging
 from collections.abc import Callable, Container, Iterable, Iterator, Sequence, Sized
-from concurrent.futures import Executor, ThreadPoolExecutor
+from concurrent.futures import Executor
 from functools import partial, reduce
 from itertools import product
 from numbers import Number
 from pathlib import Path
-from typing import (
-    IO,
-    Any,
-    Literal,
-    TypedDict,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import IO, Any, Literal, TypedDict, TypeVar, cast, overload
 
-import nibabel as nib
 import numpy as np
 import pandas as pd
 from numpy import typing as npt
 
+from FastSurferCNN.utils import nibabelImage
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as robust_threshold
 from FastSurferCNN.utils.arg_types import int_ge_zero as id_type
 from FastSurferCNN.utils.arg_types import int_gt_zero as patch_size_type
 from FastSurferCNN.utils.brainvolstats import Manager, MeasureTuple, read_measure_file
-from FastSurferCNN.utils.parallel import get_num_threads
+from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads, thread_executor
 from FastSurferCNN.utils.parser_defaults import add_arguments
 
 # Constants
-USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg> "
-         "-o <output_seg_stats> [optional arguments] [{measures,mri_segstats} ...]")
-DESCRIPTION = ("Script to calculate partial volumes and other segmentation statistics "
-               "of a segmentation file.")
+USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments] "
+         "[{measures,mri_segstats} ...]")
+DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
 VERSION = "1.1"
 HELPTEXT = f"""
 Dependencies:
@@ -73,8 +64,7 @@ Modified: Dec-07-2023
 Revision: {VERSION}
 """
 FILTER_SIZES = (3, 15)
-COLUMNS = ["Index", "SegId", "NVoxels", "Volume_mm3", "StructName", "Mean", "StdDev",
-           "Min", "Max", "Range"]
+COLUMNS = ["Index", "SegId", "NVoxels", "Volume_mm3", "StructName", "Mean", "StdDev", "Min", "Max", "Range"]
 
 # Type definitions
 _NumberType = TypeVar("_NumberType", bound=Number)
@@ -88,6 +78,7 @@ _GlobalStats = tuple[int, int, _NumberType | None, _NumberType | None,
                      float | None, float | None, float, npt.NDArray[bool]]
 SubparserCallback = type[argparse.ArgumentParser.add_subparsers]
 
+DO_NOT_SAVE_FILE = Path("do not save the file")
 
 class _RequiredPVStats(TypedDict):
     SegId: int
@@ -105,7 +96,7 @@ class _OptionalPVStats(TypedDict, total=False):
 
 
 class PVStats(_RequiredPVStats, _OptionalPVStats):
-    """Dictionary of volume statistics for partial volume evaluation and global stats"""
+    """Dictionary of volume statistics for partial volume evaluation and global stats."""
     pass
 
 
@@ -197,12 +188,17 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
     """
     import sys
     if helpformatter:
+        # Help Formatter for command line
         kwargs = {
             "epilog": HELPTEXT.replace("\n", "<br>"),
             "formatter_class": HelpFormatter,
         }
     else:
-        kwargs = {"epilog": HELPTEXT}
+        # Help Formatter for documentation
+        kwargs = {
+            "epilog": HELPTEXT,
+            # "formatter_class": DocHelpFormatter,
+        }
     parser = argparse.ArgumentParser(
         usage=USAGE,
         description=DESCRIPTION,
@@ -215,18 +211,16 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         "-pv",
         type=Path,
         dest="pvfile",
-        help="Path to image used to compute the partial volume effects (default: the "
-             "file passed as normfile). This file is required, either directly or "
-             "indirectly via normfile.",
+        help="Path to image used to compute the partial volume effects (default: the file passed as normfile). This "
+             "file is required, either directly or indirectly via normfile.",
     )
     parser.add_argument(
         "-norm",
         "--normfile",
         type=Path,
         dest="normfile",
-        help="Path to biasfield-corrected image (the same image space as "
-             "segmentation). This file is used to calculate intensity values. Also, if "
-             "no pvfile is defined, it is used as pvfile. One of normfile or pvfile is "
+        help="Path to biasfield-corrected image (the same image space as segmentation). This file is used to calculate "
+             "intensity values. Also, if no pvfile is defined, it is used as pvfile. One of normfile or pvfile is "
              "required.",
     )
     parser.add_argument(
@@ -251,15 +245,13 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         type=id_type,
         nargs="*",
         default=[],
-        help="List of segmentation ids (integers) to exclude in analysis, "
-             "e.g. `--excludeid 0 1 10` (default: None).",
+        help="List of segmentation ids (integers) to exclude in analysis, e.g. `--excludeid 0 1 10` (default: None).",
     )
     parser.add_argument(
         "--ids",
         type=id_type,
         nargs="*",
-        help="List of exclusive segmentation ids (integers) to use "
-             "(default: all ids in --lut or all ids in image).",
+        help="List of exclusive segmentation ids (integers) to use (default: all ids in --lut or all ids in image).",
     )
     parser.add_argument(
         "--merged_label",
@@ -268,20 +260,17 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         dest="merged_labels",
         default=[],
         action="append",
-        help="Add a 'virtual' label (first value) that is the combination of all "
-             "following values, e.g. `--merged_label 100 3 4 8` will compute the "
-             "statistics for label 100 by aggregating labels 3, 4 and 8.",
+        help="Add a 'virtual' label (first value) that is the combination of all following values, e.g. "
+             "`--merged_label 100 3 4 8` will compute the statistics for label 100 by aggregating labels 3, 4 and 8.",
     )
     parser.add_argument(
         "--robust",
         type=robust_threshold,
         dest="robust",
         default=None,
-        help="Whether to calculate robust segmentation metrics. This parameter "
-             "expects the fraction of values to keep, e.g. `--robust 0.95` will "
-             "ignore the 2.5%% smallest and the 2.5%% largest values in the "
-             "segmentation when calculating the statistics (default: no robust "
-             "statistics == `--robust 1.0`).",
+        help="Whether to calculate robust segmentation metrics. This parameter expects the fraction of values to keep, "
+             "e.g. `--robust 0.95` will ignore the 2.5%% smallest and the 2.5%% largest values in the segmentation "
+             "when calculating the statistics (default: no robust statistics == `--robust 1.0`).",
     )
     parser.add_argument(
         "--measure_only",
@@ -298,9 +287,8 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         "--threads",
         dest="threads",
         default=get_num_threads(),
-        type=int,
-        help=f"Number of threads to use (defaults to number of hardware threads: "
-             f"{get_num_threads()})",
+        type=set_num_threads,
+        help=f"Number of threads to use (defaults to number of hardware threads: {get_num_threads()})",
     )
     advanced.add_argument(
         "--patch_size",
@@ -313,8 +301,7 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         "--empty",
         action="store_true",
         dest="empty",
-        help="Keep ids for the table that do not exist in the segmentation "
-             "(default: drop).",
+        help="Keep ids for the table that do not exist in the segmentation (default: drop).",
     )
     add_arguments(advanced, ["device", "sid", "sd"])
     advanced.add_argument(
@@ -329,57 +316,53 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         action="store_true",
         dest="legacy_freesurfer",
         help="Reproduce FreeSurfer mri_segstats numbers (default: off). \n"
-             "Please note, that exact agreement of numbers cannot be guaranteed, "
-             "because the condition number of FreeSurfers algorithm (mri_segstats) "
-             "combined with the fact that mri_segstats uses 'float' to measure the "
-             "partial volume corrected volume. This yields differences of more than "
-             "60mm3 or 0.1%% in large structures. This uniquely impacts highres images "
-             "with more voxels (on the boundary) and smaller voxel sizes (volume per "
-             "voxel).",
+             "Please note, that exact agreement of numbers cannot be guaranteed, because the condition number of "
+             "FreeSurfers algorithm (mri_segstats) combined with the fact that mri_segstats uses 'float' to measure "
+             "the partial volume corrected volume. This yields differences of more than 60mm3 or 0.1%% in large "
+             "structures. This uniquely impacts highres images with more voxels (on the boundary) and smaller voxel "
+             "sizes (volume per voxel).",
     )
     # Additional info:
-    # Changing the data type in mri_segstats to double can reduce this difference to
-    # nearly zero.
+    # Changing the data type in mri_segstats to double can reduce this difference to nearly zero.
     # mri_segstats has two operations affecting a bad condition number:
     # 1. pv = (val - mean_nbr) / (mean_label - mean_nbr)
     # 2. volume += vox_vol * pv
-    #    This is further affected by the small vox_vol (volume per voxel) of highres
-    #    images (0.7iso -> 0.343)
-    # Their effects stack and can result in differences of more than 60mm3 or 0.1% in
-    # a comparison between double and single-precision evaluations.
+    #    This is further affected by the small vox_vol (volume per voxel) of highres images (0.7iso -> 0.343)
+    # Their effects stack and can result in differences of more than 60mm3 or 0.1% in a comparison between double and
+    # single-precision evaluations.
     advanced.add_argument(
         "--mixing_coeff",
         type=Path,
         dest="mix_coeff",
-        default="",
+        default=DO_NOT_SAVE_FILE,
         help="Save the mixing coefficients (default: off).",
     )
     advanced.add_argument(
         "--alternate_labels",
         type=Path,
         dest="nbr",
-        default="",
+        default=DO_NOT_SAVE_FILE,
         help="Save the alternate labels (default: off).",
     )
     advanced.add_argument(
         "--alternate_mixing_coeff",
         type=Path,
         dest="nbr_mix_coeff",
-        default="",
+        default=DO_NOT_SAVE_FILE,
         help="Save mixing coefficients of alternate labels (default: off).",
     )
     advanced.add_argument(
         "--seg_means",
         type=Path,
         dest="seg_means",
-        default="",
+        default=DO_NOT_SAVE_FILE,
         help="Save means of segmentation labels (default: off).",
     )
     advanced.add_argument(
         "--alternate_means",
         type=Path,
         dest="nbr_means",
-        default="",
+        default=DO_NOT_SAVE_FILE,
         help="Save means of alternate labels (default: off).",
     )
     advanced.add_argument(
@@ -387,8 +370,8 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         type=id_type,
         dest="volume_precision",
         default=3,
-        help="Number of digits after dot in summary stats file (default: 3). Use 1 for "
-             "maximum FreeSurfer compatibility).",
+        help="Number of digits after dot in summary stats file (default: 3). Use 1 for maximum FreeSurfer "
+             "compatibility).",
     )
     advanced.add_argument(
         "--norm_name",
@@ -439,8 +422,7 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
         default=[],
         dest="measures",
         help="Additional Measures to compute based on imported/computed measures:<br>"
-             "Cortex, CerebralWhiteMatter, SubCortGray, TotalGray, "
-             "BrainSegVol-to-eTIV, MaskVol-to-eTIV, SurfaceHoles, "
+             "Cortex, CerebralWhiteMatter, SubCortGray, TotalGray, BrainSegVol-to-eTIV, MaskVol-to-eTIV, SurfaceHoles, "
              "EstimatedTotalIntraCranialVol",
     )
 
@@ -455,39 +437,33 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
         dest="measures",
         help="Additional Measures to import from the measurefile.<br>"
              "Example measures ('all' to import all measures in the measurefile):<br>"
-             "BrainSeg, BrainSegNotVent, SupraTentorial, SupraTentorialNotVent, "
-             "SubCortGray, lhCortex, rhCortex, Cortex, TotalGray, "
-             "lhCerebralWhiteMatter, rhCerebralWhiteMatter, CerebralWhiteMatter, Mask, "
-             "SupraTentorialNotVentVox, BrainSegNotVentSurf, VentricleChoroidVol, "
-             "BrainSegVol-to-eTIV, MaskVol-to-eTIV, lhSurfaceHoles, rhSurfaceHoles, "
-             "SurfaceHoles, EstimatedTotalIntraCranialVol<br>"
-             "Note, 'all' will always be overwritten by any explicitly mentioned "
-             "measures.",
+             "BrainSeg, BrainSegNotVent, SupraTentorial, SupraTentorialNotVent, SubCortGray, lhCortex, rhCortex, "
+             "Cortex, TotalGray, lhCerebralWhiteMatter, rhCerebralWhiteMatter, CerebralWhiteMatter, Mask, "
+             "SupraTentorialNotVentVox, BrainSegNotVentSurf, VentricleChoroidVol, BrainSegVol-to-eTIV, "
+             "MaskVol-to-eTIV, lhSurfaceHoles, rhSurfaceHoles, SurfaceHoles, EstimatedTotalIntraCranialVol<br>"
+             "Note, 'all' will always be overwritten by any explicitly mentioned measures.",
     )
     measure_parser.add_argument(
         "--file",
         type=Path,
         dest="measurefile",
         default="brainvol.stats",
-        help="Default file to read measures (--import ...) from. If the path is "
-             "relative, it is interpreted as relative to subjects_dir/subject_id from"
-             "--sd and --subject_id.",
+        help="Default file to read measures (--import ...) from. If the path is relative, it is interpreted as "
+             "relative to subjects_dir/subject_id from --sd and --subject_id.",
     )
     measure_parser.add_argument(
         "--from_seg",
         type=Path,
         dest="aseg_replace",
         default=None,
-        help="Replace the default segfile to compute measures from by -i/--segfile. "
-             "This will default to 'mri/aseg.mgz' for --legacy_freesurfer and to the "
-             "value of -i/--segfile otherwise."
+        help="Replace the default segfile to compute measures from by -i/--segfile. This will default to "
+             "'mri/aseg.mgz' for --legacy_freesurfer and to the value of -i/--segfile otherwise."
     )
 
 
 def add_two_help_messages(parser: argparse.ArgumentParser) -> None:
     """
-    Adds separate help flags -h and --help to the parser for simple and detailed help.
-    Both trigger the help action.
+    Adds separate help flags -h and --help to the parser for simple and detailed help. Both trigger the help action.
 
     Parameters
     ----------
@@ -514,8 +490,8 @@ def _check_arg_path(
     require_exist: bool = True,
 ) -> Path:
     """
-    Check an argument that is supposed to be a Path object and finding the absolute
-    path, which can be derived from the subject_dir.
+    Check an argument that is supposed to be a Path object and finding the absolute path, which can be derived from the
+    subject_dir.
 
     Parameters
     ----------
@@ -523,11 +499,10 @@ def _check_arg_path(
         The arguments object.
     __attr: str
         The name of the attribute in the Namespace object.
-    allow_subject_dir : bool, optional
-        Whether relative paths are supposed to be understood with respect to
-        subjects_dir / subject_id (default: True).
-    require_exist : bool, optional
-        Raise a ValueError, if the indicated file does not exist (default: True).
+    allow_subject_dir : bool, default=True
+        Whether relative paths are supposed to be understood with respect to subjects_dir / subject_id.
+    require_exist : bool, default=True
+        Raise a ValueError, if the indicated file does not exist.
 
     Returns
     -------
@@ -537,8 +512,8 @@ def _check_arg_path(
     Raises
     ------
     ValueError
-        If attribute does not exist, is not a Path (or convertible to a Path), or if
-        the file does not exist, but `require_exist` is True.
+        If attribute does not exist, is not a Path (or convertible to a Path), or if the file does not exist, but
+        `require_exist` is True.
     """
     if (_attr_val := getattr(__args, __attr), None) is None:
         raise ValueError(f"No {__attr} passed.")
@@ -575,8 +550,8 @@ def _check_arg_defined(attr: str, /, args: argparse.Namespace) -> bool:
 
 
 def check_shape_affine(
-    img1: "nib.analyze.SpatialImage",
-    img2: "nib.analyze.SpatialImage",
+    img1: nibabelImage,
+    img2: nibabelImage,
     name1: str,
     name2: str,
 ) -> None:
@@ -781,11 +756,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     except ValueError as e:
         return e.args[0]
 
-    threads = getattr(args, "threads", 0)
-    if threads <= 0:
-        threads = get_num_threads()
-
-    compute_threads = ThreadPoolExecutor(threads)
+    compute_threads = thread_executor()
 
     # the manager object supports preloading of files (see below) for io parallelization
     # and calculates the measure
@@ -818,9 +789,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
                 pv_img, pv_data = _pv
 
                 if not empty(pvfile_preproc := getattr(args, "pvfile_preproc", None)):
-                    pv_preproc_future = compute_threads.submit(
-                        preproc_image, pvfile_preproc, pv_data,
-                    )
+                    pv_preproc_future = compute_threads.submit(preproc_image, pvfile_preproc, pv_data)
 
                 check_shape_affine(seg, pv_img, "segmentation", "pv_guide")
             if normfile is not None:
@@ -837,16 +806,12 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
                 lut = read_lut(lut_file)
                 # manager.lut = lut
             except FileNotFoundError:
-                return (
-                    f"Could not find the ColorLUT in {lut_file}, make sure the --lut "
-                    f"argument is valid."
-                )
+                return f"Could not find the ColorLUT in {lut_file}, make sure the --lut argument is valid."
             except Exception as exception:
                 return exception.args[0]
 
         if measure_only:
-            # in this mode, we do not output a data table anyways, so no need to compute
-            # all these PV values.
+            # in this mode, we do not output a data table anyways, so no need to compute all these PV values.
             labels, exclude_id = np.zeros((0,), dtype=int), []
         else:
             try:
@@ -889,8 +854,8 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     manager.compute_non_derived_pv(compute_threads)
 
     names = ["nbr", "nbr_means", "seg_means", "mix_coeff", "nbr_mix_coeff"]
-    save_maps_paths = (getattr(args, n, "") for n in names)
-    save_maps = any(bool(path) and path != Path() for path in save_maps_paths)
+    save_maps_paths = (getattr(args, n, DO_NOT_SAVE_FILE) for n in names)
+    save_maps = any(bool(path) and path != DO_NOT_SAVE_FILE and path != Path() for path in save_maps_paths)
     save_maps = save_maps and not measure_only
 
     if needs_pv_calc:
@@ -918,7 +883,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
             return e.args[0]
         print(f"Brain volume stats written to {segstatsfile}.")
         duration = (perf_counter_ns() - start) / 1e9
-        print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
+        print(f"Calculation took {duration:.2f} seconds using up to {get_num_threads()} threads.")
         return 0
 
     _io_futures = []
@@ -926,7 +891,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         table, maps = out
         dtypes = [np.int16] + [np.float32] * 4
         for name, dtype in zip(names, dtypes, strict=False):
-            if not bool(file := getattr(args, name, "")) or file == Path():
+            if not bool(file := getattr(args, name, DO_NOT_SAVE_FILE)) or file == Path() or file == DO_NOT_SAVE_FILE:
                 # skip "fullview"-files that are not defined
                 continue
             print(f"Saving {name} to {file}...")
@@ -976,7 +941,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     print(f"Partial volume stats for {dataframe.shape[0]} labels written to "
           f"{segstatsfile}.")
     duration = (perf_counter_ns() - start) / 1e9
-    print(f"Calculation took {duration:.2f} seconds using up to {threads} threads.")
+    print(f"Calculation took {duration:.2f} seconds using up to {get_num_threads()} threads.")
 
     for _io_fut in _io_futures:
         if (e := _io_fut.exception()) is not None:
@@ -1007,8 +972,7 @@ def infer_merged_labels(
     Returns
     -------
     all_merged_labels : dict[int, Sequence[int]]
-        The dictionary of all merged labels (via :class:`PVMeasures` as well as
-        `merged_labels`).
+        The dictionary of all merged labels (via :class:`PVMeasures` as well as `merged_labels`).
     """
     _merged_labels = {}
     if not empty(merged_labels):
@@ -1747,7 +1711,7 @@ def pv_calc(
     eps: float = 1e-6,
     robust_percentage: float | None = None,
     merged_labels: VirtualLabel | None = None,
-    threads: int | Executor = -1,
+    threads: Executor | None = None,
     return_maps: bool = False,
     legacy_freesurfer: bool = False,
 ) -> list[PVStats] | tuple[list[PVStats], dict[str, np.ndarray]]:
@@ -1774,14 +1738,13 @@ def pv_calc(
         Fraction for robust calculation of statistics.
     merged_labels : VirtualLabel, optional
         Defines labels to compute statistics for that are.
-    threads : int, concurrent.futures.Executor, default=-1
-        Number of parallel threads to use in calculation, alternatively an executor
-        object.
+    threads : concurrent.futures.Executor, optional
+        Number of parallel threads to use in calculation, alternatively an executor object.
+        int deprecated: uses FastSurfer.utils.parallel.set_num_threads.
     return_maps : bool, default=False
         Returns a dictionary containing the computed maps.
     legacy_freesurfer : bool, default=False
-        Whether to use a freesurfer legacy compatibility mode to exactly replicate
-        freesurfer.
+        Whether to use a freesurfer legacy compatibility mode to exactly replicate freesurfer.
 
     Returns
     -------
@@ -1859,25 +1822,15 @@ def pv_calc(
         robust_percentage=robust_percentage,
     )
 
-    if threads == 0:
-        raise ValueError("Zero is not a valid number of threads.")
-    elif isinstance(threads, int) and threads > 0:
-        nthreads = threads
-    elif isinstance(threads, Executor | int):
-        nthreads: int = get_num_threads()
-    else:
-        raise TypeError("threads must be int or concurrent.futures.Executor object.")
-    executor = ThreadPoolExecutor(nthreads) if isinstance(threads, int) else threads
-    map_kwargs = {"chunksize": 1 if nthreads < 0 else ceil(len(labels) / nthreads)}
+    executor = threads if isinstance(threads, Executor) else threads
+    map_kwargs = {"chunksize": 1 if get_num_threads() < 0 else ceil(len(labels) / get_num_threads())}
 
     global_stats_future = executor.map(global_stats_filled, all_labels, **map_kwargs)
 
     if return_maps:
         from concurrent.futures import ProcessPoolExecutor
         if isinstance(executor, ProcessPoolExecutor):
-            raise NotImplementedError(
-                "The ProcessPoolExecutor is not compatible with return_maps=True!"
-            )
+            raise NotImplementedError("The ProcessPoolExecutor is not compatible with return_maps=True!")
         full_nbr_label = np.zeros(seg.shape, dtype=seg.dtype)
         full_nbr_mean = np.zeros(pv_guide.shape, dtype=float)
         full_seg_mean = np.zeros(pv_guide.shape, dtype=float)
@@ -1906,7 +1859,7 @@ def pv_calc(
     patch_iters = [range(slc.start, slc.stop, patch_size) for slc in global_crop]
     # 4 chunks per core
     num_valid_labels = len(voxel_counts)
-    map_kwargs["chunksize"] = np.ceil(num_valid_labels / nthreads / 4).item()
+    map_kwargs["chunksize"] = np.ceil(num_valid_labels / get_num_threads() / 4).item()
     patch_filter_func = partial(patch_filter, mask=any_border,
                                 global_crop=global_crop, patch_size=patch_size)
     _patches = executor.map(patch_filter_func, product(*patch_iters), **map_kwargs)
@@ -1985,8 +1938,8 @@ def calculate_merged_labels(
         eps: float = 1e-6,
 ) -> Iterator[PVStats]:
     """
-    Calculate the statistics for meta-labels, i.e. labels based on other labels
-    (`merge_labels`). Add respective items to `table`.
+    Calculate the statistics for meta-labels, i.e. labels based on other labels via `merged_labels`. Also added as
+    respective items to `table`.
 
     Parameters
     ----------
