@@ -33,7 +33,11 @@ jobs:
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
           python -m pip install --progress-bar off src/.[doc]
       - name: Build doc
-        run: PYTHONPATH=$PYTHONPATH:src TZ=UTC sphinx-build src/doc doc-build -W --keep-going
+        env:
+          PYTHONPATH: ${{ env.PYTHONPATH != '' && format( '{1}:src', env.PYTHONPATH ) || 'src' }}
+          TZ: UTC
+        run: |
+          sphinx-build -WT --keep-going -j auto src/doc doc-build
       - name: Upload documentation
         uses: actions/upload-artifact@v4
         with:
