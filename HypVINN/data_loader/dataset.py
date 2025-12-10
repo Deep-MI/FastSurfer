@@ -125,8 +125,8 @@ class HypVINNDataset(Dataset):
         else:
             logger.info(
                 f"For inference T1 block weight was set to: "
-                f"{self.weight_factor.numpy()[0]} and the T2 block was set to: "
-                f"{self.weight_factor.numpy()[1]}")
+                f"{self.weight_factor.cpu().numpy()[0]} and the T2 block was set to: "
+                f"{self.weight_factor.cpu().numpy()[1]}")
 
     def _standarized_img(self, orig_data: np.ndarray, orig_zoom: npt.NDArray[float],
                          modality: np.ndarray) -> np.ndarray:
