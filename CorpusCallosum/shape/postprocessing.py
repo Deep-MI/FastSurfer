@@ -21,7 +21,7 @@ import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, FSAVERAGE_MIDDLE, SUBSEGMENT_LABELS
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.endpoint_heuristic import get_endpoints
-from CorpusCallosum.shape.mesh import CCMesh, create_CC_mesh_from_contours
+from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
 from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
     get_primary_eigenvector,
@@ -221,7 +221,9 @@ def recon_cc_surf_measures_multi(
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         cc_measures, contour_in_as_space_and_thickness, endpoint_idxs = _results
         contour_in_as_space, thickness_values = np.split(contour_in_as_space_and_thickness, (2,), axis=1)
-        cc_contours.append(CCContour(contour_in_as_space, thickness_values[:, 0], endpoint_idxs, resolution=vox_size[0]))
+        cc_contours.append(
+            CCContour(contour_in_as_space, thickness_values[:, 0], endpoint_idxs, resolution=vox_size[0])
+        )
         if cc_measures is None:
             # this should not happen, but just in case
             logger.warning(f"Slice index {slice_idx+1}{progress} returned result `None`")

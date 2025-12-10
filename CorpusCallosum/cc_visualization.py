@@ -10,6 +10,10 @@ from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.data.read_write import load_fsaverage_data
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
+from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.logging import get_logger, setup_logging
+
+logger = get_logger(__name__)
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -79,9 +83,16 @@ def make_parser() -> argparse.ArgumentParser:
         help="Legend for the colorbar.",
         metavar="LEGEND")
     parser.add_argument(
-        "--twoD", 
-        action="store_true", 
+        "--twoD",
+        action="store_true",
         help="Generate 2D visualization instead of 3D mesh.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Enable verbose (pass twice for debug-output).",
     )
 
     return parser
@@ -171,12 +182,26 @@ def main(
 
     # 2D visualization
     mid_contour = contours[len(contours) // 2]
+    
+    
+    
+
+    # for now, we only support thickness visualization, this is preparing to plot also p-values and icc values
+    mode = "thickness"
+    logger.info(f"Writing output to {output_dir / 'cc_thickness_2d.png'}")
+
+    if mode == "thickness":
+        raw_thickness_values = mid_contour.thickness_values[~np.isnan(mid_contour.thickness_values)]
+        # values are duplicated because we they have two measurement points per levelpath
+        raw_thickness_values = raw_thickness_values[len(raw_thickness_values) // 2:] 
+    mid_contour.plot_contour_colorfill(
+        plot_values=raw_thickness_values,
+        title=None,
+        save_path=str(output_dir / "cc_thickness_2d.png"),
+        colorbar=True,
+        mode=mode
+    )
     if twoD:
-        mid_contour.plot_cc_contour_with_levelsets(
-            title=None,
-            save_path=str(output_dir / "cc_thickness_2d.png"),
-            colorbar=True,
-        )
         return 0
 
     # 3D visualization
@@ -191,21 +216,28 @@ def main(
     cc_mesh.plot_mesh(**plot_kwargs)
     cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
-    mid_contour.plot_cc_contour_with_levelsets(save_path=str(output_dir / "midslice_2d.png"))
 
     cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr)
+    logger.info(f"Writing vtk file to {output_dir / 'cc_mesh.vtk'}")
     cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
+    logger.info(f"Writing freesurfer surface file to {output_dir / 'cc_mesh.fssurf'}")
     cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
+    logger.info(f"Writing freesurfer overlay file to {output_dir / 'cc_mesh_overlay.curv'}")
     cc_mesh.write_morph_data(str(output_dir / "cc_mesh_overlay.curv"))
     try:
         cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
+        logger.info(f"Writing 3D snapshot image to {output_dir / 'cc_mesh_snap.png'}")
     except RuntimeError:
-        return ("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
+        logger.warning("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
                 "`pip install whippersnappy>=1.3.1` !")
     return 0
 
 if __name__ == "__main__":
     options = options_parse()
+
+    # Set up logging if verbose mode is enabled
+    logging.setup_logging(None, options.verbose)  # Log to stdout only
+
     sys.exit(main(
         template_dir=options.template_dir,
         output_dir=options.output_dir,
