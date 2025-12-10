@@ -15,7 +15,7 @@ import concurrent.futures
 from copy import copy
 from functools import partial
 from pathlib import Path
-from typing import Literal, TypedDict, get_args
+from typing import get_args
 
 import numpy as np
 
@@ -34,14 +34,11 @@ from CorpusCallosum.shape.subsegment_contour import (
     transform_to_acpc_standard,
 )
 from CorpusCallosum.shape.thickness import cc_thickness, convert_to_ras
-from CorpusCallosum.utils.types import ContourThickness, Points2dType
+from CorpusCallosum.utils.types import CCMeasuresDict, ContourThickness, Points2dType, SliceSelection, SubdivisionMethod
 from CorpusCallosum.utils.visualization import plot_contours
 from FastSurferCNN.utils import AffineMatrix4x4, Image3d, ScalarType, Shape2d, Shape3d, Vector2d
 from FastSurferCNN.utils.common import SubjectDirectory, suppress_stdout, update_docstring
 from FastSurferCNN.utils.parallel import process_executor, thread_executor
-
-SubdivisionMethod = Literal["shape", "vertical", "angular", "eigenvector"]
-SliceSelection = Literal["middle", "all"] | int
 
 logger = logging.get_logger(__name__)
 
@@ -50,55 +47,6 @@ LIA_ORIENTATION = np.zeros((3,3))
 LIA_ORIENTATION[0,0] = -1
 LIA_ORIENTATION[1,2] = 1
 LIA_ORIENTATION[2,1] = -1
-
-
-class CCMeasuresDict(TypedDict):
-    """TypedDict for corpus callosum measures.
-
-    Attributes
-    ----------
-    cc_index : float
-        Corpus callosum shape index.
-    circularity : float
-        Shape circularity measure.
-    areas : np.ndarray
-        Areas of subdivided regions.
-    midline_length : float
-        Length along the midline.
-    thickness : float
-        Array of thickness measurements.
-    curvature : float
-        Array of curvature measurements.
-    thickness_profile : np.ndarray of type float
-        Thickness measurements along the contour.
-    total_area : float
-        Total area of the CC.
-    total_perimeter : float
-        Total perimeter length.
-    split_contours : list of np.ndarray
-        Subdivided contour segments in AS-slice coordinates.
-    midline_equidistant : np.ndarray
-        Equidistant points along midline in AS-slice coordinates.
-    levelpaths : list of np.ndarray
-        Paths for thickness measurements in AS-slice coordinates.
-    slice_index : int
-        Index of the processed slice.
-    """
-    cc_index: float
-    circularity: float
-    areas: np.ndarray
-    midline_length: float
-    thickness: float
-    curvature: float
-    thickness_profile: np.ndarray[tuple[int], np.dtype[float]]
-    total_area: float
-    total_perimeter: float
-    total_area: float
-    total_perimeter: float
-    split_contours: ContourList
-    midline_equidistant: np.ndarray
-    levelpaths: list[np.ndarray]
-    slice_index: int
 
 
 def create_sag_slice_vox2vox(slice_idx: int, fsaverage_middle: float) -> AffineMatrix4x4:

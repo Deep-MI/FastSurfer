@@ -12,3 +12,4 @@ CorpusCallosum.shape
     thickness
     subsegment_contour
     endpoint_heuristic
+    contour

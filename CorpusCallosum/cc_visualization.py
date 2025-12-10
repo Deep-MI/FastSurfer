@@ -10,8 +10,7 @@ from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.data.read_write import load_fsaverage_data
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
-from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.logging import get_logger
+from FastSurferCNN.utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
 
@@ -236,7 +235,7 @@ if __name__ == "__main__":
     options = options_parse()
 
     # Set up logging if verbose mode is enabled
-    logging.setup_logging(None, options.verbose)  # Log to stdout only
+    setup_logging(None, options.verbose)  # Log to stdout only
 
     sys.exit(main(
         template_dir=options.template_dir,

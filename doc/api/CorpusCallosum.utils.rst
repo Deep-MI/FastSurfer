@@ -8,4 +8,5 @@ CorpusCallosum.utils
 
     checkpoint
     mapping_helpers
+    types
     visualization

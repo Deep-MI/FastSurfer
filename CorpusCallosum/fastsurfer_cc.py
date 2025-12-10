@@ -47,9 +47,6 @@ from CorpusCallosum.localization import inference as localization_inference
 from CorpusCallosum.segmentation import inference as segmentation_inference
 from CorpusCallosum.segmentation import segmentation_postprocessing
 from CorpusCallosum.shape.postprocessing import (
-    CCMeasuresDict,
-    SliceSelection,
-    SubdivisionMethod,
     check_area_changes,
     create_sag_slice_vox2vox,
     make_subdivision_mask,
@@ -61,6 +58,7 @@ from CorpusCallosum.utils.mapping_helpers import (
     calc_mapping_to_standard_space,
     map_softlabels_to_orig,
 )
+from CorpusCallosum.utils.types import CCMeasuresDict, SliceSelection, SubdivisionMethod
 from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.segstats import HelpFormatter
 from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask3d, Shape3d, Vector2d, logging, nibabelImage

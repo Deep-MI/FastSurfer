@@ -12,6 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+This module provides the ``CCContour`` class for reading, writing, and
+manipulating 2D corpus callosum contours together with per-vertex thickness
+values. Typical template outputs (from ``fastsurfer_cc.py --save_template``)
+emit one set per slice:
+
+- ``contour_<idx>.txt``: CSV with header ``New contour, anterior_endpoint_idx=<a>, posterior_endpoint_idx=<p>`` followed
+  by ``x,y`` rows.
+- ``thickness_values_<idx>.txt``: CSV with header ``thickness`` and one value per contour vertex.
+- ``thickness_measurement_points_<idx>.txt``: CSV with header ``vertex_idx`` listing the vertices where thickness was
+  measured.
+"""
+
 import re
 from pathlib import Path
 from typing import Literal
@@ -39,8 +52,23 @@ class CCContour:
     ----------
     contour : np.ndarray
         Array of shape (N, 2) containing 2D contour points.
+    thickness_values : np.ndarray
+        Array of shape (N,) for thickness measurements for each contour point.
     endpoint_idxs : tuple[int, int]
         Tuple containing start and end indices for the contour.
+
+    Examples
+    --------
+    >>> from CorpusCallosum.shape.contour import CCContour
+    >>>
+    >>> contour = CCContour(contour_points, thickness_values,
+    >>>                     endpoint_idxs=(anterior_idx, posterior_idx),
+    >>>                     resolution=1.0)
+    >>> contour.fill_thickness_values()   # interpolate missing values
+    >>> contour.smooth_contour(window_size=5)
+    >>> contour.save_contour("contour_0.txt")
+    >>> contour.save_thickness_values("thickness_values_0.txt")
+    >>> contour.save_thickness_measurement_points("thickness_measurement_points_0.txt")
     """
     
     def __init__(
@@ -58,8 +86,10 @@ class CCContour:
             Array of shape (N, 2) containing 2D contour points.
         thickness_values : np.ndarray
             Array of thickness measurements for each contour point.
-        endpoint_idxs : tuple[int, int]
+        endpoint_idxs : tuple[int, int], optional
             Tuple containing start and end indices for the contour.
+        resolution : float, default=1.0
+            The left-right spacing.
         """
         self.contour = contour
         if self.contour.shape[1] != 2:
@@ -68,7 +98,7 @@ class CCContour:
         if self.contour.shape[0] != len(thickness_values):
             raise ValueError(
                 f"Number of contour points ({self.contour.shape[0]}) does not match number of thickness values "
-                f"({len(thickness_values)})"
+                f"({len(thickness_values)})",
             )
         # write vertex indices where thickness values are not nan
         self.original_thickness_vertices = np.where(~np.isnan(thickness_values))[0]
@@ -84,8 +114,6 @@ class CCContour:
 
         Parameters
         ----------
-        contour_idx : int
-            Index of the contour to smooth.
         window_size : int, default=5
             Size of the smoothing window.
 
@@ -107,11 +135,6 @@ class CCContour:
     
     def get_contour_edge_lengths(self) -> np.ndarray:
         """Get the lengths of the edges of a contour.
-
-        Parameters
-        ----------
-        contour_idx : int
-            Index of the contour to get the edge lengths for.
 
         Returns
         -------
@@ -161,13 +184,17 @@ class CCContour:
                 self.thickness_values = np.full(len(self.contour), np.nan)
                 self.thickness_values[self.original_thickness_vertices] = thickness_values
             else:
-                raise ValueError("Number of thickness values "
-                f"does not match number of measurement points {len(self.original_thickness_vertices)}.")
+                raise ValueError(
+                    "Number of thickness values does not match number of measurement points "
+                    f"{len(self.original_thickness_vertices)}.",
+                )
         else:
-            assert len(thickness_values) == len(self.contour), "Number of thickness values does not match number of " \
-                f"points in the contour {len(self.contour)}."
+            if len(thickness_values) != len(self.contour):
+                raise ValueError(
+                    f"The number of thickness values does not match number of points in the contour "
+                    f"{len(self.contour)}.",
+                )
             self.thickness_values = thickness_values
-
 
     def fill_thickness_values(self) -> None:
         """Interpolate missing thickness values using weighted averaging.
@@ -367,7 +394,6 @@ class CCContour:
 
             # add third dimension to path
             path = np.column_stack([path, np.zeros(len(path))])
-
 
             if len(path) == 1:
                 all_level_points_x.append(path[0][0])
@@ -662,5 +688,7 @@ class CCContour:
                     f"{len(self.original_thickness_vertices)} does not match the number of set thickness values "
                     f"{np.sum(~np.isnan(values))}."
                 )
+        else:
+            raise ValueError(f"Number of thickness values in {input_path} does not match the vertices of the path!")
 
         self.thickness_values = new_values
