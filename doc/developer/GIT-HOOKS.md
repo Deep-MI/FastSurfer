@@ -12,11 +12,11 @@ Pre-commit Hook
 
 The pre-commit hook script will:
 1. Check for trailing white spaces in files
-2. Run ruff to verify python code formatting valid
+2. Run ruff to verify python code formatting is valid
 3. Run codespell to check the spelling
 4. Run sphinx-build to rebuild the documentation into `FastSurfer/doc-build`
-   Here, one important caveat for documentation editors is the that sphinx-build may fail if the documentation file 
-   structure is changed, but the autosummary/autodoc-generated files are not cleaned. To do this, delete the following 
+   Here, one important caveat for documentation editors is that sphinx-build may fail if the documentation file 
+   structure is changed, without first cleaning the autosummary/autodoc-generated files. To do this, delete the following 
    directory `FastSurfer/doc/api/generated`.
 
 ### Installation
