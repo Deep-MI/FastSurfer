@@ -3,6 +3,7 @@
 /tools/Docker/custom-ssl.crt
 /.idea/**
 /rough_work/**
+/doc-build/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -11,3 +12,7 @@ __pycache__/
 */stub
 
 .DS_Store
+.venv/**
+fastsurfer.egg-info
+uv.lock
+/doc/api/generated/

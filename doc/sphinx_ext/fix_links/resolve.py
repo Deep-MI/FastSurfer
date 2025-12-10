@@ -2,9 +2,8 @@
 import re
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Generator, Any
+from typing import Any
 
-import sphinx.domains
 from docutils import nodes
 from sphinx.domains import Domain
 from sphinx.application import Sphinx
@@ -279,3 +278,16 @@ class MySTReplaceDomain(Domain):
         except StopIteration:
             pass
         return []
+
+    def merge_domaindata(self, docnames: list[str], otherdata: dict[str, Any]) -> None:
+        if self.data == otherdata:
+            return
+        unclear_keys = [key for key, value in otherdata.items() if key in self.data and self.data[key] != value]
+        if len(unclear_keys) > 0:
+            raise RuntimeError(
+                f"It is unclear, how {unclear_keys} should be merged from otherdata to data.",
+                self.data,
+                otherdata,
+            )
+        else:
+            self.data.update(otherdata)
