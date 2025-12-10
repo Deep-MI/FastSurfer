@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import overload
 
 import nibabel as nib
 import numpy as np
@@ -8,24 +8,33 @@ from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
-from FastSurferCNN.utils import AffineMatrix4x4, logging
+from CorpusCallosum.utils.types import Polygon3dType
+from FastSurferCNN.utils import (
+    AffineMatrix4x4,
+    Image2d,
+    Image3d,
+    RotationMatrix3x3,
+    Shape3d,
+    Vector2d,
+    Vector3d,
+    logging,
+    nibabelImage,
+)
 from FastSurferCNN.utils.parallel import thread_executor
-
-Vector3D = np.ndarray[tuple[Literal[3]], np.dtype[float]]
 
 logger = logging.get_logger(__name__)
 
 
 def make_midplane_affine(
-        orig_affine: npt.NDArray[float],
+        orig_affine: AffineMatrix4x4,
         slices_to_analyze: int = 1,
         offset: int = 4,
-    ) -> npt.NDArray[float]:
+    ) -> AffineMatrix4x4:
     """Create affine transformation matrix for midplane slices.
 
     Parameters
     ----------
-    orig_affine : np.ndarray
+    orig_affine : AffineMatrix4x4
         Original image affine matrix (4x4).
     slices_to_analyze : int, default=1
         Number of slices to analyze around midplane.
@@ -34,7 +43,7 @@ def make_midplane_affine(
 
     Returns
     -------
-    np.ndarray
+    AffineMatrix4x4
         4x4 affine matrix for midplane slices.
     """
     # Create translation matrix to center on midplane
@@ -47,7 +56,7 @@ def make_midplane_affine(
     return seg_affine
 
 
-def correct_nodding(ac_pt: npt.NDArray[float], pc_pt: npt.NDArray[float]) -> npt.NDArray[float]:
+def correct_nodding(ac_pt: Vector2d, pc_pt: Vector2d) -> RotationMatrix3x3:
     """Calculate rotation matrix to correct head nodding.
 
     Calculates rotation matrix to align AC-PC line with posterior direction,
@@ -55,14 +64,14 @@ def correct_nodding(ac_pt: npt.NDArray[float], pc_pt: npt.NDArray[float]) -> npt
 
     Parameters
     ----------
-    ac_pt : np.ndarray
-        Coordinates of the anterior commissure point.
-    pc_pt : np.ndarray
-        Coordinates of the posterior commissure point.
+    ac_pt : Vector2d
+        2D coordinates of the anterior commissure point.
+    pc_pt : Vector2d
+        2D coordinates of the posterior commissure point.
 
     Returns
     -------
-    np.ndarray
+    RotationMatrix
         3x3 rotation matrix to align AC-PC line with posterior direction.
     """
     ac_pc_vec = pc_pt - ac_pt
@@ -81,7 +90,7 @@ def correct_nodding(ac_pt: npt.NDArray[float], pc_pt: npt.NDArray[float]) -> npt
         theta = -theta
 
     # create rotation matrix for theta
-    rotation_matrix = np.array(
+    rotation_matrix: RotationMatrix3x3 = np.array(
         [
             [np.cos(theta), -np.sin(theta), 0],
             [np.sin(theta), np.cos(theta), 0],
@@ -92,7 +101,13 @@ def correct_nodding(ac_pt: npt.NDArray[float], pc_pt: npt.NDArray[float]) -> npt
     return rotation_matrix
 
 
-def apply_transform_to_pt(pts: npt.NDArray[float], T: npt.NDArray[float], inv: bool = False) -> npt.NDArray[float]:
+@overload
+def apply_transform_to_pt(pts: Vector3d, T: AffineMatrix4x4, inv: bool = False) -> Vector3d: ...
+
+@overload
+def apply_transform_to_pt(pts: Polygon3dType, T: AffineMatrix4x4, inv: bool = False) -> Polygon3dType: ...
+
+def apply_transform_to_pt(pts: Vector3d | Polygon3dType, T: AffineMatrix4x4, inv: bool = False):
     """Apply homogeneous transformation matrix to points.
 
     Parameters
@@ -120,10 +135,10 @@ def apply_transform_to_pt(pts: npt.NDArray[float], T: npt.NDArray[float], inv: b
 
 def calc_mapping_to_standard_space(
     orig: "nib.Nifti1Image", 
-    ac_coords_3d: Vector3D,
-    pc_coords_3d: Vector3D,
+    ac_coords_3d: Vector3d,
+    pc_coords_3d: Vector3d,
     orig_fsaverage_vox2vox: AffineMatrix4x4,
-) -> tuple[AffineMatrix4x4, Vector3D, Vector3D, Vector3D, Vector3D]:
+) -> tuple[AffineMatrix4x4, Vector3d, Vector3d, Vector3d, Vector3d]:
     """Get transformations to map image to standard space.
 
     Parameters
@@ -161,10 +176,10 @@ def calc_mapping_to_standard_space(
     # Copy translation part to y,z axes (usually no translation)
     nod_correct_3d[1:3, 3] = nod_correct_2d[:2, 2]
 
-    ac_coords_after_nodding: Vector3D = apply_transform_to_pt(
+    ac_coords_after_nodding: Vector3d = apply_transform_to_pt(
         ac_coords_3d, nod_correct_3d, inv=False,
     )
-    pc_coords_after_nodding: Vector3D = apply_transform_to_pt(
+    pc_coords_after_nodding: Vector3d = apply_transform_to_pt(
         pc_coords_3d, nod_correct_3d, inv=False,
     )
 
@@ -172,10 +187,10 @@ def calc_mapping_to_standard_space(
     ac_to_center_translation[:3, 3] = image_center - ac_coords_after_nodding
 
     # correct nodding
-    ac_coords_standardized: Vector3D = apply_transform_to_pt(
+    ac_coords_standardized: Vector3d = apply_transform_to_pt(
         ac_coords_after_nodding, ac_to_center_translation, inv=False,
     )
-    pc_coords_standardized: Vector3D = apply_transform_to_pt(
+    pc_coords_standardized: Vector3d = apply_transform_to_pt(
         pc_coords_after_nodding, ac_to_center_translation, inv=False,
     )
 
@@ -186,10 +201,10 @@ def calc_mapping_to_standard_space(
     )
 
     # calculate ac & pc in space of mri input image
-    ac_coords_orig: Vector3D = apply_transform_to_pt(
+    ac_coords_orig: Vector3d = apply_transform_to_pt(
         ac_coords_standardized, standardized_to_orig_vox2vox, inv=False,
     )
-    pc_coords_orig: Vector3D = apply_transform_to_pt(
+    pc_coords_orig: Vector3d = apply_transform_to_pt(
         pc_coords_standardized, standardized_to_orig_vox2vox, inv=False,
     )
     #FIXME: incorrect docstring
@@ -197,7 +212,7 @@ def calc_mapping_to_standard_space(
 
 
 def apply_transform_to_volume(
-    orig_image: nib.analyze.SpatialImage,
+    orig_image: nibabelImage,
     vox2vox: AffineMatrix4x4,
     affine: AffineMatrix4x4,
     header: nib.freesurfer.mghformat.MGHHeader | None = None,
@@ -209,13 +224,13 @@ def apply_transform_to_volume(
 
     Parameters
     ----------
-    orig_image : nibabel.analyze.SpatialImage
+    orig_image : nibabelImage
         Input volume.
     vox2vox : np.ndarray
         Transformation matrix to apply to the data, this is from input-to-output space.
     affine : AffineMatrix4x4, optional
         The vox2ras matrix of the output image, only relevant if output_path is given.
-    header : nibabel.freesurfer.mghformat.MGHHeader, optional
+    header : nibabelHeader, optional
         Header for the output image, only relevant if output_path is given, if None will default to orig_image header.
     output_path : str or Path, optional
         If output_path is provided, saves the result under this path.
@@ -248,7 +263,7 @@ def apply_transform_to_volume(
     return resampled
 
 
-def make_affine(simpleITKImage: sitk.Image) -> npt.NDArray[float]:
+def make_affine(simpleITKImage: sitk.Image) -> AffineMatrix4x4:
     """Create an affine transformation matrix from a SimpleITK image.
 
     Parameters
@@ -282,33 +297,33 @@ def make_affine(simpleITKImage: sitk.Image) -> npt.NDArray[float]:
 
 
 def map_softlabels_to_orig(
-    cc_fn_softlabels: npt.NDArray[float],
-    orig_fsaverage_vox2vox: npt.NDArray[float],
-    orig: nib.analyze.SpatialImage,
+    cc_fn_softlabels: Image3d,
+    orig_fsaverage_vox2vox: AffineMatrix4x4,
+    orig: nibabelImage,
     orig_space_segmentation_path: str | Path | None = None,
     fsaverage_middle: int = 128,
-    cc_subseg_midslice: npt.NDArray[int] | None = None
-) -> npt.NDArray[int]:
+    cc_subseg_midslice: Image2d | None = None
+) -> np.ndarray[Shape3d, np.dtype[int]]:
     """Map soft labels back to original image space and apply post-processing.
 
     Parameters
     ----------
     cc_fn_softlabels : np.ndarray
         Soft label predictions.
-    orig_fsaverage_vox2vox : np.ndarray
+    orig_fsaverage_vox2vox : AffineMatrix4x4
         Original to fsaverage space transformation.
-    orig : nibabel.analyze.SpatialImage
+    orig : nibabelImage
         Original image.
     orig_space_segmentation_path : str or Path, optional
         Path to save segmentation in original space.
     fsaverage_middle : int, default=128
         Middle slice index in fsaverage space.
-    cc_subseg_midslice : npt.NDArray[int], optional
+    cc_subseg_midslice : np.ndarray, optional
         Mask for subdividing regions.
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray
         Final segmentation in original image space.
 
     Notes
@@ -324,7 +339,7 @@ def map_softlabels_to_orig(
     slab2fsaverage_vox2vox[0, 3] = -(fsaverage_middle - slices_to_analyze // 2)
     slab2orig_vox2vox = orig_fsaverage_vox2vox @ slab2fsaverage_vox2vox
 
-    def _map_softlabel_to_orig(i: int, data: np.ndarray) -> np.ndarray:
+    def _map_softlabel_to_orig(i: int, data: Image3d) -> Image3d:
         return affine_transform(data, slab2orig_vox2vox, output_shape=orig.shape, order=1, cval=float(i == 0))
 
     _softlabels = np.moveaxis(cc_fn_softlabels, -1, 0)
@@ -358,62 +373,3 @@ def map_softlabels_to_orig(
         )
 
     return seg_orig_space
-
-
-def interpolate_midplane(
-        orig: nib.Nifti1Image, 
-        orig_fsaverage_vox2vox: np.ndarray, 
-        slices_to_analyze: int) -> np.ndarray:
-    """Interpolates image data at the midplane using a grid of points.
-
-    Parameters
-    ----------
-    orig : nib.Nifti1Image
-        Original image.
-    orig_fsaverage_vox2vox : np.ndarray
-        Original to fsaverage space transformation matrix.
-    slices_to_analyze : int
-        Number of slices to analyze around midplane.
-
-    Returns
-    -------
-    np.ndarray
-        Interpolated image data at midplane.
-    """
-
-    # slice_thickness = 9+slices_to_analyze-1
-    # make grid of 9 slices in the fsaverage middle
-    # (cube from 123.5,0.5,0.5 to 132.5,255.5,255.5 (incudling end points, 1mm spacing))
-    x_coords = np.linspace(
-        124 - slices_to_analyze // 2,
-        132 + slices_to_analyze // 2,
-        9 + (slices_to_analyze - 1),
-        endpoint=True,
-    )  # 9 points from 123.5 to 132.5
-    y_coords = np.linspace(
-        0, orig.shape[1] - 1, orig.shape[1], endpoint=True
-    )  # 255 points from 0.5 to 255.5
-    z_coords = np.linspace(
-        0, orig.shape[2] - 1, orig.shape[2], endpoint=True
-    )  # 255 points from 0.5 to 255.5
-    X, Y, Z = np.meshgrid(x_coords, y_coords, z_coords, indexing="ij")
-
-    # Stack coordinates and add homogeneous coordinate
-    grid_fsaverage = np.stack([X.ravel(), Y.ravel(), Z.ravel(), np.ones(X.size)])
-
-    # move grid to orig space by applying transform
-    grid_orig = np.linalg.inv(orig_fsaverage_vox2vox) @ grid_fsaverage
-
-    # interpolate grid on orig image
-    from scipy.ndimage import map_coordinates
-
-    transformed = map_coordinates(
-        np.asarray(orig.dataobj),
-        grid_orig[0:3, :],  # use only x,y,z coordinates (drop homogeneous coordinate)
-        order=2,
-        mode="constant",
-        cval=0,
-        prefilter=True,
-    ).reshape(len(x_coords), len(y_coords), len(z_coords))
-
-    return transformed

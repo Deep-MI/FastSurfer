@@ -263,15 +263,17 @@ def correct_wm_ventricles(
 
 
 if __name__ == "__main__":
+    from FastSurferCNN.utils import nibabelImage
+
     # Command Line options are error checking done here
     options = argument_parse()
 
     logging.setup_logging()
 
     logger.info(f"Reading inputs: {options.input_cc} {options.input_pred}...")
-    cc_seg_image = cast(nib.analyze.SpatialImage, nib.load(options.input_cc))
+    cc_seg_image = cast(nibabelImage, nib.load(options.input_cc))
     cc_seg_data = np.asanyarray(cc_seg_image.dataobj)
-    aseg_image = cast(nib.analyze.SpatialImage, nib.load(options.input_pred))
+    aseg_image = cast(nibabelImage, nib.load(options.input_pred))
     aseg_data = np.asanyarray(aseg_image.dataobj)
 
     def _is_conform(img, dtype, verbose):

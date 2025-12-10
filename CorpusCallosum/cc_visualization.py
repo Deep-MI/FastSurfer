@@ -11,7 +11,7 @@ from CorpusCallosum.data.read_write import load_fsaverage_data
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
 from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.logging import get_logger, setup_logging
+from FastSurferCNN.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -141,7 +141,7 @@ def load_contours_from_template_dir(
             num_thickness_values = np.sum(~np.isnan(np.array(thickness_values[1:],dtype=float)))
             if fsaverage_contour is None:
                 fsaverage_contour = load_fsaverage_cc_template()
-                # create measurment points (points = 2 x levelpaths) accorindg to number of thickness values
+                # create measurement points (points = 2 x levelpaths) accorindg to number of thickness values
                 fsaverage_contour.create_levelpaths(num_points=num_thickness_values // 2, update_data=True)
             current_contour = fsaverage_contour.copy()
             current_contour.load_thickness_values(thickness_file)

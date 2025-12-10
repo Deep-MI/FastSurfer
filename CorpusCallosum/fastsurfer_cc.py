@@ -25,7 +25,6 @@ import nibabel as nib
 import numpy as np
 import torch
 from monai.networks.nets import DenseNet
-from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import (
@@ -48,6 +47,7 @@ from CorpusCallosum.localization import inference as localization_inference
 from CorpusCallosum.segmentation import inference as segmentation_inference
 from CorpusCallosum.segmentation import segmentation_postprocessing
 from CorpusCallosum.shape.postprocessing import (
+    CCMeasuresDict,
     SliceSelection,
     SubdivisionMethod,
     check_area_changes,
@@ -63,7 +63,7 @@ from CorpusCallosum.utils.mapping_helpers import (
 )
 from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.segstats import HelpFormatter
-from FastSurferCNN.utils import AffineMatrix4x4, logging
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask3d, Shape3d, Vector2d, logging, nibabelImage
 from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.common import SubjectDirectory, find_device
 from FastSurferCNN.utils.lta import write_lta
@@ -72,6 +72,7 @@ from FastSurferCNN.utils.parser_defaults import modify_argument
 from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
+
 _TPathLike = TypeVar("_TPathLike", str, Path, Literal[None])
 
 
@@ -164,8 +165,8 @@ def make_parser() -> argparse.ArgumentParser:
              "cost of precision.",
     )
     def _slice_selection(a: str) -> SliceSelection:
-        if a.lower() in ("middle", "all"):
-            return a.lower()
+        if b := a.lower() in ("middle", "all"):
+            return b
         return int(a)
     parser.add_argument(
         "--slice_selection",
@@ -366,7 +367,7 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-def register_centroids_to_fsavg(aseg_nib: nib.analyze.SpatialImage) \
+def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
         -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, FSAverageHeader, AffineMatrix4x4]:
     """Perform centroid-based registration between subject and fsaverage space.
 
@@ -432,12 +433,12 @@ def register_centroids_to_fsavg(aseg_nib: nib.analyze.SpatialImage) \
 
 
 def localize_ac_pc(
-    orig_data: np.ndarray,
-    aseg_nib: nib.analyze.SpatialImage,
+    orig_data: Image3d,
+    aseg_nib: nibabelImage,
     orig2midslice_vox2vox: AffineMatrix4x4,
     model_localization: DenseNet,
-    resample_shape: tuple[int, int, int],
-) -> tuple[npt.NDArray[float], npt.NDArray[float]]:
+    resample_shape: Shape3d,
+) -> tuple[Vector2d, Vector2d]:
     """Localize anterior and posterior commissure points in the brain.
 
     Uses a trained model to detect AC and PC points in mid-sagittal slices,
@@ -447,7 +448,7 @@ def localize_ac_pc(
     ----------
     orig_data : np.ndarray
         Array of intensity data.
-    aseg_nib : nibabel.analyze.SpatialImage
+    aseg_nib : nibabelImage
         Subject's segmentation image in native subject space.
     orig2midslice_vox2vox : np.ndarray
         Transformation matrix from subject/native space to fsaverage space (in lia).
@@ -490,12 +491,12 @@ def localize_ac_pc(
 
 
 def segment_cc(
-    midslices: np.ndarray,
-    ac_coords: npt.NDArray[float],
-    pc_coords: npt.NDArray[float],
-    aseg_nib: "nib.Nifti1Image",
+    midslices: Image3d,
+    ac_coords: Vector2d,
+    pc_coords: Vector2d,
+    aseg_nib: nibabelImage,
     model_segmentation: "torch.nn.Module",
-) -> tuple[npt.NDArray[bool], npt.NDArray[float]]:
+) -> tuple[Mask3d, Image3d]:
     """Segment the corpus callosum using a trained model.
 
     Performs corpus callosum segmentation on mid-sagittal slices using a trained model, with AC-PC points as anatomical
@@ -509,7 +510,7 @@ def segment_cc(
         Anterior commissure coordinates.
     pc_coords : np.ndarray
         Posterior commissure coordinates.
-    aseg_nib : nibabel.Nifti1Image
+    aseg_nib : nibabelImage
         Subject's cc_seg_labels image.
     model_segmentation : torch.nn.Module
         Trained model for CC cc_seg_labels.
@@ -697,8 +698,16 @@ def main(
     #### setup variables
     io_futures = []
 
+    # load models
+    device = find_device(device)
+    logger.info(f"Using device: {device}")
+
+    logger.info("Loading models")
+    _model_localization = thread_executor().submit(localization_inference.load_model, device=device)
+    _model_segmentation = thread_executor().submit(segmentation_inference.load_model, device=device)
+
     _aseg_fut = thread_executor().submit(nib.load, sd.filename_by_attribute("aseg_name"))
-    orig = cast(nib.analyze.SpatialImage, nib.load(sd.conf_name))
+    orig = cast(nibabelImage, nib.load(sd.conf_name))
 
     # check that the image is conformed, i.e. isotropic 1mm voxels, 256^3 size, LIA orientation
     if not is_conform(orig, vox_size=None, img_size=None, orientation=None):
@@ -718,15 +727,7 @@ def main(
         "center around the mid-sagittal plane)"
     )
 
-    # load models
-    device = find_device(device)
-    logger.info(f"Using device: {device}")
-
-    logger.info("Loading models")
-    _model_localization = thread_executor().submit(localization_inference.load_model, device=device)
-    _model_segmentation = thread_executor().submit(segmentation_inference.load_model, device=device)
-
-    aseg_img = cast(nib.analyze.SpatialImage, _aseg_fut.result())
+    aseg_img = cast(nibabelImage, _aseg_fut.result())
 
     if not np.allclose(aseg_img.affine, orig.affine):
         logger.error("Input MRI and segmentation are not aligned! Please check your input files.")
@@ -765,7 +766,8 @@ def main(
 
     #### do localization and segmentation inference
     logger.info("Starting AC/PC localization")
-    target_shape = (slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2])
+    target_shape: tuple[int, int, int] = (slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2])
+    # predict ac and pc coordinates in upright AS space
     ac_coords, pc_coords = localize_ac_pc(
         np.asarray(orig.dataobj),
         aseg_img,
@@ -774,8 +776,9 @@ def main(
         target_shape,
     )
     logger.info("Starting corpus callosum segmentation")
-    target_shape = (slices_to_analyze + 8, fsavg_header["dims"][1], fsavg_header["dims"][2])  # 8 for context slices
-    midslices = affine_transform(
+    # "+ 8" in x-direction for context slices
+    target_shape: Shape3d = (slices_to_analyze + 8, fsavg_header["dims"][1], fsavg_header["dims"][2])
+    midslices: Image3d = affine_transform(
         np.asarray(orig.dataobj),
         np.linalg.inv(_orig2midslab_vox2vox(extra_slices=8)), # inverse is required for affine_transform
         output_shape=target_shape,
@@ -823,7 +826,7 @@ def main(
     )
     io_futures.extend(slice_io_futures)
 
-    outer_contours = [slice_result['split_contours'][0] for slice_result in slice_results]
+    outer_contours = [slice_result["split_contours"][0] for slice_result in slice_results]
 
     if len(outer_contours) > 1 and not check_area_changes(outer_contours):
         logger.warning(
@@ -831,12 +834,12 @@ def main(
         )
 
     # Get middle slice result
-    middle_slice_result = slice_results[len(slice_results) // 2]
-    if len(middle_slice_result['split_contours']) <= 5:
+    middle_slice_result: CCMeasuresDict = slice_results[len(slice_results) // 2]
+    if len(middle_slice_result["split_contours"]) <= 5:
         cc_subseg_midslice = make_subdivision_mask(
-            cc_fn_seg_labels.shape[1:],
-            middle_slice_result['split_contours'],
-            orig.header.get_zooms(),
+            (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
+            middle_slice_result["split_contours"],
+            vox_size[1:],
         )
     else:
         logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
@@ -928,22 +931,20 @@ def main(
     additional_metrics["contour_smoothing"] = contour_smoothing
     additional_metrics["slice_selection"] = slice_selection
 
-    # Convert numpy arrays to lists for JSON serialization
-    output_metrics_middle_slice = convert_numpy_to_json_serializable(output_metrics_middle_slice | additional_metrics)
 
     if sd.has_attribute("cc_mid_measures"):
-        logger.info(f"Saving CC markers to {sd.filename_by_attribute('cc_mid_measures')}")
-        sd.filename_by_attribute("cc_mid_measures").parent.mkdir(exist_ok=True, parents=True)
-        with open(sd.filename_by_attribute("cc_mid_measures"), "w") as f:
-            json.dump(output_metrics_middle_slice, f, indent=4)
+        io_futures.append(thread_executor().submit(
+            save_cc_measures_json,
+            sd.filename_by_attribute('cc_mid_measures'),
+            output_metrics_middle_slice | additional_metrics,
+        ))
 
     if sd.has_attribute("cc_measures"):
-        per_slice_output_dict = convert_numpy_to_json_serializable(per_slice_output_dict | additional_metrics)
-        sd.filename_by_attribute("cc_measures").parent.mkdir(exist_ok=True, parents=True)
-        # Save slice-wise postprocessing results to JSON
-        with open(sd.filename_by_attribute("cc_measures"), "w") as f:
-            json.dump(per_slice_output_dict, f, indent=4)
-        logger.info(f"Multiple slice post-processing results saved to {sd.filename_by_attribute('cc_measures')}")
+        io_futures.append(thread_executor().submit(
+            save_cc_measures_json,
+            sd.filename_by_attribute("cc_measures"),
+            per_slice_output_dict | additional_metrics,
+        ))
 
     # save lta to fsaverage space
 
@@ -984,6 +985,15 @@ def main(
 
     duration = (perf_counter_ns() - start) / 1e9
     logger.info(f"CorpusCallosum analysis pipeline completed successfully in {duration:.2f} seconds.")
+
+
+def save_cc_measures_json(cc_mid_measure_file: Path, metrics: dict[str, object]):
+    """Save JSON metrics file."""
+    # Convert numpy arrays to lists for JSON serialization
+    logger.info(f"Saving CC markers to {cc_mid_measure_file}")
+    cc_mid_measure_file.parent.mkdir(exist_ok=True, parents=True)
+    with open(cc_mid_measure_file, "w") as f:
+        json.dump(convert_numpy_to_json_serializable(metrics), f, indent=4)
 
 
 if __name__ == "__main__":

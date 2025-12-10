@@ -13,17 +13,19 @@
 # limitations under the License.
 
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import torch
 from monai import transforms
 from monai.networks.nets import DenseNet
-from numpy import typing as npt
 
 from CorpusCallosum.transforms.localization import CropAroundACPCFixedSize
 from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
+from CorpusCallosum.utils.types import Points2dType
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
+from FastSurferCNN.utils import Image3d, Vector2d, Vector3d
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 PATCH_SIZE = (64, 64)
@@ -97,9 +99,9 @@ def get_transforms() -> transforms.Compose:
 
 def preprocess_volume(
     image_volume: np.ndarray,
-    center_pt: npt.NDArray[float],
+    center_pt: Vector3d,
     transform: transforms.Transform | None = None
-) -> dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor | tuple[int, ...]]:
     """Preprocess a volume for inference.
 
     Parameters
@@ -114,16 +116,14 @@ def preprocess_volume(
 
     Returns
     -------
-    dict[str, torch.Tensor]
+    dict[str, torch.Tensor | tuple[int, ...]]
         Dictionary containing preprocessed image tensor.
     """
     if transform is None:
         transform = get_transforms()
 
-    # During training we used AC/PC coordinates, but during inference
-    # we approximate this by the center of the third ventricle.
-    # Therefore we put in the third ventricle center as dummy AC/PC coordinates
-    # for cropping the image.
+    # During training we used AC/PC coordinates, but during inference we approximate this by the center of the third
+    # ventricle. Therefore we put in the third ventricle center as dummy AC/PC coordinates for cropping the image.
     sample = {"image": image_volume[None], "AC_center": center_pt[1:][None], "PC_center": center_pt[1:][None]}
 
     # Apply transforms
@@ -136,13 +136,13 @@ def preprocess_volume(
             
     return transformed
 
-def run_inference(
+def predict(
         model: torch.nn.Module,
-        image_volume: np.ndarray,
+        image_volume: Image3d,
         patch_center: np.ndarray,
         device: torch.device | None = None,
         transform: transforms.Transform | None = None
-    ) -> tuple[npt.NDArray[float], npt.NDArray[float], np.ndarray, tuple[int, int]]:
+    ) -> tuple[Points2dType, Points2dType, tuple[int, int]]:
     """
     Run inference on an image volume
     
@@ -165,9 +165,7 @@ def run_inference(
         Predicted PC coordinates.
     ac_coord : np.ndarray
         Predicted AC coordinates.
-    image : np.ndarray
-        Processed input images.
-    crop_offsets : tuple[int, int]
+    crop_offsets : pair of ints
         Crop offsets (left, top).
     """
     if device is None:
@@ -190,31 +188,32 @@ def run_inference(
         outputs = model(inputs) * torch.as_tensor([PATCH_SIZE + PATCH_SIZE], device=device)
 
     t_crops = [(t_dict['crop_left'] + t_dict['crop_top']) * 2]
-    outs: npt.NDArray[float] = outputs.cpu().numpy() + np.asarray(t_crops, dtype=float)
-    return outs[:, :2], outs[:, 2:], inputs.cpu().numpy(), (t_dict["crop_left"][0], t_dict["crop_top"][0])
+    outs: np.ndarray[tuple[int, Literal[4]], np.dtype[float]] = outputs.cpu().numpy() + np.asarray(t_crops, dtype=float)
+    crop_offsets: tuple[int, int] = (t_dict["crop_left"][0], t_dict["crop_top"][0])
+    return outs[:, :2], outs[:, 2:], crop_offsets
 
 
 def run_inference_on_slice(
         model: DenseNet,
-        image_slice: np.ndarray,
-        center_pt: np.ndarray,
+        image_slab: Image3d,
+        center_pt: Vector2d,
         num_iterations: int = 2,
         debug_output: str | None = None,
-) -> tuple[npt.NDArray[float], npt.NDArray[float]]:
+) -> tuple[Vector2d, Vector2d]:
     """Run inference on a single slice to detect AC and PC points.
 
     Parameters
     ----------
     model : torch.nn.Module
         Trained model for AC-PC detection.
-    image_slice : np.ndarray
+    image_slab : np.ndarray
         3D image mid-slices to run inference on in RAS.
     center_pt : np.ndarray
         Initial center point estimate for cropping.
     num_iterations : int, default=2
         Number of refinement iterations to run.
     debug_output : str, optional
-        Path to save debug visualization, by default None.
+        Path to save debug visualization.
 
     Returns
     -------
@@ -231,7 +230,7 @@ def run_inference_on_slice(
     crop_left, crop_top = 0, 0
     # Run inference
     for _ in range(num_iterations):
-        pc_coords, ac_coords, _, (crop_left, crop_top) = run_inference(model, image_slice, center_pt)
+        pc_coords, ac_coords, (crop_left, crop_top) = predict(model, image_slab, center_pt)
         center_pt = np.mean(np.stack([ac_coords, pc_coords], axis=0), axis=(0, 1))
     # average ac and pc coords across sagittal slices
     _pc_coords = np.mean(pc_coords, axis=0)
@@ -241,7 +240,7 @@ def run_inference_on_slice(
         import matplotlib.pyplot as plt
         from matplotlib.patches import Rectangle
         fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-        ax.imshow(image_slice[image_slice.shape[0]//2, :, :], cmap='gray')
+        ax.imshow(image_slab[image_slab.shape[0] // 2, :, :], cmap='gray')
         # Plot points on all views
         ax.scatter(pc_coords[:, 1], pc_coords[:, 0], c='r', marker='x', label='PC')
         ax.scatter(ac_coords[:, 1], ac_coords[:, 0], c='b', marker='x', label='AC')

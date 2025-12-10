@@ -13,23 +13,25 @@
 # limitations under the License.
 
 from collections.abc import Callable
-from typing import Literal, TypeVar
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy import typing as npt
 from scipy.spatial import ConvexHull
 
-_TS = TypeVar("_TS", bound=np.number)
+from CorpusCallosum.utils.types import ContourList, Points2dType, Polygon2dType, Polygon3dType
+from FastSurferCNN.utils import Mask2d, Mask3d, ScalarType, Vector2d, nibabelImage
 
+if TYPE_CHECKING:
+    import pandas as pd
 
-def minimum_bounding_rectangle(points):
+def minimum_bounding_rectangle(points: Points2dType) -> np.ndarray[tuple[Literal[4], Literal[2]], np.dtype[ScalarType]]:
     """Find the smallest bounding rectangle for a set of points.
 
     Parameters
     ----------
-    points : np.ndarray
-        Array of shape (N, 2) containing point coordinates.
+    points : array
+        An array of shape (N, 2) containing point coordinates.
 
     Returns
     -------
@@ -37,13 +39,12 @@ def minimum_bounding_rectangle(points):
         Array of shape (4, 2) containing coordinates of the bounding box corners.
     """
     pi2 = np.pi / 2.0
-    points = points.T
+    points = np.asarray(points).T
 
     # get the convex hull for the points
     hull_points = points[ConvexHull(points).vertices]
 
     # calculate edge angles
-    edges = np.zeros((len(hull_points) - 1, 2))
     edges = hull_points[1:] - hull_points[:-1]
 
     angles = np.arctan2(edges[:, 1], edges[:, 0])
@@ -84,17 +85,17 @@ def minimum_bounding_rectangle(points):
     return rval
 
 
-def calc_subsegment_areas(split_contours: list[npt.NDArray[_TS]]) -> npt.NDArray[_TS]:
+def calc_subsegment_areas(split_contours: ContourList) -> np.ndarray[tuple[int], np.dtype[ScalarType]]:
     """Calculate area of each subsegment using the shoelace formula.
 
     Parameters
     ----------
-    split_contours : list[np.ndarray]
+    split_contours : list of np.ndarray
         List of contour arrays, each of shape (2, N).
 
     Returns
     -------
-    subsegment_areas : np.ndarray
+    subsegment_areas : array of floats
         Array containing the area of each subsegment.
     """
     # calculate area of each split contour using the shoelace formula
@@ -105,22 +106,22 @@ def calc_subsegment_areas(split_contours: list[npt.NDArray[_TS]]) -> npt.NDArray
 
 
 def subsegment_midline_orthogonal(
-        midline: np.ndarray[tuple[int, Literal[2]], np.dtype[float]],
+        midline: Points2dType,
         area_weights: np.ndarray[tuple[int], np.dtype[float]],
-        contour: np.ndarray[tuple[Literal[2], int], np.dtype[_TS]],
+        contour: Polygon2dType,
         plot: bool = True,
         ax=None,
         extremes=None,
-):
+) -> tuple[np.ndarray[tuple[int], np.dtype[ScalarType]], ContourList]:
     """Subsegment contour orthogonally to the midline based on area weights.
 
     Parameters
     ----------
-    midline : np.ndarray
+    midline : array of floats
         Array of shape (N, 2) containing midline points.
-    area_weights : np.ndarray
+    area_weights : array of floats
         Array of weights for area-based subdivision.
-    contour : np.ndarray
+    contour : array of floats
         Array of shape (2, M) containing contour points in as space.
     plot : bool, optional
         Whether to plot the results, by default True.
@@ -131,12 +132,14 @@ def subsegment_midline_orthogonal(
 
     Returns
     -------
-    subsegment_areas : list of float
+    subsegment_areas : array of floats
         List of subsegment areas.
     split_contours : list of np.ndarray
         List of contour arrays for each subsegment.
-
     """
+    # FIXME: Here and in other places, the order of dimensions is pretty inconsistent, for example: midline is (N, 2),
+    #        but contours are (2, N)...
+
     # FIXME: why does this code return subsegments that include all previous segments?
     # get points after midline length of splits
 
@@ -155,7 +158,7 @@ def subsegment_midline_orthogonal(
     edge_ortho_vectors = np.column_stack((-edge_directions[:, 1], edge_directions[:, 0]))
     edge_ortho_vectors = edge_ortho_vectors / np.linalg.norm(edge_ortho_vectors, axis=1)[:, None]
 
-    split_contours = [contour]
+    split_contours: ContourList = [contour]
 
     # FIXME: double loop should be vectorized, see commented code below for an initial attempt (not tested)
     #        also, finding intersections can be done more efficiently, instead of solving linear system for each segment
@@ -364,7 +367,9 @@ def subsegment_midline_orthogonal(
     return calc_subsegment_areas(split_contours), split_contours
 
 
-def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
+def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
+        -> tuple[np.ndarray[tuple[int], np.dtype[float]], ContourList]:
+    # FIXME: needs docstring
     # Find the extreme points in the x-direction
     min_x_index = np.argmin(contour[0])
     contour = np.roll(contour, -min_x_index, axis=1)
@@ -417,7 +422,7 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
     ray_vectors[0] = -ray_vectors[0]
 
     # Subdivision logic
-    split_contours = []
+    split_contours: ContourList = []
     for ray_vector in ray_vectors.T:
         intersections = []
         for i in range(contour.shape[1] - 1):
@@ -501,14 +506,14 @@ def hampel_subdivide_contour(contour, num_rays, plot=False, ax=None):
 
 
 def subdivide_contour(
-    contour: np.ndarray,
+    contour: Polygon2dType,
     area_weights: list[float],
     plot: bool = False,
     ax: plt.Axes | None = None,
     plot_transform: Callable | None = None,
     oriented: bool = False,
     hline_anchor: np.ndarray | None = None
-):
+) -> tuple[np.ndarray[tuple[int], np.dtype[float]], ContourList]:
     """Subdivide contour based on area weights using vertical lines.
 
     Divides the contour into segments by drawing vertical lines at positions
@@ -777,7 +782,11 @@ def subdivide_contour(
     return calc_subsegment_areas(split_contours), split_contours
 
 
-def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
+def transform_to_acpc_standard(
+        contour_ras: Polygon2dType | Polygon3dType,
+        ac_pt_ras: Vector2d,
+        pc_pt_ras: Vector2d,
+) -> tuple[Polygon2dType, Vector2d, Vector2d, Callable[[Polygon2dType], Polygon2dType]]:
     """Transform contour coordinates to AC-PC standard space.
 
     Transforms the contour coordinates by:
@@ -787,12 +796,12 @@ def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
 
     Parameters
     ----------
-    contour_ras : np.ndarray
+    contour_ras : array of floats
         Array of shape (2, N) or (3, N) containing contour points in RAS space.
     ac_pt_ras : np.ndarray
-        Anterior commissure point coordinates in RAS space.
+        Anterior commissure point coordinates in AS space.
     pc_pt_ras : np.ndarray
-        Posterior commissure point coordinates in RAS space.
+        Posterior commissure point coordinates in AS space.
 
     Returns
     -------
@@ -804,15 +813,14 @@ def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
         PC point in AC-PC space.
     rotate_back : callable
         Function to transform points back to RAS space.
-    
     """
     # translate AC to the origin and PC to (0, ac_pc_dist)
     translation_matrix = np.array([[1, 0, -ac_pt_ras[0]], [0, 1, -ac_pt_ras[1]], [0, 0, 1]])
 
-    ac_pc_vec = pc_pt_ras - ac_pt_ras
+    ac_pc_vec: Vector2d = pc_pt_ras - ac_pt_ras
     ac_pc_dist = np.linalg.norm(ac_pc_vec)
 
-    posterior_vector = np.array([-ac_pc_dist, 0])
+    posterior_vector: Vector2d = np.array([-ac_pc_dist, 0], dtype=float)
 
     # get angle between ac_pc_vec and posterior_vector
     dot_product = np.dot(ac_pc_vec, posterior_vector)
@@ -833,16 +841,17 @@ def transform_to_acpc_standard(contour_ras, ac_pt_ras, pc_pt_ras):
     else:
         contour_ras_homogeneous = contour_ras
 
-    contour_acpc = (rotation_matrix @ translation_matrix) @ contour_ras_homogeneous
+    contour_acpc: Polygon2dType = (rotation_matrix @ translation_matrix) @ contour_ras_homogeneous
     contour_acpc = contour_acpc[:2, :]
 
-    def rotate_back(x):
+    def rotate_back(x: Polygon2dType) -> Polygon2dType:
         return (np.linalg.inv(rotation_matrix @ translation_matrix) @ np.vstack([x, np.ones(x.shape[1])]))[:2, :]
 
-    return contour_acpc, np.array([0, 0]), np.array([-ac_pc_dist, 0]), rotate_back
+    return contour_acpc, np.array([0, 0], dtype=float), np.array([-ac_pc_dist, 0], dtype=float), rotate_back
 
 
-def preprocess_cc(cc_label_nib, paths_csv, subj_id):
+def preprocess_cc(cc_label_nib: nibabelImage, paths_csv: "pd.DataFrame", subj_id: str) \
+        -> tuple[Mask2d, Vector2d, Vector2d]:
     """Preprocess corpus callosum mask and extract AC/PC coordinates.
 
     Parameters
@@ -864,8 +873,8 @@ def preprocess_cc(cc_label_nib, paths_csv, subj_id):
         2D coordinates of posterior commissure.
     
     """
-    cc_mask = np.asarray(cc_label_nib.dataobj) == 192
-    cc_mask = cc_mask[cc_mask.shape[0] // 2]
+    _cc_mask: Mask3d = np.asarray(cc_label_nib.dataobj) == 192
+    cc_mask: Mask2d = _cc_mask[_cc_mask.shape[0] // 2]
 
     posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r":"PC_center_s"].to_numpy().astype(float)
     anterior_commisure_center = paths_csv.loc[subj_id, "AC_center_r":"AC_center_s"].to_numpy().astype(float)
@@ -876,13 +885,13 @@ def preprocess_cc(cc_label_nib, paths_csv, subj_id):
 
     # orientation I, A
     # rotate image so anterior and posterior commisure are horizontal
-    AC_2d = anterior_commisure_center[1:]
-    PC_2d = posterior_commisure_center[1:]
+    ac_2d = anterior_commisure_center[1:]
+    pc_2d = posterior_commisure_center[1:]
 
-    return cc_mask, AC_2d, PC_2d
+    return cc_mask, ac_2d, pc_2d
 
 
-def get_primary_eigenvector(contour_ras):
+def get_primary_eigenvector(contour_ras: Polygon2dType) -> tuple[Vector2d, Vector2d]:
     """Calculate primary eigenvector of contour points using PCA.
 
     Computes the principal direction of the contour by:

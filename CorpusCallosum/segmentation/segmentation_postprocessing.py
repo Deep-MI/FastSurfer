@@ -20,6 +20,7 @@ from skimage.measure import label
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL
+from FastSurferCNN.utils import Mask3d, Shape3d
 
 logger = logging.get_logger(__name__)
 
@@ -438,9 +439,9 @@ def get_cc_volume_contour(
 
 
 def extract_largest_connected_component(
-    seg_arr: np.ndarray,
-    max_connection_distance: float = 3.0
-) -> np.ndarray:
+    seg_arr: Mask3d,
+    max_connection_distance: float = 3.0,
+) -> Mask3d:
     """Get largest connected component from a binary segmentation array.
 
     Parameters
@@ -493,14 +494,15 @@ def extract_largest_connected_component(
     bincount[background] = -1
     
     # Get largest connected component
-    largest_cc = labels_cc == np.argmax(bincount)
+    largest_cc = np.equal(labels_cc, np.argmax(bincount))
 
     return largest_cc
 
+
 def clean_cc_segmentation(
-    seg_arr: npt.NDArray[int],
-    max_connection_distance: float = 3.0
-) -> tuple[np.ndarray, np.ndarray]:
+    seg_arr: np.ndarray[Shape3d, np.dtype[int]],
+    max_connection_distance: float = 3.0,
+) -> tuple[np.ndarray[Shape3d, np.dtype[int]], Mask3d]:
     """Clean corpus callosum segmentation by removing non-connected components.
 
     Parameters
@@ -529,12 +531,12 @@ def clean_cc_segmentation(
 
     extract_largest = partial(extract_largest_connected_component, max_connection_distance=max_connection_distance)
 
-    # Remove non connected components from the CC alone, with minimal connections
-    mask = seg_arr == CC_LABEL
+    # Remove non-connected components from the CC alone, with minimal connections
+    mask = np.equal(seg_arr, CC_LABEL)
     cc_seg = mask.astype(int) * CC_LABEL
     cc_label_cleaned = np.concatenate([extract_largest(seg[None]) * CC_LABEL for seg in cc_seg], axis=0)
 
     # Add fornix to the CC labels
     clean_seg = np.where(mask, cc_label_cleaned, seg_arr)
 
-    return clean_seg, cc_label_cleaned > 0
+    return clean_seg, np.greater(cc_label_cleaned, 0)

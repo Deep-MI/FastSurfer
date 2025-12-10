@@ -66,8 +66,10 @@ class CCContour:
             raise ValueError(f"Contour must be a 2D array, but is {self.contour.shape}")
         self.thickness_values = thickness_values
         if self.contour.shape[0] != len(thickness_values):
-            raise ValueError(f"Number of contour points ({self.contour.shape[0]}) does not match number \
-                             of thickness values ({len(thickness_values)})")
+            raise ValueError(
+                f"Number of contour points ({self.contour.shape[0]}) does not match number of thickness values "
+                f"({len(thickness_values)})"
+            )
         # write vertex indices where thickness values are not nan
         self.original_thickness_vertices = np.where(~np.isnan(thickness_values))[0]
         self.resolution = resolution
@@ -76,7 +78,6 @@ class CCContour:
             self.endpoint_idxs = (0, len(contour) // 2)
         else:
             self.endpoint_idxs = endpoint_idxs
-
 
     def smooth_contour(self, window_size: int = 5) -> None:
         """Smooth a contour using a moving average filter.
@@ -99,12 +100,10 @@ class CCContour:
         x, y = smooth_contour(x, y, window_size)
         self.contour = np.array([x, y]).T
 
-
     def copy(self) -> "CCContour":
         """Copy the contour.
         """
         return CCContour(self.contour.copy(), self.thickness_values.copy(), self.endpoint_idxs, self.resolution)
-
     
     def get_contour_edge_lengths(self) -> np.ndarray:
         """Get the lengths of the edges of a contour.
@@ -126,8 +125,7 @@ class CCContour:
         """
         edges = np.diff(self.contour, axis=0)
         return np.sqrt(np.sum(edges**2, axis=1))
-    
-    
+
     def create_levelpaths(self, 
                            num_points: int,
                            update_data: bool = True
@@ -147,7 +145,6 @@ class CCContour:
 
         return levelpaths, thickness
     
-
     def set_thickness_values(self, thickness_values: np.ndarray, use_measurement_points: bool = False) -> None:
         """Set the thickness values for the contour.
         This is useful to update the thickness values for specific plots.
@@ -231,7 +228,6 @@ class CCContour:
 
         self.thickness_values = thickness
 
-
     def smooth_thickness_values(self, iterations: int = 1) -> None:
         """Smooth the thickness values using a Gaussian filter.
 
@@ -248,7 +244,6 @@ class CCContour:
         for i in range(len(self.thickness_values)):
             if self.thickness_values[i] is not None:
                 self.thickness_values[i] = gaussian_filter1d(self.thickness_values[i], sigma=5)
-
     
     def plot_contour(self, output_path: str | None = None) -> None:
         """Plot a single contour with thickness values.
@@ -509,7 +504,6 @@ class CCContour:
             plt.show()
         return fig
 
-
     @staticmethod
     def __make_parent_folder(filename: Path | str) -> None:
         """Create the parent folder for a file if it doesn't exist.
@@ -526,7 +520,6 @@ class CCContour:
         """
         Path(filename).parent.mkdir(parents=False, exist_ok=True)
 
-    
     def save_contour(self, output_path: Path | str) -> None:
         """Save the contours to a CSV file.
 
@@ -553,7 +546,6 @@ class CCContour:
             f.write("x,y\n")
             for point in self.contour:
                 f.write(f"{point[0]},{point[1]}\n")
-
 
     def load_contour(self, input_path: str) -> None:
         """Load contour from a CSV file.
@@ -599,7 +591,6 @@ class CCContour:
                 current_points.append([float(x), float(y)])
         self.contour = np.array(current_points)
 
-
     def save_thickness_values(self, output_path: Path | str) -> None:
         """Save thickness values to a CSV file.
 
@@ -621,7 +612,6 @@ class CCContour:
             f.write("thickness\n")
             for value in self.thickness_values:
                 f.write(f"{value}\n")
-
 
     def load_thickness_values(
         self,

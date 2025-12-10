@@ -177,10 +177,12 @@ def make_triangles_between_contours(contour1: np.ndarray, contour2: np.ndarray) 
 
 
 
-def create_CC_mesh_from_contours(contours: list[CCContour], 
-                lr_center: float = 0, 
-                closed: bool = False, 
-                smooth: int = 0) -> None:
+def create_CC_mesh_from_contours(
+        contours: list[CCContour],
+        lr_center: float = 0,
+        closed: bool = False,
+        smooth: int = 0,
+) -> "CCMesh":
     """Create a surface mesh by triangulating between consecutive contours.
 
     Parameters
@@ -193,6 +195,11 @@ def create_CC_mesh_from_contours(contours: list[CCContour],
         Whether to create a closed mesh by adding caps, by default False.
     smooth : int, optional
         Number of smoothing iterations to apply, by default 0.
+
+    Returns
+    -------
+    CCMesh
+        The joined CCMesh object.
 
     Raises
     ------

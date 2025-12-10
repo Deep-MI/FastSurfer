@@ -19,10 +19,11 @@ from lapy import Solver, TriaMesh
 from lapy.diffgeo import compute_rotated_f
 from meshpy import triangle
 
+from CorpusCallosum.utils.types import ContourThickness, Points2dType
 from FastSurferCNN.utils.common import suppress_stdout
 
 
-def compute_curvature(path: np.ndarray) -> np.ndarray:
+def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[float]]:
     """Compute curvature by computing edge angles.
 
     Parameters
@@ -306,9 +307,7 @@ def make_mesh_from_contour(
     info.set_points(contour_2d)
     info.set_facets(facets)
     # NOTE: crashes if contour has duplicate points !!
-    mesh = triangle.build(
-        info, max_volume=max_volume, min_angle=min_angle, verbose=verbose,
-    )
+    mesh = triangle.build(info, max_volume=max_volume, min_angle=min_angle, verbose=verbose)
 
     mesh_points = np.array(mesh.points)
     mesh_trias = np.array(mesh.elements)
@@ -317,10 +316,10 @@ def make_mesh_from_contour(
 
 
 def cc_thickness(
-    contour_2d: np.ndarray,
+    contour_2d: Points2dType,
     endpoint_idx: tuple[int, int],
-    n_points: int = 100
-) -> tuple[float, float, float, np.ndarray, list[np.ndarray], np.ndarray, tuple[int, int]]:
+    n_points: int = 100,
+) -> tuple[float, float, float, Points2dType , list[Points2dType], ContourThickness, tuple[int, int]]:
     """Calculate corpus callosum thickness using Laplace equation.
 
     Parameters
@@ -329,8 +328,8 @@ def cc_thickness(
         Array of shape (N, 2) containing contour points.
     endpoint_idx : pair of ints
         Indices of anterior and posterior endpoints in contour.
-    n_points : int, optional
-        Number of points for thickness measurement, by default 100.
+    n_points : int, default=100
+        Number of points for thickness measurement.
 
     Returns
     -------
@@ -341,9 +340,9 @@ def cc_thickness(
     curvature : float
         Mean absolute curvature in degrees.
     midline_equidistant : np.ndarray
-        Equidistant points along the midline in same space as contour2d.
+        Equidistant points along the midline in same space as contour2d of shape (N, 2).
     levelpaths : list[np.ndarray]
-        Level paths for thickness measurement in same space as contour2d.
+        Level paths for thickness measurement in same space as contour2d, each of shape (N, 2).
     contour_with_thickness : np.ndarray
         Contour coordinates with thickness information in same space as contour2d of shape (N+2, 3).
     endpoint_indices : pair of ints
@@ -402,7 +401,7 @@ def cc_thickness(
         )
 
     # get levels to evaluate
-    levelpaths_contour_space: list[np.ndarray] = []
+    levelpaths_contour_space: list[Points2dType] = []
     levelpath_lengths = []
     levelpath_tria_idx = []
 
