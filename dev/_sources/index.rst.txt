@@ -3,6 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+   Modified and updated by the David Kügler of the FastSurfer Team.
+
 .. image:: images/teaser.png
    :alt: FastSurfer Teaser Image
    :align: center
@@ -23,4 +25,5 @@
 
    overview/index
    scripts/index
+   developer/index
    api/index

@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="FastSurfer License" href="license.html"><link rel="prev" title="Contributor Covenant Code of Conduct" href="CODE_OF_CONDUCT.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Code of Conduct" href="code_of_conduct.html"><link rel="prev" title="Contributor Guide" href="index.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
-        <title>Contributing to FastSurfer - FastSurfer</title>
+        <title>git hook setup / CD - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=580074bf" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -193,22 +193,20 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
-<li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
-<li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="SINGULARITY.html">Singularity Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="MACOS.html">Running FastSurfer as MacOS package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="CODE_OF_CONDUCT.html">Contributor Covenant Code of Conduct</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Contributing to FastSurfer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="license.html">FastSurfer License</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/MACOS.html">Running FastSurfer as MacOS package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -232,8 +230,14 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">git hook setup / CD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contribution Guide</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.download_checkpoints.html">FastSurferCNN.download_checkpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.generate_hdf5.html">FastSurferCNN.generate_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.inference.html">FastSurferCNN.inference</a></li>
@@ -244,7 +248,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.version.html">FastSurferCNN.version</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.augmentation.html">FastSurferCNN.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.conform.html">FastSurferCNN.data_loader.conform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.data_utils.html">FastSurferCNN.data_loader.data_utils</a></li>
@@ -252,14 +256,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.loader.html">FastSurferCNN.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.interpolation_layer.html">FastSurferCNN.models.interpolation_layer</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.losses.html">FastSurferCNN.models.losses</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.networks.html">FastSurferCNN.models.networks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.sub_module.html">FastSurferCNN.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.arg_types.html">FastSurferCNN.utils.arg_types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.checkpoint.html">FastSurferCNN.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.common.html">FastSurferCNN.utils.common</a></li>
@@ -275,32 +279,32 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.apply_warp.html">CerebNet.apply_warp</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.inference.html">CerebNet.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.run_prediction.html">CerebNet.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.dataloader.html">CerebNet.dataloader</a><input aria-label="Toggle navigation of CerebNet.dataloader" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.dataloader.html">CerebNet.dataloader</a><input aria-label="Toggle navigation of CerebNet.dataloader" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.augmentation.html">CerebNet.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.data_utils.html">CerebNet.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.dataset.html">CerebNet.data_loader.dataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.loader.html">CerebNet.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.generate_hdf5.html">CerebNet.datasets.generate_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.load_data.html">CerebNet.datasets.load_data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.utils.html">CerebNet.datasets.utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.wm_merge_clean.html">CerebNet.datasets.wm_merge_clean</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.networks.html">CerebNet.models.networks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.sub_module.html">CerebNet.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.checkpoint.html">CerebNet.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
@@ -308,22 +312,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.inference.html">HypVINN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.run_prediction.html">HypVINN.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.data_utils.html">HypVINN.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.dataset.html">HypVINN.data_loader.dataset</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.models.networks.html">HypVINN.models.networks</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api/HypVINN.utils.html">HypVINN.utils</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_points.html">recon_surf.align_points</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_seg.html">recon_surf.align_seg</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
@@ -362,7 +366,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/overview/CONTRIBUTING.md.txt" title="View this page">
+  <a class="muted-link" href="../_sources/developer/GIT-HOOKS.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -380,121 +384,32 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="contributing-to-fastsurfer">
-<h1>Contributing to FastSurfer<a class="headerlink" href="#contributing-to-fastsurfer" title="Link to this heading">¶</a></h1>
-<p>All types of contributions are encouraged and valued. The community looks forward to your contributions.</p>
-<section id="reporting-bugs">
-<h2>Reporting Bugs<a class="headerlink" href="#reporting-bugs" title="Link to this heading">¶</a></h2>
-<section id="before-submitting-a-bug-report">
-<h3>Before Submitting a Bug Report<a class="headerlink" href="#before-submitting-a-bug-report" title="Link to this heading">¶</a></h3>
-<p>Please complete the following steps in advance to help us fix any potential bug as fast as possible.</p>
-<ul class="simple">
-<li><p>Make sure that you are using the latest version.</p></li>
-<li><p>Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions.</p></li>
-<li><p>To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues?q=label%3Abug">bug tracker</a>.</p></li>
-<li><p>Collect information about the bug:</p>
-<ul>
-<li><p>Stack trace (Traceback)</p></li>
-<li><p>OS, Platform and Version (Windows, Linux, macOS, x86, ARM)</p></li>
-<li><p>Version of the interpreter, compiler, SDK, runtime environment, package manager, depending on what seems relevant.</p></li>
-<li><p>Possibly your input and the output.</p></li>
-<li><p>Can you reliably reproduce the issue? And can you also reproduce it with older versions?</p></li>
-</ul>
-</li>
-</ul>
-</section>
-<section id="how-do-i-submit-a-good-bug-report">
-<h3>How Do I Submit a Good Bug Report?<a class="headerlink" href="#how-do-i-submit-a-good-bug-report" title="Link to this heading">¶</a></h3>
-<p>We use GitHub issues to track bugs and errors. If you run into an issue with the project:</p>
-<ul class="simple">
-<li><p>Open an <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues/new">Issue</a>. (Since we can’t be sure at this point whether it is a bug or not, we ask you not to talk about a bug yet and not to label the issue.)</p></li>
-<li><p>Explain the behavior you would expect and the actual behavior.</p></li>
-<li><p>Please provide as much context as possible and describe the <em>reproduction steps</em> that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.</p></li>
-<li><p>Provide the information you collected in the previous section.</p></li>
-<li><p>Also provide the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/recon-surf.log</span></code> (if existent) and in the case of a parallel run, also the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/[l/r]h.processing.cmdf.log</span></code> (if existent).</p></li>
-</ul>
-<p>Once it’s filed:</p>
-<ul class="simple">
-<li><p>The project team will label the issue accordingly.</p></li>
-<li><p>A team member will try to reproduce the issue with your provided steps. If there are no reproduction steps or no obvious way to reproduce the issue, the team will ask you for those steps and mark the issue as <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code>. Bugs with the <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code> tag will not be addressed until they are reproduced.</p></li>
-<li><p>If the team is able to reproduce the issue, it will be marked <code class="docutils literal notranslate"><span class="pre">needs-fix</span></code>, as well as possibly other tags (such as <code class="docutils literal notranslate"><span class="pre">critical</span></code>).</p></li>
-</ul>
-</section>
-</section>
-<section id="suggesting-enhancements">
-<h2>Suggesting Enhancements<a class="headerlink" href="#suggesting-enhancements" title="Link to this heading">¶</a></h2>
-<p>Please follow these guidelines to help maintainers and the community to understand your suggestion for enhancements.</p>
-<section id="before-submitting-an-enhancement">
-<h3>Before Submitting an Enhancement<a class="headerlink" href="#before-submitting-an-enhancement" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>Make sure that you are using the latest version.</p></li>
-<li><p>Read the documentation carefully and find out if the functionality is already covered, maybe by an individual configuration.</p></li>
-<li><p>Perform a <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues">search</a> to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.</p></li>
-<li><p>Find out whether your idea fits with the scope and aims of the project. It’s up to you to make a strong case to convince the project’s developers of the merits of this feature. Keep in mind that we want features that will be useful to the majority of our users and not just a small subset. If you’re just targeting a minority of users, consider writing an add-on/plugin library.</p></li>
-</ul>
-</section>
-<section id="how-do-i-submit-a-good-enhancement-suggestion">
-<h3>How Do I Submit a Good Enhancement Suggestion?<a class="headerlink" href="#how-do-i-submit-a-good-enhancement-suggestion" title="Link to this heading">¶</a></h3>
-<p>Enhancement suggestions are tracked as <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues">GitHub issues</a>.</p>
-<ul class="simple">
-<li><p>Use a <strong>clear and descriptive title</strong> for the issue to identify the suggestion.</p></li>
-<li><p>Provide a <strong>step-by-step description of the suggested enhancement</strong> in as many details as possible.</p></li>
-<li><p><strong>Describe the current behavior</strong> and <strong>explain which behavior you expected to see instead</strong> and why.</p></li>
-<li><p><strong>Explain why this enhancement would be useful</strong> to most users.</p></li>
-</ul>
-</section>
-</section>
-<section id="contributing-code">
-<h2>Contributing Code<a class="headerlink" href="#contributing-code" title="Link to this heading">¶</a></h2>
+          <section id="git-hook-setup-cd">
+<h1>git hook setup / CD<a class="headerlink" href="#git-hook-setup-cd" title="Link to this heading">¶</a></h1>
+<p>The FastSurfer team has developed a pre-commit hook script to help implement
+<a class="reference external" href="https://en.wikipedia.org/wiki/Continuous_testing">Continuous Development and Testing</a>.
+This CI/CD expands on github workflows executing them locally. They require a local
+<a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv installation</a> as described for FastSurfer’s
+<a class="reference internal" href="../overview/INSTALL.html#native-ubuntu-20-04-or-ubuntu-22-04"><span class="std std-ref">Native installation</span></a>.</p>
+<section id="pre-commit-hook">
+<h2>Pre-commit Hook<a class="headerlink" href="#pre-commit-hook" title="Link to this heading">¶</a></h2>
+<p>The pre-commit hook script will:</p>
 <ol class="arabic simple">
-<li><p><a class="reference external" href="https://docs.github.com/en/get-started/quickstart/fork-a-repo">Fork</a> this repository to your github account</p></li>
-<li><p>Clone your fork to your computer (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/&lt;username&gt;/FastSurfer.git</span></code>)</p></li>
-<li><p>Change into the project directory (<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">FastSurfer</span></code>)</p></li>
-<li><p>Add Deep-MI repo as upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">add</span> <span class="pre">upstream</span> <span class="pre">https://github.com/Deep-MI/FastSurfer.git</span></code>)</p></li>
-<li><p>Update information from upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">upstream</span></code>)</p></li>
-<li><p>Checkout the upstream dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">dev</span> <span class="pre">upstream/dev</span></code>)</p></li>
-<li><p>Create your feature branch from dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Commit your changes (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-am</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">feature'</span></code>)</p></li>
-<li><p>Push to the branch to your github (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Create new pull request on github web interface from that branch into Deep-NI <strong>dev branch</strong> (not into stable)</p></li>
+<li><p>Check for trailing white spaces in files</p></li>
+<li><p>Run ruff to verify python code formatting is valid</p></li>
+<li><p>Run codespell to check the spelling</p></li>
+<li><p>Run sphinx-build to rebuild the documentation into <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc-build</span></code>
+Here, one important caveat for documentation editors is that sphinx-build may fail if the documentation file
+structure is changed, without first cleaning the autosummary/autodoc-generated files. To do this, delete the following
+directory <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc/api/generated</span></code>.</p></li>
 </ol>
-<p>If lots of things changed in the meantime or the pull request is showing conflicts you should rebase your branch to the current upstream dev.
-This is the preferred way, but only possible if you are the sole develop or your branch:</p>
-<ol class="arabic simple" start="10">
-<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Rebase your branch onto dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">dev</span></code>), resolve conflicts and continue until complete</p></li>
-<li><p>Force push the updated feature branch to your gihub (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">-f</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
-</ol>
-<p>If other people co-develop the my-new-feature branch, rewriting history with a rebase is not possible.
-Instead you need to merge upstream dev into your branch:</p>
-<ol class="arabic simple" start="10">
-<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Merge dev into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">merge</span> <span class="pre">dev</span></code>), resolve conflicts and commit</p></li>
-<li><p>Push to origin (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
-</ol>
-<p>Either method updates the pull request and resolves conflicts, so that we can merge it once it is complete.
-Once the pull request is merged by us you can delete the feature branch in your clone and on your fork:</p>
-<ol class="arabic simple" start="15">
-<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Delete feature branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">branch</span> <span class="pre">-D</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Delete the branch on your github fork either via GUI, or via command line (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">--delete</span> <span class="pre">my-new-feature</span></code>)</p></li>
-</ol>
-<p>This procedure will ensure that your local dev branch always follows our dev branch and will never diverge. You can, once in a while, push the dev branch, or similarly update stable and push it to your fork (origin), but that is not really necessary.</p>
-<p>Next time you contribute a feature, you do not need to go through the steps 1-6 above, but simply:</p>
-<ul class="simple">
-<li><p>Switch to dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Make sure it is identical to upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Check out a new feature branch and continue from 7. above.</p></li>
-</ul>
-<p>Another good command, if for some reasons your dev branch diverged, which should never happen as you never commit to it, you can reset it by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">reset</span> <span class="pre">--hard</span> <span class="pre">upstream/dev</span></code>. Make absolutely sure you are in your dev branch (not the feature branch) and be aware that this will delete any local changes!</p>
+<section id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
+<p>To install the pre-commit hook, in the FastSurfer directory call</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ln<span class="w"> </span>-s<span class="w"> </span>../../tools/git-hooks/pre-commit<span class="w"> </span>.git/hooks/pre-commit
+</pre></div>
+</div>
 </section>
-<section id="attribution">
-<h2>Attribution<a class="headerlink" href="#attribution" title="Link to this heading">¶</a></h2>
-<p>This guide is based on the <strong>contributing-gen</strong>. <a class="reference external" href="https://github.com/bttger/contributing-gen">Make your own</a>!</p>
 </section>
 </section>
 
@@ -503,23 +418,23 @@ Once the pull request is merged by us you can delete the feature branch in your 
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="license.html">
+          <a class="next-page" href="code_of_conduct.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">FastSurfer License</div>
+                <div class="title">Code of Conduct</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="CODE_OF_CONDUCT.html">
+          <a class="prev-page" href="index.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Contributor Covenant Code of Conduct</div>
+                <div class="title">Contributor Guide</div>
                 
               </div>
             </a>
@@ -559,19 +474,11 @@ Once the pull request is merged by us you can delete the feature branch in your 
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Contributing to FastSurfer</a><ul>
-<li><a class="reference internal" href="#reporting-bugs">Reporting Bugs</a><ul>
-<li><a class="reference internal" href="#before-submitting-a-bug-report">Before Submitting a Bug Report</a></li>
-<li><a class="reference internal" href="#how-do-i-submit-a-good-bug-report">How Do I Submit a Good Bug Report?</a></li>
+<li><a class="reference internal" href="#">git hook setup / CD</a><ul>
+<li><a class="reference internal" href="#pre-commit-hook">Pre-commit Hook</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#suggesting-enhancements">Suggesting Enhancements</a><ul>
-<li><a class="reference internal" href="#before-submitting-an-enhancement">Before Submitting an Enhancement</a></li>
-<li><a class="reference internal" href="#how-do-i-submit-a-good-enhancement-suggestion">How Do I Submit a Good Enhancement Suggestion?</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#contributing-code">Contributing Code</a></li>
-<li><a class="reference internal" href="#attribution">Attribution</a></li>
 </ul>
 </li>
 </ul>

@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Advanced scripts" href="advanced.html"><link rel="prev" title="BATCH: brun_fastsurfer.sh" href="BATCH.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="FastSurfer API" href="../api/index.html"><link rel="prev" title="Code of Conduct" href="code_of_conduct.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
-        <title>SLURM: srun_fastsurfer.sh - FastSurfer</title>
+        <title>Contribution Guide - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=580074bf" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -209,31 +209,31 @@
 <li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">SLURM: srun_fastsurfer.sh</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="hypvinn.html">HypVINN: run_prediction.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
-<li class="toctree-l3"><a class="reference internal" href="segstats.html">FastSurferCNN: segstats.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/cerebnet.html">CerebNet: run_prediction.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/hypvinn.html">HypVINN: run_prediction.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/segstats.html">FastSurferCNN: segstats.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input aria-label="Toggle navigation of FastSurfer Utilities" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/util.html">FastSurfer Utilities</a><input aria-label="Toggle navigation of FastSurfer Utilities" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="GIT-HOOKS.html">git hook setup / CD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Contribution Guide</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -366,7 +366,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/scripts/SLURM.md.txt" title="View this page">
+  <a class="muted-link" href="../_sources/developer/contributing.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -384,175 +384,121 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="slurm-srun-fastsurfer-sh">
-<h1>SLURM: srun_fastsurfer.sh<a class="headerlink" href="#slurm-srun-fastsurfer-sh" title="Link to this heading">¶</a></h1>
-<section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./srun_fastsurfer.sh --help
-Script to orchestrate resource-optimized FastSurfer runs on SLURM clusters.
-
-Usage:
-srun_fastsurfer.sh [--data &lt;directory to search images&gt;]
-    [--sd &lt;output directory&gt;] [--work &lt;work directory&gt;]
-    (--pattern &lt;search pattern for images&gt;|--subject_list &lt;path to subject_list file&gt;
-                                           [--subject_list_delim &lt;delimiter&gt;]
-                                           [--subject_list_awk_code_sid &lt;subject_id code&gt;]
-                                           [--subject_list_awk_code_t1 &lt;image_path code&gt;])
-    [--singularity_image &lt;path to fastsurfer singularity image&gt;] [--extra_singularity_options &lt;singularity options&gt;]
-    [--extra_singularity_options_seg &lt;singularity options&gt;] [--extra_singularity_options_surf &lt;singularity options&gt;]
-    [--num_cases_per_task &lt;number&gt;] [--cpu_only] [--num_cpus_per_task &lt;number of cpus to allocate for seg&gt;]
-    [--time_seg &lt;timelimit&gt;] [--time_surf &lt;timelimit&gt;] [--mem_seg &lt;number (GB)&gt;] [--mem_surf &lt;number (GB)&gt;]
-    [--partition &lt;slurm partition&gt;] [--partition_seg &lt;slurm partition&gt;] [--partition_surf &lt;slurm partition&gt;]
-    [--slurm_jobarray &lt;jobarray specification&gt;] [--skip_cleanup] [--email &lt;email address&gt;] [--debug] [--dry] [--help]
-    [&lt;additional fastsurfer options&gt;]
-
-Author:   David Kügler, david.kuegler@dzne.de
-Date:     Nov 3, 2023
-Version:  1.0
-License:  Apache License, Version 2.0
-
-Documentation of Options:
-General options:
---dry: performs all operations, but does not actually submit jobs to slurm
---debug: Additional debug output.
---help: print this help.
-
-Data- and subject-related options:
---sd: output directory will have N+1 subdirectories (default: $(pwd)/processed):
-  - one directory per case plus
-  - slurm with two subdirectories:
-    - logs for slurm logs,
-    - scripts for intermediate slurm scripts for debugging.
-  Note: files will be copied here only after all jobs have finished, so most IO happens on
-  a work directory, which can use IO-optimized cluster storage (see --work).
---work: directory with fast filesystem on cluster
-  (default: $HPCWORK/fastsurfer-processing/&lt;date as YYMMDD-HHMMSS&gt;)
-  NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
-  No modifications should be made to the directory after the job is started until it is
-  finished (if the job fails, cleanup of this directory may be necessary) and it should be
-  empty!
---data: (root) directory to search in for t1 files (default: current work directory).
---pattern: glob string to find image files in &#39;data directory&#39; (default: *.{nii,nii.gz,mgz}),
-   for example &#39;--data /data/ --pattern &quot;*/*/mri/t1.nii.gz&quot;&#39;
-   will find all images of format /data/&lt;somefolder&gt;/&lt;otherfolder&gt;/mri/t1.nii.gz
---subject_list: alternative way to define cases to process, files are of format:
-  subject_id1=/path/to/t1.mgz
-  ...
-  This option invalidates the --pattern option.
-  May also add additional parameters like:
-  subject_id1=/path/to/t1.mgz --vox_size 1.0
---subject_list_delim: alternative delimiter in the file (default: &quot;=&quot;). For example, if you
-  pass --subject_list_delim &quot;,&quot; the subject_list file is parsed as a comma-delimited csv file.
---subject_list_awk_code_sid &lt;subject_id code&gt;: alternative way to construct the subject_id
-  from the row in the subject_list (default: &#39;$1&#39;).
---subject_list_awk_code_args &lt;t1_path code&gt;: alternative way to construct the image_path and
-  additional parameters from the row in the subject_list (default: &#39;$2&#39;), other examples:
-  &#39;$2/$1/mri/orig.mgz&#39;, where the first field (of the subject_list file) is the subject_id
-  and the second field is the containing folder, e.g. the study.
-  Example for additional parameters:
-  --subject_list_delim &quot;,&quot; --subject_list_awk_code_args &#39;$2 &quot; --vox_size &quot; $4&#39;
-  to implement from the subject_list line
-  subject-101,raw/T1w-101A.nii.gz,study-1,0.9
-  to (additional arguments must be comma-separated)
-  --sid subject-101 --t1 &lt;data-path&gt;/raw/T1w-101A.nii.gz --vox_size 0.9
-
-FastSurfer options:
---fs_license: path to the freesurfer license (either absolute path or relative to pwd, for surfaces &amp; registration(s))
---seg_only: only run the segmentation pipeline
---surf_only: only run the surface pipeline (--sd must contain previous --seg_only processing)
---***: also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
-
-Singularity-related options:
---singularity_image: Path to the singularity image to use for segmentation and surface
-  reconstruction (default: $HOME/singularity-images/fastsurfer.sif).
---extra_singularity_options &lt;extra-options&gt;,
---extra_singularity_options_seg &lt;extra-options&gt;, and
---extra_singularity_options_surf &lt;extra-option&gt;: Extra options to the Singularity exec call, needs to be double quoted
-  to allow quoted strings, e.g. --extra_singularity_options &quot;-B /$(echo \&quot;/path-to-weights\&quot;):/fastsurfer/checkpoints&quot;.
-
-SLURM-related options:
---cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
---num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
-  (default: 16).
---num_cpus_per_case_surf: number of cpus to request for surface pipeline of FastSurfer (--surf_only),
-  (default: 2).
---num_cases_per_task: number of cases batched into one job (slurm jobarray), will process cases
-  in parallel, if num_cases_per_task is smaller than the total number of cases (default: 16).
---skip_cleanup: Do not schedule step 3, cleanup (which moves the data from --work to --sd, etc.,
-  default: do the cleanup).
---slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
-  that have failed, for example &#39;--slurm_jobarray 4,7&#39; would only run the cases associated with a
-  (previous) run of srun_fastsurfer.sh, where log files &#39;&lt;sd&gt;/logs/seg_*_{4,7}.log&#39; indicate failure.
---partition &lt;comma-separated-list-of-partitions&gt;,
---partition_seg &lt;comma-separated-list-of-partitions&gt;, and
---partition_surf &lt;...list&gt;: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
-  It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
---time_seg &lt;timelimit&gt;, and
---time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 15min, surf: 240min.
---mem_seg &lt;number (GB)&gt;, and
---mem_surf &lt;number (GB)&gt;: the memory to allocate for GPU/CPU-based segmentation (default: 10/7 GB),
-  and surface reconstruction (default: 6).
---email: email address to send slurm status updates.
-
-Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the
-respective pipeline.
-This script will start three slurm jobs:
-1. a segmentation job (alternatively, if --surf_only, this copies previous segmentation data from
-  the subject directory (--sd)
-2. a surface reconstruction job (skipped, if --seg_only)
-3. a cleanup job, that moves the data from the work directory (--work) to the subject directory
-  (--sd).
-
-Jobs will be grouped into slurm job_arrays with serial segmentation and parallel surface
-reconstruction (via job arrays and job steps). This way, segmentation can be scheduled on machines
-with GPUs and surface reconstruction on machines without, while efficiently assigning cpus and gpus,
-see --partition flag.
-Note, that a surface reconstruction job will request up to a total of &#39;&lt;num_cases_per_task&gt; * 2&#39;
-cpus and &#39;&lt;num_cases_per_task&gt; * 10G&#39; memory per job. However, these can be distributed across
-&#39;&lt;num_cases_per_task&gt;&#39; nodes in parallel job steps.
-
-This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts (expected in same
-folder as this script) in addition to the fastsurfer singularity image.
-</pre></div>
-</div>
+          <section id="contribution-guide">
+<h1>Contribution Guide<a class="headerlink" href="#contribution-guide" title="Link to this heading">¶</a></h1>
+<p>All types of contributions are encouraged and valued. The community looks forward to your contributions.</p>
+<section id="reporting-bugs">
+<h2>Reporting Bugs<a class="headerlink" href="#reporting-bugs" title="Link to this heading">¶</a></h2>
+<section id="before-submitting-a-bug-report">
+<h3>Before Submitting a Bug Report<a class="headerlink" href="#before-submitting-a-bug-report" title="Link to this heading">¶</a></h3>
+<p>Please complete the following steps in advance to help us fix any potential bug as fast as possible.</p>
+<ul class="simple">
+<li><p>Make sure that you are using the latest version.</p></li>
+<li><p>Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions.</p></li>
+<li><p>To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues?q=label%3Abug">bug tracker</a>.</p></li>
+<li><p>Collect information about the bug:</p>
+<ul>
+<li><p>Stack trace (Traceback)</p></li>
+<li><p>OS, Platform and Version (Windows, Linux, macOS, x86, ARM)</p></li>
+<li><p>Version of the interpreter, compiler, SDK, runtime environment, package manager, depending on what seems relevant.</p></li>
+<li><p>Possibly your input and the output.</p></li>
+<li><p>Can you reliably reproduce the issue? And can you also reproduce it with older versions?</p></li>
+</ul>
+</li>
+</ul>
 </section>
-<section id="debugging-slurm-runs">
-<h2>Debugging SLURM runs<a class="headerlink" href="#debugging-slurm-runs" title="Link to this heading">¶</a></h2>
-<ol class="arabic">
-<li><p>Did the run succeed?</p>
-<ol class="arabic">
-<li><p>Check whether all jobs are done (specifically the copy job).</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>squeue<span class="w"> </span>-u<span class="w"> </span><span class="nv">$USER</span><span class="w"> </span>--Format<span class="w"> </span>JobArrayID,Name,State,Dependency
-1750814_3<span class="w">           </span>FastSurfer-Seg-kueglRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
-1750815_3<span class="w">           </span>FastSurfer-Surf-kuegPENDING<span class="w">             </span>aftercorr:1750814_*<span class="o">(</span>
-<span class="m">1750816</span><span class="w">             </span>FastSurfer-Cleanup-kPENDING<span class="w">             </span>afterany:1750815_*<span class="o">(</span>u
-1750815_1<span class="w">           </span>FastSurfer-Surf-kuegRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
-1750815_2<span class="w">           </span>FastSurfer-Surf-kuegRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
-</pre></div>
-</div>
-<p>Here, jobs are not finished yet. The FastSurfer-Cleanup-$USER Job moves data to the subject directory (–sd).</p>
-</li>
-<li><p>Check whether there are subject folders and log files in the subject directory, <subject directory>/slurm/logs for the latter.</p></li>
-<li><p>Check the subject_success file in <subject directory>/slurm/scripts. It should have a line for each subject for both parts of the FastSurfer pipeline, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--seg_only</span> <span class="pre">successfully</span></code> or <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--surf_only</span> <span class="pre">successfully</span></code>! If one of these is missing, the job was likely killed by slurm (e.g. because of the time or the memory limit).</p></li>
-<li><p>For subjects that were unsuccessful (The subject_success will say so), check <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/deep-seg.log</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/recon-surf.log</span></code> to see what failed.
-Can be found by looking for “<subject id>: Failed &lt;–seg_only/–surf_only&gt; with exit code <return code>” in <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/slurm/scripts/subject_success</span></code>.</p></li>
-<li><p>For subjects that were terminated (missing in subject_success), find which job is associated with subject id <code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">&quot;&lt;subject</span> <span class="pre">id&gt;&quot;</span> <span class="pre">slurm/logs/surf_*.log</span></code>, then look at the end of the job and the job step logs (surf_XXX_YY.log and surf_XXX_YY_ZZ.log). If slurm terminated the job, it will say so there. You can increase the time and memory budget in <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> with <code class="docutils literal notranslate"><span class="pre">--time</span></code> and <code class="docutils literal notranslate"><span class="pre">--mem</span></code> flags.
-The following bash code snippet can help identify failed runs.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd &lt;subject directory&gt;
-for sub in *
-do
-if [[ -z &quot;$(grep &quot;$sub: Finished --surf&quot; slurm/scripts/subject_success)&quot; ]]
-then
-    echo &quot;$sub was terminated externally&quot;
-fi
-done
-</pre></div>
-</div>
-</li>
+<section id="how-do-i-submit-a-good-bug-report">
+<h3>How Do I Submit a Good Bug Report?<a class="headerlink" href="#how-do-i-submit-a-good-bug-report" title="Link to this heading">¶</a></h3>
+<p>We use GitHub issues to track bugs and errors. If you run into an issue with the project:</p>
+<ul class="simple">
+<li><p>Open an <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues/new">Issue</a>. (Since we can’t be sure at this point whether it is a bug or not, we ask you not to talk about a bug yet and not to label the issue.)</p></li>
+<li><p>Explain the behavior you would expect and the actual behavior.</p></li>
+<li><p>Please provide as much context as possible and describe the <em>reproduction steps</em> that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.</p></li>
+<li><p>Provide the information you collected in the previous section.</p></li>
+<li><p>Also provide the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/recon-surf.log</span></code> (if existent) and in the case of a parallel run, also the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/[l/r]h.processing.cmdf.log</span></code> (if existent).</p></li>
+</ul>
+<p>Once it’s filed:</p>
+<ul class="simple">
+<li><p>The project team will label the issue accordingly.</p></li>
+<li><p>A team member will try to reproduce the issue with your provided steps. If there are no reproduction steps or no obvious way to reproduce the issue, the team will ask you for those steps and mark the issue as <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code>. Bugs with the <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code> tag will not be addressed until they are reproduced.</p></li>
+<li><p>If the team is able to reproduce the issue, it will be marked <code class="docutils literal notranslate"><span class="pre">needs-fix</span></code>, as well as possibly other tags (such as <code class="docutils literal notranslate"><span class="pre">critical</span></code>).</p></li>
+</ul>
+</section>
+</section>
+<section id="suggesting-enhancements">
+<h2>Suggesting Enhancements<a class="headerlink" href="#suggesting-enhancements" title="Link to this heading">¶</a></h2>
+<p>Please follow these guidelines to help maintainers and the community to understand your suggestion for enhancements.</p>
+<section id="before-submitting-an-enhancement">
+<h3>Before Submitting an Enhancement<a class="headerlink" href="#before-submitting-an-enhancement" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Make sure that you are using the latest version.</p></li>
+<li><p>Read the documentation carefully and find out if the functionality is already covered, maybe by an individual configuration.</p></li>
+<li><p>Perform a <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues">search</a> to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.</p></li>
+<li><p>Find out whether your idea fits with the scope and aims of the project. It’s up to you to make a strong case to convince the project’s developers of the merits of this feature. Keep in mind that we want features that will be useful to the majority of our users and not just a small subset. If you’re just targeting a minority of users, consider writing an add-on/plugin library.</p></li>
+</ul>
+</section>
+<section id="how-do-i-submit-a-good-enhancement-suggestion">
+<h3>How Do I Submit a Good Enhancement Suggestion?<a class="headerlink" href="#how-do-i-submit-a-good-enhancement-suggestion" title="Link to this heading">¶</a></h3>
+<p>Enhancement suggestions are tracked as <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues">GitHub issues</a>.</p>
+<ul class="simple">
+<li><p>Use a <strong>clear and descriptive title</strong> for the issue to identify the suggestion.</p></li>
+<li><p>Provide a <strong>step-by-step description of the suggested enhancement</strong> in as many details as possible.</p></li>
+<li><p><strong>Describe the current behavior</strong> and <strong>explain which behavior you expected to see instead</strong> and why.</p></li>
+<li><p><strong>Explain why this enhancement would be useful</strong> to most users.</p></li>
+</ul>
+</section>
+</section>
+<section id="contributing-code">
+<h2>Contributing Code<a class="headerlink" href="#contributing-code" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><a class="reference external" href="https://docs.github.com/en/get-started/quickstart/fork-a-repo">Fork</a> this repository to your github account</p></li>
+<li><p>Clone your fork to your computer (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/&lt;username&gt;/FastSurfer.git</span></code>)</p></li>
+<li><p>Change into the project directory (<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">FastSurfer</span></code>)</p></li>
+<li><p>Add Deep-MI repo as upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">add</span> <span class="pre">upstream</span> <span class="pre">https://github.com/Deep-MI/FastSurfer.git</span></code>)</p></li>
+<li><p>Update information from upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">upstream</span></code>)</p></li>
+<li><p>Checkout the upstream dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">dev</span> <span class="pre">upstream/dev</span></code>)</p></li>
+<li><p>Create your feature branch from dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Commit your changes (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-am</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">feature'</span></code>)</p></li>
+<li><p>Push to the branch to your github (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Create new pull request on github web interface from that branch into Deep-NI <strong>dev branch</strong> (not into stable)</p></li>
 </ol>
-</li>
+<p>If lots of things changed in the meantime or the pull request is showing conflicts you should rebase your branch to the current upstream dev.
+This is the preferred way, but only possible if you are the sole develop or your branch:</p>
+<ol class="arabic simple" start="10">
+<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Rebase your branch onto dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">dev</span></code>), resolve conflicts and continue until complete</p></li>
+<li><p>Force push the updated feature branch to your gihub (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">-f</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
 </ol>
+<p>If other people co-develop the my-new-feature branch, rewriting history with a rebase is not possible.
+Instead you need to merge upstream dev into your branch:</p>
+<ol class="arabic simple" start="10">
+<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Merge dev into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">merge</span> <span class="pre">dev</span></code>), resolve conflicts and commit</p></li>
+<li><p>Push to origin (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
+</ol>
+<p>Either method updates the pull request and resolves conflicts, so that we can merge it once it is complete.
+Once the pull request is merged by us you can delete the feature branch in your clone and on your fork:</p>
+<ol class="arabic simple" start="15">
+<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Delete feature branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">branch</span> <span class="pre">-D</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<li><p>Delete the branch on your github fork either via GUI, or via command line (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">--delete</span> <span class="pre">my-new-feature</span></code>)</p></li>
+</ol>
+<p>This procedure will ensure that your local dev branch always follows our dev branch and will never diverge. You can, once in a while, push the dev branch, or similarly update stable and push it to your fork (origin), but that is not really necessary.</p>
+<p>Next time you contribute a feature, you do not need to go through the steps 1-6 above, but simply:</p>
+<ul class="simple">
+<li><p>Switch to dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Make sure it is identical to upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Check out a new feature branch and continue from 7. above.</p></li>
+</ul>
+<p>Another good command, if for some reasons your dev branch diverged, which should never happen as you never commit to it, you can reset it by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">reset</span> <span class="pre">--hard</span> <span class="pre">upstream/dev</span></code>. Make absolutely sure you are in your dev branch (not the feature branch) and be aware that this will delete any local changes!</p>
+</section>
+<section id="attribution">
+<h2>Attribution<a class="headerlink" href="#attribution" title="Link to this heading">¶</a></h2>
+<p>This guide is based on the <strong>contributing-gen</strong>. <a class="reference external" href="https://github.com/bttger/contributing-gen">Make your own</a>!</p>
 </section>
 </section>
 
@@ -561,23 +507,23 @@ done
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="advanced.html">
+          <a class="next-page" href="../api/index.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Advanced scripts</div>
+                <div class="title">FastSurfer API</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="BATCH.html">
+          <a class="prev-page" href="code_of_conduct.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">BATCH: brun_fastsurfer.sh</div>
+                <div class="title">Code of Conduct</div>
                 
               </div>
             </a>
@@ -617,9 +563,19 @@ done
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">SLURM: srun_fastsurfer.sh</a><ul>
-<li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#debugging-slurm-runs">Debugging SLURM runs</a></li>
+<li><a class="reference internal" href="#">Contribution Guide</a><ul>
+<li><a class="reference internal" href="#reporting-bugs">Reporting Bugs</a><ul>
+<li><a class="reference internal" href="#before-submitting-a-bug-report">Before Submitting a Bug Report</a></li>
+<li><a class="reference internal" href="#how-do-i-submit-a-good-bug-report">How Do I Submit a Good Bug Report?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#suggesting-enhancements">Suggesting Enhancements</a><ul>
+<li><a class="reference internal" href="#before-submitting-an-enhancement">Before Submitting an Enhancement</a></li>
+<li><a class="reference internal" href="#how-do-i-submit-a-good-enhancement-suggestion">How Do I Submit a Good Enhancement Suggestion?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#contributing-code">Contributing Code</a></li>
+<li><a class="reference internal" href="#attribution">Attribution</a></li>
 </ul>
 </li>
 </ul>
