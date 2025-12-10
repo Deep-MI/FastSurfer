@@ -26,6 +26,7 @@ import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
+from FastSurferCNN.utils.common import suppress_stdout
 
 try:
     from pyrr import Matrix44
@@ -670,26 +671,28 @@ class CCMesh(lapy.TriaMesh):
             overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True).name
         # Write thickness values in FreeSurfer '*.w' overlay format
         self.write_morph_data(overlay_file)
+        
 
-        snap1(
-            fssurf_file,
-            overlaypath=overlay_file,
-            view=None,
-            viewmat=self.__create_cc_viewmat(),
-            width=3 * 500,
-            height=3 * 300,
-            outpath=output_path,
-            ambient=0.6,
-            colorbar_scale=0.5,
-            colorbar_y=0.88,
-            colorbar_x=0.19,
-            brain_scale=2.1,
-            fthresh=0,
-            caption="Corpus Callosum thickness (mm)",
-            caption_y=0.85,
-            caption_x=0.17,
-            caption_scale=0.5,
-        )
+        with suppress_stdout():
+            snap1(
+                fssurf_file,
+                overlaypath=overlay_file,
+                view=None,
+                viewmat=self.__create_cc_viewmat(),
+                width=3 * 500,
+                height=3 * 300,
+                outpath=output_path,
+                ambient=0.6,
+                colorbar_scale=0.5,
+                colorbar_y=0.88,
+                colorbar_x=0.19,
+                brain_scale=2.1,
+                fthresh=0,
+                caption="Corpus Callosum thickness (mm)",
+                caption_y=0.85,
+                caption_x=0.17,
+                caption_scale=0.5,
+            )
 
         if fssurf_file and hasattr(fssurf_file, "close"):
             fssurf_file.close()
