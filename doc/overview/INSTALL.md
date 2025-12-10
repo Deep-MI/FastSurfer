@@ -69,22 +69,23 @@ You also need a working version of python3.10 (we do not support other versions)
 
 If you are using pip, make sure pip is updated as older versions will fail.
 
-#### 2. Conda for python
+#### 2. uv for python
 
-We recommend to install conda as your python environment. If you don't have conda on your system, an admin needs to install it:
+We recommend to install uv as your python environment and package manager. [uv](https://docs.astral.sh/uv/) is a very 
+fast package manager, which makes managing different environments even easier. See 
+[uv's documentation](https://docs.astral.sh/uv/getting-started/installation/) for more information on installation such 
+as [autocompletion info](https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion).  
 
 ```bash
-FORGE_VERSION=25.9.1-0  # find the recent miniforge version at https://github.com/conda-forge/miniforge/releases
-wget --no-check-certificate -qO ~/miniforge.sh https://github.com/conda-forge/miniforge/releases/download/${FORGE_VERSION}/Miniforge3-${FORGE_VERSION}-Linux-x86_64.sh
-chmod +x ~/miniforge.sh
-sudo ~/miniforge.sh -b -p /opt/miniforge && \
-rm ~/miniforge.sh 
+wget -qO- https://astral.sh/uv/install.sh | sh
 ```
 
 #### 3. FastSurfer
 Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly):
 
 ```bash
+cd /path/to/install
+# FastSurfer will get cloned to /path/to/install/FastSurfer
 git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 ```
@@ -94,26 +95,40 @@ cd FastSurfer
 Create a new environment and install FastSurfer dependencies:
 
 ```bash
-conda env create -f ./env/fastsurfer.yml 
-conda activate fastsurfer
+# make sure you are in the FastSurfer directory!
+# create a .venv environment directory inside /path/to/install/FastSurfer with the FastSurfer dependencies
+# the minimum required python version is 3.10
+uv venv --python python3.12
+# download and install packages for the fastsurfer environment (implicitly read from requirements.txt)
+uv pip sync pyproject.toml
+```
+`uv` will also try to find the correct backend for your hardware, but you can manually specify the backend for testing:
+purposes:
+```bash
+# make sure you are in the FastSurfer directory!
+uv pip sync pyproject.toml --torch-backend cpu
+```
+You can now activate the FastSurfer environment with
+```bash
+source .venv/bin/activate
 ```
 
-If you do not have an NVIDIA GPU, you can create appropriate ymls on the fly with `python ./tools/Docker/install_env.py -m $MODE -i ./env/FastSurfer.yml -o ./fastsurfer_$MODE.yml`. Here `$MODE` can be for example `cpu`, see also `python ./tools/Docker/install_env.py --help` for other options like rocm or cuda versions. Finally, replace `./env/fastsurfer.yml`  with your custom environment file `./fastsurfer_$MODE.yml`.
-If you only want to run the surface pipeline, use `./env/fastsurfer_reconsurf.yml`.
-
-Next, add the fastsurfer directory to the python path (make sure you have changed into it already):
+Next, add the fastsurfer directory to the python path:
 ```bash
+# make sure you are in the FastSurfer directory!
 export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
 
 This will need to be done every time you want to run FastSurfer, or you need to add this line to your `~/.bashrc` if you are using bash, for example:
 ```bash
-echo "export PYTHONPATH=\"\${PYTHONPATH}:$PWD\"" >> ~/.bashrc
+# make sure you are in the FastSurfer directory!
+echo "export PYTHONPATH=\"\${PYTHONPATH}:$(pwd)\"" >> ~/.bashrc
 ```
 
 You can also download all network checkpoint files (this should be done if you are installing for multiple users):
 ```bash
-python3 FastSurferCNN/download_checkpoints.py --all
+# make sure you are in the FastSurfer directory!
+python FastSurferCNN/download_checkpoints.py --all
 ```
 
 Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```./run_fastsurfer.sh --seg_only ....``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
@@ -177,7 +192,7 @@ To install brew and then python3.10, execute the following in a Terminal:
 brew install python@3.10
 ```
 
-### 2. FastSurfer package
+#### 2. FastSurfer package
 From version 2.5 onward, FastSurfer ships a macOS installer package, which you can download from 
 [github](https://github.com/Deep-MI/FastSurfer/releases/). 
 There are package installers for both the Apple M-chip architecture (`arm64`) and for legacy Intel chips (`x86_64`).
@@ -185,7 +200,7 @@ To install, double-click the installer and follow the installer instructions.
 
 After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the `/Applications` folder.
 
-### 3. Launching FastSurfer
+#### 3. Launching FastSurfer
 
 To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications.
 
