@@ -22,6 +22,7 @@ __all__ = [
     "load_config",
     "logging",
     "lr_scheduler",
+    "LTADict",
     "mapper",
     "Mask2d",
     "Mask3d",
