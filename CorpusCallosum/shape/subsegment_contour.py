@@ -873,11 +873,12 @@ def preprocess_cc(cc_label_nib: nibabelImage, paths_csv: "pd.DataFrame", subj_id
         2D coordinates of posterior commissure.
     
     """
+    #FIXME: this function is not used anywhere
     _cc_mask: Mask3d = np.asarray(cc_label_nib.dataobj) == 192
     cc_mask: Mask2d = _cc_mask[_cc_mask.shape[0] // 2]
 
-    posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r":"PC_center_s"].to_numpy().astype(float)
-    anterior_commisure_center = paths_csv.loc[subj_id, "AC_center_r":"AC_center_s"].to_numpy().astype(float)
+    posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r": "PC_center_s"].to_numpy().astype(float)
+    anterior_commisure_center = paths_csv.loc[subj_id, "AC_center_r": "AC_center_s"].to_numpy().astype(float)
 
     # adjust LR from label coordinates to orig_up coordinates
     posterior_commisure_center[0] = 128
