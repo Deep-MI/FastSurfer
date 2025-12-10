@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# This pre-commit script is developed and extended from the github example pre-commit hook script from git.
+#
+# To install, copy of soft-link this file to FastSurfer/.git/hooks/pre-commit
+# The script uses bash, git, uv, ruff, codespell, sphinx.
+# Of these, bash and git need to be installed for the script to function, uv needs to be installed
+# for ruff, codespell and sphinx to work.
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	against=$(git hash-object -t tree /dev/null)
+fi
+
+# If you want to allow non-ASCII filenames set this variable to true.
+allownonascii=$(git config --bool hooks.allownonascii)
+
+# Redirect output to stderr.
+exec 1>&2
+
+echo "INFO: pre-commit hook: Running allownonascii: ${allownnascii:-no}"
+# Cross platform projects tend to avoid non-ASCII filenames; prevent
+# them from being added to the repository. We exploit the fact that the
+# printable range starts at the space character and ends with tilde.
+if [ "$allownonascii" != "true" ] &&
+	# Note that the use of brackets around a tr range is ok here, (it's
+	# even required, for portability to Solaris 10's /usr/bin/tr), since
+	# the square bracket bytes happen to fall in the designated range.
+	test $(git diff --cached --name-only --diff-filter=A -z $against |
+	  LC_ALL=C tr -d '[ -~]\0' | wc -c) != 0
+then
+	cat <<EOF
+Error: Attempt to add a non-ASCII file name.
+
+This can cause problems if you want to work with people on other platforms.
+
+To be portable it is advisable to rename the file.
+
+If you know what you are doing you can disable this check using:
+
+  git config hooks.allownonascii true
+EOF
+	exit 1
+fi
+
+if [ "$(which uv)" == "" ]
+then
+	echo "WARNING: pre-commit hook: install/source uv to run ruff and sphinx hooks!"
+else
+	echo "INFO: pre-commit hook: Running ruff"
+	uv run --extra style ruff check
+
+	echo "INFO: pre-commit hook: Running codespell"
+	skip_files='./build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv,./.idea,./doc-build'
+	skip_files+=',./checkpoints,./doc/api/generated'
+	uv run --extra style codespell --check-filenames --check-hidden --context 3 \
+	  --skip "$skip_files" --ignore-words ./.codespellignore
+
+	echo "INFO: pre-commit hook: Build sphinx-doc"
+	uv run --extra doc sphinx-build -j auto -WT --keep-going doc ./doc-build
+fi
+
+echo "INFO: pre-commit hook: Checking for trailing whitespaces"
+# If there are whitespace errors, print the offending file names and fail.
+exec git diff-index --check --cached $against --
