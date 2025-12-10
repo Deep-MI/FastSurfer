@@ -5,7 +5,7 @@ However, for your convenience, we allow manual edits in various stages of the Fa
 These editing options include approaches that are inherited from FreeSurfer as well as some FastSurfer-specific editing options.
 
 The provided editing options may be changed or extended in the future, also depending on requests from the community.
-Furthermore, we invite users to [contribute](CONTRIBUTING.md) such changes and/or datasets of paired MRI images and edited files to improve FastSurfer's neural networks.  
+Furthermore, we invite users to [contribute](../../CONTRIBUTING.md) such changes and/or datasets of paired MRI images and edited files to improve FastSurfer's neural networks.  
 
 ## What are Edits?
 
