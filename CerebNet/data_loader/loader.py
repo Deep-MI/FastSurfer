@@ -23,16 +23,26 @@ from FastSurferCNN.utils import logging
 logger = logging.get_logger(__name__)
 
 
-def get_dataloader(cfg, mode):
+def get_dataloader(cfg: object, mode: str) -> DataLoader:
     """
-    Creating the dataset and pytorch data loader
+    Create the dataset and pytorch data loader.
 
-    Args:
-        cfg:
-        mode: loading data for train, val and test mode
+    Parameters
+    ----------
+    cfg : object
+        Configuration object containing data loading parameters.
+    mode : str
+        Loading mode - either 'train' or 'val'.
 
-    Returns:
-        the Dataloader
+    Returns
+    -------
+    DataLoader
+        PyTorch DataLoader configured based on the mode.
+
+    Raises
+    ------
+    ValueError
+        If mode is not 'train' or 'val'.
     """
 
     if mode == "train":

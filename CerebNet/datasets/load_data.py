@@ -141,14 +141,23 @@ class SubjectLoader:
 
     def _get_roi_extracted_data(self, img, label, talairach):
         """
-        Finding the bounding volume and returning extracted img and label
-        according to roi
-        Args:
-            img:
-            label:
+        Finding the bounding volume and returning extracted img and label according to roi.
 
-        Returns:
-            img and label resized according to roi and patch size
+        Parameters
+        ----------
+        img : np.ndarray
+            Input image volume
+        label : np.ndarray
+            Input label volume
+        talairach : np.ndarray or None
+            Talairach coordinates array
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray, np.ndarray or None]
+            - Resized image according to ROI and patch size
+            - Resized label according to ROI and patch size 
+            - Resized and normalized talairach coordinates if provided, None otherwise
         """
         roi = utils.bounding_volume(label, self.patch_size)
         img = utils.map_size(img[roi], self.patch_size)
@@ -171,12 +180,17 @@ class SubjectLoader:
 
     def _load_auxiliary_data(self, aux_subjects_path):
         """
-        Loading auxiliary data create by registration of original images
-        Args:
-            subjects_path: list of full path to auxiliary data
+        Loading auxiliary data create by registration of original images.
 
-        Returns:
-            dictionary with list of warped images and labels
+        Parameters
+        ----------
+        aux_subjects_path : list
+            List of full paths to auxiliary data.
+
+        Returns
+        -------
+        dict
+            Dictionary containing lists of warped images and labels.
         """
         aux_data = {"auxiliary_img": [], "auxiliary_lbl": []}
         for t1_path, lbl_path in aux_subjects_path:

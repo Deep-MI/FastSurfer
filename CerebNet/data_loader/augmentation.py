@@ -186,10 +186,14 @@ class RandomBiasField:
 
     Based on https://github.com/fepegar/torchio
 
-    It was implemented in NiftyNet by Carole Sudre and used in
-    `Sudre et al., 2017, Longitudinal segmentation of age-related
-    white matter hyperintensities
-    <https://www.sciencedirect.com/science/article/pii/S1361841517300257?via%3Dihub>`_.
+    Notes
+    -----
+    It was implemented in NiftyNet by Carole Sudre and used in [1]_.
+
+    References
+    ----------
+    .. [1] Sudre et al., 2017, Longitudinal segmentation of age-related white matter hyperintensities
+       <https://www.sciencedirect.com/science/article/pii/S1361841517300257>_.
     """
     def __init__(
         self,
@@ -361,9 +365,7 @@ def sample_intensity_stats_from_image(
         classes_list = np.array(classes_list, dtype="int")
     else:
         classes_list = np.arange(labels_list.shape[0])
-    assert len(classes_list) == len(
-        labels_list
-    ), "labels and classes lists should have the same length"
+    assert len(classes_list) == len(labels_list), "labels and classes lists should have the same length"
     # get unique classes
     unique_classes, unique_indices = np.unique(classes_list, return_index=True)
     n_classes = len(unique_classes)
