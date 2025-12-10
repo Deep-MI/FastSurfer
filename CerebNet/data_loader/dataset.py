@@ -17,7 +17,6 @@ from numbers import Number
 from typing import Literal, TypeVar
 
 import h5py
-import nibabel as nib
 import numpy as np
 import torch
 from numpy import typing as npt
@@ -34,7 +33,7 @@ from FastSurferCNN.data_loader.data_utils import (
     transform_axial,
     transform_sagittal,
 )
-from FastSurferCNN.utils import Plane, logging
+from FastSurferCNN.utils import Plane, logging, nibabelImage
 
 ROIKeys = Literal["source_shape", "offsets", "target_shape"]
 LocalizerROI = dict[ROIKeys, tuple[int, ...]]
@@ -236,8 +235,8 @@ class SubjectDataset(Dataset):
 
     def __init__(
         self,
-        img_org: nib.analyze.SpatialImage,
-        brain_seg: nib.analyze.SpatialImage,
+        img_org: nibabelImage,
+        brain_seg: nibabelImage,
         patch_size: tuple[int, ...],
         slice_thickness: int,
         primary_slice: str | None = None,

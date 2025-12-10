@@ -18,7 +18,6 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import nibabel as nib
 import numpy as np
 import pandas as pd
 import torch
@@ -30,7 +29,7 @@ from CerebNet.data_loader.dataset import SubjectDataset
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
 from FastSurferCNN.data_loader.conform import crop_transform
-from FastSurferCNN.utils import PLANES, Plane, logging
+from FastSurferCNN.utils import PLANES, Plane, logging, nibabelImage
 from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, Mapper, TSVLookupTable
@@ -332,7 +331,7 @@ class Inference:
             self,
             cerebnet_seg: np.ndarray,
             filename: str | Path,
-            orig: nib.analyze.SpatialImage
+            orig: nibabelImage,
     ) -> "Future[None]":
         """
         Saving the segmentations asynchronously.
@@ -343,7 +342,7 @@ class Inference:
             Segmentation data.
         filename : Path, str
             Path and file name to the saved file.
-        orig : nib.analyze.SpatialImage
+        orig : nibabelImage
             File container (with header and affine) used to populate header and affine
             of the segmentation.
 

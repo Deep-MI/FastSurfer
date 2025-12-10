@@ -16,7 +16,7 @@
 # IMPORTS
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal, TypedDict, TypeVar
+from typing import TypedDict, TypeVar
 
 import nibabel as nib
 import numpy as np
@@ -24,7 +24,7 @@ import torch
 from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelImage
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,6 @@ CLASS_NAMES = {
 subseg_labels = {"cereb_subseg": np.array(list(CLASS_NAMES.values()))}
 
 AT = TypeVar("AT", np.ndarray, torch.Tensor)
-AffineMatrix4x4 = np.ndarray[tuple[Literal[4], Literal[4]], np.dtype[float]]
 
 
 class LTADict(TypedDict):
@@ -273,13 +272,13 @@ def rescale_image(img_data):
     return new_data
 
 
-def load_reorient(img_filename: str) -> nib.analyze.SpatialImage:
+def load_reorient(img_filename: str) -> nibabelImage:
     img_file = nib.load(img_filename)
     canonical_img = nib.as_closest_canonical(img_file)
     return canonical_img
 
 
-def load_reorient_lia(img_filename: str) -> nib.analyze.SpatialImage:
+def load_reorient_lia(img_filename: str) -> nibabelImage:
     return load_reorient(img_filename).as_reoriented([[1, -1], [0, -1], [2, 1]])
 
 
@@ -450,8 +449,8 @@ def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     return tala_coordinates
 
 
-def normalize_array(arr: np.ndarray[tuple[int, ...], np.dtype[np.number]]) \
-        -> np.ndarray[tuple[int, ...], np.dtype[np.floating]]:
+def normalize_array(arr: np.ndarray[ShapeType, np.dtype[np.number]]) \
+        -> np.ndarray[ShapeType, np.dtype[np.floating]]:
     """Normalize the data array to [0, 1]."""
     min = arr.min()
     max = arr.max()

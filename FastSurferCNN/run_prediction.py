@@ -31,7 +31,6 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Literal
 
-import nibabel as nib
 import numpy as np
 import torch
 import yacs.config
@@ -42,7 +41,7 @@ from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.data_loader.conform import conform, is_conform, orientation_to_ornts, to_target_orientation
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
-from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
+from FastSurferCNN.utils import PLANES, Plane, logging, nibabelImage, parser_defaults
 from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import vox_size as _vox_size
 from FastSurferCNN.utils.checkpoint import get_checkpoints, load_checkpoint_config_defaults
@@ -294,7 +293,7 @@ class RunModelOnData:
 
     def conform_and_save_orig(
         self, subject: SubjectDirectory,
-    ) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
+    ) -> tuple[nibabelImage, np.ndarray]:
         """
         Conform and saves original image.
 
@@ -305,8 +304,10 @@ class RunModelOnData:
 
         Returns
         -------
-        tuple[nib.analyze.SpatialImage, np.ndarray]
-            Conformed image.
+        the_image : nibabelImage
+            The SpatialImage object from nibabel of the conformed image (including updated affine).
+        the_data : np.ndarray
+            The data of the conformed image.
         """
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
         LOGGER.info(f"Successfully loaded image from {subject.orig_name}.")
@@ -405,7 +406,7 @@ class RunModelOnData:
         self,
         save_as: str | Path,
         data: np.ndarray | torch.Tensor,
-        orig: nib.analyze.SpatialImage,
+        orig: nibabelImage,
         dtype: type | None = None,
     ) -> None:
         """
@@ -417,7 +418,7 @@ class RunModelOnData:
             Filename to give the image.
         data : np.ndarray, torch.Tensor
             Image data.
-        orig : nib.analyze.SpatialImage
+        orig : nibabelImage
             Original Image.
         dtype : type, optional
             Data type to use for saving the image. If None, the original data type is used.
@@ -441,7 +442,7 @@ class RunModelOnData:
         self,
         save_as: str | Path,
         data: np.ndarray | torch.Tensor,
-        orig: nib.analyze.SpatialImage,
+        orig: nibabelImage,
         dtype: type | None = None,
     ) -> Future[None]:
         """
@@ -454,7 +455,7 @@ class RunModelOnData:
             Filename to give the image.
         data : np.ndarray, torch.Tensor
             Image data.
-        orig : nib.analyze.SpatialImage
+        orig : nibabelImage
             Original Image.
         dtype : type, optional
             Data type to use for saving the image. If None, the original data type is used.
@@ -491,7 +492,7 @@ class RunModelOnData:
 
     def pipeline_conform_and_save_orig(
         self, subjects: SubjectList,
-    ) -> Iterator[tuple[SubjectDirectory, tuple[nib.analyze.SpatialImage, np.ndarray]]]:
+    ) -> Iterator[tuple[SubjectDirectory, tuple[nibabelImage, np.ndarray]]]:
         """
         Pipeline for conforming and saving original images asynchronously.
 
@@ -502,8 +503,15 @@ class RunModelOnData:
 
         Yields
         ------
-        tuple[SubjectDirectory, tuple[nib.analyze.SpatialImage, np.ndarray]]
-            Subject directory and a tuple with the image and its data.
+        subject_dir : SubjectDirectory
+            The SubjectDirectory object, that helps manage file names.
+        image_and_data : tuple of nibabelImage and np.ndarray
+            The tuple with the image and its data.
+
+        See Also
+        --------
+        RunModelOnData.conform_and_safe_orig
+            For more detailed description of `image_and_data`.
         """
         if not self._async_io:
             # do not pipeline, direct iteration and function call

@@ -58,7 +58,7 @@ It is normally recommended to run your set ups in separate virtual environments 
 #### 2. Anaconda
 You can install anaconda via curl with the following command:
 ```bash
-# The version of Anaconda may be different depending on when you are installing`
+# The version of Anaconda may be different depending on when you are installing
 curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 sh Miniconda3-latest-Linux-x86_64.sh
 # and follow the prompts. The defaults are generally good.

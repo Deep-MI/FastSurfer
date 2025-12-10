@@ -35,7 +35,7 @@ from scipy.ndimage import (
 from skimage.measure import label, regionprops
 
 from FastSurferCNN.data_loader.conform import check_affine_in_nifti, conform, is_conform
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import logging, nibabelImage
 
 ##
 # Global Vars
@@ -88,7 +88,7 @@ def load_and_conform_image(
         If input has multiple input frames or inconsistent nifti headers.
     """
     img_file = Path(img_filename)
-    orig = cast(nib.analyze.SpatialImage, nib.load(img_file))
+    orig = cast(nibabelImage, nib.load(img_file))
     # is_conform and conform accept numeric values and the string 'min' instead of the bool value
     if not is_conform(orig, **conform_kwargs):
 
@@ -113,7 +113,7 @@ def load_image(
         file: str | Path,
         name: str = "image",
         **kwargs,
-) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
+) -> tuple[nibabelImage, np.ndarray]:
     """
     Load file 'file' with nibabel, including all data.
 
@@ -128,8 +128,10 @@ def load_image(
 
     Returns
     -------
-    Tuple[nib.analyze.SpatialImage, np.ndarray]
-        The nibabel image object and a numpy array of the data.
+    the_image : nibabelImage
+        The SpatialImage object from nibabel of the conformed image (including updated affine).
+    the_data : np.ndarray
+        The data of the conformed image.
 
     Raises
     ------
@@ -146,7 +148,7 @@ def load_image(
         }
     """
     try:
-        img = cast(nib.analyze.SpatialImage, nib.load(file, **kwargs))
+        img = cast(nibabelImage, nib.load(file, **kwargs))
     except (OSError, FileNotFoundError) as e:
         raise OSError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
     return img, np.asarray(img.dataobj)
@@ -156,7 +158,7 @@ def load_maybe_conform(
         file: Path | str,
         alt_file: Path | str,
         **conform_kwargs,
-) -> tuple[Path, nib.analyze.SpatialImage, np.ndarray]:
+) -> tuple[Path, nibabelImage, np.ndarray]:
     """
     Load an image by file, check whether it is conformed to vox_size and conform to
     vox_size if it is not.
@@ -174,7 +176,7 @@ def load_maybe_conform(
     -------
     Path
         The path to the file.
-    nib.analyze.SpatialImage
+    nibabelImage
         The file container object including the corrected header.
     np.ndarray
         The data loaded from the file.
@@ -192,7 +194,7 @@ def load_maybe_conform(
     _is_conform, img = False, None
     if file.is_file():
         # see if the file is 1mm
-        img = cast(nib.analyze.SpatialImage, nib.load(file))
+        img = cast(nibabelImage, nib.load(file))
         # is_conform only needs the header, not the data
         _is_conform = is_conform(img, **conform_kwargs_is_conform, verbose=False, vox_eps=0.1)
 

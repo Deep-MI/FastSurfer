@@ -115,7 +115,7 @@ class DiceScore:
         A callable to update the accumulator. Method's signature is `(accumulator, output)`.
         For example, to compute arithmetic mean value, `op = lambda a, x: a + x`.
     output_transform : callable, optional
-        A callable that is used to transform the :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+        A callable that is used to transform the :class:`~ignite.engine.Engine`\'s `process_function`\'s output into the
         form expected by the metric. This can be useful if, for example, you have a multi-output model and
         you want to compute the metric with respect to one of the outputs.
     device : str or torch.device, optional

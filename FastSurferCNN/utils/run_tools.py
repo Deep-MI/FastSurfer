@@ -151,7 +151,7 @@ class Popen(subprocess.Popen):
 
     def finish(self, timeout: float = None) -> MessageBuffer:
         """
-        `finish`'s behavior is similar to `subprocess.dry_run`.
+        `finish`\'s behavior is similar to `subprocess.dry_run`.
 
         `finish` waits `timeout` seconds, and forces termination after. By default,
         waits unlimited `timeout=None`. In either case, all messages in stdout and

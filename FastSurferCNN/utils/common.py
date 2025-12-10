@@ -186,9 +186,8 @@ def handle_cuda_memory_exception(exception: BaseException) -> bool:
     if message.startswith("CUDA out of memory. "):
         LOGGER.critical("ERROR - INSUFFICIENT GPU MEMORY")
         LOGGER.info(
-            "The memory requirements exceeds the available GPU memory, try using a "
-            "smaller batch size (--batch_size <int>) and/or view aggregation on the "
-            "cpu (--viewagg_device 'cpu')."
+            "The memory requirements exceeds the available GPU memory, try using a smaller batch size "
+            "(--batch_size <int>) and/or view aggregation on the cpu (--viewagg_device 'cpu')."
         )
         LOGGER.info(
             "Note: View Aggregation on the GPU is particularly memory-hungry at "
@@ -725,9 +724,8 @@ class SubjectList:
         self._out_segfile = getattr(self, "_segfile_", None)
         if self._out_segfile is None:
             raise RuntimeError(
-                "The segmentation output file is not set, it should be either "
-                "'segfile' (which gets populated from args.segfile), or a keyword "
-                "argument to __init__, e.g. `SubjectList(args, subseg='subseg_param', "
+                "The segmentation output file is not set, it should be either 'segfile' (which gets populated from "
+                "args.segfile), or a keyword argument to `__init__`, e.g. `SubjectList(args, subseg='subseg_param', "
                 "out_filename='subseg')`."
             )
 
@@ -735,9 +733,8 @@ class SubjectList:
         self._out_dir = getattr(args, "out_dir", None) or getattr(args, "in_dir", None)
         if self._out_dir in [None, ""] and not os.path.isabs(self._out_segfile):
             msg = (
-                "Please specify, where the segmentation output should be stored by "
-                "either the {sd[flag]} flag (output subject directory, this can be "
-                "same as input directory) or an absolute path to the "
+                "Please specify, where the segmentation output should be stored by either the {sd[flag]} flag (output "
+                "subject directory, this can be same as input directory) or an absolute path to the "
                 "{asegdkt_segfile[flag]} output segmentation volume."
             )
             raise RuntimeError(msg.format(**self._flags))

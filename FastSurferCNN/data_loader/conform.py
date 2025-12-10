@@ -19,7 +19,7 @@ import argparse
 import re
 import sys
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Literal, TypeVar, Union, cast
 
 import nibabel
 import nibabel as nib
@@ -29,13 +29,8 @@ from nibabel.freesurfer.mghformat import MGHHeader
 
 if TYPE_CHECKING:
     import torch
-else:
-    # stub imports so TypeVar works
-    class torch:
-        class Tensor:
-            pass
 
-from FastSurferCNN.utils import logging
+from FastSurferCNN.utils import ScalarType, logging, nibabelImage
 from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType, StrictOrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one_mm
 from FastSurferCNN.utils.arg_types import img_size as __img_size
@@ -64,9 +59,8 @@ Date: May-12-2025
 
 LOGGER = logging.getLogger(__name__)
 
-_TA = TypeVar("_TA", bound=np.ndarray | torch.Tensor)
-_TB = TypeVar("_TB", bound=np.ndarray | torch.Tensor)
-_TScalarType = TypeVar("_TScalarType", bound=np.number)
+_TA = TypeVar("_TA", bound=Union[np.ndarray, "torch.Tensor"])
+_TB = TypeVar("_TB", bound=Union[np.ndarray, "torch.Tensor"])
 
 
 def __rescale_type(a: str) -> float | int | None:
@@ -373,21 +367,21 @@ def apply_orientation(arr: _TB | npt.ArrayLike, ornt: npt.NDArray[int]) -> _TB:
 
 
 def map_image(
-        img: nib.analyze.SpatialImage,
+        img: nibabelImage,
         out_affine: npt.NDArray[float],
         out_shape: tuple[int, ...] | npt.NDArray[int] | Iterable[int],
         ras2ras: npt.NDArray[np.number] | None = None,
         order: int = 1,
-        dtype: np.dtype[_TScalarType] | npt.DTypeLike | None = None,
+        dtype: np.dtype[ScalarType] | npt.DTypeLike | None = None,
         vox_eps: float = 1e-4,
         rot_eps: float = 1e-6,
-) -> npt.NDArray[_TScalarType]:
+) -> npt.NDArray[ScalarType]:
     """
     Map image to new voxel space (RAS orientation).
 
     Parameters
     ----------
-    img : nib.analyze.SpatialImage
+    img : nibabelImage
         The src 3D image with data and affine set.
     out_affine : np.ndarray
         Trg image affine.
@@ -635,7 +629,7 @@ def rescale(
 
 
 def conform(
-        img: nib.analyze.SpatialImage,
+        img: nibabelImage,
         order: int = 1,
         vox_size: VoxSizeOption | None = 1.0,
         img_size: ImageSizeOption | None = 256,
@@ -646,7 +640,7 @@ def conform(
         vox_eps: float = 1e-4,
         rot_eps: float = 1e-6,
         **kwargs,
-) -> nib.analyze.SpatialImage:
+) -> nibabelImage:
     """Python version of mri_convert -c.
 
     mri_convert -c by default turns image intensity values into UCHAR, reslices images to standard position, fills up
@@ -654,7 +648,7 @@ def conform(
 
     Parameters
     ----------
-    img : nib.analyze.SpatialImage
+    img : nibabelImage
         Loaded source image.
     order : int, default=1
         Interpolation order (0=nearest, 1=linear, 2=quadratic, 3=cubic).
@@ -777,7 +771,7 @@ def conform(
 
 
 def prepare_mgh_header(
-        img: nib.analyze.SpatialImage,
+        img: nibabelImage,
         target_vox_size: npt.NDArray[float] | None = None,
         target_img_size: npt.NDArray[int] | None = None,
         orientation: OrientationType = "native",
@@ -903,7 +897,7 @@ def does_vox2vox_rot_require_interpolation(
 
 
 def is_conform(
-        img: nib.analyze.SpatialImage,
+        img: nibabelImage,
         vox_size: VoxSizeOption | None = 1.0,
         img_size: ImageSizeOption | None = 256,
         dtype: npt.DTypeLike | None = np.uint8,
@@ -921,7 +915,7 @@ def is_conform(
 
     Parameters
     ----------
-    img : nib.analyze.SpatialImage
+    img : nibabelImage
         Loaded source image.
     vox_size : float, "min", None, default=1.0
         Which voxel size to conform to. Can either be a float between 0.0 and 1.0, 'min' (to check, whether the image is
@@ -1101,7 +1095,7 @@ def is_orientation(
 
 
 def conformed_vox_img_size(
-        img: nib.analyze.SpatialImage,
+        img: nibabelImage,
         vox_size: VoxSizeOption | None,
         img_size: ImageSizeOption | None,
         threshold_1mm: float | None = None,
@@ -1115,7 +1109,7 @@ def conformed_vox_img_size(
 
     Parameters
     ----------
-    img : nib.analyze.SpatialImage
+    img : nibabelImage
         Loaded source image.
     vox_size : float, "min", None
         The voxel size parameter to use: either a voxel size as float, or the string "min" to automatically find a

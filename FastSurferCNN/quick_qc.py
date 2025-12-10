@@ -174,10 +174,12 @@ def get_ventricle_bg_intersection_volume(seg_array, voxvol):
 
 
 if __name__ == "__main__":
+    from FastSurferCNN.utils import nibabelImage
+
     # Command Line options are error checking done here
     options = options_parse()
     print(f"Reading in aparc+aseg: {options.asegdkt_segfile} ...")
-    inseg = cast(nib.analyze.SpatialImage, nib.load(options.asegdkt_segfile))
+    inseg = cast(nibabelImage, nib.load(options.asegdkt_segfile))
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
     inseg_voxvol = np.prod(inseg_header.get_zooms())
