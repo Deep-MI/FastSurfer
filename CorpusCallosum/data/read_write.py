@@ -16,12 +16,11 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-import nibabel as nib
 import numpy as np
 from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
-from FastSurferCNN.utils import AffineMatrix4x4
+from FastSurferCNN.utils import AffineMatrix4x4, nibabelImage
 from FastSurferCNN.utils.parallel import thread_executor
 
 
@@ -34,7 +33,7 @@ class FSAverageHeader(TypedDict):
 logger = logging.get_logger(__name__)
 
 
-def calc_ras_centroids_from_seg(seg_img: nib.analyze.SpatialImage, label_ids: list[int] | None = None) \
+def calc_ras_centroids_from_seg(seg_img: nibabelImage, label_ids: list[int] | None = None) \
         -> dict[int, np.ndarray | None]:
     """Get centroids of segmentation labels in RAS coordinates, accepts any affine/data layout.
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 from collections.abc import Iterator
 from pathlib import Path
+from typing import cast, overload
 
 import nibabel as nib
 import numpy as np
@@ -26,6 +27,7 @@ from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
+from FastSurferCNN.utils import Image3d, Image4d, Shape2d, Shape3d, Shape4d, Vector2d, nibabelImage
 from FastSurferCNN.utils.parallel import thread_executor
 
 
@@ -82,19 +84,19 @@ def load_model(device: torch.device | None = None) -> FastSurferVINN:
 
 
 def run_inference(
-    model: FastSurferVINN,
-    image_slice: np.ndarray,
-    ac_center: np.ndarray,
-    pc_center: np.ndarray,
+    model: "torch.nn.Module",
+    image_slice: Image3d,
+    ac_center: Vector2d,
+    pc_center: Vector2d,
     voxel_size: tuple[float, float],
     device: torch.device | None = None,
     transform: transforms.Transform | None = None
-) -> tuple[npt.NDArray[int], npt.NDArray[float], npt.NDArray[float]]:
+) -> tuple[np.ndarray[Shape4d, np.dtype[int]], Image4d, Image4d]:
     """Run inference on a single image slice.
 
     Parameters
     ----------
-    model : FastSurferVINN
+    model : torch.nn.Module
         Trained model.
     image_slice : np.ndarray
         LIA-oriented input image as numpy array of shape (L, I, A).
@@ -104,11 +106,10 @@ def run_inference(
         Posterior commissure coordinates.
     voxel_size : a pair of floats
         Voxel size of inferior/superior and anterior/posterior direction in mm.
-    device : torch.device or None, optional
-        Device to run inference on, by default None.
-        If None, uses the device of the model.
-    transform : transforms.Transform or None, optional
-        Custom transform pipeline, by default None.
+    device : torch.device, optional
+        Device to run inference on. If None, uses the device of the model.
+    transform : transforms.Transform, optional
+        Custom transform pipeline.
 
     Returns
     -------
@@ -152,11 +153,11 @@ def run_inference(
         labels = np.pad(_labels.cpu().numpy(), pad_tuples, mode='constant', constant_values=0)
         softlabels = np.pad(softlabels, pad_tuples, mode='constant', constant_values=0)
 
-    return [x.transpose(0, 2, 3, 1) for x in (labels, _inputs.cpu().numpy(), softlabels)]
+    return tuple(x.transpose(0, 2, 3, 1) for x in (labels, _inputs.cpu().numpy(), softlabels))
 
 
 def load_validation_data(
-    path: str | Path
+    path: str | Path,
 ) -> tuple[npt.NDArray[str], npt.NDArray[float], npt.NDArray[float], Iterator[int], npt.NDArray[str], list[str]]:
     """Load validation data from CSV file and compute label widths.
 
@@ -210,7 +211,7 @@ def load_validation_data(
         int
             Number of slices containing non-zero labels, or total slices if <= 100
         """
-        label_img = nib.load(label_path)
+        label_img = cast(nibabelImage, nib.load(label_path))
 
         if label_img.shape[0] > 100:
             # check which slices have non-zero values
@@ -226,11 +227,16 @@ def load_validation_data(
 
     return images, ac_centers, pc_centers, label_widths, labels, subj_ids
 
+@overload
+def one_hot_to_label(one_hot: Image4d, label_ids: list[int] | None = None) -> np.ndarray[Shape3d, np.dtype[int]]: ...
+
+@overload
+def one_hot_to_label(one_hot: Image3d, label_ids: list[int] | None = None) -> np.ndarray[Shape2d, np.dtype[int]]: ...
 
 def one_hot_to_label(
-    one_hot: npt.NDArray[float],
-    label_ids: list[int] | None = None
-) -> npt.NDArray[int]:
+    one_hot: np.ndarray[tuple[int, ...], np.dtype[bool]],
+    label_ids: list[int] | None = None,
+) -> np.ndarray[tuple[int, ...], np.dtype[int]]:
     """Convert one-hot encoded segmentation to label map.
 
     Converts a one-hot encoded segmentation array to discrete labels by taking
@@ -238,10 +244,10 @@ def one_hot_to_label(
 
     Parameters
     ----------
-    one_hot : npt.NDArray[float]
+    one_hot : np.ndarray of floats
         One-hot encoded segmentation array of shape (..., num_classes).
-    label_ids : list[int] or None, optional
-        List of label IDs to map classes to. If None, defaults to [0, 192, 250].
+    label_ids : array_like of ints, optional
+        List of label IDs to map classes to. If None, defaults to [0, FORNIX_LABEL, CC_LABEL].
         The index in this list corresponds to the class index from argmax.
 
     Returns
@@ -250,7 +256,8 @@ def one_hot_to_label(
         Label map with discrete integer labels.
     """
     if label_ids is None:
-        label_ids = [0, 192, 250]
+        from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
+        label_ids = [0, FORNIX_LABEL, CC_LABEL]
 
     label = np.argmax(one_hot, axis=3)
     if label_ids is not None:
@@ -259,21 +266,20 @@ def one_hot_to_label(
     return label
 
 
-
 def run_inference_on_slice(
-        model: FastSurferVINN,
-        test_slice: np.ndarray,
-        ac_center: npt.NDArray[float],
-        pc_center: npt.NDArray[float],
+        model: "torch.nn.Module",
+        test_slab: Image3d,
+        ac_center: Vector2d,
+        pc_center: Vector2d,
         voxel_size: tuple[float, float],
-) -> tuple[npt.NDArray[int], np.ndarray, npt.NDArray[float]]:
+) -> tuple[np.ndarray[Shape3d, np.dtype[int]], Image4d, Image4d]:
     """Run inference on a single slice.
 
     Parameters
     ----------
-    model : FastSurferVINN
+    model : torch.nn.Module
         Trained model for inference.
-    test_slice : np.ndarray
+    test_slab : np.ndarray
         Input image slice.
     ac_center : npt.NDArray[float]
         Anterior commissure coordinates (Inferior and Anterior values).
@@ -296,7 +302,7 @@ def run_inference_on_slice(
     ac_center = np.concatenate([np.zeros(1), ac_center])
     pc_center = np.concatenate([np.zeros(1), pc_center])
 
-    results, inputs, outputs_soft = run_inference(model, test_slice, ac_center, pc_center, voxel_size)
-    results = one_hot_to_label(results)
+    _results, inputs, outputs_soft = run_inference(model, test_slab, ac_center, pc_center, voxel_size)
+    results = one_hot_to_label(_results)
 
     return results, inputs, outputs_soft
