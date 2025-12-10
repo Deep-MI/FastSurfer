@@ -428,6 +428,8 @@ def read_lta(file: Path | str) -> LTADict:
 
 
 def load_talairach_coordinates(tala_path, img_shape, vox2ras):
+    """Load talairach coordinates from file."""
+
     tala_lta = read_lta(tala_path)
     # create image grid p
     x, y, z = np.meshgrid(
@@ -448,7 +450,9 @@ def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     return tala_coordinates
 
 
-def normalize_array(arr):
+def normalize_array(arr: np.ndarray[tuple[int, ...], np.dtype[np.number]]) \
+        -> np.ndarray[tuple[int, ...], np.dtype[np.floating]]:
+    """Normalize the data array to [0, 1]."""
     min = arr.min()
     max = arr.max()
 

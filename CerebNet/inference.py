@@ -260,12 +260,16 @@ class Inference:
     def _view_aggregation(self, logits: dict[Plane, torch.Tensor]) -> torch.Tensor:
         """
         Aggregate the view (axial, coronal, sagittal) into one volume and get the
-        class of the largest probability. (argmax)
+        class of the largest probability (argmax).
 
-        Args:
-            logits: dictionary of per plane predicted logits (axial, coronal, sagittal)
+        Parameters
+        ----------
+        logits : dict[Plane, torch.Tensor]
+            Dictionary of per plane predicted logits (axial, coronal, sagittal)
 
-        Returns:
+        Returns
+        -------
+        torch.Tensor
             Tensor of classes (of largest aggregated logits)
         """
         aggregated_logits = torch.add(

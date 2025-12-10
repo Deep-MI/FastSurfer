@@ -41,11 +41,20 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
         and a number, it is reset to initial lr * (lr_restart) ^ i, if lr_restart is a function,
         the lr gets reset to lr_restart(initial_lr, i).
 
-        Args:
-            ...: same as ReduceLROnPlateau
-            T_0 (optional): number of epochs until first restart (default: 10)
-            Tmult (optional): multiplicative factor for future restarts (default: 1)
-            lr_restart (optinoal): multiplicative factor for learning rate adjustment at restart.
+        Parameters
+        ----------
+        optimizer : torch.optim.Optimizer
+            Wrapped optimizer
+        *args
+            Arguments passed to ReduceLROnPlateau
+        T_0 : int, optional
+            Number of epochs until first restart. Default is 10
+        Tmult : int, optional
+            Multiplicative factor for future restarts. Default is 1
+        lr_restart : float or callable, optional
+            Multiplicative factor for learning rate adjustment at restart
+        **kwargs
+            Keyword arguments passed to ReduceLROnPlateau
         """
         # from torch.optim.lr_scheduler._LRSchduler
         # if last_epoch == -1:
@@ -175,15 +184,21 @@ def _get_warmup_factor_at_iter(
     Return the learning rate warmup factor at a specific iteration.
     See :paper:`in1k1h` for more details.
 
-    Args:
-        method (str): warmup method; either "constant" or "linear".
-        iter (int): iteration at which to calculate the warmup factor.
-        warmup_iters (int): the number of warmup iterations.
-        warmup_factor (float): the base warmup factor (the meaning changes according
-            to the method used).
+    Parameters
+    ----------
+    method : str
+        Warmup method; either "constant" or "linear"
+    iter : int 
+        Iteration at which to calculate the warmup factor
+    warmup_iters : int
+        The number of warmup iterations
+    warmup_factor : float
+        The base warmup factor (the meaning changes according to the method used)
 
-    Returns:
-        float: the effective warmup factor at the given iteration.
+    Returns
+    -------
+    float
+        The effective warmup factor at the given iteration
     """
     if iter >= warmup_iters:
         return 1.0
