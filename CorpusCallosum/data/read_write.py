@@ -154,7 +154,7 @@ def load_fsaverage_affine(affine_path: str | Path) -> npt.NDArray[float]:
     return affine_matrix
 
 
-def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAverageHeader, AffineMatrix4x4]:
+def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAverageHeader]:
     """Load fsaverage affine matrix and header fields from static JSON file.
 
     Parameters
@@ -176,8 +176,6 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAvera
                 3x3 direction cosines matrix.
             - Pxyz_c : np.ndarray
                 RAS center coordinates [x,y,z].
-    vox2ras_tkr : AffineMatrix4x4
-        Voxel to RAS tkr-space transformation matrix.
 
     Raises
     ------
@@ -208,7 +206,6 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAvera
     
     # Convert lists back to numpy arrays
     affine_matrix = np.array(data["affine"])
-    vox2ras_tkr = np.array(data["vox2ras_tkr"])
     header_data = FSAverageHeader(
         dims=data["header"]["dims"],
         delta=data["header"]["delta"],
@@ -220,4 +217,4 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAvera
     if affine_matrix.shape != (4, 4):
         raise ValueError(f"Expected 4x4 affine matrix, got shape {affine_matrix.shape}")
     
-    return affine_matrix, header_data, vox2ras_tkr
+    return affine_matrix, header_data

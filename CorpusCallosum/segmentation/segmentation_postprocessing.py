@@ -500,9 +500,9 @@ def extract_largest_connected_component(
 
 
 def clean_cc_segmentation(
-    seg_arr: np.ndarray[Shape3d, np.dtype[int]],
+    seg_arr: np.ndarray[Shape3d, np.dtype[np.int_]],
     max_connection_distance: float = 3.0,
-) -> tuple[np.ndarray[Shape3d, np.dtype[int]], Mask3d]:
+) -> tuple[np.ndarray[Shape3d, np.dtype[np.int_]], Mask3d]:
     """Clean corpus callosum segmentation by removing non-connected components.
 
     Parameters

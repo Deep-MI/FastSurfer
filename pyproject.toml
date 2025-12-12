@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     'h5py>=3.7',
-    'lapy>=1.1.0',
+    "lapy>=1.4.0",
     'matplotlib>=3.7.1',
     'nibabel>=5.1.0',
     'numpy>=1.25,<2',

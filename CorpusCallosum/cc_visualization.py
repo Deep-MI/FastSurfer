@@ -5,11 +5,10 @@ from typing import Literal
 
 import numpy as np
 
-from CorpusCallosum.data.constants import FSAVERAGE_DATA_PATH
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
-from CorpusCallosum.data.read_write import load_fsaverage_data
 from CorpusCallosum.shape.contour import CCContour
-from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
+from CorpusCallosum.shape.mesh import CCMesh
 from FastSurferCNN.utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
@@ -93,8 +92,8 @@ def make_parser() -> argparse.ArgumentParser:
         default=0,
         help="Enable verbose (pass twice for debug-output).",
     )
-
     return parser
+
 
 def options_parse() -> argparse.Namespace:
     """Parse command line arguments for the pipeline."""
@@ -103,10 +102,7 @@ def options_parse() -> argparse.Namespace:
 
     # Create output directory if it doesn't exist
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-
     return args
-
-
 
 
 def load_contours_from_template_dir(
@@ -122,7 +118,6 @@ def load_contours_from_template_dir(
         )
     
     fsaverage_contour = None
-
     contours: list[CCContour] = []
     for thickness_file in thickness_files:
         try:
@@ -173,17 +168,12 @@ def main(
     output_dir = Path(output_dir)
     color_range = tuple(color_range) if color_range is not None else None
 
-    _, _, vox2ras_tkr = load_fsaverage_data(FSAVERAGE_DATA_PATH)
-
     contours = load_contours_from_template_dir(
-        Path(template_dir), resolution=resolution, smoothing_window=smoothing_window
+        Path(template_dir), resolution=resolution, smoothing_window=smoothing_window,
     )
 
     # 2D visualization
     mid_contour = contours[len(contours) // 2]
-    
-    
-    
 
     # for now, we only support thickness visualization, this is preparing to plot also p-values and icc values
     mode = "thickness"
@@ -191,7 +181,7 @@ def main(
 
     if mode == "thickness":
         raw_thickness_values = mid_contour.thickness_values[~np.isnan(mid_contour.thickness_values)]
-        # values are duplicated because we they have two measurement points per levelpath
+        # values are duplicated because they have two measurement points per levelpath
         raw_thickness_values = raw_thickness_values[len(raw_thickness_values) // 2:] 
     mid_contour.plot_contour_colorfill(
         plot_values=raw_thickness_values,
@@ -204,7 +194,7 @@ def main(
         return 0
 
     # 3D visualization
-    cc_mesh = create_CC_mesh_from_contours(contours, smooth=0)
+    cc_mesh = CCMesh.from_contours(contours, smooth=0)
 
     plot_kwargs = dict(
         colormap=colormap,
@@ -215,8 +205,7 @@ def main(
     cc_mesh.plot_mesh(**plot_kwargs)
     cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
-
-    cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr)
+    cc_mesh = cc_mesh.to_fs_coordinates(lr_offset=FSAVERAGE_MIDDLE / resolution)
     logger.info(f"Writing vtk file to {output_dir / 'cc_mesh.vtk'}")
     cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
     logger.info(f"Writing freesurfer surface file to {output_dir / 'cc_mesh.fssurf'}")

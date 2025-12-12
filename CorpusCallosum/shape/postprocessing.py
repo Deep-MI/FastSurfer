@@ -23,7 +23,7 @@ import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, FSAVERAGE_MIDDLE, SUBSEGMENT_LABELS
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.endpoint_heuristic import get_endpoints
-from CorpusCallosum.shape.mesh import create_CC_mesh_from_contours
+from CorpusCallosum.shape.mesh import CCMesh
 from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
     ContourList,
@@ -36,8 +36,8 @@ from CorpusCallosum.shape.subsegment_contour import (
 from CorpusCallosum.shape.thickness import cc_thickness, convert_to_ras
 from CorpusCallosum.utils.types import CCMeasuresDict, ContourThickness, Points2dType, SliceSelection, SubdivisionMethod
 from CorpusCallosum.utils.visualization import plot_contours
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, ScalarType, Shape2d, Shape3d, Vector2d
-from FastSurferCNN.utils.common import SubjectDirectory, suppress_stdout, update_docstring
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, ScalarType, Shape2d, Shape3d, Vector2d
+from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
 from FastSurferCNN.utils.parallel import process_executor, thread_executor
 
 logger = logging.get_logger(__name__)
@@ -73,7 +73,7 @@ def create_sag_slice_vox2vox(slice_idx: int, fsaverage_middle: float) -> AffineM
 
 @update_docstring(SubdivisionMethod=str(get_args(SubdivisionMethod))[1:-1])
 def recon_cc_surf_measures_multi(
-    segmentation: np.ndarray[Shape3d, np.dtype[int]],
+    segmentation: np.ndarray[Shape3d, np.dtype[np.int_]],
     slice_selection: SliceSelection,
     fsavg_vox2ras: AffineMatrix4x4,
     midslices: Image3d,
@@ -85,7 +85,6 @@ def recon_cc_surf_measures_multi(
     contour_smoothing: int,
     subject_dir: SubjectDirectory,
     vox_size: tuple[float, float, float],
-    vox2ras_tkr: AffineMatrix4x4 | None = None,
 ) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future]]:
     """Surface reconstruction and metrics computation of corpus callosum slices based on selection mode.
 
@@ -115,8 +114,6 @@ def recon_cc_surf_measures_multi(
         The SubjectDirectory object managing file names in the subject directory.
     vox_size : 3-tuple of floats
         LIA-oriented voxel size in millimeters (x, y, z).
-    vox2ras_tkr : np.ndarray, optional
-        Voxel to RAS tkr-space transformation matrix.
 
     Returns
     -------
@@ -166,6 +163,7 @@ def recon_cc_surf_measures_multi(
     per_slice_recon = process_executor().map(_each_slice, slices_to_recon, per_slice_vox2ras, chunksize=1)
     cc_contours = []
 
+    run = thread_executor().submit
     for i, (slice_idx, _results) in enumerate(zip(slices_to_recon, per_slice_recon, strict=True)):
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
@@ -174,7 +172,7 @@ def recon_cc_surf_measures_multi(
         contour_in_as_space_and_thickness: ContourThickness = _results[1]
         endpoint_idxs: tuple[int, int] = _results[2]
         contour_in_as_space: Points2dType = contour_in_as_space_and_thickness[:, :2]
-        thickness_values: np.ndarray[tuple[int], np.dtype[float]] = contour_in_as_space_and_thickness[:, 2]
+        thickness_values: np.ndarray[tuple[int], np.dtype[np.float_]] = contour_in_as_space_and_thickness[:, 2]
 
         cc_contours.append(CCContour(contour_in_as_space, thickness_values, endpoint_idxs, resolution=vox_size[0]))
         if cc_measures is None:
@@ -185,7 +183,7 @@ def recon_cc_surf_measures_multi(
         is_debug = logger.getEffectiveLevel() <= logging.DEBUG
         is_midslice = slice_idx == num_slices // 2
         if subject_dir.has_attribute("cc_qc_image") and (is_debug or is_midslice):
-            qc_imgs: list[Path] = (subject_dir.filename_by_attribute("cc_qc_image"),)
+            qc_imgs: list[Path] = [subject_dir.filename_by_attribute("cc_qc_image")]
             if is_debug:
                 qc_slice_img = qc_imgs[0].with_suffix(f".slice_{slice_idx}.png")
                 qc_imgs = (qc_imgs if is_midslice else []) + [qc_slice_img]
@@ -194,7 +192,7 @@ def recon_cc_surf_measures_multi(
             current_slice_in_volume = midslices.shape[0] // 2 - num_slices // 2 + slice_idx
             # Create visualization for this slice
             io_futures.append(
-                thread_executor().submit(
+                run(
                     plot_contours,
                     transformed=midslices[current_slice_in_volume:current_slice_in_volume+1],
                     split_contours=cc_measures["split_contours"],
@@ -215,7 +213,7 @@ def recon_cc_surf_measures_multi(
         template_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
                     f"thickness_measurement_points.txt) to {template_dir}")
-        run = thread_executor().submit
+        run = run
         for j in range(len(cc_contours)):
             # FIXME: check, if this is fixed (thickness values not nan == 200)
             #  this does not seem to be thread-safe, do not parallelize!
@@ -225,34 +223,34 @@ def recon_cc_surf_measures_multi(
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
     if len(cc_contours) > 1 and any(subject_dir.has_attribute(f"cc_{n}") for n in mesh_outputs):
         _cc_contours = thread_executor().map(_resample_thickness, cc_contours)
-        cc_mesh = create_CC_mesh_from_contours(list(cc_contours), smooth=1)
+        cc_mesh = CCMesh.from_contours(list(_cc_contours), smooth=1)
         if subject_dir.has_attribute("cc_html"):
             logger.info(f"Saving CC 3D visualization to {subject_dir.filename_by_attribute('cc_html')}")
-            io_futures.append(thread_executor().submit(
-                cc_mesh.plot_mesh,output_path=subject_dir.filename_by_attribute("cc_html")))
+            io_futures.append(run(
+                cc_mesh.plot_mesh,output_path=subject_dir.filename_by_attribute("cc_html")),
+            )
 
         if subject_dir.has_attribute("cc_mesh"):
             vtk_file_path = subject_dir.filename_by_attribute("cc_mesh")
             logger.info(f"Saving vtk file to {vtk_file_path}")
-            io_futures.append(thread_executor().submit(cc_mesh.write_vtk, vtk_file_path))
+            io_futures.append(run(cc_mesh.write_vtk, vtk_file_path))
 
-        cc_mesh.to_fs_coordinates(vox2ras_tkr=vox2ras_tkr)
+        # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
+        cc_mesh = cc_mesh.to_fs_coordinates(lr_offset=FSAVERAGE_MIDDLE / vox_size[0])
         if subject_dir.has_attribute("cc_thickness_overlay"):
             overlay_file_path = subject_dir.filename_by_attribute("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
-            io_futures.append(thread_executor().submit(cc_mesh.write_morph_data, overlay_file_path))
+            io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
         if subject_dir.has_attribute("cc_surf"):
             surf_file_path = subject_dir.filename_by_attribute("cc_surf")
             logger.info(f"Saving surf file to {surf_file_path}")
-            io_futures.append(thread_executor().submit(cc_mesh.write_fssurf, surf_file_path))
+            io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), str(subject_dir.conf_name)))
 
         if subject_dir.has_attribute("cc_thickness_image"):
             thickness_image_path = subject_dir.filename_by_attribute("cc_thickness_image")
             logger.info(f"Saving thickness image to {thickness_image_path}")
-            # note: suppress_stdout is not thread-safe! But it works fine, if only one thread uses it...
-            with suppress_stdout():
-                cc_mesh.snap_cc_picture(thickness_image_path)
+            cc_mesh.snap_cc_picture(thickness_image_path, subject_dir.conf_name)
 
     if not slice_cc_measures:
         logger.error("Error: No valid slices were found for postprocessing")
@@ -269,7 +267,7 @@ def _resample_thickness(contour: CCContour) -> CCContour:
 
 
 def recon_cc_surf_measure(
-    segmentation: np.ndarray[Shape2d, np.dtype[int]],
+    segmentation: np.ndarray[Shape2d, np.dtype[np.int_]],
     slice_idx: int,
     affine: AffineMatrix4x4,
     ac_coords: Vector2d,
@@ -328,7 +326,7 @@ def recon_cc_surf_measure(
     4. Computes shape metrics and subdivisions.
     5. Generates visualization data.
     """
-    cc_mask_slice: np.ndarray[tuple[int, int], np.dtype[bool]] = np.equal(segmentation[slice_idx], CC_LABEL)
+    cc_mask_slice: Mask2d = np.equal(segmentation[slice_idx], CC_LABEL)
     if not np.any(cc_mask_slice):
         raise ValueError(f"No CC found in slice {slice_idx}")
     contour, endpoint_idxs = get_endpoints(
@@ -415,7 +413,7 @@ def vectorized_line_test(
         coords_y: np.ndarray[tuple[int], np.dtype[ScalarType]],
         line_start: Vector2d,
         line_end: Vector2d,
-) -> np.ndarray[tuple[int], np.dtype[bool]]:
+) -> np.ndarray[tuple[int], np.dtype[np.bool_]]:
     """Vectorized version of point_relative_to_line for arrays of points.
 
     Parameters
@@ -507,8 +505,8 @@ def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]
 def make_subdivision_mask(
     slice_shape: Shape2d,
     split_contours: ContourList,
-    vox_size: tuple[float, float, float],
-) -> np.ndarray[Shape2d, np.dtype[int]]:
+    vox_size: tuple[float, float],
+) -> np.ndarray[Shape2d, np.dtype[np.int_]]:
     """Create a mask for subdividing the corpus callosum based on split contours.
 
     Parameters

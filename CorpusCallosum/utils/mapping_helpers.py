@@ -13,6 +13,7 @@ from FastSurferCNN.utils import (
     AffineMatrix4x4,
     Image2d,
     Image3d,
+    Image4d,
     RotationMatrix3x3,
     Shape3d,
     Vector2d,
@@ -296,30 +297,52 @@ def make_affine(simpleITKImage: sitk.Image) -> AffineMatrix4x4:
     return affine
 
 
+@overload
 def map_softlabels_to_orig(
-    cc_fn_softlabels: Image3d,
-    orig_fsaverage_vox2vox: AffineMatrix4x4,
+    cc_fn_softlabels: Image4d,
     orig: nibabelImage,
+    orig2slab_vox2vox: AffineMatrix4x4,
+    cc_subseg_midslice: None = None,
+    orig2midslice_vox2vox: None = None,
     orig_space_segmentation_path: str | Path | None = None,
-    fsaverage_middle: int = 128,
-    cc_subseg_midslice: Image2d | None = None
-) -> np.ndarray[Shape3d, np.dtype[int]]:
+) -> np.ndarray[Shape3d, np.dtype[np.int_]]: ...
+
+
+@overload
+def map_softlabels_to_orig(
+    cc_fn_softlabels: Image4d,
+    orig: nibabelImage,
+    orig2slab_vox2vox: AffineMatrix4x4,
+    cc_subseg_midslice: Image2d,
+    orig2midslice_vox2vox: AffineMatrix4x4,
+    orig_space_segmentation_path: str | Path | None = None,
+) -> np.ndarray[Shape3d, np.dtype[np.int_]]: ...
+
+
+def map_softlabels_to_orig(
+    cc_fn_softlabels: Image4d,
+    orig: nibabelImage,
+    orig2slab_vox2vox: AffineMatrix4x4,
+    cc_subseg_midslice: Image2d | None = None,
+    orig2midslice_vox2vox: AffineMatrix4x4 | None = None,
+    orig_space_segmentation_path: str | Path | None = None,
+) -> np.ndarray[Shape3d, np.dtype[np.int_]]:
     """Map soft labels back to original image space and apply post-processing.
 
     Parameters
     ----------
     cc_fn_softlabels : np.ndarray
-        Soft label predictions.
-    orig_fsaverage_vox2vox : AffineMatrix4x4
-        Original to fsaverage space transformation.
+        Soft label predictions of shape (H, W, D, C=3).
     orig : nibabelImage
         Original image.
+    orig2slab_vox2vox : AffineMatrix4x4
+        The vox2vox transformation matrix from orig to the slab.
+    cc_subseg_midslice : np.ndarray, optional
+        Mask for subdividing regions of shape (H, D) (only paired with orig2midslice_vox2vox).
+    orig2midslice_vox2vox : AffineMatrix4x4, optional
+        The vox2vox transformation matrix from orig to the midslice (only paired with cc_subseg_midslice).
     orig_space_segmentation_path : str or Path, optional
         Path to save segmentation in original space.
-    fsaverage_middle : int, default=128
-        Middle slice index in fsaverage space.
-    cc_subseg_midslice : np.ndarray, optional
-        Mask for subdividing regions.
 
     Returns
     -------
@@ -333,37 +356,34 @@ def map_softlabels_to_orig(
     2. Transform CC subsegmentation from midslice to orig and paint into segmentation if `cc_subseg_midslice` is passed.
     4. Saves result to `orig_space_segmentation_path` if passed.
     """
-    slices_to_analyze = cc_fn_softlabels.shape[0]
     # map softlabels to original image
-    slab2fsaverage_vox2vox = np.eye(4)
-    slab2fsaverage_vox2vox[0, 3] = -(fsaverage_middle - slices_to_analyze // 2)
-    slab2orig_vox2vox = orig_fsaverage_vox2vox @ slab2fsaverage_vox2vox
+    def _map_softlabel_to_orig(data: Image3d, fill: int) -> Image3d:
+        #   # Note: affine_transforms requires the inverse of the intended direction -> orig2slab
+        return affine_transform(data, orig2slab_vox2vox, output_shape=orig.shape, order=1, cval=fill)
 
-    def _map_softlabel_to_orig(i: int, data: Image3d) -> Image3d:
-        return affine_transform(data, slab2orig_vox2vox, output_shape=orig.shape, order=1, cval=float(i == 0))
-
-    _softlabels = np.moveaxis(cc_fn_softlabels, -1, 0)
-    softlabels_transformed = thread_executor().map(_map_softlabel_to_orig, *zip(*enumerate(_softlabels), strict=True))
-
-    softlabels_orig_space = np.stack(list(softlabels_transformed), axis=-1)
-    seg_orig_space = np.argmax(softlabels_orig_space, axis=-1)
-    # map to freesurfer labels
-    seg_lut = np.asarray([0, CC_LABEL, FORNIX_LABEL])
-    seg_orig_space = seg_lut[seg_orig_space]
-
-    if cc_subseg_midslice is not None:
-        # map subdivision mask to orig space
-        midslice2fsaverage_vox2vox = np.eye(4)
-        midslice2fsaverage_vox2vox[0, 3] = -fsaverage_middle
-        cc_subseg_orig_space = affine_transform(
+    if cc_subseg_midslice is not None and orig2midslice_vox2vox is not None:
+        # map subdivision mask to orig space, this will also expand the labels into left-right direction
+        cc_subseg_orig_space_fut = thread_executor().submit(
+            affine_transform,
             cc_subseg_midslice[None],
-            orig_fsaverage_vox2vox,
+            orig2midslice_vox2vox,  # Note: affine_transforms requires the inverse of the intended direction
             output_shape=orig.shape,
             order=0,
             mode="nearest",
         )
+    else:
+        cc_subseg_orig_space_fut = None
 
-        seg_orig_space = np.where(seg_orig_space == CC_LABEL, cc_subseg_orig_space, seg_orig_space)
+    _softlabels = np.moveaxis(cc_fn_softlabels, -1, 0)
+    softlabels_iter = thread_executor().map(_map_softlabel_to_orig, _softlabels, [1., 0., 0.])
+    softlabels_orig_space = np.stack(list(softlabels_iter), axis=-1)
+    # map to freesurfer labels
+    seg_lut = np.asarray([0, CC_LABEL, FORNIX_LABEL])
+    seg_orig_space = seg_lut[np.argmax(softlabels_orig_space, axis=-1)]
+
+    if cc_subseg_orig_space_fut is not None:
+        # replace CC_LABEL by subsegmentation labels
+        seg_orig_space = np.where(seg_orig_space == CC_LABEL, cc_subseg_orig_space_fut.result(), seg_orig_space)
 
     if orig_space_segmentation_path is not None:
         logger.info(f"Saving segmentation in original space to {orig_space_segmentation_path}")
@@ -371,5 +391,4 @@ def map_softlabels_to_orig(
             nib.MGHImage(seg_orig_space, orig.affine, orig.header),
             orig_space_segmentation_path,
         )
-
     return seg_orig_space
