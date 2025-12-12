@@ -61,11 +61,11 @@ from CorpusCallosum.utils.mapping_helpers import (
 from CorpusCallosum.utils.types import CCMeasuresDict, SliceSelection, SubdivisionMethod
 from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.segstats import HelpFormatter
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask3d, Shape3d, Vector2d, logging, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Image4d, Mask3d, Shape3d, Vector2d, logging, nibabelImage
 from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.common import SubjectDirectory, find_device
 from FastSurferCNN.utils.lta import write_lta
-from FastSurferCNN.utils.parallel import shutdown_executors, thread_executor
+from FastSurferCNN.utils.parallel import get_num_threads, serial_executor, shutdown_executors, thread_executor
 from FastSurferCNN.utils.parser_defaults import modify_argument
 from recon_surf.align_points import find_rigid
 
@@ -163,7 +163,7 @@ def make_parser() -> argparse.ArgumentParser:
              "cost of precision.",
     )
     def _slice_selection(a: str) -> SliceSelection:
-        if b := a.lower() in ("middle", "all"):
+        if (b := a.lower()) in ("middle", "all"):
             return b
         return int(a)
     parser.add_argument(
@@ -366,7 +366,7 @@ def options_parse() -> argparse.Namespace:
 
 
 def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
-        -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, FSAverageHeader, AffineMatrix4x4]:
+        -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, FSAverageHeader]:
     """Perform centroid-based registration between subject and fsaverage space.
 
     Computes a rigid transformation between the subject's segmentation and fsaverage space
@@ -387,8 +387,6 @@ def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
         High-resolution fsaverage affine matrix.
     fsaverage_header : FSAverageHeader
         FSAverage header fields for LTA writing.
-    fsaverage_vox2ras_tkr : AffineMatrix4x4
-        Voxel to RAS tkr-space transformation matrix.
 
     Notes
     -----
@@ -416,7 +414,7 @@ def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
     aseg_zooms = list(nib.as_closest_canonical(aseg_nib).header.get_zooms()[:3])
     resolution_trans: AffineMatrix4x4 = np.diagflat([aseg_zooms[0], aseg_zooms[2], aseg_zooms[1], 1]).astype(float)
 
-    fsaverage_vox2ras, fsavg_header, vox2ras_tkr = fsaverage_data_future.result()
+    fsaverage_vox2ras, fsavg_header = fsaverage_data_future.result()
     fsavg_header["delta"] = np.asarray([aseg_zooms[0], aseg_zooms[2], aseg_zooms[1]]) # vox sizes in lia
     # fsavg_hires_vox2ras translation should be 128 always (independent of resolution)
     fsavg_hires_vox2ras: AffineMatrix4x4 = np.concatenate(
@@ -427,7 +425,7 @@ def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
 
     aseg2fsavg_vox2vox: AffineMatrix4x4 = np.linalg.inv(fsavg_hires_vox2ras) @ aseg2fsaverage_ras2ras @ aseg_nib.affine
     logger.info("Centroid registration successful!")
-    return aseg2fsavg_vox2vox, aseg2fsaverage_ras2ras, fsavg_hires_vox2ras, fsavg_header, vox2ras_tkr
+    return aseg2fsavg_vox2vox, aseg2fsaverage_ras2ras, fsavg_hires_vox2ras, fsavg_header
 
 
 def localize_ac_pc(
@@ -494,7 +492,7 @@ def segment_cc(
     pc_coords: Vector2d,
     aseg_nib: nibabelImage,
     model_segmentation: "torch.nn.Module",
-) -> tuple[Mask3d, Image3d]:
+) -> tuple[Mask3d, Image4d]:
     """Segment the corpus callosum using a trained model.
 
     Performs corpus callosum segmentation on mid-sagittal slices using a trained model, with AC-PC points as anatomical
@@ -518,7 +516,7 @@ def segment_cc(
     cc_seg_labels : np.ndarray
         Binary cc_seg_labels of the corpus callosum.
     cc_softlabels : np.ndarray
-        Soft cc_seg_labels probabilities.
+        Soft cc_seg_labels probabilities of shape (H, W, D, C=3).
     """
     pre_clean_segmentation, inputs, cc_softlabels = segmentation_inference.run_inference_on_slice(
         model_segmentation,
@@ -732,9 +730,7 @@ def main(
         sys.exit(1)
 
     logger.info("Performing centroid registration to fsaverage space")
-    orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, fsavg_header, fsavg_vox2ras_tkr = (
-        register_centroids_to_fsavg(aseg_img)
-    )
+    orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, fsavg_header = register_centroids_to_fsavg(aseg_img)
 
     # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
@@ -754,11 +750,11 @@ def main(
     affine_x_offset = partial(create_sag_slice_vox2vox, fsaverage_middle=FSAVERAGE_MIDDLE / vox_size[0])
     fsavg2midslab_in_vox2vox: AffineMatrix4x4 = affine_x_offset(slices_to_analyze // 2)
     # first, midslice->fsaverage in vox2vox, then vox2ras in fsaverage space
-    midslab_vox2ras: AffineMatrix4x4 = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_in_vox2vox)
+    fsaverage_midslab_vox2ras: AffineMatrix4x4 = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_in_vox2vox)
 
     # calculate vox2vox for input resampling volumes
-    def _orig2midslab_vox2vox(extra_slices: int) -> AffineMatrix4x4:
-        fsavg2midslab = affine_x_offset(slices_to_analyze // 2 + extra_slices //  2)
+    def _orig2midslab_vox2vox(additional_context: int = 0) -> AffineMatrix4x4:
+        fsavg2midslab = affine_x_offset(slices_to_analyze // 2 + additional_context // 2)
         # first, orig->fsaverage in vox2vox, then fsaverage->midslab in vox2vox
         return fsavg2midslab @ orig2fsavg_vox2vox
 
@@ -769,16 +765,16 @@ def main(
     ac_coords, pc_coords = localize_ac_pc(
         np.asarray(orig.dataobj),
         aseg_img,
-        _orig2midslab_vox2vox(extra_slices=2),
+        _orig2midslab_vox2vox(additional_context=2),
         _model_localization.result(),
         target_shape,
     )
     logger.info("Starting corpus callosum segmentation")
-    # "+ 8" in x-direction for context slices
-    target_shape: Shape3d = (slices_to_analyze + 8, fsavg_header["dims"][1], fsavg_header["dims"][2])
+    num_context = 8  # 8 extra in x-direction for context slices
+    target_shape: Shape3d = (slices_to_analyze + num_context, fsavg_header["dims"][1], fsavg_header["dims"][2])
     midslices: Image3d = affine_transform(
         np.asarray(orig.dataobj),
-        np.linalg.inv(_orig2midslab_vox2vox(extra_slices=8)), # inverse is required for affine_transform
+        np.linalg.inv(_orig2midslab_vox2vox(additional_context=num_context)), # inverse is required for affine_transform
         output_shape=target_shape,
         order=2, # @ClePol unclear, why this is not order=3
         mode="constant",
@@ -799,7 +795,7 @@ def main(
             logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
             io_futures.append(thread_executor().submit(
                 nib.save,
-                nib.MGHImage(cc_fn_softlabels[..., i], midslab_vox2ras, orig.header),
+                nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
                 sd.filename_by_attribute(f"cc_softlabels_{attr}"),
             ))
 
@@ -819,7 +815,6 @@ def main(
         subdivision_method=subdivision_method,
         contour_smoothing=contour_smoothing,
         vox_size=vox_size,
-        vox2ras_tkr=fsavg_vox2ras_tkr,
         subject_dir=sd,
     )
     io_futures.extend(slice_io_futures)
@@ -837,7 +832,7 @@ def main(
         cc_subseg_midslice = make_subdivision_mask(
             (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
             middle_slice_result["split_contours"],
-            vox_size[1:],
+            vox_size[1:3],
         )
     else:
         logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
@@ -847,19 +842,21 @@ def main(
     if sd.has_attribute("cc_segmentation"):
         io_futures.append(thread_executor().submit(
             nib.save,
-            nib.MGHImage(cc_fn_seg_labels, midslab_vox2ras, orig.header),
+            nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
             sd.filename_by_attribute("cc_segmentation"),
         ))
     # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
     if sd.has_attribute("cc_orig_segfile"):
-        io_futures.append(thread_executor().submit(
+        # if num_threads is not large enough (>1), this might be blocking ; serial_executor runs the function in submit
+        executor = thread_executor() if get_num_threads() > 2 else serial_executor()
+        io_futures.append(executor.submit(
             map_softlabels_to_orig,
             cc_fn_softlabels=cc_fn_softlabels,
-            orig_fsaverage_vox2vox=orig2fsavg_vox2vox,
             orig=orig,
             orig_space_segmentation_path=sd.filename_by_attribute("cc_orig_segfile"),
-            fsaverage_middle=FSAVERAGE_MIDDLE,
+            orig2slab_vox2vox=_orig2midslab_vox2vox(),
             cc_subseg_midslice=cc_subseg_midslice,
+            orig2midslice_vox2vox=affine_x_offset(0) @ orig2fsavg_vox2vox,  # orig2fsavg, then full2midslice
         ))
 
     METRICS = [
@@ -1004,6 +1001,7 @@ if __name__ == "__main__":
         conf_name=options.conf_name,
         aseg_name=options.aseg_name,
         subject_dir=options.subject_dir,
+        #FIXME: slice_selection is True/bool
         slice_selection=options.slice_selection,
         num_thickness_points=options.num_thickness_points,
         subdivisions=list(options.subdivisions),

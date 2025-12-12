@@ -91,7 +91,7 @@ def run_inference(
     voxel_size: tuple[float, float],
     device: torch.device | None = None,
     transform: transforms.Transform | None = None
-) -> tuple[np.ndarray[Shape4d, np.dtype[int]], Image4d, Image4d]:
+) -> tuple[np.ndarray[Shape4d, np.dtype[np.int_]], Image4d, Image4d]:
     """Run inference on a single image slice.
 
     Parameters
@@ -228,15 +228,17 @@ def load_validation_data(
     return images, ac_centers, pc_centers, label_widths, labels, subj_ids
 
 @overload
-def one_hot_to_label(one_hot: Image4d, label_ids: list[int] | None = None) -> np.ndarray[Shape3d, np.dtype[int]]: ...
+def one_hot_to_label(one_hot: Image4d, label_ids: list[int] | None = None) \
+        -> np.ndarray[Shape3d, np.dtype[np.int_]]: ...
 
 @overload
-def one_hot_to_label(one_hot: Image3d, label_ids: list[int] | None = None) -> np.ndarray[Shape2d, np.dtype[int]]: ...
+def one_hot_to_label(one_hot: Image3d, label_ids: list[int] | None = None) \
+        -> np.ndarray[Shape2d, np.dtype[np.int_]]: ...
 
 def one_hot_to_label(
-    one_hot: np.ndarray[tuple[int, ...], np.dtype[bool]],
+    one_hot: np.ndarray[tuple[int, ...], np.dtype[np.bool_]],
     label_ids: list[int] | None = None,
-) -> np.ndarray[tuple[int, ...], np.dtype[int]]:
+) -> np.ndarray[tuple[int, ...], np.dtype[np.int_]]:
     """Convert one-hot encoded segmentation to label map.
 
     Converts a one-hot encoded segmentation array to discrete labels by taking
@@ -257,7 +259,7 @@ def one_hot_to_label(
     """
     if label_ids is None:
         from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
-        label_ids = [0, FORNIX_LABEL, CC_LABEL]
+        label_ids = [0, CC_LABEL, FORNIX_LABEL]
 
     label = np.argmax(one_hot, axis=3)
     if label_ids is not None:
@@ -272,7 +274,7 @@ def run_inference_on_slice(
         ac_center: Vector2d,
         pc_center: Vector2d,
         voxel_size: tuple[float, float],
-) -> tuple[np.ndarray[Shape3d, np.dtype[int]], Image4d, Image4d]:
+) -> tuple[np.ndarray[Shape3d, np.dtype[np.int_]], Image4d, Image4d]:
     """Run inference on a single slice.
 
     Parameters

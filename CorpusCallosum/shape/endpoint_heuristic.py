@@ -19,7 +19,7 @@ import scipy.ndimage
 import skimage.measure
 from scipy.ndimage import label
 
-from FastSurferCNN.utils import Vector2d
+from FastSurferCNN.utils import Mask2d, Vector2d
 
 
 def smooth_contour(x: np.ndarray, y: np.ndarray, window_size: int) -> tuple[np.ndarray, np.ndarray]:
@@ -169,7 +169,7 @@ def extract_cc_contour(cc_mask: np.ndarray, contour_smoothing: int = 5) -> np.nd
 
 @overload
 def get_endpoints(
-    cc_mask: np.ndarray[tuple[int, int], np.dtype[bool]],
+    cc_mask: Mask2d,
     ac_2d: Vector2d,
     pc_2d: Vector2d,
     resolution: tuple[float, float],
@@ -180,7 +180,7 @@ def get_endpoints(
 
 @overload
 def get_endpoints(
-    cc_mask: np.ndarray[tuple[int, int], np.dtype[bool]],
+    cc_mask: Mask2d,
     ac_2d: Vector2d,
     pc_2d: Vector2d,
     resolution: tuple[float, float],
@@ -190,7 +190,7 @@ def get_endpoints(
 
 
 def get_endpoints(
-    cc_mask: np.ndarray[tuple[int, int], np.dtype[bool]],
+    cc_mask: Mask2d,
     ac_2d: Vector2d,
     pc_2d: Vector2d,
     resolution: tuple[float, float],

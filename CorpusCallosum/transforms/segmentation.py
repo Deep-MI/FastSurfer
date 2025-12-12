@@ -88,7 +88,7 @@ class CropAroundACPC(RandomizableTransform, MapTransform):
         ac_pc_bottomleft = np.min(ac_pc, axis=0).astype(int)
         ac_pc_topright = np.max(ac_pc, axis=0).astype(int)
 
-        VoxPadType = np.ndarray[tuple[Literal[2]], np.dtype[int]]
+        VoxPadType = np.ndarray[tuple[Literal[2]], np.dtype[np.int_]]
         voxel_padding: VoxPadType = np.round(self.padding_mm / d["res"]).astype(int)
 
         crop_left = ac_pc_bottomleft[1] - int(voxel_padding[0] * 1.5) + random_translate[0]

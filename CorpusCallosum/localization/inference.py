@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import torch
@@ -177,7 +177,7 @@ def predict(
     # Preprocess
     t_dict = preprocess_volume(image_volume, patch_center_3d, transform)
 
-    transformed_original = t_dict['image']
+    transformed_original = cast(torch.Tensor, t_dict["image"])
     inputs = transformed_original.to(device)
 
     inputs = inputs.transpose(0, 1)
@@ -187,9 +187,11 @@ def predict(
     with torch.no_grad():
         outputs = model(inputs) * torch.as_tensor([PATCH_SIZE + PATCH_SIZE], device=device)
 
-    t_crops = [(t_dict['crop_left'] + t_dict['crop_top']) * 2]
-    outs: np.ndarray[tuple[int, Literal[4]], np.dtype[float]] = outputs.cpu().numpy() + np.asarray(t_crops, dtype=float)
-    crop_offsets: tuple[int, int] = (t_dict["crop_left"][0], t_dict["crop_top"][0])
+    crop_left, crop_top = cast(tuple[int, int], t_dict["crop_left"]), cast(tuple[int, int], t_dict["crop_top"])
+    t_crops = [(crop_left + crop_top) * 2]
+    outs: np.ndarray[tuple[int, Literal[4]], np.dtype[np.float_]]
+    outs = outputs.cpu().numpy() + np.asarray(t_crops, dtype=float)
+    crop_offsets: tuple[int, int] = (crop_left[0], crop_top[0])
     return outs[:, :2], outs[:, 2:], crop_offsets
 
 

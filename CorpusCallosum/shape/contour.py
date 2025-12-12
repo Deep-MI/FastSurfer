@@ -73,8 +73,8 @@ class CCContour:
     
     def __init__(
         self,
-        contour: np.ndarray[tuple[Literal["N", 2]], np.dtype[float]],
-        thickness_values: np.ndarray[tuple[Literal["N"]], np.dtype[float]],
+        contour: np.ndarray[tuple[Literal["N", 2]], np.dtype[np.float_]],
+        thickness_values: np.ndarray[tuple[Literal["N"]], np.dtype[np.float_]],
         endpoint_idxs: tuple[int, int] | None = None,
         resolution: float = 1.0
     ):

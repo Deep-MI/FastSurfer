@@ -14,6 +14,7 @@
 
 import tempfile
 from pathlib import Path
+from typing import TypeVar
 
 import lapy
 import nibabel as nib
@@ -23,9 +24,9 @@ from plotly.io import write_html as plotly_write_html
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
+from FastSurferCNN.utils import nibabelImage
 from FastSurferCNN.utils.common import suppress_stdout
 
 try:
@@ -176,124 +177,7 @@ def make_triangles_between_contours(contour1: np.ndarray, contour2: np.ndarray) 
     return np.array(triangles)
 
 
-
-def create_CC_mesh_from_contours(
-        contours: list[CCContour],
-        lr_center: float = 0,
-        closed: bool = False,
-        smooth: int = 0,
-) -> "CCMesh":
-    """Create a surface mesh by triangulating between consecutive contours.
-
-    Parameters
-    ----------
-    contours : list[CCContour]
-        List of CCContour objects to create mesh from.
-    lr_center : float, optional
-        Center position in the left-right axis, by default 0.
-    closed : bool, optional
-        Whether to create a closed mesh by adding caps, by default False.
-    smooth : int, optional
-        Number of smoothing iterations to apply, by default 0.
-
-    Returns
-    -------
-    CCMesh
-        The joined CCMesh object.
-
-    Raises
-    ------
-    Warning
-        If no valid contours are found.
-
-    Notes
-    -----
-    The function:
-    1. Filters out None contours.
-    2. Calculates z-coordinates for each slice.
-    3. Creates triangles between adjacent contours.
-    4. Optionally:
-    - Creates caps at both ends.
-    - Applies smoothing.
-    - Colors caps based on thickness values.
-    
-    """
-
-    # Check that all contours have the same resolution
-    resolution = contours[0].resolution
-    for idx, contour in enumerate(contours[1:], start=1):
-        if not np.isclose(contour.resolution, resolution):
-            raise ValueError(
-                f"All contours must have the same resolution. "
-                f"Expected {resolution}, but contour at index {idx} has {contour.resolution}."
-            )
-
-
-    # Calculate z coordinates for each slice
-    z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
-
-    # Build vertices list with z-coordinates
-    vertices = []
-    faces = []
-    vertex_start_indices = []  # Track starting index for each contour
-    current_index = 0
-
-    for i, contour in enumerate(contours):
-        vertex_start_indices.append(current_index)
-        vertices.append(np.hstack([contour.contour, np.full((len(contour.contour), 1), z_coordinates[i])]))
-
-        # Check if there's a next valid contour to connect to
-        if i + 1 < len(contours):
-            contour2 = contours[i + 1]
-            faces_between = make_triangles_between_contours(contour.contour, contour2.contour)
-            faces.append(faces_between + current_index)
-
-        current_index += len(contour.contour)
-
-    vertex_values = np.concatenate([contour.thickness_values for contour in contours])
-
-    
-
-    if smooth > 0:
-        tmp_mesh = CCMesh(vertices, faces, vertex_values=vertex_values)
-        tmp_mesh.smooth_(smooth)
-        vertices = tmp_mesh.v
-        faces = tmp_mesh.t
-        vertex_values = tmp_mesh.mesh_vertex_colors
-
-    if closed:
-        # Close the mesh by creating caps on both ends
-        # Left cap (first slice) - use counterclockwise orientation
-        left_side_points, left_side_trias = make_mesh_from_contour(vertices[: vertex_start_indices[1]][..., :2])
-        left_side_points = np.hstack([left_side_points, np.full((len(left_side_points), 1), z_coordinates[0])])
-
-        # Right cap (last slice) - reverse points for proper orientation
-        right_side_points, right_side_trias = make_mesh_from_contour(vertices[vertex_start_indices[-1] :][..., :2])
-        right_side_points = np.hstack([right_side_points, np.full((len(right_side_points), 1), z_coordinates[-1])])
-
-        color_sides = True
-        if color_sides:
-            left_side_points, left_side_trias, left_side_colors = _create_cap(
-                left_side_points, left_side_trias, contours[0]
-            )
-            right_side_points, right_side_trias, right_side_colors = _create_cap(
-                right_side_points, right_side_trias, contours[-1]
-            )
-
-            # reverse right side trias
-            right_side_trias = right_side_trias[:, ::-1]
-
-        left_side_trias = left_side_trias + current_index
-        current_index += len(left_side_points)
-
-        right_side_trias = right_side_trias + current_index
-        current_index += len(right_side_points)
-
-        vertices = [vertices, left_side_points, right_side_points]
-        faces = [faces, left_side_trias, right_side_trias]
-        vertex_values = [vertex_values, left_side_colors, right_side_colors]
-
-    return CCMesh(vertices, faces, vertex_values=vertex_values, resolution=resolution)
+Self = TypeVar('Self', bound='type[CCMesh]')
 
 
 class CCMesh(lapy.TriaMesh):
@@ -621,7 +505,8 @@ class CCMesh(lapy.TriaMesh):
         self,
         output_path: Path | str,
         fssurf_file: Path | str | None = None,
-        overlay_file: Path | str | None = None
+        overlay_file: Path | str | None = None,
+        ref_image: Path | str | nibabelImage | None = None,
     ) -> None:
         """Snap a picture of the corpus callosum mesh.
 
@@ -635,6 +520,8 @@ class CCMesh(lapy.TriaMesh):
         overlay_file : Path, str, optional
             Path to a FreeSurfer overlay file to use for the snapshot.
             If None, the mesh is saved to a temporary file.
+        ref_image : Path, str, optional
+            Path to reference image to use for tkr creation. If None, ignores the file for saving.
 
         Raises
         ------
@@ -670,36 +557,38 @@ class CCMesh(lapy.TriaMesh):
             fssurf_file = Path(fssurf_file)
         else:
             fssurf_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True).name
-        self.write_fssurf(fssurf_file)
+        self.write_fssurf(fssurf_file, image=str(ref_image) if isinstance(ref_image, Path) else ref_image)
 
         if overlay_file:
-            overlay_file: str | None = Path(overlay_file)
+            overlay_file = Path(overlay_file)
         else:
             overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True).name
         # Write thickness values in FreeSurfer '*.w' overlay format
         self.write_morph_data(overlay_file)
         
-
-        with suppress_stdout():
-            snap1(
-                fssurf_file,
-                overlaypath=overlay_file,
-                view=None,
-                viewmat=self.__create_cc_viewmat(),
-                width=3 * 500,
-                height=3 * 300,
-                outpath=output_path,
-                ambient=0.6,
-                colorbar_scale=0.5,
-                colorbar_y=0.88,
-                colorbar_x=0.19,
-                brain_scale=2.1,
-                fthresh=0,
-                caption="Corpus Callosum thickness (mm)",
-                caption_y=0.85,
-                caption_x=0.17,
-                caption_scale=0.5,
-            )
+        try:
+            with suppress_stdout():
+                snap1(
+                    fssurf_file,
+                    overlaypath=overlay_file,
+                    view=None,
+                    viewmat=self.__create_cc_viewmat(),
+                    width=3 * 500,
+                    height=3 * 300,
+                    outpath=output_path,
+                    ambient=0.6,
+                    colorbar_scale=0.5,
+                    colorbar_y=0.88,
+                    colorbar_x=0.19,
+                    brain_scale=2.1,
+                    fthresh=0,
+                    caption="Corpus Callosum thickness (mm)",
+                    caption_y=0.85,
+                    caption_x=0.17,
+                    caption_scale=0.5,
+                )
+        except Exception as e:
+            raise e from None
 
         if fssurf_file and hasattr(fssurf_file, "close"):
             fssurf_file.close()
@@ -744,32 +633,38 @@ class CCMesh(lapy.TriaMesh):
 
     def to_fs_coordinates(
         self,
-        vox2ras_tkr: np.ndarray,
-    ) -> None:
+        lr_offset: float,
+    ) -> "CCMesh":
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
         Parameters
         ----------
-        vox2ras_tkr : np.ndarray
-            4x4 voxel to RAS tkr-space transformation matrix.
+        lr_offset : float
+            Voxel offset to apply before transformation, this should be often `FSAVERAGE_MIDDLE / vox_size_in_lr`.
+
+        Returns
+        -------
+        CCMesh
+            A CCMesh object with vertices reoriented to FreeSurfer coordinates.
 
         Notes
         -----
-        Mesh coordinates seem to be in ASR (Anterior-Superior-Right) orientation, with the coordinate system origin on
-        *the* midslice.
-        The function performs the following:
-        1. Convert from mesh coordinates (LSA and voxel coordinates) to fsaverage voxel coordinates (LIA, origin).
-        a. Convert coordinates from ASR to LSA orientation.
-        b. Convert to voxel coordinates using voxel size.
-        c. Center LR coordinates and flips SI coordinates.
-        2. Apply vox2ras_tkr transformation to get final coordinates.
+        Mesh coordinates are in ASR (Anterior-Superior-Right) orientation, with the coordinate system origin on
+        *the* midslice. The function transforms from midslice ASR to LIA vox coordinates.
         """
+        from copy import copy
+        new_object = copy(self)
 
-        # to voxel coordinates
-        v_vox = self.v.copy()
-        
+        asrvox_midslice2orig_vox2vox = np.eye(4)
         # to LSA
-        v_vox = v_vox[:, [2, 1, 0]]
+        asrvox_midslice2orig_vox2vox[:, [0, 2]] = asrvox_midslice2orig_vox2vox[:, [2, 0]]
+        # center LR
+        asrvox_midslice2orig_vox2vox[0, 3] = lr_offset
+        # flip SI
+        asrvox_midslice2orig_vox2vox[:, 1] *= -1
+
+        # to LSA
+        # new_object.v = new_object.v[:, [2, 1, 0]]
         # to voxel
         # FIXME: why are the vertex positions multiplied by voxel size here?
         #        removed => for center LR, now dividing by resolution => convert fsaverage middle from mm to vox
@@ -777,37 +672,41 @@ class CCMesh(lapy.TriaMesh):
         #        all other operations are independent of order of operations (distributive)
         # v_vox /= vox_size[0]
         # center LR
-        v_vox[:, 0] += FSAVERAGE_MIDDLE / self.resolution
+        # new_object.v[:, 0] += FSAVERAGE_MIDDLE / self.resolution
         # flip SI
-        v_vox[:, 1] = -v_vox[:, 1]
+        # new_object.v[:, 1] = -new_object.v[:, 1]
 
         #v_vox_test = np.round(v_vox).astype(int)
-        ## write volume for debugging
-        # contour_img = np.zeros(orig.shape)
-        # for i in range(v_vox_test.shape[0]):
-        #     contour_img[v_vox_test[i, 0], v_vox_test[i, 1], v_vox_test[i, 2]] = 1
 
         # tkrRAS = Torig*[C R S 1]'
-        # Torig: mri_info --vox2ras-tkr orig.mgz 
+        # Torig: mri_info --vox2ras-tkr orig.mgz
         # https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
-        self.v = (vox2ras_tkr @ np.concatenate([v_vox, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
-        # FIXME: why are the vertex positions multiplied by voxel size here?
-        # self.v = self.v * vox_size[0]
 
-    def write_fssurf(self, filename: Path | str) -> None:
-        """Write the mesh to a FreeSurfer surface file.
+        v_vox = np.concatenate([self.v, np.ones((self.v.shape[0], 1))], axis=1)
+        new_object.v = (v_vox @ asrvox_midslice2orig_vox2vox.T)[:, :3]
+        # new_object.v = (vox2ras_tkr @ np.concatenate([self.v, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
+        return new_object
+
+    def write_fssurf(self, filename: Path | str, image: str | object | None = None) -> None:
+        """Save as Freesurfer Surface Geometry file (wrap Nibabel).
 
         Parameters
         ----------
-        filename : Path, str
-            Path where to save the FreeSurfer surface file.
+        filename : str
+            Filename to save to.
+        image : str, object, None
+            Path to image or nibabel image object. If specified, the vertices
+            are assumed to be in voxel coordinates and are converted
+            to surface RAS (tkr) coordinates before saving.
+            The expected order of coordinates is (x, y, z) matching
+            the image voxel indices.
 
         Notes
         -----
-        Creates parent directory if needed before writing the file.
+        Also creates parent directory if needed before writing the file.
         """
         self.__make_parent_folder(filename)
-        return super().write_fssurf(filename)
+        return super().write_fssurf(filename, image=image)
 
     def write_morph_data(self, filename: Path | str) -> None:
         """Write the thickness values as a FreeSurfer overlay file.
@@ -823,3 +722,123 @@ class CCMesh(lapy.TriaMesh):
         """
         self.__make_parent_folder(filename)
         return nib.freesurfer.write_morph_data(filename, self.mesh_vertex_colors)
+
+    @classmethod
+    def from_contours(
+            cls: Self,
+            contours: list[CCContour],
+            lr_center: float = 0,
+            closed: bool = False,
+            smooth: int = 0,
+    ) -> Self:
+        """Create a surface mesh by triangulating between consecutive contours.
+
+        Parameters
+        ----------
+        contours : list[CCContour]
+            List of CCContour objects to create mesh from.
+        lr_center : float, default=0
+            Center position in the left-right axis.
+        closed : bool, default=False
+            Whether to create a closed mesh by adding caps.
+        smooth : int, default=0
+            Number of smoothing iterations to apply.
+
+        Returns
+        -------
+        CCMesh
+            The joined CCMesh object.
+
+        Raises
+        ------
+        Warning
+            If no valid contours are found.
+
+        Notes
+        -----
+        The function:
+        1. Filters out None contours.
+        2. Calculates z-coordinates for each slice.
+        3. Creates triangles between adjacent contours.
+        4. Optionally:
+        - Creates caps at both ends.
+        - Applies smoothing.
+        - Colors caps based on thickness values.
+
+        """
+
+        # Check that all contours have the same resolution
+        resolution = contours[0].resolution
+        for idx, contour in enumerate(contours[1:], start=1):
+            if not np.isclose(contour.resolution, resolution):
+                raise ValueError(
+                    f"All contours must have the same resolution. "
+                    f"Expected {resolution}, but contour at index {idx} has {contour.resolution}."
+                )
+
+        # Calculate z coordinates for each slice
+        z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
+
+        # Build vertices list with z-coordinates
+        vertices = []
+        faces = []
+        vertex_start_indices = []  # Track starting index for each contour
+        current_index = 0
+
+        for i, contour in enumerate(contours):
+            vertex_start_indices.append(current_index)
+            vertices.append(np.hstack([contour.contour, np.full((len(contour.contour), 1), z_coordinates[i])]))
+
+            # Check if there's a next valid contour to connect to
+            if i + 1 < len(contours):
+                contour2 = contours[i + 1]
+                faces_between = make_triangles_between_contours(contour.contour, contour2.contour)
+                faces.append(faces_between + current_index)
+
+            current_index += len(contour.contour)
+
+        vertex_values = np.concatenate([contour.thickness_values for contour in contours])
+
+        if smooth > 0:
+            tmp_mesh = CCMesh(vertices, faces, vertex_values=vertex_values)
+            tmp_mesh.smooth_(smooth)
+            vertices = tmp_mesh.v
+            faces = tmp_mesh.t
+            vertex_values = tmp_mesh.mesh_vertex_colors
+
+        if closed:
+            # Close the mesh by creating caps on both ends
+            # Left cap (first slice) - use counterclockwise orientation
+            left_side_points, left_side_trias = make_mesh_from_contour(vertices[: vertex_start_indices[1]][..., :2])
+            left_side_points = np.hstack([left_side_points, np.full((len(left_side_points), 1), z_coordinates[0])])
+
+            # Right cap (last slice) - reverse points for proper orientation
+            right_side_points, right_side_trias = make_mesh_from_contour(vertices[vertex_start_indices[-1]:][..., :2])
+            right_side_points = np.hstack([right_side_points, np.full((len(right_side_points), 1), z_coordinates[-1])])
+
+            #FIXME: Can we remove this if-statement?
+            color_sides = True
+            if color_sides:
+                left_side_points, left_side_trias, left_side_colors = _create_cap(
+                    left_side_points, left_side_trias, contours[0]
+                )
+                right_side_points, right_side_trias, right_side_colors = _create_cap(
+                    right_side_points, right_side_trias, contours[-1]
+                )
+                # reverse right side trias
+                right_side_trias = right_side_trias[:, ::-1]
+            else:
+                left_side_colors, right_side_colors = [], []
+
+            left_side_trias = left_side_trias + current_index
+            current_index += len(left_side_points)
+
+            right_side_trias = right_side_trias + current_index
+            current_index += len(right_side_points)
+
+            # FIXME: should this not be a concatenate statements?
+            vertices = [vertices, left_side_points, right_side_points]
+            faces = [faces, left_side_trias, right_side_trias]
+            vertex_values = [vertex_values, left_side_colors, right_side_colors]
+
+        return cls(vertices, faces, vertex_values=vertex_values, resolution=resolution)

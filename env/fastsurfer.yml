@@ -5,7 +5,7 @@ channels:
 
 dependencies:
 - h5py==3.12.1
-- lapy==1.2.0
+- lapy==1.4.0
 - matplotlib==3.10.1
 - monai==1.4.0
 - nibabel==5.3.2

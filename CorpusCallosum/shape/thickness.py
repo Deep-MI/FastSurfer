@@ -23,7 +23,7 @@ from CorpusCallosum.utils.types import ContourThickness, Points2dType
 from FastSurferCNN.utils.common import suppress_stdout
 
 
-def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[float]]:
+def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
     """Compute curvature by computing edge angles.
 
     Parameters

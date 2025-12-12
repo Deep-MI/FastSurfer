@@ -107,7 +107,7 @@ def calc_subsegment_areas(split_contours: ContourList) -> np.ndarray[tuple[int],
 
 def subsegment_midline_orthogonal(
         midline: Points2dType,
-        area_weights: np.ndarray[tuple[int], np.dtype[float]],
+        area_weights: np.ndarray[tuple[int], np.dtype[np.float_]],
         contour: Polygon2dType,
         plot: bool = True,
         ax=None,
@@ -368,7 +368,7 @@ def subsegment_midline_orthogonal(
 
 
 def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
-        -> tuple[np.ndarray[tuple[int], np.dtype[float]], ContourList]:
+        -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList]:
     # FIXME: needs docstring
     # Find the extreme points in the x-direction
     min_x_index = np.argmin(contour[0])
@@ -513,7 +513,7 @@ def subdivide_contour(
     plot_transform: Callable | None = None,
     oriented: bool = False,
     hline_anchor: np.ndarray | None = None
-) -> tuple[np.ndarray[tuple[int], np.dtype[float]], ContourList]:
+) -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList]:
     """Subdivide contour based on area weights using vertical lines.
 
     Divides the contour into segments by drawing vertical lines at positions
