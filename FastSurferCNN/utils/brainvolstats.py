@@ -19,9 +19,9 @@ from typing import (
 
 import numpy as np
 
-from CerebNet.datasets.utils import LTADict
 from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, nibabelImage
 from FastSurferCNN.utils.common import update_docstring
+from FastSurferCNN.utils.lta import LTADict
 from FastSurferCNN.utils.parallel import SerialExecutor, thread_executor
 
 if TYPE_CHECKING:
@@ -180,7 +180,7 @@ def read_lta_transform_file(path: Path) -> "AffineMatrix4x4":
     matrix : AffineMatrix4x4
         Matrix of shape (4, 4).
     """
-    from CerebNet.datasets.utils import read_lta
+    from FastSurferCNN.utils.lta import read_lta
     return read_lta(path)["lta"][0, 0]
 
 

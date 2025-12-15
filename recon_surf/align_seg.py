@@ -21,10 +21,11 @@ import sys
 
 import align_points as align
 import image_io as iio
-import lta as lta
 import numpy as np
 import SimpleITK as sitk
 from numpy import typing as npt
+
+from FastSurferCNN.utils.lta import write_lta
 
 HELPTEXT = """
 
@@ -397,7 +398,7 @@ if __name__ == "__main__":
 
     # write transform lta
     print(f"writing: {options.outlta}")
-    lta.write_lta(
+    write_lta(
         options.outlta, T, options.srcseg, srcheader, options.trgseg, trgheader
     )
 
