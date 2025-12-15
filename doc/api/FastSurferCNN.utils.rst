@@ -13,6 +13,7 @@ FastSurferCNN.utils
     load_config
     logging
     lr_scheduler
+    lta
     mapper
     meters
     metrics

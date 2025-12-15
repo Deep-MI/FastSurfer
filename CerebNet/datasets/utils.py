@@ -15,16 +15,14 @@
 
 # IMPORTS
 from collections.abc import Sequence
-from pathlib import Path
-from typing import TypedDict, TypeVar
+from typing import TypeVar
 
 import nibabel as nib
 import numpy as np
 import torch
-from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
-from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelImage
+from FastSurferCNN.utils import ShapeType, logging, nibabelImage
 
 logger = logging.getLogger(__name__)
 
@@ -63,32 +61,6 @@ CLASS_NAMES = {
 subseg_labels = {"cereb_subseg": np.array(list(CLASS_NAMES.values()))}
 
 AT = TypeVar("AT", np.ndarray, torch.Tensor)
-
-
-class LTADict(TypedDict):
-    type: int
-    nxforms: int
-    mean: list[float]
-    sigma: float
-    lta: AffineMatrix4x4
-    src_valid: int
-    src_filename: str
-    src_volume: list[int]
-    src_voxelsize: list[float]
-    src_xras: list[float]
-    src_yras: list[float]
-    src_zras: list[float]
-    src_cras: list[float]
-    dst_valid: int
-    dst_filename: str
-    dst_volume: list[int]
-    dst_voxelsize: list[float]
-    dst_xras: list[float]
-    dst_yras: list[float]
-    dst_zras: list[float]
-    dst_cras: list[float]
-    src: npt.NDArray[float]
-    dst: npt.NDArray[float]
 
 
 def define_size(mov_dim, ref_dim):
@@ -355,79 +327,9 @@ def apply_warp_field(dform_field, img, interpol_order=3):
     return deformed_img
 
 
-def read_lta(file: Path | str) -> LTADict:
-    """Read the LTA info."""
-    import re
-    from functools import partial
-
-    import numpy as np
-    parameter_pattern = re.compile("^\\s*([^=]+)\\s*=\\s*([^#]*)\\s*(#.*)")
-    vol_info_pattern = re.compile("^(.*) volume info$")
-    shape_pattern = re.compile("^(\\s*\\d+)+$")
-    matrix_pattern = re.compile("^(-?\\d+\\.\\S+\\s+)+$")
-
-    _Type = TypeVar("_Type", bound=type)
-
-    def _vector(_a: str, dtype: type[_Type] = float, count: int = -1) -> list[_Type]:
-        return np.fromstring(_a, dtype=dtype, count=count, sep=" ").tolist()
-
-    parameters = {
-        "type": int,
-        "nxforms": int,
-        "mean": partial(_vector, dtype=float, count=3),
-        "sigma": float,
-        "subject": str,
-        "fscale": float,
-    }
-    vol_info_par = {
-        "valid": int,
-        "filename": str,
-        "volume": partial(_vector, dtype=int, count=3),
-        "voxelsize": partial(_vector, dtype=float, count=3),
-        **{f"{c}ras": partial(_vector, dtype=float) for c in "xyzc"}
-    }
-
-    with open(file) as f:
-        lines = f.readlines()
-
-    items = []
-    shape_lines = []
-    matrix_lines = []
-    section = ""
-    for i, line in enumerate(lines):
-        if line.strip() == "":
-            continue
-        if hits := parameter_pattern.match(line):
-            name = hits.group(1)
-            if section and name in vol_info_par:
-                items.append((f"{section}_{name}", vol_info_par[name](hits.group(2))))
-            elif name in parameters:
-                section = ""
-                items.append((name, parameters[name](hits.group(2))))
-            else:
-                raise NotImplementedError(f"Unrecognized type string in lta-file "
-                                          f"{file}:{i+1}: '{name}'")
-        elif hits := vol_info_pattern.match(line):
-            section = hits.group(1)
-            # not a parameter line
-        elif shape_pattern.search(line):
-            shape_lines.append(np.fromstring(line, dtype=int, count=-1, sep=" "))
-        elif matrix_pattern.search(line):
-            matrix_lines.append(np.fromstring(line, dtype=float, count=-1, sep=" "))
-
-    shape_lines = list(map(tuple, shape_lines))
-    lta = dict(items)
-    if lta["nxforms"] != len(shape_lines):
-        raise OSError("Inconsistent lta format: nxforms inconsistent with shapes.")
-    if len(shape_lines) > 1 and np.any(np.not_equal([shape_lines[0]], shape_lines[1:])):
-        raise OSError(f"Inconsistent lta format: shapes inconsistent {shape_lines}")
-    lta_matrix = np.asarray(matrix_lines).reshape((-1,) + shape_lines[0].shape)
-    lta["lta"] = lta_matrix
-    return lta
-
-
 def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     """Load talairach coordinates from file."""
+    from FastSurferCNN.utils.lta import read_lta
 
     tala_lta = read_lta(tala_path)
     # create image grid p
