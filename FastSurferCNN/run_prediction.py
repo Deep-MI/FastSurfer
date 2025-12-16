@@ -510,7 +510,7 @@ class RunModelOnData:
 
         See Also
         --------
-        RunModelOnData.conform_and_safe_orig
+        RunModelOnData.conform_and_save_orig
             For more detailed description of `image_and_data`.
         """
         if not self._async_io:

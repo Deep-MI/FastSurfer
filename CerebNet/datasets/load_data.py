@@ -156,7 +156,7 @@ class SubjectLoader:
         -------
         tuple[np.ndarray, np.ndarray, np.ndarray or None]
             - Resized image according to ROI and patch size
-            - Resized label according to ROI and patch size 
+            - Resized label according to ROI and patch size
             - Resized and normalized talairach coordinates if provided, None otherwise
         """
         roi = utils.bounding_volume(label, self.patch_size)

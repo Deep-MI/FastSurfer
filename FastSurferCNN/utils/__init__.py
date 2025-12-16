@@ -48,15 +48,12 @@ __all__ = [
     "Vector3d",
 ]
 
-from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar
+from typing import Literal, TypeVar
 
-if TYPE_CHECKING:
-    from nibabel.analyze import SpatialHeader as nibabelHeader
-    from nibabel.analyze import SpatialImage as nibabelImage
-else:
-    class nibabelImage: ...
-    class nibabelHeader: ...
-
+# there are very few cases, when we do not need nibabel in any "full script" so always
+# including nibabel does not overly drag down performance
+from nibabel.analyze import SpatialHeader as nibabelHeader
+from nibabel.analyze import SpatialImage as nibabelImage
 from numpy import bool_, dtype, float_, ndarray, number
 
 AffineMatrix4x4 = ndarray[tuple[Literal[4], Literal[4]], dtype[float_]]
