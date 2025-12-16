@@ -36,7 +36,8 @@ from CorpusCallosum.shape.subsegment_contour import (
 from CorpusCallosum.shape.thickness import cc_thickness, convert_to_ras
 from CorpusCallosum.utils.types import CCMeasuresDict, ContourThickness, Points2dType, SliceSelection, SubdivisionMethod
 from CorpusCallosum.utils.visualization import plot_contours
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, ScalarType, Shape2d, Shape3d, Vector2d
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, ScalarType, Shape2d, Shape3d, Vector2d, nibabelImage, \
+    nibabelHeader
 from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
 from FastSurferCNN.utils.parallel import process_executor, thread_executor
 
@@ -74,6 +75,7 @@ def create_sag_slice_vox2vox(slice_idx: int, fsaverage_middle: float) -> AffineM
 @update_docstring(SubdivisionMethod=str(get_args(SubdivisionMethod))[1:-1])
 def recon_cc_surf_measures_multi(
     segmentation: np.ndarray[Shape3d, np.dtype[np.int_]],
+    upright_affine_header: tuple[AffineMatrix4x4, nibabelHeader],
     slice_selection: SliceSelection,
     fsavg_vox2ras: AffineMatrix4x4,
     midslices: Image3d,
@@ -92,6 +94,8 @@ def recon_cc_surf_measures_multi(
     ----------
     segmentation : np.ndarray
         3D segmentation array.
+    upright_affine_header : tuple[AffineMatrix4x4, nibabelHeader]
+        A tuple of the vox2ras matrix and the header of the upright image.
     slice_selection : str
         Which slices to process ('middle', 'all', or slice number).
     fsavg_vox2ras : np.ndarray
@@ -164,6 +168,7 @@ def recon_cc_surf_measures_multi(
     cc_contours = []
 
     run = thread_executor().submit
+    wants_output = subject_dir.has_attribute
     for i, (slice_idx, _results) in enumerate(zip(slices_to_recon, per_slice_recon, strict=True)):
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
@@ -182,7 +187,7 @@ def recon_cc_surf_measures_multi(
         slice_cc_measures.append(cc_measures)
         is_debug = logger.getEffectiveLevel() <= logging.DEBUG
         is_midslice = slice_idx == num_slices // 2
-        if subject_dir.has_attribute("cc_qc_image") and (is_debug or is_midslice):
+        if wants_output("cc_qc_image") and (is_debug or is_midslice):
             qc_imgs: list[Path] = [subject_dir.filename_by_attribute("cc_qc_image")]
             if is_debug:
                 qc_slice_img = qc_imgs[0].with_suffix(f".slice_{slice_idx}.png")
@@ -207,7 +212,7 @@ def recon_cc_surf_measures_multi(
             )
 
 
-    if subject_dir.has_attribute("save_template_dir"):
+    if wants_output("save_template_dir"):
         template_dir = subject_dir.filename_by_attribute("save_template_dir")
         # ensure directory exists
         template_dir.mkdir(parents=True, exist_ok=True)
@@ -221,36 +226,41 @@ def recon_cc_surf_measures_multi(
             io_futures.append(run(cc_contours[j].save_thickness_values, template_dir / f"thickness_values_{j}.txt"))
 
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
-    if len(cc_contours) > 1 and any(subject_dir.has_attribute(f"cc_{n}") for n in mesh_outputs):
+    if len(cc_contours) > 1 and any(wants_output(f"cc_{n}") for n in mesh_outputs):
         _cc_contours = thread_executor().map(_resample_thickness, cc_contours)
         cc_mesh = CCMesh.from_contours(list(_cc_contours), smooth=1)
-        if subject_dir.has_attribute("cc_html"):
+        if wants_output("cc_html"):
             logger.info(f"Saving CC 3D visualization to {subject_dir.filename_by_attribute('cc_html')}")
             io_futures.append(run(
                 cc_mesh.plot_mesh,output_path=subject_dir.filename_by_attribute("cc_html")),
             )
 
-        if subject_dir.has_attribute("cc_mesh"):
+        if wants_output("cc_mesh"):
             vtk_file_path = subject_dir.filename_by_attribute("cc_mesh")
             logger.info(f"Saving vtk file to {vtk_file_path}")
             io_futures.append(run(cc_mesh.write_vtk, vtk_file_path))
 
-        # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
-        cc_mesh = cc_mesh.to_fs_coordinates(lr_offset=FSAVERAGE_MIDDLE / vox_size[0])
-        if subject_dir.has_attribute("cc_thickness_overlay"):
+        if wants_output("cc_thickness_overlay"):
             overlay_file_path = subject_dir.filename_by_attribute("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
-        if subject_dir.has_attribute("cc_surf"):
+        if any(wants_output(f"cc_{n}") for n in ("thickness_image", "cc_surf")):
+            import nibabel as nib
+            upright_img = nib.MGHImage(np.zeros(() * 3, dtype=np.uint8))
+
+        # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
+        cc_mesh = cc_mesh.to_fs_coordinates(lr_offset=FSAVERAGE_MIDDLE / vox_size[0])
+        if wants_output("cc_surf"):
             surf_file_path = subject_dir.filename_by_attribute("cc_surf")
             logger.info(f"Saving surf file to {surf_file_path}")
-            io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), str(subject_dir.conf_name)))
+            cc_mesh.write_fssurf(str(surf_file_path), image=upright_img)
+            # io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), image=orig))
 
-        if subject_dir.has_attribute("cc_thickness_image"):
+        if wants_output("cc_thickness_image"):
             thickness_image_path = subject_dir.filename_by_attribute("cc_thickness_image")
             logger.info(f"Saving thickness image to {thickness_image_path}")
-            cc_mesh.snap_cc_picture(thickness_image_path, subject_dir.conf_name)
+            cc_mesh.snap_cc_picture(thickness_image_path, ref_image=upright_img)
 
     if not slice_cc_measures:
         logger.error("Error: No valid slices were found for postprocessing")
