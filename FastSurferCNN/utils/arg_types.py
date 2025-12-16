@@ -296,6 +296,6 @@ def path_or_none(a: str) -> Path | None:
     Path or None
         Return None if `a` is empty or case-insensitive "none" else return a as Path.
     """
-    if a.lower() in ("none", ""):
+    if a == "" or a.lower() == "none":
         return None
     return Path(a)

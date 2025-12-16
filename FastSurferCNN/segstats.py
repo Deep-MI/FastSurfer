@@ -1822,7 +1822,7 @@ def pv_calc(
         robust_percentage=robust_percentage,
     )
 
-    executor = threads if isinstance(threads, Executor) else threads
+    executor = threads if isinstance(threads, Executor) else thread_executor()
     map_kwargs = {"chunksize": 1 if get_num_threads() < 0 else ceil(len(labels) / get_num_threads())}
 
     global_stats_future = executor.map(global_stats_filled, all_labels, **map_kwargs)

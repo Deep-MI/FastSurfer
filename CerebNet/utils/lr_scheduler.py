@@ -188,7 +188,7 @@ def _get_warmup_factor_at_iter(
     ----------
     method : str
         Warmup method; either "constant" or "linear"
-    iter : int 
+    iter : int
         Iteration at which to calculate the warmup factor
     warmup_iters : int
         The number of warmup iterations

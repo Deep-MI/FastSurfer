@@ -129,36 +129,35 @@ def write_lta(
     dst_v2r = dst_header["Mdc"]
     dst_c = dst_header["Pxyz_c"]
 
-    f = open(filename, "w")
-    f.write(
-        (f"# transform file {filename}\n"
-        f"# created by {getpass.getuser()} on {datetime.now().ctime()}\n\n"
-        "type      = 1 # LINEAR_RAS_TO_RAS\n"
-        "nxforms   = 1\n"
-        "mean      = 0.0 0.0 0.0\n"
-        "sigma     = 1.0\n"
-        "1 4 4\n"
-        f"{affine}\n"
-        "src volume info\n"
-        "valid = 1  # volume info valid\n"
-        f"filename = {src_fname}\n"
-        f"volume = {src_dims}\n"
-        f"voxelsize = {src_vsize}\n"
-        f"xras   = {src_v2r[0, :]}\n"
-        f"yras   = {src_v2r[1, :]}\n"
-        f"zras   = {src_v2r[2, :]}\n"
-        f"cras   = {src_c}\n"
-        "dst volume info\n"
-        "valid = 1  # volume info valid\n"
-        f"filename = {dst_fname}\n"
-        f"volume = {dst_dims}\n"
-        f"voxelsize = {dst_vsize}\n"
-        f"xras   = {dst_v2r[0, :]}\n"
-        f"yras   = {dst_v2r[1, :]}\n"
-        f"zras   = {dst_v2r[2, :]}\n"
-        f"cras   = {dst_c}\n").replace("[", "").replace("]", "")
-    )
-    f.close()
+    with open(filename, "w") as f:
+        f.write(
+            (f"# transform file {filename}\n"
+            f"# created by {getpass.getuser()} on {datetime.now().ctime()}\n\n"
+            "type      = 1 # LINEAR_RAS_TO_RAS\n"
+            "nxforms   = 1\n"
+            "mean      = 0.0 0.0 0.0\n"
+            "sigma     = 1.0\n"
+            "1 4 4\n"
+            f"{affine}\n"
+            "src volume info\n"
+            "valid = 1  # volume info valid\n"
+            f"filename = {src_fname}\n"
+            f"volume = {src_dims}\n"
+            f"voxelsize = {src_vsize}\n"
+            f"xras   = {src_v2r[0, :]}\n"
+            f"yras   = {src_v2r[1, :]}\n"
+            f"zras   = {src_v2r[2, :]}\n"
+            f"cras   = {src_c}\n"
+            "dst volume info\n"
+            "valid = 1  # volume info valid\n"
+            f"filename = {dst_fname}\n"
+            f"volume = {dst_dims}\n"
+            f"voxelsize = {dst_vsize}\n"
+            f"xras   = {dst_v2r[0, :]}\n"
+            f"yras   = {dst_v2r[1, :]}\n"
+            f"zras   = {dst_v2r[2, :]}\n"
+            f"cras   = {dst_c}\n").replace("[", "").replace("]", "")
+        )
 
 
 def read_lta(file: Path | str) -> LTADict:
@@ -225,6 +224,6 @@ def read_lta(file: Path | str) -> LTADict:
         raise OSError("Inconsistent lta format: nxforms inconsistent with shapes.")
     if len(shape_lines) > 1 and np.any(np.not_equal([shape_lines[0]], shape_lines[1:])):
         raise OSError(f"Inconsistent lta format: shapes inconsistent {shape_lines}")
-    lta_matrix = np.asarray(matrix_lines).reshape((-1,) + shape_lines[0].shape)
+    lta_matrix = np.asarray(matrix_lines).reshape((-1,) + shape_lines[0])
     lta["lta"] = lta_matrix
     return lta
