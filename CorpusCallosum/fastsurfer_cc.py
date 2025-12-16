@@ -805,6 +805,7 @@ def main(
     logger.info(f"Processing slices with selection mode: {slice_selection}")
     slice_results, slice_io_futures = recon_cc_surf_measures_multi(
         segmentation=cc_fn_seg_labels,
+        upright_affine_header=(fsavg_vox2ras, orig.header),
         slice_selection=slice_selection,
         fsavg_vox2ras=fsavg_vox2ras,
         midslices=midslices,

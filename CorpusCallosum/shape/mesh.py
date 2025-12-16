@@ -520,7 +520,7 @@ class CCMesh(lapy.TriaMesh):
         overlay_file : Path, str, optional
             Path to a FreeSurfer overlay file to use for the snapshot.
             If None, the mesh is saved to a temporary file.
-        ref_image : Path, str, optional
+        ref_image : Path, str, nibabelImage, optional
             Path to reference image to use for tkr creation. If None, ignores the file for saving.
 
         Raises
