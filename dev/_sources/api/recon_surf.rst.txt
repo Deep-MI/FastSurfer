@@ -11,7 +11,6 @@ recon_surf
     align_seg
     create_annotation
     fs_balabels
-    lta
     map_surf_label
     N4_bias_correct
     paint_cc_into_pred
@@ -21,7 +20,3 @@ recon_surf
     sample_parc
     smooth_aparc
     spherically_project_wrapper
-
-
-
-    

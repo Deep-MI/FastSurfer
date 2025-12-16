@@ -270,6 +270,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.load_config.html">FastSurferCNN.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.logging.html">FastSurferCNN.utils.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.lr_scheduler.html">FastSurferCNN.utils.lr_scheduler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.lta.html">FastSurferCNN.utils.lta</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.mapper.html">FastSurferCNN.utils.mapper</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
@@ -332,7 +333,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_seg.html">recon_surf.align_seg</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.lta.html">recon_surf.lta</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.map_surf_label.html">recon_surf.map_surf_label</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.N4_bias_correct.html">recon_surf.N4_bias_correct</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.paint_cc_into_pred.html">recon_surf.paint_cc_into_pred</a></li>
@@ -453,7 +453,7 @@
 <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
 </dd>
 <dt><kbd>--device</kbd></dt>
-<dd><p>Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1), Default: auto</p>
+<dd><p>Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1)</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--sid</kbd></dt>
@@ -472,23 +472,23 @@ Please note, that exact agreement of numbers cannot be guaranteed, because the c
 </dd>
 <dt><kbd>--mixing_coeff</kbd></dt>
 <dd><p>Save the mixing coefficients (default: off).</p>
-<p>Default: <a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">``</span></a></p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">do</span> <span class="pre">not</span> <span class="pre">save</span> <span class="pre">the</span> <span class="pre">file</span></code></p>
 </dd>
 <dt><kbd>--alternate_labels</kbd></dt>
 <dd><p>Save the alternate labels (default: off).</p>
-<p>Default: <a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">``</span></a></p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">do</span> <span class="pre">not</span> <span class="pre">save</span> <span class="pre">the</span> <span class="pre">file</span></code></p>
 </dd>
 <dt><kbd>--alternate_mixing_coeff</kbd></dt>
 <dd><p>Save mixing coefficients of alternate labels (default: off).</p>
-<p>Default: <a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">``</span></a></p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">do</span> <span class="pre">not</span> <span class="pre">save</span> <span class="pre">the</span> <span class="pre">file</span></code></p>
 </dd>
 <dt><kbd>--seg_means</kbd></dt>
 <dd><p>Save means of segmentation labels (default: off).</p>
-<p>Default: <a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">``</span></a></p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">do</span> <span class="pre">not</span> <span class="pre">save</span> <span class="pre">the</span> <span class="pre">file</span></code></p>
 </dd>
 <dt><kbd>--alternate_means</kbd></dt>
 <dd><p>Save means of alternate labels (default: off).</p>
-<p>Default: <a href="#id1"><span class="problematic" id="id2">``</span></a><a href="#id3"><span class="problematic" id="id4">``</span></a></p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">do</span> <span class="pre">not</span> <span class="pre">save</span> <span class="pre">the</span> <span class="pre">file</span></code></p>
 </dd>
 <dt><kbd>--volume_precision</kbd></dt>
 <dd><p>Number of digits after dot in summary stats file (default: 3). Use 1 for maximum FreeSurfer compatibility).</p>
@@ -524,7 +524,7 @@ Please note, that exact agreement of numbers cannot be guaranteed, because the c
 <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
 </dd>
 <dt><kbd>--file</kbd></dt>
-<dd><p>Default file to read measures (–import …) from. If the path is relative, it is interpreted as relative to subjects_dir/subject_id from–sd and –subject_id.</p>
+<dd><p>Default file to read measures (–import …) from. If the path is relative, it is interpreted as relative to subjects_dir/subject_id from –sd and –subject_id.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">brainvol.stats</span></code></p>
 </dd>
 <dt><kbd>--from_seg</kbd></dt>
