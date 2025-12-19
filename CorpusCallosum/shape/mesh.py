@@ -20,14 +20,15 @@ import lapy
 import nibabel as nib
 import numpy as np
 import plotly.graph_objects as go
+from lapy import TriaMesh
 from plotly.io import write_html as plotly_write_html
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
-from FastSurferCNN.utils import nibabelImage
-from FastSurferCNN.utils.common import suppress_stdout
+from FastSurferCNN.utils import AffineMatrix4x4, nibabelImage
+from FastSurferCNN.utils.common import suppress_stdout, update_docstring
 
 try:
     from pyrr import Matrix44
@@ -199,15 +200,14 @@ class CCMesh(lapy.TriaMesh):
         Triangle indices of the mesh.
     mesh_vertex_colors : np.ndarray
         Vertex values for each vertex (CC thickness values)
-    resolution : float
-        Spatial resolution of the mesh in millimeters.
     """
 
-    def __init__(self, 
-                 vertices: list | np.ndarray, 
-                 faces: list | np.ndarray, 
-                 vertex_values: list | np.ndarray | None = None,
-                 resolution: float = 1.0):
+    def __init__(
+            self,
+            vertices: list | np.ndarray,
+            faces: list | np.ndarray,
+            vertex_values: list | np.ndarray | None = None,
+    ):
         """Initialize a CC_Mesh object.
 
         Parameters
@@ -218,12 +218,9 @@ class CCMesh(lapy.TriaMesh):
             List of face indices or array of shape (M, 3).
         vertex_values : list or numpy.ndarray, optional
             Vertex values for each vertex (CC thickness values)
-        resolution : float, optional
-            Spatial resolution of the mesh in millimeters, by default 1.0.
         """
         super().__init__(np.vstack(vertices), np.vstack(faces))
         self.mesh_vertex_colors = vertex_values
-        self.resolution = resolution
 
     def plot_mesh(
         self,
@@ -631,16 +628,16 @@ class CCMesh(lapy.TriaMesh):
         """
         Path(filename).parent.mkdir(parents=False, exist_ok=True)
 
-    def to_fs_coordinates(
-        self,
-        lr_offset: float,
-    ) -> "CCMesh":
+    def to_vox_coordinates(
+        self: Self,
+        mesh_ras2vox: AffineMatrix4x4,
+    ) -> Self:
         """Convert mesh coordinates to FreeSurfer coordinate system.
 
         Parameters
         ----------
-        lr_offset : float
-            Voxel offset to apply before transformation, this should be often `FSAVERAGE_MIDDLE / vox_size_in_lr`.
+        mesh_ras2vox : AffineMatrix4x4
+            Transformation matrix from midplane mesh space (RAS centered on midplane) to voxel coordinates.
 
         Returns
         -------
@@ -650,18 +647,10 @@ class CCMesh(lapy.TriaMesh):
         Notes
         -----
         Mesh coordinates are in ASR (Anterior-Superior-Right) orientation, with the coordinate system origin on
-        *the* midslice. The function transforms from midslice ASR to LIA vox coordinates.
+        *the* midslice. The function *first* transforms from midslice ASR to LIA vox coordinates.
         """
         from copy import copy
         new_object = copy(self)
-
-        asrvox_midslice2orig_vox2vox = np.eye(4)
-        # to LSA
-        asrvox_midslice2orig_vox2vox[:, [0, 2]] = asrvox_midslice2orig_vox2vox[:, [2, 0]]
-        # center LR
-        asrvox_midslice2orig_vox2vox[0, 3] = lr_offset
-        # flip SI
-        asrvox_midslice2orig_vox2vox[:, 1] *= -1
 
         # to LSA
         # new_object.v = new_object.v[:, [2, 1, 0]]
@@ -682,24 +671,13 @@ class CCMesh(lapy.TriaMesh):
         # Torig: mri_info --vox2ras-tkr orig.mgz
         # https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
 
-        v_vox = np.concatenate([self.v, np.ones((self.v.shape[0], 1))], axis=1)
-        new_object.v = (v_vox @ asrvox_midslice2orig_vox2vox.T)[:, :3]
+        new_object.v = (mesh_ras2vox[:3, :3] @ self.v.T).T + mesh_ras2vox[None, :3, 3]
         # new_object.v = (vox2ras_tkr @ np.concatenate([self.v, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
         return new_object
 
-    def write_fssurf(self, filename: Path | str, image: str | object | None = None) -> None:
-        """Save as Freesurfer Surface Geometry file (wrap Nibabel).
-
-        Parameters
-        ----------
-        filename : str
-            Filename to save to.
-        image : str, object, None
-            Path to image or nibabel image object. If specified, the vertices
-            are assumed to be in voxel coordinates and are converted
-            to surface RAS (tkr) coordinates before saving.
-            The expected order of coordinates is (x, y, z) matching
-            the image voxel indices.
+    @update_docstring(parent_doc=TriaMesh.write_fssurf.__doc__)
+    def write_fssurf(self, filename: Path | str, image: str | nibabelImage | None = None) -> None:
+        """{parent_doc}
 
         Notes
         -----
@@ -725,7 +703,7 @@ class CCMesh(lapy.TriaMesh):
 
     @classmethod
     def from_contours(
-            cls: Self,
+            cls: type[Self],
             contours: list[CCContour],
             lr_center: float = 0,
             closed: bool = False,
@@ -764,38 +742,42 @@ class CCMesh(lapy.TriaMesh):
         - Creates caps at both ends.
         - Applies smoothing.
         - Colors caps based on thickness values.
-
         """
-
         # Check that all contours have the same resolution
-        resolution = contours[0].resolution
-        for idx, contour in enumerate(contours[1:], start=1):
-            if not np.isclose(contour.resolution, resolution):
-                raise ValueError(
-                    f"All contours must have the same resolution. "
-                    f"Expected {resolution}, but contour at index {idx} has {contour.resolution}."
-                )
+        z_coordinates = np.array([contour.z_position for contour in contours])
+        same_z_position = np.isclose(z_coordinates[:, None], z_coordinates[None, :])
+        # filter for diagonal and duplicates
+        unique_same_z_position = np.logical_and(same_z_position, np.tri(z_coordinates.shape[0], k=-1, dtype=bool).T)
+        if np.any(unique_same_z_position):
+            raise ValueError(
+                f"All contours must have different z_positions, but {np.array(np.where(unique_same_z_position)).T} "
+                f"have similar z_positions."
+            )
 
         # Calculate z coordinates for each slice
-        z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
+        # z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
 
         # Build vertices list with z-coordinates
         vertices = []
         faces = []
         vertex_start_indices = []  # Track starting index for each contour
         current_index = 0
+        previous_contour: CCContour | None = None
 
-        for i, contour in enumerate(contours):
+        for contour in contours:
             vertex_start_indices.append(current_index)
-            vertices.append(np.hstack([contour.contour, np.full((len(contour.contour), 1), z_coordinates[i])]))
+            vertices.append(np.hstack([np.full((len(contour.points), 1), contour.z_position), contour.points]))
 
             # Check if there's a next valid contour to connect to
-            if i + 1 < len(contours):
-                contour2 = contours[i + 1]
-                faces_between = make_triangles_between_contours(contour.contour, contour2.contour)
+            if previous_contour is not None:
+                if len(previous_contour.points) != len(contour.points):
+                    raise ValueError("The number of points of multiple contours must be the same!")
+                faces_between = make_triangles_between_contours(previous_contour.points, contour.points)
                 faces.append(faces_between + current_index)
 
-            current_index += len(contour.contour)
+                current_index += len(contour.points)
+
+            previous_contour = contour
 
         vertex_values = np.concatenate([contour.thickness_values for contour in contours])
 
@@ -807,6 +789,9 @@ class CCMesh(lapy.TriaMesh):
             vertex_values = tmp_mesh.mesh_vertex_colors
 
         if closed:
+            # FIXME: this functionality is untested and not used
+            logger.warning("CCMesh.from_contours(closed=True) is untested and likely has errors.")
+
             # Close the mesh by creating caps on both ends
             # Left cap (first slice) - use counterclockwise orientation
             left_side_points, left_side_trias = make_mesh_from_contour(vertices[: vertex_start_indices[1]][..., :2])
@@ -816,7 +801,7 @@ class CCMesh(lapy.TriaMesh):
             right_side_points, right_side_trias = make_mesh_from_contour(vertices[vertex_start_indices[-1]:][..., :2])
             right_side_points = np.hstack([right_side_points, np.full((len(right_side_points), 1), z_coordinates[-1])])
 
-            #FIXME: Can we remove this if-statement?
+            # color_sides is a legacy visualization option to allow caps to have thickness colors
             color_sides = True
             if color_sides:
                 left_side_points, left_side_trias, left_side_colors = _create_cap(
@@ -836,9 +821,9 @@ class CCMesh(lapy.TriaMesh):
             right_side_trias = right_side_trias + current_index
             current_index += len(right_side_points)
 
-            # FIXME: should this not be a concatenate statements?
+            # should this not be a concatenate statements?
             vertices = [vertices, left_side_points, right_side_points]
             faces = [faces, left_side_trias, right_side_trias]
             vertex_values = [vertex_values, left_side_colors, right_side_colors]
 
-        return cls(vertices, faces, vertex_values=vertex_values, resolution=resolution)
+        return cls(vertices, faces, vertex_values=vertex_values)

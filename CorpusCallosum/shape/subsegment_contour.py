@@ -13,17 +13,15 @@
 # limitations under the License.
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import ConvexHull
 
 from CorpusCallosum.utils.types import ContourList, Points2dType, Polygon2dType, Polygon3dType
-from FastSurferCNN.utils import Mask2d, Mask3d, ScalarType, Vector2d, nibabelImage
+from FastSurferCNN.utils import ScalarType, Vector2d
 
-if TYPE_CHECKING:
-    import pandas as pd
 
 def minimum_bounding_rectangle(points: Points2dType) -> np.ndarray[tuple[Literal[4], Literal[2]], np.dtype[ScalarType]]:
     """Find the smallest bounding rectangle for a set of points.
@@ -144,6 +142,9 @@ def subsegment_midline_orthogonal(
     # get points after midline length of splits
 
     # get vertex closest to midline end
+
+    # FIXME: should this not always be the posterior endpoint index? Can we not standardize this even earlier, and then
+    #  pull this into CCContour.from_mask_and_appc?
     midline_end_idx = np.argmin(np.linalg.norm(contour.T - midline[-1], axis=1))
     # roll contour start to midline end
     contour = np.roll(contour, -midline_end_idx, axis=1)
@@ -848,48 +849,6 @@ def transform_to_acpc_standard(
         return (np.linalg.inv(rotation_matrix @ translation_matrix) @ np.vstack([x, np.ones(x.shape[1])]))[:2, :]
 
     return contour_acpc, np.array([0, 0], dtype=float), np.array([-ac_pc_dist, 0], dtype=float), rotate_back
-
-
-def preprocess_cc(cc_label_nib: nibabelImage, paths_csv: "pd.DataFrame", subj_id: str) \
-        -> tuple[Mask2d, Vector2d, Vector2d]:
-    """Preprocess corpus callosum mask and extract AC/PC coordinates.
-
-    Parameters
-    ----------
-    cc_label_nib : nibabel.Nifti1Image
-        NIfTI image containing corpus callosum segmentation.
-    paths_csv : pd.DataFrame
-        DataFrame containing AC and PC coordinates.
-    subj_id : str
-        Subject ID to look up in paths_csv.
-
-    Returns
-    -------
-    cc_mask : np.ndarray
-        Binary mask of corpus callosum.
-    AC_2d : np.ndarray
-        2D coordinates of anterior commissure.
-    PC_2d : np.ndarray
-        2D coordinates of posterior commissure.
-    
-    """
-    #FIXME: this function is not used anywhere
-    _cc_mask: Mask3d = np.asarray(cc_label_nib.dataobj) == 192
-    cc_mask: Mask2d = _cc_mask[_cc_mask.shape[0] // 2]
-
-    posterior_commisure_center = paths_csv.loc[subj_id, "PC_center_r": "PC_center_s"].to_numpy().astype(float)
-    anterior_commisure_center = paths_csv.loc[subj_id, "AC_center_r": "AC_center_s"].to_numpy().astype(float)
-
-    # adjust LR from label coordinates to orig_up coordinates
-    posterior_commisure_center[0] = 128
-    anterior_commisure_center[0] = 128
-
-    # orientation I, A
-    # rotate image so anterior and posterior commisure are horizontal
-    ac_2d = anterior_commisure_center[1:]
-    pc_2d = posterior_commisure_center[1:]
-
-    return cc_mask, ac_2d, pc_2d
 
 
 def get_primary_eigenvector(contour_ras: Polygon2dType) -> tuple[Vector2d, Vector2d]:

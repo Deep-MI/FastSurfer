@@ -135,16 +135,18 @@ def load_contours_from_template_dir(
             num_thickness_values = np.sum(~np.isnan(np.array(thickness_values[1:],dtype=float)))
             if fsaverage_contour is None:
                 fsaverage_contour = load_fsaverage_cc_template()
-                # create measurement points (points = 2 x levelpaths) accorindg to number of thickness values
+                # create measurement points (points = 2 x levelpaths) according to number of thickness values
                 fsaverage_contour.create_levelpaths(num_points=num_thickness_values // 2, update_data=True)
             current_contour = fsaverage_contour.copy()
             current_contour.load_thickness_values(thickness_file)
             
         else:
             # this is kinda ugly - maybe we need to overload the constructor to load the contour and thickness values?
-            current_contour = CCContour(np.empty((0, 2)), np.empty((0,)), resolution=resolution)
-            current_contour.load_contour(contour_file)
-            current_contour.load_thickness_values(thickness_file)
+            # FIXME: The z_position in from_contour is still incorrect, currently all Contours would be "registered" for
+            #        the midslice.
+            current_contour = CCContour.from_contour_file(contour_file, thickness_file, z_position=0.0)
+            # current_contour.load_contour(contour_file)
+            # current_contour.load_thickness_values(thickness_file)
         
         current_contour.fill_thickness_values()
         contours.append(current_contour)
@@ -194,6 +196,7 @@ def main(
         return 0
 
     # 3D visualization
+    # FIXME: This function would need contours[i].z_position to be properly initialized!
     cc_mesh = CCMesh.from_contours(contours, smooth=0)
 
     plot_kwargs = dict(
@@ -205,7 +208,8 @@ def main(
     cc_mesh.plot_mesh(**plot_kwargs)
     cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
-    cc_mesh = cc_mesh.to_fs_coordinates(lr_offset=FSAVERAGE_MIDDLE / resolution)
+    #FIXME: needs to be adapted to new interface of CCMesh.to_fs_coordinates / to_vox_coordinates
+    cc_mesh = cc_mesh.to_vox_coordinates(lr_offset=FSAVERAGE_MIDDLE / resolution)
     logger.info(f"Writing vtk file to {output_dir / 'cc_mesh.vtk'}")
     cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
     logger.info(f"Writing freesurfer surface file to {output_dir / 'cc_mesh.fssurf'}")

@@ -46,94 +46,6 @@ def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.
     return angle_diffs
 
 
-@overload
-def convert_to_ras(contour: np.ndarray, vox2ras_matrix: np.ndarray, get_parameters: Literal[False] = False) \
-        -> np.ndarray: ...
-
-@overload
-def convert_to_ras(contour: np.ndarray, vox2ras_matrix: np.ndarray, get_parameters: Literal[True]) \
-        -> tuple[np.ndarray, bool, bool, bool]: ...
-
-
-def convert_to_ras(
-    contour: np.ndarray,
-    vox2ras_matrix: np.ndarray,
-    return_parameters: bool = False
-):
-    """Convert contour coordinates from voxel space to RAS space.
-
-    Parameters
-    ----------
-    contour : np.ndarray
-        Array of shape (2, N) or (3, N) containing contour coordinates.
-    vox2ras_matrix : np.ndarray
-        4x4 voxel to RAS transformation matrix.
-    return_parameters : bool, default=False
-        If True, return additional transformation parameters (see below).
-
-    Returns
-    -------
-    contour : np.ndarray
-        Transformed contour coordinates of shape (3, N).
-    anterior_reversed : bool
-        Only if return_parameters is True, whether anterior axis was reversed.
-    superior_reversed : bool
-        Only if return_parameters is True, whether superior axis was reversed.
-    swap_axes : bool
-        Only if return_parameters is True, whether axes were swapped.
-    """
-    # converting to AS (no left-right dimension), out of plane movement is ignored,
-    # so we only do scaling, axes swapping and flipping - no rotation
-    # translation is ignored
-    if contour.shape[0] == 2:
-        # get only axis swaps from the rotation part of the vox2ras matrix
-        axis_swaps = np.round(vox2ras_matrix[:3, :3], 0)
-        permutation = np.argwhere(axis_swaps != 0)[:, 1]
-        assert len(permutation) == 3
-
-        idx_superior = np.argwhere(permutation == 2)
-        idx_anterior = np.argwhere(permutation == 1)
-
-        # swap axes if indicated from vox2ras
-        if swap_axes := idx_anterior > idx_superior:
-            # swap anterior and superior
-            contour = contour[[1, 0]]
-
-        # determine if axis were reversed
-        superior_reversed = np.any(axis_swaps[2, :] == -1)
-        anterior_reversed = np.any(axis_swaps[1, :] == -1)
-
-        # flip axes if necessary
-        if superior_reversed:
-            contour[1] = -contour[1]
-        if anterior_reversed:
-            contour[0] = -contour[0]
-
-        # get scaling by getting length of three column vectors
-        scaling = np.linalg.norm(vox2ras_matrix[:3, :3], axis=0)
-
-        # voxel * vox_size = mm
-        contour = (contour.T * scaling[1:]).T
-
-        # append a 0-R coordinate
-        contour = np.concatenate([np.zeros((1, contour.shape[1])), contour], axis=0)
-
-        if return_parameters:
-            return contour, anterior_reversed, superior_reversed, swap_axes
-        else:
-            return contour
-
-    # Add a third dimension (z) with 0 and a fourth dimension (homogeneous coordinate) with 1
-    elif contour.shape[0] == 3:
-        contour_homogeneous = np.vstack([contour, np.ones(contour.shape[1])])
-
-        # Apply the transformation
-        contour = (vox2ras_matrix @ contour_homogeneous)[:3, :]
-        return contour
-    else:
-        raise ValueError("Invalid shape of contour")
-
-
 def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint_idx):
     """Roll contour points to set a new zero index, while keeping track of CC endpoints.
 
@@ -274,7 +186,7 @@ def make_mesh_from_contour(
     max_volume: float = 0.5,
     min_angle: float = 25,
     verbose: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[Points2dType[np.float_], np.ndarray[tuple[int, Literal[3]], np.dtype[np.int_]]]:
     """Create a triangular mesh from a 2D contour.
 
     Parameters
@@ -290,9 +202,10 @@ def make_mesh_from_contour(
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        - mesh_points : Array of shape (M, 2) containing mesh vertices.
-        - mesh_trias : Array of shape (K, 3) containing triangle indices.
+    mesh_points : np.ndarray
+        Array of shape (M, 2) containing mesh vertices.
+    mesh_trias : np.ndarray
+        Array of shape (K, 3) containing triangle indices.
 
     Notes
     -----
@@ -304,13 +217,13 @@ def make_mesh_from_contour(
 
     # use meshpy to create mesh
     info = triangle.MeshInfo()
-    info.set_points(contour_2d)
+    info.set_points(contour_2d)  # needs to be (N, D)
     info.set_facets(facets)
     # NOTE: crashes if contour has duplicate points !!
     mesh = triangle.build(info, max_volume=max_volume, min_angle=min_angle, verbose=verbose)
 
-    mesh_points = np.array(mesh.points)
-    mesh_trias = np.array(mesh.elements)
+    mesh_points: Points2dType[np.float_] = np.array(mesh.points, dtype=float)
+    mesh_trias: np.ndarray[tuple[int, Literal[3]], np.dtype[np.int_]] = np.array(mesh.elements, dtype=int)
 
     return mesh_points, mesh_trias
 

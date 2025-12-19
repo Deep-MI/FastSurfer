@@ -4,7 +4,6 @@ from typing import overload
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
-from numpy import typing as npt
 from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
@@ -125,6 +124,8 @@ def apply_transform_to_pt(pts: Vector3d | Polygon3dType, T: AffineMatrix4x4, inv
     np.ndarray
         Transformed point coordinates, shape (3,) or (3, N).
     """
+    # FIXME: This function is very similar to nibabel.affines.apply_affine, reduce duplication.
+    #        Differences: Here, pts dimensions are (3,) or (3, N), in apply_affine, they are (..., D-1) for DxD affines.
     if inv:
         T = np.linalg.inv(T)
 
@@ -135,7 +136,7 @@ def apply_transform_to_pt(pts: Vector3d | Polygon3dType, T: AffineMatrix4x4, inv
 
 
 def calc_mapping_to_standard_space(
-    orig: "nib.Nifti1Image", 
+    orig: nibabelImage,
     ac_coords_3d: Vector3d,
     pc_coords_3d: Vector3d,
     orig_fsaverage_vox2vox: AffineMatrix4x4,
@@ -144,7 +145,7 @@ def calc_mapping_to_standard_space(
 
     Parameters
     ----------
-    orig : nib.Nifti1Image
+    orig : nibabelImage
         Original image.
     ac_coords_3d : np.ndarray
         AC coordinates in 3D space.
@@ -214,27 +215,27 @@ def calc_mapping_to_standard_space(
 
 def apply_transform_to_volume(
     orig_image: nibabelImage,
-    vox2vox: AffineMatrix4x4,
-    affine: AffineMatrix4x4,
+    interp_vox2vox: AffineMatrix4x4,
+    save_vox2ras: AffineMatrix4x4 | None = None,
     header: nib.freesurfer.mghformat.MGHHeader | None = None,
     output_path: str | Path | None = None,
     output_size: np.ndarray | None = None,
     order: int = 1
-) -> npt.NDArray[float]:
+) -> Image3d[np.float_]:
     """Apply transformation to a volume and save the result.
 
     Parameters
     ----------
     orig_image : nibabelImage
         Input volume.
-    vox2vox : np.ndarray
+    interp_vox2vox : np.ndarray
         Transformation matrix to apply to the data, this is from input-to-output space.
-    affine : AffineMatrix4x4, optional
+    save_vox2ras : AffineMatrix4x4, optional
         The vox2ras matrix of the output image, only relevant if output_path is given.
     header : nibabelHeader, optional
         Header for the output image, only relevant if output_path is given, if None will default to orig_image header.
     output_path : str or Path, optional
-        If output_path is provided, saves the result under this path.
+        If output_path is provided, saves the result under this path using the dtype of header (or orig_image).
     output_size : np.ndarray, optional
         Size of output volume, uses input size by default `None`.
     order : int, default=1
@@ -242,8 +243,8 @@ def apply_transform_to_volume(
 
     Returns
     -------
-    npt.NDArray[float]
-        Transformed volume data.
+    np.ndarray
+        Transformed volume data of shape `output_size` and type float.
 
     Notes
     -----
@@ -254,13 +255,21 @@ def apply_transform_to_volume(
         output_size = np.array(orig_image.shape)
     if header is None:
         header = orig_image.header
+    if save_vox2ras is None:
+        save_vox2ras = orig_image.affine @ interp_vox2vox
     # transform / resample the volume with vox2vox, note this needs to be the inverse of input2output vox2vox!
     # affine_transform definition is: input_coord = matrix @ output_coord + offset ( == MATRIX_HOM @ output_coord_hom)
     # --> output_coord = inv(matrix) @ (input_coord - offset) ( == inv(MATRIX_HOM) @ input_coord_hom)
-    resampled = affine_transform(orig_image.get_fdata(), np.linalg.inv(vox2vox), output_shape=output_size, order=order)
+    resampled = affine_transform(
+        orig_image.get_fdata(),
+        np.linalg.inv(interp_vox2vox),
+        output_shape=output_size,
+        order=order,
+    )
     if output_path is not None:
         logger.info(f"Saving transformed volume to {output_path}")
-        nib.save(nib.MGHImage(resampled.astype(orig_image.get_data_dtype()), affine, header), output_path)
+        resampled_typecast = resampled.astype((header if header else orig_image).get_data_dtype())
+        nib.save(nib.MGHImage(resampled_typecast, save_vox2ras, header), output_path)
     return resampled
 
 
@@ -287,10 +296,7 @@ def make_affine(simpleITKImage: sitk.Image) -> AffineMatrix4x4:
     # get affine transform in LPS
     c = [simpleITKImage.TransformContinuousIndexToPhysicalPoint(p) for p in np.eye(4)[:, :3]]
     c = np.array(c)
-    affine = np.concatenate(
-        [np.concatenate([c[0:3] - c[3:], c[3:]], axis=0), [[0.0], [0.0], [0.0], [1.0]]],
-        axis=1,
-    )
+    affine = np.append(np.append(c[0:3] - c[3:], c[3:], axis=0), np.eye(4)[3], axis=1)
     affine = np.transpose(affine)
     # convert to RAS to match nibabel
     affine = np.matmul(np.diag([-1.0, -1.0, 1.0, 1.0]), affine)

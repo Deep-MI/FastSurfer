@@ -20,17 +20,18 @@ import numpy as np
 from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
-from FastSurferCNN.utils import AffineMatrix4x4, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, RotationMatrix3x3, Vector3d, nibabelImage
 from FastSurferCNN.utils.parallel import thread_executor
 
-
-class FSAverageHeader(TypedDict):
-    dims: npt.NDArray[int]
-    delta: npt.NDArray[float]
-    Mdc: npt.NDArray[float]
-    Pxyz_c: npt.NDArray[float]
-
 logger = logging.get_logger(__name__)
+
+
+class MGHHeaderDict(TypedDict):
+    """A dictionary with the four required fields of a MGH Header"""
+    dims: Vector3d
+    delta: Vector3d
+    Mdc: RotationMatrix3x3
+    Pxyz_c: Vector3d
 
 
 def calc_ras_centroids_from_seg(seg_img: nibabelImage, label_ids: list[int] | None = None) \
@@ -154,7 +155,7 @@ def load_fsaverage_affine(affine_path: str | Path) -> npt.NDArray[float]:
     return affine_matrix
 
 
-def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAverageHeader]:
+def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, MGHHeaderDict]:
     """Load fsaverage affine matrix and header fields from static JSON file.
 
     Parameters
@@ -206,13 +207,13 @@ def load_fsaverage_data(data_path: str | Path) -> tuple[AffineMatrix4x4, FSAvera
     
     # Convert lists back to numpy arrays
     affine_matrix = np.array(data["affine"])
-    header_data = FSAverageHeader(
+    header_data = MGHHeaderDict(
         dims=data["header"]["dims"],
         delta=data["header"]["delta"],
         Mdc=np.array(data["header"]["Mdc"]),
         Pxyz_c=np.array(data["header"]["Pxyz_c"]),
     )
-    
+
     # Validate affine matrix shape
     if affine_matrix.shape != (4, 4):
         raise ValueError(f"Expected 4x4 affine matrix, got shape {affine_matrix.shape}")
