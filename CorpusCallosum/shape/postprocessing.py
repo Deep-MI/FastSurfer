@@ -18,11 +18,13 @@ from pathlib import Path
 from typing import get_args
 
 import numpy as np
+from nibabel.freesurfer.mghformat import MGHHeader
+from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.data.constants import CC_LABEL, FSAVERAGE_MIDDLE, SUBSEGMENT_LABELS
+from CorpusCallosum.data.constants import CC_LABEL, SUBSEGMENT_LABELS
 from CorpusCallosum.shape.contour import CCContour
-from CorpusCallosum.shape.endpoint_heuristic import get_endpoints
+from CorpusCallosum.shape.endpoint_heuristic import connect_diagonally_connected_components
 from CorpusCallosum.shape.mesh import CCMesh
 from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
@@ -33,11 +35,17 @@ from CorpusCallosum.shape.subsegment_contour import (
     subsegment_midline_orthogonal,
     transform_to_acpc_standard,
 )
-from CorpusCallosum.shape.thickness import cc_thickness, convert_to_ras
-from CorpusCallosum.utils.types import CCMeasuresDict, ContourThickness, Points2dType, SliceSelection, SubdivisionMethod
+from CorpusCallosum.shape.thickness import cc_thickness
+from CorpusCallosum.utils.types import (
+    CCMeasuresDict,
+    ContourThickness,
+    Points2dType,
+    Polygon2dType,
+    SliceSelection,
+    SubdivisionMethod,
+)
 from CorpusCallosum.utils.visualization import plot_contours
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, ScalarType, Shape2d, Shape3d, Vector2d, nibabelImage, \
-    nibabelHeader
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, Shape2d, Shape3d, Vector2d
 from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
 from FastSurferCNN.utils.parallel import process_executor, thread_executor
 
@@ -50,37 +58,43 @@ LIA_ORIENTATION[1,2] = 1
 LIA_ORIENTATION[2,1] = -1
 
 
-def create_sag_slice_vox2vox(slice_idx: int, fsaverage_middle: float) -> AffineMatrix4x4:
-    """Create slice-specific slice to full affine transformation matrix.
-
-    Returns a volume to slice in volume affine.
+def offset_affine(offset: npt.ArrayLike) -> AffineMatrix4x4:
+    """Generate an affine transformation matrix that only constitutes an offset (vector).
 
     Parameters
     ----------
-    slice_idx : int
-        Index of the slice to transform.
-    fsaverage_middle : float
-        Reference middle slice index in fsaverage space.
+    offset : array_like
+        A 3-dimensional offset vector (shape (3,)) to offset with.
 
     Returns
     -------
     np.ndarray
-        Modified 4x4 affine transformation matrix for the specific slice.
+        Modified 4x4 affine transformation matrix with the specific offset.
+
+    Raises
+    ------
+    TypeError
+        If offset is not a
     """
-    slice2full_vox2vox: AffineMatrix4x4 = np.eye(4, dtype=float)
-    slice2full_vox2vox[0, 3] = -fsaverage_middle + slice_idx
-    return slice2full_vox2vox
+    _offset = np.asarray(offset)
+    if not isinstance(_offset, np.ndarray) or _offset.shape != (3,):
+        raise TypeError("offset must convert to a ndarray of shape (3,)!")
+    vox2vox: AffineMatrix4x4 = np.eye(4, dtype=float)
+    vox2vox[0:3, 3] = _offset
+    return vox2vox
 
 
 @update_docstring(SubdivisionMethod=str(get_args(SubdivisionMethod))[1:-1])
 def recon_cc_surf_measures_multi(
     segmentation: np.ndarray[Shape3d, np.dtype[np.int_]],
-    upright_affine_header: tuple[AffineMatrix4x4, nibabelHeader],
     slice_selection: SliceSelection,
+    upright_header: MGHHeader,
+    fsavg2midslab_vox2vox: AffineMatrix4x4,
     fsavg_vox2ras: AffineMatrix4x4,
+    orig2fsavg_vox2vox: AffineMatrix4x4,
     midslices: Image3d,
-    ac_coords: Vector2d,
-    pc_coords: Vector2d,
+    ac_coords_vox: Vector2d,
+    pc_coords_vox: Vector2d,
     num_thickness_points: int,
     subdivisions: list[float],
     subdivision_method: SubdivisionMethod,
@@ -93,19 +107,23 @@ def recon_cc_surf_measures_multi(
     Parameters
     ----------
     segmentation : np.ndarray
-        3D segmentation array.
-    upright_affine_header : tuple[AffineMatrix4x4, nibabelHeader]
-        A tuple of the vox2ras matrix and the header of the upright image.
+        3D segmentation array in LIA orientation.
     slice_selection : str
         Which slices to process ('middle', 'all', or slice number).
+    upright_header : MGHHeader
+        The header of the upright image.
+    fsavg2midslab_vox2vox : AffineMatrix4x4
+        The vox2vox transformation matrix from fsaverage (upright) space to the segmentation slab.
     fsavg_vox2ras : np.ndarray
         Base affine transformation matrix (fsaverage, upright space).
+    orig2fsavg_vox2vox : AffineMatrix4x4
+        The transformation matrix from orig to fsaverage in voxel space.
     midslices : np.ndarray
         Array of mid-sagittal slices.
-    ac_coords : np.ndarray
-        Anterior commissure coordinates.
-    pc_coords : np.ndarray
-        Posterior commissure coordinates.
+    ac_coords_vox : np.ndarray
+        AC voxel coordinates with shape (2,) containing its [y,x] positions.
+    pc_coords_vox : np.ndarray
+        PC voxel coordinates with shape (2,) containing its [y,x] positions.
     num_thickness_points : int
         Number of points for thickness estimation.
     subdivisions : list[float]
@@ -138,8 +156,8 @@ def recon_cc_surf_measures_multi(
     _each_slice = partial(
         recon_cc_surf_measure,
         segmentation,
-        ac_coords=ac_coords,
-        pc_coords=pc_coords,
+        ac_coords_vox=ac_coords_vox,
+        pc_coords_vox=pc_coords_vox,
         num_thickness_points=num_thickness_points,
         subdivisions=subdivisions,
         subdivision_method=subdivision_method,
@@ -161,15 +179,21 @@ def recon_cc_surf_measures_multi(
         num_slices = 1
         slices_to_recon = [int(slice_selection)]
 
-    _gen_fsavg2slice_vox2vox = partial(create_sag_slice_vox2vox, fsaverage_middle=FSAVERAGE_MIDDLE)
-    per_slice_vox2ras = fsavg_vox2ras @ np.stack(list(map(_gen_fsavg2slice_vox2vox, slices_to_recon)), axis=0)
+    def _gen_slice2slab_vox2vox(_slice_idx: int) -> AffineMatrix4x4:
+        # The slice_idx offset must be negative, because we are going from left to right.
+        return offset_affine([_slice_idx, 0, 0])
+
+    fsavg_midslab_vox2ras = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_vox2vox)
+    per_slice_vox2ras = fsavg_midslab_vox2ras @ np.stack(list(map(_gen_slice2slab_vox2vox, slices_to_recon)), axis=0)
 
     per_slice_recon = process_executor().map(_each_slice, slices_to_recon, per_slice_vox2ras, chunksize=1)
     cc_contours = []
 
     run = thread_executor().submit
     wants_output = subject_dir.has_attribute
-    for i, (slice_idx, _results) in enumerate(zip(slices_to_recon, per_slice_recon, strict=True)):
+    output_path = subject_dir.filename_by_attribute
+    slice_iterator = zip(slices_to_recon, per_slice_vox2ras, per_slice_recon, strict=True)
+    for i, (slice_idx, this_slice_vox2ras, _results) in enumerate(slice_iterator):
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         # unpack values from _results
@@ -179,7 +203,8 @@ def recon_cc_surf_measures_multi(
         contour_in_as_space: Points2dType = contour_in_as_space_and_thickness[:, :2]
         thickness_values: np.ndarray[tuple[int], np.dtype[np.float_]] = contour_in_as_space_and_thickness[:, 2]
 
-        cc_contours.append(CCContour(contour_in_as_space, thickness_values, endpoint_idxs, resolution=vox_size[0]))
+        z_value = this_slice_vox2ras[0, 3]
+        cc_contours.append(CCContour(contour_in_as_space, thickness_values, endpoint_idxs, z_position=z_value))
         if cc_measures is None:
             # this should not happen, but just in case
             logger.warning(f"Slice index {slice_idx+1}{progress} returned result `None`")
@@ -188,7 +213,7 @@ def recon_cc_surf_measures_multi(
         is_debug = logger.getEffectiveLevel() <= logging.DEBUG
         is_midslice = slice_idx == num_slices // 2
         if wants_output("cc_qc_image") and (is_debug or is_midslice):
-            qc_imgs: list[Path] = [subject_dir.filename_by_attribute("cc_qc_image")]
+            qc_imgs: list[Path] = [output_path("cc_qc_image")]
             if is_debug:
                 qc_slice_img = qc_imgs[0].with_suffix(f".slice_{slice_idx}.png")
                 qc_imgs = (qc_imgs if is_midslice else []) + [qc_slice_img]
@@ -204,16 +229,15 @@ def recon_cc_surf_measures_multi(
                     midline_equidistant=cc_measures["midline_equidistant"],
                     levelpaths=cc_measures["levelpaths"],
                     output_path=qc_imgs,
-                    ac_coords=ac_coords,
-                    pc_coords=pc_coords,
+                    ac_coords=ac_coords_vox,
+                    pc_coords=pc_coords_vox,
                     vox_size=vox_size,
                     title=f"CC Subsegmentation by {subdivision_method} (Slice {slice_idx + 1})",
                 )
             )
 
-
     if wants_output("save_template_dir"):
-        template_dir = subject_dir.filename_by_attribute("save_template_dir")
+        template_dir = output_path("save_template_dir")
         # ensure directory exists
         template_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
@@ -230,41 +254,49 @@ def recon_cc_surf_measures_multi(
         _cc_contours = thread_executor().map(_resample_thickness, cc_contours)
         cc_mesh = CCMesh.from_contours(list(_cc_contours), smooth=1)
         if wants_output("cc_html"):
-            logger.info(f"Saving CC 3D visualization to {subject_dir.filename_by_attribute('cc_html')}")
-            io_futures.append(run(
-                cc_mesh.plot_mesh,output_path=subject_dir.filename_by_attribute("cc_html")),
-            )
+            logger.info(f"Saving CC 3D visualization to {output_path('cc_html')}")
+            io_futures.append(run(cc_mesh.plot_mesh, output_path=output_path("cc_html")))
 
         if wants_output("cc_mesh"):
-            vtk_file_path = subject_dir.filename_by_attribute("cc_mesh")
+            vtk_file_path = output_path("cc_mesh")
             logger.info(f"Saving vtk file to {vtk_file_path}")
             io_futures.append(run(cc_mesh.write_vtk, vtk_file_path))
 
-        if wants_output("cc_thickness_overlay"):
-            overlay_file_path = subject_dir.filename_by_attribute("cc_thickness_overlay")
+        if wants_output("cc_thickness_overlay") and not wants_output("cc_thickness_image"):
+            overlay_file_path = output_path("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
         if any(wants_output(f"cc_{n}") for n in ("thickness_image", "cc_surf")):
             import nibabel as nib
-            upright_img = nib.MGHImage(np.zeros(() * 3, dtype=np.uint8))
+            up_data: Image3d[np.uint8] = np.empty(upright_header["dims"][:3], dtype=upright_header.get_data_dtype())
+            upright_img = nib.MGHImage(up_data, fsavg_vox2ras, upright_header)
+            # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
+            # FIXME: this is currently not in RAS coordinates!
 
-        # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
-        cc_mesh = cc_mesh.to_fs_coordinates(lr_offset=FSAVERAGE_MIDDLE / vox_size[0])
-        if wants_output("cc_surf"):
-            surf_file_path = subject_dir.filename_by_attribute("cc_surf")
-            logger.info(f"Saving surf file to {surf_file_path}")
-            cc_mesh.write_fssurf(str(surf_file_path), image=upright_img)
-            # io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), image=orig))
+            # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
+            # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
+            cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
+            #FIXME: to_fs_coordinate needs to transform from upright to
+            if wants_output("cc_thickness_image"):
+                # this will also write overlay and surface
+                thickness_image_path = output_path("cc_thickness_image")
+                logger.info(f"Saving thickness image to {thickness_image_path}")
+                kwargs = {
+                    "fssurf_file": output_path("cc_surf") if wants_output("cc_surf") else None,
+                    "overlay_file": output_path("cc_thickness_overlay")
+                                    if wants_output("cc_thickness_overlay") else None,
+                    "ref_image": upright_img,
+                }
+                cc_mesh.snap_cc_picture(thickness_image_path, **kwargs)
+            elif wants_output("cc_surf"):
+                surf_file_path = output_path("cc_surf")
+                logger.info(f"Saving surf file to {surf_file_path}")
+                io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), image=upright_img))
 
-        if wants_output("cc_thickness_image"):
-            thickness_image_path = subject_dir.filename_by_attribute("cc_thickness_image")
-            logger.info(f"Saving thickness image to {thickness_image_path}")
-            cc_mesh.snap_cc_picture(thickness_image_path, ref_image=upright_img)
-
-    if not slice_cc_measures:
-        logger.error("Error: No valid slices were found for postprocessing")
-        raise ValueError("No valid slices were found for postprocessing")
+        if not slice_cc_measures:
+            logger.error("Error: No valid slices were found for postprocessing")
+            raise ValueError("No valid slices were found for postprocessing")
 
     return slice_cc_measures, io_futures
 
@@ -279,9 +311,9 @@ def _resample_thickness(contour: CCContour) -> CCContour:
 def recon_cc_surf_measure(
     segmentation: np.ndarray[Shape2d, np.dtype[np.int_]],
     slice_idx: int,
-    affine: AffineMatrix4x4,
-    ac_coords: Vector2d,
-    pc_coords: Vector2d,
+    slice_lia_vox2midslice_ras: AffineMatrix4x4,
+    ac_coords_vox: Vector2d,
+    pc_coords_vox: Vector2d,
     num_thickness_points: int,
     subdivisions: list[float],
     subdivision_method: SubdivisionMethod,
@@ -296,12 +328,12 @@ def recon_cc_surf_measure(
         3D segmentation array.
     slice_idx : int
         Index of the slice to process.
-    affine : AffineMatrix4x4
+    slice_lia_vox2midslice_ras : AffineMatrix4x4
         4x4 affine transformation matrix.
-    ac_coords : np.ndarray of shape (2,) and type float
-        Anterior commissure coordinates.
-    pc_coords : np.ndarray of shape (2,) and type float
-        Posterior commissure coordinates.
+    ac_coords_vox : np.ndarray
+        AC voxel coordinates with shape (2,) containing its [y,x] positions.
+    pc_coords_vox : np.ndarray
+        PC voxel coordinates with shape (2,) containing its [y,x] positions.
     num_thickness_points : int
         Number of points for thickness estimation.
     subdivisions : list[float]
@@ -318,7 +350,7 @@ def recon_cc_surf_measure(
     measures : CCMeasuresDict
         Dictionary containing measurements if successful.
     contour_with_thickness : np.ndarray
-        Contour points with thickness information, shape (3, N) for [x, y, thickness].
+        Contour points with thickness information in fsavg_midslice_ras space, shape (3, N) for [x, y, thickness].
     endpoint_indices : pair of ints
         Indices of the anterior and posterior endpoints on the contour.
 
@@ -339,31 +371,58 @@ def recon_cc_surf_measure(
     cc_mask_slice: Mask2d = np.equal(segmentation[slice_idx], CC_LABEL)
     if not np.any(cc_mask_slice):
         raise ValueError(f"No CC found in slice {slice_idx}")
-    contour, endpoint_idxs = get_endpoints(
-        cc_mask_slice,
-        ac_coords,
-        pc_coords,
-        (vox_size[1], vox_size[2]),
-        return_coordinates=False,
-        contour_smoothing=contour_smoothing,
+    # clean up cc mask
+    cc_mask = connect_diagonally_connected_components(cc_mask_slice)
+    # create a CCContour from the cc_mask and transform to RAS coordinates
+    # - R coordinate is stored in _contour.z_position
+    # - AS coordinates are stored in _contour.points
+    _contour = CCContour.from_mask_and_acpc(
+        cc_mask, ac_coords_vox, pc_coords_vox,
+        slice_vox2ras=slice_lia_vox2midslice_ras, contour_smoothing=contour_smoothing,
     )
-    contour_ras = convert_to_ras(contour, affine)
 
-    endpoint_idxs: tuple[int, int]
+    contour_as = _contour.points.T
+    endpoint_idxs = _contour.endpoint_idxs
+    # FIXME: could probably also use _contour.create_levelpaths here, but that does not currently return all values
+    # levelpaths, thickness = _contour.create_levelpaths(num_thickness_points)
+
+    # FIXME: If we create CCContour objects here already (as we can), we should probably return that instead of the
+    #        contour_with_thickness value (as the CCContour has all that information as well)
+
+    # # find_contour_and_endpoints extracts the contour and finds ac and pc endpoints for shape analysis
+    # # contour is in IA voxel coordinates
+    # contour, endpoint_idxs = find_contour_and_endpoints(
+    #     cc_mask_slice,
+    #     ac_coords_vox,
+    #     pc_coords_vox,
+    #     (vox_size[1], vox_size[2]),
+    #     return_coordinates=False,
+    #     contour_smoothing=contour_smoothing,
+    # )
+    # # contour_ras uses coordinates in the fsavg_midslice_ras coordinate system, now re-order/flip slice_ia
+    # # coordinates to fsavg_ras coordinates.
+    # #FIXME: double-check the sign of the z_offset (lr) here, currently starts positive for first slice
+    # offsets = np.asarray([-vox_size[0] * (slice_idx - segmentation.shape[0] // 2), 0, 0, 1])
+    # affine = np.concatenate([slice_lia_vox2midslice_ras[:, :3], offsets[:, None]], axis=1)
+    # # convert to fsavg_ras coordinates (which are mid-slice-based)
+    # contour_as = (slice_lia_vox2midslice_ras @ np.append(contour, 1, axis=0))[1:3]
+
     contour_with_thickness: ContourThickness
-    midline_len, thickness, curvature, midline_equi, levelpaths, contour_with_thickness, endpoint_idxs = cc_thickness(
-        contour_ras[1:].T,
-        endpoint_idxs,
-        n_points=num_thickness_points,
-    )
+    # cc_thickness wants contour to be in midslice_ras coordinates, i.e. millimeter distances on the respective slice.
+    midline_len, thickness, curvature, midline_equi, levelpaths, contour_with_thickness, endpoint_idxs = \
+        cc_thickness(
+            contour_as.T,
+            endpoint_idxs,
+            n_points=num_thickness_points,
+        )
     # thickness values in contour_with_thickness is not equally sampled, different shape
     # to compute length of paths: diff between consecutive points (N-1, 2) => norm (N-1,) => sum (1,)
     thickness_profile = np.stack([np.sum(np.linalg.norm(np.diff(x[:, :2], axis=0), axis=1)) for x in levelpaths])
 
-    acpc_contour_coords_ras = contour_ras[:, list(endpoint_idxs)].T
+    acpc_contour_coords_as = contour_as[:, list(endpoint_idxs)].T
     contour_in_acpc_space, ac_pt_acpc, pc_pt_acpc, rotate_back_acpc = transform_to_acpc_standard(
-        contour_ras[1:],
-        *acpc_contour_coords_ras[:, 1:],
+        contour_as,
+        *acpc_contour_coords_as,
     )
     cc_index = calculate_cc_index(contour_in_acpc_space)
 
@@ -371,8 +430,8 @@ def recon_cc_surf_measure(
     split_contours: ContourList
     if subdivision_method == "shape":
         _subdivisions = np.asarray(subdivisions)
-        areas, split_contours = subsegment_midline_orthogonal(midline_equi, _subdivisions, contour_ras[1:], plot=False)
-        split_contours = [transform_to_acpc_standard(split_contour, *acpc_contour_coords_ras[:, 1:])[0]
+        areas, split_contours = subsegment_midline_orthogonal(midline_equi, _subdivisions, contour_as, plot=False)
+        split_contours = [transform_to_acpc_standard(split_contour, *acpc_contour_coords_as)[0]
                           for split_contour in split_contours]
     elif subdivision_method == "vertical":
         areas, split_contours = subdivide_contour(contour_in_acpc_space, subdivisions, plot=False)
@@ -394,7 +453,7 @@ def recon_cc_surf_measure(
         raise ValueError(f"Invalid subdivision method {subdivision_method}")
 
     total_area = np.sum(areas)
-    total_perimeter = np.sum(np.sqrt(np.sum((np.diff(contour_ras[:, 1:], axis=0))**2, axis=1)))
+    total_perimeter = np.sum(np.sqrt(np.sum((np.diff(contour_as, axis=0))**2, axis=1)))
     circularity = 4 * np.pi * total_area / (total_perimeter**2)
 
     # Transform split contours back to original space
@@ -418,20 +477,17 @@ def recon_cc_surf_measure(
     return measures, contour_with_thickness, endpoint_idxs
 
 
-def vectorized_line_test(
-        coords_x: np.ndarray[tuple[int], np.dtype[ScalarType]],
-        coords_y: np.ndarray[tuple[int], np.dtype[ScalarType]],
+def test_right_of_line(
+        coords: Polygon2dType,
         line_start: Vector2d,
         line_end: Vector2d,
 ) -> np.ndarray[tuple[int], np.dtype[np.bool_]]:
-    """Vectorized version of point_relative_to_line for arrays of points.
+    """Test whether points in coords are to the right of the line (line_start->line_end).
 
     Parameters
     ----------
-    coords_x : np.ndarray
-        Array of x coordinates.
-    coords_y : np.ndarray
-        Array of y coordinates.
+    coords : np.ndarray
+        Array of coordinates of shape (2, N).
     line_start : array-like
         [x, y] coordinates of line start point.
     line_end : array-like
@@ -442,16 +498,14 @@ def vectorized_line_test(
     np.ndarray
         Boolean array where True means point is to the left of the line.
     """
-    # FIXME: rename this function to something more indicative
     # Vector from line_start to line_end
     line_vec = np.array(line_end) - np.array(line_start)
     
     # Vectors from line_start to all points (vectorized)
-    point_vec_x = coords_x - line_start[0]
-    point_vec_y = coords_y - line_start[1]
-    
+    point_vec = coords - np.expand_dims(line_start, axis=list(range(1, coords.ndim)))
+
     # Cross product (vectorized): positive means point is to the left of the line
-    cross_products = line_vec[0] * point_vec_y - line_vec[1] * point_vec_x
+    cross_products = line_vec[0] * point_vec[1] - line_vec[1] * point_vec[0]
     
     return cross_products > 0
 
@@ -546,7 +600,7 @@ def make_subdivision_mask(
     - Updates labels for those points.
     """
 
-    # unique contour points are the points where sub-division lines were inserted
+    # unique_contour_points are the points where sub-division lines were inserted
     unique_contour_points: list[Points2dType] = get_unique_contour_points(split_contours)  # shape (N, 2)
     subdivision_segments = unique_contour_points[1:]
 
@@ -556,7 +610,7 @@ def make_subdivision_mask(
  
     # Create coordinate grids for all points in the slice
     rows, cols = slice_shape
-    y_coords, x_coords = np.mgrid[0:rows, 0:cols]
+    coords = np.array(np.mgrid[0:rows, 0:cols])[[1, 0]]
 
     cc_subsegment_lut_anterior_to_posterior = SUBSEGMENT_LABELS.copy()
     cc_subsegment_lut_anterior_to_posterior.reverse()
@@ -564,15 +618,17 @@ def make_subdivision_mask(
     # Initialize with first segment label
     subdivision_mask = np.full(slice_shape, cc_subsegment_lut_anterior_to_posterior[0], dtype=np.int32)
     
-    # Process each subdivision line
+    # Process each subdivision line, subdivision_segments has for each division line the two points that are on the
+    # contour and divide the subsegments
     for segment_idx, segment_points in enumerate(subdivision_segments):
-        # FIXME: names for line_start and line_end?
+        # line_start and line_end are the intersection points of the CC subsegmentation boundary and the contour line
+        # --> find all voxels posterior to the line in question
         line_start: Vector2d = segment_points[0] / vox_size
         line_end: Vector2d = segment_points[-1] / vox_size
         
-        # Vectorized test: find all points to the right of this line
-        # FIXME: line defined by what? Is this inside the polygon or the line from line_start to line_end?
-        points_right_of_line = vectorized_line_test(x_coords, y_coords, line_start, line_end)
+        # Vectorized test: find all points to the right of line (line_start->line_end)
+        # right_of_line == posterior to line
+        points_right_of_line = test_right_of_line(coords, line_start, line_end)
         
         # All points to the right of this line belong to the next segment or beyond
         subdivision_mask[points_right_of_line] = cc_subsegment_lut_anterior_to_posterior[segment_idx + 1]

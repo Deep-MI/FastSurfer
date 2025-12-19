@@ -14,6 +14,7 @@
 
 import os
 from pathlib import Path
+from typing import cast
 
 import nibabel as nib
 import numpy as np
@@ -22,7 +23,11 @@ from scipy import ndimage
 from CorpusCallosum.data import constants
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.postprocessing import recon_cc_surf_measure
+from FastSurferCNN.utils import nibabelImage
 from FastSurferCNN.utils.brainvolstats import mask_in_array
+
+FSAVERAGE_PC_COORDINATE = np.array([131, 99])
+FSAVERAGE_AC_COORDINATE = np.array([135, 130])
 
 
 def smooth_contour(contour: tuple[np.ndarray, np.ndarray], window_size: int = 5) -> tuple[np.ndarray, np.ndarray]:
@@ -62,9 +67,7 @@ def smooth_contour(contour: tuple[np.ndarray, np.ndarray], window_size: int = 5)
     return (x_smoothed, y_smoothed)
 
 
-def load_fsaverage_cc_template() -> tuple[
-    np.ndarray, tuple[np.ndarray, np.ndarray], np.ndarray, np.ndarray, np.ndarray, tuple[int, int]
-]:
+def load_fsaverage_cc_template() -> CCContour:
     """Load and process the fsaverage corpus callosum template.
 
     This function loads the fsaverage segmentation from FreeSurfer's data directory,
@@ -72,8 +75,8 @@ def load_fsaverage_cc_template() -> tuple[
 
     Returns
     -------
-    tuple
-        Contains:
+    CCContour
+        Object with all the contour information including:
         - contour : tuple[np.ndarray, np.ndarray] : x and y coordinates of the contour points.
         - anterior_endpoint_idx : np.ndarray : Index of the anterior endpoint.
         - posterior_endpoint_idx : np.ndarray : Index of the posterior endpoint.
@@ -95,12 +98,8 @@ def load_fsaverage_cc_template() -> tuple[
                       f"FREESURFER_HOME environment variable") from err
 
     fsaverage_seg_path = freesurfer_home / 'subjects' / 'fsaverage' / 'mri' / 'aparc+aseg.mgz'
-    fsaverage_seg = nib.load(fsaverage_seg_path)
+    fsaverage_seg = cast(nibabelImage, nib.load(fsaverage_seg_path))
     segmentation = np.asarray(fsaverage_seg.dataobj)
-
-    PC = np.array([131, 99])
-    AC = np.array([135, 130])
-
 
     midslice = segmentation.shape[0]//2 +1
 
@@ -124,9 +123,9 @@ def load_fsaverage_cc_template() -> tuple[
     _, contour_with_thickness, (anterior_endpoint_idx, posterior_endpoint_idx) = recon_cc_surf_measure(
         segmentation=cc_mask[None],
         slice_idx=0,
-        ac_coords=AC,
-        pc_coords=PC,
-        affine=fsaverage_seg.affine,
+        ac_coords_vox=FSAVERAGE_AC_COORDINATE,
+        pc_coords_vox=FSAVERAGE_PC_COORDINATE,
+        slice_lia_vox2midslice_ras=fsaverage_seg.affine,
         num_thickness_points=100,
         subdivisions=[1/6, 1/2, 2/3, 3/4],
         subdivision_method="shape",
@@ -148,7 +147,7 @@ def load_fsaverage_cc_template() -> tuple[
     fsaverage_contour = CCContour(np.array(outside_contour).T, 
                                   np.zeros(len(outside_contour[0])), 
                                   endpoint_idxs=(anterior_endpoint_idx, posterior_endpoint_idx), 
-                                  resolution=1.0)
+                                  z_position=0.0)
 
 
     return fsaverage_contour

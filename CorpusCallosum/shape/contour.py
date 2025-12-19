@@ -27,7 +27,7 @@ emit one set per slice:
 
 import re
 from pathlib import Path
-from typing import Literal
+from typing import TypeVar
 
 import lapy
 import matplotlib
@@ -37,12 +37,17 @@ import scipy.interpolate
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
-from CorpusCallosum.shape.endpoint_heuristic import smooth_contour
+from CorpusCallosum.shape.endpoint_heuristic import find_cc_endpoints, smooth_contour
 from CorpusCallosum.shape.thickness import cc_thickness, make_mesh_from_contour
+from CorpusCallosum.utils.types import Points2dType
+from FastSurferCNN.utils import AffineMatrix4x4, Mask2d, Vector2d
 
 logger = logging.get_logger(__name__)
 
+Self = TypeVar("Self", bound="CCContour")
 
+
+# FIXME: Maybe CCContur should inherit from Polygon at a later date?
 class CCContour:
     """A class for representing and manipulating corpus callosum (CC) contours.
 
@@ -50,7 +55,7 @@ class CCContour:
 
     Attributes
     ----------
-    contour : np.ndarray
+    points : np.ndarray
         Array of shape (N, 2) containing 2D contour points.
     thickness_values : np.ndarray
         Array of shape (N,) for thickness measurements for each contour point.
@@ -63,51 +68,60 @@ class CCContour:
     >>>
     >>> contour = CCContour(contour_points, thickness_values,
     >>>                     endpoint_idxs=(anterior_idx, posterior_idx),
-    >>>                     resolution=1.0)
+    >>>                     z_position=0.0)
     >>> contour.fill_thickness_values()   # interpolate missing values
     >>> contour.smooth_contour(window_size=5)
     >>> contour.save_contour("contour_0.txt")
     >>> contour.save_thickness_values("thickness_values_0.txt")
     >>> contour.save_thickness_measurement_points("thickness_measurement_points_0.txt")
     """
+
+
     
     def __init__(
         self,
-        contour: np.ndarray[tuple[Literal["N", 2]], np.dtype[np.float_]],
-        thickness_values: np.ndarray[tuple[Literal["N"]], np.dtype[np.float_]],
+        points: Points2dType,
+        thickness_values: np.ndarray[tuple[int], np.dtype[np.float_]] | None,
         endpoint_idxs: tuple[int, int] | None = None,
-        resolution: float = 1.0
+        z_position: float = 0.0
     ):
         """Initialize a CCContour object.
 
         Parameters
         ----------
-        contour : np.ndarray
+        points : np.ndarray
             Array of shape (N, 2) containing 2D contour points.
-        thickness_values : np.ndarray
+        thickness_values : np.ndarray, optional
             Array of thickness measurements for each contour point.
         endpoint_idxs : tuple[int, int], optional
             Tuple containing start and end indices for the contour.
-        resolution : float, default=1.0
-            The left-right spacing.
+        z_position : float, default=0.0
+            The distance of the slice from midslice.
         """
-        self.contour = contour
-        if self.contour.shape[1] != 2:
-            raise ValueError(f"Contour must be a 2D array, but is {self.contour.shape}")
+        self.points = points
+        if self.points.ndim != 2 or self.points.shape[1] != 2:
+            raise ValueError(f"Contour must be a (N, 2) array, but is {self.points.shape}")
         self.thickness_values = thickness_values
-        if self.contour.shape[0] != len(thickness_values):
-            raise ValueError(
-                f"Number of contour points ({self.contour.shape[0]}) does not match number of thickness values "
-                f"({len(thickness_values)})",
-            )
-        # write vertex indices where thickness values are not nan
-        self.original_thickness_vertices = np.where(~np.isnan(thickness_values))[0]
-        self.resolution = resolution
+        if thickness_values is not None:
+            if self.points.shape[0] != len(thickness_values):
+                raise ValueError(
+                    f"Number of contour points ({self.points.shape[0]}) does not match number of thickness values "
+                    f"({len(thickness_values)})",
+                )
+            # write vertex indices where thickness values are not nan
+            self.original_thickness_vertices = np.where(~np.isnan(thickness_values))[0]
+        else:
+            self.original_thickness_vertices = None
+        self.z_position = z_position
 
         if endpoint_idxs is None:
-            self.endpoint_idxs = (0, len(contour) // 2)
+            self.endpoint_idxs = (0, len(points) // 2)
         else:
             self.endpoint_idxs = endpoint_idxs
+
+    def __len__(self) -> int:
+        """Return the number of points on the contour."""
+        return len(self.points)
 
     def smooth_contour(self, window_size: int = 5) -> None:
         """Smooth a contour using a moving average filter.
@@ -119,19 +133,14 @@ class CCContour:
 
         Notes
         -----
-        Uses smooth_contour from cc_endpoint_heuristic module to:
-        1. Extract x and y coordinates.
-        2. Apply moving average smoothing.
-        3. Update contour with smoothed coordinates.
+        Uses smooth_contour from cc_endpoint_heuristic module.
         """
-        x, y = self.contour.T
-        x, y = smooth_contour(x, y, window_size)
-        self.contour = np.array([x, y]).T
+        self.points = np.array([smooth_contour(*self.points.T, window_size=window_size)]).T
 
     def copy(self) -> "CCContour":
         """Copy the contour.
         """
-        return CCContour(self.contour.copy(), self.thickness_values.copy(), self.endpoint_idxs, self.resolution)
+        return CCContour(self.points.copy(), self.thickness_values.copy(), self.endpoint_idxs, self.z_position)
     
     def get_contour_edge_lengths(self) -> np.ndarray:
         """Get the lengths of the edges of a contour.
@@ -146,22 +155,29 @@ class CCContour:
         Edge lengths are calculated as Euclidean distances between consecutive points
         in the contour.
         """
-        edges = np.diff(self.contour, axis=0)
+        edges = np.diff(self.points, axis=0)
         return np.sqrt(np.sum(edges**2, axis=1))
 
-    def create_levelpaths(self, 
-                           num_points: int,
-                           update_data: bool = True
-                           ) -> tuple[list[np.ndarray], list[float]]:
-        midline_len, thickness, curvature, midline_equi, \
-            levelpaths, contour_with_thickness, endpoint_idxs = cc_thickness(
-                self.contour,
+    def create_levelpaths(
+            self,
+            num_points: int,
+            update_data: bool = True
+    ) -> tuple[list[np.ndarray], float]:
+        #FIXME: docstring
+
+        # FIXME: cache all these values in CCContour, and invalidate the cache, when either points or endpoint_idxs get
+        #        changed; alternatively, make points and endpoint_idxs read_only (by creating getter-only properties)
+        #        and have all functions that change points or endpoints return a new CCContour object instead.
+        midline_len, thickness, curvature, midline_equi, levelpaths, contour_with_thickness, endpoint_idxs = \
+            cc_thickness(
+                self.points,
                 self.endpoint_idxs,
                 n_points=num_points,
             )
         
         if update_data:
-            self.contour = contour_with_thickness[:, :2]
+            # FIXME: as an alternative to update_data, use "inplace" ; always return the CCContour object?
+            self.points = contour_with_thickness[:, :2]
             self.thickness_values = contour_with_thickness[:,2]
             self.original_thickness_vertices = np.where(~np.isnan(self.thickness_values))[0]
             self.endpoint_idxs = endpoint_idxs
@@ -176,12 +192,20 @@ class CCContour:
         ----------
         thickness_values : np.ndarray
             Array of thickness values for the contour.
-        use_measurement_points : bool, optional
-            Whether to use the measurement points to set the thickness values, by default False.
+        use_measurement_points : bool, default=False
+            Whether to use the measurement points to set the thickness values.
         """
         if use_measurement_points:
-            if len(thickness_values) == len(self.original_thickness_vertices):
-                self.thickness_values = np.full(len(self.contour), np.nan)
+            if self.original_thickness_vertices is None:
+                if len(thickness_values) != len(self.points):
+                    raise ValueError(
+                        f"Thickness values not initialized and number of points in the contour {len(self.points)} does "
+                        f"not match number of thickness values {len(thickness_values)}.",
+                    )
+                self.original_thickness_vertices = np.where(~np.isnan(thickness_values))[0]
+                self.thickness_values = thickness_values
+            elif len(thickness_values) == len(self.original_thickness_vertices):
+                self.thickness_values = np.full(len(self.points), np.nan)
                 self.thickness_values[self.original_thickness_vertices] = thickness_values
             else:
                 raise ValueError(
@@ -189,10 +213,10 @@ class CCContour:
                     f"{len(self.original_thickness_vertices)}.",
                 )
         else:
-            if len(thickness_values) != len(self.contour):
+            if len(thickness_values) != len(self.points):
                 raise ValueError(
                     f"The number of thickness values does not match number of points in the contour "
-                    f"{len(self.contour)}.",
+                    f"{len(self.points)}.",
                 )
             self.thickness_values = thickness_values
 
@@ -291,28 +315,21 @@ class CCContour:
         if output_path is not None:
             self.__make_parent_folder(output_path)
 
-        contour = self.contour
-
         plt.figure(figsize=(10, 10))
-        # Get thickness values for this slice
-        thickness = self.thickness_values
 
         # Plot points with colors based on thickness
-        for i in range(len(contour)):
-            if np.isnan(thickness[i]):
-                plt.plot(contour[i, 0], contour[i, 1], "o", color="gray", markersize=1)
-            else:
-                # Map thickness to color from red to yellow
-                plt.plot(
-                    contour[i, 0],
-                    contour[i, 1],
-                    "o",
-                    color=plt.cm.YlOrRd(thickness[i] / np.nanmax(thickness)),
-                    markersize=1,
-                )
+        gray_points = np.isnan(self.thickness_values)
+        if np.any(gray_points):
+            plt.plot(*self.points[gray_points, :2].T, "o", color="gray", markersize=1)
+
+        if not np.all(gray_points):
+            not_gray = np.logical_not(gray_points)
+            color_values = plt.cm.YlOrRd(self.thickness_values[not_gray] / np.nanmax(self.thickness_values[not_gray]))
+            # Map thickness to color from red to yellow
+            plt.plot(*self.points[~gray_points, :2].T, "o", color=color_values, markersize=1)
 
         # Connect points with lines
-        plt.plot(contour[:, 0], contour[:, 1], "-", color="black", alpha=0.3, label="Contour")
+        plt.plot(self.points[:, 0], self.points[:, 1], "-", color="black", alpha=0.3, label="Contour")
         plt.axis("equal")
         plt.xlabel("X")
         plt.ylabel("Y")
@@ -324,7 +341,6 @@ class CCContour:
             plt.savefig(output_path, dpi=300)
         else:
             plt.show()
-
 
     def plot_contour_colorfill(
         self,
@@ -359,14 +375,14 @@ class CCContour:
         """
         plot_values = plot_values[::-1] # make sure values are plotted left to right (anterior to posterior)
 
-        points, _ = make_mesh_from_contour(self.contour, max_volume=0.5, min_angle=25, verbose=False)
+        points, _ = make_mesh_from_contour(self.points, max_volume=0.5, min_angle=25, verbose=False)
 
         # make points 3D by adding zero
         points = np.column_stack([points, np.zeros(len(points))])
 
-        levelpaths, _ = self.create_levelpaths(num_points=len(plot_values)-1, update_data=False)
+        levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values)-1, update_data=False)
 
-        outside_contour = self.contour.T
+        outside_contour = self.points.T
 
         # Create a grid of points covering the contour area with higher resolution
         x_min, x_max = np.min(outside_contour[0]), np.max(outside_contour[0])
@@ -541,8 +557,7 @@ class CCContour:
 
         Notes
         -----
-        Creates parent directory with parents=False to avoid creating
-        multiple levels of directories unintentionally.
+        Creates parent directory with parents=False to avoid creating multiple levels of directories unintentionally.
         """
         Path(filename).parent.mkdir(parents=False, exist_ok=True)
 
@@ -570,16 +585,26 @@ class CCContour:
                 f"posterior_endpoint_idx={self.endpoint_idxs[1]}\n"
             )
             f.write("x,y\n")
-            for point in self.contour:
+            for point in self.points:
                 f.write(f"{point[0]},{point[1]}\n")
 
-    def load_contour(self, input_path: str) -> None:
+    @classmethod
+    def from_contour_file(
+            cls: type[Self],
+            input_path: str | Path,
+            thickness_values_path: str | Path,
+            z_position: float = 0.0,
+    ) -> Self:
         """Load contour from a CSV file.
 
         Parameters
         ----------
-        input_path : str
+        input_path : str, Path
             Path to the CSV file containing the contours.
+        thickness_values_path : str, Path
+            Path to the CSV file containing the thickness_values.
+        z_position : float, default=0.0
+            The distance to the midslice (in fsaverage space).
 
         Raises
         ------
@@ -595,8 +620,7 @@ class CCContour:
         4. Converts lists to fixed-size arrays with None padding.
         """
         current_points = []
-        self.contours = []
-        self.endpoint_idxs = []
+        endpoint_idxs = []
 
         with open(input_path) as f:
             header = next(f).strip()
@@ -607,7 +631,7 @@ class CCContour:
 
             anterior_idx = int(anterior_match.group(1))
             posterior_idx = int(posterior_match.group(1))
-            self.endpoint_idxs = (anterior_idx, posterior_idx)
+            endpoint_idxs = (anterior_idx, posterior_idx)
 
             # Skip column names
             next(f)
@@ -615,7 +639,12 @@ class CCContour:
             for line in f:
                 x, y = line.strip().split(",")
                 current_points.append([float(x), float(y)])
-        self.contour = np.array(current_points)
+        contour = np.array(current_points)
+        if thickness_values_path:
+            thickness_values = cls._load_thickness_values(contour, None, thickness_values_path)
+        else:
+            thickness_values = None
+        return CCContour(contour, thickness_values, endpoint_idxs, z_position=z_position)
 
     def save_thickness_values(self, output_path: Path | str) -> None:
         """Save thickness values to a CSV file.
@@ -641,23 +670,33 @@ class CCContour:
 
     def load_thickness_values(
         self,
-        input_path: str,
+        input_path: str | Path,
     ) -> None:
         """Load thickness values from a CSV file.
 
         Parameters
         ----------
-        input_path : str
+        input_path : Path, str
             Path to the CSV file containing thickness values.
-        original_thickness_vertices_path : str or None, optional
-            Path to a file containing the indices of vertices where thickness
-            was measured, by default None.
 
         Raises
         ------
         ValueError
             If number of thickness values doesn't match measurement points
             or if number of slices is inconsistent.
+        """
+        self.thickness_values = self._load_thickness_values(self.points, self.original_thickness_vertices, input_path)
+
+    @classmethod
+    def _load_thickness_values(
+        cls,
+        contour: Points2dType,
+        original_thickness_vertices: np.ndarray[tuple[int], np.dtype[np.signedinteger]] | None,
+        input_path: str | Path,
+    ) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
+        """See load_thickness_values.
+
+        Ignore shape of thickness values if original_thickness_vertices is None.
 
         Notes
         -----
@@ -666,8 +705,6 @@ class CCContour:
         2. Groups values by slice index.
         3. Optionally associates values with specific vertices.
         4. Handles both full contour and profile measurements.
-
-        
         """
         data = np.loadtxt(input_path, delimiter=",", skiprows=1)
         if data.ndim == 0:
@@ -677,18 +714,71 @@ class CCContour:
         else:
             raise ValueError("Thickness values file must contain a single column")
 
-        if len(values) != len(self.contour):
-            if np.sum(~np.isnan(values)) == len(self.original_thickness_vertices):
-                new_values = np.full(len(self.contour), np.nan)
-                new_values[self.original_thickness_vertices] = values[~np.isnan(values)]
+        if len(values) != len(contour):
+            if original_thickness_vertices is None:
+                new_values = values
+            elif np.sum(~np.isnan(values)) == len(original_thickness_vertices):
+                new_values = np.full(len(contour), np.nan)
+                new_values[original_thickness_vertices] = values[~np.isnan(values)]
             else:
                 raise ValueError(
-                    f"Number of thickness values {len(values)} does not match number of points in the "
-                    f"contour {len(self.contour)} and current number of measururement points "
-                    f"{len(self.original_thickness_vertices)} does not match the number of set thickness values "
-                    f"{np.sum(~np.isnan(values))}."
+                    f"Number of thickness values {len(values)} does not match number of points in the contour "
+                    f"{len(contour)} and current number of measurement points {len(original_thickness_vertices)} does "
+                    f"not match the number of set thickness values {np.sum(~np.isnan(values))}."
                 )
         else:
             raise ValueError(f"Number of thickness values in {input_path} does not match the vertices of the path!")
 
-        self.thickness_values = new_values
+        return new_values
+
+    @classmethod
+    def from_mask_and_acpc(
+            cls: type[Self],
+            cc_mask: Mask2d,
+            ac_2d: Vector2d,
+            pc_2d: Vector2d,
+            slice_vox2ras: AffineMatrix4x4,
+            contour_smoothing: int = 5
+    ) -> Self:
+        """Extracts the contour of the CC using marching squares, smooth and transform to RAS coordinates.
+
+        Parameters
+        ----------
+        cc_mask : np.ndarray of shape (H, W) and type bool
+            Binary mask of the corpus callosum.
+        ac_2d : np.ndarray of shape (2,) and type float
+            2D voxel coordinates of the anterior commissure.
+        pc_2d : np.ndarray of shape (2,) and type float
+            2D voxel coordinates of the posterior commissure.
+        slice_vox2ras : AffineMatrix4x4
+            Transformation matrix from slice-voxel space to RAS-coordinates.
+        contour_smoothing : int, default=5
+            Window size for contour smoothing.
+
+        Returns
+        -------
+        contour : CCContour
+            The contour object.
+
+        Notes
+        -----
+        Expects LIA orientation.
+        """
+        import skimage.measure
+
+        from CorpusCallosum.shape.endpoint_heuristic import smooth_contour
+
+        contour = skimage.measure.find_contours(cc_mask, level=0.5)[0].T
+        #FIXME: maybe use Polygon.smooth_*
+        contour = np.array(smooth_contour(*contour, window_size=contour_smoothing))
+        # Add z=0 coordinate to make 3D, then remove it after resampling
+        contour_3d = np.concatenate([np.zeros((1, contour.shape[1])), contour])  # ZIA, (3, N)
+        # FIXME: change this to using Polygon class when we upgrade lapy
+        contour_3d = lapy.tria_mesh.TriaMesh._TriaMesh__resample_polygon(contour_3d.T, 701).T
+        contour_ras = (slice_vox2ras[:3, :3] @ contour_3d) + slice_vox2ras[:3, [3]]
+
+        ac_pc_3d = np.concatenate([[[0, 0]], np.stack([ac_2d, pc_2d], axis=1)]) # (3, 2)
+        ac_ras, pc_ras = ((slice_vox2ras[:3, :3] @ ac_pc_3d) + slice_vox2ras[:3, [3]]).T
+        endpoint_idx = find_cc_endpoints(contour_ras[1:], ac_ras[1:], pc_ras[1:])
+
+        return cls(contour_ras[1:].T, None, endpoint_idx, z_position=slice_vox2ras[0, 3])

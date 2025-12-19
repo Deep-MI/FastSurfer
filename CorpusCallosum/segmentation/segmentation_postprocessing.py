@@ -383,7 +383,9 @@ def get_cc_volume_contour(
     using Simpson's rule. If the CC width is larger than desired_width_mm, the voxels on 
     the edges are calculated as partial volumes to achieve the desired width.
     """
-    # FIXME: This function is a shape-tool, it should therefore not be in segmentation.postprocessing...
+    # FIXME: move to CCContour --> area
+
+
     # FIXME: this code currently produces volume estimates more that 50% off of the volume_based estimate in
     #        get_cc_volume_voxel...
 
@@ -421,7 +423,7 @@ def get_cc_volume_contour(
     measurement_points = np.arange(-voxel_size[0]*(areas.shape[0]//2),
                                    voxel_size[0]*((areas.shape[0]+1)//2), lr_spacing)
 
-    # FIXME: why interpolate at 0.25? Also, why do we need interpolaton at all?
+    # FIXME: why interpolate at 0.25? Also, why do we need interpolation at all?
     # interpolate areas at 0.25 and 5
     areas_interpolated = np.interp(x=[-2.5, 2.5],
                                    xp=measurement_points,
