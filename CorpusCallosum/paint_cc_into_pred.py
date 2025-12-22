@@ -132,8 +132,205 @@ def paint_in_cc(pred: npt.NDArray[np.int_],
     The CC labels (251-255) from aseg_cc are copied into pred.
     """
     cc_mask = mask_in_array(aseg_cc, SUBSEGMENT_LABELS)
+    
+    # Count what's being replaced
+    replaced_labels = pred[cc_mask]
+    num_wm_replaced = np.sum((replaced_labels == 2) | (replaced_labels == 41))
+    num_other_replaced = np.sum((replaced_labels != 0) & (replaced_labels != 2) & (replaced_labels != 41))
+    num_background_replaced = np.sum(replaced_labels == 0)
+    
+    logger.info(f"Painting CC: {np.sum(cc_mask)} voxels (replacing {num_wm_replaced} WM, "
+                f"{num_background_replaced} background, {num_other_replaced} other)")
+    
     pred[cc_mask] = aseg_cc[cc_mask]
     return pred
+
+def _fill_gaps_in_direction(
+    corrected_pred: npt.NDArray[np.int_],
+    potential_fill: npt.NDArray[np.bool_],
+    source_binary: npt.NDArray[np.bool_],
+    target_binary: npt.NDArray[np.bool_],
+    x_slice: int,
+    direction: str,
+    max_gap_voxels: int,
+    fillable_labels: set[int]
+) -> int:
+    """Fill gaps between source and target masks in a specific direction.
+    
+    Parameters
+    ----------
+    corrected_pred : npt.NDArray[np.int_]
+        The segmentation array to modify in place.
+    potential_fill : npt.NDArray[np.bool_]
+        2D mask of potential fill regions for this slice.
+    source_binary : npt.NDArray[np.bool_]
+        2D binary mask of source structure (e.g., CC).
+    target_binary : npt.NDArray[np.bool_]
+        2D binary mask of target structure (e.g., ventricle).
+    x_slice : int
+        The x-coordinate of the current slice.
+    direction : str
+        Either 'inferior-superior' (iterate over z) or 'anterior-posterior' (iterate over y).
+    max_gap_voxels : int
+        Maximum gap size in voxels for this direction.
+    fillable_labels : set[int]
+        Set of label values that can be replaced (e.g., {0, 2, 41} for background and WM).
+    
+    Returns
+    -------
+    int
+        Number of voxels filled.
+    """
+    voxels_filled = 0
+    
+    if direction == 'inferior-superior':
+        # Iterate over z dimension
+        for z in range(potential_fill.shape[1]):
+            potential_fill_line = potential_fill[:, z]
+            labeled_gaps, num_gaps = ndimage.label(potential_fill_line)
+            source_line = source_binary[:, z]
+            target_line = target_binary[:, z]
+
+            for gap_label in range(1, num_gaps + 1):
+                gap_mask = labeled_gaps == gap_label
+
+                # Check that both source and target are connected to the gap
+                dilated_gap_mask = ndimage.binary_dilation(gap_mask, iterations=1)
+                if not np.any(source_line & dilated_gap_mask):
+                    continue
+                if not np.any(target_line & dilated_gap_mask):
+                    continue
+
+                # Get the target label from adjacent target voxels
+                target_label_location = np.where(target_line & dilated_gap_mask)[0]
+                if len(target_label_location) == 0:
+                    continue
+                target_label = corrected_pred[x_slice, target_label_location[0], z]
+
+                # Check gap size
+                if np.sum(gap_mask) > max_gap_voxels:
+                    continue
+
+                # Fill voxels that have fillable labels
+                current_labels = corrected_pred[x_slice, :, z]
+                fill_mask = gap_mask & np.isin(current_labels, list(fillable_labels))
+                voxels_filled += np.sum(fill_mask)
+                corrected_pred[x_slice, :, z][fill_mask] = target_label
+                
+    elif direction == 'anterior-posterior':
+        # Iterate over y dimension
+        for y in range(potential_fill.shape[0]):
+            potential_fill_line = potential_fill[y, :]
+            labeled_gaps, num_gaps = ndimage.label(potential_fill_line)
+            source_line = source_binary[y, :]
+            target_line = target_binary[y, :]
+
+            for gap_label in range(1, num_gaps + 1):
+                gap_mask = labeled_gaps == gap_label
+
+                # Check that both source and target are connected to the gap
+                dilated_gap_mask = ndimage.binary_dilation(gap_mask, iterations=1)
+                if not np.any(source_line & dilated_gap_mask):
+                    continue
+                if not np.any(target_line & dilated_gap_mask):
+                    continue
+
+                # Get the target label from adjacent target voxels
+                target_label_location = np.where(target_line & dilated_gap_mask)[0]
+                if len(target_label_location) == 0:
+                    continue
+                target_label = corrected_pred[x_slice, y, target_label_location[0]]
+
+                # Check gap size
+                if np.sum(gap_mask) > max_gap_voxels:
+                    continue
+
+                # Fill voxels that have fillable labels
+                current_labels = corrected_pred[x_slice, y, :]
+                fill_mask = gap_mask & np.isin(current_labels, list(fillable_labels))
+                voxels_filled += np.sum(fill_mask)
+                corrected_pred[x_slice, y, :][fill_mask] = target_label
+    
+    return voxels_filled
+
+
+def _fill_gaps_between_structures(
+    corrected_pred: npt.NDArray[np.int_],
+    source_mask: npt.NDArray[np.bool_],
+    target_mask: npt.NDArray[np.bool_],
+    voxel_size: tuple[float, float, float],
+    close_gap_size_mm: float,
+    fillable_labels: set[int],
+    description: str
+) -> int:
+    """Fill small gaps between two structures.
+    
+    Parameters
+    ----------
+    corrected_pred : npt.NDArray[np.int_]
+        The segmentation array to modify in place.
+    source_mask : npt.NDArray[np.bool_]
+        3D binary mask of source structure (e.g., CC).
+    target_mask : npt.NDArray[np.bool_]
+        3D binary mask of target structure (e.g., ventricle or background).
+    voxel_size : tuple[float, float, float]
+        Voxel size in mm.
+    close_gap_size_mm : float
+        Maximum gap size in mm.
+    fillable_labels : set[int]
+        Set of label values that can be replaced.
+    description : str
+        Description for logging.
+    
+    Returns
+    -------
+    int
+        Number of voxels filled.
+    """
+    # Convert mm gap size to voxels
+    max_gap_vox_anterior_posterior = int(np.ceil(close_gap_size_mm / voxel_size[1]))
+    max_gap_vox_inferior_superior = int(np.ceil(close_gap_size_mm / voxel_size[2]))
+    max_gap_vox_max = max(max_gap_vox_anterior_posterior, max_gap_vox_inferior_superior)
+    
+    voxels_filled = 0
+    
+    # Process each slice independently
+    for x in range(corrected_pred.shape[0]):
+        source_slice = source_mask[x]
+        target_slice = target_mask[x]
+
+        # Skip slices without both structures
+        if not (source_slice.any() and target_slice.any()):
+            continue
+        
+        # Create binary masks for this slice
+        source_binary = source_slice.astype(bool)
+        target_binary = target_slice.astype(bool)
+
+        # Dilate both masks to find potential connection points
+        source_dilated = ndimage.binary_dilation(source_binary, iterations=max_gap_vox_max)
+        target_dilated = ndimage.binary_dilation(target_binary, iterations=max_gap_vox_max)
+
+        # Find voxels that are adjacent to both structures but not part of either
+        potential_fill = (source_dilated & target_dilated) & ~(source_binary | target_binary)
+
+        # Fill gaps in inferior-superior direction
+        voxels_filled += _fill_gaps_in_direction(
+            corrected_pred, potential_fill, source_binary, target_binary,
+            x, 'inferior-superior', max_gap_vox_inferior_superior, fillable_labels
+        )
+
+        # Fill gaps in anterior-posterior direction
+        voxels_filled += _fill_gaps_in_direction(
+            corrected_pred, potential_fill, source_binary, target_binary,
+            x, 'anterior-posterior', max_gap_vox_anterior_posterior, fillable_labels
+        )
+    
+    if voxels_filled > 0:
+        logger.info(f"Filled {voxels_filled} voxels {description}")
+    
+    return voxels_filled
+
 
 def correct_wm_ventricles(
     aseg_cc: npt.NDArray[np.int_],
@@ -141,123 +338,56 @@ def correct_wm_ventricles(
     voxel_size: tuple[float, float, float],
     close_gap_size_mm: float = 3.0
 ) -> npt.NDArray[np.int_]:
-    """Correct WM mask and ventricle labels according to the CC and fornix masks.
+    """Fill small gaps between corpus callosum, ventricles, and background.
 
-    The function
-    Take non-CC-connected WM components -> remove
-    Take FN -> WM
-    Fill space in superior inferior direction between CC and left/right Ventricle with corresponding Ventricle labels
+    This function performs two gap-filling operations:
+    1. Fills WM and background gaps between CC and ventricles with ventricle labels
+    2. Fills WM gaps between CC and background with background label
+    
+    Note: Fornix and non-CC-connected WM component removal are intentionally not implemented
+    in this function as they have been removed from the processing pipeline.
+
+    Parameters
+    ----------
+    aseg_cc : npt.NDArray[np.int_]
+        Aseg segmentation with CC already painted in.
+    fornix_mask : npt.NDArray[np.bool_]
+        Mask of the fornix. Not currently used (kept for interface compatibility).
+    voxel_size : tuple[float, float, float]
+        Voxel size of the aseg image in mm.
+    close_gap_size_mm : float, default=3.0
+        Maximum size of the gap to fill in millimeters.
+
+    Returns
+    -------
+    npt.NDArray[np.int_]
+        Corrected segmentation map with filled gaps.
     """
-
     # Create a copy to avoid modifying the original
     corrected_pred = aseg_cc.copy()
-
+    
     # Get CC mask (labels 251-255)
     cc_mask = mask_in_array(aseg_cc, SUBSEGMENT_LABELS)
 
-    # Get left and right ventricle masks
-    all_ventricle_mask = (aseg_cc == 4) | (aseg_cc == 43)
-
-    # Combine all WM labels
-    all_wm_mask = (aseg_cc == 2) | (aseg_cc == 41)
-
-    # 1. Fill space between CC and ventricles
-    # Only fill small gaps (up to 3 voxels) between CC and ventricle boundaries
-    #for ventricle_label, ventricle_mask in [(4, left_ventricle_mask), (43, right_ventricle_mask)]:
+    # Get ventricle masks (left=4, right=43)
+    ventricle_mask = (aseg_cc == 4) | (aseg_cc == 43)
     
-    # Process each slice independently
-    for x in range(corrected_pred.shape[0]):
-        cc_slice = cc_mask[x]
-        #vent_slice = ventricle_mask
-        all_wm_slice = all_wm_mask[x]
-
-        if all_wm_slice.any() and cc_slice.any():
-
-            # Dilate CC mask to find adjacent voxels, then check for overlap with component
-            cc_dilated = ndimage.binary_dilation(cc_slice, iterations=1)
-            # Label connected components in WM
-            labeled_wm, num_components = ndimage.label(all_wm_slice)
-
-            # Find components that are adjacent to CC and remove them
-            for label in range(1, num_components + 1):
-                component_mask = labeled_wm == label
-                # Check if this component is adjacent to (touches) the CC
-                if np.any(component_mask & cc_dilated):
-                    corrected_pred[x][component_mask] = 0  # Set to background
-
-            if fornix_mask[x].any():
-                fornix_slice = fornix_mask[x]
-                # count WM labels overlapping with fornix
-                left_wm_overlap = np.sum(fornix_slice & (aseg_cc == 2))
-                right_wm_overlap = np.sum(fornix_slice & (aseg_cc == 41))
-                corrected_pred[x][fornix_slice] = 2 + (left_wm_overlap > right_wm_overlap) * 39  # Left WM / Right WM
-
-            vent_slice = all_ventricle_mask
-            potential_fill = np.asarray([False])
-            if cc_slice.any() and vent_slice.any():
-                # Create binary masks for this slice
-                cc_binary = cc_slice.astype(bool)
-                vent_binary = vent_slice.astype(bool)
-
-                # Dilate both masks slightly to find potential connection points
-                max_gap_vox = int(np.ceil(voxel_size[1] * close_gap_size_mm))
-                cc_dilated = ndimage.binary_dilation(cc_binary, iterations=max_gap_vox)
-                vent_dilated = ndimage.binary_dilation(vent_binary, iterations=max_gap_vox)
-
-                # Find voxels that are adjacent to both CC and ventricle but not part of either
-                potential_fill = (cc_dilated & vent_dilated) & ~(cc_binary | vent_binary)
-
-            # Only fill small gaps between CC and ventricle in inferior-superior direction
-            if not potential_fill.any():
-                for z in range(potential_fill.shape[1]):
-                    potential_fill_line = potential_fill[:, z]
-                    labeled_gaps, num_gaps = ndimage.label(potential_fill_line)
-                    cc_line = cc_binary[:, z]
-                    vent_line = vent_binary[:, z]
-
-                    for gap_label in range(1, num_gaps + 1):
-                        gap_mask = labeled_gaps == gap_label
-
-                        # check that CC and ventricle are connected to the gap_mask
-                        dilated_gap_mask = ndimage.binary_dilation(gap_mask, iterations=1)
-                        if not np.any(cc_line & dilated_gap_mask):
-                            continue
-                        if not np.any(vent_line & dilated_gap_mask):
-                            continue
-
-                        vent_label_location = np.where(vent_line & dilated_gap_mask)[0]
-                        vent_label = corrected_pred[x, vent_label_location, z]
-
-                        if np.sum(gap_mask) > max_gap_vox:
-                            continue
-
-                        corrected_pred[x, :, z][gap_mask  & (corrected_pred[x, :, z] == 0)] = vent_label
-
-                # Process gaps in z-direction (within each y-row)
-                for y in range(potential_fill.shape[0]):
-                    potential_fill_line = potential_fill[y, :]
-                    labeled_gaps, num_gaps = ndimage.label(potential_fill_line)
-                    cc_line = cc_binary[y, :]
-                    vent_line = vent_binary[y, :]
-
-                    for gap_label in range(1, num_gaps + 1):
-                        gap_mask = labeled_gaps == gap_label
-
-                        # check that CC and ventricle are connected to the gap_mask
-                        dilated_gap_mask = ndimage.binary_dilation(gap_mask, iterations=1)
-                        if not np.any(cc_line & dilated_gap_mask):
-                            continue
-                        if not np.any(vent_line & dilated_gap_mask):
-                            continue
-
-                        vent_label_location = np.where(vent_line & dilated_gap_mask)[0]
-                        if len(vent_label_location) > 0:
-                            vent_label = corrected_pred[x, y, vent_label_location[0]]  # Take first match
-
-                            if np.sum(gap_mask) > max_gap_vox:
-                                continue
-
-                            corrected_pred[x, y, :][gap_mask  & (corrected_pred[x, y, :] == 0)] = vent_label
+    # Get background mask
+    background_mask = aseg_cc == 0
+    
+    # 1. Fill gaps between CC and ventricles (replace WM and background with ventricle labels)
+    _fill_gaps_between_structures(
+        corrected_pred, cc_mask, ventricle_mask, voxel_size, close_gap_size_mm,
+        fillable_labels={0, 2, 41},  # background and WM
+        description="between CC and ventricles (WM/background → ventricle)"
+    )
+    
+    # 2. Fill WM gaps between CC and background (replace WM with background)
+    _fill_gaps_between_structures(
+        corrected_pred, cc_mask, background_mask, voxel_size, close_gap_size_mm,
+        fillable_labels={2, 41},  # only WM
+        description="between CC and background (WM → background)"
+    )
 
     return corrected_pred
 
@@ -297,11 +427,16 @@ if __name__ == "__main__":
     if not np.allclose(cc_seg_image.affine, aseg_image.affine):
         sys.exit("Error: The affine matrices of the aseg and the corpus callosum images are not the same.")
 
-    # Paint CC into prediction
-    pred_with_cc = paint_in_cc(aseg_data, cc_seg_data)
+    # Count initial labels before any modifications
+    initial_cc = np.sum(mask_in_array(aseg_data, SUBSEGMENT_LABELS))
+    initial_fornix = np.sum(aseg_data == FORNIX_LABEL)
+    initial_wm = np.sum((aseg_data == 2) | (aseg_data == 41))
+    initial_ventricles = np.sum((aseg_data == 4) | (aseg_data == 43))
 
-    # Apply WM and ventricle corrections
-    logger.info("Applying white matter and ventricle corrections...")
+    # Paint CC into prediction (modifies aseg_data in place)
+    paint_in_cc(aseg_data, cc_seg_data)
+
+    # Apply ventricle gap filling corrections
     fornix_mask = cc_seg_data == FORNIX_LABEL
     voxel_size = tuple(aseg_image.header.get_zooms())
     pred_corrected = correct_wm_ventricles(aseg_data, fornix_mask, voxel_size)
@@ -321,28 +456,22 @@ if __name__ == "__main__":
     else:
         rta_fut = None
 
-    # Count initial labels
-    initial_cc = np.sum(mask_in_array(aseg_data, SUBSEGMENT_LABELS))
-    initial_fornix = np.sum(aseg_data == FORNIX_LABEL)
-    initial_wm = np.sum((aseg_data == 2) | (aseg_data == 41))
-    logger.info(f"Initial segmentation: CC={initial_cc}, Fornix={initial_fornix}, WM={initial_wm}")
-
-    after_paint_cc = np.sum(mask_in_array(pred_with_cc, SUBSEGMENT_LABELS))
-    logger.info(f"After painting CC: {after_paint_cc} CC voxels added")
-
     # Count final labels
     final_cc = np.sum(mask_in_array(pred_corrected, SUBSEGMENT_LABELS))
     final_fornix = np.sum(pred_corrected == FORNIX_LABEL)
     final_wm = np.sum((pred_corrected == 2) | (pred_corrected == 41))
     final_ventricles = np.sum((pred_corrected == 4) | (pred_corrected == 43))
 
-    logger.info(f"Final segmentation: CC={final_cc}, Fornix={final_fornix},\
-                 WM={final_wm}, Ventricles={final_ventricles}")
-    logger.info(f"Changes: CC +{final_cc-initial_cc}, Fornix {final_fornix-initial_fornix},\
-                 WM {final_wm-initial_wm}")
+    wm_change = final_wm - initial_wm
+    vent_change = final_ventricles - initial_ventricles
+    cc_change = final_cc - initial_cc
+    
+    logger.info(f"Changes: Corpus Callosum {'+' if cc_change >= 0 else ''}{cc_change}, "
+                f"White Matter {'+' if wm_change >= 0 else ''}{wm_change}, "
+                f"Ventricles {'+' if vent_change >= 0 else ''}{vent_change}")
 
+    # Wait for all IO operations to complete
+    io_fut.result()
     if rta_fut is not None:
-        _ = rta_fut.result()
-
-    sys.exit(0)
+        rta_fut.result()
 
