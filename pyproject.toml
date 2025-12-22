@@ -33,10 +33,10 @@ classifiers = [
 ]
 dependencies = [
     'h5py>=3.7',
-    "lapy>=1.4.0",
+    "lapy @ git+https://github.com/Deep-MI/lapy.git@main",
     'matplotlib>=3.7.1',
     'nibabel>=5.1.0',
-    'numpy>=1.25,<2',
+    'numpy>=1.25',
     'pandas>=1.5.3',
     'pyyaml>=6.0',
     'requests>=2.31.0',

@@ -5,7 +5,6 @@ channels:
 
 dependencies:
 - h5py==3.12.1
-- lapy==1.4.0
 - matplotlib==3.10.1
 - monai==1.4.0
 - nibabel==5.3.2
@@ -26,6 +25,7 @@ dependencies:
 - yacs==0.1.8
 - pip:
   - --extra-index-url https://download.pytorch.org/whl/cu126
+  - lapy=git+https://github.com/Deep-MI/lapy.git@main
   - simpleitk==2.4.1
   - torch==2.6.0+cu126
   - torchio==0.20.4
