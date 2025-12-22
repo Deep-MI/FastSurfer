@@ -418,7 +418,8 @@ class CCContour:
                 continue
 
             # make levelpath
-            path = lapy.TriaMesh._TriaMesh__resample_polygon(path, 1000)
+            # FIXME: this change to lapy.Polygon is untested
+            path = lapy.Polygon(path).resample(1000).points
 
             # Extend at the beginning: add point in direction opposite to first segment
             first_segment = path[1] - path[0]
@@ -767,20 +768,19 @@ class CCContour:
         Expects LIA orientation.
         """
         import skimage.measure
+        from nibabel.affines import apply_affine
 
-        from CorpusCallosum.shape.endpoint_heuristic import smooth_contour
+        _contour: Points2dType = skimage.measure.find_contours(cc_mask, level=0.5)[0]
 
-        contour = skimage.measure.find_contours(cc_mask, level=0.5)[0].T
-        #FIXME: maybe use Polygon.smooth_*
-        contour = np.array(smooth_contour(*contour, window_size=contour_smoothing))
-        # Add z=0 coordinate to make 3D, then remove it after resampling
-        contour_3d = np.concatenate([np.zeros((1, contour.shape[1])), contour])  # ZIA, (3, N)
-        # FIXME: change this to using Polygon class when we upgrade lapy
-        contour_3d = lapy.tria_mesh.TriaMesh._TriaMesh__resample_polygon(contour_3d.T, 701).T
-        contour_ras = (slice_vox2ras[:3, :3] @ contour_3d) + slice_vox2ras[:3, [3]]
+        # FIXME: maybe CCContour should just inherit from Polygon?
+        polygon = lapy.polygon.Polygon(np.concatenate([np.zeros_like(_contour[:, :1]), _contour], axis=1), closed=True)
+        polygon.smooth_laplace(n=contour_smoothing, inplace=True)
+        polygon.resample(701, inplace=True)
 
-        ac_pc_3d = np.concatenate([[[0, 0]], np.stack([ac_2d, pc_2d], axis=1)]) # (3, 2)
-        ac_ras, pc_ras = ((slice_vox2ras[:3, :3] @ ac_pc_3d) + slice_vox2ras[:3, [3]]).T
-        endpoint_idx = find_cc_endpoints(contour_ras[1:], ac_ras[1:], pc_ras[1:])
+        contour_ras = apply_affine(slice_vox2ras, polygon.points)
 
-        return cls(contour_ras[1:].T, None, endpoint_idx, z_position=slice_vox2ras[0, 3])
+        ac_pc_3d = np.concatenate([[[0], [0]], np.stack([ac_2d, pc_2d], axis=0)], axis=1) # (2, 3)
+        ac_ras, pc_ras = apply_affine(slice_vox2ras, ac_pc_3d)
+        endpoint_idx = find_cc_endpoints(contour_ras[:, 1:].T, ac_ras[1:], pc_ras[1:])
+
+        return cls(contour_ras[:, 1:], None, endpoint_idx, z_position=slice_vox2ras[0, 3])

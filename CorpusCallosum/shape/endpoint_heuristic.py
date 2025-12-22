@@ -272,6 +272,8 @@ def find_contour_and_endpoints(
 
     # Add z=0 coordinate to make 3D, then remove it after resampling
     #FIXME: change this to using Polygon class when we upgrade lapy
+    # IMPORTANT: this is incompatible with lapy Polygon update (lapy 1.5?), however, find_contour_and_endpoints is not
+    # used any more in favor of CCContour.from_cc_mask
     contour_3d = lapy.tria_mesh.TriaMesh._TriaMesh__resample_polygon(
         np.append(contour, np.zeros((1, contour.shape[1])), axis=0).T,
         701,
