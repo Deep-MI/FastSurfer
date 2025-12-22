@@ -129,7 +129,7 @@ def load_fsaverage_centroids(centroids_path: str | Path) -> dict[int, npt.NDArra
     return {int(label): np.array(centroid) for label, centroid in centroids_data.items()}
 
 
-def load_fsaverage_affine(affine_path: str | Path) -> npt.NDArray[float]:
+def load_fsaverage_affine(affine_path: str | Path) -> AffineMatrix4x4:
     """Load fsaverage affine matrix from static text file.
 
     Parameters
