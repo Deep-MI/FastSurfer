@@ -36,14 +36,7 @@ from CorpusCallosum.shape.subsegment_contour import (
     transform_to_acpc_standard,
 )
 from CorpusCallosum.shape.thickness import cc_thickness
-from CorpusCallosum.utils.types import (
-    CCMeasuresDict,
-    ContourThickness,
-    Points2dType,
-    Polygon2dType,
-    SliceSelection,
-    SubdivisionMethod,
-)
+from CorpusCallosum.utils.types import CCMeasuresDict, ContourThickness, Points2dType, SliceSelection, SubdivisionMethod
 from CorpusCallosum.utils.visualization import plot_contours
 from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, Shape2d, Shape3d, Vector2d
 from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
@@ -100,7 +93,6 @@ def recon_cc_surf_measures_multi(
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
     subject_dir: SubjectDirectory,
-    vox_size: tuple[float, float, float],
 ) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future]]:
     """Surface reconstruction and metrics computation of corpus callosum slices based on selection mode.
 
@@ -134,8 +126,6 @@ def recon_cc_surf_measures_multi(
         Gaussian sigma for contour smoothing.
     subject_dir : SubjectDirectory
         The SubjectDirectory object managing file names in the subject directory.
-    vox_size : 3-tuple of floats
-        LIA-oriented voxel size in millimeters (x, y, z).
 
     Returns
     -------
@@ -162,7 +152,6 @@ def recon_cc_surf_measures_multi(
         subdivisions=subdivisions,
         subdivision_method=subdivision_method,
         contour_smoothing=contour_smoothing,
-        vox_size=vox_size,
     )
 
     # Process multiple slices or specific slice
@@ -224,14 +213,16 @@ def recon_cc_surf_measures_multi(
             io_futures.append(
                 run(
                     plot_contours,
-                    transformed=midslices[current_slice_in_volume:current_slice_in_volume+1],
+                    # select the data of the current slice
+                    slice_or_slab=midslices[[current_slice_in_volume]],
+                    # the following need to be in voxel coordinates...
                     split_contours=cc_measures["split_contours"],
                     midline_equidistant=cc_measures["midline_equidistant"],
                     levelpaths=cc_measures["levelpaths"],
                     output_path=qc_imgs,
-                    ac_coords=ac_coords_vox,
-                    pc_coords=pc_coords_vox,
-                    vox_size=vox_size,
+                    ac_coords_vox=ac_coords_vox,
+                    pc_coords_vox=pc_coords_vox,
+                    vox2ras=this_slice_vox2ras,
                     title=f"CC Subsegmentation by {subdivision_method} (Slice {slice_idx + 1})",
                 )
             )
@@ -244,8 +235,6 @@ def recon_cc_surf_measures_multi(
                     f"thickness_measurement_points.txt) to {template_dir}")
         run = run
         for j in range(len(cc_contours)):
-            # FIXME: check, if this is fixed (thickness values not nan == 200)
-            #  this does not seem to be thread-safe, do not parallelize!
             io_futures.append(run(cc_contours[j].save_contour, template_dir / f"contour_{j}.txt"))
             io_futures.append(run(cc_contours[j].save_thickness_values, template_dir / f"thickness_values_{j}.txt"))
 
@@ -267,17 +256,14 @@ def recon_cc_surf_measures_multi(
             logger.info(f"Saving overlay file to {overlay_file_path}")
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
-        if any(wants_output(f"cc_{n}") for n in ("thickness_image", "cc_surf")):
+        if any(wants_output(f"cc_{n}") for n in ("thickness_image", "surf")):
             import nibabel as nib
             up_data: Image3d[np.uint8] = np.empty(upright_header["dims"][:3], dtype=upright_header.get_data_dtype())
             upright_img = nib.MGHImage(up_data, fsavg_vox2ras, upright_header)
             # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
-            # FIXME: this is currently not in RAS coordinates!
-
             # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
             # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
             cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
-            #FIXME: to_fs_coordinate needs to transform from upright to
             if wants_output("cc_thickness_image"):
                 # this will also write overlay and surface
                 thickness_image_path = output_path("cc_thickness_image")
@@ -318,7 +304,6 @@ def recon_cc_surf_measure(
     subdivisions: list[float],
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
-    vox_size: tuple[float, float, float],
 ) -> tuple[CCMeasuresDict, ContourThickness, tuple[int, int]]:
     """Reconstruct surfaces and compute measures for a single slice for the corpus callosum.
 
@@ -342,8 +327,6 @@ def recon_cc_surf_measure(
         Method for contour subdivision ('shape', 'vertical', 'angular', or 'eigenvector').
     contour_smoothing : int
         Gaussian sigma for contour smoothing.
-    vox_size : triplet of floats
-        LIA-oriented voxel size in millimeters.
 
     Returns
     -------
@@ -478,7 +461,7 @@ def recon_cc_surf_measure(
 
 
 def test_right_of_line(
-        coords: Polygon2dType,
+        coords: Points2dType,
         line_start: Vector2d,
         line_end: Vector2d,
 ) -> np.ndarray[tuple[int], np.dtype[np.bool_]]:
@@ -487,27 +470,28 @@ def test_right_of_line(
     Parameters
     ----------
     coords : np.ndarray
-        Array of coordinates of shape (2, N).
+        Array of coordinates of shape (..., N).
     line_start : array-like
-        [x, y] coordinates of line start point.
+        [x, y] coordinates of line start point (N,).
     line_end : array-like
-        [x, y] coordinates of line end point.
+        [x, y] coordinates of line end point (N,).
 
     Returns
     -------
     np.ndarray
-        Boolean array where True means point is to the left of the line.
+        Boolean array where True means point is to the left of the line of shape coords.shape[:-1].
     """
     # Vector from line_start to line_end
-    line_vec = np.array(line_end) - np.array(line_start)
+    line_start_arr = np.expand_dims(line_start, axis=np.arange(line_start.ndim, coords.ndim).tolist())
+    line_vec = np.expand_dims(line_end, axis=np.arange(line_end.ndim, coords.ndim).tolist()) - line_start_arr
     
     # Vectors from line_start to all points (vectorized)
-    point_vec = coords - np.expand_dims(line_start, axis=list(range(1, coords.ndim)))
+    point_vec = np.moveaxis(coords, -1, 0) - line_start_arr
 
     # Cross product (vectorized): positive means point is to the left of the line
     cross_products = line_vec[0] * point_vec[1] - line_vec[1] * point_vec[0]
     
-    return cross_products > 0
+    return np.greater(cross_products, 0)
 
 
 def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]:
@@ -535,33 +519,16 @@ def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]
     3. Collects points unique to each subsegment.
     """
     # For each contour point, check if it appears in other contours
-    unique_contour_points: list[Points2dType] = []
-    
-    for i, contour in enumerate(split_contours):
-        # Get points for this contour
-        contour_points: Points2dType = np.vstack((contour[0], -contour[1])).T  # Shape: (N,2)
-        
-        # Check each point against all other contours
-        unique_points = []
-        for point in contour_points:
-            is_unique = True
-            
-            # Compare against other contours
-            for j, other_contour in enumerate(split_contours):
-                if i == j:
-                    continue
-                    
-                other_points = np.vstack((other_contour[0], -other_contour[1])).T
-                
-                # Check if point exists in other contour (with small tolerance)
-                if np.any(np.all(np.abs(other_points - point) < 1e-6, axis=1)):
-                    is_unique = False
-                    break
-                    
-            if is_unique:
-                unique_points.append(point)
-                
-        unique_contour_points.append(np.array(unique_points))
+    # initialize with values for first_contour, which are by definition just "the contour" (empty)
+    unique_contour_points: list[Points2dType] = [np.zeros((0, 2))]
+    first_contour = split_contours[0]
+    # Check each point against all other contours
+    for contour in split_contours[1:]:
+        # 0: coord-axis, 1: contour-axis, 2: first_contour_axis
+        contour_comparison = np.isclose(first_contour[:, None], contour[:, :, None], atol=1e-6)
+        # mask of contour points, that are also in first_contour (axis 1 after all)
+        contour_points_in_first_contour_mask = np.any(np.all(contour_comparison, axis=0), axis=1)
+        unique_contour_points.append(contour[:, ~contour_points_in_first_contour_mask].T)
 
     return unique_contour_points
 
@@ -569,7 +536,7 @@ def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]
 def make_subdivision_mask(
     slice_shape: Shape2d,
     split_contours: ContourList,
-    vox_size: tuple[float, float],
+    vox2ras: AffineMatrix4x4,
 ) -> np.ndarray[Shape2d, np.dtype[np.int_]]:
     """Create a mask for subdividing the corpus callosum based on split contours.
 
@@ -580,8 +547,8 @@ def make_subdivision_mask(
     split_contours : ContourList
         List of contours defining the subdivisions.
         Each contour is a tuple of x and y coordinates.
-    vox_size : pair of floats
-        The voxel sizes of the image grid in AS orientation.
+    vox2ras : AffineMatrix4x4
+        The vox2ras transformation matrix for the requested shape.
 
     Returns
     -------
@@ -599,6 +566,7 @@ def make_subdivision_mask(
     - Tests which points lie to the right of the line.
     - Updates labels for those points.
     """
+    from nibabel.affines import apply_affine
 
     # unique_contour_points are the points where sub-division lines were inserted
     unique_contour_points: list[Points2dType] = get_unique_contour_points(split_contours)  # shape (N, 2)
@@ -610,29 +578,27 @@ def make_subdivision_mask(
  
     # Create coordinate grids for all points in the slice
     rows, cols = slice_shape
-    coords = np.array(np.mgrid[0:rows, 0:cols])[[1, 0]]
+    coords_vox = np.stack(np.mgrid[0:1, 0:rows, 0:cols], axis=-1)
+    coords_ras = apply_affine(vox2ras, coords_vox)
 
-    cc_subsegment_lut_anterior_to_posterior = SUBSEGMENT_LABELS.copy()
-    cc_subsegment_lut_anterior_to_posterior.reverse()
-    
+    cc_labels_posterior_to_anterior = SUBSEGMENT_LABELS
+
     # Initialize with first segment label
-    subdivision_mask = np.full(slice_shape, cc_subsegment_lut_anterior_to_posterior[0], dtype=np.int32)
-    
+    subdivision_mask = np.full(slice_shape, cc_labels_posterior_to_anterior[0], dtype=np.int32)
+
     # Process each subdivision line, subdivision_segments has for each division line the two points that are on the
     # contour and divide the subsegments
-    for segment_idx, segment_points in enumerate(subdivision_segments):
+    for label, segment_points in zip(cc_labels_posterior_to_anterior[1:], reversed(subdivision_segments), strict=True):
         # line_start and line_end are the intersection points of the CC subsegmentation boundary and the contour line
+        line_start, line_end = segment_points
+
         # --> find all voxels posterior to the line in question
-        line_start: Vector2d = segment_points[0] / vox_size
-        line_end: Vector2d = segment_points[-1] / vox_size
-        
         # Vectorized test: find all points to the right of line (line_start->line_end)
         # right_of_line == posterior to line
-        points_right_of_line = test_right_of_line(coords, line_start, line_end)
+        points_right_of_line = test_right_of_line(coords_ras[0, ..., 1:], line_start, line_end)
         
         # All points to the right of this line belong to the next segment or beyond
-        subdivision_mask[points_right_of_line] = cc_subsegment_lut_anterior_to_posterior[segment_idx + 1]
-
+        subdivision_mask[points_right_of_line] = label
     return subdivision_mask
 
 

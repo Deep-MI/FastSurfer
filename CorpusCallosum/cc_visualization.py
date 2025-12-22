@@ -133,7 +133,7 @@ def load_contours_from_template_dir(
     num_slices = len(indices)
     middle_idx = num_slices // 2
     
-    for i, thickness_file in enumerate(thickness_files):
+    for thickness_file in thickness_files:
         try:
             idx = int(thickness_file.stem.split("_")[-1])
         except ValueError:

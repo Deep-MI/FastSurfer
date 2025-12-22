@@ -18,7 +18,7 @@ import json
 from collections.abc import Iterable
 from pathlib import Path
 from time import perf_counter_ns
-from typing import Literal, TypeVar, cast
+from typing import Literal, TypeVar, cast, get_args
 
 import nibabel as nib
 import numpy as np
@@ -82,6 +82,18 @@ from recon_surf.align_points import find_rigid
 logger = logging.get_logger(__name__)
 
 _TPathLike = TypeVar("_TPathLike", str, Path, Literal[None])
+
+CCMeasures = Literal[
+    "areas",
+    "thickness",
+    "curvature",
+    "midline_length",
+    "circularity",
+    "cc_index",
+    "total_area",
+    "total_perimeter",
+    "thickness_profile",
+]
 
 
 class ArgumentDefaultsHelpFormatter(HelpFormatter):
@@ -755,7 +767,6 @@ def main(
     # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
         # upright == fsaverage-aligned
-        # FIXME: upright currently does not get saved correctly
         io_futures.append(
             thread_executor().submit(
                 apply_transform_to_volume,
@@ -841,7 +852,6 @@ def main(
         subdivisions=subdivisions,
         subdivision_method=cast(SubdivisionMethod, subdivision_method),
         contour_smoothing=contour_smoothing,
-        vox_size=vox_size,
         subject_dir=sd,
     )
     io_futures.extend(slice_io_futures)
@@ -859,7 +869,7 @@ def main(
         cc_subseg_midslice = make_subdivision_mask(
             (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
             middle_slice_result["split_contours"],
-            vox_size[1:3],
+            vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox),
         )
     else:
         logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
@@ -886,24 +896,14 @@ def main(
             orig2midslice_vox2vox=orig2midslice_vox2vox,
         ))
 
-    METRICS = [
-        "areas",
-        "thickness",
-        "curvature",
-        "midline_length",
-        "circularity",
-        "cc_index",
-        "total_area",
-        "total_perimeter",
-        "thickness_profile",
-    ]
+    metrics: tuple[CCMeasures] = get_args(CCMeasures)
 
     # Record key metrics for middle slice
-    output_metrics_middle_slice = {metric: middle_slice_result[metric] for metric in METRICS}
+    output_metrics_middle_slice = {metric: middle_slice_result[metric] for metric in metrics}
 
     # Create enhanced output dictionary with all slice results
     per_slice_output_dict = {
-        "slices": [convert_numpy_to_json_serializable({metric: result[metric] for metric in METRICS})
+        "slices": [convert_numpy_to_json_serializable({metric: result[metric] for metric in metrics})
                    for result in slice_results],
     }
 
@@ -960,14 +960,14 @@ def main(
             save_cc_measures_json,
             sd.filename_by_attribute('cc_mid_measures'),
             output_metrics_middle_slice | additional_metrics,
-            ))
+        ))
 
     if sd.has_attribute("cc_measures"):
         io_futures.append(thread_executor().submit(
             save_cc_measures_json,
             sd.filename_by_attribute("cc_measures"),
             per_slice_output_dict | additional_metrics,
-            ))
+        ))
 
     # save lta to fsaverage space
 
