@@ -148,6 +148,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--subdivisions",
         type=float,
+        nargs='*',
         metavar="FRAC",
         default=_FixFloatFormattingList([1 / 6, 1 / 2, 2 / 3, 3 / 4], ".3f"),
         help="List of subdivision fractions for the corpus callosum subsegmentation."

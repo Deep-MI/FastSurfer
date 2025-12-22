@@ -119,13 +119,30 @@ def load_contours_from_template_dir(
     
     fsaverage_contour = None
     contours: list[CCContour] = []
+    # First pass: collect all indices to determine the range
+    indices = []
     for thickness_file in thickness_files:
+        try:
+            idx = int(thickness_file.stem.split("_")[-1])
+            indices.append(idx)
+        except ValueError:
+            # skip files that do not follow the expected naming
+            continue
+    
+    # Calculate z_positions centered around the middle slice
+    num_slices = len(indices)
+    middle_idx = num_slices // 2
+    
+    for i, thickness_file in enumerate(thickness_files):
         try:
             idx = int(thickness_file.stem.split("_")[-1])
         except ValueError:
             # skip files that do not follow the expected naming
             continue
 
+        # Calculate z_position: use the index offset from middle, scaled by resolution
+        z_position = (idx - indices[middle_idx]) * resolution
+        
         contour_file = template_dir / f"contour_{idx}.txt"
 
         if not contour_file.exists():
@@ -138,15 +155,11 @@ def load_contours_from_template_dir(
                 # create measurement points (points = 2 x levelpaths) according to number of thickness values
                 fsaverage_contour.create_levelpaths(num_points=num_thickness_values // 2, update_data=True)
             current_contour = fsaverage_contour.copy()
+            current_contour.z_position = z_position
             current_contour.load_thickness_values(thickness_file)
             
         else:
-            # this is kinda ugly - maybe we need to overload the constructor to load the contour and thickness values?
-            # FIXME: The z_position in from_contour is still incorrect, currently all Contours would be "registered" for
-            #        the midslice.
-            current_contour = CCContour.from_contour_file(contour_file, thickness_file, z_position=0.0)
-            # current_contour.load_contour(contour_file)
-            # current_contour.load_thickness_values(thickness_file)
+            current_contour = CCContour.from_contour_file(contour_file, thickness_file, z_position=z_position)
         
         current_contour.fill_thickness_values()
         contours.append(current_contour)

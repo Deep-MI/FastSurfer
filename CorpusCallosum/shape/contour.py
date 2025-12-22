@@ -714,20 +714,22 @@ class CCContour:
         else:
             raise ValueError("Thickness values file must contain a single column")
 
-        if len(values) != len(contour):
-            if original_thickness_vertices is None:
-                new_values = values
-            elif np.sum(~np.isnan(values)) == len(original_thickness_vertices):
-                new_values = np.full(len(contour), np.nan)
-                new_values[original_thickness_vertices] = values[~np.isnan(values)]
-            else:
-                raise ValueError(
-                    f"Number of thickness values {len(values)} does not match number of points in the contour "
-                    f"{len(contour)} and current number of measurement points {len(original_thickness_vertices)} does "
-                    f"not match the number of set thickness values {np.sum(~np.isnan(values))}."
-                )
+        if len(values) == len(contour):
+            # Perfect match - use values directly
+            new_values = values
+        elif original_thickness_vertices is None:
+            # No original vertices specified, use values as-is (may differ in length)
+            new_values = values
+        elif np.sum(~np.isnan(values)) == len(original_thickness_vertices):
+            # Values match the number of measurement points, map them to the contour
+            new_values = np.full(len(contour), np.nan)
+            new_values[original_thickness_vertices] = values[~np.isnan(values)]
         else:
-            raise ValueError(f"Number of thickness values in {input_path} does not match the vertices of the path!")
+            raise ValueError(
+                f"Number of thickness values {len(values)} does not match number of points in the contour "
+                f"{len(contour)} and current number of measurement points {len(original_thickness_vertices)} does "
+                f"not match the number of set thickness values {np.sum(~np.isnan(values))}."
+            )
 
         return new_values
 
