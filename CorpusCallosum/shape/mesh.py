@@ -678,9 +678,6 @@ class CCMesh(lapy.TriaMesh):
     @update_docstring(parent_doc=TriaMesh.write_fssurf.__doc__)
     def write_fssurf(self, filename: Path | str, image: str | nibabelImage | None = None) -> None:
         """{parent_doc}
-
-        Notes
-        -----
         Also creates parent directory if needed before writing the file.
         """
         self.__make_parent_folder(filename)
