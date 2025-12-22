@@ -5,7 +5,6 @@ from typing import Literal
 
 import numpy as np
 
-from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.mesh import CCMesh
@@ -222,7 +221,15 @@ def main(
     cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
     #FIXME: needs to be adapted to new interface of CCMesh.to_fs_coordinates / to_vox_coordinates
-    cc_mesh = cc_mesh.to_vox_coordinates(lr_offset=FSAVERAGE_MIDDLE / resolution)
+    # Here we need to load the np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox)
+    # This is the same as orig2fsavg_ras2ras from cc_up.lta
+    # orig2fsavg_ras2ras = read_lta(output_dir / "mri/transforms/cc_up.lta")
+    # orig = nibabel.load(output_dir / "mri/orig.mgz")
+    # cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(orig2fsavg_ras2ras @ orig.affine))
+    # If we are willing to screenshot here in fsavg space, this can be simplified to just fsavg_vox2ras
+    from CorpusCallosum.data.read_write import load_fsaverage_data
+    fsavg_vox2ras, _ = load_fsaverage_data(Path(__file__).parent / "data/fsaverage_data.json")
+    cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras))
     logger.info(f"Writing vtk file to {output_dir / 'cc_mesh.vtk'}")
     cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
     logger.info(f"Writing freesurfer surface file to {output_dir / 'cc_mesh.fssurf'}")
