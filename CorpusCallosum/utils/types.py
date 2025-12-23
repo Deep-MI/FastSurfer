@@ -66,9 +66,9 @@ class CCMeasuresDict(TypedDict):
     thickness_profile: ndarray[tuple[int], dtype[float]]
     total_area: float
     total_perimeter: float
-    total_area: float
-    total_perimeter: float
     split_contours: ContourList
     midline_equidistant: ndarray
+    curvature_subsegments: ndarray
+    curvature_body: float
     levelpaths: list[ndarray]
     slice_index: int

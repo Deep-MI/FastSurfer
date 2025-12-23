@@ -146,7 +146,7 @@ def extract_cc_contour(cc_mask: Mask2d, contour_smoothing: int = 5) -> Polygon2d
 
     Returns
     -------
-    lapy.polygon.Polygon
+    lapy.Polygon
         A lapy Polygon object with a closed polygon contour.
     """
     cc_mask = connect_diagonally_connected_components(cc_mask)

@@ -110,7 +110,7 @@ def subsegment_midline_orthogonal(
         plot: bool = True,
         ax=None,
         extremes=None,
-) -> tuple[np.ndarray[tuple[int], np.dtype[ScalarType]], ContourList]:
+) -> tuple[np.ndarray[tuple[int], np.dtype[ScalarType]], ContourList, np.ndarray]:
     """Subsegment contour orthogonally to the midline based on area weights.
 
     Parameters
@@ -134,6 +134,8 @@ def subsegment_midline_orthogonal(
         List of subsegment areas.
     split_contours : list of np.ndarray
         List of contour arrays for each subsegment.
+    split_points : np.ndarray
+        Array of shape (K, 2) containing points where the midline was split.
     """
     # FIXME: Here and in other places, the order of dimensions is pretty inconsistent, for example: midline is (N, 2),
     #        but contours are (2, N)...
@@ -365,12 +367,81 @@ def subsegment_midline_orthogonal(
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_areas(split_contours), split_contours
+    return calc_subsegment_areas(split_contours), split_contours, split_points
+
+
+def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]:
+    """Get unique contour points from the split contours.
+
+    Parameters
+    ----------
+    split_contours : ContourList
+        List of split contours (subsegmentations), each containing x and y coordinates, each of shape (2, N).
+
+    Returns
+    -------
+    list[np.ndarray]
+        List of unique contour points for each subsegment, each of shape (N, 2).
+
+    Notes
+    -----
+    This is a workaround to retrospectively add voxel-based subdivision.
+    In the future, we could keep track of the subdivision lines for
+    every subdivision scheme.
+
+    The function:
+    1. Processes each contour point.
+    2. Checks if it appears in other contours (with small tolerance).
+    3. Collects points unique to each subsegment.
+    """
+    # For each contour point, check if it appears in other contours
+    # initialize with values for first_contour, which are by definition just "the contour" (empty)
+    unique_contour_points: list[Points2dType] = [np.zeros((0, 2))]
+    first_contour = split_contours[0]
+    # Check each point against all other contours
+    for contour in split_contours[1:]:
+        # 0: coord-axis, 1: contour-axis, 2: first_contour_axis
+        contour_comparison = np.isclose(first_contour[:, None], contour[:, :, None], atol=1e-6)
+        # mask of contour points, that are also in first_contour (axis 1 after all)
+        contour_points_in_first_contour_mask = np.any(np.all(contour_comparison, axis=0), axis=1)
+        unique_contour_points.append(contour[:, ~contour_points_in_first_contour_mask].T)
+
+    return unique_contour_points
 
 
 def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
         -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList]:
-    # FIXME: needs docstring
+    """Subdivide contour based on area weights using equally spaced rays.
+
+    Parameters
+    ----------
+    contour : np.ndarray
+        Array of shape (2, N) containing contour points.
+    num_rays : int
+        Number of rays to use for subdivision.
+    plot : bool, optional
+        Whether to plot the results, by default False.
+    ax : matplotlib.axes.Axes, optional
+        Axes for plotting, by default None.
+
+    Returns
+    -------
+    areas : np.ndarray
+        Array of areas for each subsegment.
+    split_contours : list[np.ndarray]
+        List of contour arrays for each subsegment.
+
+    Notes
+    -----
+    The subdivision process:
+    1. Finds extreme points in x-direction.
+    2. Creates minimal bounding rectangle around contour.
+    3. Creates equally spaced rays from lower edge of rectangle.
+    4. Finds intersections of rays with contour.
+    5. Creates new contours by splitting at intersections.
+    6. Returns areas and split contours.
+    """
+    
     # Find the extreme points in the x-direction
     min_x_index = np.argmin(contour[0])
     contour = np.roll(contour, -min_x_index, axis=1)

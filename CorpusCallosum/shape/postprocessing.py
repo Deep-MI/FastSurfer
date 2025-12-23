@@ -24,19 +24,27 @@ from numpy import typing as npt
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, SUBSEGMENT_LABELS
 from CorpusCallosum.shape.contour import CCContour
+from CorpusCallosum.shape.curvature import calculate_curvature_metrics
 from CorpusCallosum.shape.endpoint_heuristic import connect_diagonally_connected_components
 from CorpusCallosum.shape.mesh import CCMesh
 from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
     ContourList,
     get_primary_eigenvector,
+    get_unique_contour_points,
     hampel_subdivide_contour,
     subdivide_contour,
     subsegment_midline_orthogonal,
     transform_to_acpc_standard,
 )
 from CorpusCallosum.shape.thickness import cc_thickness
-from CorpusCallosum.utils.types import CCMeasuresDict, ContourThickness, Points2dType, SliceSelection, SubdivisionMethod
+from CorpusCallosum.utils.types import (
+    CCMeasuresDict,
+    ContourThickness,
+    Points2dType,
+    SliceSelection,
+    SubdivisionMethod,
+)
 from CorpusCallosum.utils.visualization import plot_contours
 from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, Shape2d, Shape3d, Vector2d
 from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
@@ -411,11 +419,16 @@ def recon_cc_surf_measure(
 
     # Apply different subdivision methods based on user choice
     split_contours: ContourList
+    split_points_midline: np.ndarray | None = None
     if subdivision_method == "shape":
         _subdivisions = np.asarray(subdivisions)
-        areas, split_contours = subsegment_midline_orthogonal(midline_equi, _subdivisions, contour_as, plot=False)
-        split_contours = [transform_to_acpc_standard(split_contour, *acpc_contour_coords_as)[0]
-                          for split_contour in split_contours]
+        areas, split_contours, split_points_midline = subsegment_midline_orthogonal(
+            midline_equi, _subdivisions, contour_as, plot=False
+        )
+        split_contours = [
+            transform_to_acpc_standard(split_contour, *acpc_contour_coords_as)[0]
+            for split_contour in split_contours
+        ]
     elif subdivision_method == "vertical":
         areas, split_contours = subdivide_contour(contour_in_acpc_space, subdivisions, plot=False)
     elif subdivision_method == "angular":
@@ -442,6 +455,11 @@ def recon_cc_surf_measure(
     # Transform split contours back to original space
     split_contours = [rotate_back_acpc(split_contour) for split_contour in split_contours]
 
+    # Calculate curvature metrics
+    curvature, curvature_body, curvature_subsegments = calculate_curvature_metrics(
+        midline_equi, split_points=split_points_midline, split_contours=split_contours
+    )
+
     measures: CCMeasuresDict = {
         "cc_index": cc_index,
         "circularity": circularity,
@@ -449,6 +467,8 @@ def recon_cc_surf_measure(
         "midline_length": midline_len,
         "thickness": thickness,
         "curvature": curvature,
+        "curvature_subsegments": curvature_subsegments,
+        "curvature_body": curvature_body,
         "thickness_profile": thickness_profile,
         "total_area": total_area,
         "total_perimeter": total_perimeter,
@@ -492,45 +512,6 @@ def test_right_of_line(
     cross_products = line_vec[0] * point_vec[1] - line_vec[1] * point_vec[0]
     
     return np.greater(cross_products, 0)
-
-
-def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]:
-    """Get unique contour points from the split contours.
-
-    Parameters
-    ----------
-    split_contours : ContourList
-        List of split contours (subsegmentations), each containing x and y coordinates, each of shape (2, N).
-
-    Returns
-    -------
-    list[np.ndarray]
-        List of unique contour points for each subsegment, each of shape (N, 2).
-
-    Notes
-    -----
-    This is a workaround to retrospectively add voxel-based subdivision.
-    In the future, we could keep track of the subdivision lines for
-    every subdivision scheme.
-
-    The function:
-    1. Processes each contour point.
-    2. Checks if it appears in other contours (with small tolerance).
-    3. Collects points unique to each subsegment.
-    """
-    # For each contour point, check if it appears in other contours
-    # initialize with values for first_contour, which are by definition just "the contour" (empty)
-    unique_contour_points: list[Points2dType] = [np.zeros((0, 2))]
-    first_contour = split_contours[0]
-    # Check each point against all other contours
-    for contour in split_contours[1:]:
-        # 0: coord-axis, 1: contour-axis, 2: first_contour_axis
-        contour_comparison = np.isclose(first_contour[:, None], contour[:, :, None], atol=1e-6)
-        # mask of contour points, that are also in first_contour (axis 1 after all)
-        contour_points_in_first_contour_mask = np.any(np.all(contour_comparison, axis=0), axis=1)
-        unique_contour_points.append(contour[:, ~contour_points_in_first_contour_mask].T)
-
-    return unique_contour_points
 
 
 def make_subdivision_mask(

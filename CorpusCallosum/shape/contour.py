@@ -775,7 +775,7 @@ class CCContour:
         # FIXME: maybe CCContour should just inherit from Polygon?
         # remove last, duplicate point
         _contour = _contour[:-1]
-        polygon = lapy.polygon.Polygon(np.concatenate([np.zeros_like(_contour[:, :1]), _contour], axis=1), closed=True)
+        polygon = lapy.Polygon(np.concatenate([np.zeros_like(_contour[:, :1]), _contour], axis=1), closed=True)
         polygon.smooth_laplace(n=contour_smoothing, inplace=True)
         polygon.resample(700, inplace=True)
         contour_ras = apply_affine(slice_vox2ras, polygon.points)
