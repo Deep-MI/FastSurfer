@@ -581,7 +581,10 @@ def make_subdivision_mask(
     coords_vox = np.stack(np.mgrid[0:1, 0:rows, 0:cols], axis=-1)
     coords_ras = apply_affine(vox2ras, coords_vox)
 
-    cc_labels_posterior_to_anterior = SUBSEGMENT_LABELS
+    # Use only as many labels as needed based on the number of subdivisions
+    # Number of regions = number of division lines + 1
+    num_labels_needed = len(subdivision_segments) + 1
+    cc_labels_posterior_to_anterior = SUBSEGMENT_LABELS[:num_labels_needed]
 
     # Initialize with first segment label
     subdivision_mask = np.full(slice_shape, cc_labels_posterior_to_anterior[0], dtype=np.int32)

@@ -773,10 +773,11 @@ class CCContour:
         _contour: Points2dType = skimage.measure.find_contours(cc_mask, level=0.5)[0]
 
         # FIXME: maybe CCContour should just inherit from Polygon?
+        # remove last, duplicate point
+        _contour = _contour[:-1]
         polygon = lapy.polygon.Polygon(np.concatenate([np.zeros_like(_contour[:, :1]), _contour], axis=1), closed=True)
         polygon.smooth_laplace(n=contour_smoothing, inplace=True)
-        polygon.resample(701, inplace=True)
-
+        polygon.resample(700, inplace=True)
         contour_ras = apply_affine(slice_vox2ras, polygon.points)
 
         ac_pc_3d = np.concatenate([[[0], [0]], np.stack([ac_2d, pc_2d], axis=0)], axis=1) # (2, 3)
