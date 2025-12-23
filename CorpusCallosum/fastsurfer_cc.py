@@ -93,6 +93,8 @@ CCMeasures = Literal[
     "total_area",
     "total_perimeter",
     "thickness_profile",
+    "curvature_subsegments",
+    "curvature_body",
 ]
 
 

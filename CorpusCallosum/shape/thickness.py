@@ -19,31 +19,9 @@ from lapy import Solver, TriaMesh
 from lapy.diffgeo import compute_rotated_f
 from meshpy import triangle
 
+from CorpusCallosum.shape.curvature import compute_mean_curvature
 from CorpusCallosum.utils.types import ContourThickness, Points2dType
 from FastSurferCNN.utils.common import suppress_stdout
-
-
-def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
-    """Compute curvature by computing edge angles.
-
-    Parameters
-    ----------
-    path : np.ndarray
-        Array of shape (N, 2) containing path coordinates.
-
-    Returns
-    -------
-    np.ndarray
-        Array of angle differences between consecutive edges.
-    """
-    # compute curvature by computing edge angles
-    edges = np.diff(path, axis=0)
-    angles = np.arctan2(edges[:, 1], edges[:, 0])
-    # compute angle differences between consecutive edges
-    angle_diffs = np.diff(angles)
-    # wrap angles to [-pi, pi]
-    angle_diffs = np.mod(angle_diffs + np.pi, 2 * np.pi) - np.pi
-    return angle_diffs
 
 
 def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint_idx):
@@ -352,8 +330,7 @@ def cc_thickness(
     contour_2d_with_thickness = np.concatenate([contour_2d, contour_thickness[:, None]], axis=1)
 
     # get curvature of path3d_resampled
-    curvature = compute_curvature(midline_equidistant_contour_space)
-    mean_curvature: float = np.abs(np.degrees(np.mean(curvature))).item() / len(curvature)
+    mean_curvature: float = compute_mean_curvature(midline_equidistant_contour_space)
     mean_thickness: float = np.mean(levelpath_lengths).item()
     endpoints: tuple[int, int] = (anterior_endpoint_idx, posterior_endpoint_idx)
 
