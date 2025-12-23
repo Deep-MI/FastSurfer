@@ -180,7 +180,7 @@ def make_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--contour_smoothing",
-        type=float,
+        type=int,
         default=5,
         help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother CC outline, at the "
              "cost of precision.",
@@ -877,6 +877,7 @@ def main(
 
     # save segmentation labels, this
     if sd.has_attribute("cc_segmentation"):
+        sd.filename_by_attribute("cc_segmentation").parent.mkdir(exist_ok=True, parents=True)
         io_futures.append(thread_executor().submit(
             nib.save,
             nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
@@ -956,6 +957,7 @@ def main(
 
 
     if sd.has_attribute("cc_mid_measures"):
+        sd.filename_by_attribute('cc_mid_measures').parent.mkdir(exist_ok=True, parents=True)
         io_futures.append(thread_executor().submit(
             save_cc_measures_json,
             sd.filename_by_attribute('cc_mid_measures'),
@@ -963,6 +965,7 @@ def main(
         ))
 
     if sd.has_attribute("cc_measures"):
+        sd.filename_by_attribute("cc_measures").parent.mkdir(exist_ok=True, parents=True)
         io_futures.append(thread_executor().submit(
             save_cc_measures_json,
             sd.filename_by_attribute("cc_measures"),
@@ -972,7 +975,7 @@ def main(
     # save lta to fsaverage space
 
     if sd.has_attribute("upright_lta"):
-        sd.filename_by_attribute("cc_mid_measures").parent.mkdir(exist_ok=True, parents=True)
+        sd.filename_by_attribute("upright_lta").parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
         io_futures.append(thread_executor().submit(
             write_lta,
