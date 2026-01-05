@@ -1,6 +1,7 @@
 #!/bin/python
 
 import argparse
+import io
 import re
 import shutil
 import subprocess
@@ -242,21 +243,17 @@ def main(
     Parameters
     ----------
     sections : str
-        String describing which sections the output should include. Can be 'all' or a
-        concatenated list of '+branch', '+checkpoints', '+git', and '+pip', e.g.
-        '+git+checkpoints'.
-        The order does not matter, '+checkpoints', '+git' or '+pip' also implicitly
-        activate '+branch'.
+        String describing which sections the output should include. Can be 'all' or a concatenated list of '+branch',
+        '+checkpoints', '+git', and '+pip', e.g. '+git+checkpoints'.
+        The order does not matter, '+checkpoints', '+git' or '+pip' also implicitly activate '+branch'.
     project_file : TextIO, optional
         A file-like object to read the projects toml file, with the '[project]' section
         with a 'version' attribute. Defaults to $PROJECT_ROOT/pyproject.toml.
     build_cache : False, TextIO, optional
-        A file-like object to read cached version information, the format should be
-        formatted like the output of `main`. Defaults to $PROJECT_ROOT/BUILD.info.
-        If build_cache is False, it is ignored.
+        A file-like object to read cached version information, the format should be formatted like the output of `main`.
+        If build_cache is None, it defaults to $PROJECT_ROOT/BUILD.info; if it is False, it is ignored.
     file : TextIO, optional
-        A file-like object to write the output to, defaults to stdout if None or not
-        passed.
+        A file-like object to write the output to, defaults to stdout if None or not passed.
     prefer_cache : bool, default=False
         Whether to prefer information from the `build_cache` over online generation.
 
@@ -273,9 +270,8 @@ def main(
 
     if prefer_cache and not has_build_cache:
         return (
-            "Trying to force the use of cached version information (--prefer_cache), "
-            "but no build information file was passed found at the default location "
-            f"({DEFAULTS.BUILD_TXT})."
+            "Trying to force the use of cached version information (--prefer_cache), but no build information file was "
+            f"passed found at the default location ({DEFAULTS.BUILD_TXT})."
         )
 
     if sections == "all":
@@ -291,17 +287,11 @@ def main(
         futures["version"] = pool.submit(read_and_close_version, project_file)
         # if we do not have git, try VERSION file else git sha and branch
         if has_git() and not prefer_cache:
-            futures["git_hash"] = Popen(
-                ["git", "rev-parse", "--short", "HEAD"], **kw_root
-            ).as_future(pool)
+            futures["git_hash"] = Popen(["git", "rev-parse", "--short", "HEAD"], **kw_root).as_future(pool)
             if sections != "":
-                futures["git_branch"] = Popen(
-                    ["git", "branch", "--show-current"], **kw_root
-                ).as_future(pool)
+                futures["git_branch"] = Popen(["git", "branch", "--show-current"], **kw_root).as_future(pool)
             if "+git" in sections:
-                futures["git_status"] = pool.submit(
-                    filter_git_status, Popen(["git", "status", "-s", "-b"], **kw_root)
-                )
+                futures["git_status"] = pool.submit(filter_git_status, Popen(["git", "status", "-s", "-b"], **kw_root))
         else:
             # we go not have git, try loading the build cache
             build_cache_required = True
@@ -337,9 +327,7 @@ def main(
     except OSError:
         version = build_cache["version"]
 
-    def __future_or_cache(
-        key: VersionDictKeys, futures: dict[str, Future[Any]], cache: VersionDict,
-    ) -> str:
+    def __future_or_cache(key: VersionDictKeys, futures: dict[str, Future[Any]], cache: VersionDict) -> str:
         future: None | Future[Any] = futures.get(key, None)
         if future is not None:
             returnmsg = future.result()
@@ -364,13 +352,9 @@ def main(
             raise RuntimeError(f"Could not find a valid value for {key}!" + add_msg)
 
     try:
-        build_file_kwargs["git_hash"] = __future_or_cache(
-            "git_hash", futures, build_cache
-        )
+        build_file_kwargs["git_hash"] = __future_or_cache("git_hash", futures, build_cache)
         if sections != "":
-            build_file_kwargs["git_branch"] = __future_or_cache(
-                "git_branch", futures, build_cache
-            )
+            build_file_kwargs["git_branch"] = __future_or_cache("git_branch", futures, build_cache)
         keys: Sequence[VersionDictKeys] = ("git_status", "checkpoints", "pypackages")
         for key in keys:
             if DEFAULTS.VERSION_SECTIONS[key][0] in sections:
@@ -401,7 +385,7 @@ def get_default_version_info() -> VersionDict:
     }
 
 
-def parse_build_file(build_file: TextIO | None) -> VersionDict:
+def parse_build_file(build_file: TextIO | io.StringIO | None) -> VersionDict:
     """Read and parse a build file (same as output of `main`).
 
     Read and parse a file with version information in the format that is also the
@@ -409,7 +393,7 @@ def parse_build_file(build_file: TextIO | None) -> VersionDict:
 
     Parameters
     ----------
-    build_file : TextIO, optional
+    build_file : TextIO, io.StringIO, optional
         File-like object, will be closed.
 
     Returns
@@ -423,43 +407,34 @@ def parse_build_file(build_file: TextIO | None) -> VersionDict:
     -----
     See also main.
     """
-    file_cache: VersionDict = {}
+    file_cache: VersionDict = get_default_version_info()
     if build_file is None:
         try:
             build_file = open(DEFAULTS.BUILD_TXT)
         except FileNotFoundError:
             return get_default_version_info()
-    file_cache["content"] = "".join(build_file.readlines())
+    file_cache["content"] = build_file.getvalue() if hasattr(build_file, "getvalue") else "".join(build_file.read())
     if not build_file.closed:
         build_file.close()
     section_pattern = re.compile("\n={3,}\n")
     file_cache["version_line"], *rest = section_pattern.split(file_cache["content"], 1)
-    version_regex = re.compile(
-        "([a-zA-Z.0-9\\-]+)(\\+([0-9A-Fa-f]+))?(\\s+\\(([^)]+)\\))?\\s*"
-    )
+    version_regex = re.compile("([a-zA-Z.0-9\\-]+)(\\+([0-9A-Fa-f]+))?(\\s+\\(([^)]+)\\))?\\s*")
     hits = version_regex.search(file_cache["version_line"])
     if hits is None:
+        filename = getattr(build_file, "name", "<unnamed file>")
         raise RuntimeError(
-            f"The build file {build_file.name} has invalid formatting, version tag not "
-            f"recognized! First line was '{file_cache['version_line']}' and did "
-            f"not fit the pattern '{version_regex.pattern}'.",
+            f"The build file {filename} has invalid formatting, version tag not recognized! First line was "
+            f"'{file_cache['version_line']}' and did not fit the pattern '{version_regex.pattern}'.",
         )
-    (
-        file_cache["version"],
-        _,
-        file_cache["git_hash"],
-        _,
-        file_cache["git_branch"],
-    ) = hits.groups("")
-    if file_cache["git_hash"]:
-        file_cache["version_tag"] = file_cache["version"] + "+" + file_cache["git_hash"]
-    else:
-        file_cache["version_tag"] = file_cache["version"]
+    file_cache["version"], _, file_cache["git_hash"], _, file_cache["git_branch"] = hits.groups("")
+
+    file_cache["version_tag"] = file_cache["version"] + (f"+{file_cache['git_hash']}" if file_cache["git_hash"] else "")
 
     def get_section_name_by_header(header: str) -> str | None:
         for name, info in DEFAULTS.VERSION_SECTIONS.items():
             if info[1] == header:
                 return name
+        return None
 
     while len(rest) > 0:
         section_header, section_content, *rest = section_pattern.split(rest[0], 2)

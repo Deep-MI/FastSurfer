@@ -2,13 +2,12 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-
+import importlib
+import io
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
-import inspect
-from importlib import import_module
 import sys
 import os
 from pathlib import Path
@@ -19,11 +18,21 @@ sys.path.append(os.path.dirname(__file__) + "/..")
 sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
 sys.path.append(os.path.dirname(__file__) + "/sphinx_ext")
 
+from resolve_links import LinkCodeResolver
+from FastSurferCNN.version import main as _version_info, parse_build_file
+
 project = "FastSurfer"
 author = "FastSurfer Developers"
-copyright = f"2020, {author}"
-gh_url = "https://github.com/deep-mi/FastSurfer"
+copyright = f"2020-2026, {author}"
+gh_url = "https://github.com/Deep-MI/FastSurfer"
 
+# run the version script and save in build dir
+_streambuf = io.StringIO()
+_version_info(file=_streambuf)
+_version_dict = parse_build_file(_streambuf)
+
+branch = _version_dict["git_branch"]
+version = _version_dict["version"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -209,60 +218,20 @@ bibtex_bibfiles = ["./references.bib"]
 # -- sphinx.ext.linkcode -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/linkcode.html
 
-#  Alternative method for linking to code by Osama, not sure which one is better
-from urllib.parse import quote
+def import_from_path(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
-# https://github.com/python-websockets/websockets/blob/e217458ef8b692e45ca6f66c5aeb7fad0aee97ee/docs/conf.py#L102-L134
-def linkcode_resolve(domain, info):
-    # Check if the domain is Python, if not return None
-    if domain != "py":
-        return None
-    if not info["module"]:
-        return None
-
-    # Import the module using the module information
-    mod = import_module(info["module"])
-
-    # Check if the fullname contains a ".", indicating it's a method or attribute of
-    # a class
-    if "." in info["fullname"]:
-        objname, attrname = info["fullname"].split(".")
-        # Get the object from the module
-        obj = getattr(mod, objname)
-        try:
-            # Try to get the attribute from the object
-            obj = getattr(obj, attrname)
-        except AttributeError:
-            # If the attribute doesn't exist, return None
-            return None
-    else:
-        # If the fullname doesn't contain a ".", get the object directly from the module
-        obj = getattr(mod, info["fullname"])
-
-    try:
-        # Try to get the source file and line numbers of the object
-        lines, first_line = inspect.getsourcelines(obj)
-    except TypeError:
-        # If the object is not a Python object that has a source file, return None
-        return None
-
-    # Replace "." with "/" in the module name to construct the file path
-    filename = quote(info["module"].replace(".", "/"))
-    # If the filename doesn't start with "tests", add a "/" at the beginning
-    if not filename.startswith("tests"):
-        filename = "/" + filename
-
-    # Construct the URL that points to the source code of the object on GitHub
-    return f"{gh_url}/blob/dev{filename}.py#L{first_line}-L{first_line + len(lines) - 1}"
-
-# Which domains to search in to create links in markdown texts
-# myst_ref_domains = ["myst", "std", "py"]
-
+linkcode_resolve = LinkCodeResolver(gh_url, branch)
 
 _re_script_dirs = "fastsurfercnn|cerebnet|recon_surf|hypvinn"
 _up = "^/\\.\\./"
 _end = "(\\.md)?(#.*)?$"
 
+# -- sphinx_ext.fix_links -----------------------------------------------------
 # re_reference_target=(regex) => used in missing-reference
 fix_links_target = {
     # all regexpr are ignorecase, individual replacements are applied until no further
