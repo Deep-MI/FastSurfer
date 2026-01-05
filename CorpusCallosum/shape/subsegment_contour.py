@@ -136,17 +136,15 @@ def subsegment_midline_orthogonal(
         List of contour arrays for each subsegment.
     split_points : np.ndarray
         Array of shape (K, 2) containing points where the midline was split.
+
+    Notes
+    -----
+    Subsegments include all previous segments. This means subsegment contour two is the outline of the union
+    of subsegment one and subsegment two.
     """
     # FIXME: Here and in other places, the order of dimensions is pretty inconsistent, for example: midline is (N, 2),
     #        but contours are (2, N)...
 
-    # FIXME: why does this code return subsegments that include all previous segments?
-    # get points after midline length of splits
-
-    # get vertex closest to midline end
-
-    # FIXME: should this not always be the posterior endpoint index? Can we not standardize this even earlier, and then
-    #  pull this into CCContour.from_mask_and_appc?
     midline_end_idx = np.argmin(np.linalg.norm(contour.T - midline[-1], axis=1))
     # roll contour start to midline end
     contour = np.roll(contour, -midline_end_idx, axis=1)
@@ -161,82 +159,41 @@ def subsegment_midline_orthogonal(
     edge_ortho_vectors = np.column_stack((-edge_directions[:, 1], edge_directions[:, 0]))
     edge_ortho_vectors = edge_ortho_vectors / np.linalg.norm(edge_ortho_vectors, axis=1)[:, None]
 
+    # Calculate intersections between the perpendicular lines and the contour
+    # vectors from split points to all contour points
+    vectors = contour.T[None, :, :] - split_points[:, None, :]  # (K, M, 2)
+
+    # Calculate cross product with ortho vectors to find side of the line (numerator of t)
+    # x*oy - y*ox
+    side = vectors[:, :, 0] * edge_ortho_vectors[:, None, 1] - vectors[:, :, 1] * edge_ortho_vectors[:, None, 0]
+
+    # Find where the side changes sign, indicating an intersection
+    sign_change = (side[:, :-1] * side[:, 1:]) <= 0
+
     split_contours: ContourList = [contour]
 
-    # FIXME: double loop should be vectorized, see commented code below for an initial attempt (not tested)
-    #        also, finding intersections can be done more efficiently, instead of solving linear system for each segment
-    #        we could just look for changes in the sign of cross products
-    # mid_to_contour: np.ndarray = contour[:, :, None] - split_points[:, None]
-    # mid_to_contour_length = np.linalg.norm(mid_to_contour, axis=0)
-    # mid_to_contour_norm = mid_to_contour / mid_to_contour_length[None]
-    # sin_theta = mid_to_contour_norm[0] * edge_ortho_vectors[1] - mid_to_contour_norm[1] * edge_ortho_vectors[0]
-    # index_on_contour, index_on_segment = np.where(sin_theta[:-1] * sin_theta[1:] < 0)
-    # sin_theta_x = sin_theta[index_on_segment]
-    # cos_theta_x = np.sqrt(1 - sin_theta_x * sin_theta_x)
-    # rot_mat = np.array([[cos_theta_x, -sin_theta_x], [sin_theta_x, cos_theta_x]])
-    # # rotate mid_to_contour by sin_theta
-    # _mid_to_intersection = rot_mat.transpose(0, -1) @ mid_to_contour[:, None, (index_on_contour, index_on_segment)]
-    # mid_to_intersection = cos_theta_x * _mid_to_intersection[:, 0, :]
-    # intersection_points = split_points[:, index_on_segment] + mid_to_intersection
-    # mid_to_intersection_length = np.linalg.norm(mid_to_intersection, axis=0)
-    #
-    #
-    # for segment_idx in range(split_points.shape[1]):
-    #     mask = index_on_segment == segment_idx
-    #     if any(mask):
-    #         # first_index and second_index are the indices on the contour
-    #         # _first_index and _second_index are the indices on the intersection_points of this segment
-    #         _first_index, _second_index, *_ = np.argsort(mid_to_intersection_length[mask])
-    #         first_index, second_index = index_on_contour[mask][[_first_index, _second_index]]
-    #         if first_index > second_index:
-    #             first_index, second_index = second_index, first_index
-    #             _first_index, _second_index = _second_index, _first_index
-    #         # connect first and second half
-    #         start_to_cutoff = np.hstack(
-    #             (
-    #                 contour[:, :first_index + 1], # includes first_index
-    #                 intersection_points[:, mask][:, [_first_index, _second_index]],
-    #                 contour[:, second_index + 1 :], # excludes second_index
-    #             )
-    #         )
-    #         split_contours.append(start_to_cutoff)
-
     for pt_idx, split_point in enumerate(split_points):
+        # Indices of contour segments that have sign changes for this split point
+        seg_indices = np.where(sign_change[pt_idx])[0]
+
         intersections = []
-        for i in range(contour.shape[1] - 1):
-            # get contour segment
-            segment_start = contour[:, i]
-            segment_end = contour[:, i + 1]
-            segment_vector = segment_end - segment_start
+        for i in seg_indices:
+            s0 = side[pt_idx, i]
+            s1 = side[pt_idx, i + 1]
+            if s0 == s1:
+                t = 0.5
+            else:
+                t = s0 / (s0 - s1)
 
-            # Check for intersection with the perpendicular line
-            matrix = np.array([segment_vector, -edge_ortho_vectors[pt_idx]]).T
-            if np.linalg.matrix_rank(matrix) < 2:
-                continue  # Skip parallel lines
+            intersection_point = contour[:, i] + t * (contour[:, i + 1] - contour[:, i])
+            intersections.append((i, intersection_point))
 
-            # Solve for intersection
-            t, s = np.linalg.solve(matrix, split_point - segment_start)
-            if 0 <= t <= 1:
-                intersection_point = segment_start + t * segment_vector
-                intersections.append((i, intersection_point))
-
-                # import matplotlib.pyplot as plt
-                # plt.figure()
-                # plt.plot(contour[0], contour[1], 'k-')
-                # plt.plot(midline[:,0], midline[:,1], 'k--')
-                # plt.plot(split_point[0], split_point[1], 'ro')
-
-                # plt.plot([segment_start[0], segment_end[0]], [segment_start[1], segment_end[1]], 'bo', linewidth=2)
-                # plt.plot([split_point[0]-edge_ortho_vectors[pt_idx][0], split_point[0]+edge_ortho_vectors[pt_idx][0]],
-                # [split_point[1]-edge_ortho_vectors[pt_idx][1], 
-                # split_point[1]+edge_ortho_vectors[pt_idx][1]], 'k-', linewidth=2)
-                # plt.show()
 
         # get the two intersections closest to split_point
         intersections.sort(key=lambda x: np.linalg.norm(x[1] - split_point))
 
         # Create new contours by splitting at intersections
-        if intersections:
+        if len(intersections) >= 2:
             first_index, first_intersection = intersections[1]
             second_index, second_intersection = intersections[0]
 
@@ -245,7 +202,6 @@ def subsegment_midline_orthogonal(
                 first_intersection, second_intersection = second_intersection, first_intersection
 
             first_index += 1
-            # second_index += 1
 
             # connect first and second half
             start_to_cutoff = np.hstack(
@@ -258,7 +214,7 @@ def subsegment_midline_orthogonal(
             )
             split_contours.append(start_to_cutoff)
         else:
-            raise ValueError("No intersections found, this should not happen")
+            raise ValueError(f"No intersections found for split point {pt_idx}, this should not happen")
 
         # plot contour to first index, then split point, then contour to second index
 

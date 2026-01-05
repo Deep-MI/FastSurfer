@@ -152,7 +152,7 @@ def load_contours_from_template_dir(
             if fsaverage_contour is None:
                 fsaverage_contour = load_fsaverage_cc_template()
                 # create measurement points (points = 2 x levelpaths) according to number of thickness values
-                fsaverage_contour.create_levelpaths(num_points=num_thickness_values // 2, update_data=True)
+                fsaverage_contour.create_levelpaths(num_points=num_thickness_values // 2, inplace=True)
             current_contour = fsaverage_contour.copy()
             current_contour.z_position = z_position
             current_contour.load_thickness_values(thickness_file)
@@ -208,7 +208,6 @@ def main(
         return 0
 
     # 3D visualization
-    # FIXME: This function would need contours[i].z_position to be properly initialized!
     cc_mesh = CCMesh.from_contours(contours, smooth=0)
 
     plot_kwargs = dict(
@@ -220,7 +219,6 @@ def main(
     cc_mesh.plot_mesh(**plot_kwargs)
     cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
-    #FIXME: needs to be adapted to new interface of CCMesh.to_fs_coordinates / to_vox_coordinates
     # Here we need to load the np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox)
     # This is the same as orig2fsavg_ras2ras from cc_up.lta
     # orig2fsavg_ras2ras = read_lta(output_dir / "mri/transforms/cc_up.lta")

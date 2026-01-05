@@ -47,6 +47,11 @@ logger = logging.get_logger(__name__)
 Self = TypeVar("Self", bound="CCContour")
 
 
+
+
+
+
+
 # FIXME: Maybe CCContur should inherit from Polygon at a later date?
 class CCContour:
     """A class for representing and manipulating corpus callosum (CC) contours.
@@ -123,6 +128,21 @@ class CCContour:
         """Return the number of points on the contour."""
         return len(self.points)
 
+    @property
+    def area(self) -> float:
+        """Calculate the area of the contour using the shoelace formula.
+
+        Returns
+        -------
+        float
+            The area of the contour.
+        """
+        if len(self.points) < 3:
+            return 0.0
+        x = self.points[:, 0]
+        y = self.points[:, 1]
+        return 0.5 * np.abs(np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y))
+
     def smooth_contour(self, window_size: int = 5) -> None:
         """Smooth a contour using a moving average filter.
 
@@ -161,28 +181,54 @@ class CCContour:
     def create_levelpaths(
             self,
             num_points: int,
-            update_data: bool = True
-    ) -> tuple[list[np.ndarray], float]:
-        #FIXME: docstring
+            inplace: bool = False
+    ) -> tuple[list[np.ndarray], float, float, np.ndarray, np.ndarray, tuple[int, int], float]:
+        """Calculate thickness and level paths for the CC contour using Laplace equation.
 
-        # FIXME: cache all these values in CCContour, and invalidate the cache, when either points or endpoint_idxs get
-        #        changed; alternatively, make points and endpoint_idxs read_only (by creating getter-only properties)
-        #        and have all functions that change points or endpoints return a new CCContour object instead.
+        Parameters
+        ----------
+        num_points : int
+            Number of points for thickness estimation.
+        update_data : bool, default=True
+            Whether to update the contour points and thickness values in place.
+
+        Returns
+        -------
+        levelpaths : list[np.ndarray]
+            List of level paths across the CC.
+        thickness : float
+            Mean thickness of the CC.
+        midline_len : float
+            Length of the CC midline.
+        midline_equi : np.ndarray
+            Equidistant points along the midline.
+        contour_with_thickness : np.ndarray
+            Contour points with thickness information, shape (N, 3).
+        endpoint_idxs : tuple[int, int]
+            Indices of the anterior and posterior endpoints on the updated contour.
+        curvature : float
+            Mean curvature of the midline.
+        """
+
+         # FIXME: cache all these values in CCContour, and invalidate the cache, when either points or endpoint_idxs get
+         #        changed; alternatively, make points and endpoint_idxs read_only (by creating getter-only properties)
+         #        and have all functions that change points or endpoints return a new CCContour object instead.
+
+
         midline_len, thickness, curvature, midline_equi, levelpaths, contour_with_thickness, endpoint_idxs = \
             cc_thickness(
                 self.points,
                 self.endpoint_idxs,
                 n_points=num_points,
             )
-        
-        if update_data:
-            # FIXME: as an alternative to update_data, use "inplace" ; always return the CCContour object?
+
+        if inplace:
             self.points = contour_with_thickness[:, :2]
-            self.thickness_values = contour_with_thickness[:,2]
+            self.thickness_values = contour_with_thickness[:, 2]
             self.original_thickness_vertices = np.where(~np.isnan(self.thickness_values))[0]
             self.endpoint_idxs = endpoint_idxs
 
-        return levelpaths, thickness
+        return levelpaths, thickness, midline_len, midline_equi, contour_with_thickness, endpoint_idxs, curvature
     
     def set_thickness_values(self, thickness_values: np.ndarray, use_measurement_points: bool = False) -> None:
         """Set the thickness values for the contour.
@@ -380,7 +426,7 @@ class CCContour:
         # make points 3D by adding zero
         points = np.column_stack([points, np.zeros(len(points))])
 
-        levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values)-1, update_data=False)
+        levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values)-1, inplace=False)
 
         outside_contour = self.points.T
 
@@ -418,7 +464,6 @@ class CCContour:
                 continue
 
             # make levelpath
-            # FIXME: this change to lapy.Polygon is untested
             path = lapy.Polygon(path).resample(1000).points
 
             # Extend at the beginning: add point in direction opposite to first segment
@@ -772,7 +817,6 @@ class CCContour:
 
         _contour: Points2dType = skimage.measure.find_contours(cc_mask, level=0.5)[0]
 
-        # FIXME: maybe CCContour should just inherit from Polygon?
         # remove last, duplicate point
         _contour = _contour[:-1]
         polygon = lapy.Polygon(np.concatenate([np.zeros_like(_contour[:, :1]), _contour], axis=1), closed=True)
@@ -785,3 +829,57 @@ class CCContour:
         endpoint_idx = find_cc_endpoints(contour_ras[:, 1:].T, ac_ras[1:], pc_ras[1:])
 
         return cls(contour_ras[:, 1:], None, endpoint_idx, z_position=slice_vox2ras[0, 3])
+
+
+
+def calculate_volume(contours: list[CCContour], width: float = 5.0) -> float:
+    """Calculate the volume of the corpus callosum.
+
+    This method calculates the volume of a slab of the CC centered on the midplane.
+    It multiplies the area of each cross-sectional slice by the width it
+    represents within the slab. It assumes equally spaced contours centered
+    around the midplane (z=0).
+
+    Parameters
+    ----------
+    width : float, default=5.0
+        The width of the slab centered on the midplane to calculate the volume for (in mm).
+
+    Returns
+    -------
+    float
+        The volume of the CC in cubic millimeters.
+    """
+    if len(contours) < 2:
+        return 0.0
+
+    # Group vertices by their LR coordinate (column 0 as created by from_contours)
+    z_coords = [contour.z_position for contour in contours]
+    areas = [contour.area for contour in contours]
+
+    contour_widths = np.diff(z_coords)
+
+    # check that all widths are the same
+    if not np.allclose(contour_widths, contour_widths[0]):
+        raise ValueError("Contours must be equally spaced to calculate CC volume")
+
+    contour_width_mm = abs(contour_widths[0])
+
+    # Define the slab boundaries centered on the midplane (z=0)
+    z_min, z_max = -width / 2.0, width / 2.0
+
+    volume = 0.0
+    for i, z in enumerate(z_coords):
+        # Each contour represents a slab of contour_width_mm
+        # centered at its z position.
+        start = z - contour_width_mm / 2.0
+        end = z + contour_width_mm / 2.0
+
+        # Intersection of [start, end] and [z_min, z_max]
+        effective_start = max(start, z_min)
+        effective_end = min(end, z_max)
+
+        effective_width = max(0.0, effective_end - effective_start)
+        volume += areas[i] * effective_width
+
+    return volume

@@ -37,10 +37,8 @@ from CorpusCallosum.shape.subsegment_contour import (
     subsegment_midline_orthogonal,
     transform_to_acpc_standard,
 )
-from CorpusCallosum.shape.thickness import cc_thickness
 from CorpusCallosum.utils.types import (
     CCMeasuresDict,
-    ContourThickness,
     Points2dType,
     SliceSelection,
     SubdivisionMethod,
@@ -141,6 +139,10 @@ def recon_cc_surf_measures_multi(
         List of slice processing results.
     list of concurrent.futures.Future
         List of background IO processes.
+    list of CCContour
+        List of CC contours.
+    CCMesh
+        The CC mesh. (None if no mesh was created)
     """
     slice_cc_measures: list[CCMeasuresDict] = []
     io_futures = []
@@ -195,13 +197,9 @@ def recon_cc_surf_measures_multi(
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         # unpack values from _results
         cc_measures: CCMeasuresDict = _results[0]
-        contour_in_as_space_and_thickness: ContourThickness = _results[1]
-        endpoint_idxs: tuple[int, int] = _results[2]
-        contour_in_as_space: Points2dType = contour_in_as_space_and_thickness[:, :2]
-        thickness_values: np.ndarray[tuple[int], np.dtype[np.float_]] = contour_in_as_space_and_thickness[:, 2]
+        _contour: CCContour = _results[1]
 
-        z_value = this_slice_vox2ras[0, 3]
-        cc_contours.append(CCContour(contour_in_as_space, thickness_values, endpoint_idxs, z_position=z_value))
+        cc_contours.append(_contour)
         if cc_measures is None:
             # this should not happen, but just in case
             logger.warning(f"Slice index {slice_idx+1}{progress} returned result `None`")
@@ -292,7 +290,7 @@ def recon_cc_surf_measures_multi(
             logger.error("Error: No valid slices were found for postprocessing")
             raise ValueError("No valid slices were found for postprocessing")
 
-    return slice_cc_measures, io_futures
+    return slice_cc_measures, io_futures, cc_contours, cc_mesh if len(cc_contours) > 1 else None
 
 
 def _resample_thickness(contour: CCContour) -> CCContour:
@@ -303,7 +301,7 @@ def _resample_thickness(contour: CCContour) -> CCContour:
 
 
 def recon_cc_surf_measure(
-    segmentation: np.ndarray[Shape2d, np.dtype[np.int_]],
+    segmentation: np.ndarray[Shape3d, np.dtype[np.int_]],
     slice_idx: int,
     slice_lia_vox2midslice_ras: AffineMatrix4x4,
     ac_coords_vox: Vector2d,
@@ -312,7 +310,7 @@ def recon_cc_surf_measure(
     subdivisions: list[float],
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
-) -> tuple[CCMeasuresDict, ContourThickness, tuple[int, int]]:
+) -> tuple[CCMeasuresDict, CCContour]:
     """Reconstruct surfaces and compute measures for a single slice for the corpus callosum.
 
     Parameters
@@ -340,10 +338,8 @@ def recon_cc_surf_measure(
     -------
     measures : CCMeasuresDict
         Dictionary containing measurements if successful.
-    contour_with_thickness : np.ndarray
-        Contour points with thickness information in fsavg_midslice_ras space, shape (3, N) for [x, y, thickness].
-    endpoint_indices : pair of ints
-        Indices of the anterior and posterior endpoints on the contour.
+    contour : CCContour
+        The contour object containing points, thickness values, and endpoint indices.
 
     Raises
     ------
@@ -372,40 +368,10 @@ def recon_cc_surf_measure(
         slice_vox2ras=slice_lia_vox2midslice_ras, contour_smoothing=contour_smoothing,
     )
 
+    levelpaths, thickness, midline_len, midline_equi, contour_with_thickness, endpoint_idxs, curvature = \
+        _contour.create_levelpaths(num_thickness_points, inplace=True)
+
     contour_as = _contour.points.T
-    endpoint_idxs = _contour.endpoint_idxs
-    # FIXME: could probably also use _contour.create_levelpaths here, but that does not currently return all values
-    # levelpaths, thickness = _contour.create_levelpaths(num_thickness_points)
-
-    # FIXME: If we create CCContour objects here already (as we can), we should probably return that instead of the
-    #        contour_with_thickness value (as the CCContour has all that information as well)
-
-    # # find_contour_and_endpoints extracts the contour and finds ac and pc endpoints for shape analysis
-    # # contour is in IA voxel coordinates
-    # contour, endpoint_idxs = find_contour_and_endpoints(
-    #     cc_mask_slice,
-    #     ac_coords_vox,
-    #     pc_coords_vox,
-    #     (vox_size[1], vox_size[2]),
-    #     return_coordinates=False,
-    #     contour_smoothing=contour_smoothing,
-    # )
-    # # contour_ras uses coordinates in the fsavg_midslice_ras coordinate system, now re-order/flip slice_ia
-    # # coordinates to fsavg_ras coordinates.
-    # #FIXME: double-check the sign of the z_offset (lr) here, currently starts positive for first slice
-    # offsets = np.asarray([-vox_size[0] * (slice_idx - segmentation.shape[0] // 2), 0, 0, 1])
-    # affine = np.concatenate([slice_lia_vox2midslice_ras[:, :3], offsets[:, None]], axis=1)
-    # # convert to fsavg_ras coordinates (which are mid-slice-based)
-    # contour_as = (slice_lia_vox2midslice_ras @ np.append(contour, 1, axis=0))[1:3]
-
-    contour_with_thickness: ContourThickness
-    # cc_thickness wants contour to be in midslice_ras coordinates, i.e. millimeter distances on the respective slice.
-    midline_len, thickness, curvature, midline_equi, levelpaths, contour_with_thickness, endpoint_idxs = \
-        cc_thickness(
-            contour_as.T,
-            endpoint_idxs,
-            n_points=num_thickness_points,
-        )
     # thickness values in contour_with_thickness is not equally sampled, different shape
     # to compute length of paths: diff between consecutive points (N-1, 2) => norm (N-1,) => sum (1,)
     thickness_profile = np.stack([np.sum(np.linalg.norm(np.diff(x[:, :2], axis=0), axis=1)) for x in levelpaths])
@@ -477,7 +443,7 @@ def recon_cc_surf_measure(
         "levelpaths": levelpaths,
         "slice_index": slice_idx
     }
-    return measures, contour_with_thickness, endpoint_idxs
+    return measures, _contour
 
 
 def test_right_of_line(
@@ -518,6 +484,7 @@ def make_subdivision_mask(
     slice_shape: Shape2d,
     split_contours: ContourList,
     vox2ras: AffineMatrix4x4,
+    plot: bool = False,
 ) -> np.ndarray[Shape2d, np.dtype[np.int_]]:
     """Create a mask for subdividing the corpus callosum based on split contours.
 
@@ -530,7 +497,8 @@ def make_subdivision_mask(
         Each contour is a tuple of x and y coordinates.
     vox2ras : AffineMatrix4x4
         The vox2ras transformation matrix for the requested shape.
-
+    plot : bool, default=False
+        Whether to plot the subdivision mask.
     Returns
     -------
     np.ndarray
@@ -583,6 +551,21 @@ def make_subdivision_mask(
         
         # All points to the right of this line belong to the next segment or beyond
         subdivision_mask[points_right_of_line] = label
+        
+    if plot: # interactive debug plot
+        import matplotlib
+        import matplotlib.pyplot as plt
+        curr_backend = matplotlib.get_backend()
+        plt.switch_backend("qtagg")
+        plt.figure(figsize=(10, 8))
+        plt.imshow(subdivision_mask, cmap='tab10')
+        plt.colorbar(label='Subdivision')
+        plt.title('CC Subdivision Mask')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.tight_layout()
+        plt.show()
+        plt.switch_backend(curr_backend)
     return subdivision_mask
 
 

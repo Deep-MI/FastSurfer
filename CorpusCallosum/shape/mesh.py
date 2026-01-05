@@ -44,7 +44,6 @@ logger = logging.get_logger(__name__)
 
 def _create_cap(
     points: np.ndarray,
-    trias: np.ndarray,
     contour: CCContour,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create a cap mesh for one end of the corpus callosum.
@@ -73,7 +72,7 @@ def _create_cap(
     3. Creates triangles between consecutive level paths
     4. Smooths thickness values for visualization
     """
-    levelpaths, thickness_values = contour._create_levelpaths(points, trias)
+    levelpaths, thickness_values, _, _, _, _, _ = contour.create_levelpaths(num_points=len(points), inplace=False)
 
     # Create mesh from level paths
     level_vertices = []
@@ -125,6 +124,8 @@ def _create_cap(
 
     # Convert to numpy arrays
     level_vertices = np.vstack(level_vertices)
+    # Add z-coordinate (column 0) to make vertices 3D
+    level_vertices = np.hstack([np.full((len(level_vertices), 1), contour.z_position), level_vertices])
     level_faces = np.vstack(level_faces)
     level_colors = np.concatenate(level_colors)
 
@@ -221,6 +222,7 @@ class CCMesh(lapy.TriaMesh):
         """
         super().__init__(np.vstack(vertices), np.vstack(faces))
         self.mesh_vertex_colors = vertex_values
+   
 
     def plot_mesh(
         self,
@@ -429,9 +431,9 @@ class CCMesh(lapy.TriaMesh):
 
         fig.update_layout(
             scene=dict(
-                xaxis=dict(range=ranges[0], **{**axis_config, "title": "AP" if show_grid else ""}),
-                yaxis=dict(range=ranges[1], **{**axis_config, "title": "SI" if show_grid else ""}),
-                zaxis=dict(range=ranges[2], **{**axis_config, "title": "LR" if show_grid else ""}),
+                xaxis=dict(range=ranges[0], **{**axis_config, "title": "LR" if show_grid else ""}),
+                yaxis=dict(range=ranges[1], **{**axis_config, "title": "AP" if show_grid else ""}),
+                zaxis=dict(range=ranges[2], **{**axis_config, "title": "SI" if show_grid else ""}),
                 camera=dict(eye=dict(x=1.5, y=1.5, z=1), up=dict(x=0, y=0, z=1)),
                 aspectmode="cube",  # Force equal aspect ratio
                 aspectratio=dict(x=1, y=1, z=1),
@@ -607,9 +609,9 @@ class CCMesh(lapy.TriaMesh):
         2. Applies Laplacian smoothing to x and y coordinates.
         3. Restores original z-coordinates to maintain slice structure.
         """
-        z_values = self.v[:, 2]
+        z_values = self.v[:, 0]
         super().smooth_(iterations)
-        self.v[:, 2] = z_values
+        self.v[:, 0] = z_values
 
 
     @staticmethod
@@ -652,27 +654,11 @@ class CCMesh(lapy.TriaMesh):
         from copy import copy
         new_object = copy(self)
 
-        # to LSA
-        # new_object.v = new_object.v[:, [2, 1, 0]]
-        # to voxel
-        # FIXME: why are the vertex positions multiplied by voxel size here?
-        #        removed => for center LR, now dividing by resolution => convert fsaverage middle from mm to vox
-        #                => remove the conversion back to mm in the end
-        #        all other operations are independent of order of operations (distributive)
-        # v_vox /= vox_size[0]
-        # center LR
-        # new_object.v[:, 0] += FSAVERAGE_MIDDLE / self.resolution
-        # flip SI
-        # new_object.v[:, 1] = -new_object.v[:, 1]
-
-        #v_vox_test = np.round(v_vox).astype(int)
-
         # tkrRAS = Torig*[C R S 1]'
         # Torig: mri_info --vox2ras-tkr orig.mgz
         # https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems
 
         new_object.v = (mesh_ras2vox[:3, :3] @ self.v.T).T + mesh_ras2vox[None, :3, 3]
-        # new_object.v = (vox2ras_tkr @ np.concatenate([self.v, np.ones((self.v.shape[0], 1))], axis=1).T).T[:, :3]
         return new_object
 
     @update_docstring(parent_doc=TriaMesh.write_fssurf.__doc__)
@@ -786,41 +772,39 @@ class CCMesh(lapy.TriaMesh):
             vertex_values = tmp_mesh.mesh_vertex_colors
 
         if closed:
-            # FIXME: this functionality is untested and not used
+            # this functionality is untested and not used
             logger.warning("CCMesh.from_contours(closed=True) is untested and likely has errors.")
 
             # Close the mesh by creating caps on both ends
-            # Left cap (first slice) - use counterclockwise orientation
-            left_side_points, left_side_trias = make_mesh_from_contour(vertices[: vertex_start_indices[1]][..., :2])
-            left_side_points = np.hstack([left_side_points, np.full((len(left_side_points), 1), z_coordinates[0])])
+            # Left cap (first slice)
+            left_side_points, left_side_trias = make_mesh_from_contour(vertices[0][..., 1:])
+            left_side_points = np.hstack([np.full((len(left_side_points), 1), z_coordinates[0]), left_side_points])
 
-            # Right cap (last slice) - reverse points for proper orientation
-            right_side_points, right_side_trias = make_mesh_from_contour(vertices[vertex_start_indices[-1]:][..., :2])
-            right_side_points = np.hstack([right_side_points, np.full((len(right_side_points), 1), z_coordinates[-1])])
+            # Right cap (last slice)
+            right_side_points, right_side_trias = make_mesh_from_contour(vertices[-1][..., 1:])
+            right_side_points = np.hstack([np.full((len(right_side_points), 1), z_coordinates[-1]), right_side_points])
 
             # color_sides is a legacy visualization option to allow caps to have thickness colors
             color_sides = True
             if color_sides:
                 left_side_points, left_side_trias, left_side_colors = _create_cap(
-                    left_side_points, left_side_trias, contours[0]
+                    left_side_points, contours[0]
                 )
                 right_side_points, right_side_trias, right_side_colors = _create_cap(
-                    right_side_points, right_side_trias, contours[-1]
+                    right_side_points, contours[-1]
                 )
-                # reverse right side trias
+                # reverse right side trias for proper orientation
                 right_side_trias = right_side_trias[:, ::-1]
-            else:
-                left_side_colors, right_side_colors = [], []
 
+                vertex_values = np.concatenate([vertex_values, left_side_colors, right_side_colors])
+            
             left_side_trias = left_side_trias + current_index
             current_index += len(left_side_points)
 
             right_side_trias = right_side_trias + current_index
             current_index += len(right_side_points)
 
-            # should this not be a concatenate statements?
-            vertices = [vertices, left_side_points, right_side_points]
-            faces = [faces, left_side_trias, right_side_trias]
-            vertex_values = [vertex_values, left_side_colors, right_side_colors]
+            vertices.extend([left_side_points, right_side_points])
+            faces.extend([left_side_trias, right_side_trias])
 
         return cls(vertices, faces, vertex_values=vertex_values)
