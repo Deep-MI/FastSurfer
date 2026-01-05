@@ -2,7 +2,7 @@
 import re
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Generator
 
 from docutils import nodes
 from sphinx.domains import Domain
@@ -28,7 +28,7 @@ def resolve_included(
         included: dict[str, set[str]],
         found_docs: set[str],
         uri_path: str,
-) -> str:
+) -> Generator[str, None, None]:
     """
     Iterate through including files resolved via inclusion links.
 
@@ -41,12 +41,12 @@ def resolve_included(
     uri_path : str
         The path to the included file
 
-    Returns
-    -------
+    Yields
+    ------
     str
         The resolved path.
     """
-    def __resolve_all(path, include_tree=()):
+    def __resolve_all(path, include_tree=()) -> Generator[str, None, None]:
         for src, inc in included.items():
             if path in inc:
                 if src in found_docs:
