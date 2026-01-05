@@ -124,15 +124,13 @@ def apply_transform_to_pt(pts: Vector3d | Polygon3dType, T: AffineMatrix4x4, inv
     np.ndarray
         Transformed point coordinates, shape (3,) or (3, N).
     """
-    # FIXME: This function is very similar to nibabel.affines.apply_affine, reduce duplication.
-    #        Differences: Here, pts dimensions are (3,) or (3, N), in apply_affine, they are (..., D-1) for DxD affines.
     if inv:
         T = np.linalg.inv(T)
 
     if pts.ndim == 1:
-        return (T @ np.hstack((pts, 1)))[:3]
+        return nib.affines.apply_affine(T, pts)
     else:
-        return (T @ np.concatenate([pts, np.ones((1, pts.shape[1]))]))[:3]
+        return nib.affines.apply_affine(T, pts.T).T
 
 
 def calc_mapping_to_standard_space(
@@ -156,16 +154,16 @@ def calc_mapping_to_standard_space(
 
     Returns
     -------
-    upright_volume : np.ndarray
-        Upright transformed volume.
-    standardized_volume : np.ndarray
-        Volume in standard space.
-    ac_coords_standardized : np.ndarray
+    standardized_to_orig_vox2vox : AffineMatrix4x4
+        The vox2vox transformation matrix from standard space to original space.
+    ac_coords_standardized : Vector3d
         AC coordinates in standard space.
-    pc_coords_standardized : np.ndarray
+    pc_coords_standardized : Vector3d
         PC coordinates in standard space.
-    standardized_affine : np.ndarray
-        Affine matrix for standard space.
+    ac_coords_orig : Vector3d
+        AC coordinates in original space.
+    pc_coords_orig : Vector3d
+        PC coordinates in original space.
     """
     image_center = np.array(orig.shape) / 2
 
@@ -209,7 +207,6 @@ def calc_mapping_to_standard_space(
     pc_coords_orig: Vector3d = apply_transform_to_pt(
         pc_coords_standardized, standardized_to_orig_vox2vox, inv=False,
     )
-    #FIXME: incorrect docstring
     return standardized_to_orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig
 
 

@@ -46,6 +46,7 @@ from CorpusCallosum.data.read_write import (
 from CorpusCallosum.localization import inference as localization_inference
 from CorpusCallosum.segmentation import inference as segmentation_inference
 from CorpusCallosum.segmentation import segmentation_postprocessing
+from CorpusCallosum.shape.contour import calculate_volume as calculate_cc_volume_contour
 from CorpusCallosum.shape.postprocessing import (
     check_area_changes,
     make_subdivision_mask,
@@ -840,7 +841,7 @@ def main(
     # Process slices based on selection mode
 
     logger.info(f"Processing slices with selection mode: {slice_selection}")
-    slice_results, slice_io_futures = recon_cc_surf_measures_multi(
+    slice_results, slice_io_futures, cc_contours, cc_mesh = recon_cc_surf_measures_multi(
         segmentation=cc_fn_seg_labels,
         slice_selection=slice_selection,
         upright_header=fsavg_header,
@@ -867,15 +868,7 @@ def main(
 
     # Get middle slice result
     middle_slice_result: CCMeasuresDict = slice_results[len(slice_results) // 2]
-    if len(middle_slice_result["split_contours"]) <= 5:
-        cc_subseg_midslice = make_subdivision_mask(
-            (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
-            middle_slice_result["split_contours"],
-            vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox),
-        )
-    else:
-        logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
-        cc_subseg_midslice = None
+    
 
     # save segmentation labels, this
     if sd.has_attribute("cc_segmentation"):
@@ -887,6 +880,15 @@ def main(
         ))
     # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
     if sd.has_attribute("cc_orig_segfile"):
+        if len(middle_slice_result["split_contours"]) <= 5:
+            cc_subseg_midslice = make_subdivision_mask(
+                (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
+                middle_slice_result["split_contours"],
+                vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox),
+            )
+        else:
+            logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
+            cc_subseg_midslice = None
         # if num_threads is not large enough (>1), this might be blocking ; serial_executor runs the function in submit
         executor = thread_executor() if get_num_threads() > 2 else serial_executor()
         io_futures.append(executor.submit(
@@ -919,18 +921,8 @@ def main(
             voxel_size=vox_size, # in LIA order
         )
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
-        # FIXME: Create a proper mesh and use cc_mesh.volume for this volume --> not closed, but move function to
-        #  CCContour?
-        try:
-            cc_volume_contour = segmentation_postprocessing.get_cc_volume_contour(
-                cc_contours=outer_contours,
-                voxel_size=vox_size, # in LIA order
-            )
-            logger.info(f"CC volume contour: {cc_volume_contour}")
-        except AssertionError as e:
-            logger.warning("Could not compute CC volume from contours, setting to NaN")
-            logger.exception(e)
-            cc_volume_contour = float('nan')
+        cc_volume_contour = calculate_cc_volume_contour(cc_contours, width=5.0)
+        logger.info(f"CC volume contour: {cc_volume_contour}")
 
         additional_metrics["cc_5mm_volume"] = cc_volume_voxel
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
@@ -957,6 +949,28 @@ def main(
     additional_metrics["contour_smoothing"] = contour_smoothing
     additional_metrics["slice_selection"] = slice_selection
 
+    # QC checks
+    if len(outer_contours) > 1:
+        max_vol = max(cc_volume_voxel, cc_volume_contour)
+        if max_vol > 0 and abs(cc_volume_voxel - cc_volume_contour) / max_vol > 0.2:
+            logger.warning(
+                f"QC flag: CC volume estimates differ by more than 20% "
+                f"(voxel: {cc_volume_voxel:.2f}, contour: {cc_volume_contour:.2f})",
+                "this can happen if contour creation failed for some slices"
+            )
+
+    cc_index = output_metrics_middle_slice.get("cc_index")
+    if cc_index is not None and cc_index > 2:
+        logger.warning(
+            f"QC flag: CC index is high ({cc_index:.2f} > 2), segmentation or contour creation may be incorrect"
+        )
+
+    midline_length = output_metrics_middle_slice.get("midline_length")
+    if midline_length is not None and midline_length < 30:
+        logger.warning(
+            f"QC flag: CC midline length is short ({midline_length:.2f}mm < 30mm), endpoints may be "
+            "incorrectly detected or contour creation may have failed"
+        )
 
     if sd.has_attribute("cc_mid_measures"):
         sd.filename_by_attribute('cc_mid_measures').parent.mkdir(exist_ok=True, parents=True)

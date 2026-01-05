@@ -120,7 +120,7 @@ def load_fsaverage_cc_template() -> CCContour:
     # Use the smoothed mask for further processing
     cc_mask = cc_mask_smoothed.astype(int) * 192
 
-    _, contour_with_thickness, (anterior_endpoint_idx, posterior_endpoint_idx) = recon_cc_surf_measure(
+    _, _fsaverage_contour = recon_cc_surf_measure(
         segmentation=cc_mask[None],
         slice_idx=0,
         ac_coords_vox=FSAVERAGE_AC_COORDINATE,
@@ -130,13 +130,13 @@ def load_fsaverage_cc_template() -> CCContour:
         subdivisions=[1/6, 1/2, 2/3, 3/4],
         subdivision_method="shape",
         contour_smoothing=5,
-        vox_size=(1., 1., 1.), # fsaverage is in 1mm isotropic
     )
-    outside_contour = contour_with_thickness[:,:2].T
+    outside_contour = _fsaverage_contour.points.T
+    anterior_endpoint_idx, posterior_endpoint_idx = _fsaverage_contour.endpoint_idxs
 
     # make sure the CC stays in shape despite smoothing by moving endpoints outwards
-    outside_contour[0,anterior_endpoint_idx] -= 55
-    outside_contour[0,posterior_endpoint_idx] += 30
+    outside_contour[0, anterior_endpoint_idx] -= 55
+    outside_contour[0, posterior_endpoint_idx] += 30
 
     # Apply smoothing to the outside contour
     outside_contour_smoothed = smooth_contour(outside_contour, window_size=11)
@@ -144,9 +144,9 @@ def load_fsaverage_cc_template() -> CCContour:
     outside_contour_smoothed = smooth_contour(outside_contour_smoothed, window_size=30)
     outside_contour = outside_contour_smoothed
 
-    fsaverage_contour = CCContour(np.array(outside_contour).T, 
-                                  np.zeros(len(outside_contour[0])), 
-                                  endpoint_idxs=(anterior_endpoint_idx, posterior_endpoint_idx), 
+    fsaverage_contour = CCContour(np.array(outside_contour).T,
+                                  np.zeros(len(outside_contour[0])),
+                                  endpoint_idxs=(anterior_endpoint_idx, posterior_endpoint_idx),
                                   z_position=0.0)
 
 
