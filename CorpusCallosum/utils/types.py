@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-from numpy import dtype, ndarray
+from numpy import dtype, ndarray, float_
 
 from FastSurferCNN.utils import ScalarType
 
@@ -20,7 +20,7 @@ Polygon2dType = ndarray[tuple[Literal[2], int], dtype[ScalarType]]
 Polygon3dType = ndarray[tuple[Literal[3], int], dtype[ScalarType]]
 Points2dType = ndarray[tuple[int, Literal[2]], dtype[ScalarType]]
 Points3dType = ndarray[tuple[int, Literal[3]], dtype[ScalarType]]
-ContourList = list[Polygon2dType]
+ContourList = list[type[Polygon2dType]]
 ContourThickness = ndarray[tuple[Literal[3], int], dtype[ScalarType]]
 SliceSelection = Literal["middle", "all"] | int
 SubdivisionMethod = Literal["shape", "vertical", "angular", "eigenvector"]
@@ -63,7 +63,7 @@ class CCMeasuresDict(TypedDict):
     midline_length: float
     thickness: float
     curvature: float
-    thickness_profile: ndarray[tuple[int], dtype[float]]
+    thickness_profile: ndarray[tuple[int], dtype[float_]]
     total_area: float
     total_perimeter: float
     split_contours: ContourList
