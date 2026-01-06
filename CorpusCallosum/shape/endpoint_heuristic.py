@@ -154,7 +154,6 @@ def extract_cc_contour(cc_mask: Mask2d, contour_smoothing: int = 5) -> Polygon2d
     return contour
 
 
-
 def find_cc_endpoints(
         contour: Points2dType,
         ac_2d: Vector2d,
@@ -188,7 +187,7 @@ def find_cc_endpoints(
 
     # Calculate angle between AC-PC line and horizontal using numpy
     ac_pc_vector = pc_2d - ac_2d
-    horizontal_vector = np.array([0, -20])
+    horizontal_vector = np.array([-20, 0])
     # Calculate angle using dot product formula: cos(theta) = (a·b)/(|a||b|)
     dot_product = np.dot(ac_pc_vector, horizontal_vector)
     norms = np.linalg.norm(ac_pc_vector) * np.linalg.norm(horizontal_vector)
@@ -196,11 +195,11 @@ def find_cc_endpoints(
     theta = np.sign(ac_pc_vector[0]) * np.arccos(dot_product / norms)
 
     rot_matrix_inv = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-    # move posterior commisure 10 mm inferior, 5 mm posterior
-    as_offset_pc = np.array([10, -5], dtype=float)
+    # move posterior commisure 5 mm posterior, 10 mm inferior
+    as_offset_pc = np.array([-5, -10], dtype=float)
     posterior_anchor_2d = pc_2d.astype(float) + rot_matrix_inv @ as_offset_pc
     # move anterior commisure 5 mm anterior
-    as_offset_ac = np.array([0, 5], dtype=float)
+    as_offset_ac = np.array([5, 0], dtype=float)
     anterior_anchor_2d = ac_2d.astype(float) + rot_matrix_inv @ as_offset_ac
 
     # Find the endpoints of the CC shape relative to AC and PC coordinates
@@ -208,7 +207,6 @@ def find_cc_endpoints(
     ac_startpoint_idx = np.argmin(np.linalg.norm(contour - anterior_anchor_2d[:, None], axis=0))
     # find point in contour closest to PC
     pc_startpoint_idx = np.argmin(np.linalg.norm(contour - posterior_anchor_2d[:, None], axis=0))
-
 
     if plot: # interactive debug plot of contour, ac, pc and endpoints
         import matplotlib
@@ -231,6 +229,5 @@ def find_cc_endpoints(
         plt.grid(True, alpha=0.3)
         plt.show()
         plt.switch_backend(curr_backend)
-
 
     return ac_startpoint_idx, pc_startpoint_idx

@@ -47,11 +47,6 @@ logger = logging.get_logger(__name__)
 Self = TypeVar("Self", bound="CCContour")
 
 
-
-
-
-
-
 # FIXME: Maybe CCContur should inherit from Polygon at a later date?
 class CCContour:
     """A class for representing and manipulating corpus callosum (CC) contours.
@@ -81,8 +76,6 @@ class CCContour:
     >>> contour.save_thickness_measurement_points("thickness_measurement_points_0.txt")
     """
 
-
-    
     def __init__(
         self,
         points: Points2dType,
@@ -189,7 +182,7 @@ class CCContour:
         ----------
         num_points : int
             Number of points for thickness estimation.
-        update_data : bool, default=True
+        inplace : bool, default=True
             Whether to update the contour points and thickness values in place.
 
         Returns
@@ -213,7 +206,6 @@ class CCContour:
          # FIXME: cache all these values in CCContour, and invalidate the cache, when either points or endpoint_idxs get
          #        changed; alternatively, make points and endpoint_idxs read_only (by creating getter-only properties)
          #        and have all functions that change points or endpoints return a new CCContour object instead.
-
 
         midline_len, thickness, curvature, midline_equi, levelpaths, contour_with_thickness, endpoint_idxs = \
             cc_thickness(
@@ -824,7 +816,6 @@ class CCContour:
         endpoint_idx = find_cc_endpoints(contour_ras[:, 1:].T, ac_ras[1:], pc_ras[1:])
 
         return cls(contour_ras[:, 1:], None, endpoint_idx, z_position=slice_vox2ras[0, 3])
-
 
 
 def calculate_volume(contours: list[CCContour], width: float = 5.0) -> float:
