@@ -238,15 +238,6 @@ def subsegment_midline_orthogonal(
     if plot:
         extremes = [midline[0], midline[-1]]
 
-        plot_transform = None
-        if plot_transform is not None:
-            split_contours = [plot_transform(split_contour) for split_contour in split_contours]
-            contour = plot_transform(contour)
-            extremes = [plot_transform(extreme[:, None]) for extreme in extremes]
-            split_points = [plot_transform(split_point[:, None]) for split_point in split_points]
-            # split_points_vlines_start = plot_transform(split_points_vlines_start)
-            # split_points_vlines_end = plot_transform(split_points_vlines_end)
-
         import matplotlib.pyplot as plt
 
         if ax is None:
@@ -912,7 +903,6 @@ def get_primary_eigenvector(contour_ras: Polygon2dType) -> tuple[Vector2d, Vecto
 
     # Sort in descending order
     idx = eigenvalues.argsort()[::-1]
-    eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
 
     # make first eigenvector unit length
@@ -920,13 +910,6 @@ def get_primary_eigenvector(contour_ras: Polygon2dType) -> tuple[Vector2d, Vecto
     pt0 = np.mean(contour_ras, axis=1)
     pt0 -= np.array([0, 5])
     pt1 = pt0 + primary_eigenvector * 100
-    # plot mask with eigentvector
-    # import matplotlib.pyplot as plt
-    # fig, ax = plt.subplots(1,2,figsize=(10, 8))
-    # ax[0].imshow(cc_mask, cmap='gray')
-    # # plot line between pt0 and pt1
-    # ax[0].plot([pt0[0], pt1[0]], [pt0[1], pt1[1]], 'r-', linewidth=2)
-    # plt.show()
-
+    
     return pt0, pt1
 

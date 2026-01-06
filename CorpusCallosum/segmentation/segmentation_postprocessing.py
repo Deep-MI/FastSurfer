@@ -160,7 +160,7 @@ def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple
     return line_points
 
 
-def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: float = 3.0) -> np.ndarray:
+def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: float = 3.0, plot: bool = False) -> np.ndarray:
     """Connect nearby disconnected components that should be connected.
 
     This function identifies disconnected components in the segmentation and creates
@@ -172,7 +172,9 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
         Input binary segmentation array.
     max_connection_distance : float, optional
         Maximum distance to connect components, by default 3.0.
-
+    plot : bool, optional
+        Whether to plot the segmentation with connected components, by default False.
+    
     Returns
     -------
     np.ndarray
@@ -255,25 +257,30 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
     logger.info(f"Created {connections_made} minimal connections between components")
 
 
-    # Plot components for visualization
-    # import matplotlib.pyplot as plt
-    # n_components = len(component_sizes)
-    # fig, axes = plt.subplots(1, n_components + 1, figsize=(5*(n_components + 1), 5))
-    # if n_components == 1:
-    #     axes = [axes]
-    # # Plot each component in a different color
-    # for i, (comp_id, comp_size) in enumerate(component_sizes):
-    #     component_mask = labels_cc == comp_id
-    #     axes[i].imshow(component_mask[component_mask.shape[0]//2], cmap='gray')
-    #     axes[i].set_title(f'Component {comp_id}\nSize: {comp_size}')
-    #     axes[i].axis('off')
-    
-    # # Plot the connected segmentation
-    # axes[-1].imshow(connected_seg[connected_seg.shape[0]//2], cmap='gray')
-    # axes[-1].set_title('Connected Segmentation')
-    # axes[-1].axis('off')
-    # plt.tight_layout()
-    # plt.show()
+    # Plot components for debugging
+    if plot:
+        import matplotlib
+        import matplotlib.pyplot as plt
+        curr_backend = matplotlib.get_backend()
+        plt.switch_backend("qtagg")
+        n_components = len(component_sizes)
+        fig, axes = plt.subplots(1, n_components + 1, figsize=(5*(n_components + 1), 5))
+        if n_components == 1:
+            axes = [axes]
+        # Plot each component in a different color
+        for i, (comp_id, comp_size) in enumerate(component_sizes):
+            component_mask = labels_cc == comp_id
+            axes[i].imshow(component_mask[component_mask.shape[0]//2], cmap='gray')
+            axes[i].set_title(f'Component {comp_id}\nSize: {comp_size}')
+            axes[i].axis('off')
+        
+        # Plot the connected segmentation
+        axes[-1].imshow(connected_seg[connected_seg.shape[0]//2], cmap='gray')
+        axes[-1].set_title('Connected Segmentation')
+        axes[-1].axis('off')
+        plt.tight_layout()
+        plt.show()
+        plt.switch_backend(curr_backend)
     
     return connected_seg
 
@@ -396,11 +403,6 @@ def extract_largest_connected_component(
         logger.info(f"Successfully reduced components from {original_components} to {connected_components} "
                      "using minimal connections")
     mask = connected_seg
-    # else:
-    #     logger.info("No connections made, falling back to dilation approach")
-    #     # Fallback: use the original dilation approach
-    #     struct1 = ndimage.generate_binary_structure(3, 3)
-    #     mask = ndimage.binary_dilation(seg_arr, structure=struct1, iterations=1).astype(np.uint8)
     
     # Get connected components from the processed mask
     labels_cc = label(mask, connectivity=3, background=0)
