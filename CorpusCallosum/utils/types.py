@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-from numpy import dtype, ndarray, float_
+from numpy import dtype, float_, ndarray
 
 from FastSurferCNN.utils import ScalarType
 

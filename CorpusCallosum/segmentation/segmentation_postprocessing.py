@@ -11,21 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import TypeVar
 
 import numpy as np
-from numpy import typing as npt
 from scipy import ndimage
 from scipy.spatial.distance import cdist
 from skimage.measure import label
+from torchgen.model import ScalarType
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL
-from FastSurferCNN.utils import Mask3d, Shape3d
+from CorpusCallosum.utils.types import Points3dType
+from FastSurferCNN.utils import Mask3d, Shape3d, ShapeType, Vector3d
 
 logger = logging.get_logger(__name__)
 
+ArrayType = TypeVar('ArrayType', bound=np.ndarray)
 
-def find_component_boundaries(labels_arr: npt.NDArray[int], component_id: int) -> npt.NDArray[int]:
+
+def find_component_boundaries(labels_arr: np.ndarray[ShapeType, np.dtype[ScalarType]], component_id: int) \
+        -> np.ndarray[ShapeType, np.dtype[np.integer]]:
     """Find boundary voxels of a connected component.
 
     Parameters
@@ -61,10 +66,10 @@ def find_component_boundaries(labels_arr: npt.NDArray[int], component_id: int) -
 
 
 def find_minimal_connection_path(
-    boundary_coords1: np.ndarray, 
-    boundary_coords2: np.ndarray, 
+    boundary_coords1: Points3dType,
+    boundary_coords2: Points3dType,
     max_distance: float = 3.0
-) -> tuple[np.ndarray, np.ndarray] | None:
+) -> tuple[Vector3d, Vector3d] | None:
     """Find the minimal connection path between two component boundaries.
 
     Parameters
@@ -107,7 +112,7 @@ def find_minimal_connection_path(
     return None
 
 
-def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple[int, int, int]]:
+def create_connection_line(point1: Vector3d, point2: Vector3d) -> list[tuple[int, int, int]]:
     """Create a line of voxels connecting two points.
 
     Uses a simplified 3D line algorithm to create a sequence of voxels
@@ -122,7 +127,7 @@ def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple
 
     Returns
     -------
-    list[tuple[int, int, int]]
+    list of int triplets
         List of (x, y, z) coordinates forming the connection line.
 
     Notes
@@ -133,7 +138,7 @@ def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple
     x1, y1, z1 = map(int, point1)
     x2, y2, z2 = map(int, point2)
     
-    line_points = []
+    line_points: list[tuple[int, int, int]] = []
     
     # Calculate the number of steps needed
     dx = abs(x2 - x1)
@@ -160,7 +165,8 @@ def create_connection_line(point1: np.ndarray, point2: np.ndarray) -> list[tuple
     return line_points
 
 
-def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: float = 3.0, plot: bool = False) -> np.ndarray:
+def connect_nearby_components(seg_arr: ArrayType, max_connection_distance: float = 3.0, plot: bool = False) \
+        -> ArrayType:
     """Connect nearby disconnected components that should be connected.
 
     This function identifies disconnected components in the segmentation and creates
@@ -170,10 +176,10 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
     ----------
     seg_arr : np.ndarray
         Input binary segmentation array.
-    max_connection_distance : float, optional
-        Maximum distance to connect components, by default 3.0.
-    plot : bool, optional
-        Whether to plot the segmentation with connected components, by default False.
+    max_connection_distance : float, default=3.0
+        Maximum distance to connect components.
+    plot : bool, default=False
+        Whether to plot the segmentation with connected components.
     
     Returns
     -------
@@ -235,7 +241,7 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
                         f"Distance: {distance:.2f} voxels")
             
             # Create connection line
-            connection_line = create_connection_line(point1, point2)
+            connection_line: list[tuple[int, int, int]] = create_connection_line(point1, point2)
             
             # Add connection voxels to the segmentation
             # Use the same label as the original segmentation at the connection points
@@ -287,7 +293,7 @@ def connect_nearby_components(seg_arr: np.ndarray, max_connection_distance: floa
 
 def get_cc_volume_voxel(
     desired_width_mm: int,
-    cc_mask: np.ndarray,
+    cc_mask: Mask3d,
     voxel_size: tuple[float, float, float],
 ) -> float:
     """Calculate the volume of the corpus callosum in cubic millimeters.
@@ -368,7 +374,7 @@ def extract_largest_connected_component(
     seg_arr: Mask3d,
     max_connection_distance: float = 3.0,
 ) -> Mask3d:
-    """Get largest connected component from a binary segmentation array.
+    """Get the largest connected component from a binary segmentation array.
 
     Parameters
     ----------
