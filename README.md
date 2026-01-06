@@ -41,6 +41,7 @@ Modules (all run by default):
 ### Surface reconstruction
 - approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
 - supports high-resolution images (up to 0.7mm, experimental beyond that).
+- requires a FreeSurfer license file as it uses some FreeSurfer binaries internally.
 
 <!-- start of image requirements -->
 ### Requirements to input images
