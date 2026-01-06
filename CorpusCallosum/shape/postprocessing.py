@@ -141,8 +141,8 @@ def recon_cc_surf_measures_multi(
         List of background IO processes.
     list of CCContour
         List of CC contours.
-    CCMesh
-        The CC mesh. (None if no mesh was created)
+    CCMesh, None
+        The CC mesh or None if no mesh was created.
     """
     slice_cc_measures: list[CCMeasuresDict] = []
     io_futures = []
@@ -500,6 +500,7 @@ def make_subdivision_mask(
         The vox2ras transformation matrix for the requested shape.
     plot : bool, default=False
         Whether to plot the subdivision mask.
+
     Returns
     -------
     np.ndarray

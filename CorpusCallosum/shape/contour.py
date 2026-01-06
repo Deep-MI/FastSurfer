@@ -38,7 +38,7 @@ from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.endpoint_heuristic import find_cc_endpoints, smooth_contour
-from CorpusCallosum.shape.thickness import cc_thickness, make_mesh_from_contour
+from CorpusCallosum.shape.thickness import cc_thickness
 from CorpusCallosum.utils.types import Points2dType
 from FastSurferCNN.utils import AffineMatrix4x4, Mask2d, Vector2d
 
@@ -811,7 +811,7 @@ class CCContour:
         polygon.resample(700, inplace=True)
         contour_ras = apply_affine(slice_vox2ras, polygon.points)
 
-        ac_pc_3d = np.concatenate([[[0], [0]], np.stack([ac_2d, pc_2d], axis=0)], axis=1) # (2, 3)
+        ac_pc_3d = np.concatenate([np.zeros((2, 1), like=ac_2d), np.stack([ac_2d, pc_2d], axis=0)], axis=1) # (2, 3)
         ac_ras, pc_ras = apply_affine(slice_vox2ras, ac_pc_3d)
         endpoint_idx = find_cc_endpoints(contour_ras[:, 1:].T, ac_ras[1:], pc_ras[1:])
 
