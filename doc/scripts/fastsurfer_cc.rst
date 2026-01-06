@@ -1,8 +1,13 @@
 CorpusCallosum: fastsurfer_cc.py
 ================================
 .. note::
-   FastSurfer-CC runs with FastSurfer by default, but can be run independently with the advanced interface provided here.
-   A FastSurfer segmentation is still required as input.
+   We recommend to run FastSurfer-CC with the standard `run_fastsurfer.sh` interfaces (see :doc:`/overview/FLAGS`)!
+
+   This is an expert documentation for of FastSurfer CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.
+
+
+..
+   [Note] To tell sphinx where in the documentation CorpusCallosum/README.md can be linked to, it needs to be included somewhere
 
 .. include:: ../../CorpusCallosum/README.md
    :parser: fix_links.parser
