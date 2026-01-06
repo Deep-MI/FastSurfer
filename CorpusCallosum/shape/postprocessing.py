@@ -239,7 +239,6 @@ def recon_cc_surf_measures_multi(
         template_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
                     f"thickness_measurement_points.txt) to {template_dir}")
-        run = run
         for j in range(len(cc_contours)):
             io_futures.append(run(cc_contours[j].save_contour, template_dir / f"contour_{j}.txt"))
             io_futures.append(run(cc_contours[j].save_thickness_values, template_dir / f"thickness_values_{j}.txt"))
@@ -415,7 +414,9 @@ def recon_cc_surf_measure(
         raise ValueError(f"Invalid subdivision method {subdivision_method}")
 
     total_area = np.sum(areas)
-    total_perimeter = np.sum(np.sqrt(np.sum((np.diff(contour_as, axis=0))**2, axis=1)))
+    # total_perimeter should include the edge from last to first point
+    contour_closed = np.concatenate([contour_as, contour_as[:, :1]], axis=1)
+    total_perimeter = np.sum(np.linalg.norm(np.diff(contour_closed, axis=1), axis=0))
     circularity = 4 * np.pi * total_area / (total_perimeter**2)
 
     # Transform split contours back to original space

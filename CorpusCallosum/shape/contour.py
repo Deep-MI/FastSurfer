@@ -421,11 +421,6 @@ class CCContour:
         """
         plot_values = plot_values[::-1] # make sure values are plotted left to right (anterior to posterior)
 
-        points, _ = make_mesh_from_contour(self.points, max_volume=0.5, min_angle=25, verbose=False)
-
-        # make points 3D by adding zero
-        points = np.column_stack([points, np.zeros(len(points))])
-
         levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values)-1, inplace=False)
 
         outside_contour = self.points.T
