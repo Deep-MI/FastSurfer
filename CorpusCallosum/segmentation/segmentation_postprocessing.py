@@ -325,45 +325,42 @@ def get_cc_volume_voxel(
 
     Notes
     -----
-    The function assumes LIA orientation where:
-    - x dimension corresponds to Left/Right
-    - y dimension corresponds to Inferior/Superior
-    - z dimension corresponds to Anterior/Posterior
+    The function assumes LIA orientation
     """
-    assert cc_mask.shape[0] % 2 == 1, "CC mask must have odd number of voxels in x dimension"
+    # Get the bounding box of the CC mask in x dimension
+    any_cc = np.any(cc_mask, axis=(1, 2))
+    if not np.any(any_cc):
+        return 0.0
+    
+    first_x = np.argmax(any_cc)
+    last_x = len(any_cc) - 1 - np.argmax(any_cc[::-1])
+    
+    # Crop mask to its extent in x
+    cropped_mask = cc_mask[first_x : last_x + 1]
+    width_vox = cropped_mask.shape[0]
 
+    assert width_vox % 2 == 1, f"CC mask must have odd number of voxels in x dimension, but has {width_vox}"
 
     # Calculate voxel volume
     voxel_volume: float = np.prod(voxel_size, dtype=float)
     voxel_width: float = voxel_size[0]
 
-    # Get width of CC mask in voxels by finding the extent in x dimension
-    width_vox = np.sum(np.any(cc_mask, axis=(1,2)))
-
     # we are in LIA, so 0 is L/R resolution
     width_mm = width_vox * voxel_width
 
     if width_mm == desired_width_mm:
-        return np.sum(cc_mask) * voxel_volume
+        return np.sum(cropped_mask) * voxel_volume
     elif width_mm > desired_width_mm:
         # remainder on the left/right side of the CC mask
         desired_width_vox = desired_width_mm / voxel_width
-        # The number of full voxels in the center is (cc_mask.shape[0] - 2)
+        
+        # The number of full voxels in the center is (width_vox - 2)
         # The remaining width must be covered by the two edge voxels.
-        fraction_of_voxel_at_edge = (desired_width_vox - (cc_mask.shape[0] - 2)) / 2
+        fraction_of_voxel_at_edge = (desired_width_vox - (width_vox - 2)) / 2
 
-        if fraction_of_voxel_at_edge > 0: 
-            # make sure the assumentation is correct that the CC mask has an odd number of voxels 
-            # and the leftmost and rightmost voxels are the edges at the desired width
-            cc_width_vox = int(np.floor(desired_width_vox) + 1)
-            cc_width_vox = cc_width_vox + 1 if cc_width_vox % 2 == 0 else cc_width_vox
-
-            assert cc_mask.shape[0] == cc_width_vox, (f"CC mask should have {cc_width_vox} voxels, "
-                                                          f"but has {cc_mask.shape[0]}")
-
-        left_partial_volume = np.sum(cc_mask[0]) * voxel_volume * fraction_of_voxel_at_edge
-        right_partial_volume = np.sum(cc_mask[-1]) * voxel_volume * fraction_of_voxel_at_edge
-        center_volume = np.sum(cc_mask[1:-1]) * voxel_volume
+        left_partial_volume = np.sum(cropped_mask[0]) * voxel_volume * fraction_of_voxel_at_edge
+        right_partial_volume = np.sum(cropped_mask[-1]) * voxel_volume * fraction_of_voxel_at_edge
+        center_volume = np.sum(cropped_mask[1:-1]) * voxel_volume
         return left_partial_volume + right_partial_volume + center_volume
     else:
         raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
@@ -445,14 +442,7 @@ def clean_cc_segmentation(
         Cleaned segmentation array with only the largest connected component of CC and fornix.
     mask : npt.NDArray[bool]
         Binary mask of the largest connected component.
-
-    Notes
-    -----
-    The function:
-    1. Isolates the CC (label 192)
-    2. Attempts to connect nearby disconnected components
-    3. Adds the fornix (label 250)
-    4. Removes non-connected components from the combined CC and fornix
+    
     """
     from functools import partial
 

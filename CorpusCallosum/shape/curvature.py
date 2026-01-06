@@ -41,7 +41,7 @@ def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.
 
 
 def compute_mean_curvature(path: Points2dType) -> float:
-    """Compute mean curvature of a path.
+    """Compute mean absolute curvature of a path in degrees.
 
     Parameters
     ----------
@@ -51,12 +51,12 @@ def compute_mean_curvature(path: Points2dType) -> float:
     Returns
     -------
     float
-        Mean curvature of the path.
+        Mean absolute curvature of the path in degrees.
     """
     curvature = compute_curvature(path)
     if len(curvature) == 0:
         return 0.0
-    return np.abs(np.degrees(np.mean(curvature))).item() / len(curvature)
+    return np.mean(np.abs(np.degrees(curvature))).item()
 
 
 def calculate_curvature_metrics(

@@ -68,9 +68,9 @@ def find_closest_edge(point, contour):
     int
         Index of the closest edge.
     """
-    edges_start = contour[:-1, :2]  # N-1 x 2
-    edges_end = contour[1:, :2]  # N-1 x 2
-    edges_vec = edges_end - edges_start  # N-1 x 2
+    edges_start = contour[:, :2]  # N x 2
+    edges_end = np.roll(contour[:, :2], -1, axis=0)  # N x 2
+    edges_vec = edges_end - edges_start  # N x 2
 
     # Calculate projection coefficient for all edges at once
     # (p-a)·(b-a) / |b-a|²
@@ -315,7 +315,7 @@ def cc_thickness(
         # keep track of start index
         if inserted_idx_start <= anterior_endpoint_idx:
             anterior_endpoint_idx += 1
-        if inserted_idx_start >= posterior_endpoint_idx:
+        if inserted_idx_start <= posterior_endpoint_idx:
             posterior_endpoint_idx += 1
 
         contour_2d, contour_thickness, inserted_idx_end = insert_point_with_thickness(
@@ -324,7 +324,7 @@ def cc_thickness(
         # keep track of end index
         if inserted_idx_end <= anterior_endpoint_idx:
             anterior_endpoint_idx += 1
-        if inserted_idx_end >= posterior_endpoint_idx:
+        if inserted_idx_end <= posterior_endpoint_idx:
             posterior_endpoint_idx += 1
 
     contour_2d_with_thickness = np.concatenate([contour_2d, contour_thickness[:, None]], axis=1)

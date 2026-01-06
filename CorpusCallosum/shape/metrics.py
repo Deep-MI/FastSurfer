@@ -164,13 +164,14 @@ def calculate_cc_index(cc_contour: np.ndarray, plot: bool = False) -> float:
         The CC index, which is the sum of thicknesses at three measurement points divided by AP length.
     """
     # Get anterior and posterior points (extremes along x-axis)
-    anterior_idx = np.argmin(cc_contour[0])  # Leftmost point
-    posterior_idx = np.argmax(cc_contour[0])  # Rightmost point
+    # In ACPC space, X is Anterior-Posterior direction, where Anterior is positive
+    posterior_idx = np.argmin(cc_contour[0])  # Minimum X is Posterior
+    anterior_idx = np.argmax(cc_contour[0])   # Maximum X is Anterior
 
     anterior_pt = cc_contour[:, anterior_idx]
     posterior_pt = cc_contour[:, posterior_idx]
 
-    # AP line vector and properties
+    # AP line vector from anterior to posterior
     ap_vector = posterior_pt - anterior_pt
     ap_length = np.linalg.norm(ap_vector)
     ap_unit = ap_vector / ap_length
@@ -213,7 +214,10 @@ def calculate_cc_index(cc_contour: np.ndarray, plot: bool = False) -> float:
     cc_index = (anterior_thickness + posterior_thickness + middle_thickness) / ap_distance
 
     if plot:
+        import matplotlib
         import matplotlib.pyplot as plt
+        curr_backend = matplotlib.get_backend()
+        plt.switch_backend("qtagg")
 
         fig, ax = plt.subplots(figsize=(8, 6))
         plot_cc_index_calculation(
@@ -227,6 +231,7 @@ def calculate_cc_index(cc_contour: np.ndarray, plot: bool = False) -> float:
         )
         ax.legend()
         plt.show()
+        plt.switch_backend(curr_backend)
 
     return cc_index
 
