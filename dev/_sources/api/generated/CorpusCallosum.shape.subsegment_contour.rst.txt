@@ -1,0 +1,5 @@
+﻿CorpusCallosum.shape.subsegment_contour
+=======================================
+
+.. automodule:: CorpusCallosum.shape.subsegment_contour
+    :members:

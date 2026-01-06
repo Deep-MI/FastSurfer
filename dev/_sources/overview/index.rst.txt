@@ -10,6 +10,7 @@ User Guide
     EXAMPLES.md
     FLAGS.md
     OUTPUT_FILES.md
+    modules/index
     docker
     SINGULARITY.md
     MACOS.md

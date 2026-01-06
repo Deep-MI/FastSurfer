@@ -1,0 +1,5 @@
+﻿CorpusCallosum.paint_cc_into_pred
+=================================
+
+.. automodule:: CorpusCallosum.paint_cc_into_pred
+    :members:

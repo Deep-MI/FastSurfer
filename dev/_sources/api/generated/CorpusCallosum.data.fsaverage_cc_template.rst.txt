@@ -1,0 +1,5 @@
+﻿CorpusCallosum.data.fsaverage_cc_template
+=========================================
+
+.. automodule:: CorpusCallosum.data.fsaverage_cc_template
+    :members:

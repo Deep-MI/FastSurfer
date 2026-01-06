@@ -1,0 +1,5 @@
+﻿CorpusCallosum.shape.mesh
+=========================
+
+.. automodule:: CorpusCallosum.shape.mesh
+    :members:

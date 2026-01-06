@@ -1,0 +1,5 @@
+﻿CorpusCallosum.shape.thickness
+==============================
+
+.. automodule:: CorpusCallosum.shape.thickness
+    :members:
