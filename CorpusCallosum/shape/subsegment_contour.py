@@ -43,7 +43,8 @@ def minimum_bounding_rectangle(points: Points2dType) -> np.ndarray[tuple[Literal
     hull_points = points[ConvexHull(points).vertices]
 
     # calculate edge angles
-    edges = hull_points[1:] - hull_points[:-1]
+    # including the edge that closes the loop from last to first point
+    edges = np.vstack([hull_points[1:] - hull_points[:-1], hull_points[0] - hull_points[-1]])
 
     angles = np.arctan2(edges[:, 1], edges[:, 0])
 
@@ -89,18 +90,27 @@ def calc_subsegment_areas(split_contours: ContourList) -> np.ndarray[tuple[int],
     Parameters
     ----------
     split_contours : list of np.ndarray
-        List of contour arrays, each of shape (2, N).
+        List of contour arrays, each of shape (2, N). The list should contain
+        a set of nested contours (cumulative subsegments) and the full contour.
 
     Returns
     -------
     subsegment_areas : array of floats
-        Array containing the area of each subsegment.
+        Array containing the area of each incremental subsegment.
     """
     # calculate area of each split contour using the shoelace formula
-    areas = np.abs([np.trapz(split_contour[1], split_contour[0]) for split_contour in split_contours])
-    if len(areas) == 1:
-        return np.asarray(areas[0])
-    return np.ediff1d(np.asarray(areas)[::-1], to_end=areas[-1])
+    # we use the absolute value because the orientation of the contour may vary
+    areas_cum = np.abs([np.trapz(c[1], c[0]) for c in split_contours])
+    if len(areas_cum) == 1:
+        return np.asarray(areas_cum[0])
+    
+    # Sort areas to ensure they are in increasing order of size
+    # This handles both cases where subsegments were provided in increasing or decreasing order
+    # The set of areas represents a sequence of nested shapes.
+    sorted_areas = np.sort(areas_cum)
+    
+    # Calculate the incremental pieces by taking differences between consecutive sizes
+    return np.diff(sorted_areas, prepend=0)
 
 
 def subsegment_midline_orthogonal(
@@ -149,8 +159,17 @@ def subsegment_midline_orthogonal(
     # roll contour start to midline end
     contour = np.roll(contour, -midline_end_idx, axis=1)
 
-    edge_idx, edge_frac = np.divmod(len(midline) * np.array(area_weights), 1)
+    # Calculate edge indices and fractions for splitting the midline
+    # We use len(midline) - 1 because we are looking for intervals between points
+    edge_idx_float = (len(midline) - 1) * np.array(area_weights)
+    edge_idx, edge_frac = np.divmod(edge_idx_float, 1)
     edge_idx = edge_idx.astype(int)
+
+    # Handle cases where area_weights might reach 1.0, which would lead to an out-of-bounds access
+    at_end = edge_idx >= len(midline) - 1
+    edge_idx[at_end] = len(midline) - 2
+    edge_frac[at_end] = 1.0
+
     split_points = midline[edge_idx] + (midline[edge_idx + 1] - midline[edge_idx]) * edge_frac[:, None]
 
     # get edge for each split point
@@ -168,7 +187,9 @@ def subsegment_midline_orthogonal(
     side = vectors[:, :, 0] * edge_ortho_vectors[:, None, 1] - vectors[:, :, 1] * edge_ortho_vectors[:, None, 0]
 
     # Find where the side changes sign, indicating an intersection
-    sign_change = (side[:, :-1] * side[:, 1:]) <= 0
+    # Handle wrap-around by appending the first side value to the end
+    side_wrapped = np.hstack([side, side[:, 0:1]])
+    sign_change = (side_wrapped[:, :-1] * side_wrapped[:, 1:]) <= 0
 
     split_contours: ContourList = [contour]
 
@@ -177,15 +198,19 @@ def subsegment_midline_orthogonal(
         seg_indices = np.where(sign_change[pt_idx])[0]
 
         intersections = []
+        num_points = contour.shape[1]
         for i in seg_indices:
             s0 = side[pt_idx, i]
-            s1 = side[pt_idx, i + 1]
+            s1 = side[pt_idx, (i + 1) % num_points]
             if s0 == s1:
                 t = 0.5
             else:
                 t = s0 / (s0 - s1)
 
-            intersection_point = contour[:, i] + t * (contour[:, i + 1] - contour[:, i])
+            # intersection point on the segment
+            p0 = contour[:, i]
+            p1 = contour[:, (i + 1) % num_points]
+            intersection_point = p0 + t * (p1 - p0)
             intersections.append((i, intersection_point))
 
 
@@ -442,11 +467,12 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
 
     # Subdivision logic
     split_contours: ContourList = []
+    num_points = contour.shape[1]
     for ray_vector in ray_vectors.T:
         intersections = []
-        for i in range(contour.shape[1] - 1):
+        for i in range(num_points):
             segment_start = contour[:, i]
-            segment_end = contour[:, i + 1]
+            segment_end = contour[:, (i + 1) % num_points]
             segment_vector = segment_end - segment_start
 
             # Check for intersection with the ray
@@ -455,16 +481,22 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
                 continue  # Skip parallel lines
 
             # Solve for intersection
-            t, s = np.linalg.solve(matrix, midpoint_lower_edge - segment_start)
-            if 0 <= t <= 1:
-                intersection_point = segment_start + t * segment_vector
-                intersections.append((i, intersection_point))
-
-        # Sort intersections by their position along the contour
-        intersections.sort()
+            # matrix * [t, s]^T = midpoint_lower_edge - segment_start
+            try:
+                t, s = np.linalg.solve(matrix, midpoint_lower_edge - segment_start)
+                if 0 <= t < 1:  # Use half-open interval to avoid double-counting vertices
+                    intersection_point = segment_start + t * segment_vector
+                    intersections.append((i, intersection_point))
+            except np.linalg.LinAlgError:
+                continue
 
         # Create new contours by splitting at intersections
-        if intersections:
+        if len(intersections) >= 2:
+            # Sort intersections by their position along the contour (index)
+            intersections.sort(key=lambda x: x[0])
+            
+            # For HAMPEL (radial rays), we usually expect two intersections.
+            # If there are more, we pick the first and last along the contour.
             first_index, first_intersection = intersections[0]
             second_index, second_intersection = intersections[-1]
 
@@ -482,10 +514,7 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
         else:
             raise ValueError("No intersections found, this should not happen")
 
-    split_contours.append(contour)
-    split_contours = split_contours[::-1]
-
-    # split_contours = split_contours[::-1]
+    split_contours = [contour] + split_contours
 
     # Plotting logic
     if plot:
@@ -573,20 +602,20 @@ def subdivide_contour(
     
     """
     # Find the extreme points in the x-direction
-    min_x_index = np.argmax(contour[0])
+    min_x_index = np.argmin(contour[0])
     contour = np.roll(contour, -min_x_index, axis=1)
 
     min_x_index = 0
-    max_x_index = np.argmin(contour[0])
+    max_x_index = np.argmax(contour[0])
 
     if oriented:
         contour_x_sorted = np.sort(contour[0])
         min_x = contour_x_sorted[0]
         max_x = contour_x_sorted[-1]
-        extremes = (np.array([max_x, 0]), np.array([min_x, 0]))
+        extremes = (np.array([min_x, 0]), np.array([max_x, 0]))
 
         if hline_anchor is not None:
-            extremes = (np.array([max_x, hline_anchor[1]]), np.array([min_x, hline_anchor[1]]))
+            extremes = (np.array([min_x, hline_anchor[1]]), np.array([max_x, hline_anchor[1]]))
     else:
         extremes = (contour[:, min_x_index].copy(), contour[:, max_x_index].copy())
         # Calculate the line between the extreme points
@@ -676,16 +705,19 @@ def subdivide_contour(
                 first_intersection, second_intersection = second_intersection, first_intersection
 
             first_index += 1
-            # second_index += 1
 
-            # start_to_cutoff = np.hstack((contour[:, :first_index], first_intersection[:, None], 
-            # second_intersection[:, None], contour[:, second_index + 1:]))
+            # connect first and second half to create a closed cumulative loop
+            # that includes the start point of the contour (Posterior end)
             start_to_cutoff = np.hstack(
-                (first_intersection[:, None], contour[:, first_index:second_index], second_intersection[:, None])
+                (
+                    contour[:, :first_index],
+                    first_intersection[:, None],
+                    second_intersection[:, None],
+                    contour[:, second_index + 1 :],
+                )
             )
 
-
-            # connect first and second half
+            # add cumulative subsegment
             split_contours.append(start_to_cutoff)
         else:
             raise ValueError("No intersections found, this should not happen")

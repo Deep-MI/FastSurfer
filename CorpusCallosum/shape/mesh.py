@@ -556,7 +556,9 @@ class CCMesh(lapy.TriaMesh):
             fssurf_file = Path(fssurf_file)
         else:
             fssurf_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True).name
-        self.write_fssurf(fssurf_file, image=str(ref_image) if isinstance(ref_image, Path) else ref_image)
+        
+        ref_image_arg = str(ref_image) if isinstance(ref_image, (Path, str)) else ref_image
+        self.write_fssurf(fssurf_file, image=ref_image_arg)
 
         if overlay_file:
             overlay_file = Path(overlay_file)
@@ -740,9 +742,10 @@ class CCMesh(lapy.TriaMesh):
         # Calculate z coordinates for each slice
         # z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
 
-        # Build vertices list with z-coordinates
+        # vertices list with z-coordinates and collect thickness values
         vertices = []
         faces = []
+        vertex_values_list = []
         vertex_start_indices = []  # Track starting index for each contour
         current_index = 0
         previous_contour: CCContour | None = None
@@ -750,6 +753,8 @@ class CCMesh(lapy.TriaMesh):
         for contour in contours:
             vertex_start_indices.append(current_index)
             vertices.append(np.hstack([np.full((len(contour.points), 1), contour.z_position), contour.points]))
+            if contour.thickness_values is not None:
+                vertex_values_list.append(contour.thickness_values)
 
             # Check if there's a next valid contour to connect to
             if previous_contour is not None:
@@ -758,11 +763,15 @@ class CCMesh(lapy.TriaMesh):
                 faces_between = make_triangles_between_contours(previous_contour.points, contour.points)
                 faces.append(faces_between + current_index)
 
-                current_index += len(contour.points)
+                current_index += len(previous_contour.points)
 
             previous_contour = contour
 
-        vertex_values = np.concatenate([contour.thickness_values for contour in contours])
+        vertex_values = None
+        if len(vertex_values_list) == len(contours):
+            vertex_values = np.concatenate(vertex_values_list)
+        elif len(vertex_values_list) > 0:
+            logger.warning("Some contours have thickness values while others don't; skipping thickness overlay")
 
         if smooth > 0:
             tmp_mesh = CCMesh(vertices, faces, vertex_values=vertex_values)

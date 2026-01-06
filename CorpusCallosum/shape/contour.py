@@ -73,7 +73,6 @@ class CCContour:
     >>> contour.smooth_contour(window_size=5)
     >>> contour.save_contour("contour_0.txt")
     >>> contour.save_thickness_values("thickness_values_0.txt")
-    >>> contour.save_thickness_measurement_points("thickness_measurement_points_0.txt")
     """
 
     def __init__(
@@ -148,12 +147,17 @@ class CCContour:
         -----
         Uses smooth_contour from cc_endpoint_heuristic module.
         """
-        self.points = np.array([smooth_contour(*self.points.T, window_size=window_size)]).T
+        self.points = np.array(smooth_contour(*self.points.T, window_size=window_size)).T
 
     def copy(self) -> "CCContour":
         """Copy the contour.
         """
-        return CCContour(self.points.copy(), self.thickness_values.copy(), self.endpoint_idxs, self.z_position)
+        return CCContour(
+            self.points.copy(),
+            self.thickness_values.copy() if self.thickness_values is not None else None,
+            self.endpoint_idxs,
+            self.z_position
+        )
     
     def get_contour_edge_lengths(self) -> np.ndarray:
         """Get the lengths of the edges of a contour.
@@ -166,9 +170,10 @@ class CCContour:
         Notes
         -----
         Edge lengths are calculated as Euclidean distances between consecutive points
-        in the contour.
+        in the contour, including the edge closing the loop between the last and
+        first point.
         """
-        edges = np.diff(self.points, axis=0)
+        edges = np.roll(self.points, -1, axis=0) - self.points
         return np.sqrt(np.sum(edges**2, axis=1))
 
     def create_levelpaths(
@@ -291,6 +296,9 @@ class CCContour:
             return
 
         # For each point with unknown thickness
+        total_length = np.sum(edge_lengths)
+        cumulative_lengths = np.concatenate(([0], np.cumsum(edge_lengths)))
+        
         for j in range(len(thickness)):
             if not np.isnan(thickness[j]):
                 continue
@@ -299,10 +307,13 @@ class CCContour:
             distances = np.zeros(len(known_idx))
             for k, idx in enumerate(known_idx):
                 # Calculate distance along contour by summing edge lengths
+                # in both directions and taking the minimum
                 if idx > j:
-                    distances[k] = np.sum(edge_lengths[j:idx])
+                    dist_forward = cumulative_lengths[idx] - cumulative_lengths[j]
                 else:
-                    distances[k] = np.sum(edge_lengths[idx:j])
+                    dist_forward = cumulative_lengths[j] - cumulative_lengths[idx]
+                
+                distances[k] = min(dist_forward, total_length - dist_forward)
 
             # Get indices of two closest points
             closest_indices = known_idx[np.argsort(distances)[:2]]
@@ -328,11 +339,13 @@ class CCContour:
         Notes
         -----
         Applies Gaussian smoothing with sigma=5 to thickness values
-        for each slice that has measurements.
+        along the contour.
         """
-        for i in range(len(self.thickness_values)):
-            if self.thickness_values[i] is not None:
-                self.thickness_values[i] = gaussian_filter1d(self.thickness_values[i], sigma=5)
+        if self.thickness_values is not None:
+            # Handle NaN values by interpolating if necessary or just smoothing the non-NaN parts
+            # Here we assume they might have been filled already by fill_thickness_values
+            for _ in range(iterations):
+                self.thickness_values = gaussian_filter1d(self.thickness_values, sigma=5, mode="wrap")
     
     def plot_contour(self, output_path: str | None = None) -> None:
         """Plot a single contour with thickness values.
@@ -358,13 +371,14 @@ class CCContour:
         # Plot points with colors based on thickness
         gray_points = np.isnan(self.thickness_values)
         if np.any(gray_points):
-            plt.plot(*self.points[gray_points, :2].T, "o", color="gray", markersize=1)
+            plt.scatter(self.points[gray_points, 0], self.points[gray_points, 1], color="gray", s=1)
 
         if not np.all(gray_points):
             not_gray = np.logical_not(gray_points)
-            color_values = plt.cm.YlOrRd(self.thickness_values[not_gray] / np.nanmax(self.thickness_values[not_gray]))
             # Map thickness to color from red to yellow
-            plt.plot(*self.points[~gray_points, :2].T, "o", color=color_values, markersize=1)
+            norm_thickness = self.thickness_values[not_gray] / np.nanmax(self.thickness_values[not_gray])
+            color_values = plt.cm.YlOrRd(norm_thickness)
+            plt.scatter(self.points[not_gray, 0], self.points[not_gray, 1], c=color_values, s=1)
 
         # Connect points with lines
         plt.plot(self.points[:, 0], self.points[:, 1], "-", color="black", alpha=0.3, label="Contour")

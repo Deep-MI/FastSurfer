@@ -18,19 +18,19 @@ The pipeline supports different analysis modes that determine the type of templa
 
 ### 3D Analysis
 
-When running the main pipeline with `--slice_selection all` and `--save_template`, a complete 3D template is generated:
+When running the main pipeline with `--slice_selection all` and `--save_template_dir`, a complete 3D template is generated:
 
 ```bash
 # Generate 3D template data
-python3 fastsurfer_cc.py --subject_dir /data/subjects/sub001 \
+python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
     --slice_selection all \
-    --save_template /data/templates/sub001
+    --save_template_dir /data/templates/sub001
 ```
 
 This creates:
-- `contours.txt`: Multi-slice contour data for 3D reconstruction
-- `thickness_values.txt`: Thickness measurements across all slices
-- `measurement_points.txt`: 3D vertex indices for thickness measurements
+- `contour_<idx>.txt`: Multi-slice contour data for 3D reconstruction
+- `thickness_values_<idx>.txt`: Thickness measurements across all slices
+- `thickness_measurement_points_<idx>.txt`: 3D vertex indices for thickness measurements
 
 **Benefits:**
 - Enables volumetric thickness analysis
@@ -41,13 +41,13 @@ For visualization instructions and outputs, see the [cc_visualization.py documen
 
 ### 2D Analysis
 
-When using `--slice_selection middle` or a specific slice number with `--save_template`:
+When using `--slice_selection middle` or a specific slice number with `--save_template_dir`:
 
 ```bash
 # Generate 2D template data (middle slice)
-python3 fastsurfer_cc.py --subject_dir /data/subjects/sub001 \
+python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
     --slice_selection middle \
-    --save_template /data/templates/sub001
+    --save_template_dir /data/templates/sub001
 ```
 
 **Benefits:**

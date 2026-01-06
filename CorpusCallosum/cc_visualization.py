@@ -160,6 +160,9 @@ def load_contours_from_template_dir(
         else:
             current_contour = CCContour.from_contour_file(contour_file, thickness_file, z_position=z_position)
         
+        if smoothing_window > 0:
+            current_contour.smooth_contour(window_size=smoothing_window)
+            
         current_contour.fill_thickness_values()
         contours.append(current_contour)
 

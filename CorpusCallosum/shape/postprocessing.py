@@ -99,7 +99,7 @@ def recon_cc_surf_measures_multi(
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
     subject_dir: SubjectDirectory,
-) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future]]:
+) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future], list[CCContour], CCMesh | None]:
     """Surface reconstruction and metrics computation of corpus callosum slices based on selection mode.
 
     Parameters
@@ -412,6 +412,9 @@ def recon_cc_surf_measure(
         split_contours = [rotate_back_eigen(split_contour) for split_contour in split_contours]
     else:
         raise ValueError(f"Invalid subdivision method {subdivision_method}")
+    
+    # order areas anterior to posterior
+    areas = areas[::-1]
 
     total_area = np.sum(areas)
     # total_perimeter should include the edge from last to first point
@@ -577,7 +580,7 @@ def check_area_changes(contours: list[np.ndarray], threshold: float = 0.3) -> bo
     Parameters
     ----------
     contours : list[np.ndarray]
-        List of contours.
+        List of contours (2, N).
     threshold : float, default=0.3
         Threshold for relative change.
 
@@ -587,7 +590,7 @@ def check_area_changes(contours: list[np.ndarray], threshold: float = 0.3) -> bo
         True if no large area changes are detected, False otherwise.
     """
 
-    areas = np.asarray([np.sum(np.sqrt(np.sum((np.diff(contour, axis=0))**2, axis=1))) for contour in contours])
+    areas = np.asarray([np.abs(np.trapz(c[1], c[0])) for c in contours])
 
     assert len(areas) > 1, "At least two areas are required to check for area changes"
 

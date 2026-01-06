@@ -59,10 +59,6 @@ def smooth_contour(x: np.ndarray, y: np.ndarray, window_size: int) -> tuple[np.n
         x_smoothed[i] = np.mean(x_padded[i : i + window_size])
         y_smoothed[i] = np.mean(y_padded[i : i + window_size])
 
-    # remove padding
-    x_smoothed = x_smoothed[window_size // 2:-window_size // 2]
-    y_smoothed = y_smoothed[window_size // 2:-window_size // 2]
-
     return x_smoothed, y_smoothed
 
 

@@ -201,9 +201,9 @@ def plot_contours(
         ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
         ax[current_plot].set_title(title)
     if _split_contours:
-        for i, this_contour in enumerate(_split_contours):
+        for this_contour in _split_contours:
             ax[current_plot].fill(this_contour[1, :], this_contour[0, :], color="steelblue", alpha=0.25)
-            kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid" if i != 0 else "dotted"}
+            kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid"}
             ax[current_plot].plot(this_contour[1, :], this_contour[0, :], **kwargs)
     if ac_coords_vox is not None:
         ax[current_plot].scatter(ac_coords_vox[1], ac_coords_vox[0], color="red", marker="x")
