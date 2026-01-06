@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="HypVINN.run_prediction" href="HypVINN.run_prediction.html"><link rel="prev" title="HypVINN" href="../HypVINN.html">
 
-    <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
+    <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>HypVINN.inference - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -388,7 +388,7 @@
 <span id="hypvinn-inference"></span><h1>HypVINN.inference<a class="headerlink" href="#module-HypVINN.inference" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">HypVINN.inference.</span></span><span class="sig-name descname"><span class="pre">Inference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_io</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">viewagg_device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L36-L408"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">HypVINN.inference.</span></span><span class="sig-name descname"><span class="pre">Inference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_io</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">viewagg_device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L36-L408"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference" title="Link to this definition">¶</a></dt>
 <dd><p>Class for running inference on a single subject.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -415,7 +415,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.eval">
-<span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L296-L346"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.eval" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L296-L346"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.eval" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluate the model on a HypVINN dataset.</p>
 <p>This method runs the model in evaluation mode on a HypVINN Dataset. It iterates over the given dataset and
 computes the model’s predictions.</p>
@@ -441,7 +441,7 @@ computes the model’s predictions.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_cfg">
-<span class="sig-name descname"><span class="pre">get_cfg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L201-L212"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_cfg" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_cfg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L201-L212"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_cfg" title="Link to this definition">¶</a></dt>
 <dd><p>Get the configuration node.</p>
 <p>This method returns the configuration node used in the Inference instance.</p>
 <dl class="field-list simple">
@@ -456,7 +456,7 @@ computes the model’s predictions.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_device">
-<span class="sig-name descname"><span class="pre">get_device</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L281-L292"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_device" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_device</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L281-L292"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_device" title="Link to this definition">¶</a></dt>
 <dd><p>Get the device.</p>
 <p>This method returns the device and view aggregation device used in the Inference instance.</p>
 <dl class="field-list simple">
@@ -471,7 +471,7 @@ computes the model’s predictions.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_max_size">
-<span class="sig-name descname"><span class="pre">get_max_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L266-L279"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_max_size" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_max_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L266-L279"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_max_size" title="Link to this definition">¶</a></dt>
 <dd><p>Get the maximum size of the output tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -486,7 +486,7 @@ it returns the width. Otherwise, it returns both the width and height.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_model_height">
-<span class="sig-name descname"><span class="pre">get_model_height</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L240-L251"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_model_height" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_model_height</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L240-L251"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_model_height" title="Link to this definition">¶</a></dt>
 <dd><p>Get the model height.</p>
 <p>This method returns the height of the model defined in the model configuration.</p>
 <dl class="field-list simple">
@@ -501,7 +501,7 @@ it returns the width. Otherwise, it returns both the width and height.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_model_width">
-<span class="sig-name descname"><span class="pre">get_model_width</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L253-L264"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_model_width" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_model_width</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L253-L264"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_model_width" title="Link to this definition">¶</a></dt>
 <dd><p>Get the model width.</p>
 <p>This method returns the width of the model defined in the model configuration.</p>
 <dl class="field-list simple">
@@ -516,7 +516,7 @@ it returns the width. Otherwise, it returns both the width and height.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_modelname">
-<span class="sig-name descname"><span class="pre">get_modelname</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L188-L199"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_modelname" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_modelname</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L188-L199"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_modelname" title="Link to this definition">¶</a></dt>
 <dd><p>Get the name of the model.</p>
 <p>This method returns the name of the model used in the Inference instance.</p>
 <dl class="field-list simple">
@@ -531,7 +531,7 @@ it returns the width. Otherwise, it returns both the width and height.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_num_classes">
-<span class="sig-name descname"><span class="pre">get_num_classes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L214-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_num_classes" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_num_classes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L214-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_num_classes" title="Link to this definition">¶</a></dt>
 <dd><p>Get the number of classes.</p>
 <p>This method returns the number of classes defined in the model configuration.</p>
 <dl class="field-list simple">
@@ -546,7 +546,7 @@ it returns the width. Otherwise, it returns both the width and height.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.get_plane">
-<span class="sig-name descname"><span class="pre">get_plane</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L227-L238"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_plane" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_plane</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L227-L238"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.get_plane" title="Link to this definition">¶</a></dt>
 <dd><p>Get the plane.</p>
 <p>This method returns the plane defined in the data configuration.</p>
 <dl class="field-list simple">
@@ -561,7 +561,7 @@ it returns the width. Otherwise, it returns both the width and height.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.load_checkpoint">
-<span class="sig-name descname"><span class="pre">load_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L170-L186"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.load_checkpoint" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">load_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L170-L186"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.load_checkpoint" title="Link to this definition">¶</a></dt>
 <dd><p>Load a model checkpoint.</p>
 <p>This method loads a model checkpoint from a .pth file containing a state dictionary of a model.</p>
 <dl class="field-list">
@@ -577,7 +577,7 @@ of a model.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modalities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_zoom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_res</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'t1t2'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L348-L408"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.run" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modalities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_zoom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_res</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'t1t2'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L348-L408"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.run" title="Link to this definition">¶</a></dt>
 <dd><p>Run the inference process on a single subject.</p>
 <p>This method sets up the HypVINN DataLoader for the subject, runs the model in evaluation mode on the subject’s
 data,
@@ -610,7 +610,7 @@ and returns the updated prediction probabilities.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.set_cfg">
-<span class="sig-name descname"><span class="pre">set_cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L142-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.set_cfg" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_cfg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L142-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.set_cfg" title="Link to this definition">¶</a></dt>
 <dd><p>Set the configuration node.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -624,7 +624,7 @@ and returns the updated prediction probabilities.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.set_model">
-<span class="sig-name descname"><span class="pre">set_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L153-L168"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.set_model" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L153-L168"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.set_model" title="Link to this definition">¶</a></dt>
 <dd><p>Set the model for the Inference instance.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -638,7 +638,7 @@ and returns the updated prediction probabilities.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.inference.Inference.setup_model">
-<span class="sig-name descname"><span class="pre">setup_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/HypVINN/inference.py#L114-L140"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.setup_model" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">setup_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/inference.py#L114-L140"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.inference.Inference.setup_model" title="Link to this definition">¶</a></dt>
 <dd><p>Set up the model.</p>
 <p>This method sets up the model for inference.</p>
 <dl class="field-list">
@@ -690,7 +690,7 @@ and returns the updated prediction probabilities.</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2020, FastSurfer Developers
+                Copyright &#169; 2020-2026, FastSurfer Developers
             </div>
             Made with 
             <a href="https://github.com/pradyunsg/furo">Furo</a>
@@ -698,7 +698,7 @@ and returns the updated prediction probabilities.</p>
           </div>
           <div class="right-details">
             <div class="icons">
-              <a class="muted-link " href="https://github.com/deep-mi/FastSurfer" aria-label="GitHub">
+              <a class="muted-link " href="https://github.com/Deep-MI/FastSurfer" aria-label="GitHub">
                 <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
                 </svg>

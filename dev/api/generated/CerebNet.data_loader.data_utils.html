@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="CerebNet.data_loader.dataset" href="CerebNet.data_loader.dataset.html"><link rel="prev" title="CerebNet.data_loader.augmentation" href="CerebNet.data_loader.augmentation.html">
 
-    <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
+    <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>CerebNet.data_loader.data_utils - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -388,14 +388,14 @@
 <span id="cerebnet-data-loader-data-utils"></span><h1>CerebNet.data_loader.data_utils<a class="headerlink" href="#module-CerebNet.data_loader.data_utils" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.create_weight_mask2d">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">create_weight_mask2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_wise_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_edge_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L296-L318"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.create_weight_mask2d" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">create_weight_mask2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_wise_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_edge_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L296-L318"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.create_weight_mask2d" title="Link to this definition">¶</a></dt>
 <dd><p>Function to create weighted mask - with median frequency balancing and edge-weighting.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>label_map</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A 2D array representing the label map.</p>
+<dt><strong>label_map</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A 2D array representing the label map.</p>
 </dd>
-<dt><strong>class_wise_weights</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A 1D array where each element is the weight corresponding to a class in the label map.</p>
+<dt><strong>class_wise_weights</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A 1D array where each element is the weight corresponding to a class in the label map.</p>
 </dd>
 <dt><strong>max_edge_weight</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=5</span></dt><dd><p>The maximum weight to be applied at the edges in the label map to emphasize boundaries.</p>
 </dd>
@@ -406,7 +406,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.filter_blank_slices_thick">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'img'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lbl_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L275-L293"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'img'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lbl_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'label'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L275-L293"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
 <dd><p>Function to filter blank slices from the volume using the label volume.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -426,18 +426,18 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.get_aseg_cereb_mask">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">get_aseg_cereb_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aseg_map</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L372-L388"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.get_aseg_cereb_mask" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">get_aseg_cereb_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aseg_map</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L372-L388"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.get_aseg_cereb_mask" title="Link to this definition">¶</a></dt>
 <dd><p>Get a boolean mask of the cerebellum from a segmentation image.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>aseg_map</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A segmentation image.</p>
+<dt><strong>aseg_map</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>A segmentation image.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>A boolean mask of the cerebellum.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>A boolean mask of the cerebellum.</p>
 </dd>
 </dl>
 </dd>
@@ -446,13 +446,13 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.map_prediction_sagittal2full">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">map_prediction_sagittal2full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_sag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lbl_type</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L350-L369"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.map_prediction_sagittal2full" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">map_prediction_sagittal2full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_sag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lbl_type</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L350-L369"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.map_prediction_sagittal2full" title="Link to this definition">¶</a></dt>
 <dd><p>Function to remap the prediction on the sagittal network to 
 full label space used by coronal and axial networks.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>prediction_sag</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Sagittal prediction (labels).</p>
+<dt><strong>prediction_sag</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Sagittal prediction (labels).</p>
 </dd>
 <dt><strong>lbl_type</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Type of label.</p>
 </dd>
@@ -460,7 +460,7 @@ full label space used by coronal and axial networks.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Remapped prediction.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Remapped prediction.</p>
 </dd>
 </dl>
 </dd>
@@ -469,12 +469,12 @@ full label space used by coronal and axial networks.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.map_sag2label">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">map_sag2label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lbl_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cereb_subseg'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L321-L347"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.map_sag2label" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">map_sag2label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lbl_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cereb_subseg'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L321-L347"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.map_sag2label" title="Link to this definition">¶</a></dt>
 <dd><p>Mapping right ids to left and relabeling.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>lbl_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>An array of label data.</p>
+<dt><strong>lbl_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>An array of label data.</p>
 </dd>
 <dt><strong>label_type</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”cereb_subseg”</span></dt><dd><p>A string identifier for the type of labels to map to.</p>
 </dd>
@@ -482,7 +482,7 @@ full label space used by coronal and axial networks.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The remapped label array with continuous labels.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The remapped label array with continuous labels.</p>
 </dd>
 </dl>
 </dd>
@@ -491,14 +491,14 @@ full label space used by coronal and axial networks.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.slice_lia2ras">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">slice_lia2ras</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thick_slices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L409-L442"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.slice_lia2ras" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">slice_lia2ras</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thick_slices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L409-L442"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.slice_lia2ras" title="Link to this definition">¶</a></dt>
 <dd><p>Maps the data from LIA to RAS orientation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>plane</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Plane</span></code></span></dt><dd><p>The slicing direction (usually moved into batch dimension).</p>
 </dd>
-<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The data array of shape [plane, Channels, H, W].</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The data array of shape [plane, Channels, H, W].</p>
 </dd>
 <dt><strong>thick_slices</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">False</span></code></a></span></dt><dd><p>Whether the channels are thick slices and should also be flipped.</p>
 </dd>
@@ -506,7 +506,7 @@ full label space used by coronal and axial networks.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: ‘sagittal’ or ‘coronal’) or
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Data reoriented from LIA to RAS of [plane, Channels, H, W] (plane: ‘sagittal’ or ‘coronal’) or
 [plane, Channels, W, H] (plane: ‘axial’).</p>
 </dd>
 </dl>
@@ -516,14 +516,14 @@ full label space used by coronal and axial networks.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.slice_ras2lia">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">slice_ras2lia</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thick_slices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L445-L478"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.slice_ras2lia" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">slice_ras2lia</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plane</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thick_slices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L445-L478"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.slice_ras2lia" title="Link to this definition">¶</a></dt>
 <dd><p>Maps the data from RAS to LIA orientation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>plane</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Plane</span></code></span></dt><dd><p>The slicing direction (usually moved into batch dimension).</p>
 </dd>
-<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The data array of shape [plane, Channels, H, W].</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The data array of shape [plane, Channels, H, W].</p>
 </dd>
 <dt><strong>thick_slices</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether the channels are thick slices and should also be flipped.</p>
 </dd>
@@ -531,7 +531,7 @@ full label space used by coronal and axial networks.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: ‘sagittal’ or ‘coronal’) or
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Data reoriented from RAS to LIA of [plane, Channels, H, W] (plane: ‘sagittal’ or ‘coronal’) or
 [plane, Channels, W, H] (plane: ‘axial’). The dtype of the array is the same as data.</p>
 </dd>
 </dl>
@@ -541,12 +541,12 @@ full label space used by coronal and axial networks.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.transform_axial">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coronal2axial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L153-L173"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_axial" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coronal2axial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L153-L173"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_axial" title="Link to this definition">¶</a></dt>
 <dd><p>Function to transform volume into Axial axis and back.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image volume to transform.</p>
+<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image volume to transform.</p>
 </dd>
 <dt><strong>coronal2axial</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">True</span></code></a></span></dt><dd><p>If True (default), transforms from coronal to axial.
 If False, transforms from axial to coronal.</p>
@@ -555,7 +555,7 @@ If False, transforms from axial to coronal.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Transformed image volume.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Transformed image volume.</p>
 </dd>
 </dl>
 </dd>
@@ -564,12 +564,12 @@ If False, transforms from axial to coronal.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.transform_axial2sagittal">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial2sagittal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2sagittal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L228-L254"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_axial2sagittal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial2sagittal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2sagittal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L228-L254"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_axial2sagittal" title="Link to this definition">¶</a></dt>
 <dd><p>Transform a volume into the Sagittal axis and back.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
+<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
 </dd>
 <dt><strong>axial2sagittal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True (default), transforms from axial to sagittal.
 If False, transforms from sagittal to axial.</p>
@@ -578,7 +578,7 @@ If False, transforms from sagittal to axial.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The transformed image volume.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The transformed image volume.</p>
 </dd>
 </dl>
 </dd>
@@ -587,12 +587,12 @@ If False, transforms from sagittal to axial.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.transform_coronal">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_coronal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2coronal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L199-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_coronal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_coronal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2coronal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L199-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_coronal" title="Link to this definition">¶</a></dt>
 <dd><p>Transform a volume into the coronal axis and back.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
+<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
 </dd>
 <dt><strong>axial2coronal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>If True (default), transforms from axial to coronal.
 If False, transforms from coronal to axial.</p>
@@ -601,7 +601,7 @@ If False, transforms from coronal to axial.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The transformed image volume.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The transformed image volume.</p>
 </dd>
 </dl>
 </dd>
@@ -610,12 +610,12 @@ If False, transforms from coronal to axial.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.data_utils.transform_sagittal">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_sagittal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coronal2sagittal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/data_loader/data_utils.py#L176-L196"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_sagittal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_sagittal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coronal2sagittal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/data_utils.py#L176-L196"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.data_utils.transform_sagittal" title="Link to this definition">¶</a></dt>
 <dd><p>Transform a volume into the Sagittal axis and back.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
+<dt><strong>vol</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The image volume to transform.</p>
 </dd>
 <dt><strong>coronal2sagittal</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> = <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">True</span></code></a></span></dt><dd><p>If True (default), transforms from coronal to sagittal.
 If False, transforms from sagittal to coronal.</p>
@@ -624,7 +624,7 @@ If False, transforms from sagittal to coronal.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The transformed image volume.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>The transformed image volume.</p>
 </dd>
 </dl>
 </dd>
@@ -662,7 +662,7 @@ If False, transforms from sagittal to coronal.</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2020, FastSurfer Developers
+                Copyright &#169; 2020-2026, FastSurfer Developers
             </div>
             Made with 
             <a href="https://github.com/pradyunsg/furo">Furo</a>
@@ -670,7 +670,7 @@ If False, transforms from sagittal to coronal.</p>
           </div>
           <div class="right-details">
             <div class="icons">
-              <a class="muted-link " href="https://github.com/deep-mi/FastSurfer" aria-label="GitHub">
+              <a class="muted-link " href="https://github.com/Deep-MI/FastSurfer" aria-label="GitHub">
                 <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
                 </svg>

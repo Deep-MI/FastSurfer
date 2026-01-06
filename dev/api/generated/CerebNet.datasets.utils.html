@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="CerebNet.datasets.wm_merge_clean" href="CerebNet.datasets.wm_merge_clean.html"><link rel="prev" title="CerebNet.datasets.load_data" href="CerebNet.datasets.load_data.html">
 
-    <!-- Generated with Sphinx 7.4.7 and Furo 2025.09.25 -->
+    <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>CerebNet.datasets.utils - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -388,14 +388,14 @@
 <span id="cerebnet-datasets-utils"></span><h1>CerebNet.datasets.utils<a class="headerlink" href="#module-CerebNet.datasets.utils" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.bounding_volume_offset">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">bounding_volume_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_img_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L164-L199"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.bounding_volume_offset" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">bounding_volume_offset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_img_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/datasets/utils.py#L164-L199"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.bounding_volume_offset" title="Link to this definition">¶</a></dt>
 <dd><p>Find the center of the non-zero values in img and returns offsets so this center is in the center of a bounding
 volume of size target_img_size.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.filter_blank_slices_thick">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L271-L285"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">filter_blank_slices_thick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/datasets/utils.py#L271-L285"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.filter_blank_slices_thick" title="Link to this definition">¶</a></dt>
 <dd><p>Function to filter blank slices from the volume using the label volume
 :param dict data_dict: dictionary containing all volumes need to be filtered
 :return:</p>
@@ -403,25 +403,25 @@ volume of size target_img_size.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.load_talairach_coordinates">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">load_talairach_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tala_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox2ras</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L330-L351"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.load_talairach_coordinates" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">load_talairach_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tala_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox2ras</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/datasets/utils.py#L330-L351"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.load_talairach_coordinates" title="Link to this definition">¶</a></dt>
 <dd><p>Load talairach coordinates from file.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.map_label2subseg">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cereb_subseg'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L288-L297"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_label2subseg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cereb_subseg'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/datasets/utils.py#L288-L297"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_label2subseg" title="Link to this definition">¶</a></dt>
 <dd><p>Function to perform look-up table mapping from label space to subseg space</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.map_size">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L77-L108"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">map_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/datasets/utils.py#L77-L108"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.map_size" title="Link to this definition">¶</a></dt>
 <dd><p>Resize the image to base_shape.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.datasets.utils.normalize_array">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">normalize_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/deep-mi/FastSurfer/blob/dev/CerebNet/datasets/utils.py#L354-L364"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.normalize_array" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.datasets.utils.</span></span><span class="sig-name descname"><span class="pre">normalize_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/datasets/utils.py#L354-L364"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.datasets.utils.normalize_array" title="Link to this definition">¶</a></dt>
 <dd><p>Normalize the data array to [0, 1].</p>
 </dd></dl>
 
@@ -456,7 +456,7 @@ volume of size target_img_size.</p>
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2020, FastSurfer Developers
+                Copyright &#169; 2020-2026, FastSurfer Developers
             </div>
             Made with 
             <a href="https://github.com/pradyunsg/furo">Furo</a>
@@ -464,7 +464,7 @@ volume of size target_img_size.</p>
           </div>
           <div class="right-details">
             <div class="icons">
-              <a class="muted-link " href="https://github.com/deep-mi/FastSurfer" aria-label="GitHub">
+              <a class="muted-link " href="https://github.com/Deep-MI/FastSurfer" aria-label="GitHub">
                 <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
                 </svg>
