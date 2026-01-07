@@ -215,6 +215,9 @@ def plot_contours(
     # NOTE: For all plots imshow shows y inverted
     current_plot = 0
 
+    if _split_contours:
+        reference_contour = _split_contours[-1]
+
     # This visualization uses voxel coordinates in fsaverage space...
     if has_first_plot:
         ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
@@ -237,7 +240,6 @@ def plot_contours(
     if _midline_equi.shape[0] > 0:
         ax[current_plot].plot(_midline_equi[:, 1], _midline_equi[:, 0], color="red")
     if _split_contours:
-        reference_contour = _split_contours[0]
         ax[current_plot].plot(reference_contour[1, :], reference_contour[0, :], color="red", linewidth=0.5)
 
     padding = 30
@@ -245,7 +247,6 @@ def plot_contours(
         a.set_aspect("equal", adjustable="box")
         a.axis("off")
         if _split_contours:
-            reference_contour = _split_contours[0]
             # get bounding box of contours
             a.set_xlim(reference_contour[1, :].min() - padding, reference_contour[1, :].max() + padding)
             a.set_ylim((reference_contour[0, :]).max() + padding, (reference_contour[0, :]).min() - padding)
