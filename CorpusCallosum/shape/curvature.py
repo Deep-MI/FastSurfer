@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from CorpusCallosum.utils.types import ContourList, Points2dType
+from CorpusCallosum.utils.types import Points2dType
 
 
 def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
@@ -62,7 +62,6 @@ def compute_mean_curvature(path: Points2dType) -> float:
 def calculate_curvature_metrics(
     midline: Points2dType,
     split_points: np.ndarray | None = None,
-    split_contours: ContourList | None = None,
 ) -> tuple[float, float, np.ndarray]:
     """
     Calculate curvature metrics for the CC midline, including overall mean,
@@ -100,16 +99,6 @@ def calculate_curvature_metrics(
         for sp in split_points:
             idx = np.argmin(np.linalg.norm(midline - sp, axis=1))
             split_indices_midline.append(idx)
-    elif split_contours is not None:
-        from CorpusCallosum.shape.subsegment_contour import get_unique_contour_points
-        unique_points = get_unique_contour_points(split_contours)
-        for line_pts in unique_points[1:]:
-            if len(line_pts) == 2:
-                # find where this line crosses the midline
-                # use the average of the two points and find closest point on midline
-                mid_pt = np.mean(line_pts, axis=0)
-                idx = np.argmin(np.linalg.norm(midline - mid_pt, axis=1))
-                split_indices_midline.append(idx)
 
     split_indices_midline.append(len(midline) - 1)
     split_indices_midline.sort()

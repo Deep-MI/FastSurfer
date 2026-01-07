@@ -102,8 +102,9 @@ This file contains measurements from the middle sagittal slice and includes:
 - `cc_5mm_volume_pv_corrected`: Volume with partial volume correction using CC contours (mm³)
 
 **Anatomical Landmarks:**
-- `ac_center`: Anterior commissure coordinates in original image space
-- `pc_center`: Posterior commissure coordinates in original image space
+All anatomical landmarks are given image voxel coordinates (LIA orientation)
+- `ac_center`: Anterior commissure coordinates in original image space (orig.mgz)
+- `pc_center`: Posterior commissure coordinates in original image space (orig.mgz)
 - `ac_center_oriented_volume`: AC coordinates in standardized space (orient_volume.lta) 
 - `pc_center_oriented_volume`: PC coordinates in standardized space (orient_volume.lta)
 - `ac_center_upright`: AC coordinates in upright space (cc_up.lta)

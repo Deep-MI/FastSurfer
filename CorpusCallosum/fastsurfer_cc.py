@@ -841,7 +841,7 @@ def main(
     # Process slices based on selection mode
 
     logger.info(f"Processing slices with selection mode: {slice_selection}")
-    slice_results, slice_io_futures, cc_contours, cc_mesh = recon_cc_surf_measures_multi(
+    slice_results, slice_io_futures, cc_contours = recon_cc_surf_measures_multi(
         segmentation=cc_fn_seg_labels,
         slice_selection=slice_selection,
         upright_header=fsavg_header,
@@ -883,8 +883,8 @@ def main(
         if len(middle_slice_result["split_contours"]) <= 5:
             cc_subseg_midslice = make_subdivision_mask(
                 (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
-                middle_slice_result["split_contours"],
-                vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox),
+                middle_slice_result["subdivision_lines"],
+                vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox)
             )
         else:
             logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
@@ -928,8 +928,8 @@ def main(
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
     # get ac and pc in all spaces
-    ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE, ac_coords_vox))
-    pc_coords_3d = np.hstack((FSAVERAGE_MIDDLE, pc_coords_vox))
+    ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE / vox_size[0], ac_coords_vox))
+    pc_coords_3d = np.hstack((FSAVERAGE_MIDDLE / vox_size[0], pc_coords_vox))
     standardized2orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig = (
         calc_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig2fsavg_vox2vox)
     )
