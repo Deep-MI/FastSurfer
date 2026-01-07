@@ -31,7 +31,6 @@ from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
     ContourList,
     get_primary_eigenvector,
-    get_unique_contour_points,
     hampel_subdivide_contour,
     subdivide_contour,
     subsegment_midline_orthogonal,
@@ -141,8 +140,6 @@ def recon_cc_surf_measures_multi(
         List of background IO processes.
     list of CCContour
         List of CC contours.
-    CCMesh, None
-        The CC mesh or None if no mesh was created.
     """
     slice_cc_measures: list[CCMeasuresDict] = []
     io_futures = []
@@ -206,7 +203,7 @@ def recon_cc_surf_measures_multi(
 
         slice_cc_measures.append(cc_measures)
         is_debug = logger.getEffectiveLevel() <= logging.DEBUG
-        is_midslice = slice_idx == num_slices // 2
+        is_midslice = i == num_slices // 2
         if wants_output("cc_qc_image") and (is_debug or is_midslice):
             qc_imgs: list[Path] = [output_path("cc_qc_image")]
             if is_debug:
@@ -289,7 +286,7 @@ def recon_cc_surf_measures_multi(
             logger.error("Error: No valid slices were found for postprocessing")
             raise ValueError("No valid slices were found for postprocessing")
 
-    return slice_cc_measures, io_futures, cc_contours, cc_mesh if len(cc_contours) > 1 else None
+    return slice_cc_measures, io_futures, cc_contours
 
 
 def _resample_thickness(contour: CCContour) -> CCContour:
@@ -384,50 +381,68 @@ def recon_cc_surf_measure(
 
     # Apply different subdivision methods based on user choice
     split_contours: ContourList
+    subdivision_lines: list[Points2dType]
     split_points_midline: np.ndarray | None = None
     if subdivision_method == "shape":
         _subdivisions = np.asarray(subdivisions)
-        areas, split_contours, split_points_midline = subsegment_midline_orthogonal(
+        areas, split_contours, split_points_midline, subdivision_lines = subsegment_midline_orthogonal(
             midline_equi, _subdivisions, contour_as, plot=False
         )
         split_contours = [
             transform_to_acpc_standard(split_contour, *acpc_contour_coords_as)[0]
             for split_contour in split_contours
         ]
+        subdivision_lines = [
+            transform_to_acpc_standard(line.T, *acpc_contour_coords_as)[0].T
+            for line in subdivision_lines
+        ]
     elif subdivision_method == "vertical":
-        areas, split_contours = subdivide_contour(contour_in_acpc_space, subdivisions, plot=False)
+        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
+            contour_in_acpc_space, subdivisions, plot=False
+        )
     elif subdivision_method == "angular":
         if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
             raise ValueError(
                 f"Angular subdivision method (Hampel) only supports equidistant subdivision, "
                 f"but got: {subdivisions}. No measures are computed.",
             )
-        areas, split_contours = hampel_subdivide_contour(contour_in_acpc_space, num_rays=len(subdivisions), plot=False)
+        areas, split_contours, split_points_midline, subdivision_lines = hampel_subdivide_contour(
+            contour_in_acpc_space, num_rays=len(subdivisions), plot=False
+        )
     elif subdivision_method == "eigenvector":
         pt0, pt1 = get_primary_eigenvector(contour_in_acpc_space)
         contour_eigen, _, _, rotate_back_eigen = transform_to_acpc_standard(contour_in_acpc_space, pt0, pt1)
         ac_pt_eigen, _, _, _ = transform_to_acpc_standard(ac_pt_acpc[:, None], pt0, pt1)
         ac_pt_eigen = ac_pt_eigen[:, 0]
-        areas, split_contours = subdivide_contour(contour_eigen, subdivisions, oriented=True, hline_anchor=ac_pt_eigen)
+        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
+            contour_eigen, subdivisions, oriented=True, hline_anchor=ac_pt_eigen
+        )
+        
+        # Transform from the outputs back to the input space
         split_contours = [rotate_back_eigen(split_contour) for split_contour in split_contours]
+        subdivision_lines = [rotate_back_eigen(line.T).T for line in subdivision_lines]
+        split_points_midline = rotate_back_eigen(np.asarray(split_points_midline).T).T
     else:
         raise ValueError(f"Invalid subdivision method {subdivision_method}")
     
-    # order areas anterior to posterior
-    areas = areas[::-1]
+    # NOTE: areas, subdivision_lines, and split_points_midline are all ordered Anterior to Posterior
 
     total_area = np.sum(areas)
-    # total_perimeter should include the edge from last to first point
     contour_closed = np.concatenate([contour_as, contour_as[:, :1]], axis=1)
     total_perimeter = np.sum(np.linalg.norm(np.diff(contour_closed, axis=1), axis=0))
     circularity = 4 * np.pi * total_area / (total_perimeter**2)
 
-    # Transform split contours back to original space
+    # Transform split contours back to original space (from ACPC to RAS)
+    # Note: for 'shape' method, split_points_midline is already in RAS space,
+    # while the others are in ACPC and need rotate_back_acpc.
     split_contours = [rotate_back_acpc(split_contour) for split_contour in split_contours]
+    subdivision_lines = [rotate_back_acpc(line.T).T for line in subdivision_lines]
+    if subdivision_method != "shape":
+        split_points_midline = rotate_back_acpc(np.asarray(split_points_midline).T).T
 
     # Calculate curvature metrics
     curvature, curvature_body, curvature_subsegments = calculate_curvature_metrics(
-        midline_equi, split_points=split_points_midline, split_contours=split_contours
+        midline_equi, split_points=split_points_midline
     )
 
     measures: CCMeasuresDict = {
@@ -443,6 +458,7 @@ def recon_cc_surf_measure(
         "total_area": total_area,
         "total_perimeter": total_perimeter,
         "split_contours": split_contours,
+        "subdivision_lines": subdivision_lines,
         "midline_equidistant": midline_equi,
         "levelpaths": levelpaths,
         "slice_index": slice_idx
@@ -450,7 +466,7 @@ def recon_cc_surf_measure(
     return measures, _contour
 
 
-def test_right_of_line(
+def test_left_of_line(
         coords: Points2dType,
         line_start: Vector2d,
         line_end: Vector2d,
@@ -486,7 +502,7 @@ def test_right_of_line(
 
 def make_subdivision_mask(
     slice_shape: Shape2d,
-    split_contours: ContourList,
+    subdivision_lines: list[Points2dType],
     vox2ras: AffineMatrix4x4,
     plot: bool = False,
 ) -> np.ndarray[Shape2d, np.dtype[np.int_]]:
@@ -496,9 +512,8 @@ def make_subdivision_mask(
     ----------
     slice_shape : pair of ints
         Shape of the slice (rows, cols).
-    split_contours : ContourList
-        List of contours defining the subdivisions.
-        Each contour is a tuple of x and y coordinates.
+    subdivision_lines : list[np.ndarray]
+        List of pairs of points defining the subdivision lines.
     vox2ras : AffineMatrix4x4
         The vox2ras transformation matrix for the requested shape.
     plot : bool, default=False
@@ -513,20 +528,15 @@ def make_subdivision_mask(
     Notes
     -----
     The function:
-    1. Extracts unique contour points at subdivision boundaries.
-    2. Creates coordinate grids for all points in the slice.
-    3. Initializes mask with first segment label.
-    4. For each subdivision line:
+    1. Creates coordinate grids for all points in the slice.
+    2. Initializes mask with first segment label.
+    3. For each subdivision line:
     - Tests which points lie to the right of the line.
     - Updates labels for those points.
     """
     from nibabel.affines import apply_affine
 
-    # unique_contour_points are the points where sub-division lines were inserted
-    unique_contour_points: list[Points2dType] = get_unique_contour_points(split_contours)  # shape (N, 2)
-    subdivision_segments = unique_contour_points[1:]
-
-    for s in subdivision_segments:
+    for s in subdivision_lines:
         if len(s) != 2:
             logger.error(f"Subdivision segment {s} has {len(s)} points, expected 2")
  
@@ -537,40 +547,40 @@ def make_subdivision_mask(
 
     # Use only as many labels as needed based on the number of subdivisions
     # Number of regions = number of division lines + 1
-    num_labels_needed = len(subdivision_segments) + 1
+    num_labels_needed = len(subdivision_lines) + 1
     cc_labels_posterior_to_anterior = SUBSEGMENT_LABELS[:num_labels_needed]
 
     # Initialize with first segment label
     subdivision_mask = np.full(slice_shape, cc_labels_posterior_to_anterior[0], dtype=np.int32)
 
-    # Process each subdivision line, subdivision_segments has for each division line the two points that are on the
+    # Process each subdivision line, subdivision_lines has for each division line the two points that are on the
     # contour and divide the subsegments
-    for label, segment_points in zip(cc_labels_posterior_to_anterior[1:], reversed(subdivision_segments), strict=True):
+    for label, segment_points in zip(cc_labels_posterior_to_anterior[1:], subdivision_lines, strict=True):
         # line_start and line_end are the intersection points of the CC subsegmentation boundary and the contour line
         line_start, line_end = segment_points
 
         # --> find all voxels posterior to the line in question
         # Vectorized test: find all points to the right of line (line_start->line_end)
         # right_of_line == posterior to line
-        points_right_of_line = test_right_of_line(coords_ras[0, ..., 1:], line_start, line_end)
+        points_left_of_line = test_left_of_line(coords_ras[0, ..., 1:], line_start, line_end)
         
         # All points to the right of this line belong to the next segment or beyond
-        subdivision_mask[points_right_of_line] = label
+        subdivision_mask[points_left_of_line] = label
         
-    if plot: # interactive debug plot
-        import matplotlib
-        import matplotlib.pyplot as plt
-        curr_backend = matplotlib.get_backend()
-        plt.switch_backend("qtagg")
-        plt.figure(figsize=(10, 8))
-        plt.imshow(subdivision_mask, cmap='tab10')
-        plt.colorbar(label='Subdivision')
-        plt.title('CC Subdivision Mask')
-        plt.xlabel('X')
-        plt.ylabel('Y')
-        plt.tight_layout()
-        plt.show()
-        plt.switch_backend(curr_backend)
+        if plot: # interactive debug plot
+            import matplotlib
+            import matplotlib.pyplot as plt
+            curr_backend = matplotlib.get_backend()
+            plt.switch_backend("qtagg")
+            plt.figure(figsize=(10, 8))
+            plt.imshow(subdivision_mask, cmap='tab10')
+            plt.colorbar(label='Subdivision')
+            plt.title('CC Subdivision Mask')
+            plt.xlabel('X')
+            plt.ylabel('Y')
+            plt.tight_layout()
+            plt.show()
+            plt.switch_backend(curr_backend)
     return subdivision_mask
 
 

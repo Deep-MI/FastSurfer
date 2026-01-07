@@ -71,4 +71,5 @@ class CCMeasuresDict(TypedDict):
     curvature_subsegments: ndarray
     curvature_body: float
     levelpaths: list[ndarray]
+    subdivision_lines: list[Points2dType]
     slice_index: int

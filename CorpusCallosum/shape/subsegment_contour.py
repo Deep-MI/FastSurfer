@@ -120,7 +120,7 @@ def subsegment_midline_orthogonal(
         plot: bool = True,
         ax=None,
         extremes=None,
-) -> tuple[np.ndarray[tuple[int], np.dtype[ScalarType]], ContourList, np.ndarray]:
+) -> tuple[np.ndarray[tuple[int], np.dtype[ScalarType]], ContourList, np.ndarray, list[Points2dType]]:
     """Subsegment contour orthogonally to the midline based on area weights.
 
     Parameters
@@ -152,12 +152,10 @@ def subsegment_midline_orthogonal(
     Subsegments include all previous segments. This means subsegment contour two is the outline of the union
     of subsegment one and subsegment two.
     """
-    # FIXME: Here and in other places, the order of dimensions is pretty inconsistent, for example: midline is (N, 2),
-    #        but contours are (2, N)...
-
-    midline_end_idx = np.argmin(np.linalg.norm(contour.T - midline[-1], axis=1))
-    # roll contour start to midline end
-    contour = np.roll(contour, -midline_end_idx, axis=1)
+    # midline[0] is Anterior (max X), midline[-1] is Posterior (min X)
+    midline_start_idx = np.argmin(np.linalg.norm(contour.T - midline[0], axis=1))
+    # roll contour start to midline anterior end
+    contour = np.roll(contour, -midline_start_idx, axis=1)
 
     # Calculate edge indices and fractions for splitting the midline
     # We use len(midline) - 1 because we are looking for intervals between points
@@ -191,7 +189,8 @@ def subsegment_midline_orthogonal(
     side_wrapped = np.hstack([side, side[:, 0:1]])
     sign_change = (side_wrapped[:, :-1] * side_wrapped[:, 1:]) <= 0
 
-    split_contours: ContourList = [contour]
+    split_contours: ContourList = []
+    subdivision_lines: list[Points2dType] = []
 
     for pt_idx, split_point in enumerate(split_points):
         # Indices of contour segments that have sign changes for this split point
@@ -226,6 +225,7 @@ def subsegment_midline_orthogonal(
                 first_index, second_index = second_index, first_index
                 first_intersection, second_intersection = second_intersection, first_intersection
 
+            subdivision_lines.append(np.stack([first_intersection, second_intersection], axis=0))
             first_index += 1
 
             # connect first and second half
@@ -339,50 +339,14 @@ def subsegment_midline_orthogonal(
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_areas(split_contours), split_contours, split_points
+    # add original contour to split_contours to be the union of all subsegments
+    split_contours.append(contour)
 
-
-def get_unique_contour_points(split_contours: ContourList) -> list[Points2dType]:
-    """Get unique contour points from the split contours.
-
-    Parameters
-    ----------
-    split_contours : ContourList
-        List of split contours (subsegmentations), each containing x and y coordinates, each of shape (2, N).
-
-    Returns
-    -------
-    list[np.ndarray]
-        List of unique contour points for each subsegment, each of shape (N, 2).
-
-    Notes
-    -----
-    This is a workaround to retrospectively add voxel-based subdivision.
-    In the future, we could keep track of the subdivision lines for
-    every subdivision scheme.
-
-    The function:
-    1. Processes each contour point.
-    2. Checks if it appears in other contours (with small tolerance).
-    3. Collects points unique to each subsegment.
-    """
-    # For each contour point, check if it appears in other contours
-    # initialize with values for first_contour, which are by definition just "the contour" (empty)
-    unique_contour_points: list[Points2dType] = [np.zeros((0, 2))]
-    first_contour = split_contours[0]
-    # Check each point against all other contours
-    for contour in split_contours[1:]:
-        # 0: coord-axis, 1: contour-axis, 2: first_contour_axis
-        contour_comparison = np.isclose(first_contour[:, None], contour[:, :, None], atol=1e-6)
-        # mask of contour points, that are also in first_contour (axis 1 after all)
-        contour_points_in_first_contour_mask = np.any(np.all(contour_comparison, axis=0), axis=1)
-        unique_contour_points.append(contour[:, ~contour_points_in_first_contour_mask].T)
-
-    return unique_contour_points
+    return calc_subsegment_areas(split_contours), split_contours, split_points, subdivision_lines
 
 
 def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
-        -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList]:
+        -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList, list[Vector2d], list[Points2dType]]:
     """Subdivide contour based on area weights using equally spaced rays.
 
     Parameters
@@ -415,8 +379,9 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
     """
     
     # Find the extreme points in the x-direction
-    min_x_index = np.argmin(contour[0])
-    contour = np.roll(contour, -min_x_index, axis=1)
+    # Anterior end (max X)
+    max_x_index = np.argmax(contour[0])
+    contour = np.roll(contour, -max_x_index, axis=1)
 
     # get minimal bounding box around contour
     min_bounding_rectangle = minimum_bounding_rectangle(contour)
@@ -467,6 +432,8 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
 
     # Subdivision logic
     split_contours: ContourList = []
+    subdivision_lines: list[Points2dType] = []
+    split_points: list[Vector2d] = []
     num_points = contour.shape[1]
     for ray_vector in ray_vectors.T:
         intersections = []
@@ -500,6 +467,8 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
             first_index, first_intersection = intersections[0]
             second_index, second_intersection = intersections[-1]
 
+            subdivision_lines.append(np.stack([first_intersection, second_intersection], axis=0))
+            split_points.append(np.mean([first_intersection, second_intersection], axis=0))
             start_to_cutoff = np.hstack(
                 (
                     contour[:, :first_index],
@@ -550,7 +519,12 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_areas(split_contours), split_contours
+    # order all anterior to posterior
+    split_contours = split_contours[::-1]
+    subdivision_lines = subdivision_lines[::-1]
+    split_points = split_points[::-1]
+
+    return calc_subsegment_areas(split_contours), split_contours, split_points, subdivision_lines
 
 
 def subdivide_contour(
@@ -561,7 +535,7 @@ def subdivide_contour(
     plot_transform: Callable | None = None,
     oriented: bool = False,
     hline_anchor: np.ndarray | None = None
-) -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList]:
+) -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList, list[Vector2d], list[Points2dType]]:
     """Subdivide contour based on area weights using vertical lines.
 
     Divides the contour into segments by drawing vertical lines at positions
@@ -670,7 +644,7 @@ def subdivide_contour(
 
     # Split the contour at the calculated split points
     split_contours = []
-    split_contours.append(contour)
+    subdivision_lines: list[Points2dType] = []
     for split_point in split_points:
         intersections = []
         for i in range(contour.shape[1] - 1):
@@ -704,6 +678,7 @@ def subdivide_contour(
                 first_index, second_index = second_index, first_index
                 first_intersection, second_intersection = second_intersection, first_intersection
 
+            subdivision_lines.append(np.stack([first_intersection, second_intersection], axis=0))
             first_index += 1
 
             # connect first and second half to create a closed cumulative loop
@@ -830,7 +805,19 @@ def subdivide_contour(
             ax.axis("equal")
             plt.show()
 
-    return calc_subsegment_areas(split_contours), split_contours
+
+    # add original contour to split_contours to be the union of all subsegments
+    split_contours.append(contour)
+
+    # order all anterior to posterior
+    split_contours = split_contours[::-1]
+    subdivision_lines = subdivision_lines[::-1]
+    split_points = split_points[::-1]
+
+    # swap subdivision_lines start and end points
+    subdivision_lines = [np.flip(subdivision_line, axis=0) for subdivision_line in subdivision_lines]
+
+    return calc_subsegment_areas(split_contours), split_contours, split_points, subdivision_lines
 
 
 def transform_to_acpc_standard(

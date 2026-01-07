@@ -45,16 +45,36 @@ def plot_standardized_space(
     Notes
     -----
     Creates three views:
-    - Axial (top view)
-    - Sagittal (side view)
-    - Coronal (front view)
+    - Sagittal
+    - Coronal
+    - Axial
     """
-    ax_row[0].set_title("Standardized")
+    # View configuration for LIA orientation (0:L, 1:I, 2:A)
+    # Each entry: (slice_axis, x_plot_idx, y_plot_idx, origin, transpose, view_name)
+    view_configs = [
+        (0, 2, 1, 'upper', False, "Sagittal"), # Slice L, plot (A, I)
+        (2, 0, 1, 'upper', True,  "Coronal"),  # Slice A, plot (L, I)
+        (1, 0, 2, 'lower', True,  "Axial")     # Slice I, plot (L, A)
+    ]
 
-    for i, (a, b, _) in ((2, 1, "Axial"), (2, 0, "Sagittal"), (1, 0, "Coronal")):
-        ax_row[i].scatter(ac_coords[a], ac_coords[b], color="red", marker="x")
-        ax_row[i].scatter(pc_coords[a], pc_coords[b], color="blue", marker="x")
-        ax_row[i].imshow(vol[(slice(None),) * i + (vol.shape[i] // 2,)], cmap="gray")
+    for i, (slice_axis, x_idx, y_idx, origin, do_transpose, name) in enumerate(view_configs):
+        slice_idx = vol.shape[slice_axis] // 2
+        
+        # Extract slice
+        if slice_axis == 0:
+            slice_data = vol[slice_idx, :, :]
+        elif slice_axis == 1:
+            slice_data = vol[:, slice_idx, :]
+        else:
+            slice_data = vol[:, :, slice_idx]
+
+        if do_transpose:
+            slice_data = slice_data.T
+
+        ax_row[i].imshow(slice_data, cmap="gray", origin=origin)
+        ax_row[i].scatter(ac_coords[x_idx], ac_coords[y_idx], color="red", marker="x", s=20)
+        ax_row[i].scatter(pc_coords[x_idx], pc_coords[y_idx], color="blue", marker="x", s=20)
+        ax_row[i].set_ylabel(name)
 
 
 def visualize_coordinate_spaces(
@@ -105,27 +125,26 @@ def visualize_coordinate_spaces(
     3. standardized image space
     as a single image named 'ac_pc_spaces.png' in `output_dir`.
     """
-    fig, ax = plt.subplots(3, 4)
-    ax = ax.T
+    fig, ax = plt.subplots(3, 3, figsize=(12, 12))
 
-    # Original space - using plot_standardized_space
-    plot_standardized_space(ax[0], np.asarray(orig.dataobj), ac_coords_orig, pc_coords_orig)
+    # Original space (Column 0)
+    plot_standardized_space(ax[:, 0], np.asarray(orig.dataobj), ac_coords_orig, pc_coords_orig)
     ax[0, 0].set_title("Orig")
 
-    # Fsaverage space
-    plot_standardized_space(ax[1], upright, ac_coords_3d, pc_coords_3d)
-    ax[1, 0].set_title("Fsaverage")
+    # Fsaverage space (Column 1)
+    plot_standardized_space(ax[:, 1], upright, ac_coords_3d, pc_coords_3d)
+    ax[0, 1].set_title("Fsaverage")
 
-    # Standardized space
-    plot_standardized_space(ax[2], standardized, ac_coords_standardized, pc_coords_standardized)
-    ax[2, 0].set_title("Standardized")
+    # Standardized space (Column 2)
+    plot_standardized_space(ax[:, 2], standardized, ac_coords_standardized, pc_coords_standardized)
+    ax[0, 2].set_title("Standardized")
+
     # Format all subplots
     for a in ax.flatten():
         a.set_aspect("equal", adjustable="box")
         a.axis("off")
 
     plt.savefig(output_plot_path, dpi=300, bbox_inches="tight")
-    plt.show()
     plt.close()
 
 
