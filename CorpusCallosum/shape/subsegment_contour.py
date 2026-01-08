@@ -576,22 +576,25 @@ def subdivide_contour(
     
     """
     # Find the extreme points in the x-direction
-    min_x_index = np.argmin(contour[0])
-    contour = np.roll(contour, -min_x_index, axis=1)
-
-    min_x_index = 0
+    # standard ACPC orientation: Anterior has larger X, Posterior has smaller X
     max_x_index = np.argmax(contour[0])
+    contour = np.roll(contour, -max_x_index, axis=1)
+
+    max_x_index = 0
+    min_x_index = np.argmin(contour[0])
 
     if oriented:
         contour_x_sorted = np.sort(contour[0])
         min_x = contour_x_sorted[0]
         max_x = contour_x_sorted[-1]
-        extremes = (np.array([min_x, 0]), np.array([max_x, 0]))
+        # order extremes A to P
+        extremes = (np.array([max_x, 0]), np.array([min_x, 0]))
 
         if hline_anchor is not None:
-            extremes = (np.array([min_x, hline_anchor[1]]), np.array([max_x, hline_anchor[1]]))
+            extremes = (np.array([max_x, hline_anchor[1]]), np.array([min_x, hline_anchor[1]]))
     else:
-        extremes = (contour[:, min_x_index].copy(), contour[:, max_x_index].copy())
+        # order extremes A to P
+        extremes = (contour[:, max_x_index].copy(), contour[:, min_x_index].copy())
         # Calculate the line between the extreme points
         start_point, end_point = extremes
         line_vector = end_point - start_point
@@ -682,8 +685,8 @@ def subdivide_contour(
             first_index += 1
 
             # connect first and second half to create a closed cumulative loop
-            # that includes the start point of the contour (Posterior end)
-            start_to_cutoff = np.hstack(
+            # starting from the Anterior end (start of the rolled contour)
+            anterior_to_cutoff = np.hstack(
                 (
                     contour[:, :first_index],
                     first_intersection[:, None],
@@ -692,8 +695,8 @@ def subdivide_contour(
                 )
             )
 
-            # add cumulative subsegment
-            split_contours.append(start_to_cutoff)
+            # add cumulative subsegment (Anterior -> Current Split)
+            split_contours.append(anterior_to_cutoff)
         else:
             raise ValueError("No intersections found, this should not happen")
 
@@ -806,16 +809,10 @@ def subdivide_contour(
             plt.show()
 
 
-    # add original contour to split_contours to be the union of all subsegments
+    
+
+    # add original contour as the final element (Full CC)
     split_contours.append(contour)
-
-    # order all anterior to posterior
-    split_contours = split_contours[::-1]
-    subdivision_lines = subdivision_lines[::-1]
-    split_points = split_points[::-1]
-
-    # swap subdivision_lines start and end points
-    subdivision_lines = [np.flip(subdivision_line, axis=0) for subdivision_line in subdivision_lines]
 
     return calc_subsegment_areas(split_contours), split_contours, split_points, subdivision_lines
 
