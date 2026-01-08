@@ -164,7 +164,7 @@ def make_mesh_from_contour(
     max_volume: float = 0.5,
     min_angle: float = 25,
     verbose: bool = False
-) -> tuple[Points2dType[np.float_], np.ndarray[tuple[int, Literal[3]], np.dtype[np.int_]]]:
+) -> tuple[Points2dType[np.float64], np.ndarray[tuple[int, Literal[3]], np.dtype[np.int_]]]:
     """Create a triangular mesh from a 2D contour.
 
     Parameters
@@ -200,7 +200,7 @@ def make_mesh_from_contour(
     # NOTE: crashes if contour has duplicate points !!
     mesh = triangle.build(info, max_volume=max_volume, min_angle=min_angle, verbose=verbose)
 
-    mesh_points: Points2dType[np.float_] = np.array(mesh.points, dtype=float)
+    mesh_points: Points2dType[np.float64] = np.array(mesh.points, dtype=float)
     mesh_trias: np.ndarray[tuple[int, Literal[3]], np.dtype[np.int_]] = np.array(mesh.elements, dtype=int)
 
     return mesh_points, mesh_trias

@@ -17,7 +17,7 @@ import numpy as np
 from CorpusCallosum.utils.types import Points2dType
 
 
-def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
+def compute_curvature(path: Points2dType) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
     """Compute curvature by computing edge angles.
 
     Parameters

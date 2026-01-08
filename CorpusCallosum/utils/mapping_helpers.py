@@ -218,7 +218,7 @@ def apply_transform_to_volume(
     output_path: str | Path | None = None,
     output_size: np.ndarray | None = None,
     order: int = 1
-) -> Image3d[np.float_]:
+) -> Image3d[np.float64]:
     """Apply transformation to a volume and save the result.
 
     Parameters
