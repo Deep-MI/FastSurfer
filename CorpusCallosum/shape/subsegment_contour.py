@@ -100,7 +100,12 @@ def calc_subsegment_areas(split_contours: ContourList) -> np.ndarray[tuple[int],
     """
     # calculate area of each split contour using the shoelace formula
     # we use the absolute value because the orientation of the contour may vary
-    areas_cum = np.abs([np.trapz(c[1], c[0]) for c in split_contours])
+    # support numpy <2 and >=2
+    if hasattr(np, 'trapezoid'):
+        areas_cum = np.abs([np.trapezoid(c[1], c[0]) for c in split_contours])
+    else:
+        areas_cum = np.abs([np.trapz(c[1], c[0]) for c in split_contours])
+
     if len(areas_cum) == 1:
         return np.asarray(areas_cum[0])
     
@@ -115,7 +120,7 @@ def calc_subsegment_areas(split_contours: ContourList) -> np.ndarray[tuple[int],
 
 def subsegment_midline_orthogonal(
         midline: Points2dType,
-        area_weights: np.ndarray[tuple[int], np.dtype[np.float_]],
+        area_weights: np.ndarray[tuple[int], np.dtype[np.float64]],
         contour: Polygon2dType,
         plot: bool = True,
         ax=None,
@@ -346,7 +351,7 @@ def subsegment_midline_orthogonal(
 
 
 def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
-        -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList, list[Vector2d], list[Points2dType]]:
+        -> tuple[np.ndarray[tuple[int], np.dtype[np.float64]], ContourList, list[Vector2d], list[Points2dType]]:
     """Subdivide contour based on area weights using equally spaced rays.
 
     Parameters
@@ -535,7 +540,7 @@ def subdivide_contour(
     plot_transform: Callable | None = None,
     oriented: bool = False,
     hline_anchor: np.ndarray | None = None
-) -> tuple[np.ndarray[tuple[int], np.dtype[np.float_]], ContourList, list[Vector2d], list[Points2dType]]:
+) -> tuple[np.ndarray[tuple[int], np.dtype[np.float64]], ContourList, list[Vector2d], list[Points2dType]]:
     """Subdivide contour based on area weights using vertical lines.
 
     Divides the contour into segments by drawing vertical lines at positions

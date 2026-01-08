@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-from numpy import dtype, float_, ndarray
+from numpy import dtype, float64, ndarray
 
 from FastSurferCNN.utils import ScalarType
 
@@ -63,7 +63,7 @@ class CCMeasuresDict(TypedDict):
     midline_length: float
     thickness: float
     curvature: float
-    thickness_profile: ndarray[tuple[int], dtype[float_]]
+    thickness_profile: ndarray[tuple[int], dtype[float64]]
     total_area: float
     total_perimeter: float
     split_contours: ContourList

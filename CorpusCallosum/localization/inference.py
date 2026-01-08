@@ -189,7 +189,7 @@ def predict(
 
     crop_left, crop_top = cast(tuple[int, int], t_dict["crop_left"]), cast(tuple[int, int], t_dict["crop_top"])
     t_crops = [(crop_left + crop_top) * 2]
-    outs: np.ndarray[tuple[int, Literal[4]], np.dtype[np.float_]]
+    outs: np.ndarray[tuple[int, Literal[4]], np.dtype[np.float64]]
     outs = outputs.cpu().numpy() + np.asarray(t_crops, dtype=float)
     crop_offsets: tuple[int, int] = (crop_left[0], crop_top[0])
     return outs[:, :2], outs[:, 2:], crop_offsets

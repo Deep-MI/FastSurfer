@@ -914,17 +914,19 @@ def main(
 
     ########## Save outputs ##########
     additional_metrics = {}
-    if len(outer_contours) > 1:
-        cc_volume_voxel = segmentation_postprocessing.get_cc_volume_voxel(
+
+    cc_volume_voxel = segmentation_postprocessing.get_cc_volume_voxel(
             desired_width_mm=5,
             cc_mask=np.equal(cc_fn_seg_labels, CC_LABEL),
             voxel_size=vox_size, # in LIA order
         )
+    additional_metrics["cc_5mm_volume"] = cc_volume_voxel
+
+
+    if len(outer_contours) > 1:
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
         cc_volume_contour = calculate_cc_volume_contour(cc_contours, width=5.0)
         logger.info(f"CC volume contour: {cc_volume_contour}")
-
-        additional_metrics["cc_5mm_volume"] = cc_volume_voxel
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
     # get ac and pc in all spaces

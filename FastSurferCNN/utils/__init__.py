@@ -1,4 +1,4 @@
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2025 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,17 +54,17 @@ from typing import Literal, TypeVar
 # including nibabel does not overly drag down performance
 from nibabel.analyze import SpatialHeader as nibabelHeader
 from nibabel.analyze import SpatialImage as nibabelImage
-from numpy import bool_, dtype, float_, ndarray, number
+from numpy import bool_, dtype, float64, ndarray, number
 
-AffineMatrix4x4 = ndarray[tuple[Literal[4], Literal[4]], dtype[float_]]
+AffineMatrix4x4 = ndarray[tuple[Literal[4], Literal[4]], dtype[float64]]
 PlaneAxial = Literal["axial"]
 PlaneCoronal = Literal["coronal"]
 PlaneSagittal = Literal["sagittal"]
 Plane = PlaneAxial | PlaneCoronal | PlaneSagittal
 PLANES: tuple[PlaneAxial, PlaneCoronal, PlaneSagittal] = ("axial", "coronal", "sagittal")
 ScalarType = TypeVar("ScalarType", bound=number)
-Vector2d = ndarray[tuple[Literal[2]], dtype[float_]]
-Vector3d = ndarray[tuple[Literal[3]], dtype[float_]]
+Vector2d = ndarray[tuple[Literal[2]], dtype[float64]]
+Vector3d = ndarray[tuple[Literal[3]], dtype[float64]]
 Shape2d = tuple[int, int]
 Shape3d = tuple[int, int, int]
 Shape4d = tuple[int, int, int, int]
@@ -75,4 +75,4 @@ Image4d = ndarray[Shape4d, dtype[ScalarType]]
 Mask2d = ndarray[Shape2d, dtype[bool_]]
 Mask3d = ndarray[Shape3d, dtype[bool_]]
 Mask4d = ndarray[Shape4d, dtype[bool_]]
-RotationMatrix3x3 = ndarray[tuple[Literal[3], Literal[3]], dtype[float_]]
+RotationMatrix3x3 = ndarray[tuple[Literal[3], Literal[3]], dtype[float64]]
