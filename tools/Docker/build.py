@@ -39,7 +39,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-Target = Literal["runtime", "build_common", "build_conda", "build_freesurfer", "build_base", "runtime_cuda"]
+Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "build_base", "runtime_cuda"]
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
 AllDeviceType = Literal["cpu", "cuda", "cu118", "cu126", "cu128", "rocm", "rocm6.2.4", "xpu"]
 DeviceType = Literal["cpu", "cu118", "cu124", "cu126", "rocm6.2.4"]
@@ -83,7 +83,7 @@ class DEFAULTS:
     BUILD_BASE_IMAGE = "ubuntu:22.04"
     RUNTIME_BASE_IMAGE = "ubuntu:22.04"
     FREESURFER_BUILD_IMAGE = "build_freesurfer"
-    CONDA_BUILD_IMAGE = "build_conda"
+    VENV_BUILD_IMAGE = "build_venv"
 
 
 def docker_image(arg) -> str:
@@ -232,7 +232,7 @@ def make_parser() -> argparse.ArgumentParser:
         choices=get_args(Target),
         metavar="target",
         help="""target to build (from list of targets below, defaults to runtime):<br>
-                 - build_conda: "finished" conda build image<br>
+                 - build_venv: "finished" venv build image (this was previously called 'build_conda')<br>
                  - build_freesurfer: "finished" freesurfer build image<br>
                  - runtime: final fastsurfer runtime image""",
     )
@@ -311,12 +311,13 @@ def make_parser() -> argparse.ArgumentParser:
                 the Dockerfile (either by building it or from cache, see --cache).""",
     )
     expert.add_argument(
+        "--venv_build_image",
         "--conda_build_image",
         type=docker_image,
         metavar="image[:tag]",
         help="""explicitly specifies an image to copy the python environment from.
                 The environment is expected to be in /venv in the image, like the 
-                runtime image. By default, uses the "build_conda" stage in the 
+                runtime image. By default, uses the "build_venv" stage in the 
                 Dockerfile (either by building it or from cache, see --cache).""",
     )
     expert.add_argument(
@@ -356,13 +357,14 @@ def red(skk):
 
 
 def get_builder(
-        Popen,
         builder_type: str,
         require_builder_type: bool = False,
 ) -> tuple[bool, str]:
     """Get the builder to build the fastsurfer image."""
     from re import compile
     from subprocess import PIPE
+
+    from FastSurferCNN.utils.run_tools import Popen
 
     buildx_binfo = Popen(["docker", "buildx", "ls"], stdout=PIPE, stderr=PIPE).finish()
     header, *lines = buildx_binfo.out_str("utf-8").strip().split("\n")
@@ -414,7 +416,8 @@ def docker_build_image(
         attestation: bool = False,
         action: Literal["load", "push"] = "load",
         image_path: Path | str | None = None,
-        **kwargs) -> None:
+        **kwargs,
+) -> None:
     """
     Build a docker image.
 
@@ -425,28 +428,24 @@ def docker_build_image(
     dockerfile : Path, str
         Path to the Dockerfile.
     working_directory : Path, str, optional
-        Path o the working directory to perform the build operation (default: inherit).
-    context : Path, str, optional
-        Base path to the context folder to build the docker image from (default: '.').
-    dry_run : bool, optional
-        Whether to actually trigger the build, or just print the command to the console
-        (default: False => actually build).
+        Path to the working directory to perform the build operation (None: inherit).
+    context : Path, str, default='.'
+        Base path to the context folder to build the docker image from.
+    dry_run : bool, default=False
+        Whether to actually trigger the build, or just print the command to the console (False: actually build).
     cache_to : str, optional
-        Forces usage of buildx over build, use docker build caching as in the --cache-to
-        argument to docker buildx build.
+        Forces usage of buildx over build, use docker build caching via the --cache-to argument to docker buildx build.
     attestation : bool, default=False
         Whether to create sbom and provenance attestation
     action : "load", "push", default="load"
-        The operation to perform after the image is built (only if a docker-container
-        builder is detected).
+        The operation to perform after the image is built (only if a docker-container builder is detected).
     image_path : Path, str, optional
-        A path to save the image to (experimental; currently cannot be imported into a
-        legacy docker storage driver).
+        A path to save the image to (experimental; currently cannot be imported into a legacy docker storage driver).
 
-    Additional kwargs add additional build flags to the build command in the following
-    manner: "_" is replaced by "-" in the keyword name and each sequence entry is passed
-    with its own flag, e.g. `docker_build_image(..., build_arg=["TEST=1", "VAL=2"])` is
-    translated to `docker [buildx] build ... --build-arg TEST=1 --build-arg VAL=2`.
+    Additional kwargs add additional build flags to the build command in the following manner: "_" is replaced by "-" in
+    the keyword name and each sequence entry is passed with its own flag, e.g.
+    `docker_build_image(..., build_arg=["TEST=1", "VAL=2"])` is translated to
+    `docker [buildx] build ... --build-arg TEST=1 --build-arg VAL=2`.
     """
     from itertools import chain, repeat
     from shutil import which
@@ -487,11 +486,11 @@ def docker_build_image(
     require_container = (attestation or
                          any(is_inline_cache(f"cache_{c}") for c in ("to", "from")))
     import_after_args = []
-    if dest := image_path or "":
-        logger.warning("Images exported with image_path cannot be imported into legacy "
-                       "storage drivers. This feature is currently experimental. Also "
-                       "note, that exporting to a file is incompatible with the load "
-                       f"and push actions. Deactivating {action}-action!")
+    if dest := (image_path or ""):
+        logger.warning(
+            "Images exported with image_path cannot be imported into legacy storage drivers. This feature is currently "
+            "experimental. Also note, that exporting to a file is incompatible with the load and push actions. "
+            "Deactivating {action}-action!")
         dest = f",dest={dest}"
         action = "export"
     if not has_buildx:
@@ -499,13 +498,12 @@ def docker_build_image(
         if require_container:
             # not supported with builder != docker-container
             raise RuntimeError(
-                "Using --cache_{from,to} or attestation requires docker buildx and a "
-                f"docker-container builder.\n{INSTALL_BUILDX}\n{CREATE_BUILDER}"
+                "Using --cache_{from,to} or attestation requires docker buildx and a docker-container builder.\n"
+                "{INSTALL_BUILDX}\n{CREATE_BUILDER}"
             )
         if action != "load":
             raise RuntimeError(
-                "The legacy docker builder does not support pushing or exporting the "
-                "image."
+                "The legacy docker builder does not support pushing or exporting the image."
             )
         args = ["build"]
         kwargs_to_exclude = [f"cache_{c}" for c in ("to", "from")]
@@ -514,7 +512,6 @@ def docker_build_image(
         args = ["buildx", "build"]
         # raises RuntimeError, if a docker-container builder is required, but not found
         default_builder_is_container, alternative_builder = get_builder(
-            Popen,
             "docker-container",
             require_container,
         )
@@ -539,8 +536,8 @@ def docker_build_image(
                 print(f"mkdir -p {Path(image_path).parent} && ", sep="")
             else:
                 Path(image_path).parent.mkdir(exist_ok=True)
-            # importing after (bock docker image import as well as docker image load
-            # are not supported for images exported by buildkit.
+            # importing after (bock docker image import as well as docker image load are not supported for images
+            # exported by buildkit.
             # import_after_args = ["image", "import", image_path, image_name]
         elif attestation:
             # also implicitly action == load
@@ -653,7 +650,7 @@ def main(
         ssl_verify: Path | bool = True,
         **keywords,
         ) -> int | str:
-    from FastSurferCNN.version import has_git
+    from FastSurferCNN.version import has_git, parse_build_file
     from FastSurferCNN.version import main as version
     kwargs: dict[str, str | list[str]] = {}
     if cache is not None:
@@ -680,7 +677,8 @@ def main(
     kwargs["target"] = target
     kwargs["build_arg"] = [
         f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}",
-        f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}"
+        f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}",
+        f"FREESURFER_VERSION={pyproject_freesurfer['version']}",
     ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")
@@ -688,13 +686,13 @@ def main(
         "build_base_image",
         "runtime_base_image",
         "freesurfer_build_image",
-        "conda_build_image",
+        "venv_build_image",
     ]
     for key in build_arg_list:
         upper_key = key.upper()
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
-    #    kwargs["build_arg"] = " ".join(kwargs["build_arg"])
+
     if ssl_verify is not True:
         if ssl_verify is False:
             kwargs["build_arg"].append("MAMBA_SSL_VERIFY=<false>")
@@ -729,9 +727,13 @@ def main(
         return f"Creating the version file failed with message: {ret_version}"
 
     with open(build_filename) as build_file:
-        from FastSurferCNN.version import parse_build_file
         build_info = parse_build_file(build_file)
 
+    if has_git():
+        repository_url = get_repository_url(build_info["git_status"], build_info["git_branch"])
+        kwargs["build_arg"].append(f"REPOSITORY_URL={repository_url}")
+    kwargs["build_arg"].append(f"FASTSURFER_VERSION={build_info['version_tag']}")
+    kwargs["build_arg"].append(f"GIT_HASH={build_info['git_hash']}")
     version_tag = build_info["version_tag"]
     image_prefix = ""
     if device != "cuda":
@@ -772,6 +774,23 @@ def main(
     except RuntimeError as e:
         return e.args[0]
     return 0
+
+
+def get_repository_url(git_status_text: str, branch: str) -> str:
+    """Get the repository URL of the current git repository."""
+    from FastSurferCNN.utils.run_tools import Popen
+
+    remote = git_status_text.removeprefix(f"## {branch}...").split("/")[0]
+    repository_process = Popen(["git", "remote", "get-url", remote], stdout=subprocess.PIPE).finish()
+    if repository_process.retcode != 0:
+        logger.error(repository_process.err_str())
+        raise RuntimeError("Could not get the repository URL from git.")
+    repository_url = repository_process.out_str().strip()
+    if repository_url.endswith(".git"):
+        repository_url = repository_url[:-4]
+    if repository_url.startswith("git@"):
+        repository_url = "https://" + repository_url[4:].replace(":/", "/")
+    return repository_url + "/tree/" + branch
 
 
 def default_home() -> Path:
