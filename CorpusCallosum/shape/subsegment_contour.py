@@ -154,6 +154,8 @@ def subsegment_midline_orthogonal(
         List of contour arrays for each subsegment.
     split_points : np.ndarray
         Array of shape (K, 2) containing points where the midline was split.
+    subdivision_lines : list of np.ndarray
+        List of contour arrays for each subdivision line.
 
     Notes
     -----
@@ -247,7 +249,7 @@ def subsegment_midline_orthogonal(
             )
             split_contours.append(start_to_cutoff)
         else:
-            raise ValueError(f"No intersections found for split point {pt_idx}, this should not happen")
+            raise ValueError("No intersections found in subdivision, is the contour valid?")
 
         # plot contour to first index, then split point, then contour to second index
 
@@ -353,7 +355,7 @@ def subsegment_midline_orthogonal(
     return calc_subsegment_areas(split_contours), split_contours, split_points, subdivision_lines
 
 
-def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
+def subdivide_contour_hampel(contour: Polygon2dType, num_rays: int, plot: bool = False, ax=None) \
         -> tuple[np.ndarray[tuple[int], np.dtype[np.float64]], ContourList, list[Vector2d], list[Points2dType]]:
     """Subdivide contour based on area weights using equally spaced rays.
 
@@ -374,6 +376,10 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
         Array of areas for each subsegment.
     split_contours : list[np.ndarray]
         List of contour arrays for each subsegment.
+    split_points : list[Vector2d]
+        List of split points for each subsegment.
+    subdivision_lines : list[Points2dType]
+        List of contour arrays for each subdivision line.
 
     Notes
     -----
@@ -489,7 +495,7 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
             # connect first and second half
             split_contours.append(start_to_cutoff)
         else:
-            raise ValueError("No intersections found, this should not happen")
+            raise ValueError("No intersections found in subdivision, is the contour valid?")
 
     split_contours = [contour] + split_contours
 
@@ -535,7 +541,7 @@ def hampel_subdivide_contour(contour: Polygon2dType, num_rays: int, plot: bool =
     return calc_subsegment_areas(split_contours), split_contours, split_points, subdivision_lines
 
 
-def subdivide_contour(
+def subdivide_contour_vertical(
     contour: Polygon2dType,
     area_weights: list[float],
     plot: bool = False,
@@ -573,6 +579,10 @@ def subdivide_contour(
         Array of areas for each subsegment.
     split_contours : list[np.ndarray]
         List of contour arrays for each subsegment.
+    split_points : list[Vector2d]
+        List of split points for each subsegment.
+    subdivision_lines : list[Points2dType]
+        List of contour arrays for each subdivision line.
 
     Notes
     -----
@@ -706,7 +716,7 @@ def subdivide_contour(
             # add cumulative subsegment (Anterior -> Current Split)
             split_contours.append(anterior_to_cutoff)
         else:
-            raise ValueError("No intersections found, this should not happen")
+            raise ValueError("No intersections found in subdivision, is the contour valid?")
 
     if plot:
         # make vline at every split point

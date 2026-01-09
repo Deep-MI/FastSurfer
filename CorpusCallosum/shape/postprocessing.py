@@ -31,8 +31,8 @@ from CorpusCallosum.shape.metrics import calculate_cc_index
 from CorpusCallosum.shape.subsegment_contour import (
     ContourList,
     get_primary_eigenvector,
-    hampel_subdivide_contour,
-    subdivide_contour,
+    subdivide_contour_hampel,
+    subdivide_contour_vertical,
     subsegment_midline_orthogonal,
     transform_to_acpc_standard,
 )
@@ -98,7 +98,7 @@ def recon_cc_surf_measures_multi(
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
     subject_dir: SubjectDirectory,
-) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future], list[CCContour], CCMesh | None]:
+) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future], list[CCContour]]:
     """Surface reconstruction and metrics computation of corpus callosum slices based on selection mode.
 
     Parameters
@@ -296,6 +296,69 @@ def _resample_thickness(contour: CCContour) -> CCContour:
     return _c
 
 
+def subdivide_contour(
+    midline_equi: Points2dType,
+    subdivisions: list[float],
+    ac_pt_acpc: Vector2d,
+    contour_in_acpc_space: Points2dType,
+    subdivision_method: SubdivisionMethod,
+) -> tuple[list[float], ContourList, np.ndarray, list[Points2dType]]:
+    """Subdivide the contour based on the subdivision method.
+    Parameters
+    ----------
+    midline_equi : Points2dType
+        The midline equidistant points.
+    subdivisions : list[float]
+        The subdivisions.
+    ac_pt_acpc: Vector2d
+        The AC point in ACPC space. (Needed for eigenvector subdivision.)
+    contour_in_acpc_space : Points2dType
+        The contour in ACPC space.
+    subdivision_method : SubdivisionMethod
+        The subdivision method. One of "shape", "vertical", "angular", or "eigenvector".
+
+    Returns
+    -------
+    tuple[list[float], ContourList, np.ndarray, list[Points2dType]]
+        The areas, split contours, split points midline, and subdivision lines.
+    """
+    if subdivision_method == "shape":
+        _subdivisions = np.asarray(subdivisions)
+        areas, split_contours, split_points_midline, subdivision_lines = subsegment_midline_orthogonal(
+            midline_equi, _subdivisions, contour_in_acpc_space, plot=False
+        )
+    elif subdivision_method == "vertical":
+        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour_vertical(
+            contour_in_acpc_space, subdivisions, plot=False
+        )
+    elif subdivision_method == "angular":
+        if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
+            raise ValueError(
+                f"Angular subdivision method (Hampel) only supports equidistant subdivision, "
+                f"but got: {subdivisions}. No measures are computed.",
+            )
+        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour_hampel(
+            contour_in_acpc_space, num_rays=len(subdivisions), plot=False
+        )
+    elif subdivision_method == "eigenvector":
+        pt0, pt1 = get_primary_eigenvector(contour_in_acpc_space)
+        contour_eigen, _, _, rotate_back_eigen = transform_to_acpc_standard(contour_in_acpc_space, pt0, pt1)
+        ac_pt_eigen, _, _, _ = transform_to_acpc_standard(ac_pt_acpc[:, None], pt0, pt1)
+        ac_pt_eigen = ac_pt_eigen[:, 0]
+        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour_vertical(
+            contour_eigen, subdivisions, oriented=True, hline_anchor=ac_pt_eigen
+        )
+        
+        # Transform from the outputs back to the input space
+        split_contours = [rotate_back_eigen(split_contour) for split_contour in split_contours]
+        subdivision_lines = [rotate_back_eigen(line.T).T for line in subdivision_lines]
+        split_points_midline = rotate_back_eigen(np.asarray(split_points_midline).T).T
+    else:
+        raise ValueError(f"Invalid subdivision method {subdivision_method}")
+
+    return areas, split_contours, split_points_midline, subdivision_lines
+
+
 def recon_cc_surf_measure(
     segmentation: np.ndarray[Shape3d, np.dtype[np.int_]],
     slice_idx: int,
@@ -383,49 +446,12 @@ def recon_cc_surf_measure(
     split_contours: ContourList
     subdivision_lines: list[Points2dType]
     split_points_midline: np.ndarray | None = None
-    if subdivision_method == "shape":
-        _subdivisions = np.asarray(subdivisions)
-        areas, split_contours, split_points_midline, subdivision_lines = subsegment_midline_orthogonal(
-            midline_equi, _subdivisions, contour_as, plot=False
-        )
-        split_contours = [
-            transform_to_acpc_standard(split_contour, *acpc_contour_coords_as)[0]
-            for split_contour in split_contours
-        ]
-        subdivision_lines = [
-            transform_to_acpc_standard(line.T, *acpc_contour_coords_as)[0].T
-            for line in subdivision_lines
-        ]
-    elif subdivision_method == "vertical":
-        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
-            contour_in_acpc_space, subdivisions, plot=False
-        )
-    elif subdivision_method == "angular":
-        if not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
-            raise ValueError(
-                f"Angular subdivision method (Hampel) only supports equidistant subdivision, "
-                f"but got: {subdivisions}. No measures are computed.",
-            )
-        areas, split_contours, split_points_midline, subdivision_lines = hampel_subdivide_contour(
-            contour_in_acpc_space, num_rays=len(subdivisions), plot=False
-        )
-    elif subdivision_method == "eigenvector":
-        pt0, pt1 = get_primary_eigenvector(contour_in_acpc_space)
-        contour_eigen, _, _, rotate_back_eigen = transform_to_acpc_standard(contour_in_acpc_space, pt0, pt1)
-        ac_pt_eigen, _, _, _ = transform_to_acpc_standard(ac_pt_acpc[:, None], pt0, pt1)
-        ac_pt_eigen = ac_pt_eigen[:, 0]
-        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
-            contour_eigen, subdivisions, oriented=True, hline_anchor=ac_pt_eigen
-        )
-        
-        # Transform from the outputs back to the input space
-        split_contours = [rotate_back_eigen(split_contour) for split_contour in split_contours]
-        subdivision_lines = [rotate_back_eigen(line.T).T for line in subdivision_lines]
-        split_points_midline = rotate_back_eigen(np.asarray(split_points_midline).T).T
-    else:
-        raise ValueError(f"Invalid subdivision method {subdivision_method}")
+
+    areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
+        midline_equi, subdivisions, ac_pt_acpc, contour_in_acpc_space, subdivision_method
+    )
     
-    # NOTE: areas, subdivision_lines, and split_points_midline are all ordered Anterior to Posterior
+    
 
     total_area = _contour.area
     total_perimeter = np.sum(_contour.get_contour_edge_lengths())
@@ -470,7 +496,7 @@ def test_left_of_line(
         line_start: Vector2d,
         line_end: Vector2d,
 ) -> np.ndarray[tuple[int], np.dtype[np.bool_]]:
-    """Test whether points in coords are to the right of the line (line_start->line_end).
+    """Test whether points in coords are to the left of the line (line_start->line_end).
 
     Parameters
     ----------

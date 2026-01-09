@@ -61,7 +61,7 @@ def compute_mean_curvature(path: Points2dType) -> float:
 
 def calculate_curvature_metrics(
     midline: Points2dType,
-    split_points: np.ndarray | None = None,
+    split_points: np.ndarray,
 ) -> tuple[float, float, np.ndarray]:
     """
     Calculate curvature metrics for the CC midline, including overall mean,
@@ -71,10 +71,8 @@ def calculate_curvature_metrics(
     ----------
     midline : Points2dType
         Equidistant points along the midline.
-    split_points : np.ndarray, optional
+    split_points : np.ndarray
         Points on the midline where it was split (for orthogonal subdivision).
-    split_contours : ContourList, optional
-        List of split contours (for other subdivision methods).
 
     Returns
     -------
@@ -95,10 +93,9 @@ def calculate_curvature_metrics(
 
     # Find split indices on the midline for subsegment curvature
     split_indices_midline = [0]
-    if split_points is not None:
-        for sp in split_points:
-            idx = np.argmin(np.linalg.norm(midline - sp, axis=1))
-            split_indices_midline.append(idx)
+    for sp in split_points:
+        idx = np.argmin(np.linalg.norm(midline - sp, axis=1))
+        split_indices_midline.append(idx)
 
     split_indices_midline.append(len(midline) - 1)
     split_indices_midline.sort()
