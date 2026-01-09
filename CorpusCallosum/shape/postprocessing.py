@@ -304,14 +304,15 @@ def subdivide_contour(
     subdivision_method: SubdivisionMethod,
 ) -> tuple[list[float], ContourList, np.ndarray, list[Points2dType]]:
     """Subdivide the contour based on the subdivision method.
+
     Parameters
     ----------
     midline_equi : Points2dType
         The midline equidistant points.
     subdivisions : list[float]
         The subdivisions.
-    ac_pt_acpc: Vector2d
-        The AC point in ACPC space. (Needed for eigenvector subdivision.)
+    ac_pt_acpc : Vector2d
+        The AC point in ACPC space (needed for eigenvector subdivision).
     contour_in_acpc_space : Points2dType
         The contour in ACPC space.
     subdivision_method : SubdivisionMethod
