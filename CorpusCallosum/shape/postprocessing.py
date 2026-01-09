@@ -427,9 +427,8 @@ def recon_cc_surf_measure(
     
     # NOTE: areas, subdivision_lines, and split_points_midline are all ordered Anterior to Posterior
 
-    total_area = np.sum(areas)
-    contour_closed = np.concatenate([contour_as, contour_as[:, :1]], axis=1)
-    total_perimeter = np.sum(np.linalg.norm(np.diff(contour_closed, axis=1), axis=0))
+    total_area = _contour.area
+    total_perimeter = np.sum(_contour.get_contour_edge_lengths())
     circularity = 4 * np.pi * total_area / (total_perimeter**2)
 
     # Transform split contours back to original space (from ACPC to RAS)
