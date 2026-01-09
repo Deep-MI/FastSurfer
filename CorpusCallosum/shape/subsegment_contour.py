@@ -100,11 +100,14 @@ def calc_subsegment_areas(split_contours: ContourList) -> np.ndarray[tuple[int],
     """
     # calculate area of each split contour using the shoelace formula
     # we use the absolute value because the orientation of the contour may vary
-    # support numpy <2 and >=2
-    if hasattr(np, 'trapezoid'):
-        areas_cum = np.abs([np.trapezoid(c[1], c[0]) for c in split_contours])
-    else:
-        areas_cum = np.abs([np.trapz(c[1], c[0]) for c in split_contours])
+    areas_cum = []
+    for c in split_contours:
+        # c is (2, N)
+        x = c[0]
+        y = c[1]
+        area = 0.5 * np.abs(np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y))
+        areas_cum.append(area)
+    areas_cum = np.asarray(areas_cum)
 
     if len(areas_cum) == 1:
         return np.asarray(areas_cum[0])

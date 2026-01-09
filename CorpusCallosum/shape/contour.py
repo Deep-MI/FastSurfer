@@ -78,7 +78,7 @@ class CCContour:
     def __init__(
         self,
         points: Points2dType,
-        thickness_values: np.ndarray[tuple[int], np.dtype[np.float_]] | None,
+        thickness_values: np.ndarray[tuple[int], np.dtype[np.float64]] | None,
         endpoint_idxs: tuple[int, int] | None = None,
         z_position: float = 0.0
     ):
@@ -740,7 +740,7 @@ class CCContour:
         contour: Points2dType,
         original_thickness_vertices: np.ndarray[tuple[int], np.dtype[np.signedinteger]] | None,
         input_path: str | Path,
-    ) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
+    ) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
         """See load_thickness_values.
 
         Ignore shape of thickness values if original_thickness_vertices is None.
