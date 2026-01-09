@@ -291,7 +291,7 @@ def main(
             if sections != "":
                 futures["git_branch"] = Popen(["git", "branch", "--show-current"], **kw_root).as_future(pool)
             if "+git" in sections:
-                futures["git_status"] = pool.submit(filter_git_status, Popen(["git", "status", "-s", "-b"], **kw_root))
+                futures["git_status"] = pool.submit(filter_git_status, Popen(["git", "status", "-sb"], **kw_root))
         else:
             # we go not have git, try loading the build cache
             build_cache_required = True
@@ -334,9 +334,7 @@ def main(
             if isinstance(returnmsg, str):
                 return returnmsg
             elif returnmsg.retcode != 0:
-                raise RuntimeError(
-                    f"The calculation/determination of {key} has failed."
-                )
+                raise RuntimeError(f"The calculation/determination of {key} has failed.")
             return returnmsg.out_str("utf-8").strip()
         elif key in cache:
             # fill from cache

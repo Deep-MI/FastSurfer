@@ -14,7 +14,7 @@
 
 # DOCUMENTATION FOR BUILD ARGS (use '--build-arg DEVICE=<VALUE>'):
 # - BUILD_BASE_IMAGE:
-#   The base image to build the conda and freesurfer build images from
+#   The base image to build the venv and freesurfer build images from
 #   - default: ubuntu:22.04
 # - RUNTIME_BASE_IMAGE:
 #   The base image to build the runtime image on.
@@ -23,7 +23,7 @@
 #   Image to use to install freesurfer binaries from, the freesurfer binaries
 #   should be located in /opt/freesurfer in the image.
 #   - default: build_freesurfer
-# - CONDA_BUILD_IMAGE:
+# - VENV_BUILD_IMAGE:
 #   Image to use to install the python environment from, the python environment
 #   should be in /venv/ in the image.
 #   - default: build_cuda
@@ -41,13 +41,19 @@
 #   Build the freesurfer build image only.
 # - build_common:
 #   Build the basic image with the python environment (hardware/driver-agnostic)
-# - build_conda:
+# - build_venv:
 #   Build the python environment image with cuda/rocm/cpu support
 
 ARG FREESURFER_BUILD_IMAGE=build_freesurfer
-ARG CONDA_BUILD_IMAGE=build_conda
+ARG VENV_BUILD_IMAGE=build_venv
 ARG RUNTIME_BASE_IMAGE=ubuntu:22.04
 ARG BUILD_BASE_IMAGE=ubuntu:22.04
+ARG FASTSURFER_VERSION=dev
+ARG FREESURFER_VERSION=7.4.1
+ARG REPOSITORY_URL="<no repository set>"
+ARG GIT_HASH=""
+ARG VENDOR="Image Analysis Lab, DZNE https://deep-mi.org/"
+ARG AUTHOR="David Kügler <david.kuegler@dzne.de>"
 # BUILDKIT_SBOM:SCAN_CONTEXT enables buildkit to provide and scan build images
 # this is active by default to provide proper SBOM manifests, however, it may also
 # include parts that are not part of the distributed image (specifically build image
@@ -100,7 +106,20 @@ RUN python /install/install_env.py -m base -i /install/fastsurfer.yml -o /instal
       | tee /install/env-create.log ; \
     if [ "${DEBUG}" != "true" ]; then rm /install/base-env.yml ; fi
 
-FROM build_common AS build_conda
+FROM build_common AS build_venv
+
+LABEL org.opencontainers.image.authors="$AUTHOR" \
+      org.opencontainers.image.url="$REPOSITORY_URL" \
+      org.opencontainers.image.documentation="https://deep-mi.org/fastsurfer/$BRANCH/overview/docker.html" \
+      org.opencontainers.image.source="${REPOSITORY_URL/tree/blob}/tools/Docker/Dockerfile" \
+      org.opencontainers.image.version="$FASTSURFER_VERSION" \
+      org.opencontainers.image.revision="$GIT_HASH" \
+      org.opencontainers.image.vendor="$VENDOR" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.ref.name="deepmi/fastsurfer-build:venv_v$FASTSURFER_VERSION" \
+      org.opencontainers.image.title="Virtual environment build image for FastSurfer $FASTSURFER_VERSION" \
+      org.opencontainers.image.description="This image contains the python environment for the official FastSurfer docker image. The corresponding virtual environment is placed at /venv in the image." \
+      org.opencontainers.image.base.name="$BUILD_BASE_IMAGE"
 
 ARG DEBUG=false
 ARG DEVICE=cu118
@@ -114,6 +133,19 @@ RUN python /install/install_env.py -m ${DEVICE} -i /install/fastsurfer.yml -o /i
 
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
+
+LABEL org.opencontainers.image.authors="$AUTHOR" \
+      org.opencontainers.image.url="$REPOSITORY_URL" \
+      org.opencontainers.image.documentation="https://deep-mi.org/fastsurfer/$BRANCH/overview/docker.html" \
+      org.opencontainers.image.source="${REPOSITORY_URL/tree/blob}/tools/Docker/Dockerfile" \
+      org.opencontainers.image.version="$FREESURFER_VERSION" \
+      org.opencontainers.image.revision="$GIT_HASH" \
+      org.opencontainers.image.vendor="$VENDOR" \
+      org.opencontainers.image.licenses="FreeSurfer License" \
+      org.opencontainers.image.ref.name="deepmi/fastsurfer-build:freesurfer${FREESURFER_VERSION//./}" \
+      org.opencontainers.image.title="FreeSurfer $FREESURFER_VERSION minimal installation for FastSurfer $FASTSURFER_VERSION" \
+      org.opencontainers.image.description="This image contains the FreeSurfer binaries used in FastSurfer, for example for surface reconstruction, for the official FastSurfer docker image. These binaries are placed at /opt/freesurfer in the image." \
+      org.opencontainers.image.base.name="$BUILD_BASE_IMAGE"
 
 # get install scripts into docker
 COPY ./tools/build/install_fs_pruned.sh ./tools/build/link_fs.sh /install/
@@ -135,14 +167,27 @@ RUN /install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL && \
 # the image/stage name
 # selected_freesurfer_build_image -> $FREESURFER_BUILD_IMAGE
 FROM $FREESURFER_BUILD_IMAGE AS selected_freesurfer_build_image
-# selected_conda_build_image -> $CONDA_BUILD_IMAGE
-FROM $CONDA_BUILD_IMAGE AS selected_conda_build_image
+# selected_venv_build_image -> $VENV_BUILD_IMAGE
+FROM $VENV_BUILD_IMAGE AS selected_venv_build_image
 
 
 # =========================================
 # Here, we create the smaller runtime image
 # =========================================
 FROM $RUNTIME_BASE_IMAGE AS runtime
+
+LABEL org.opencontainers.image.authors="$AUTHOR" \
+      org.opencontainers.image.url="$REPOSITORY_URL" \
+      org.opencontainers.image.documentation="https://deep-mi.org/fastsurfer/$BRANCH/overview/docker.html" \
+      org.opencontainers.image.source="${REPOSITORY_URL/tree/blob}/tools/Docker/Dockerfile" \
+      org.opencontainers.image.version="$FREESURFER_VERSION" \
+      org.opencontainers.image.revision="$GIT_HASH" \
+      org.opencontainers.image.vendor="$VENDOR" \
+      org.opencontainers.image.licenses="FreeSurfer License" \
+      org.opencontainers.image.ref.name="deepmi/fastsurfer-build:freesurfer${FREESURFER_VERSION//./}" \
+      org.opencontainers.image.title="FreeSurfer $FREESURFER_VERSION minimal installation for FastSurfer $FASTSURFER_VERSION" \
+      org.opencontainers.image.description="This image contains the python virtual environment for the official FastSurfer docker image. The corresponding virtual environment is placed at /venv in the image." \
+      org.opencontainers.image.base.name="$BUILD_BASE_IMAGE"
 
 ENV LANG=C.UTF-8 \
     LC_NUMERIC=en_US.UTF-8
@@ -173,7 +218,7 @@ ENV OS=Linux \
     MPLCONFIGDIR=/tmp/matplotlib-config \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
-# create matplotlib config dir; make sure we use bash and activate conda env
+# create matplotlib config dir; make sure we use bash and activate venv
 #  (in case someone starts this interactively)
 RUN mkdir -m 777 $MPLCONFIGDIR && \
     echo "source /venv/bin/activate" >> /etc/bash.bashrc
@@ -185,7 +230,7 @@ SHELL ["/bin/bash", "--login", "-c"]
 # reference here, and the
 # seletced_<name>_build_image is a only a reference to $<NAME>_BUILD_IMAGE
 COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
-COPY --from=selected_conda_build_image /venv /venv
+COPY --from=selected_venv_build_image /venv /venv
 
 # Fix for cuda11.8+cudnn8.7 bug+warning: https://github.com/pytorch/pytorch/issues/97041
 RUN if [[ "$DEVICE" == "cu118" ]] ; then cd /venv/python3.10/site-packages/torch/lib && ln -s libnvrtc-*.so.11.2 libnvrtc.so ; fi
@@ -218,7 +263,7 @@ RUN cd /fastsurfer ; python3 FastSurferCNN/download_checkpoints.py --all && \
 #EOF
 
 # Set FastSurfer workdir and entrypoint
-#  the script entrypoint ensures that our conda env is active
+#  the script entrypoint ensures that our venv is active
 USER nonroot
 WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/tools/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
