@@ -538,10 +538,11 @@ python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_5mm_volume</span></code>: Total CC volume within 5mm slab using voxel counting (mm³)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_5mm_volume_pv_corrected</span></code>: Volume with partial volume correction using CC contours (mm³)</p></li>
 </ul>
-<p><strong>Anatomical Landmarks:</strong></p>
+<p><strong>Anatomical Landmarks:</strong>
+All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ac_center</span></code>: Anterior commissure coordinates in original image space</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pc_center</span></code>: Posterior commissure coordinates in original image space</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ac_center</span></code>: Anterior commissure coordinates in original image space (orig.mgz)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pc_center</span></code>: Posterior commissure coordinates in original image space (orig.mgz)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ac_center_oriented_volume</span></code>: AC coordinates in standardized space (orient_volume.lta)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pc_center_oriented_volume</span></code>: PC coordinates in standardized space (orient_volume.lta)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ac_center_upright</span></code>: AC coordinates in upright space (cc_up.lta)</p></li>
