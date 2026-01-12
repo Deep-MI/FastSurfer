@@ -6,9 +6,8 @@
 #set -euo pipefail
 # ... Run whatever commands ...
 
-# Temporarily disable strict mode and activate conda:
+# Temporarily disable strict mode and activate venv:
 set +euo pipefail
-#conda activate myenv
 source /venv/bin/activate
 
 # Re-enable strict mode:

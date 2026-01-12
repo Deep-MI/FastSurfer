@@ -67,6 +67,7 @@ or pip:
 ```bash
 sudo apt install python3-setuptools
 ```
+or
 ```bash
 pip install setuptools
 ```
@@ -79,18 +80,13 @@ install:
 pip install scikit-sparse=0.4.4
 ```
 
-It is normally recommended to run your setups in separate virtual environments (like conda, 
+It is normally recommended to run your setups in separate virtual environments (like uv, conda, 
 [pipenv](https://pypi.org/project/pipenv/) or [virtualenv](https://pypi.org/project/virtualenv/)).
 
-#### 2. Anaconda
-You can install anaconda via curl with the following command:
+#### 2. uv
+FastSurfer previously recommended conda to install Python. We now recommend uv instead of conda. 
+
+You can install uv via wget with the following command:
 ```bash
-# The version of Anaconda may be different depending on when you are installing
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-sh Miniconda3-latest-Linux-x86_64.sh
-# and follow the prompts. The defaults are generally good.
+wget -qO- https://astral.sh/uv/install.sh | sh
 ```
-You may have to open a new terminal or re-source your ~/.bashrc to get access to the conda command. See also the 
-documentation for [conda](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html) as well as the 
-section about how to manage 
-[conda environments](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments).
