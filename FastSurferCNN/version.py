@@ -7,6 +7,7 @@ import shutil
 import subprocess
 from collections.abc import Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, TextIO, TypedDict, cast, get_args
 
@@ -233,7 +234,7 @@ def main(
     python packages:
     ==========
     Package         Version    Location   [Installer]
-    <package name>  <version>  <path>     <pip|conda>
+    <package name>  <version>  <path>     <pip|...>
     ...]
     ```
 
@@ -504,7 +505,7 @@ def filter_git_status(git_process) -> str:
     )
 
 
-def read_and_close_version(project_file: TextIO | None = None) -> str:
+def read_and_close_version(project_file: TextIO | PathLike | None = None) -> str:
     """
     Read and close the version from the pyproject file. Also fill default.
 
@@ -512,7 +513,7 @@ def read_and_close_version(project_file: TextIO | None = None) -> str:
 
     Parameters
     ----------
-    project_file : TextIO, optional
+    project_file : TextIO, PathLike, optional
         Project file.
 
     Returns
@@ -524,7 +525,8 @@ def read_and_close_version(project_file: TextIO | None = None) -> str:
     -----
     See also FastSurferCNN.version.read_version_from_project_file
     """
-    project_file = open(project_file or DEFAULTS.PROJECT_TOML)
+    if not hasattr(project_file, "readline"):
+        project_file = open(project_file or DEFAULTS.PROJECT_TOML)
     try:
         version = read_version_from_project_file(project_file)
     finally:

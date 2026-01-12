@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 
 # Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
@@ -41,8 +41,8 @@ logger = logging.getLogger(__name__)
 
 Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "build_base", "runtime_cuda"]
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu118", "cu126", "cu128", "rocm", "rocm6.2.4", "xpu"]
-DeviceType = Literal["cpu", "cu118", "cu124", "cu126", "rocm6.2.4"]
+AllDeviceType = Literal["cpu", "cuda", "cu118", "cu126", "cu128", "rocm", "rocm6.3", "xpu"]
+DeviceType = Literal["cpu", "cu118", "cu126", "cu128", "rocm6.3"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
 CONTAINERD_MESSAGE = (
@@ -80,8 +80,8 @@ class DEFAULTS:
         rocm=ROCM,
         cuda=CUDA,
     )
-    BUILD_BASE_IMAGE = "ubuntu:22.04"
-    RUNTIME_BASE_IMAGE = "ubuntu:22.04"
+    BUILD_BASE_IMAGE = "ubuntu:24.04"
+    RUNTIME_BASE_IMAGE = "ubuntu:24.04"
     FREESURFER_BUILD_IMAGE = "build_freesurfer"
     VENV_BUILD_IMAGE = "build_venv"
 
@@ -187,15 +187,6 @@ class CacheSpec:
         return self.to_str(False, mode=self._params.get("mode", "min"))
 
     __repr__ = format_cache_from
-
-
-def _validate_ssl_verify(value) -> Path | bool:
-    """Validate the SSL certificate value from false/none/true/path to certificate."""
-    if value.lower() in ("false", "<false>", "none"):
-        return False
-    elif value.lower() in ("true", "<true>"):
-        return True
-    return Path(value)
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -324,30 +315,20 @@ def make_parser() -> argparse.ArgumentParser:
         "--runtime_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the runtime image from (default: ubuntu:22.04).",
+        help=f"explicitly specifies the base image to build the runtime image from "
+             f"(default: {DEFAULTS.RUNTIME_BASE_IMAGE}).",
     )
     expert.add_argument(
         "--build_base_image",
         type=docker_image,
         metavar="image[:tag]",
-        help="explicitly specifies the base image to build the build images from (default: ubuntu:22.04).",
+        help=f"explicitly specifies the base image to build the build images from "
+             f"(default: {DEFAULTS.BUILD_BASE_IMAGE}).",
     )
     expert.add_argument(
         "--debug",
         action="store_true",
         help="enables the DEBUG build flag.",
-    )
-
-    def _default_ssl_verify(x):
-        return os.environ.get("MAMBA_SSL_VERIFY", os.environ.get("CONDA_SSL_VERIFY", x))
-    expert.add_argument(
-        "--ssl_verify",
-        type=_validate_ssl_verify,
-        default=_default_ssl_verify(True),
-        metavar="{True,False,<path>}",
-        help="ssl certificate to use for condaforge, from None/False (ignore), True (default system certificate), or a "
-             "certificate file path (defaults to the value of the MAMBA_SSL_VERIFY (or CONDA_SSL_VERIFY) environment "
-             f"variable, here: {_default_ssl_verify('True (neither set)')}).",
     )
     return parser
 
@@ -490,7 +471,7 @@ def docker_build_image(
         logger.warning(
             "Images exported with image_path cannot be imported into legacy storage drivers. This feature is currently "
             "experimental. Also note, that exporting to a file is incompatible with the load and push actions. "
-            "Deactivating {action}-action!")
+            f"Deactivating {action}-action!")
         dest = f",dest={dest}"
         action = "export"
     if not has_buildx:
@@ -499,7 +480,7 @@ def docker_build_image(
             # not supported with builder != docker-container
             raise RuntimeError(
                 "Using --cache_{from,to} or attestation requires docker buildx and a docker-container builder.\n"
-                "{INSTALL_BUILDX}\n{CREATE_BUILDER}"
+                f"{INSTALL_BUILDX}\n{CREATE_BUILDER}"
             )
         if action != "load":
             raise RuntimeError(
@@ -647,7 +628,6 @@ def main(
         dry_run: bool = False,
         tag_dev: bool = True,
         fastsurfer_home: Path | None = None,
-        ssl_verify: Path | bool = True,
         **keywords,
         ) -> int | str:
     from FastSurferCNN.version import has_git, parse_build_file
@@ -656,9 +636,10 @@ def main(
     if cache is not None:
         if not isinstance(cache, CacheSpec):
             cache = CacheSpec(cache)
-        logger.info(f"cache: {cache}")
+        if not dry_run:
+            logger.info(f"cache: {cache}")
         kwargs["cache_from"] = cache.format_cache_from()
-        kwargs["cache_to"] = cache.format_cache_from()
+        kwargs["cache_to"] = cache.format_cache_to()
 
     fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
     # read the freesurfer download url from pyproject.toml
@@ -693,17 +674,6 @@ def main(
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
 
-    if ssl_verify is not True:
-        if ssl_verify is False:
-            kwargs["build_arg"].append("MAMBA_SSL_VERIFY=<false>")
-        else:
-            _ssl_cert = "tools/Docker/custom-ssl.crt"
-            if (fastsurfer_home / _ssl_cert).exists():
-                (fastsurfer_home / _ssl_cert).unlink()
-            from shutil import copy2
-            copy2(ssl_verify, fastsurfer_home / _ssl_cert)
-            kwargs["build_arg"].append(f"MAMBA_SSL_CERTIFICATE={_ssl_cert}")
-            kwargs["build_arg"].append(f"MAMBA_SSL_VERIFY=/install/{Path(_ssl_cert).name}")
     build_filename = fastsurfer_home / "tools" / "Docker" / "BUILD.info"
     if has_git():
         version_sections = "+git"
@@ -731,9 +701,13 @@ def main(
 
     if has_git():
         repository_url = get_repository_url(build_info["git_status"], build_info["git_branch"])
-        kwargs["build_arg"].append(f"REPOSITORY_URL={repository_url}")
+        kwargs["build_arg"].extend([
+                f"REPOSITORY_URL={repository_url}",
+                f"GIT_HASH={build_info['git_hash']}",
+        ])
+        if "github.com/tree/stable" in repository_url:
+            kwargs["build_arg"].append("DOC_URL=https://deep-mi.org/fastsurfer/stable")
     kwargs["build_arg"].append(f"FASTSURFER_VERSION={build_info['version_tag']}")
-    kwargs["build_arg"].append(f"GIT_HASH={build_info['git_hash']}")
     version_tag = build_info["version_tag"]
     image_prefix = ""
     if device != "cuda":
@@ -802,18 +776,19 @@ def default_home() -> Path:
     Path
         The FastSurfer root path belonging to this build.py file.
     """
-    return Path(__file__).parents[2]
+    return Path(__file__).resolve().parents[2]
 
 
 if __name__ == "__main__":
     import sys
     logging.basicConfig(stream=sys.stdout)
-    arguments = make_parser().parse_args()
 
     # make sure the code can run without FastSurfer being in PYTHONPATH
     fastsurfer_home = default_home()
     if str(fastsurfer_home) not in sys.path:
         sys.path.append(str(fastsurfer_home))
+
+    arguments = make_parser().parse_args()
 
     logger.setLevel(logging.WARN if arguments.dry_run else logging.INFO)
     sys.exit(main(**vars(arguments), fastsurfer_home=fastsurfer_home))

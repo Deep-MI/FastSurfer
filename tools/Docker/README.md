@@ -212,14 +212,6 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
       Also note, that the image storage location with containerd is not defined by the docker config file `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd) file with `containerd config default > /etc/containerd/config.toml`, in this config file edit the `"root"`-entry (default value is `/var/lib/containerd`).  
 4. Finally, you can now build the FastSurfer image with `python tools/Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
 
-Setting the ssl_verify parameter of mamba
------------------------------------------
-The `build.py` script supports the `--ssl_verify` flag, which can be passed `"False"` or the path to an alternative root certificate.
-
-```bash
-python tools/Docker/build.py --device cpu --tag my_fastsurfer:cpu --ssl_verify /path/to/custom-cert.srt
-```
-
 Building for release
 --------------------
 Make sure, you are building on a machine that has [containerd-storage and Buildkit](#build-docker-image-with-attestation-and-provenance).
@@ -231,9 +223,9 @@ img=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
 version=2.5.0
 # the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device
-cuda=126
-cudas=("cuda118" "cuda124" "cuda$cuda")
-rocm=6.2.4
+cuda=128
+cudas=("cuda118" "cuda126" "cuda$cuda")
+rocm=6.3
 rocms=("rocm$rocm")
 # end of config
 
@@ -242,7 +234,7 @@ git clone --branch stable --single-branch github.com/Deep-MI/FastSurfer $build_d
 cd $build_dir
 all_tags=("latest" "gpu-latest" "cuda-v$version" "rocm-v$version" "cpu-latest")
 # build all distinct images
-for dev in cpu "${rocms[@]}" "${cudas[@]}"
+for dev in cpu xpu "${rocms[@]}" "${cudas[@]}"
 do
   python3 tools/Docker/build.py --tag $img:$dev-v$version --freesurfer_build_image $img-build:freesurfer741 --attest --device $dev
   all_tags+=("$dev-v$version")

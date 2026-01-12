@@ -365,6 +365,8 @@ def download_checkpoint(
             LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
             if isinstance(e, requests.exceptions.HTTPError):
                 LOGGER.warning(f"Response code: {e.response.status_code}")
+                from textwrap import indent
+                LOGGER.info(f"Response text: \n{indent(e.response.text, '    ')}")
 
     if response is None:
         links = ', '.join(u.removeprefix('https://')[:22] + "..." for u in urls)

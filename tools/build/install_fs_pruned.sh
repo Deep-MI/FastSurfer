@@ -1,5 +1,4 @@
-#!/bin/bash --login
-# --login to read bashrc for conda inside docker
+#!/bin/bash
 
 # This file downloads the FreeSurfer tar ball and extracts from it only what is needed to run
 # FastSurfer
