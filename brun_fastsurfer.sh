@@ -29,7 +29,7 @@ parallel_pipelines="1"
 num_parallel_surf="1"
 num_parallel_seg="1"
 statusfile=""
-python="python3.10 -s"
+python="python3 -s"
 
 function usage()
 {

@@ -19,7 +19,7 @@ FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
 subject=""; # Subject name
-python="python3.10" # python version
+python="python3 -s" # python version
 DoParallel=0 # if 1, run hemispheres in parallel
 threads="1" # number of threads to use for running FastSurfer
 

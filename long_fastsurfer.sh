@@ -57,7 +57,7 @@ t1s=()
 parallel=0
 LF=""
 brun_flags=()
-python="python3.10 -s" # avoid user-directory package inclusion
+python="python3 -s" # avoid user-directory package inclusion
 
 
 function usage()
