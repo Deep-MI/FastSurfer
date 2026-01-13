@@ -1,10 +1,11 @@
 # Corpus Callosum Pipeline
 
-A deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
+FastSurfer-CC is a deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
 Also segments the fornix, localizes the anterior and posterior commissure (AC and PC) and standardizes the orientation of the brain.
 
-For detailed documentation, please refer to:
-- [Module Overview](../doc/overview/modules/CC.md): Detailed description of the pipeline, workflow, and analysis options.
+For the documentation is split into three files, please refer to:
+- [Module Overview](../doc/overview/modules/CC.md): Description of the pipeline, and the corpus callosum measures produced.
+- [Advanced options](../doc/scripts/fastsurfer_cc.rst#quality-control): Quality control, custom subdivision and visualization options.
 - [Output Files](../doc/overview/OUTPUT_FILES.md#corpus-callosum-module): List of output files and their descriptions.
 
 ## Quickstart
