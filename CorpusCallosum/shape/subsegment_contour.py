@@ -827,7 +827,7 @@ def subdivide_contour_vertical(
             plt.show()
 
 
-    
+
 
     # add original contour as the final element (Full CC)
     split_contours.append(contour)
