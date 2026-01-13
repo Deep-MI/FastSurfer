@@ -14,6 +14,7 @@
 
 # IMPORTS
 import os
+import sys
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
@@ -348,36 +349,46 @@ def download_checkpoint(
     urls : list[str]
         List of URLs of checkpoint hosting sites.
     """
-    response = None
+    responses = []
     for url in urls:
         try:
             LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
-            response = requests.get(
+            responses.append(requests.get(
                 url + "/" + checkpoint_name,
                 verify=True,
                 timeout=(5, None),  # (connect timeout: 5 sec, read timeout: None)
-            )
+            ))
             # Raise error if file does not exist:
-            response.raise_for_status()
-            break
+            if responses[-1].ok:
+                break
 
         except requests.exceptions.RequestException as e:
             LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
-            if isinstance(e, requests.exceptions.HTTPError):
-                LOGGER.warning(f"Response code: {e.response.status_code}")
-                from textwrap import indent
-                LOGGER.info(f"Response text: \n{indent(e.response.text, '    ')}")
+            if isinstance(e.response, requests.Response):
+                responses.append(e.response)
 
-    if response is None:
-        links = ', '.join(u.removeprefix('https://')[:22] + "..." for u in urls)
-        raise requests.exceptions.RequestException(
-            f"Failed downloading the checkpoint {checkpoint_name} from {links}."
-        )
+    # if no request was successful, raise an error with all responses
+    if not any(_response.ok for _response in responses):
+        import textwrap
+        message = f"Could not download checkpoint {checkpoint_name} from any server."
+        exceptions = []
+        for _response in responses:
+            message += f"\n\nResponse code from {_response.url}: {_response.status_code}"
+            message += f"\nResponse text:\n{textwrap.indent(_response.text, '    ')}"
+            if sys.version_info >= (3, 11):
+                try:
+                    _ = _response.raise_for_status()
+                except Exception as e:
+                    exceptions.append(e)
+        # ExceptionGroup is introduced in Python 3.11
+        if sys.version_info >= (3, 11):
+            raise ExceptionGroup(message, exceptions)  # noqa: F821
+        else:
+            raise RuntimeError(message, responses)
     else:
-        response.raise_for_status()  # Raise error if no server is reachable
-
-    with open(checkpoint_path, "wb") as f:
-        f.write(response.content)
+        response = next(r for r in responses if r.ok)
+        with open(checkpoint_path, "wb") as f:
+            f.write(response.content)
 
 
 def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
