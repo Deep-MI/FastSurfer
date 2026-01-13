@@ -12,66 +12,9 @@ This pipeline combines localization and segmentation deep learning models to:
 4. Perform advanced morphometry for corpus callosum, including subdivision, thickness analysis, and various shape metrics
 5. Generate visualizations and measurements
 
-## Analysis Modes
-
-The pipeline supports different analysis modes that determine the type of template data generated.
-
-### 3D Analysis
-
-When running the main pipeline with `--slice_selection all` and `--save_template_dir`, a complete 3D template is generated:
-
-```bash
-# Generate 3D template data
-python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
-    --slice_selection all \
-    --save_template_dir /data/templates/sub001
-```
-
-This creates:
-- `contour_<idx>.txt`: Multi-slice contour data for 3D reconstruction
-- `thickness_values_<idx>.txt`: Thickness measurements across all slices
-- `thickness_measurement_points_<idx>.txt`: 3D vertex indices for thickness measurements
-
-**Benefits:**
-- Enables volumetric thickness analysis
-- Supports advanced 3D visualizations with proper surface topology
-- Creates FreeSurfer-compatible overlay files for integration with other tools
-
-For visualization instructions and outputs, see the [cc_visualization.py documentation](../../scripts/cc_visualization.rst).
-
-### 2D Analysis
-
-When using `--slice_selection middle` or a specific slice number with `--save_template_dir`:
-
-```bash
-# Generate 2D template data (middle slice)
-python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
-    --slice_selection middle \
-    --save_template_dir /data/templates/sub001
-```
-
-**Benefits:**
-- Faster processing for single-slice analysis
-- 2D visualization is most suitable for displaying downstream statistics
-- Compatibility with classical corpus callosum studies
-
-For 2D visualization instructions and outputs, see the [cc_visualization.py documentation](../../scripts/cc_visualization.rst).
-
-### Choosing Analysis Mode
-
-**Use 3D Analysis (`--slice_selection all`) when:**
-- You need complete volumetric analysis
-- Surface-based visualization is required
-- Integration with FreeSurfer workflows is needed
-- Comprehensive thickness mapping across the entire corpus callosum is desired
-
-**Use 2D Analysis (`--slice_selection middle` or specific slice) when:**
-- Traditional single-slice morphometry is sufficient
-- Faster processing is preferred
-- Focus is on mid-sagittal cross-sectional measurements
-- Compatibility with classical corpus callosum studies is needed
-
-**Note:** The default behavior is `--slice_selection all` for comprehensive 3D analysis. Use `--slice_selection middle` to process only the middle slice for faster, traditional 2D analysis.
+The output files are described [here](../OUTPUT_FILES.md#corpus-callosum-module).
+The structure of the JSON files describing corpus callosum measures is documented below.
+Advanced options, like custom subdivision schemes and quality control are described in the [FastSurfer-CC documentation](../../scripts/fastsurfer_cc.rst)
 
 ## JSON Output Structure
 
@@ -88,9 +31,11 @@ This file contains measurements from the middle sagittal slice and includes:
 - `cc_index`: Corpus callosum shape index (length/width ratio)
 - `midline_length`: Length along the corpus callosum midline (mm)
 - `curvature`: Average curve of the midline (degrees), measured by angle between it's sub-segements
+- `curvature_body`: Average curve of the center 65% of the midline (degrees), , measured by angle between it's sub-segements
 
 **Subdivisions**
 - `areas`: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segemnts while preserving the original ratios.
+- `curvature_subsegments`: Average curve in the CC subsegments (see 'curvature')
 
 **Thickness Analysis:**
 - `thickness`: Average corpus callosum thickness (mm)

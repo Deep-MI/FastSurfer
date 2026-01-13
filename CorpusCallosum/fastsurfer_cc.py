@@ -18,7 +18,7 @@ import json
 from collections.abc import Iterable
 from pathlib import Path
 from time import perf_counter_ns
-from typing import Literal, TypeVar, cast, get_args
+from typing import Literal, cast, get_args
 
 import nibabel as nib
 import numpy as np
@@ -81,8 +81,6 @@ from FastSurferCNN.utils.parser_defaults import modify_argument
 from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
-
-_TPathLike = TypeVar("_TPathLike", str, Path, Literal[None])
 
 CCMeasures = Literal[
     "areas",
