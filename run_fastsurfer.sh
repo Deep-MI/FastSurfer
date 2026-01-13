@@ -1122,7 +1122,8 @@ then
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
     # generate callosum segmentation, mesh, shape and downstream measure files
     cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --threads "$threads_seg"
-         "--aseg_name" "$asegdkt_segfile" "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
+         "--conformed_name" "$conformed_name" "--aseg_name" "$asegdkt_segfile" "--segmentation_in_orig" "$callosum_seg"
+         "${cc_flags[@]}")
     {
       echo_quoted "${cmd[@]}"
       "${cmd[@]}"
