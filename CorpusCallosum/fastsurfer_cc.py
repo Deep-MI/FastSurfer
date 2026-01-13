@@ -920,7 +920,6 @@ def main(
         )
     additional_metrics["cc_5mm_volume"] = cc_volume_voxel
 
-
     if len(outer_contours) > 1:
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
         cc_volume_contour = calculate_cc_volume_contour(cc_contours, width=5.0)
@@ -928,8 +927,11 @@ def main(
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
     # get ac and pc in all spaces
-    ac_coords_3d = np.hstack((FSAVERAGE_MIDDLE / vox_size[0], ac_coords_vox))
-    pc_coords_3d = np.hstack((FSAVERAGE_MIDDLE / vox_size[0], pc_coords_vox))
+    ac_coords_vox_3d, pc_coords_vox_3d = [np.hstack((0, c)) for c in (ac_coords_vox, pc_coords_vox)]
+    ac_coords_3d, pc_coords_3d = nib.affines.apply_affine(
+        np.linalg.inv(fsavg2midslice_vox2vox),
+        (ac_coords_vox_3d, pc_coords_vox_3d),
+    )
     standardized2orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig = (
         calc_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig2fsavg_vox2vox)
     )
