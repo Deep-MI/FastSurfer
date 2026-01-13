@@ -66,7 +66,7 @@ interpol="cubic"    # for the final interpolation of all time points in median i
 robust_template_avg_arg=1  # median for template creation (if more than 1 time point)
 
 # default arguments
-python="python3.10 -s" # avoid user-directory package inclusion
+python="python3 -s" # avoid user-directory package inclusion
 sd="$SUBJECTS_DIR"
 
 # init variables that need to be passed

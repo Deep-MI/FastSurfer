@@ -108,7 +108,7 @@ source $FREESURFER_HOME/SetUpFreeSurfer.sh
 # Run recon-surf
 ./recon-surf.sh --sid subjectX \
                 --sd $HOME/my_fastsurfer_analysis \
-                --py python3.10 \
+                --py python3 \
                 --3T \
                 --t1 $HOME/my_fastsurfer_analysis/subjectX/mri/orig.mgz \
                 --asegdkt_segfile $HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
