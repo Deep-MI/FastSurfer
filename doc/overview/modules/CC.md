@@ -29,11 +29,11 @@ This file contains measurements from the middle sagittal slice and includes:
 - `circularity`: Shape circularity measure (4π × area / perimeter²)
 - `cc_index`: Corpus callosum shape index (length/width ratio)
 - `midline_length`: Length along the corpus callosum midline (mm)
-- `curvature`: Average curve of the midline (degrees), measured by angle between it's sub-segements
-- `curvature_body`: Average curve of the center 65% of the midline (degrees), , measured by angle between it's sub-segements
+- `curvature`: Average curve of the midline (degrees), measured by angle between its sub-segments
+- `curvature_body`: Average curve of the center 65% of the midline (degrees), measured by angle between its sub-segments
 
 #### **Subdivisions**
-- `areas`: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segemnts while preserving the original ratios.
+- `areas`: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segments while preserving the original ratios.
 - `curvature_subsegments`: Average curve in the CC subsegments (see 'curvature')
 
 #### **Thickness Analysis:**
