@@ -1,7 +1,7 @@
-# Output files
-
-## Segmentation module
-
+Output files
+============
+Segmentation module
+-------------------
 The segmentation module outputs the files shown in the table below. The two primary output files are the `aparc.DKTatlas+aseg.deep.mgz` file, which contains the FastSurfer segmentation of cortical and subcortical structures based on the DKT atlas, and the `aseg+DKT.stats` file, which contains summary statistics for these structures. Note, that the surface model (downstream) corrects these segmentations along the cortex with the created surfaces. So if the surface model is used, it is recommended to use the updated segmentations and stats (see below). 
 
 | directory | filename                     | module  | description                                                        |
@@ -15,10 +15,9 @@ The segmentation module outputs the files shown in the table below. The two prim
 | scripts   | deep-seg.log                 | asegdkt | logfile                                                            |
 | stats     | aseg+DKT.stats               | asegdkt | table of cortical and subcortical segmentation statistics          |
 
-
-## Corpus Callosum module
-
-The Corpus Callosum module outputs the files in the table shown below. It creates detailed segmentations and shape analysis of the corpus callosum. For advanced output refer to the [FastSurfer-CC documentation](../../scripts/fastsurfer_cc.rst).
+Corpus Callosum module
+----------------------
+The Corpus Callosum module outputs the files in the table shown below. It creates detailed segmentations and shape analysis of the corpus callosum. For advanced output refer to the [FastSurfer-CC documentation](../scripts/fastsurfer_cc.rst).
 
 | directory       | filename                       | module | description                                                                                                  |
 |:----------------|--------------------------------|--------|--------------------------------------------------------------------------------------------------------------|
@@ -39,22 +38,18 @@ The Corpus Callosum module outputs the files in the table shown below. It create
 | surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)                   |
 | surf            | callosum.vtk                   | cc     | VTK format mesh file for 3D visualization                                        |
 
-
-
-## Cerebnet module
-
+CerebNet module
+---------------
 The cerebellum module outputs the files in the table shown below. Unless switched off by the `--no_cereb` argument, this module is automatically run whenever the segmentation module is run. It adds two files, an image with the sub-segmentation of the cerebellum and a text file with summary statistics.
-
 
 | directory | filename                   | module   | description                                 |
 |:----------|----------------------------|----------|---------------------------------------------|
 | mri       | cerebellum.CerebNet.nii.gz | cerebnet | cerebellum sub-segmentation                 |
 | stats     | cerebellum.CerebNet.stats  | cerebnet | table of cerebellum segmentation statistics |
 
-## HypVINN module
-
+HypVINN module
+--------------
 The hypothalamus module outputs the files in the table shown below. Unless switched off by the `--no_hypothal` argument, this module is automatically run whenever the segmentation module is run. It adds three files, an image with the sub-segmentation of the hypothalamus and a text file with summary statistics.
-
 
 | directory | filename                         | module  | description                                   |
 |:----------|----------------------------------|---------|-----------------------------------------------|
@@ -69,8 +64,8 @@ If a T2 image is also passed, the following images are created.
 | mri       | T2_nu.mgz     | hypvinn | biasfield-corrected T2 image   |
 | mri       | T2_nu_reg.mgz | hypvinn | co-registered T2 to orig image |
 
-## Surface module
-
+Surface module
+--------------
 The surface module is run unless switched off by the `--seg_only` argument. It outputs a large number of files, which generally correspond to the FreeSurfer nomenclature and definition. A selection of important output files is shown in the table below, for the other files, we refer to the [FreeSurfer documentation](https://surfer.nmr.mgh.harvard.edu/fswiki). In general, the "mri" directory contains images, including segmentations, the "surf" folder contains surface files (geometries and vertex-wise overlay data), the "label" folder contains cortical parcellation labels, and the "stats" folder contains tabular summary statistics. Many files are available for the left ("lh") and right ("rh") hemisphere of the brain. Symbolic links are created to map FastSurfer files to their FreeSurfer equivalents, which may need to be present for further processing (e.g., with FreeSurfer downstream modules). 
 
 After running this module, some of the initial segmentations and corresponding volume estimates are fine-tuned (e.g., surface-based partial volume correction, addition of corpus callosum labels). Specifically, this concerns the `aseg.mgz `, `aparc.DKTatlas+aseg.mapped.mgz`, `aparc.DKTatlas+aseg.deep.withCC.mgz`, which were originally created by the segmentation module or have earlier versions resulting from that module.
