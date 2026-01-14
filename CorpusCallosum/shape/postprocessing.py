@@ -308,7 +308,7 @@ def subdivide_contour(
     Parameters
     ----------
     midline_equi : Points2dType
-        The midline equidistant points.
+        The midline equidistant points in ACPC space.
     subdivisions : list[float]
         The subdivisions.
     ac_pt_acpc : Vector2d
@@ -448,23 +448,24 @@ def recon_cc_surf_measure(
     subdivision_lines: list[Points2dType]
     split_points_midline: np.ndarray | None = None
 
-    areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
-        midline_equi, subdivisions, ac_pt_acpc, contour_in_acpc_space, subdivision_method
+    # Transform midline to ACPC space for subdivision
+    midline_acpc, _, _, _ = transform_to_acpc_standard(
+        midline_equi.T,
+        *acpc_contour_coords_as,
     )
-    
-    
+
+    areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
+        midline_acpc.T, subdivisions, ac_pt_acpc, contour_in_acpc_space, subdivision_method
+    )
 
     total_area = _contour.area
     total_perimeter = np.sum(_contour.get_contour_edge_lengths())
     circularity = 4 * np.pi * total_area / (total_perimeter**2)
 
     # Transform split contours back to original space (from ACPC to RAS)
-    # Note: for 'shape' method, split_points_midline is already in RAS space,
-    # while the others are in ACPC and need rotate_back_acpc.
     split_contours = [rotate_back_acpc(split_contour) for split_contour in split_contours]
     subdivision_lines = [rotate_back_acpc(line.T).T for line in subdivision_lines]
-    if subdivision_method != "shape":
-        split_points_midline = rotate_back_acpc(np.asarray(split_points_midline).T).T
+    split_points_midline = rotate_back_acpc(np.asarray(split_points_midline).T).T
 
     # Calculate curvature metrics
     curvature, curvature_body, curvature_subsegments = calculate_curvature_metrics(
