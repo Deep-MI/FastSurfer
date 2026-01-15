@@ -957,7 +957,7 @@ def is_conform(
     if "check_dtype" in kwargs:
         LOGGER.warning("check_dtype is deprecated, replaced by dtype=None and will be removed.")
         if kwargs["check_dtype"] is False:
-            dtype = None
+            dtype: npt.DTypeLike | None = None
 
     _vox_size, _img_size = conformed_vox_img_size(img, vox_size, img_size, threshold_1mm=threshold_1mm, vox_eps=vox_eps)
 
@@ -1006,7 +1006,7 @@ def is_conform(
         checks["Dtype None"] = "IGNORED", dtype_text
     else:
         _dtype: npt.DTypeLike = to_dtype(dtype)
-        _dtype_name = _dtype.name if hasattr(_dtype, "name") else str(getattr(np.dtype(_dtype), "name", dtype))
+        _dtype_name = np.dtype(_dtype).name if isinstance(_dtype, (str, np.dtype)) else _dtype.__name__
         checks[f"Dtype {_dtype_name}"] = np.issubdtype(img.get_data_dtype(), _dtype), dtype_text
 
     _is_conform = all(map(lambda x: x[0], checks.values()))
