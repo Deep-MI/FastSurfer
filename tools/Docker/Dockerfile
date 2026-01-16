@@ -252,13 +252,13 @@ SHELL ["/bin/bash", "-e", "-c"]
 RUN <<EOF
 # Install required packages for freesurfer to runtime
 apt-get update
+shell_deps="time bc"
+freesurfer_deps="gawk libgomp1 libquadmath0 tcsh"
+whippersnappy_opengl_deps="xvfb  libglib2.0-0 libxkbcommon-x11-0 libgl1 libegl1 libfontconfig1 libdbus-1-3"
 apt-get install -y --no-install-recommends \
-  bc \
-  gawk \
-  libgomp1 \
-  libquadmath0 \
-  time \
-  tcsh
+    $shell_deps \
+    $freesurfer_deps \
+    $whippersnappy_opengl_deps
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # create matplotlib config dir (in case someone starts this interactively)
