@@ -343,20 +343,25 @@ def get_cc_volume_voxel(
 
     # Calculate voxel volume
     voxel_volume: float = np.prod(voxel_size, dtype=float)
-    voxel_width: float = voxel_size[0]
+    lateral_voxel_size: float = voxel_size[0]
 
     # we are in LIA, so 0 is L/R resolution
-    width_mm = width_vox * voxel_width
+    width_mm = width_vox * lateral_voxel_size
 
     if width_mm == desired_width_mm:
         return np.sum(cropped_mask) * voxel_volume
     elif width_mm > desired_width_mm:
         # remainder on the left/right side of the CC mask
-        desired_width_vox = desired_width_mm / voxel_width
+        desired_width_vox = desired_width_mm / lateral_voxel_size
         
         # The number of full voxels in the center is (width_vox - 2)
         # The remaining width must be covered by the two edge voxels.
         fraction_of_voxel_at_edge = (desired_width_vox - (width_vox - 2)) / 2
+
+        if fraction_of_voxel_at_edge < 0 or fraction_of_voxel_at_edge > 1:
+            raise ValueError(f"Fraction of voxel at edge is out of range: {fraction_of_voxel_at_edge}, "
+                             f"desired_width_vox: {desired_width_vox}, width_vox: {width_vox}, "
+                             f"desired_width_mm: {desired_width_mm}, voxel size (lateral): {lateral_voxel_size} mm")
 
         left_partial_volume = np.sum(cropped_mask[0]) * voxel_volume * fraction_of_voxel_at_edge
         right_partial_volume = np.sum(cropped_mask[-1]) * voxel_volume * fraction_of_voxel_at_edge
