@@ -446,68 +446,9 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 <li><p>Perform advanced morphometry for corpus callosum, including subdivision, thickness analysis, and various shape metrics</p></li>
 <li><p>Generate visualizations and measurements</p></li>
 </ol>
-</section>
-<section id="analysis-modes">
-<h2>Analysis Modes<a class="headerlink" href="#analysis-modes" title="Link to this heading">¶</a></h2>
-<p>The pipeline supports different analysis modes that determine the type of template data generated.</p>
-<section id="d-analysis">
-<h3>3D Analysis<a class="headerlink" href="#d-analysis" title="Link to this heading">¶</a></h3>
-<p>When running the main pipeline with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code> and <code class="docutils literal notranslate"><span class="pre">--save_template_dir</span></code>, a complete 3D template is generated:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate 3D template data</span>
-python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--slice_selection<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--save_template_dir<span class="w"> </span>/data/templates/sub001
-</pre></div>
-</div>
-<p>This creates:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">contour_&lt;idx&gt;.txt</span></code>: Multi-slice contour data for 3D reconstruction</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">thickness_values_&lt;idx&gt;.txt</span></code>: Thickness measurements across all slices</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">thickness_measurement_points_&lt;idx&gt;.txt</span></code>: 3D vertex indices for thickness measurements</p></li>
-</ul>
-<p><strong>Benefits:</strong></p>
-<ul class="simple">
-<li><p>Enables volumetric thickness analysis</p></li>
-<li><p>Supports advanced 3D visualizations with proper surface topology</p></li>
-<li><p>Creates FreeSurfer-compatible overlay files for integration with other tools</p></li>
-</ul>
-<p>For visualization instructions and outputs, see the <a class="reference internal" href="../../scripts/cc_visualization.html"><span class="std std-doc">cc_visualization.py documentation</span></a>.</p>
-</section>
-<section id="id1">
-<h3>2D Analysis<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
-<p>When using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span></code> or a specific slice number with <code class="docutils literal notranslate"><span class="pre">--save_template_dir</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate 2D template data (middle slice)</span>
-python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--slice_selection<span class="w"> </span>middle<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--save_template_dir<span class="w"> </span>/data/templates/sub001
-</pre></div>
-</div>
-<p><strong>Benefits:</strong></p>
-<ul class="simple">
-<li><p>Faster processing for single-slice analysis</p></li>
-<li><p>2D visualization is most suitable for displaying downstream statistics</p></li>
-<li><p>Compatibility with classical corpus callosum studies</p></li>
-</ul>
-<p>For 2D visualization instructions and outputs, see the <a class="reference internal" href="../../scripts/cc_visualization.html"><span class="std std-doc">cc_visualization.py documentation</span></a>.</p>
-</section>
-<section id="choosing-analysis-mode">
-<h3>Choosing Analysis Mode<a class="headerlink" href="#choosing-analysis-mode" title="Link to this heading">¶</a></h3>
-<p><strong>Use 3D Analysis (<code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>) when:</strong></p>
-<ul class="simple">
-<li><p>You need complete volumetric analysis</p></li>
-<li><p>Surface-based visualization is required</p></li>
-<li><p>Integration with FreeSurfer workflows is needed</p></li>
-<li><p>Comprehensive thickness mapping across the entire corpus callosum is desired</p></li>
-</ul>
-<p><strong>Use 2D Analysis (<code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span></code> or specific slice) when:</strong></p>
-<ul class="simple">
-<li><p>Traditional single-slice morphometry is sufficient</p></li>
-<li><p>Faster processing is preferred</p></li>
-<li><p>Focus is on mid-sagittal cross-sectional measurements</p></li>
-<li><p>Compatibility with classical corpus callosum studies is needed</p></li>
-</ul>
-<p><strong>Note:</strong> The default behavior is <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code> for comprehensive 3D analysis. Use <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span></code> to process only the middle slice for faster, traditional 2D analysis.</p>
-</section>
+<p>The output files are described <a class="reference internal" href="../OUTPUT_FILES.html#corpus-callosum-module"><span class="std std-ref">here</span></a>.
+The structure of the JSON files describing corpus callosum measures is documented below.
+Advanced options, like custom subdivision schemes and quality control are described in the <a class="reference internal" href="../../scripts/fastsurfer_cc.html"><span class="std std-doc">FastSurfer-CC documentation</span></a>.</p>
 </section>
 <section id="json-output-structure">
 <h2>JSON Output Structure<a class="headerlink" href="#json-output-structure" title="Link to this heading">¶</a></h2>
@@ -515,31 +456,42 @@ python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span
 <section id="stats-callosum-cc-midslice-json-middle-slice-analysis">
 <h3><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code> (Middle Slice Analysis)<a class="headerlink" href="#stats-callosum-cc-midslice-json-middle-slice-analysis" title="Link to this heading">¶</a></h3>
 <p>This file contains measurements from the middle sagittal slice and includes:</p>
-<p><strong>Shape Measurements (single values):</strong></p>
+<section id="shape-measurements-single-values">
+<h4><strong>Shape Measurements (single values):</strong><a class="headerlink" href="#shape-measurements-single-values" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">total_area</span></code>: Total corpus callosum area (mm²)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">total_perimeter</span></code>: Total perimeter length (mm)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">circularity</span></code>: Shape circularity measure (4π × area / perimeter²)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_index</span></code>: Corpus callosum shape index (length/width ratio)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">midline_length</span></code>: Length along the corpus callosum midline (mm)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">curvature</span></code>: Average curve of the midline (degrees), measured by angle between it’s sub-segements</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">curvature</span></code>: Average curve of the midline (degrees), measured by angle between its sub-segments</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">curvature_body</span></code>: Average curve of the center 65% of the midline (degrees), measured by angle between its sub-segments</p></li>
 </ul>
-<p><strong>Subdivisions</strong></p>
+</section>
+<section id="subdivisions">
+<h4><strong>Subdivisions</strong><a class="headerlink" href="#subdivisions" title="Link to this heading">¶</a></h4>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">areas</span></code>: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segemnts while preserving the original ratios.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">areas</span></code>: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segments while preserving the original ratios.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">curvature_subsegments</span></code>: Average curve in the CC subsegments (see ‘curvature’)</p></li>
 </ul>
-<p><strong>Thickness Analysis:</strong></p>
+</section>
+<section id="thickness-analysis">
+<h4><strong>Thickness Analysis:</strong><a class="headerlink" href="#thickness-analysis" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">thickness</span></code>: Average corpus callosum thickness (mm)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code>: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends)</p></li>
 </ul>
-<p><strong>Volume Measurements (when multiple slices processed):</strong></p>
+</section>
+<section id="volume-measurements-when-multiple-slices-processed">
+<h4><strong>Volume Measurements (when multiple slices processed):</strong><a class="headerlink" href="#volume-measurements-when-multiple-slices-processed" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_5mm_volume</span></code>: Total CC volume within 5mm slab using voxel counting (mm³)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_5mm_volume_pv_corrected</span></code>: Volume with partial volume correction using CC contours (mm³)</p></li>
 </ul>
-<p><strong>Anatomical Landmarks:</strong>
-All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
+</section>
+<section id="anatomical-landmarks">
+<h4><strong>Anatomical Landmarks:</strong><a class="headerlink" href="#anatomical-landmarks" title="Link to this heading">¶</a></h4>
+<p>All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ac_center</span></code>: Anterior commissure coordinates in original image space (orig.mgz)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pc_center</span></code>: Posterior commissure coordinates in original image space (orig.mgz)</p></li>
@@ -549,10 +501,12 @@ All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">pc_center_upright</span></code>: PC coordinates in upright space (cc_up.lta)</p></li>
 </ul>
 </section>
+</section>
 <section id="stats-callosum-cc-all-slices-json-multi-slice-analysis">
 <h3><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.all_slices.json</span></code> (Multi-Slice Analysis)<a class="headerlink" href="#stats-callosum-cc-all-slices-json-multi-slice-analysis" title="Link to this heading">¶</a></h3>
 <p>This file contains comprehensive per-slice analysis when using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>:</p>
-<p><strong>Global Parameters:</strong></p>
+<section id="global-parameters">
+<h4><strong>Global Parameters:</strong><a class="headerlink" href="#global-parameters" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">slices_in_segmentation</span></code>: Total number of slices in the segmentation volume</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">voxel_size</span></code>: Voxel dimensions [x, y, z] in mm</p></li>
@@ -562,8 +516,11 @@ All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">contour_smoothing</span></code>: Gaussian sigma used for contour smoothing</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">slice_selection</span></code>: Slice selection mode used</p></li>
 </ul>
-<p><strong>Per-Slice Data (<code class="docutils literal notranslate"><span class="pre">slices</span></code> array):</strong></p>
+</section>
+<section id="per-slice-data-slices-array">
+<h4><strong>Per-Slice Data (<code class="docutils literal notranslate"><span class="pre">slices</span></code> array):</strong><a class="headerlink" href="#per-slice-data-slices-array" title="Link to this heading">¶</a></h4>
 <p>Each slice entry contains the shape measurements, thickness analysis and sub-divisions as described above.</p>
+</section>
 </section>
 </section>
 </section>
@@ -631,15 +588,20 @@ All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
             <ul>
 <li><a class="reference internal" href="#">Corpus Callosum Pipeline</a><ul>
 <li><a class="reference internal" href="#overview">Overview</a></li>
-<li><a class="reference internal" href="#analysis-modes">Analysis Modes</a><ul>
-<li><a class="reference internal" href="#d-analysis">3D Analysis</a></li>
-<li><a class="reference internal" href="#id1">2D Analysis</a></li>
-<li><a class="reference internal" href="#choosing-analysis-mode">Choosing Analysis Mode</a></li>
+<li><a class="reference internal" href="#json-output-structure">JSON Output Structure</a><ul>
+<li><a class="reference internal" href="#stats-callosum-cc-midslice-json-middle-slice-analysis"><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code> (Middle Slice Analysis)</a><ul>
+<li><a class="reference internal" href="#shape-measurements-single-values"><strong>Shape Measurements (single values):</strong></a></li>
+<li><a class="reference internal" href="#subdivisions"><strong>Subdivisions</strong></a></li>
+<li><a class="reference internal" href="#thickness-analysis"><strong>Thickness Analysis:</strong></a></li>
+<li><a class="reference internal" href="#volume-measurements-when-multiple-slices-processed"><strong>Volume Measurements (when multiple slices processed):</strong></a></li>
+<li><a class="reference internal" href="#anatomical-landmarks"><strong>Anatomical Landmarks:</strong></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#json-output-structure">JSON Output Structure</a><ul>
-<li><a class="reference internal" href="#stats-callosum-cc-midslice-json-middle-slice-analysis"><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code> (Middle Slice Analysis)</a></li>
-<li><a class="reference internal" href="#stats-callosum-cc-all-slices-json-multi-slice-analysis"><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.all_slices.json</span></code> (Multi-Slice Analysis)</a></li>
+<li><a class="reference internal" href="#stats-callosum-cc-all-slices-json-multi-slice-analysis"><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.all_slices.json</span></code> (Multi-Slice Analysis)</a><ul>
+<li><a class="reference internal" href="#global-parameters"><strong>Global Parameters:</strong></a></li>
+<li><a class="reference internal" href="#per-slice-data-slices-array"><strong>Per-Slice Data (<code class="docutils literal notranslate"><span class="pre">slices</span></code> array):</strong></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

@@ -493,7 +493,7 @@
 </section>
 <section id="corpus-callosum-module">
 <h2>Corpus Callosum module<a class="headerlink" href="#corpus-callosum-module" title="Link to this heading">¶</a></h2>
-<p>The Corpus Callosum module outputs the files in the table shown below. It creates detailed segmentations and shape analysis of the corpus callosum.</p>
+<p>The Corpus Callosum module outputs the files in the table shown below. It creates detailed segmentations and shape analysis of the corpus callosum. For advanced output refer to the <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="std std-doc">FastSurfer-CC documentation</span></a>.</p>
 <div class="table-wrapper colwidths-auto docutils container">
 <table class="docutils align-default">
 <thead>
@@ -505,86 +505,91 @@
 </thead>
 <tbody>
 <tr class="row-even"><td class="text-left"><p>mri</p></td>
-<td><p>callosum_seg_upright.mgz</p></td>
+<td><p>callosum.CC.upright.mgz</p></td>
 <td><p>cc</p></td>
 <td><p>corpus callosum segmentation in upright space</p></td>
 </tr>
 <tr class="row-odd"><td class="text-left"><p>mri</p></td>
-<td><p>callosum_seg_aseg_space.mgz</p></td>
+<td><p>callosum.CC.orig.mgz</p></td>
 <td><p>cc</p></td>
 <td><p>corpus callosum segmentation in conformed image orientation</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>mri</p></td>
-<td><p>callosum_seg_soft.mgz</p></td>
+<td><p>callosum.CC.soft.mgz</p></td>
 <td><p>cc</p></td>
-<td><p>corpus callosum soft labels</p></td>
+<td><p>corpus callosum soft labels (in upright space)</p></td>
 </tr>
 <tr class="row-odd"><td class="text-left"><p>mri</p></td>
-<td><p>fornix_seg_soft.mgz</p></td>
+<td><p>fornix.CC.soft.mgz</p></td>
 <td><p>cc</p></td>
-<td><p>fornix soft labels</p></td>
+<td><p>fornix soft labels (in upright space)</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>mri</p></td>
-<td><p>background_seg_soft.mgz</p></td>
+<td><p>background.CC.soft.mgz</p></td>
 <td><p>cc</p></td>
-<td><p>background soft labels</p></td>
+<td><p>background soft labels (in upright space)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>mri/transforms</p></td>
-<td><p>cc_up.lta</p></td>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<td><p>upright_volume.mgz</p></td>
 <td><p>cc</p></td>
-<td><p>transform from original to upright space</p></td>
+<td><p>conformed image mapped to upright space (only with fastsurfer_cc.py <code class="docutils literal notranslate"><span class="pre">--upright_volume</span></code>)</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>mri/transforms</p></td>
+<td><p>cc_up.lta</p></td>
+<td><p>cc</p></td>
+<td><p>transform from conformed to upright space</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri/transforms</p></td>
 <td><p>orient_volume.lta</p></td>
 <td><p>cc</p></td>
 <td><p>transform to standardized space</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
 <td><p>callosum.CC.midslice.json</p></td>
 <td><p>cc</p></td>
-<td><p>measurements from the middle sagittal slice (landmarks, area, thickness, etc.)</p></td>
+<td><p>measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
 <td><p>callosum.CC.all_slices.json</p></td>
 <td><p>cc</p></td>
-<td><p>comprehensive per-slice analysis (only when using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>)</p></td>
-</tr>
-<tr class="row-odd"><td class="text-left"><p>qc_snapshots</p></td>
-<td><p>callosum.png</p></td>
-<td><p>cc</p></td>
-<td><p>debug visualization of contours and thickness</p></td>
+<td><p>comprehensive per-slice analysis</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>qc_snapshots</p></td>
-<td><p>callosum_thickness.png</p></td>
+<td><p>callosum.png</p></td>
 <td><p>cc</p></td>
-<td><p>3D thickness visualization (with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>)</p></td>
+<td><p>debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td class="text-left"><p>qc_snapshots</p></td>
+<td><p>callosum_thickness.png</p></td>
+<td><p>cc</p></td>
+<td><p>3D thickness visualization (only with run_fastsurfer.sh <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>qc_snapshots</p></td>
 <td><p>corpus_callosum.html</p></td>
 <td><p>cc</p></td>
-<td><p>interactive 3D mesh visualization (with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>)</p></td>
-</tr>
-<tr class="row-even"><td class="text-left"><p>surf</p></td>
-<td><p>callosum.surf</p></td>
-<td><p>cc</p></td>
-<td><p>FreeSurfer surface format (with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>)</p></td>
+<td><p>interactive 3D mesh visualization (only with run_fastsurfer.sh <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td class="text-left"><p>surf</p></td>
-<td><p>callosum.thickness.w</p></td>
+<td><p>callosum.surf</p></td>
 <td><p>cc</p></td>
-<td><p>FreeSurfer overlay file containing thickness values (with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>)</p></td>
+<td><p>3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>surf</p></td>
-<td><p>callosum_mesh.vtk</p></td>
+<td><p>callosum.thickness.w</p></td>
 <td><p>cc</p></td>
-<td><p>VTK format mesh file for 3D visualization (with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code>)</p></td>
+<td><p>FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>surf</p></td>
+<td><p>callosum.vtk</p></td>
+<td><p>cc</p></td>
+<td><p>VTK format mesh file for 3D visualization</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 </section>
 <section id="cerebnet-module">
-<h2>Cerebnet module<a class="headerlink" href="#cerebnet-module" title="Link to this heading">¶</a></h2>
+<h2>CerebNet module<a class="headerlink" href="#cerebnet-module" title="Link to this heading">¶</a></h2>
 <p>The cerebellum module outputs the files in the table shown below. Unless switched off by the <code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code> argument, this module is automatically run whenever the segmentation module is run. It adds two files, an image with the sub-segmentation of the cerebellum and a text file with summary statistics.</p>
 <div class="table-wrapper colwidths-auto docutils container">
 <table class="docutils align-default">
@@ -856,7 +861,7 @@
 <li><a class="reference internal" href="#">Output files</a><ul>
 <li><a class="reference internal" href="#segmentation-module">Segmentation module</a></li>
 <li><a class="reference internal" href="#corpus-callosum-module">Corpus Callosum module</a></li>
-<li><a class="reference internal" href="#cerebnet-module">Cerebnet module</a></li>
+<li><a class="reference internal" href="#cerebnet-module">CerebNet module</a></li>
 <li><a class="reference internal" href="#hypvinn-module">HypVINN module</a></li>
 <li><a class="reference internal" href="#surface-module">Surface module</a></li>
 </ul>
