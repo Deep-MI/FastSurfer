@@ -7,16 +7,14 @@
 
 
 import importlib
-import inspect
 import io
-from importlib import import_module
 import sys
 from pathlib import Path
 
 # relative path so sphinx can locate the different modules directly for autosummary
-sys.path.append(os.path.dirname(__file__) + "/..")
-sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
-sys.path.append(os.path.dirname(__file__) + "/sphinx_ext")
+sys.path.append(str(Path(__file__).parents[1]))
+sys.path.append(str(Path(__file__).parents[1] / "recon_surf"))
+sys.path.append(str(Path(__file__).parent / "sphinx_ext"))
 
 from resolve_links import LinkCodeResolver
 from FastSurferCNN.version import main as _version_info, parse_build_file
