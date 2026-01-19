@@ -668,6 +668,10 @@ class CCMesh(lapy.TriaMesh):
         """{parent_doc}
         Also creates parent directory if needed before writing the file.
         """
+        from os import environ
+        # make sure the process has a username, so nibabel does not crash in write_geometry
+        environ.setdefault("USERNAME", "UNKNOWN")
+
         self.__make_parent_folder(filename)
         return super().write_fssurf(filename, image=image)
 
