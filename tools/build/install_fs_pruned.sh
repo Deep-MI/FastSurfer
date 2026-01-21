@@ -78,63 +78,36 @@ echo
 echo "$fslink"
 echo
 
-
-function run_parallel ()
-{
-  # param 1 num_parallel_processes
-  # param 2 command (printf string)
-  # param 3 how many entries to consume from $@ per "run"
-  # param ... parameters to format, ie. we are executing $(printf $command $@...)
-  i=0
-  pids=()
-  cmds=()
-  num_parallel_processes=$1
-  command=$2
-  num=$3
-  shift
-  shift
-  shift
-  args=("$@")
-  j=0
-  while [[ "$j" -lt "${#args}" ]]
-  do
-    # shellcheck disable=SC2059
-    cmd=$(printf "$command" "${args[@]:$j:$num}")
-    j=$((j + num))
-    $cmd &
-    pids=("${pids[@]}" "$!")
-    i=$((i + 1))
-    if [[ "$i" -ge "$num_parallel_processes" ]]
-    then
-      wait "${pids[0]}"
-      if [[ "$?" != "0" ]] ; then echo "ERROR: Command failed: ${cmds[0]}" ; exit 1 ; fi
-      pids=("${pids[@]:1}")
-      cmds=("${cmds[@]:1}")
-    fi
-  done
-  for i in "${#pids}"
-  do
-    wait "${pids[i]}"
-    if [[ "$?" != "0" ]] ; then echo "ERROR: Command failed: ${cmds[i]}" ; exit 1 ; fi
-  done
-}
-
-
 # get FreeSurfer and unpack (some of it)
 echo "Downloading FS and unpacking portions ..."
 
 # temp freesurfer dl filename (to save the dl)
-freesurfer_dl="freesurfer_$(date +%s).tar.gz"
-
-# dl aria2c if that exists, else wget or curl
-if [[ -n "$(which aria2c)" ]] ; then dl=(aria2c -x 16 -s 16 -c --check-certificate=false -o "$freesurfer_dl" "$fslink" )
-elif [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink" -O "$freesurfer_dl")
-else dl=(curl -L --insecure "$fslink" -o "$freesurfer_dl")
+if [[ -d /install ]] ; then
+  freesurfer_dl="/install/download/$(basename "$fslink")"
+  if [[ ! -d /install/download/ ]] ; then
+    mkdir -p /install/download/
+    delete_freesurfer_dl="true"
+  else
+    delete_freesurfer_dl="false"
+  fi
+else
+  freesurfer_dl="freesurfer_$(date +%s).tar.gz"
+  delete_freesurfer_dl="true"
 fi
 
-echo "freesurfer-download cmd: ${dl[*]}"
-"${dl[@]}"
-echo "return value: $?"
+if [[ -f "$freesurfer_dl" ]] ; then
+  echo "Found cached download $freesurfer_dl, using that ..."
+else
+  # dl aria2c if that exists, else wget or curl
+  if [[ -n "$(which aria2c)" ]] ; then dl=(aria2c -cx 16 -s 16 --check-certificate=false -o "$freesurfer_dl" "$fslink")
+  elif [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink" -O "$freesurfer_dl")
+  else dl=(curl -L --insecure "$fslink" -o "$freesurfer_dl")
+  fi
+
+  echo "Downloading FreeSurfer from $fslink with ${dl[0]}..."
+  "${dl[@]}"
+fi
+
 
 if [[ ! -f "$freesurfer_dl" ]] ; then
   echo "ERROR: Downloading FreeSurfer failed! This is not recoverable, see message above and retry!"
@@ -193,7 +166,10 @@ tar zxv --no-same-owner -C "$where" \
       --exclude='freesurfer/trctrain' \
       -f "$freesurfer_dl"
 
-rm "$freesurfer_dl"
+if [[ "$delete_freesurfer_dl" == "true" ]] ; then
+  echo "Deleting temporary download $freesurfer_dl ..."
+  rm "$freesurfer_dl"
+fi
 
 # rename download to tmp
 mv "$where/freesurfer" "$fss"
@@ -444,7 +420,7 @@ if [[ "$upx" == "true" ]] ; then
   echo "finding executables in $fsd/bin/..."
   exe=($(find "$fsd/bin" -exec file {} \; | grep ELF | cut -d: -f1))
   echo "packing $fsd/bin/ executables (this can take a while) ..."
-  run_parallel $(nproc) "upx -9 %s" 1 "${exe[@]}"
+  upx -9 "${exe[@]}"
 fi
 
 # Modify fsbindings Python package to allow calling scripts like asegstats2table directly:
