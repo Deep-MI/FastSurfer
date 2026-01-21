@@ -72,6 +72,8 @@ sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
     -e "s|<homebrew_dir>|$HOMEBREW_DIR|g" \
     < "$SCRIPTS_DIR/postinstall.sh.template" \
     > "$SCRIPTS_DIR/postinstall"
+# copy link_fs script (do not keep double copies)
+cp "$tools_dir/build/build/link_fs.sh" "$SCRIPTS_DIR/link_fs.sh"
 
 chmod +x "$SCRIPTS_DIR/postinstall"
 
