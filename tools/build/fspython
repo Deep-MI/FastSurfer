@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# This script is a wrapper to forward commands from fspython to the fastsurfer python virtual environment
+# usage: fspython <args>
+# It will activate the fastsurfer virtual environment and forward all arguments to the python interpreter
+
+# add freesurfer packages to PYTHONPATH
+if [[ -n "$FREESURFER_HOME" ]]
+then
+  PYTHONPATH="$PYTHONPATH:$FREESURFER_HOME/python/packages"
+else
+  THIS_SCRIPT="$(realpath "$0")"
+  PYTHONPATH="$PYTHONPATH:$(dirname "$(dirname "$THIS_SCRIPT")")/python/packages"
+fi
+export PYTHONPATH
+
+# if we are not already in the fastsurfer venv, but there is a fastsurfer-docker style venv, activate it
+if [[ "$VIRTUAL_ENV_PROMPT" != "fastsurfer" ]] && [[ -f "/venv/bin/activate" ]]
+then
+  # activate fastsurfer venv
+  source /venv/bin/activate
+fi
+
+if [[ "$VIRTUAL_ENV_PROMPT" == "fastsurfer" ]]
+then
+  # already in fastsurfer venv
+  python "$@"
+  exit $?
+else
+  echo "ERROR: fastsurfer virtual environment not found. Source an environment with prompt"
+  echo "  (\$VIRTUAL_ENV_PROMPT 'fastsurfer') first."
+  exit 1
+fi

@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
 
-# usage: link_fs.sh [<path-to-python-interpreter> [<FREESURFER_HOME>]]
+# usage: link_fs.sh [<FREESURFER_HOME>]
 
 if [[ "$#" -gt 0 ]] && { [[ "${*/-h/}" != "$*" ]] || [[ "${*/--help/}" != "$*" ]] ; } ; then
-  echo "usage: $0 [<path-to-python-interpreter> [<FREESURFER_HOME>]]"
+  echo "usage: $0 [<FREESURFER_HOME>]"
   exit 0
-elif [[ "$#" == 1 ]] || [[ "$#" == 2 ]]
+elif [[ "$#" == 1 ]]
 then
-  if [[ ! -e "$1" ]] ; then echo "WARNING: $1 does not exist!" ; fi
-  PYTHON="$1"
-  if [[ "$#" == 2 ]] ; then FREESURFER_HOME="$2" ; fi
-else
-  PYTHON=$(which python3)
+  FREESURFER_HOME="$1"
 fi
 if [[ -z "$FREESURFER_HOME" ]] || [[ ! -d "$FREESURFER_HOME" ]]
 then
@@ -71,6 +67,3 @@ do
   echo "linking $file"
   ln -s "$ltrg" "$FREESURFER_HOME/$file"
 done
-
-# use our python (not really needed in recon-all anyway)
-ln -sf "$PYTHON" "$FREESURFER_HOME/bin/fspython"
