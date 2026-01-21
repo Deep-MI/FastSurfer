@@ -240,7 +240,7 @@ class RunModelOnData:
                 f"Could not find the ColorLUT in {lut}, please make sure the --lut argument is valid."
             ) from err
         self.labels = self.lut["ID"].values
-        self.torch_labels = torch.from_numpy(self.lut["ID"].values)
+        self.torch_labels = torch.from_numpy(np.asarray(self.lut["ID"].values))
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
         self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(cfg_ax, cfg_cor, cfg_sag, batch_size=batch_size)
         # the order in this dictionary dictates the order in the view aggregation
