@@ -271,13 +271,12 @@ The configuration options include:
 * `LR_SCHEDULER`: Learning rate scheduler [`step_lr`, `cosineWarmRestarts`, `reduceLROnPlateau`]. Default: 
   `cosineWarmRestarts`
 
-
 ### Data options
 * `PATH_HDF5_TRAIN`: Path to training hdf5-dataset
 * `PATH_HDF5_VAL`: Path to validation hdf5-dataset
 * `PLANE`: Plane to load [`axial`, `coronal`, `sagittal`]. Default: `coronal`
 
-## Training options
+### Training options
 * `BATCH_SIZE`: Input batch size for training. Default: 16
 * `NUM_EPOCHS`: Number of epochs to train. Default: 30
 * `SIZES`: Available image sizes for the multi-scale dataloader. Default: [256, 311 and 320]
