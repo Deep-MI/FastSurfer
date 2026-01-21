@@ -90,7 +90,7 @@ class Tolerances:
     def threshold(self, label_or_key: int | str) -> tuple[str, float]:
         """
         Return a threshold for a label or key.
-        
+
         Parameters
         ----------
         label_or_key : int | str

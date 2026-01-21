@@ -6,17 +6,17 @@ Containerization
 Containerization tools like Singularity, or Apptainer or Docker provide several advantages.
 Most importantly, they allow for exactly same setup across different machines and even data centers and compute clusters. They thus increase reproducibility by reducing software differences between evaluations.
 Additionally, errors and unexpected behavior is easier to track down, since the setup is significantly easier to reproduce for developers.
-Finally, containers provide a security advantage, because the access to data is restricted to explicitly shared data reducing both the risk of data theft and data encryption attacks. This is strategy also called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)). 
+Finally, containers provide a security advantage, because the access to data is restricted to explicitly shared data reducing both the risk of data theft and data encryption attacks. This is strategy also called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)).
 
 Using Singularity (or Apptainer)
 --------------------------------
 In the following, we write "Singularity", but all steps work the same with the [open source Apptainer](https://apptainer.org).
 
 To execute code in a Singularity container, users have to:
-1. [download](SINGULARITY.md#downloading-the-official-fastsurfer-image-for-singularity) or [create](SINGULARITY.md#creating-your-own-fastsurfer-singularity-image) a Singularity image of FastSurfer. 
+1. [download](SINGULARITY.md#downloading-the-official-fastsurfer-image-for-singularity) or [create](SINGULARITY.md#creating-your-own-fastsurfer-singularity-image) a Singularity image of FastSurfer.
 2. [Start the Singularity container from a Singularity image](SINGULARITY.md#starting-fastsurfer-with-from-a-singularity-image) by defining options for the container. It is useful, to think of the image as a "hard drive" and the container as a "simulated computer inside the computer".
-    
-   We refer to these "options for the container" in `<*singularity-flags*>`. They are not options to FastSurfer (referred to as `<*fastsurfer-flags*>`), but to the "simulated computer" and define access to data, hardware (e.g. graphics cards), etc. 
+
+   We refer to these "options for the container" in `<*singularity-flags*>`. They are not options to FastSurfer (referred to as `<*fastsurfer-flags*>`), but to the "simulated computer" and define access to data, hardware (e.g. graphics cards), etc.
 
 Downloading the official FastSurfer image for Singularity
 ---------------------------------------------------------
@@ -52,7 +52,7 @@ To run FastSurfer on a given subject using the Singularity image with GPU access
 `<*singularity-flags*>` includes flags that set up the singularity container:
 - `--nv`: enable nVidia GPUs in Singularity (otherwise FastSurfer will run on the CPU),
 - `-B <path>`: is used to share data between the host and Singularity (only paths listed here will be available to FastSurfer, see [Singularity documentation](SINGULARITY.md#containerization) for more info).
-  This should specifically include the "Subject Directory". If two paths are given like `-B /my/path/host:/other`, this means `/my/path/host/somefile` will be accessible inside Singularity in directory as `/other/somefile`.  
+  This should specifically include the "Subject Directory". If two paths are given like `-B /my/path/host:/other`, this means `/my/path/host/somefile` will be accessible inside Singularity in directory as `/other/somefile`.
 
 ```bash
 singularity exec --nv \
@@ -71,14 +71,14 @@ singularity exec --nv \
 * `--nv`: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer
 * `-e`: Do not transfer the environment variables from the host to the container.
 * `--no-mount home,cwd`: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see [Best Practice](#best-practices))
-* `-B`: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs). 
+* `-B`: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs).
 
 ### FastSurfer Flags
-* The `--fs_license` points to your FreeSurfer license (needs to be shared with the container using `-B`) 
+* The `--fs_license` points to your FreeSurfer license (needs to be shared with the container using `-B`)
 * The `--t1` points to the t1-weighted MRI image to analyse (needs to be shared with the container using `-B`)
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (needs to be shared with the container using `-B`)
-* The `--3T` switches to the 3T atlas instead of the 1.5T atlas for Talairach registration. 
+* The `--3T` switches to the 3T atlas instead of the 1.5T atlas for Talairach registration.
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to `$HOME/my_fastsurfer_analysis/subjectX/`. FastSurfer may overwrite files in `$HOME/my_fastsurfer_analysis/subjectX/`.
 
@@ -112,14 +112,14 @@ Common problems
    INFO:    Starting build...
    FATAL:   While performing build: conveyor failed to get: loading image from docker engine: Error response from daemon: {"message":"client version 1.22 is too old. Minimum supported API version is 1.24, please upgrade your client to a newer version"}
    ```
-   - To solve this issue, you can export the image from docker with `docker save -o <docker file location> <image tag>` and then you can use singularity to build from that `singularity build <singularity file name> docker-archive:<docker file location>`. 
+   - To solve this issue, you can export the image from docker with `docker save -o <docker file location> <image tag>` and then you can use singularity to build from that `singularity build <singularity file name> docker-archive:<docker file location>`.
 
 Best Practices
 --------------
 
 ### Mounting Home and Current Working Directory
 Do not mount the user home directory into the singularity container as the home directory.
-  
-Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `singularity exec ... --version +pip` outputs the FastSurfer version including a full list of python packages. 
+
+Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `singularity exec ... --version +pip` outputs the FastSurfer version including a full list of python packages.
 
 How? Singularity automatically mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. Additionally setting the `-e` flag will ensure that no environment variables will be passed from the host system into the container.
