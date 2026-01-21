@@ -81,7 +81,7 @@ ARG FREESURFER_BUILD_IMAGE="build_freesurfer"
 ARG UV_VERSION="0.9.22"
 ARG PYTHON_VERSION="3.12"
 ARG FREESURFER_VERSION="7.4.1"
-ARG FREESURFER_URL="default"
+ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
 ARG REPOSITORY_URL="<no repository set>"
@@ -198,10 +198,10 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
 # install freesurfer and point to new python location
 RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/install_fs_pruned.sh \
     --mount=type=bind,source=tools/build/link_fs.sh,target=/install/link_fs.sh \
+    --mount=type=cache,target=/install/download \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
 /install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL
 /install/link_fs.sh /opt/freesurfer
-rm -R /install
 EOF
 
 COPY tools/build/fspython /opt/freesurfer/bin/fspython
