@@ -146,7 +146,7 @@ SHELL ["/bin/bash", "--login", "-e", "-c"]
 # Install the project's dependencies using the lockfile and settings
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
-uv venv --python ${PYTHON_VERSION} --relocatable /venv
+uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer
 # activate the virtual environment
 source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
@@ -200,10 +200,11 @@ RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/in
     --mount=type=bind,source=tools/build/link_fs.sh,target=/install/link_fs.sh \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
 /install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL
-rm /opt/freesurfer/bin/fspython
-/install/link_fs.sh /venv/bin/python3 /opt/freesurfer
+/install/link_fs.sh /opt/freesurfer
 rm -R /install
 EOF
+
+COPY tools/build/fspython /opt/freesurfer/bin/fspython
 
 # =======================================================
 # Here, we create references to the requested build image
