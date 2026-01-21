@@ -25,10 +25,10 @@ Singularity uses its own image format, so we need to download and convert the of
 To create an official FastSurfer Singularity image, run:
 ```bash
 # singularity build <filename> <source>
-singularity build $HOME/my_singlarity_images/fastsurfer-|version|.sif docker://deepmi/fastsurfer:cuda-v|version|
+singularity build $HOME/my_singlarity_images/fastsurfer-2.5.0.sif docker://deepmi/fastsurfer:cuda-v2.5.0
 ```
 Singularity images are files with extension `.sif`. Here, we save the image in `$HOME/my_singlarity_images`.
-If you want to pick a specific FastSurfer version, you can also change `cuda-v|version|` in the `<source>`. For example to use the [cpu image](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cpu) (`cpu-v|version|`) or a [specific CUDA version](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cu1) (check, which version is available the current FastSurfer version, for example `cu118-v2.4.2`).
+If you want to pick a specific FastSurfer version, you can also change `cuda-v2.5.0` in the `<source>`. For example to use the [cpu image](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cpu) (`cpu-v2.5.0`) or a [specific CUDA version](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cu1) (check, which version is available the current FastSurfer version, for example `cu118-v2.5.0`).
 
 Creating your own FastSurfer Singularity image
 ----------------------------------------------
@@ -87,7 +87,7 @@ You can run the Singularity equivalent of CPU-Docker by building a Singularity i
 
 ```bash
 cd $HOME/my_singlarity_images
-singularity build fastsurfer-cpu-|version|.sif docker://deepmi/fastsurfer:cpu-v|version|
+singularity build fastsurfer-cpu-2.5.0.sif docker://deepmi/fastsurfer:cpu-v2.5.0
 
 singularity exec --no-mount -e \
                  -B $HOME/my_mri_data \

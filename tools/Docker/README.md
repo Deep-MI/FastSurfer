@@ -12,10 +12,10 @@ docker pull deepmi/fastsurfer
 This will download the newest, official FastSurfer image with support for nVidia GPUs.
 
 Image are named and tagged as follows: `deepmi/fastsurfer:<support>-<version>`, where `<support>` is `gpu` for support of NVIDIA GPUs and `cpu` without hardware acceleration (the latter is smaller and thus faster to download).
-Similarly, `<version>` can be a version string (`latest` or `v#.#.#`, where `#` are digits, for example `v2.2.2`), for example:
+Similarly, `<version>` can be a version string (`latest` or `v#.#.#`, where `#` are digits, for example `v2.5.0`), for example:
 
 ```bash 
-docker pull deepmi/fastsurfer:cpu-v2.2.2
+docker pull deepmi/fastsurfer:cpu-v2.5.0
 ```
 
 Running the (official) Docker Image
@@ -220,8 +220,8 @@ The `build.py` script supports the `--ssl_verify` flag, which can be passed `"Fa
 python tools/Docker/build.py --device cpu --tag my_fastsurfer:cpu --ssl_verify /path/to/custom-cert.srt
 ```
 
-## Building for release
-
+Building for release
+--------------------
 Make sure, you are building on a machine that has [containerd-storage and Buildkit](#build-docker-image-with-attestation-and-provenance).
 
 ```bash
@@ -229,7 +229,7 @@ Make sure, you are building on a machine that has [containerd-storage and Buildk
 build_dir=$HOME/FastSurfer-build
 img=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
-version=2.4.3
+version=2.5.0
 # the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device
 cuda=126
 cudas=("cuda118" "cuda124" "cuda$cuda")
