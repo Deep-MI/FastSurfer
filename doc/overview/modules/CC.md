@@ -38,7 +38,7 @@ This file contains measurements from the middle sagittal slice and includes:
 
 #### **Thickness Analysis:**
 - `thickness`: Average corpus callosum thickness (mm)
-- `thickness_profile`: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends) 
+- `thickness_profile`: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends)
 
 #### **Volume Measurements (when multiple slices processed):**
 - `cc_5mm_volume`: Total CC volume within 5mm slab using voxel counting (mm³)
@@ -48,7 +48,7 @@ This file contains measurements from the middle sagittal slice and includes:
 All anatomical landmarks are given image voxel coordinates (LIA orientation)
 - `ac_center`: Anterior commissure coordinates in original image space (orig.mgz)
 - `pc_center`: Posterior commissure coordinates in original image space (orig.mgz)
-- `ac_center_oriented_volume`: AC coordinates in standardized space (orient_volume.lta) 
+- `ac_center_oriented_volume`: AC coordinates in standardized space (orient_volume.lta)
 - `pc_center_oriented_volume`: PC coordinates in standardized space (orient_volume.lta)
 - `ac_center_upright`: AC coordinates in upright space (cc_up.lta)
 - `pc_center_upright`: PC coordinates in upright space (cc_up.lta)

@@ -13,12 +13,12 @@ The `quicktest` suite requires
 - A definition of the test setup in the following environment variables:
   - `REF_DIR`: known-good reference data
   - `SUBJECTS_DIR`: to-compare/test data
-  - `SUBJECTS_LIST`: comma separated list of 
+  - `SUBJECTS_LIST`: comma separated list of
 
 Test 1: Search for errors in to-compare log files
 -------------------------------------------------
 
-Contained in test_errors_in_logfiles.py 
+Contained in test_errors_in_logfiles.py
 
 
 Test 2: Check existence of expected files in to-compare subject directory

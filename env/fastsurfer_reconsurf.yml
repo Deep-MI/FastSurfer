@@ -3,7 +3,7 @@ name: fastsurfer_reconsurf
 
 channels:
   - conda-forge
-  
+
 dependencies:
   - lapy=1.0.1
   - nibabel=5.1.0

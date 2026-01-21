@@ -17,7 +17,7 @@ cd fastsurfer-test
 singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
 
 # 2. Download an example brain MRI (if you don't have your own)
-#    If you have your own, copy it to this directory and adjust 
+#    If you have your own, copy it to this directory and adjust
 #    the filename after --t1 below.
 curl -k https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz -o "./140_orig.mgz"
 
@@ -32,9 +32,9 @@ singularity exec --nv \
                  --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
-That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes). 
+That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```test-case/stats```).
-Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with 
+Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
 ```--tal_reg``` in the segmentation module. For the full surface stream, just remove the ```--seg_only``` and you need a FreeSurfer license file and pass it into the container, as described in more detail later.
 
 For your convenience here is the same procedure using Docker instead of Singularity:
@@ -45,7 +45,7 @@ mkdir fastsurfer-test
 cd fastsurfer-test
 
 # 1. Download an example brain MRI (if you don't have your own)
-#    If you have your own, copy it to this directory and adjust 
+#    If you have your own, copy it to this directory and adjust
 #    the filename after --t1 below.
 curl -k https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz -o "./140_orig.mgz"
 
@@ -96,4 +96,4 @@ After a quick introduction, it covers three use cases:
 - Use case 2: Quick and a bit more advanced - Segmentation with FastSurfer on your local machine
 - Use case 3: Use case 3 - Surface models, Thickness maps and more: FastSurfer's recon-surf command
 
-In addition, there is a small section covering [python-qatools](https://github.com/Deep-MI/qatools-python) called "Bonus - Quality analysis using qatools". 
+In addition, there is a small section covering [python-qatools](https://github.com/Deep-MI/qatools-python) called "Bonus - Quality analysis using qatools".

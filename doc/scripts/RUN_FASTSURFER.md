@@ -3,7 +3,7 @@ run_fastsurfer.sh
 Next, you will learn how to specify the `*fastsurfer-flags*` by replacing `*fastsurfer-flags*` with your specific options.
 `run_fastsurfer.sh` is the central command of FastSurfer. In general, `run_fastsurfer.sh` is called once for each T1w MRI image that is to be processed and each call will result in one "Subject Folder" with segmentation maps, surfaces and statistics tables. If you want to process multiple images, you can either loop through the images yourself or use [brun_fastsurfer.sh](BATCH.md) or [srun_fastsurfer.sh](SLURM.md), which are multi-subject extensions to `run_fastsurfer.sh`.
 
-On this page, we explain FastSurfer's options, usually referred to as `<*fastsurfer-flags*>` in this documentation. 
+On this page, we explain FastSurfer's options, usually referred to as `<*fastsurfer-flags*>` in this documentation.
 The `<*fastsurfer-flags*>` will usually at least include the subject directory (`--sd`), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
 
 ```bash
@@ -12,7 +12,7 @@ $FASTSURFER_HOME/run_fastsurfer.sh --sd $HOME/my_fastsurfer_data --sid test_subj
 Additionally, you can use `--seg_only` or `--surf_only` to only run a part of the pipeline or `--no_biasfield`, `--no_cereb`, `--no_hypothal`, `--no_cc`, and `--no_asegdkt` to switch off individual segmentation modules.
 Here, we have also added the `--3T` flag, which tells FastSurfer to register against the 3T atlas which is only relevant for the ICV estimation (eTIV).
 
-In the following, we give an overview of the most important options. You can view a [full list of options](RUN_FASTSURFER.md#full-list-of-flags) with 
+In the following, we give an overview of the most important options. You can view a [full list of options](RUN_FASTSURFER.md#full-list-of-flags) with
 
 ```bash
 ./run_fastsurfer.sh --help
@@ -34,7 +34,7 @@ Optional arguments
 * `--seg_only`: Only run the brain segmentation pipeline and skip the surface pipeline.
 * `--seg_log`: Name and location for the log-file for the segmentation. Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
 * `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the GPU. The total memory is considered for this decision. If this fails, or you actively specify "cpu" view aggregation is run on the CPU. Equivalently, if you pass a different device, view aggregation will be run on that device (no memory check will be done).
-* `--device`: Select device for neural network segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_, _mps_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU. "mps" is for native MAC installs to use the Apple silicon (M-chip) GPU. 
+* `--device`: Select device for neural network segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_, _mps_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU. "mps" is for native MAC installs to use the Apple silicon (M-chip) GPU.
 * `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
 * `--no_cereb`: Switch off the cerebellum sub-segmentation.
 * `--no_hypothal`: Skip the hypothalamus segmentation.
@@ -50,11 +50,11 @@ Optional arguments
 * `--fsqsphere`: Use FreeSurfer default instead of novel spectral spherical projection for qsphere (also not recommended)
 * `--fsaparc`: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)
 * `--no_fs_T1`: Skip generation of `T1.mgz` (normalized `nu.mgz` included in standard FreeSurfer output) and create `brainmask.mgz` directly from `norm.mgz` instead. Saves 1:30 min.
-* `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis. 
+* `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis.
 
 ### Some other flags
 * `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. The default (`1`) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.
-* `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed. 
+* `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
   If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isotropic voxels of that voxel size.
