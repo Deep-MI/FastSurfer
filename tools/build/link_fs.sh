@@ -59,7 +59,7 @@ if [ "$1" == "-all-info" ]; then
   exit 0
 fi
 echo
-echo "ERROR: The binary $0 is not included, your call is forwarded to not-here.sh"
+echo "WARNING: The binary $0 is not included, your call is forwarded to not-here.sh"
 echo
 exit 1
 ' > $ltrg
