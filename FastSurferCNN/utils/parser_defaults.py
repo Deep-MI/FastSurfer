@@ -420,6 +420,7 @@ def add_plane_flags(
     argparse.ArgumentParser
         The parser object.
     """
+    configtype: Literal["checkpoint", "config"]
     if configtype not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")
 

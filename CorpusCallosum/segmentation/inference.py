@@ -23,11 +23,11 @@ from numpy import typing as npt
 
 from CorpusCallosum.data import constants
 from CorpusCallosum.transforms.segmentation import CropAroundACPC
-from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.models.networks import FastSurferVINN
 from FastSurferCNN.utils import Image3d, Image4d, Shape2d, Shape3d, Shape4d, Vector2d, nibabelImage
+from FastSurferCNN.utils.checkpoint import get_config_file
 from FastSurferCNN.utils.parallel import thread_executor
 
 
@@ -70,10 +70,8 @@ def load_model(device: torch.device | None = None) -> FastSurferVINN:
     model = FastSurferVINN(params)
     
     download_checkpoints(cc=True)
-    cc_config: dict[str, Path] = load_checkpoint_config_defaults(
-        "checkpoint",
-        filename=CC_YAML,
-    )
+    config_file = get_config_file("CorpusCallosum")
+    cc_config: dict[str, Path] = load_checkpoint_config_defaults("checkpoint", filename=config_file)
     checkpoint_path = constants.FASTSURFER_ROOT / cc_config['segmentation']
     
     weights = torch.load(checkpoint_path, weights_only=True, map_location=device)
