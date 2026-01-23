@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -434,7 +434,8 @@
         <article role="main" id="furo-main-content">
           <section id="contribution-guide">
 <h1>Contribution Guide<a class="headerlink" href="#contribution-guide" title="Link to this heading">¶</a></h1>
-<p>All types of contributions are encouraged and valued. The community looks forward to your contributions.</p>
+<p>==================
+All types of contributions are encouraged and valued. The community looks forward to your contributions.</p>
 <section id="reporting-bugs">
 <h2>Reporting Bugs<a class="headerlink" href="#reporting-bugs" title="Link to this heading">¶</a></h2>
 <section id="before-submitting-a-bug-report">
@@ -442,15 +443,21 @@
 <p>Please complete the following steps in advance to help us fix any potential bug as fast as possible.</p>
 <ul class="simple">
 <li><p>Make sure that you are using the latest version.</p></li>
-<li><p>Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions.</p></li>
-<li><p>To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues?q=label%3Abug">bug tracker</a>.</p></li>
-<li><p>Collect information about the bug:</p>
+<li><p>Determine if you your setup is supported, in particular, check if you are using the correct versions of python
+packages, FreeSurfer, the operating system and drivers. You may use <code class="docutils literal notranslate"><span class="pre">$FASTSURFER_HOME/run_fastsurfer.sh</span> <span class="pre">--version</span> <span class="pre">all</span></code>
+to get a list of versions of the python packages used by FastSurfer.</p></li>
+<li><p>Search the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues?q=is%3Aissue">Issue Tracker</a> to see if other users have
+previously experienced the same issue or similar issues to yours. You may find a solution in a response to an issue
+reported by another user.</p></li>
+<li><p>Collect information about your issue:</p>
 <ul>
-<li><p>Stack trace (Traceback)</p></li>
+<li><p>Error messages and stack traces (Traceback)</p></li>
 <li><p>OS, Platform and Version (Windows, Linux, macOS, x86, ARM)</p></li>
-<li><p>Version of the interpreter, compiler, SDK, runtime environment, package manager, depending on what seems relevant.</p></li>
-<li><p>Possibly your input and the output.</p></li>
-<li><p>Can you reliably reproduce the issue? And can you also reproduce it with older versions?</p></li>
+<li><p>FastSurfer installation type: native, Docker, Singularity</p></li>
+<li><p>Versions of relevant libraries, in particular those reported by <code class="docutils literal notranslate"><span class="pre">$FASTSURFER_HOME/run_fastsurfer.sh</span> <span class="pre">--version</span> <span class="pre">all</span></code></p></li>
+<li><p>How did you run FastSurfer (command and arguments)?</p></li>
+<li><p>Your input and output files</p></li>
+<li><p>Can you reliably reproduce the issue (e.g. on other computers)? And can you also reproduce it with older versions?</p></li>
 </ul>
 </li>
 </ul>
@@ -459,17 +466,27 @@
 <h3>How Do I Submit a Good Bug Report?<a class="headerlink" href="#how-do-i-submit-a-good-bug-report" title="Link to this heading">¶</a></h3>
 <p>We use GitHub issues to track bugs and errors. If you run into an issue with the project:</p>
 <ul class="simple">
-<li><p>Open an <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues/new">Issue</a>. (Since we can’t be sure at this point whether it is a bug or not, we ask you not to talk about a bug yet and not to label the issue.)</p></li>
-<li><p>Explain the behavior you would expect and the actual behavior.</p></li>
-<li><p>Please provide as much context as possible and describe the <em>reproduction steps</em> that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.</p></li>
+<li><p>Open an <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues/new">Issue in GitHub</a>.</p></li>
+<li><p>Select the Issue type that best describes the Issue type you are reporting. “Bugs” describe situations, where the
+observed and the intended behavior are different. If you are about the intended behavior, it is best to report the
+Issue as “Question/Help/Support” and ask about the intended behavior or “Documentation”.</p></li>
+<li><p>Closely follow the template format presented to you and answer the questions asked.</p></li>
+<li><p>In particular, please explain the behavior you would expect and the observed behavior.</p></li>
+<li><p>Please provide as much context as possible and describe the <em>reproduction steps</em> that someone else can follow to
+recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem
+and create a reduced test case.</p></li>
 <li><p>Provide the information you collected in the previous section.</p></li>
-<li><p>Also provide the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/recon-surf.log</span></code> (if existent) and in the case of a parallel run, also the <code class="docutils literal notranslate"><span class="pre">$subjid/scripts/[l/r]h.processing.cmdf.log</span></code> (if existent).</p></li>
+<li><p>Also provide log files and screenshots as indicated in the template, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/scripts/deep-seg.log</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/scripts/recon-surf.log</span></code>, and <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/scripts/[l/r]h.processing.cmdf.log</span></code> (if these exist).</p></li>
 </ul>
 <p>Once it’s filed:</p>
 <ul class="simple">
 <li><p>The project team will label the issue accordingly.</p></li>
-<li><p>A team member will try to reproduce the issue with your provided steps. If there are no reproduction steps or no obvious way to reproduce the issue, the team will ask you for those steps and mark the issue as <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code>. Bugs with the <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code> tag will not be addressed until they are reproduced.</p></li>
-<li><p>If the team is able to reproduce the issue, it will be marked <code class="docutils literal notranslate"><span class="pre">needs-fix</span></code>, as well as possibly other tags (such as <code class="docutils literal notranslate"><span class="pre">critical</span></code>).</p></li>
+<li><p>A team member will try to reproduce the issue with your provided steps. If there are no reproduction steps or no
+obvious way to reproduce the issue, the team will ask you for those steps and mark the issue as <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code>. Bugs
+with the <code class="docutils literal notranslate"><span class="pre">needs-repro</span></code> tag will not be addressed until they are reproduced.</p></li>
+<li><p>If the team is able to reproduce the issue, it will be marked <code class="docutils literal notranslate"><span class="pre">needs-fix</span></code>, as well as possibly other tags (such as
+<code class="docutils literal notranslate"><span class="pre">critical</span></code>).</p></li>
 </ul>
 </section>
 </section>
@@ -480,9 +497,14 @@
 <h3>Before Submitting an Enhancement<a class="headerlink" href="#before-submitting-an-enhancement" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>Make sure that you are using the latest version.</p></li>
-<li><p>Read the documentation carefully and find out if the functionality is already covered, maybe by an individual configuration.</p></li>
-<li><p>Perform a <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues">search</a> to see if the enhancement has already been suggested. If it has, add a comment to the existing issue instead of opening a new one.</p></li>
-<li><p>Find out whether your idea fits with the scope and aims of the project. It’s up to you to make a strong case to convince the project’s developers of the merits of this feature. Keep in mind that we want features that will be useful to the majority of our users and not just a small subset. If you’re just targeting a minority of users, consider writing an add-on/plugin library.</p></li>
+<li><p>Read the documentation carefully and find out if the functionality is already covered, maybe by an individual
+configuration.</p></li>
+<li><p>Perform a <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues?q=is%3Aissue">search</a> to see if the enhancement has already
+been suggested. If it has, add a comment to the existing issue instead of opening a new one.</p></li>
+<li><p>Find out whether your idea fits with the scope and aims of the project. It’s up to you to make a strong case to
+convince the project’s developers of the merits of this feature. Keep in mind that we want features that will be
+useful to the majority of our users and not just a small subset. If you’re just targeting a minority of users,
+consider writing an add-on/plugin library.</p></li>
 </ul>
 </section>
 <section id="how-do-i-submit-a-good-enhancement-suggestion">
@@ -498,51 +520,98 @@
 </section>
 <section id="contributing-code">
 <h2>Contributing Code<a class="headerlink" href="#contributing-code" title="Link to this heading">¶</a></h2>
-<ol class="arabic simple">
-<li><p><a class="reference external" href="https://docs.github.com/en/get-started/quickstart/fork-a-repo">Fork</a> this repository to your github account</p></li>
-<li><p>Clone your fork to your computer (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/&lt;username&gt;/FastSurfer.git</span></code>)</p></li>
-<li><p>Change into the project directory (<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">FastSurfer</span></code>)</p></li>
-<li><p>Add Deep-MI repo as upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">add</span> <span class="pre">upstream</span> <span class="pre">https://github.com/Deep-MI/FastSurfer.git</span></code>)</p></li>
-<li><p>Update information from upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">upstream</span></code>)</p></li>
-<li><p>Checkout the upstream dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">dev</span> <span class="pre">upstream/dev</span></code>)</p></li>
-<li><p>Create your feature branch from dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Commit your changes (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-am</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">feature'</span></code>)</p></li>
-<li><p>Push to the branch to your github (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Create new pull request on github web interface from that branch into Deep-NI <strong>dev branch</strong> (not into stable)</p></li>
+<ol class="arabic">
+<li><p><a class="reference external" href="https://docs.github.com/en/get-started/quickstart/fork-a-repo">Fork</a> the
+<a class="reference external" href="https://github.com/Deep-MI/FastSurfer">official FastSurfer</a> repository to your GitHub account.</p></li>
+<li><p>Clone your fork to your computer: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/&lt;username&gt;/FastSurfer.git</span></code></p></li>
+<li><p>Change into the project directory: <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">FastSurfer</span></code></p></li>
+<li><p>Add Deep-MI repo as upstream: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">add</span> <span class="pre">upstream</span> <span class="pre">https://github.com/Deep-MI/FastSurfer.git</span></code></p></li>
+<li><p>Update information from upstream: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">fetch</span> <span class="pre">upstream</span></code></p></li>
+<li><p>Checkout the upstream dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">dev</span> <span class="pre">upstream/dev</span></code></p></li>
+<li><p>Create your feature branch from dev: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">-b</span> <span class="pre">my-new-feature</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;username&gt;/FastSurfer.git
+<span class="nb">cd</span><span class="w"> </span>FastSurfer
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/Deep-MI/FastSurfer.git
+git<span class="w"> </span>fetch<span class="w"> </span>upstream
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>dev<span class="w"> </span>upstream/dev
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>my-new-feature
+</pre></div>
+</div>
+</li>
+<li><p>Edit the code and implement your changes/features</p></li>
+<li><p>Commit your changes: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-am</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">feature'</span></code></p></li>
+<li><p>Push to the branch to your GitHub: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code></p></li>
 </ol>
-<p>If lots of things changed in the meantime or the pull request is showing conflicts you should rebase your branch to the current upstream dev.
-This is the preferred way, but only possible if you are the sole develop or your branch:</p>
-<ol class="arabic simple" start="10">
-<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Rebase your branch onto dev (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">dev</span></code>), resolve conflicts and continue until complete</p></li>
-<li><p>Force push the updated feature branch to your gihub (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">-f</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>commit<span class="w"> </span>-am<span class="w"> </span><span class="s1">&#39;Add some feature&#39;</span>
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>my-new-feature
+</pre></div>
+</div>
+<ol class="arabic simple" start="11">
+<li><p><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/compare">Create a new pull request on the GitHub web interface</a> from your
+branch into Deep-NI <strong>dev branch</strong> (not into stable): Select “Compare across forks” and then your fork on the right,
+finally, select your <code class="docutils literal notranslate"><span class="pre">my-new-feature</span></code> branch to compare to.</p></li>
 </ol>
-<p>If other people co-develop the my-new-feature branch, rewriting history with a rebase is not possible.
-Instead you need to merge upstream dev into your branch:</p>
-<ol class="arabic simple" start="10">
-<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Update your dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Switch into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Merge dev into your feature (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">merge</span> <span class="pre">dev</span></code>), resolve conflicts and commit</p></li>
-<li><p>Push to origin (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code>)</p></li>
+<p>If lots of things changed on the official FastSurfer repository in the meantime or the pull request is showing
+conflicts, these need to be resolved by either rebasing (preferred) or merging.</p>
+<section id="option-1-rebasing">
+<h3>Option 1: Rebasing<a class="headerlink" href="#option-1-rebasing" title="Link to this heading">¶</a></h3>
+<p>Rebasing is preferred, because it leaves a cleaner history of changes. However, rebasing is only possible if you are the
+sole developer collaborating on your branch. To rebase, do the following:</p>
+<ol class="arabic" start="12">
+<li><p>Switch into dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code></p></li>
+<li><p>Update your dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code></p></li>
+<li><p>Switch into your feature: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code></p></li>
+<li><p>Rebase your branch onto dev, resolve conflicts and continue until complete:  <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">dev</span></code></p></li>
+<li><p>Force push the updated feature branch to your GitHub: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">-f</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>dev
+git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>dev
+git<span class="w"> </span>checkout<span class="w"> </span>my-new-feature
+git<span class="w"> </span>rebase<span class="w"> </span>dev
+git<span class="w"> </span>push<span class="w"> </span>-f<span class="w"> </span>origin<span class="w"> </span>my-new-feature
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="option-2-merging">
+<h3>Option 2: Merging<a class="headerlink" href="#option-2-merging" title="Link to this heading">¶</a></h3>
+<p>If other people co-develop in the <code class="docutils literal notranslate"><span class="pre">my-new-feature</span></code> branch, rewriting history with a rebase is not possible.
+Instead, you need to merge <code class="docutils literal notranslate"><span class="pre">upstream/dev</span></code> into your branch:</p>
+<ol class="arabic" start="12">
+<li><p>Switch into dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code></p></li>
+<li><p>Update your dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code></p></li>
+<li><p>Switch into your feature: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">my-new-feature</span></code></p></li>
+<li><p>Merge dev into your feature, resolve conflicts and commit: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">merge</span> <span class="pre">dev</span></code></p></li>
+<li><p>Push to origin: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>dev
+git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>dev
+git<span class="w"> </span>checkout<span class="w"> </span>my-new-feature
+git<span class="w"> </span>merge<span class="w"> </span>dev
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>my-new-feature
+</pre></div>
+</div>
+</li>
 </ol>
 <p>Either method updates the pull request and resolves conflicts, so that we can merge it once it is complete.
-Once the pull request is merged by us you can delete the feature branch in your clone and on your fork:</p>
-<ol class="arabic simple" start="15">
-<li><p>Switch into dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Delete feature branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">branch</span> <span class="pre">-D</span> <span class="pre">my-new-feature</span></code>)</p></li>
-<li><p>Delete the branch on your github fork either via GUI, or via command line (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">--delete</span> <span class="pre">my-new-feature</span></code>)</p></li>
+Once the pull request is merged by us you can delete the feature branch locally and on your fork:</p>
+<ol class="arabic simple" start="17">
+<li><p>Switch into dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code></p></li>
+<li><p>Delete feature branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">branch</span> <span class="pre">-D</span> <span class="pre">my-new-feature</span></code></p></li>
+<li><p>Delete the branch on your GitHub fork either via GUI, or via command line: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">--delete</span> <span class="pre">my-new-feature</span></code></p></li>
 </ol>
-<p>This procedure will ensure that your local dev branch always follows our dev branch and will never diverge. You can, once in a while, push the dev branch, or similarly update stable and push it to your fork (origin), but that is not really necessary.</p>
-<p>Next time you contribute a feature, you do not need to go through the steps 1-6 above, but simply:</p>
+<p>This procedure will ensure that your local <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch always follows our <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch and will never diverge. You can,
+once in a while, push the <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch, or similarly update <code class="docutils literal notranslate"><span class="pre">stable</span></code> and push it to your fork (<code class="docutils literal notranslate"><span class="pre">origin</span></code>), but that is
+not really necessary.</p>
+<p>Next time you contribute a feature, steps 1-6 above are simpler as you already have a local FastSurfer copy. Simply:</p>
 <ul class="simple">
-<li><p>Switch to dev branch (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code>)</p></li>
-<li><p>Make sure it is identical to upstream (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code>)</p></li>
+<li><p>Switch to dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code></p></li>
+<li><p>Make sure it is identical to upstream: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code></p></li>
 <li><p>Check out a new feature branch and continue from 7. above.</p></li>
 </ul>
-<p>Another good command, if for some reasons your dev branch diverged, which should never happen as you never commit to it, you can reset it by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">reset</span> <span class="pre">--hard</span> <span class="pre">upstream/dev</span></code>. Make absolutely sure you are in your dev branch (not the feature branch) and be aware that this will delete any local changes!</p>
+<p>Another good command, if – for any reason – your <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch diverged, which should never happen as you never
+commit to it, you can reset it by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">reset</span> <span class="pre">--hard</span> <span class="pre">upstream/dev</span></code>. Make absolutely sure you are in your <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch
+(not the feature branch) and be aware that this will delete any local changes!</p>
+</section>
 </section>
 <section id="attribution">
 <h2>Attribution<a class="headerlink" href="#attribution" title="Link to this heading">¶</a></h2>
@@ -622,7 +691,11 @@ Once the pull request is merged by us you can delete the feature branch in your 
 <li><a class="reference internal" href="#how-do-i-submit-a-good-enhancement-suggestion">How Do I Submit a Good Enhancement Suggestion?</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#contributing-code">Contributing Code</a></li>
+<li><a class="reference internal" href="#contributing-code">Contributing Code</a><ul>
+<li><a class="reference internal" href="#option-1-rebasing">Option 1: Rebasing</a></li>
+<li><a class="reference internal" href="#option-2-merging">Option 2: Merging</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#attribution">Attribution</a></li>
 </ul>
 </li>

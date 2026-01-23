@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -516,7 +516,7 @@ options are optional and enable passing options different to the “general opti
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">001</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mf">001.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">001.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
 <span class="mi">002</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mf">002.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">002.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
 <span class="mi">002</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mi">003</span><span class="o">-</span><span class="n">alt</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">003.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
-<span class="o">...</span> 
+<span class="o">...</span>
 </pre></div>
 </div>
 </section>
@@ -570,7 +570,9 @@ can run on the same GPU, but the script cannot schedule more than one process pe
 <p>Can I disable the progress bars in the output?</p>
 <blockquote>
 <div><p>You can disable the progress bars by setting the TQDM_DISABLE environment variable to 1, if you have tqdm&gt;=4.66.</p>
-<p>For docker, this can be done with the flag <code class="docutils literal notranslate"><span class="pre">-e</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span> <span class="pre">-e</span> <span class="pre">TQDM_DISABLE=1</span> <span class="pre">...</span></code>, for singularity with the flag <code class="docutils literal notranslate"><span class="pre">--env</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span> <span class="pre">--env</span> <span class="pre">TQDM_DISABLE=1</span> <span class="pre">...</span></code> and for native installations by prepending, e.g. <code class="docutils literal notranslate"><span class="pre">TQDM_DISABLE=1</span> <span class="pre">./run_fastsurfer.sh</span> <span class="pre">...</span></code>.</p>
+<p>For docker, this can be done with the flag <code class="docutils literal notranslate"><span class="pre">-e</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span> <span class="pre">-e</span> <span class="pre">TQDM_DISABLE=1</span> <span class="pre">...</span></code>, for singularity with the
+flag <code class="docutils literal notranslate"><span class="pre">--env</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span> <span class="pre">--env</span> <span class="pre">TQDM_DISABLE=1</span> <span class="pre">...</span></code> and for native installations by prepending, e.g.
+<code class="docutils literal notranslate"><span class="pre">TQDM_DISABLE=1</span> <span class="pre">./run_fastsurfer.sh</span> <span class="pre">...</span></code>.</p>
 </div></blockquote>
 </section>
 </section>

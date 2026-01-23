@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -442,14 +442,14 @@
 <p>Recommended System Spec: 8 GB system memory, NVIDIA GPU with 8 GB graphics memory.</p>
 <p>Minimum System Spec: 8 GB system memory (this requires running FastSurfer on the CPU only, which is much slower)</p>
 <p>Non-NVIDIA GPU architectures (AMD) are experimental and not officially supported, but seem to work well also.</p>
-<section id="singularity">
-<h3>Singularity<a class="headerlink" href="#singularity" title="Link to this heading">¶</a></h3>
+<section id="singularity-or-apptainer">
+<h3>Singularity (or Apptainer)<a class="headerlink" href="#singularity-or-apptainer" title="Link to this heading">¶</a></h3>
 <p>Assuming you have singularity installed already (by a system admin), you can build a Singularity image easily from our Dockerhub images. Run this command from a directory where you want to store singularity images:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
 </pre></div>
 </div>
-<p>Additionally, <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">the Singularity README</span></a> contains detailed directions for building your own Singularity images from Docker.</p>
-<p><a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-singularity"><span class="std std-ref">Example 2</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: <a class="reference internal" href="docker.html"><span class="doc std std-ref">Docker</span></a> and <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">Singularity</span></a>.</p>
+<p>Additionally, <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">the Singularity documentation</span></a> contains detailed directions for building your own Singularity images from Docker.</p>
+<p><a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-singularity-or-apptainer"><span class="std std-ref">Example 1</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: <a class="reference internal" href="docker.html"><span class="doc std std-ref">Docker</span></a> and <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">Singularity</span></a>.</p>
 </section>
 <section id="docker">
 <h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
@@ -457,7 +457,7 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
 </pre></div>
 </div>
-<p><a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to <a class="reference internal" href="docker.html"><span class="doc std std-ref">build your own image</span></a>.</p>
+<p><a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to <a class="reference internal" href="docker.html"><span class="doc std std-ref">build your own image</span></a>.</p>
 <p>If you are using the <strong>rootless mode</strong>, you have to install the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA Container Toolkit</a> and follow the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode">configuration for the rootless mode</a>. Otherwise, running FastSurfer with Docker will give you this error message <code class="docutils literal notranslate"><span class="pre">docker:</span> <span class="pre">Error</span> <span class="pre">response</span> <span class="pre">from</span> <span class="pre">daemon:</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">select</span> <span class="pre">device</span> <span class="pre">driver</span> <span class="pre">&quot;&quot;</span> <span class="pre">with</span> <span class="pre">capabilities:</span> <span class="pre">[[gpu]]</span></code>.</p>
 </section>
 <section id="native-ubuntu-20-04-or-ubuntu-22-04">
@@ -553,7 +553,7 @@ python<span class="w"> </span>FastSurferCNN/download_checkpoints.py<span class="
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
 </pre></div>
 </div>
-<p>You will need to add a couple of flags to your docker run command for AMD, see <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> for <code class="docutils literal notranslate"><span class="pre">**other-docker-flags**</span></code> or <code class="docutils literal notranslate"><span class="pre">**fastsurfer-flags**</span></code>:</p>
+<p>You will need to add a couple of flags to your docker run command for AMD, see <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> for <code class="docutils literal notranslate"><span class="pre">**other-docker-flags**</span></code> or <code class="docutils literal notranslate"><span class="pre">*&lt;*fastsurfer-flags*&gt;*</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--cap-add<span class="o">=</span>SYS_PTRACE<span class="w"> </span>--security-opt<span class="w"> </span><span class="nv">seccomp</span><span class="o">=</span>unconfined<span class="w"> </span>--device<span class="o">=</span>/dev/kfd<span class="w"> </span><span class="se">\</span>
 <span class="w">        </span>--device<span class="o">=</span>/dev/dri<span class="w"> </span>--group-add<span class="w"> </span>video<span class="w"> </span>--ipc<span class="o">=</span>host<span class="w"> </span>--shm-size<span class="w"> </span>8G<span class="w"> </span><span class="se">\</span>
 <span class="w">        </span>**other-docker-flags**<span class="w"> </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
@@ -577,7 +577,7 @@ Start it and set Memory to 15 GB under Preferences -&gt; Resources (or the large
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
 </pre></div>
 </div>
-<p>Continue with the example in <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a>.</p>
+<p>Continue with the example in <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>.</p>
 </section>
 <section id="package">
 <h3>Package<a class="headerlink" href="#package" title="Link to this heading">¶</a></h3>
@@ -629,7 +629,7 @@ To install, double-click the installer and follow the installer instructions.</p
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-latest
 </pre></div>
 </div>
-<p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a> for the CPU build, for example:</p>
+<p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> for the CPU build, for example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
@@ -657,7 +657,7 @@ To install, double-click the installer and follow the installer instructions.</p
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
 </pre></div>
 </div>
-<p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-1-fastsurfer-docker"><span class="std std-ref">Example 1</span></a>, for example:</p>
+<p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>, for example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
@@ -736,7 +736,7 @@ To install, double-click the installer and follow the installer instructions.</p
             <ul>
 <li><a class="reference internal" href="#">Installation</a><ul>
 <li><a class="reference internal" href="#linux">Linux</a><ul>
-<li><a class="reference internal" href="#singularity">Singularity</a></li>
+<li><a class="reference internal" href="#singularity-or-apptainer">Singularity (or Apptainer)</a></li>
 <li><a class="reference internal" href="#docker">Docker</a></li>
 <li><a class="reference internal" href="#native-ubuntu-20-04-or-ubuntu-22-04">Native (Ubuntu 20.04 or Ubuntu 22.04)</a><ul>
 <li><a class="reference internal" href="#system-packages">1. System Packages</a></li>

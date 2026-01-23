@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Installation" href="INSTALL.html"><link rel="prev" title="Introduction to FastSurfer" href="intro.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Installation" href="INSTALL.html"><link rel="prev" title="Introduction" href="intro.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>Quick Start - FastSurfer</title>
@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -448,13 +448,13 @@ mkdir<span class="w"> </span>fastsurfer-test
 singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
 
 <span class="c1"># 2. Download an example brain MRI (if you don&#39;t have your own)</span>
-<span class="c1">#    If you have your own, copy it to this directory and adjust </span>
+<span class="c1">#    If you have your own, copy it to this directory and adjust</span>
 <span class="c1">#    the filename after --t1 below.</span>
 curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">&quot;./140_orig.mgz&quot;</span>
 
 <span class="c1"># 3. Run FastSurfer (full brain segmentation only)</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-home<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
@@ -473,7 +473,7 @@ mkdir<span class="w"> </span>fastsurfer-test
 <span class="nb">cd</span><span class="w"> </span>fastsurfer-test
 
 <span class="c1"># 1. Download an example brain MRI (if you don&#39;t have your own)</span>
-<span class="c1">#    If you have your own, copy it to this directory and adjust </span>
+<span class="c1">#    If you have your own, copy it to this directory and adjust</span>
 <span class="c1">#    the filename after --t1 below.</span>
 curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">&quot;./140_orig.mgz&quot;</span>
 
@@ -489,10 +489,11 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <p>You will find the full brain segmentation in <code class="docutils literal notranslate"><span class="pre">./test-case/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> in FreeSurfer’s MGZ file format. To convert it back to nifti (if you prefer), just run</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert mgz to nifti</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-home<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--no-mount<span class="w"> </span>home<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.mgz&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz&quot;</span>
+<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                             </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz&quot;</span>
 </pre></div>
 </div>
 <p>and find the segmentation in <code class="docutils literal notranslate"><span class="pre">./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz</span></code>. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):</p>
@@ -545,7 +546,7 @@ freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span clas
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Introduction to FastSurfer</div>
+                <div class="title">Introduction</div>
                 
               </div>
             </a>

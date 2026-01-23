@@ -8,7 +8,6 @@ User Guide
     QUICKSTART.md
     INSTALL.md
     EXAMPLES.md
-    FLAGS.md
     OUTPUT_FILES.md
     modules/index
     docker

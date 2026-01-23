@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
 <li class="toctree-l1 has-children"><a class="reference internal" href="overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -451,7 +451,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 </ul>
 <p>Modules (all run by default):</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">asegdkt:</span></code> <a class="reference internal" href="scripts/fastsurfercnn.html"><span class="doc std std-ref">FastSurferVINN</span></a> for whole brain segmentation (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code>)</p>
+<li><p><code class="docutils literal notranslate"><span class="pre">asegdkt:</span></code> <a class="reference internal" href="scripts/fastsurfercnn.run_model.html"><span class="doc std std-ref">FastSurferVINN</span></a> for whole brain segmentation (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code>)</p>
 <ul class="simple">
 <li><p>the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.</p></li>
 <li><p>requires a T1w image (<a class="reference internal" href="#"><span class="doc std std-ref">notes on input images</span></a>), supports high-res (up to 0.7mm, experimental beyond that).</p></li>

@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -434,18 +434,21 @@
         <article role="main" id="furo-main-content">
           <section id="fastsurfercnn-run-model-py">
 <h1>FastSurferCNN: run_model.py<a class="headerlink" href="#fastsurfercnn-run-model-py" title="Link to this heading">¶</a></h1>
-<p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in <strong>requirements.txt</strong>. The main training script is called <strong>run_model.py</strong> whose options can be set through a configuration file and command line arguments:</p>
+<p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python
+libraries used within the code can be found in <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>. The main training script is called <code class="docutils literal notranslate"><span class="pre">run_model.py</span></code>
+whose options can be set through a configuration file and command line arguments:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg</span></code>: Path to the configuration file. Default: config/FastSurferVINN.yaml</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--aug</span></code>: List of augmentations to use. Default: None.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg</span></code>: Path to the configuration file. Default: <code class="docutils literal notranslate"><span class="pre">config/FastSurferVINN.yaml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--aug</span></code>: List of augmentations to use. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--opt</span></code>: List of class options to use.</p></li>
 </ul>
-<p>The <code class="docutils literal notranslate"><span class="pre">--cfg</span></code> file configures the model to be trained. See config/FastSurferVINN.yaml for an example and config/defaults.py for all options and default values.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--cfg</span></code> file configures the model to be trained. See <code class="docutils literal notranslate"><span class="pre">config/FastSurferVINN.yaml</span></code> for an example and
+<code class="docutils literal notranslate"><span class="pre">config/defaults.py</span></code> for all options and default values.</p>
 <p>The configuration options include:</p>
 <section id="model-options">
 <h2>Model options<a class="headerlink" href="#model-options" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">MODEL_NAME</span></code>: Name of model [FastSurferCNN, FastSurferVINN]. Default: FastSurferVINN</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MODEL_NAME</span></code>: Name of model [<code class="docutils literal notranslate"><span class="pre">FastSurferCNN</span></code>, <code class="docutils literal notranslate"><span class="pre">FastSurferVINN</span></code>]. Default: FastSurferVINN</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">NUM_CLASSES</span></code>: Number of classes to predict including background. Axial and coronal: 79 (default), Sagittal: 51.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">NUM_FILTERS</span></code>: Filter dimensions for Networks (all layers same). Default: 71</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">NUM_CHANNELS</span></code>: Number of input channels (slice thickness). Default: 7</p></li>
@@ -461,10 +464,11 @@
 <h2>Optimizer options<a class="headerlink" href="#optimizer-options" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">BASE_LR</span></code>: Base learning rate. Default: 0.01</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">OPTIMIZING_METHOD</span></code>: Optimization method [sgd, adam, adamW]. Default: adamW</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OPTIMIZING_METHOD</span></code>: Optimization method [<code class="docutils literal notranslate"><span class="pre">sgd</span></code>, <code class="docutils literal notranslate"><span class="pre">adam</span></code>, <code class="docutils literal notranslate"><span class="pre">adamW</span></code>]. Default: <code class="docutils literal notranslate"><span class="pre">adamW</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">MOMENTUM</span></code>: Momentum for optimizer. Default: 0.9</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">NESTEROV</span></code>: Enables Nesterov for optimizer. Default: True</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">LR_SCHEDULER</span></code>: Learning rate scheduler [step_lr, cosineWarmRestarts, reduceLROnPlateau]. Default: cosineWarmRestarts</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NESTEROV</span></code>: Enables Nesterov for optimizer. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LR_SCHEDULER</span></code>: Learning rate scheduler [<code class="docutils literal notranslate"><span class="pre">step_lr</span></code>, <code class="docutils literal notranslate"><span class="pre">cosineWarmRestarts</span></code>, <code class="docutils literal notranslate"><span class="pre">reduceLROnPlateau</span></code>]. Default:
+<code class="docutils literal notranslate"><span class="pre">cosineWarmRestarts</span></code></p></li>
 </ul>
 </section>
 <section id="data-options">
@@ -472,7 +476,7 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">PATH_HDF5_TRAIN</span></code>: Path to training hdf5-dataset</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PATH_HDF5_VAL</span></code>: Path to validation hdf5-dataset</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PLANE</span></code>: Plane to load [axial, coronal, sagittal]. Default: coronal</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PLANE</span></code>: Plane to load [<code class="docutils literal notranslate"><span class="pre">axial</span></code>, <code class="docutils literal notranslate"><span class="pre">coronal</span></code>, <code class="docutils literal notranslate"><span class="pre">sagittal</span></code>]. Default: <code class="docutils literal notranslate"><span class="pre">coronal</span></code></p></li>
 </ul>
 </section>
 <section id="training-options">
@@ -481,7 +485,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">BATCH_SIZE</span></code>: Input batch size for training. Default: 16</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">NUM_EPOCHS</span></code>: Number of epochs to train. Default: 30</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">SIZES</span></code>: Available image sizes for the multi-scale dataloader. Default: [256, 311 and 320]</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">AUG</span></code>: Augmentations. Default: [“Scaling”, “Translation”]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AUG</span></code>: Augmentations. Default: <code class="docutils literal notranslate"><span class="pre">[&quot;Scaling&quot;,</span> <span class="pre">&quot;Translation&quot;]</span></code></p></li>
 </ul>
 </section>
 <section id="misc-options">
@@ -491,9 +495,10 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">NUM_GPUS</span></code>: Number of GPUs to use. Default: 1</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">RNG_SEED</span></code>: Select random seed. Default: 1</p></li>
 </ul>
-<p>Any option can alternatively be set through the command-line by specifying the option name (as defined in config/defaults.py) followed by a value, such as: <code class="docutils literal notranslate"><span class="pre">MODEL.NUM_CLASSES</span> <span class="pre">51</span></code>.</p>
-<p>To train the network on a given hdf5-set, change into the <em>FastSurferCNN</em> directory and run
-<code class="docutils literal notranslate"><span class="pre">run_model.py</span></code> as in the following examples:</p>
+<p>Any option can alternatively be set through the command-line by specifying the option name (as defined in
+<code class="docutils literal notranslate"><span class="pre">config/defaults.py</span></code>) followed by a value, such as: <code class="docutils literal notranslate"><span class="pre">MODEL.NUM_CLASSES</span> <span class="pre">51</span></code>.</p>
+<p>To train the network on a given hdf5-set, change into the <em>FastSurferCNN</em> directory and run <code class="docutils literal notranslate"><span class="pre">run_model.py</span></code> as in the
+following examples:</p>
 </section>
 <section id="example-command-training-default-fastsurfervinn">
 <h2>Example Command: Training Default FastSurferVINN<a class="headerlink" href="#example-command-training-default-fastsurfervinn" title="Link to this heading">¶</a></h2>
@@ -505,7 +510,8 @@
 </section>
 <section id="example-command-training-fastsurfervinn-single-resolution">
 <h2>Example Command: Training FastSurferVINN (Single Resolution)<a class="headerlink" href="#example-command-training-fastsurfervinn-single-resolution" title="Link to this heading">¶</a></h2>
-<p>Trains FastSurferVINN on single-resolution images in the sagittal plane by overriding the NUM_CLASSES, SIZES, PATH_HDF5_TRAIN, and PATH_HDF5_VAL options:</p>
+<p>Trains FastSurferVINN on single-resolution images in the sagittal plane by overriding the <code class="docutils literal notranslate"><span class="pre">NUM_CLASSES</span></code>, <code class="docutils literal notranslate"><span class="pre">SIZES</span></code>,
+<code class="docutils literal notranslate"><span class="pre">PATH_HDF5_TRAIN</span></code>, and <code class="docutils literal notranslate"><span class="pre">PATH_HDF5_VAL</span></code> options:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
 <span class="w">          </span>--cfg<span class="w"> </span>./config/FastSurferVINN.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>MODEL.NUM_CLASSES<span class="w"> </span><span class="m">51</span><span class="w"> </span><span class="se">\</span>

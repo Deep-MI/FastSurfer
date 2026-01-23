@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -434,42 +434,66 @@
         <article role="main" id="furo-main-content">
           <section id="singularity-support">
 <h1>Singularity Support<a class="headerlink" href="#singularity-support" title="Link to this heading">¶</a></h1>
-<p>For use on HPCs (or in other cases where Docker is not available or preferred) you can easily create a Singularity image from the Docker image.
-Singularity uses its own image format, so the Docker images must be converted (we publish our releases as docker images available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Dockerhub</a>).</p>
-<section id="singularity-with-the-official-fastsurfer-image">
-<h2>Singularity with the official FastSurfer Image<a class="headerlink" href="#singularity-with-the-official-fastsurfer-image" title="Link to this heading">¶</a></h2>
-<p>To create a Singularity image from the official FastSurfer image hosted on Dockerhub just run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span>/home/user/my_singlarity_images/fastsurfer-latest.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
+<section id="containerization">
+<h2>Containerization<a class="headerlink" href="#containerization" title="Link to this heading">¶</a></h2>
+<p>Containerization tools like Singularity, or Apptainer or Docker provide several advantages.
+Most importantly, they allow for exactly same setup across different machines and even data centers and compute clusters. They thus increase reproducibility by reducing software differences between evaluations.
+Additionally, errors and unexpected behavior is easier to track down, since the setup is significantly easier to reproduce for developers.
+Finally, containers provide a security advantage, because the access to data is restricted to explicitly shared data reducing both the risk of data theft and data encryption attacks. This is strategy also called <a class="reference external" href="https://en.wikipedia.org/wiki/Sandbox_(computer_security)">sandboxing</a>.</p>
+</section>
+<section id="using-singularity-or-apptainer">
+<h2>Using Singularity (or Apptainer)<a class="headerlink" href="#using-singularity-or-apptainer" title="Link to this heading">¶</a></h2>
+<p>In the following, we write “Singularity”, but all steps work the same with the <a class="reference external" href="https://apptainer.org">open source Apptainer</a>.</p>
+<p>To execute code in a Singularity container, users have to:</p>
+<ol class="arabic">
+<li><p><a class="reference internal" href="#downloading-the-official-fastsurfer-image-for-singularity"><span class="std std-ref">download</span></a> or <a class="reference internal" href="#creating-your-own-fastsurfer-singularity-image"><span class="std std-ref">create</span></a> a Singularity image of FastSurfer.</p></li>
+<li><p><a class="reference internal" href="#starting-fastsurfer-with-from-a-singularity-image"><span class="std std-ref">Start the Singularity container from a Singularity image</span></a> by defining options for the container. It is useful, to think of the image as a “hard drive” and the container as a “simulated computer inside the computer”.</p>
+<p>We refer to these “options for the container” in <code class="docutils literal notranslate"><span class="pre">&lt;*singularity-flags*&gt;</span></code>. They are not options to FastSurfer (referred to as <code class="docutils literal notranslate"><span class="pre">&lt;*fastsurfer-flags*&gt;</span></code>), but to the “simulated computer” and define access to data, hardware (e.g. graphics cards), etc.</p>
+</li>
+</ol>
+</section>
+<section id="downloading-the-official-fastsurfer-image-for-singularity">
+<h2>Downloading the official FastSurfer image for Singularity<a class="headerlink" href="#downloading-the-official-fastsurfer-image-for-singularity" title="Link to this heading">¶</a></h2>
+<p>Singularity uses its own image format, so we need to download and convert the official docker images available from <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Dockerhub</a>.</p>
+<p>To create an official FastSurfer Singularity image, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># singularity build &lt;filename&gt; &lt;source&gt;</span>
+singularity<span class="w"> </span>build<span class="w"> </span><span class="nv">$HOME</span>/my_singlarity_images/fastsurfer-2.5.0.sif<span class="w"> </span>docker://deepmi/fastsurfer:cuda-v2.5.0
 </pre></div>
 </div>
-<p>Singularity images are files - usually with the extension <code class="docutils literal notranslate"><span class="pre">.sif</span></code>. Here, we save the image in <code class="docutils literal notranslate"><span class="pre">/homer/user/my_singlarity_images</span></code>.
-If you want to pick a specific FastSurfer version, you can also change the tag (<code class="docutils literal notranslate"><span class="pre">latest</span></code>) in <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:latest</span></code> to any tag. For example to use the cpu image hosted on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Dockerhub</a> use the tag <code class="docutils literal notranslate"><span class="pre">cpu-latest</span></code>.</p>
+<p>Singularity images are files with extension <code class="docutils literal notranslate"><span class="pre">.sif</span></code>. Here, we save the image in <code class="docutils literal notranslate"><span class="pre">$HOME/my_singlarity_images</span></code>.
+If you want to pick a specific FastSurfer version, you can also change <code class="docutils literal notranslate"><span class="pre">cuda-v2.5.0</span></code> in the <code class="docutils literal notranslate"><span class="pre">&lt;source&gt;</span></code>. For example to use the <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cpu">cpu image</a> (<code class="docutils literal notranslate"><span class="pre">cpu-v2.5.0</span></code>) or a <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cu1">specific CUDA version</a> (check, which version is available the current FastSurfer version, for example <code class="docutils literal notranslate"><span class="pre">cu118-v2.5.0</span></code>).</p>
 </section>
-<section id="building-your-own-fastsurfer-singularity-image">
-<h2>Building your own FastSurfer Singularity Image<a class="headerlink" href="#building-your-own-fastsurfer-singularity-image" title="Link to this heading">¶</a></h2>
-<p>To build a custom FastSurfer Singularity image, the <code class="docutils literal notranslate"><span class="pre">tools/Docker/build.py</span></code> script supports a flag for direct conversion.
-Simply add <code class="docutils literal notranslate"><span class="pre">--singularity</span> <span class="pre">/home/user/my_singlarity_images/fastsurfer-myimage.sif</span></code> to the call, which first builds the image with Docker and then converts the image to Singularity.</p>
+<section id="creating-your-own-fastsurfer-singularity-image">
+<h2>Creating your own FastSurfer Singularity image<a class="headerlink" href="#creating-your-own-fastsurfer-singularity-image" title="Link to this heading">¶</a></h2>
+<p>To build a custom FastSurfer Singularity image, the <code class="docutils literal notranslate"><span class="pre">Docker/build.py</span></code> script supports a flag for direct conversion.
+Simply add <code class="docutils literal notranslate"><span class="pre">--singularity</span> <span class="pre">$HOME/my_singlarity_images/fastsurfer-myimage.sif</span></code> to the call, which first builds the image with Docker and then converts the image to Singularity.</p>
 <p>If you want to manually convert the local Docker image <code class="docutils literal notranslate"><span class="pre">fastsurfer:myimage</span></code>, run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span>/home/user/my_singlarity_images/fastsurfer-myimage.sif<span class="w"> </span>docker-daemon://fastsurfer:myimage
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span><span class="nv">$HOME</span>/my_singlarity_images/fastsurfer-myimage.sif<span class="w"> </span>docker-daemon://fastsurfer:myimage
 </pre></div>
 </div>
 <p>For more information on how to create your own Docker images, see our <a class="reference internal" href="docker.html"><span class="doc std std-ref">Docker guide</span></a>.</p>
 </section>
-<section id="fastsurfer-singularity-image-usage">
-<h2>FastSurfer Singularity Image Usage<a class="headerlink" href="#fastsurfer-singularity-image-usage" title="Link to this heading">¶</a></h2>
-<p>After building the Singularity image, you need to register at the FreeSurfer website (https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. This is not necessary if you want to run the segmentation only.</p>
+<section id="starting-fastsurfer-with-from-a-singularity-image">
+<h2>Starting FastSurfer with from a Singularity image<a class="headerlink" href="#starting-fastsurfer-with-from-a-singularity-image" title="Link to this heading">¶</a></h2>
+<p>After building the Singularity image, you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a valid license (for free) - just as when using Docker. This license needs to be passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. This is not necessary if you want to run the segmentation only.</p>
 <p>To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;*singularity-flags*&gt;</span></code> includes flags that set up the singularity container:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--nv</span></code>: enable nVidia GPUs in Singularity (otherwise FastSurfer will run on the CPU),</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-B</span> <span class="pre">&lt;path&gt;</span></code>: is used to share data between the host and Singularity (only paths listed here will be available to FastSurfer, see <a class="reference internal" href="#containerization"><span class="std std-ref">Singularity documentation</span></a> for more info).
+This should specifically include the “Subject Directory”. If two paths are given like <code class="docutils literal notranslate"><span class="pre">-B</span> <span class="pre">/my/path/host:/other</span></code>, this means <code class="docutils literal notranslate"><span class="pre">/my/path/host/somefile</span></code> will be accessible inside Singularity in directory as <code class="docutils literal notranslate"><span class="pre">/other/somefile</span></code>.</p></li>
+</ul>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>/home/user/fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license_dir:/fs<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span><span class="nv">$HOME</span>/fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                  </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--fs_license<span class="w"> </span>/fs/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--3T
+<span class="w">                 </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 <section id="singularity-flags">
@@ -477,46 +501,62 @@ Simply add <code class="docutils literal notranslate"><span class="pre">--singul
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--nv</span></code>: This flag is used to access GPU resources. It should be excluded if you intend to use the CPU version of FastSurfer</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code>: Do not transfer the environment variables from the host to the container.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see <a class="reference internal" href="#mounting-home"><span class="std std-ref">Best Practice</span></a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: This flag tells singularity to not mount the home directory or the current working directory inside the singularity image (see <a class="reference internal" href="#best-practices"><span class="std std-ref">Best Practice</span></a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-B</span></code>: These commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs).</p></li>
 </ul>
 </section>
 <section id="fastsurfer-flags">
 <h3>FastSurfer Flags<a class="headerlink" href="#fastsurfer-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above, if you want to run the full surface analysis.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data =&gt; /data)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license (needs to be shared with the container using <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (needs to be shared with the container using <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis =&gt; /output)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (needs to be shared with the container using <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> switches to the 3T atlas instead of the 1.5T atlas for Talairach registration.</p></li>
 </ul>
-<p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-B</span></code> arguments.</p>
-<p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory. So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files.</p>
+<p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory. So in this example output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>. FastSurfer may overwrite files in <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>.</p>
 </section>
 <section id="singularity-without-a-gpu">
 <h3>Singularity without a GPU<a class="headerlink" href="#singularity-without-a-gpu" title="Link to this heading">¶</a></h3>
 <p>You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image (replace # with the current version number) and excluding the <code class="docutils literal notranslate"><span class="pre">--nv</span></code> argument in your Singularity exec command as following:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/home/user/my_singlarity_images
-singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:cpu-v#.#.#
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/my_singlarity_images
+singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-cpu-2.5.0.sif<span class="w"> </span>docker://deepmi/fastsurfer:cpu-v2.5.0
 
-singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>/home/user/fastsurfer-cpu.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--fs_license<span class="w"> </span>/fs/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--3T
+singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/fastsurfer-cpu-<span class="o">{{</span><span class="w"> </span>FASTSURFER_VERSION<span class="w"> </span><span class="o">}}</span>.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                   </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
 </section>
-<section id="singularity-best-practice">
-<h2>Singularity Best Practice<a class="headerlink" href="#singularity-best-practice" title="Link to this heading">¶</a></h2>
-<section id="mounting-home">
-<h3>Mounting Home<a class="headerlink" href="#mounting-home" title="Link to this heading">¶</a></h3>
+<section id="common-problems">
+<h2>Common problems<a class="headerlink" href="#common-problems" title="Link to this heading">¶</a></h2>
+<ol class="arabic">
+<li><p>Slow processing despite GPUs, log says <code class="docutils literal notranslate"><span class="pre">UserWarning:</span> <span class="pre">CUDA</span> <span class="pre">initialization:</span> <span class="pre">The</span> <span class="pre">NVIDIA</span> <span class="pre">driver</span> <span class="pre">on</span> <span class="pre">your</span> <span class="pre">system</span> <span class="pre">is</span> <span class="pre">too</span> <span class="pre">old</span> <span class="pre">(found</span> <span class="pre">version</span> <span class="pre">...)</span></code>.</p>
+<p>Your NVIDIA drivers are too old for the CUDA version used in the image you created, try using a different image with a different cuda version, for example for <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cu11">CUDA 11</a>, or specify a different <code class="docutils literal notranslate"><span class="pre">--device</span></code> option if you built the underlying Docker image yourself.</p>
+</li>
+<li><p>When building singularity image from the docker image via <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">&lt;singularity</span> <span class="pre">file</span> <span class="pre">location&gt;</span> <span class="pre">docker-daemon://fastsurfer:myimage</span></code>, it may fail with an error message like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">INFO</span><span class="p">:</span>    <span class="n">Starting</span> <span class="n">build</span><span class="o">...</span>
+<span class="n">FATAL</span><span class="p">:</span>   <span class="n">While</span> <span class="n">performing</span> <span class="n">build</span><span class="p">:</span> <span class="n">conveyor</span> <span class="n">failed</span> <span class="n">to</span> <span class="n">get</span><span class="p">:</span> <span class="n">loading</span> <span class="n">image</span> <span class="kn">from</span><span class="w"> </span><span class="nn">docker</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Error</span> <span class="n">response</span> <span class="kn">from</span><span class="w"> </span><span class="nn">daemon</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span><span class="s2">&quot;client version 1.22 is too old. Minimum supported API version is 1.24, please upgrade your client to a newer version&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>To solve this issue, you can export the image from docker with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">save</span> <span class="pre">-o</span> <span class="pre">&lt;docker</span> <span class="pre">file</span> <span class="pre">location&gt;</span> <span class="pre">&lt;image</span> <span class="pre">tag&gt;</span></code> and then you can use singularity to build from that <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">&lt;singularity</span> <span class="pre">file</span> <span class="pre">name&gt;</span> <span class="pre">docker-archive:&lt;docker</span> <span class="pre">file</span> <span class="pre">location&gt;</span></code>.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="best-practices">
+<h2>Best Practices<a class="headerlink" href="#best-practices" title="Link to this heading">¶</a></h2>
+<section id="mounting-home-and-current-working-directory">
+<h3>Mounting Home and Current Working Directory<a class="headerlink" href="#mounting-home-and-current-working-directory" title="Link to this heading">¶</a></h3>
 <p>Do not mount the user home directory into the singularity container as the home directory.</p>
 <p>Why? If the user inside the singularity container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span> <span class="pre">...</span> <span class="pre">--version</span> <span class="pre">+pip</span></code> outputs the FastSurfer version including a full list of python packages.</p>
 <p>How? Singularity automatically mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>. Additionally setting the <code class="docutils literal notranslate"><span class="pre">-e</span></code> flag will ensure that no environment variables will be passed from the host system into the container.</p>
@@ -586,16 +626,19 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Singularity Support</a><ul>
-<li><a class="reference internal" href="#singularity-with-the-official-fastsurfer-image">Singularity with the official FastSurfer Image</a></li>
-<li><a class="reference internal" href="#building-your-own-fastsurfer-singularity-image">Building your own FastSurfer Singularity Image</a></li>
-<li><a class="reference internal" href="#fastsurfer-singularity-image-usage">FastSurfer Singularity Image Usage</a><ul>
+<li><a class="reference internal" href="#containerization">Containerization</a></li>
+<li><a class="reference internal" href="#using-singularity-or-apptainer">Using Singularity (or Apptainer)</a></li>
+<li><a class="reference internal" href="#downloading-the-official-fastsurfer-image-for-singularity">Downloading the official FastSurfer image for Singularity</a></li>
+<li><a class="reference internal" href="#creating-your-own-fastsurfer-singularity-image">Creating your own FastSurfer Singularity image</a></li>
+<li><a class="reference internal" href="#starting-fastsurfer-with-from-a-singularity-image">Starting FastSurfer with from a Singularity image</a><ul>
 <li><a class="reference internal" href="#singularity-flags">Singularity Flags</a></li>
 <li><a class="reference internal" href="#fastsurfer-flags">FastSurfer Flags</a></li>
 <li><a class="reference internal" href="#singularity-without-a-gpu">Singularity without a GPU</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#singularity-best-practice">Singularity Best Practice</a><ul>
-<li><a class="reference internal" href="#mounting-home">Mounting Home</a></li>
+<li><a class="reference internal" href="#common-problems">Common problems</a></li>
+<li><a class="reference internal" href="#best-practices">Best Practices</a><ul>
+<li><a class="reference internal" href="#mounting-home-and-current-working-directory">Mounting Home and Current Working Directory</a></li>
 </ul>
 </li>
 </ul>

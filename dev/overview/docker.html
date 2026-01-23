@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -434,25 +434,27 @@
         <article role="main" id="furo-main-content">
           <section id="docker-support">
 <h1>Docker Support<a class="headerlink" href="#docker-support" title="Link to this heading">¶</a></h1>
+<p>=========================</p>
 <section id="pull-fastsurfer-from-dockerhub">
 <h2>Pull FastSurfer from DockerHub<a class="headerlink" href="#pull-fastsurfer-from-dockerhub" title="Link to this heading">¶</a></h2>
-<p>We provide pre-built Docker images with support for nVidia GPU-acceleration and for CPU-only use on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Docker Hub</a>.
-In order to quickly get the latest Docker image, simply execute:</p>
+<p>We provide pre-built Docker images with support for nVidia GPU-acceleration and for CPU-only use on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Docker Hub</a>. In order to quickly get the latest Docker image, simply execute:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer
 </pre></div>
 </div>
 <p>This will download the newest, official FastSurfer image with support for nVidia GPUs.</p>
-<p>Image are named and tagged as follows: <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:&lt;support&gt;-&lt;version&gt;</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;support&gt;</span></code> is <code class="docutils literal notranslate"><span class="pre">gpu</span></code> for support of nVidia GPUs and <code class="docutils literal notranslate"><span class="pre">cpu</span></code> without hardware acceleration (the latter is smaller and thus faster to download).
-Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;version&gt;</span></code> can be a version string (<code class="docutils literal notranslate"><span class="pre">latest</span></code> or <code class="docutils literal notranslate"><span class="pre">v#.#.#</span></code>, where <code class="docutils literal notranslate"><span class="pre">#</span></code> are digits, for example <code class="docutils literal notranslate"><span class="pre">v2.2.2</span></code>), for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.2.2
+<p>Image are named and tagged as follows: <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:&lt;support&gt;-&lt;version&gt;</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;support&gt;</span></code> is <code class="docutils literal notranslate"><span class="pre">gpu</span></code> for support of NVIDIA GPUs and <code class="docutils literal notranslate"><span class="pre">cpu</span></code> without hardware acceleration (the latter is smaller and thus faster to download).
+Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;version&gt;</span></code> can be a version string (<code class="docutils literal notranslate"><span class="pre">latest</span></code> or <code class="docutils literal notranslate"><span class="pre">v#.#.#</span></code>, where <code class="docutils literal notranslate"><span class="pre">#</span></code> are digits, for example <code class="docutils literal notranslate"><span class="pre">v2.5.0</span></code>), for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.5.0
 </pre></div>
 </div>
+</section>
 <section id="running-the-official-docker-image">
-<h3>Running the official Docker Image<a class="headerlink" href="#running-the-official-docker-image" title="Link to this heading">¶</a></h3>
-<p>After pulling the image, you can start a FastSurfer container and process a T1-weighted image (both segmentation and surface reconstruction) with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<h2>Running the (official) Docker Image<a class="headerlink" href="#running-the-official-docker-image" title="Link to this heading">¶</a></h2>
+<p>After pulling the image, you can start a FastSurfer container and process a T1-weighted image (both segmentation and
+surface reconstruction) with the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
@@ -461,34 +463,33 @@ Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;vers
 </pre></div>
 </div>
 <section id="docker-flags">
-<h4>Docker Flags<a class="headerlink" href="#docker-flags" title="Link to this heading">¶</a></h4>
+<h3>Docker Flags<a class="headerlink" href="#docker-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--gpus</span></code>: This flag is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, <em>all</em> will use all available GPUS. To use a single one (e.g. GPU 0), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">device=0</span></code>. To use multiple specific ones (e.g. GPU 0, 1 and 3), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">&quot;device=0,1,3&quot;</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>: This commands mount your data, output and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--rm</span></code>: The flag takes care of removing the container once the analysis finished.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">-d</span></code>: This is optional. You can add this flag to run in detached mode (no screen output and you return to shell)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">$(id</span> <span class="pre">-u):$(id</span> <span class="pre">-g)</span></code>: Run the container with your account (your user-id and group-id), which are determined by <code class="docutils literal notranslate"><span class="pre">$(id</span> <span class="pre">-u)</span></code> and <code class="docutils literal notranslate"><span class="pre">$(id</span> <span class="pre">-g)</span></code>, respectively. Running the docker container as root <code class="docutils literal notranslate"><span class="pre">-u</span> <span class="pre">0:0</span></code> is strongly discouraged.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gpus</span></code>: This argument is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, <code class="docutils literal notranslate"><span class="pre">all</span></code> will make every GPU available to FastSurfer in the Docker container. To use a single one (e.g.  GPU 0), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">device=0</span></code>. To use multiple specific GPUs (e.g. GPU 0, 1 and 3), use <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">&quot;device=0,1,3&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>: This argument defines which and how data is shared between the host system and the docker container. By default, no data is shared between the host and the container. <code class="docutils literal notranslate"><span class="pre">-v</span></code> is used to explicitly share data. It follows the format <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;host</span> <span class="pre">folder&gt;:&lt;container</span> <span class="pre">folder&gt;:&lt;options&gt;</span></code>. In its simplest form, <code class="docutils literal notranslate"><span class="pre">&lt;host</span> <span class="pre">folder&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;container</span> <span class="pre">folder&gt;</span></code> are the same and folders inside the container are the same as on the host. <code class="docutils literal notranslate"><span class="pre">:&lt;options&gt;</span></code> may be left out or <code class="docutils literal notranslate"><span class="pre">:ro</span></code> to indicate that files from this folder may not be modified by the docker container (readonly). The following files need to be shared: input files, output folder (subjects directory) and FreeSurfer license.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">$(id</span> <span class="pre">-u):$(id</span> <span class="pre">-g)</span></code>: Which user the container runs as (relevant for file access, the user-id and group-id, <strong>required</strong>!). <code class="docutils literal notranslate"><span class="pre">$(id</span> <span class="pre">-u)</span></code> and <code class="docutils literal notranslate"><span class="pre">$(id</span> <span class="pre">-g)</span></code> determine the user and group, respectively. Running the docker container as root <code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">0:0</span></code> is strongly discouraged and must be combined with the FastSurfer flag <code class="docutils literal notranslate"><span class="pre">--allow_root</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rm</span></code>: The flag takes care of removing the container (cleanup of the container) once the analysis finished (optional, but recommended).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-d</span></code>: You can add this flag to run in detached mode (no screen output, and you return to shell, optional).</p></li>
 </ul>
-</section>
 <section id="advanced-docker-flags">
 <h4>Advanced Docker Flags<a class="headerlink" href="#advanced-docker-flags" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">&lt;list</span> <span class="pre">of</span> <span class="pre">groups&gt;</span></code>: If additional user groups are required to access files, additional groups may be added via <code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">&lt;group</span> <span class="pre">id&gt;[,...]</span></code> or <code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">$(id</span> <span class="pre">-G</span> <span class="pre">&lt;group</span> <span class="pre">name&gt;)</span></code>.</p></li>
 </ul>
 </section>
-<section id="fastsurfer-flags">
-<h4>FastSurfer Flags<a class="headerlink" href="#fastsurfer-flags" title="Link to this heading">¶</a></h4>
-<ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer in the <code class="docutils literal notranslate"><span class="pre">my_fs_license_dir</span></code> that was mapped above.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, with mounted name inside docker: /home/user/my_mri_data =&gt; /data)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (its mounted name inside docker: /home/user/my_fastsurfer_analysis =&gt; /output)</p></li>
-<li><p><a class="reference internal" href="FLAGS.html#fastsurfer-flags"><span class="std std-ref">more flags</span></a></p></li>
-</ul>
-<p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-v</span></code> arguments.</p>
-<p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory (specified via <code class="docutils literal notranslate"><span class="pre">--sd</span></code>). So in this example output will be written to /home/user/my_fastsurfer_analysis/subjectX/ . Make sure the output directory is empty, to avoid overwriting existing files.</p>
-<p>All other available flags are identical to the ones explained on the main page <a class="reference internal" href="../index.html"><span class="doc std std-ref">README</span></a>.</p>
 </section>
+<section id="fastsurfer-flags">
+<h3>FastSurfer Flags<a class="headerlink" href="#fastsurfer-flags" title="Link to this heading">¶</a></h3>
+<p>In principle, the same as <a class="reference internal" href="../scripts/RUN_FASTSURFER.html#required-arguments"><span class="std std-ref">basic run_fastsurfer.sh</span></a> with the
+following modifications:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> cannot be auto-detected and must be passed. Must point to your FreeSurfer license how it is
+accessible inside the container (check <code class="docutils literal notranslate"><span class="pre">-v</span></code> <a class="reference internal" href="#"><span class="doc std std-ref">above</span></a>, <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> works in concert with <code class="docutils literal notranslate"><span class="pre">-v</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code> and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are required! They work in concert with <code class="docutils literal notranslate"><span class="pre">-v</span></code> <a class="reference internal" href="#"><span class="doc std std-ref">above</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder), same as in <a class="reference internal" href="../scripts/RUN_FASTSURFER.html"><span class="std std-doc">basic run_fastsurfer.sh</span></a>.</p></li>
+</ul>
+<p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory (specified via <code class="docutils literal notranslate"><span class="pre">--sd</span></code>). So in this example output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>. Make sure the output directory is empty, to avoid overwriting existing files.</p>
+<p>All other available flags are identical to the ones explained on the main page <a class="reference internal" href="../index.html"><span class="doc std std-ref">README</span></a>.</p>
 </section>
 <section id="docker-best-practice">
 <h3>Docker Best Practice<a class="headerlink" href="#docker-best-practice" title="Link to this heading">¶</a></h3>
@@ -519,7 +520,7 @@ Similarly, <code class="docutils literal notranslate"><span class="pre">&lt;vers
 <h3>General build settings<a class="headerlink" href="#general-build-settings" title="Link to this heading">¶</a></h3>
 <p>The build script <code class="docutils literal notranslate"><span class="pre">build.py</span></code> supports additional args, targets and options, see <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">--help</span></code>.</p>
 <p>Note, that the build script’s main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
-In general, if you specify <code class="docutils literal notranslate"><span class="pre">--dry_run</span></code> the command will not be executed but sent to stdout, so you can run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">build.py</span> <span class="pre">--device</span> <span class="pre">cuda</span> <span class="pre">--dry_run</span> <span class="pre">|</span> <span class="pre">bash</span></code> as well. Note, that build.py uses some dependencies from FastSurfer, so you will need to set the PYTHONPATH environment variable to the FastSurfer root (include of <code class="docutils literal notranslate"><span class="pre">FastSurferCNN</span></code> must be possible) and we only support Python 3.10.</p>
+In general, if you specify <code class="docutils literal notranslate"><span class="pre">--dry_run</span></code> the command will not be executed but sent to stdout, so you can run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">build.py</span> <span class="pre">--device</span> <span class="pre">cuda</span> <span class="pre">--dry_run</span> <span class="pre">|</span> <span class="pre">bash</span></code> as well.</p>
 <p>By default, the build script will tag your image as <code class="docutils literal notranslate"><span class="pre">&quot;fastsurfer:[{device}-]{version_tag}&quot;</span></code>, where <code class="docutils literal notranslate"><span class="pre">{version_tag}</span></code> is <code class="docutils literal notranslate"><span class="pre">{version-identifer</span> <span class="pre">from</span> <span class="pre">pyproject.toml}_{current</span> <span class="pre">git-hash}</span></code> and <code class="docutils literal notranslate"><span class="pre">{device}</span></code> is the value to <code class="docutils literal notranslate"><span class="pre">--device</span></code> (omitted for <code class="docutils literal notranslate"><span class="pre">cuda</span></code>), but a custom tag can be specified by <code class="docutils literal notranslate"><span class="pre">--tag</span> <span class="pre">{tag_name}</span></code>.</p>
 <section id="buildkit">
 <h4>BuildKit<a class="headerlink" href="#buildkit" title="Link to this heading">¶</a></h4>
@@ -529,69 +530,78 @@ In general, if you specify <code class="docutils literal notranslate"><span clas
 <section id="example-1-build-gpu-fastsurfer-image">
 <h3>Example 1: Build GPU FastSurfer Image<a class="headerlink" href="#example-1-build-gpu-fastsurfer-image" title="Link to this heading">¶</a></h3>
 <p>In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command after traversing into the <em>Docker</em> directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PYTHONPATH</span><span class="o">=</span>&lt;FastSurferRoot&gt;
-python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>cuda<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cuda
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cuda<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cuda
 </pre></div>
 </div>
 <p>The build script allows more specific options, that specify different CUDA options as well (see <code class="docutils literal notranslate"><span class="pre">build.py</span> <span class="pre">--help</span></code>).</p>
 <p>For running the analysis, the command is the same as above for the prebuild option:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:cuda<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:cuda<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
 </pre></div>
 </div>
 </section>
 <section id="example-2-build-cpu-fastsurfer-image">
 <h3>Example 2: Build CPU FastSurfer Image<a class="headerlink" href="#example-2-build-cpu-fastsurfer-image" title="Link to this heading">¶</a></h3>
 <p>In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu
 </pre></div>
 </div>
 <p>As you can see, only the <code class="docutils literal notranslate"><span class="pre">--device</span></code> to the build command is changed from <code class="docutils literal notranslate"><span class="pre">cuda</span></code> to <code class="docutils literal notranslate"><span class="pre">cpu</span></code>.</p>
-<p>For running the analysis, the command is basically the same as above, except for removing the <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> GPU option:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<p>To run the analysis, the command is basically the same as above, except for removing the <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> GPU option:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:cpu<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/t1-weighed.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
+<span class="w">               </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--device<span class="w"> </span>cpu<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--threads<span class="w"> </span><span class="m">16</span><span class="w"> </span>--3T
 </pre></div>
 </div>
 <p>FastSurfer will automatically detect, that no GPU is available and use the CPU.</p>
 </section>
 <section id="example-3-experimental-build-for-amd-gpus">
 <h3>Example 3: Experimental Build for AMD GPUs<a class="headerlink" href="#example-3-experimental-build-for-amd-gpus" title="Link to this heading">¶</a></h3>
-<p>Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into
-your host machine kernel (<code class="docutils literal notranslate"><span class="pre">amdgpu-install</span> <span class="pre">--usecase=dkms</span></code>) for the amd docker to work. For this follow:
-https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
+<p>Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into your host machine kernel (<code class="docutils literal notranslate"><span class="pre">amdgpu-install</span> <span class="pre">--usecase=dkms</span></code>) for the amd docker to work. For this follow: https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
 </pre></div>
 </div>
 <p>and run segmentation only:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--security-opt<span class="w"> </span><span class="nv">seccomp</span><span class="o">=</span>unconfined<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--device<span class="o">=</span>/dev/kfd<span class="w"> </span>--device<span class="o">=</span>/dev/dri<span class="w"> </span>--group-add<span class="w"> </span>video<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
+<span class="w">               </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--parallel<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span><span class="c1"># alternatively: --device cuda is also possible (or --device cuda:0 to specify the GPU</span>
 </pre></div>
 </div>
 <p>In conflict with the official ROCm documentation (above), we also needed to add the group render <code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">render</span></code> (in addition to <code class="docutils literal notranslate"><span class="pre">--group-add</span> <span class="pre">video</span></code>).</p>
 <p>Note, we tested on an AMD Radeon Pro W6600, which is <a class="reference external" href="https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus">not officially supported</a>, but setting <code class="docutils literal notranslate"><span class="pre">HSA_OVERRIDE_GFX_VERSION=10.3.0</span></code> <a class="reference external" href="https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm">inside docker did the trick</a>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--security-opt<span class="w"> </span><span class="nv">seccomp</span><span class="o">=</span>unconfined<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--device<span class="o">=</span>/dev/kfd<span class="w"> </span>--device<span class="o">=</span>/dev/dri<span class="w"> </span>--group-add<span class="w"> </span>video<span class="w"> </span>--group-add<span class="w"> </span>render<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-e<span class="w"> </span><span class="nv">HSA_OVERRIDE_GFX_VERSION</span><span class="o">=</span><span class="m">10</span>.3.0<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
+<span class="w">           </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span>--parallel<span class="w"> </span><span class="se">\</span>
+<span class="w">               </span><span class="c1"># alternatively: --device cuda is also possible (or --device cuda:0 to specify the GPU</span>
 </pre></div>
 </div>
 </section>
@@ -638,7 +648,7 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <section id="setting-the-ssl-verify-parameter-of-mamba">
 <h2>Setting the ssl_verify parameter of mamba<a class="headerlink" href="#setting-the-ssl-verify-parameter-of-mamba" title="Link to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">build.py</span></code> script supports the <code class="docutils literal notranslate"><span class="pre">--ssl_verify</span></code> flag, which can be passed <code class="docutils literal notranslate"><span class="pre">&quot;False&quot;</span></code> or the path to an alternative root certificate.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu<span class="w"> </span>--ssl_verify<span class="w"> </span>/path/to/custom-cert.srt
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu<span class="w"> </span>--ssl_verify<span class="w"> </span>/path/to/custom-cert.srt
 </pre></div>
 </div>
 </section>
@@ -649,7 +659,7 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <span class="nv">build_dir</span><span class="o">=</span><span class="nv">$HOME</span>/FastSurfer-build
 <span class="nv">img</span><span class="o">=</span>deepmi/fastsurfer
 <span class="c1"># the version can be identified with: $build_dir/run_fastsurfer.sh --version</span>
-<span class="nv">version</span><span class="o">=</span><span class="m">2</span>.4.3
+<span class="nv">version</span><span class="o">=</span><span class="m">2</span>.5.0
 <span class="c1"># the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device</span>
 <span class="nv">cuda</span><span class="o">=</span><span class="m">126</span>
 <span class="nv">cudas</span><span class="o">=(</span><span class="s2">&quot;cuda118&quot;</span><span class="w"> </span><span class="s2">&quot;cuda124&quot;</span><span class="w"> </span><span class="s2">&quot;cuda</span><span class="nv">$cuda</span><span class="s2">&quot;</span><span class="o">)</span>
@@ -740,13 +750,13 @@ docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Docker Support</a><ul>
-<li><a class="reference internal" href="#pull-fastsurfer-from-dockerhub">Pull FastSurfer from DockerHub</a><ul>
-<li><a class="reference internal" href="#running-the-official-docker-image">Running the official Docker Image</a><ul>
-<li><a class="reference internal" href="#docker-flags">Docker Flags</a></li>
+<li><a class="reference internal" href="#pull-fastsurfer-from-dockerhub">Pull FastSurfer from DockerHub</a></li>
+<li><a class="reference internal" href="#running-the-official-docker-image">Running the (official) Docker Image</a><ul>
+<li><a class="reference internal" href="#docker-flags">Docker Flags</a><ul>
 <li><a class="reference internal" href="#advanced-docker-flags">Advanced Docker Flags</a></li>
-<li><a class="reference internal" href="#fastsurfer-flags">FastSurfer Flags</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#fastsurfer-flags">FastSurfer Flags</a></li>
 <li><a class="reference internal" href="#docker-best-practice">Docker Best Practice</a></li>
 </ul>
 </li>

@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -442,14 +442,15 @@ This CI/CD expands on github workflows executing them locally. They require a lo
 <section id="pre-commit-hook">
 <h2>Pre-commit Hook<a class="headerlink" href="#pre-commit-hook" title="Link to this heading">¶</a></h2>
 <p>The pre-commit hook script will:</p>
-<ol class="arabic simple">
+<ol class="arabic">
 <li><p>Check for trailing white spaces in files</p></li>
 <li><p>Run ruff to verify python code formatting is valid</p></li>
 <li><p>Run codespell to check the spelling</p></li>
-<li><p>Run sphinx-build to rebuild the documentation into <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc-build</span></code>
-Here, one important caveat for documentation editors is that sphinx-build may fail if the documentation file
+<li><p>Run sphinx-build to rebuild the documentation into <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc-build</span></code>.</p>
+<p>Here, one important caveat for documentation editors is that sphinx-build may fail if the documentation file
 structure is changed, without first cleaning the autosummary/autodoc-generated files. To do this, delete the following
-directory <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc/api/generated</span></code>.</p></li>
+directory <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc/api/generated</span></code>.</p>
+</li>
 </ol>
 <section id="installation">
 <h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>

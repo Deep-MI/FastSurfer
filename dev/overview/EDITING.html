@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -435,20 +435,15 @@
           <section id="manual-edits">
 <h1>Manual Edits<a class="headerlink" href="#manual-edits" title="Link to this heading">¶</a></h1>
 <p>We have noticed that FastSurfer segmentations and surface results are very robust and rarely require any manual edits.
-However, for your convenience, we allow manual edits in various stages of the FastSurfer pipeline to fix errors or inaccuracies in FastSurfer results.
-These editing options include approaches that are inherited from FreeSurfer as well as some FastSurfer-specific editing options.</p>
-<p>The provided editing options may be changed or extended in the future, also depending on requests from the community.
-Furthermore, we invite users to <a class="reference internal" href="../developer/contributing.html"><span class="doc std std-ref">contribute</span></a> such changes and/or datasets of paired MRI images and edited files to improve FastSurfer’s neural networks.</p>
+However, for your convenience, we allow manual edits in various stages of the FastSurfer pipeline to fix errors or inaccuracies in FastSurfer results. These editing options include approaches that are inherited from FreeSurfer as well as some FastSurfer-specific editing options.</p>
+<p>The provided editing options may be changed or extended in the future, also depending on requests from the community. Furthermore, we invite users to <a class="reference internal" href="../developer/contributing.html"><span class="doc std std-ref">contribute</span></a> such changes and/or datasets of paired MRI images and edited files to improve FastSurfer’s neural networks.</p>
 <section id="what-are-edits">
 <h2>What are Edits?<a class="headerlink" href="#what-are-edits" title="Link to this heading">¶</a></h2>
-<p>Edits are manual interventions into the pipeline that change intermediate results.
-By “editing” intermediate results, later steps operate on updated information.
-While rarely necessary, some errors of the pipeline (see below) can be addressed and the quality of results can be improved.</p>
+<p>Edits are manual interventions into the pipeline that change intermediate results. By “editing” intermediate results, later steps operate on updated information. While rarely necessary, some errors of the pipeline (see below) can be addressed and the quality of results can be improved.</p>
 </section>
 <section id="what-can-be-edited">
 <h2>What can be edited?<a class="headerlink" href="#what-can-be-edited" title="Link to this heading">¶</a></h2>
-<p>Edits primarily affect FastSurfer’s surface pipeline but some edits exist also during the segmentation steps.
-To understand how edits affect different results and how to perform them, it is important to understand the order of processing steps in FastSurfer.</p>
+<p>Edits primarily affect FastSurfer’s surface pipeline but some edits exist also during the segmentation steps. To understand how edits affect different results and how to perform them, it is important to understand the order of processing steps in FastSurfer.</p>
 </section>
 <section id="pipeline-overview">
 <h2>Pipeline overview<a class="headerlink" href="#pipeline-overview" title="Link to this heading">¶</a></h2>
@@ -457,8 +452,8 @@ To understand how edits affect different results and how to perform them, it is 
 <ol class="arabic simple">
 <li><p>The <strong>asegdkt module</strong>:</p>
 <ul class="simple">
-<li><p>as the primary output: the whole brain segmentation (default name: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>)</p></li>
-<li><p>as secondary outputs from the whole brain segmentation:</p>
+<li><p>with its primary output, the whole brain segmentation (default filename and path: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>)</p></li>
+<li><p>with its secondary outputs from the whole brain segmentation:</p>
 <ul>
 <li><p>the aseg without CC segmentation (<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aseg.auto_noCCseg.mgz</span></code>) and</p></li>
 <li><p>the brainmask (<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/mask.mgz</span></code>).</p></li>
@@ -492,14 +487,12 @@ To understand how edits affect different results and how to perform them, it is 
 <li><p><a class="reference internal" href="#white-matter-segmentation"><span class="std std-ref">White matter segmentation</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/wm.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/filled.mgz</span></code></p></li>
 <li><p><a class="reference internal" href="#pial-surface-placement"><span class="std std-ref">Pial placement</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.mgz</span></code> via <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.manedit.mgz</span></code></p></li>
 </ol>
-<p>Note, as FastSurfer’s surface pipeline is derived from FreeSurfer, some edit options and corresponding naming schemes are inherited from FreeSurfer.</p>
+<p>Note, as FastSurfer’s surface pipeline is derived from FreeSurfer, some editing options and corresponding naming schemes
+are inherited from FreeSurfer.</p>
 </section>
 <section id="general-process">
 <h2>General process<a class="headerlink" href="#general-process" title="Link to this heading">¶</a></h2>
-<p>Most editing options require that you have processed the case and you are able to access and modify the files in that image’s directory, i.e. <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;</span></code>.
-Based on a quality inspection of results, segmentations and surfaces, one of the edits (see above) is chosen and performed.
-Then, the case is re-processed using the <code class="docutils literal notranslate"><span class="pre">--edits</span></code> flag, i.e. <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> is re-run (same FastSurfer command and FastSurfer version as before, but add <code class="docutils literal notranslate"><span class="pre">--edits</span></code>).
-Finally, you would check in another quality inspection, if the quality issues are resolved.</p>
+<p>Most editing options require that you have processed the case and you are able to access and modify the files in that image’s directory, i.e. <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;</span></code>. Based on a quality inspection of results, segmentations and surfaces, one of the edits (see above) is chosen and performed. Then, the case is re-processed using the <code class="docutils literal notranslate"><span class="pre">--edits</span></code> flag, i.e. <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> is re-run (same FastSurfer command and FastSurfer version as before, but add <code class="docutils literal notranslate"><span class="pre">--edits</span></code>). Finally, you would check in another quality inspection, if the quality issues are resolved.</p>
 <p>For example (including the setup for native processing, see <a class="reference internal" href="EXAMPLES.html"><span class="std std-doc">Examples</span></a> for other processing options):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span>/path/to/fastsurfer
@@ -507,7 +500,7 @@ Finally, you would check in another quality inspection, if the quality issues ar
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
 
 <span class="c1"># Define data directory</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/home/user/my_fastsurfer_analysis
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
@@ -517,8 +510,7 @@ Finally, you would check in another quality inspection, if the quality issues ar
 <span class="w">    </span>--edits<span class="w"> </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
 </pre></div>
 </div>
-<p>Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the <a class="reference internal" href="#asegdkt-segfile"><span class="std std-ref">asegdkt_segfile</span></a> was edited.
-Therefore, in most cases, we can skip the segmentation step with</p>
+<p>Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the <a class="reference internal" href="#asegdkt-segfile"><span class="std std-ref">asegdkt_segfile</span></a> was edited. Therefore, in most cases, we can skip the segmentation step with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
 
 <span class="c1"># Run FastSurfer</span>
@@ -535,17 +527,14 @@ Therefore, in most cases, we can skip the segmentation step with</p>
 <p>This edit is “outside” of the FastSurfer pipeline and not really an edit.</p>
 <section id="when-to-use">
 <h3>When to use<a class="headerlink" href="#when-to-use" title="Link to this heading">¶</a></h3>
-<p>The <em>asegdkt module</em> failed or produced unreliable segmentation maps, especially if bias fields are very strong as for example for 7T images.
-This can be detected by inspecting <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aseg.auto_noCCseg.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/mask.mgz</span></code>.</p>
+<p>The <em>asegdkt module</em> failed or produced unreliable segmentation maps, especially if bias fields are very strong as for example for 7T images. This can be detected by inspecting <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aseg.auto_noCCseg.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/mask.mgz</span></code>.</p>
 </section>
 <section id="what-to-do">
 <h3>What to do<a class="headerlink" href="#what-to-do" title="Link to this heading">¶</a></h3>
-<p>Perform bias field correction prior to segmentation (FastSurfer) and provide the bias corrected image as input. Sometimes, even FastSurfer’s own bias field correction can help, which can be found in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/orig_nu.mgz</span></code>.
-Alternatively, external bias field correction tools may help (e.g. <em>bias_correct</em> from SPM).
-Run FastSurfer as a new run on this new input file.</p>
+<p>Perform bias field correction prior to segmentation (FastSurfer) and provide the bias corrected image as input. Sometimes, even FastSurfer’s own bias field correction can help, which can be found in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/orig_nu.mgz</span></code>. Alternatively, external bias field correction tools may help (e.g. <em>bias_correct</em> from SPM). Run FastSurfer as a new run on this new input file.</p>
 <p>For example:</p>
-<ul>
-<li><p>Step 1: Run FastSurfer to obtain a bias field corrected image (not needed if you already processed with FastSurfer a first time):</p>
+<ol class="arabic">
+<li><p>Run FastSurfer to obtain a bias field corrected image (not needed if you already processed with FastSurfer a first time):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
 
 <span class="c1"># Run FastSurfer</span>
@@ -556,7 +545,7 @@ Run FastSurfer as a new run on this new input file.</p>
 </pre></div>
 </div>
 </li>
-<li><p>Step 2: Run FastSurfer again, but this time input the bias field corrected image (i.e. <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>) instead of original input image. The file <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code> can be found in the output directory under the <em>mri</em> subfolder. The output produced from the second iteration should be saved in a different output directory for comparative analysis with the output produced in first iteration.</p>
+<li><p>Run FastSurfer again, but this time input the bias field corrected image (i.e. <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>) instead of original input image. The file <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code> can be found in the output directory under the <em>mri</em> subfolder. The output produced from the second iteration should be saved in a different output directory for comparative analysis with the output produced in first iteration.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
 
 <span class="c1"># Run FastSurfer</span>
@@ -567,12 +556,15 @@ Run FastSurfer as a new run on this new input file.</p>
 </pre></div>
 </div>
 </li>
-<li><p>Step 3: Compare and check if bias field correction fixed the issues:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>freeview<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz
+<li><p>Compare and check if bias field correction fixed the issues:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>freeview<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz
 </pre></div>
 </div>
 </li>
-</ul>
+</ol>
 </section>
 </section>
 <section id="asegdkt-segfile">
@@ -580,7 +572,7 @@ Run FastSurfer as a new run on this new input file.</p>
 <section id="id1">
 <h3>When to use<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <p>(Minor) Segmentation errors such as over- and under-segmentation, of the gray and white matter, but also subcortical structures.
-In particular, over- and under-segmentation of the brainmask, gray matter over segmentation into the dura, white matter undersegmentation in the cortex (causing missed gyri or cortical thickness overestimation).
+In particular, over- and under-segmentation of the brainmask, gray matter over segmentation into the dura, white matter under-segmentation in the cortex (causing missed gyri or cortical thickness overestimation).
 In specific, such errors are inspected in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aseg.auto_noCCseg.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/mask.mgz</span></code>.</p>
 </section>
 <section id="id2">

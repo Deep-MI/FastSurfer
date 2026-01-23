@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -434,6 +434,9 @@
         <article role="main" id="furo-main-content">
           <section id="fastsurfer-license">
 <h1>FastSurfer License<a class="headerlink" href="#fastsurfer-license" title="Link to this heading">¶</a></h1>
+<p>FastSurfer is licensed under the Apache license (see below).
+FastSurfer uses (and the docker image is distributed with) FreeSurfer, which is licensed under the <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/License">FreeSurfer License</a>. Users need a license key for FreeSurfer, which can be obtained for free on the <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">FreeSurfer website</a>.
+FastSurfer uses several python packages. Please refer to these packages for their respective licenses.</p>
 <section id="apache-license">
 <h2>Apache License<a class="headerlink" href="#apache-license" title="Link to this heading">¶</a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                                 <span class="n">Apache</span> <span class="n">License</span>
@@ -613,6 +616,34 @@
 </pre></div>
 </div>
 </section>
+<section id="other-packages-and-tools-distributed-or-used-with-fastsurfer">
+<h2>Other Packages and Tools distributed or used with FastSurfer<a class="headerlink" href="#other-packages-and-tools-distributed-or-used-with-fastsurfer" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>[FreeSurfer](<a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/">https://surfer.nmr.mgh.harvard.edu/</a>)</p></li>
+<li><p>[h5py](<a class="reference external" href="https://www.h5py.org">https://www.h5py.org</a>)</p></li>
+<li><p>[Jinja2](<a class="reference external" href="https://jinja.palletsprojects.com/en/stable/">https://jinja.palletsprojects.com/en/stable/</a>)</p></li>
+<li><p>[lapy](<a class="reference external" href="https://deep-mi.org/LaPy">https://deep-mi.org/LaPy</a>)</p></li>
+<li><p>[matplotlib](<a class="reference external" href="https://matplotlib.org/">https://matplotlib.org/</a>)</p></li>
+<li><p>[nibabel](<a class="reference external" href="https://nipy.org/nibabel/">https://nipy.org/nibabel/</a>)</p></li>
+<li><p>[numpy](<a class="reference external" href="https://numpy.org/">https://numpy.org/</a>)</p></li>
+<li><p>[pandas](<a class="reference external" href="https://pandas.pydata.org/">https://pandas.pydata.org/</a>)</p></li>
+<li><p>[pillow](<a class="reference external" href="https://python-pillow.github.io/">https://python-pillow.github.io/</a>)</p></li>
+<li><p>[plotly](<a class="reference external" href="https://plotly.com/python/">https://plotly.com/python/</a>)</p></li>
+<li><p>[PyYAML](<a class="reference external" href="https://pyyaml.org/">https://pyyaml.org/</a>)</p></li>
+<li><p>[requests](<a class="reference external" href="https://requests.readthedocs.io/en/latest/">https://requests.readthedocs.io/en/latest/</a>)</p></li>
+<li><p>[scikit-image](<a class="reference external" href="https://scikit-image.org">https://scikit-image.org</a>)</p></li>
+<li><p>[scikit-learn](<a class="reference external" href="https://scikit-learn.org">https://scikit-learn.org</a>)</p></li>
+<li><p>[scikit-sparse](<a class="reference external" href="https://github.com/scikit-sparse/scikit-sparse">https://github.com/scikit-sparse/scikit-sparse</a>)</p></li>
+<li><p>[scipy](<a class="reference external" href="https://scipy.org">https://scipy.org</a>)</p></li>
+<li><p>[SimpleITK](<a class="reference external" href="https://simpleitk.org/">https://simpleitk.org/</a>)</p></li>
+<li><p>[tensorboard](<a class="reference external" href="https://www.tensorflow.org/tensorboard">https://www.tensorflow.org/tensorboard</a>)</p></li>
+<li><p>[torch](<a class="reference external" href="https://pytorch.org">https://pytorch.org</a>)</p></li>
+<li><p>[torchio](<a class="reference external" href="https://torchio.org">https://torchio.org</a>)</p></li>
+<li><p>[torchvision](<a class="reference external" href="https://pytorch.org/vision">https://pytorch.org/vision</a>)</p></li>
+<li><p>[tqdm](<a class="reference external" href="https://tqdm.github.io/">https://tqdm.github.io/</a>)</p></li>
+<li><p>[yacs](<a class="reference external" href="https://github.com/rbgirshick/yacs">https://github.com/rbgirshick/yacs</a>)</p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -678,6 +709,7 @@
             <ul>
 <li><a class="reference internal" href="#">FastSurfer License</a><ul>
 <li><a class="reference internal" href="#apache-license">Apache License</a></li>
+<li><a class="reference internal" href="#other-packages-and-tools-distributed-or-used-with-fastsurfer">Other Packages and Tools distributed or used with FastSurfer</a></li>
 </ul>
 </li>
 </ul>

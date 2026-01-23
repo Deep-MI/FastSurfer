@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -436,7 +436,7 @@
 <h1>Longitudinal Processing<a class="headerlink" href="#longitudinal-processing" title="Link to this heading">¶</a></h1>
 <p>FastSurfer has a dedicated pipeline to quantify longitudinal changes in T1-weighted MRI. FastSurfer’s longitudinal pipeline outperforms independent (cross-sectional) processing of individual MRIs across time in both FastSurfer and FreeSurfer, as well as even the longitudinal pipeline in FreeSurfer.</p>
 <section id="what-is-longitudinal-processing">
-<h2>What is Longitudinal Processing<a class="headerlink" href="#what-is-longitudinal-processing" title="Link to this heading">¶</a></h2>
+<h2>What is Longitudinal Processing?<a class="headerlink" href="#what-is-longitudinal-processing" title="Link to this heading">¶</a></h2>
 <p>In longitudinal studies, MRIs of the same participant are acquired at different time points. Usually, the goal is to quantify potentially subtle anatomical changes representing early disease effects or effects of disease-modifying therapies or drug studies. In these situations, we know that most of the anatomy will be very similar, as compared to cross-sectional differences between participants. Longitudinal processing, as opposed to independent processing of each MRI, tries to make use of the joint information to reduce variance across time, leading to more sensitive estimates of longitudinal changes. This methodological approach leads to increased statistical power to detect subtle changes and, therefore, permits either finding smaller effects or reducing the number of participants needed to detect such an effect - saving time and money. Our paper for the FreeSurfer longitudinal stream (Reuter et al. <a class="reference external" href="https://doi.org/10.1016/j.neuroimage.2012.02.084">2012</a>) nicely highlights these advantages, such as increased reliability and sensitivity, and describes the general idea.</p>
 <p>Generally, the idea is to:</p>
 <ul class="simple">
@@ -462,7 +462,7 @@
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
 
 <span class="c1"># Define data directory</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/home/user/my_fastsurfer_analysis
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer longitudinally</span>
 <span class="nv">$FASTSURFER_HOME</span>/long_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
@@ -476,24 +476,24 @@
 <p>The above command will, of course, be slightly different when using your preferred installation in Singularity or Docker. For example, for Singularity:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>cwd,home<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/long_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--tid<span class="w"> </span>&lt;templateID&gt;<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--t1s<span class="w"> </span>/data/&lt;T1_1&gt;<span class="w"> </span>/data/&lt;T1_2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--t1s<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/&lt;T1_1&gt;<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/&lt;T1_2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--tpids<span class="w"> </span>&lt;tID1&gt;<span class="w"> </span>&lt;tID2&gt;<span class="w"> </span>...<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--3T
 </pre></div>
 </div>
 <p>For Docker, this is very similar, but we need to specify the entrypoint explicitly:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span>--user<span class="w">  </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--entrypoint<span class="w"> </span><span class="s2">&quot;/fastsurfer/long_fastsurfer.sh&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
@@ -542,7 +542,7 @@
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
 
 <span class="c1"># Define data directory</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/home/user/my_fastsurfer_analysis
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run long_compat_segmentHA.py script to create missing files and sym-links</span>
 python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/recon_surf/long_compat_segmentHA.py<span class="w"> </span><span class="se">\</span>
@@ -646,7 +646,7 @@ Neuroimage 66, 249-260
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Longitudinal Processing</a><ul>
-<li><a class="reference internal" href="#what-is-longitudinal-processing">What is Longitudinal Processing</a></li>
+<li><a class="reference internal" href="#what-is-longitudinal-processing">What is Longitudinal Processing?</a></li>
 <li><a class="reference internal" href="#how-to-run-your-data">How to Run Your Data</a></li>
 <li><a class="reference internal" href="#single-time-point-cases">Single Time Point Cases</a></li>
 <li><a class="reference internal" href="#behind-the-scenes">Behind the Scenes</a></li>

@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -438,19 +438,25 @@
 <p class="admonition-title">Note</p>
 <p>We recommend running the segmentation with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interface!</p>
 </div>
-<p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python libraries used within the code can be found in <strong>requirements.txt</strong>. The main script is called <strong>run_prediction.py</strong> within which certain options can be selected and set via the command line:</p>
+<p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python
+libraries used within the code can be found in <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>. The main script is called <code class="docutils literal notranslate"><span class="pre">run_prediction.py</span></code> within
+which certain options can be selected and set via the command line:</p>
 <section id="general">
 <h2>General<a class="headerlink" href="#general" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g /your/path/to/ADNI/fs60) or</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g <code class="docutils literal notranslate"><span class="pre">/your/path/to/ADNI/fs60</span></code>) or</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--csv_file</span></code>: Path to csv-file listing input volume directories</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: name of the T1-weighted MRI_volume (like mri_volume.mgz, <strong>default: orig.mgz</strong>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and the result is saved under the given name, <strong>default: orig.mgz</strong>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: name of the T1-weighted MRI_volume (like <code class="docutils literal notranslate"><span class="pre">mri_volume.mgz</span></code>, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and
+the result is saved under the given name, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--t</span></code>: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*…)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Path to output directory (where should predictions be saved). Will be created if it does not already exist.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved in the same directory as the predictions.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--strip</span></code>: strip suffix from path definition of input file to yield correct subject name. (Optional, if full path is defined for <code class="docutils literal notranslate"><span class="pre">--t1</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--lut</span></code>: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default: ./config/FastSurfer_ColorLUT.tsv</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved
+in the same directory as the predictions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--strip</span></code>: strip suffix from path definition of input file to yield correct subject name (optional, if full path is
+defined for <code class="docutils literal notranslate"><span class="pre">--t1</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--lut</span></code>: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default:
+<code class="docutils literal notranslate"><span class="pre">./config/FastSurfer_ColorLUT.tsv</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--seg</span></code>: Name of intermediate DL-based segmentation file (similar to aparc+aseg).</p></li>
 </ul>
 </section>
@@ -469,7 +475,8 @@
 <h2>Optional commands<a class="headerlink" href="#optional-commands" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--clean</span></code>: clean up segmentation after running it (optional)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;str&gt;</span></code>:Device for processing (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>), where cuda means Nvidia GPU; you can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;str&gt;</span></code>:Device for processing (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>), where cuda means Nvidia GPU; you
+can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;str&gt;</span></code>: Define where the view aggregation should be run on.
 Can be <em>auto</em> or a device (see –device).
 By default (<em>auto</em>), the program checks if you have enough memory to run the view aggregation on the gpu.
@@ -481,7 +488,8 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
 </section>
 <section id="example-command-evaluation-single-subject">
 <h2>Example Command: Evaluation Single Subject<a class="headerlink" href="#example-command-evaluation-single-subject" title="Link to this heading">¶</a></h2>
-<p>To run the network on MRI-volumes of subjectX in ./data (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g. ./data/subjectX/t1-weighted.nii.gz), change into the <em>FastSurferCNN</em> directory and run the following commands:</p>
+<p>To run the network on MRI-volumes of subjectX in <code class="docutils literal notranslate"><span class="pre">./data</span></code> (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g.
+<code class="docutils literal notranslate"><span class="pre">./data/subjectX/t1-weighted.nii.gz</span></code>), change into the <em>FastSurferCNN</em> directory and run the following commands:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
 <span class="w">          </span>--t1<span class="w"> </span>../data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>

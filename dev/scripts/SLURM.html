@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">SLURM: srun_fastsurfer.sh</a></li>
@@ -579,21 +579,31 @@ folder as this script) in addition to the fastsurfer singularity image.
 1750815_2<span class="w">           </span>FastSurfer-Surf-kuegRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
 </pre></div>
 </div>
-<p>Here, jobs are not finished yet. The FastSurfer-Cleanup-$USER Job moves data to the subject directory (–sd).</p>
+<p>Here, jobs are not finished yet. The FastSurfer-Cleanup-$USER Job moves data to the subject directory (<code class="docutils literal notranslate"><span class="pre">--sd</span></code>).</p>
 </li>
-<li><p>Check whether there are subject folders and log files in the subject directory, <subject directory>/slurm/logs for the latter.</p></li>
-<li><p>Check the subject_success file in <subject directory>/slurm/scripts. It should have a line for each subject for both parts of the FastSurfer pipeline, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--seg_only</span> <span class="pre">successfully</span></code> or <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--surf_only</span> <span class="pre">successfully</span></code>! If one of these is missing, the job was likely killed by slurm (e.g. because of the time or the memory limit).</p></li>
-<li><p>For subjects that were unsuccessful (The subject_success will say so), check <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/deep-seg.log</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/recon-surf.log</span></code> to see what failed.
-Can be found by looking for “<subject id>: Failed &lt;–seg_only/–surf_only&gt; with exit code <return code>” in <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/slurm/scripts/subject_success</span></code>.</p></li>
-<li><p>For subjects that were terminated (missing in subject_success), find which job is associated with subject id <code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">&quot;&lt;subject</span> <span class="pre">id&gt;&quot;</span> <span class="pre">slurm/logs/surf_*.log</span></code>, then look at the end of the job and the job step logs (surf_XXX_YY.log and surf_XXX_YY_ZZ.log). If slurm terminated the job, it will say so there. You can increase the time and memory budget in <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> with <code class="docutils literal notranslate"><span class="pre">--time</span></code> and <code class="docutils literal notranslate"><span class="pre">--mem</span></code> flags.
-The following bash code snippet can help identify failed runs.</p>
+<li><p>Check whether there are subject folders and log files in the subject directory, <subject directory>/slurm/logs for
+the latter.</p></li>
+<li><p>Check the subject_success file in <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/slurm/scripts</span></code>. It should have a line for each subject for
+both parts of the FastSurfer pipeline, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--seg_only</span> <span class="pre">successfully</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--surf_only</span> <span class="pre">successfully</span></code>! If one of these is missing, the job was likely killed by slurm
+(e.g. because of the time or the memory limit).</p></li>
+<li><p>For subjects that were unsuccessful (The subject_success will say so), check
+<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/deep-seg.log</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/recon-surf.log</span></code> to see what failed.
+Can be found by looking for <code class="docutils literal notranslate"><span class="pre">&quot;&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Failed</span> <span class="pre">&lt;--seg_only/--surf_only&gt;</span> <span class="pre">with</span> <span class="pre">exit</span> <span class="pre">code</span> <span class="pre">&lt;return</span> <span class="pre">code&gt;&quot;</span></code> in
+<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/slurm/scripts/subject_success</span></code>.</p></li>
+<li><p>For subjects that were terminated (missing in subject_success), find which job is associated with subject id
+<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">&quot;&lt;subject</span> <span class="pre">id&gt;&quot;</span> <span class="pre">slurm/logs/surf_*.log</span></code>, then look at the end of the job and the job step logs
+(<code class="docutils literal notranslate"><span class="pre">surf_XXX_YY.log</span></code> and <code class="docutils literal notranslate"><span class="pre">surf_XXX_YY_ZZ.log</span></code>). If slurm terminated the job, it will say so there. You can increase
+the time and memory budget in <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> with <code class="docutils literal notranslate"><span class="pre">--time</span></code> and <code class="docutils literal notranslate"><span class="pre">--mem</span></code> flags.</p>
+<p>The following bash code snippet can help identify failed runs.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd &lt;subject directory&gt;
 for sub in *
 do
-if [[ -z &quot;$(grep &quot;$sub: Finished --surf&quot; slurm/scripts/subject_success)&quot; ]]
-then
+  if [[ -z &quot;$(grep &quot;$sub: Finished --surf&quot; slurm/scripts/subject_success)&quot; ]]
+  then
     echo &quot;$sub was terminated externally&quot;
-fi
+  fi
 done
 </pre></div>
 </div>

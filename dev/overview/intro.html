@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Quick Start" href="QUICKSTART.html"><link rel="prev" title="User Guide" href="index.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>Introduction to FastSurfer - FastSurfer</title>
+        <title>Introduction - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Introduction to FastSurfer</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -432,63 +432,61 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="introduction-to-fastsurfer">
-<h1>Introduction to FastSurfer<a class="headerlink" href="#introduction-to-fastsurfer" title="Link to this heading">¶</a></h1>
+          <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h1>
 <p>We are excited that you are here. In this documentation we will help you get started with FastSurfer!</p>
-<p>FastSurfer is an open-source AI software tool to extract quantiative measurements from human brain MRI (T1-weighted) images.
+<p>FastSurfer is an open-source AI software tool to extract quantitative measurements from human brain MRI (T1-weighted) images.
 You will learn about it’s different segmentation and surface modules and how to install and run it natively or in the
 recommended Docker or Singularity images. But first let us tell you why we think FastSurfer is great:</p>
 <ul class="simple">
-<li><p>FastSurfer uses dedicated and fast AI methods (developed in-house).</p></li>
-<li><p>It is thoroughly validated across different scanners, field-strenghts, T1 sequences, ages, diseases, …</p></li>
+<li><p>FastSurfer uses dedicated and fast AI methods (developed by <a class="reference external" href="https://deep-mi.org">Deep-MI</a>).</p></li>
+<li><p>It is thoroughly validated across different scanners, field-strengths, T1 sequences, ages, diseases, …</p></li>
 <li><p>FastSurfer is fully open-source using a permissive Apache license.</p></li>
 <li><p>It is compatible with FreeSurfer, enabling FreeSurfer downstream tools to work directly.</p></li>
 <li><p>It is much faster and provides increased reliability and sensitivity of the derived measures.</p></li>
 <li><p>It natively supports high-resolution images (down to around 0.7mm) at high accuracy.</p></li>
-<li><p>It has modules for full-brain (aseg+aparcDKT), cerebellum and hypothalamic sub-segmentations.</p></li>
+<li><p>It has modules for full-brain (aseg+DKT), cerebellum and hypothalamic sub-segmentations.</p></li>
 <li><p>The segmentation modules run within minutes and provide partial-volume corrected stats.</p></li>
 <li><p>It has an optimized surface stream for cortical thickness analysis and improved correspondence.</p></li>
 </ul>
 <p>So, there is really no reason why you should not try this out!</p>
 <section id="system-requirements">
 <h2>System Requirements<a class="headerlink" href="#system-requirements" title="Link to this heading">¶</a></h2>
-<p><strong>Recommendation: At least 8 GB system memory and 8 GB NVIDIA graphics memory</strong></p>
-<section id="minimum-requirements">
-<h3>Minimum Requirements:<a class="headerlink" href="#minimum-requirements" title="Link to this heading">¶</a></h3>
+<section id="recommendation">
+<h3>Recommendation<a class="headerlink" href="#recommendation" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>intel or AMD CPU (6 or more cores)</p></li>
+<li><p>16 GB system memory</p></li>
+<li><p>nVidia graphics card (2016 or newer)</p></li>
+<li><p>12 GB graphics memory</p></li>
+</ul>
+<p>FastSurfer supports multiple hardware acceleration modes: fully CPU (<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code>), partial GPU
+(<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span> <span class="pre">--viewagg_device</span> <span class="pre">cpu</span></code>) and fully GPU (<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code>). By default, FastSurfer will try to pick the best
+option. These modes require different system and video memory capacities, see the table below.</p>
 <div class="table-wrapper colwidths-auto docutils container">
 <table class="docutils align-default">
 <thead>
-<tr class="row-odd"><th class="head text-left"><p></p></th>
-<th class="head"><p>–viewagg_device</p></th>
-<th class="head text-right"><p>Min GPU (in GB)</p></th>
-<th class="head text-right"><p>Min CPU (in GB)</p></th>
+<tr class="row-odd"><th class="head text-left"><p>Voxel size</p></th>
+<th class="head"><p>mode: fully CPU</p></th>
+<th class="head"><p>mode: partial gpu</p></th>
+<th class="head text-left"><p>mode: fully GPU</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td class="text-left"><p>1mm</p></td>
-<td><p>gpu</p></td>
-<td class="text-right"><p>5</p></td>
-<td class="text-right"><p>5</p></td>
+<td><p>system memory (RAM): 8 GB</p></td>
+<td><p>RAM: 8 GB, graphics memory (VRAM): 2 GB</p></td>
+<td class="text-left"><p>RAM: 8 GB, VRAM: 6 GB</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>1mm</p></td>
-<td><p>cpu</p></td>
-<td class="text-right"><p>2</p></td>
-<td class="text-right"><p>7</p></td>
-</tr>
-<tr class="row-even"><td class="text-left"><p>0.7mm</p></td>
-<td><p>gpu</p></td>
-<td class="text-right"><p>8</p></td>
-<td class="text-right"><p>6</p></td>
-</tr>
-<tr class="row-odd"><td class="text-left"><p>0.7mm</p></td>
-<td><p>cpu</p></td>
-<td class="text-right"><p>3</p></td>
-<td class="text-right"><p>9</p></td>
+<tr class="row-odd"><td class="text-left"><p>0.8mm</p></td>
+<td><p>RAM: 8 GB</p></td>
+<td><p>RAM: 8 GB, VRAM: 2 GB</p></td>
+<td class="text-left"><p>RAM: 8 GB, VRAM: 8 GB</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>0.7mm</p></td>
-<td><p>–device cpu</p></td>
-<td class="text-right"><p>0</p></td>
-<td class="text-right"><p>9</p></td>
+<td><p>RAM: 16 GB</p></td>
+<td><p>RAM: 16 GB, VRAM: 3 GB</p></td>
+<td class="text-left"><p>RAM: 8 GB, VRAM: 8 GB</p></td>
 </tr>
 </tbody>
 </table>
@@ -499,7 +497,7 @@ recommended Docker or Singularity images. But first let us tell you why we think
 <section id="expert-usage">
 <h2>Expert usage<a class="headerlink" href="#expert-usage" title="Link to this heading">¶</a></h2>
 <p>Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation.
-This is documented in READMEs in subfolders, for example: <a class="reference internal" href="../scripts/fastsurfercnn.html"><span class="doc std std-ref">whole brain segmentation only with FastSurferVINN</span></a>, <a class="reference internal" href="../scripts/cerebnet.html"><span class="doc std std-ref">cerebellum sub-segmentation</span></a>, <a class="reference internal" href="../scripts/hypvinn.html"><span class="doc std std-ref">hypothalamic sub-segmentation</span></a>, <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="doc std std-ref">corpus callosum analysis</span></a> and <a class="reference internal" href="../scripts/recon_surf.html"><span class="doc std std-ref">surface pipeline only (recon-surf)</span></a>.</p>
+This is documented in READMEs in subfolders, for example: <a class="reference internal" href="../scripts/fastsurfercnn.run_model.html"><span class="doc std std-ref">whole brain segmentation only with FastSurferVINN</span></a>, <a class="reference internal" href="../scripts/cerebnet.html"><span class="doc std std-ref">cerebellum sub-segmentation</span></a>, <a class="reference internal" href="../scripts/hypvinn.html"><span class="doc std std-ref">hypothalamic sub-segmentation</span></a>, <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="doc std std-ref">corpus callosum analysis</span></a> and <a class="reference internal" href="../scripts/recon_surf.html"><span class="doc std std-ref">surface pipeline only (recon-surf)</span></a>.</p>
 <p>Specifically, the segmentation modules feature options for optimized parallelization of batch processing.</p>
 </section>
 <section id="freesurfer-downstream-modules">
@@ -597,9 +595,9 @@ This is documented in READMEs in subfolders, for example: <a class="reference in
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Introduction to FastSurfer</a><ul>
+<li><a class="reference internal" href="#">Introduction</a><ul>
 <li><a class="reference internal" href="#system-requirements">System Requirements</a><ul>
-<li><a class="reference internal" href="#minimum-requirements">Minimum Requirements:</a></li>
+<li><a class="reference internal" href="#recommendation">Recommendation</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#expert-usage">Expert usage</a></li>

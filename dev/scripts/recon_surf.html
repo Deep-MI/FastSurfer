@@ -194,11 +194,10 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction to FastSurfer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/FLAGS.html">FastSurfer Flags</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -214,6 +213,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
@@ -553,28 +553,25 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
 <p>Docker can be used to simplify the installation (no FreeSurfer on system required).
 Given you already ran the segmentation pipeline, and want to just run the surface pipeline on top of it
 (i.e. on a different cluster), the following command can be used:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Pull the docker image (if it does not exist locally)</span>
-docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v?.?.?
-
-<span class="c1"># 2. Run command</span>
-docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run command</span>
+docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--entrypoint<span class="w"> </span>/fastsurfer/recon_surf/recon-surf.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cpu-v?.?.?<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span>--3T
+<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cpu-v<span class="o">{{</span><span class="w"> </span>FASTSURFER_VERSION<span class="w"> </span><span class="o">}}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--3T
 </pre></div>
 </div>
-<p>Check <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Dockerhub</a> to find out the latest release version and replace the “?”.</p>
+<p>Note: Go to <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">deepmi on Dockerhub</a> to find the latest release version (automatically detected as <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:cpu-v{{</span> <span class="pre">FASTSURFER_VERSION</span> <span class="pre">}}</span></code>).</p>
 <p>Docker Flags:</p>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">-v</span></code> commands mount your output, and directory with the FreeSurfer license file into the Docker container. Inside
 the container these are visible under the name following the colon (in this case /output and /fs_license).</p></li>
 </ul>
-<p>This call is very similar to calling the standard <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script with the <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> flag and starting
+<p>This call is very similar to calling the standard <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script with the <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> flag, which starts
 only the surface module. It assumes that this case <code class="docutils literal notranslate"><span class="pre">subjectX</span></code> exists already and that the output files of the
 segmentation module are available in the <code class="docutils literal notranslate"><span class="pre">subjectX/mri</span></code> directory (e.g.
-<code class="docutils literal notranslate"><span class="pre">/home/user/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code> etc.). The
+<code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfeer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>, etc.). The
 directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file
 (equivalent to a FreeSurfer recon-all run).</p>
 </section>
@@ -585,28 +582,28 @@ entrypoint to <code class="docutils literal notranslate"><span class="pre">recon
 default, so this is for expert users who may want to try out specific flags that are not passed to the wrapper.
 Given you already ran the segmentation pipeline, and want to just run
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Build the singularity image (if it does not exist)</span>
-singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-cpu-v?.?.?.sif<span class="w"> </span>docker://deepmi/fastsurfer:cpu-v?.?.?
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Build the singularity image (only if it does not exist)</span>
+singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-cpu-v<span class="o">{{</span><span class="w"> </span>FASTSURFER_VERSION<span class="w"> </span><span class="o">}}</span>.sif<span class="w"> </span>docker://deepmi/fastsurfer:cpu-v<span class="o">{{</span><span class="w"> </span>FASTSURFER_VERSION<span class="w"> </span><span class="o">}}</span>
 
 <span class="c1"># 2. Run command</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-home<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>./fastsurfer-cpu-?.?.?.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>./fastsurfer-cpu-<span class="o">{{</span><span class="w"> </span>FASTSURFER_VERSION<span class="w"> </span><span class="o">}}</span>.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                  </span>/fastsurfer/recon_surf/recon-surf.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span>--3T<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--t1<span class="w"> </span>&lt;path_to&gt;/subjectX/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">                  </span>--asegdkt_segfile<span class="w"> </span>&lt;path_to&gt;/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
+<span class="w">                  </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>--asegdkt_segfile<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
 </pre></div>
 </div>
-<p>Check <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Dockerhub</a> to find out the latest release version and replace the “?”.</p>
+<p>Note: Go to <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">deepmi on Dockerhub</a> to find the latest release version (automatically detected as <code class="docutils literal notranslate"><span class="pre">docker://deepmi/fastsurfer:cpu-v{{</span> <span class="pre">FASTSURFER_VERSION</span> <span class="pre">}}</span></code>).</p>
 <section id="singularity-flags">
 <h4>Singularity Flags:<a class="headerlink" href="#singularity-flags" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">-B</span></code> commands mount your output, and directory with the FreeSurfer license file into the Singularity container.
 Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-home</span></code> command disables the automatic mount of the users home directory (see <a class="reference internal" href="../overview/SINGULARITY.html#mounting-home"><span class="std std-ref">Best Practice</span></a>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code> command disables the automatic mount of the users home directory (see <a class="reference internal" href="../overview/SINGULARITY.html#mounting-home-and-current-working-directory"><span class="std std-ref">Best Practice</span></a>)</p></li>
 </ul>
 <p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> and <code class="docutils literal notranslate"><span class="pre">--asegdkt_segfile</span></code> flags point to the already existing conformed T1 input and segmentation from the
 segmentation module. Also other files from that pipeline will be reused (e.g. the <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>). The
@@ -616,29 +613,24 @@ file (equivalent to a FreeSurfer recon-all run).</p>
 </section>
 <section id="example-3-native-installation-recon-surf-on-a-single-subject-subjectx">
 <h3>Example 3: Native installation - recon-surf on a single subject (subjectX)<a class="headerlink" href="#example-3-native-installation-recon-surf-on-a-single-subject-subjectx" title="Link to this heading">¶</a></h3>
-<p>Given you want to analyze data for subjectX which is stored on your computer under <code class="docutils literal notranslate"><span class="pre">/home/user/my_mri_data/subjectX/orig.mgz</span></code>,
+<p>Given you want to analyze data for subjectX which is stored on your computer under <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data/subjectX/orig.mgz</span></code>,
 run the following command from the console (do not forget to source FreeSurfer!):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Source FreeSurfer</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Source FreeSurfer, defining FREESURFER_HOME will usually enable auto-detection in native installations</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span>/path/to/freesurfer
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
 
-<span class="c1"># Define data directory</span>
-<span class="nv">datadir</span><span class="o">=</span>/home/user/my_mri_data
-<span class="nv">segdir</span><span class="o">=</span>/home/user/my_segmentation_data
-<span class="nv">targetdir</span><span class="o">=</span>/home/user/my_recon_surf_output<span class="w">  </span><span class="c1"># equivalent to FreeSurfer&#39;s SUBJECTS_DIR</span>
-
 <span class="c1"># Run recon-surf</span>
 ./recon-surf.sh<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
-<span class="w">                </span>--sd<span class="w"> </span><span class="nv">$targetdir</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">                </span>--py<span class="w"> </span>python3.10<span class="w"> </span><span class="se">\</span>
 <span class="w">                </span>--3T<span class="w"> </span><span class="se">\</span>
-<span class="w">                </span>--t1<span class="w"> </span>&lt;path_to&gt;/subjectX/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">                </span>--asegdkt_segfile<span class="w"> </span>&lt;path_to&gt;/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
+<span class="w">                </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">                </span>--asegdkt_segfile<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> and <code class="docutils literal notranslate"><span class="pre">--asegdkt_segfile</span></code> flags point to the already existing conformed T1 input and segmentation from the segmentation module. Also other files from that pipeline
-will be reused (e.g. the <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>, i.e. under <code class="docutils literal notranslate"><span class="pre">/home/user/my_fastsurfeer_analysis/subjectX/mri/mask.mgz</span></code>). The <code class="docutils literal notranslate"><span class="pre">subjectX</span></code> directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run).
-The script will generate a bias-field corrected image at <code class="docutils literal notranslate"><span class="pre">/home/user/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz</span></code>, if this did not already exist.</p>
+will be reused (e.g. the <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code>, <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>, i.e. under <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfeer_analysis/subjectX/mri/mask.mgz</span></code>). The <code class="docutils literal notranslate"><span class="pre">subjectX</span></code> directory will then be populated with the FreeSurfer file structure, including surfaces, statistics and labels file (equivalent to a FreeSurfer recon-all run).
+The script will generate a bias-field corrected image at <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfeer_analysis/subjectX/mri/orig_nu.mgz</span></code>, if this did not already exist.</p>
 </section>
 <section id="example-4-recon-surf-on-multiple-subjects">
 <h3>Example 4: recon-surf on multiple subjects<a class="headerlink" href="#example-4-recon-surf-on-multiple-subjects" title="Link to this heading">¶</a></h3>
@@ -649,18 +641,18 @@ The script will generate a bias-field corrected image at <code class="docutils l
 <li><p>you are not able to specify a custom, conformed t1 image via <code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;path&gt;</span></code> (<code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">--seg_only</span></code> will always use <code class="docutils literal notranslate"><span class="pre">$subjects_dir/$subject_id/mri/orig.mgz</span></code>).</p></li>
 </ol>
 <p>Invoke the following command (make sure you have enough resources to run the given number of subjects in parallel or drop the <code class="docutils literal notranslate"><span class="pre">--parallel_surf</span> <span class="pre">max</span></code> flag to run them in series!):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-home<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>-B<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>-B<span class="w"> </span>/home/user/subjects_lists/:/lists<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>-B<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>./fastsurfer.sif<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>-B<span class="w"> </span><span class="nv">$HOME</span>/subjects_lists<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>./fastsurfer-cpu-<span class="o">{{</span><span class="w"> </span>FASTSURFER_VERSION<span class="w"> </span><span class="o">}}</span>.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>/fastsurfer/brun_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>--surf_only<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>--subjects_list<span class="w"> </span>/lists/subjects_list.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>--subjects_list<span class="w"> </span><span class="nv">$HOME</span>/subjects_lists/subjects_list.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>--parallel_surf<span class="w"> </span>max<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>--3T
+<span class="w">            </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 <p>A dedicated subfolder will be used for each subject within the target directory.
