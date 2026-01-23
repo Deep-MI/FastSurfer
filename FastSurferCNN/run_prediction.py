@@ -26,6 +26,7 @@ See Also
 # IMPORTS
 import argparse
 import sys
+import warnings
 from collections.abc import Iterator, Sequence
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from pathlib import Path
@@ -222,6 +223,16 @@ class RunModelOnData:
         if self.device.type == "cpu" and viewagg_device in ("auto", "cpu"):
             self.viewagg_device = self.device
         else:
+            if self.device.type == "cuda" and not torch.cuda.is_initialized():
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    try:
+                        torch.cuda.init()
+                    except RuntimeError as err:
+                        LOGGER.critical("Failed to initialize cuda device, maybe incompatible CUDA version?")
+                        LOGGER.exception(err)
+                        raise err
+
             # check, if GPU is big enough to run view agg on it (this currently takes the memory of the passed device)
             self.viewagg_device = find_device(
                 viewagg_device,
