@@ -2279,7 +2279,8 @@ def pv_calc_patch(
         for p, gc in zip(slicer_patch, global_crop, strict=False))
 
     label_lookup = np.unique(seg[slicer_small_patch])
-    maxlabels = label_lookup[-1] + 1
+    # make sure to promote label_lookup to int64 to avoid overflow (numpy2)
+    maxlabels = int(label_lookup[-1]) + 1
     if maxlabels > 100_000:
         raise RuntimeError("Maximum number of labels above 100000!")
     # create a view for the current patch border
