@@ -204,6 +204,9 @@ _Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reli
 
 _Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M. FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32. https://doi.org/10.1162/imag_a_00034_
 
+_Pollak C, Diers K, Estrada S, Kuegler D, Reuter M, FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry, pre-print on arXiv: https://doi.org/10.48550/arXiv.2511.16471_
+
+
 Stay tuned for updates and follow us on [X/Twitter](https://twitter.com/deepmilab).
 
 <!-- start of acknowledgements -->
