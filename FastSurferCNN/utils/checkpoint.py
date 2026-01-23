@@ -36,10 +36,6 @@ else:
 
 LOGGER = logging.getLogger(__name__)
 
-# Defaults
-YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
-
-
 class CheckpointConfigDict(TypedDict, total=False):
     url: list[str]
     checkpoint: dict[Plane, Path]
@@ -50,7 +46,7 @@ CheckpointConfigFields = Literal["checkpoint", "config", "url"]
 
 
 @lru_cache
-def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointConfigDict:
+def load_checkpoint_config(filename: Path | str) -> CheckpointConfigDict:
     """
     Load the plane dictionary from the yaml file.
 
@@ -89,21 +85,21 @@ def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointCon
 
 @overload
 def load_checkpoint_config_defaults(
-        filetype: Literal["checkpoint", "config"],
-        filename: str | Path = YAML_DEFAULT,
+        configtype: Literal["checkpoint", "config"],
+        filename: str | Path,
 ) -> dict[Plane, Path]: ...
 
 
 @overload
 def load_checkpoint_config_defaults(
         configtype: Literal["url"],
-        filename: str | Path = YAML_DEFAULT,
+        filename: str | Path,
 ) -> list[str]: ...
 
 @lru_cache
 def load_checkpoint_config_defaults(
         configtype: CheckpointConfigFields,
-        filename: str | Path = YAML_DEFAULT,
+        filename: str | Path,
 ) -> dict[Plane, Path] | list[str]:
     """
     Get the default value for a specific plane or the url.
@@ -173,6 +169,23 @@ def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
         ckpt_dir, f"Epoch_{epoch:05d}_training_state.pkl"
     )
     return checkpoint_dir
+
+
+def get_config_file(module: str) -> Path:
+    """
+    Returns the path to the checkpoint_paths.yaml file of `module`.
+
+    Parameters
+    ==========
+    module : str
+        The FastSurfer module name.
+
+    Returns
+    =======
+    Path
+        The path to the checkpoint_paths.yaml file of `module`.
+    """
+    return FASTSURFER_ROOT / module / "config/checkpoint_paths.yaml"
 
 
 def get_checkpoint_path(
@@ -399,7 +412,7 @@ def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> No
     ----------
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
-    urls : list[str]
+    urls : list of str
         URLs of checkpoint hosting site.
     """
     if not isinstance(checkpoint_path, Path):
@@ -419,7 +432,7 @@ def get_checkpoints(*checkpoints: Path | str, urls: list[str]) -> None:
     ----------
     *checkpoints : Path, str
         Paths of the files in which the checkpoint will be saved.
-    urls : Path, str
+    urls : list of str
         URLs of checkpoint hosting sites.
     """
     try:

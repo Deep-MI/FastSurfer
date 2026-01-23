@@ -44,14 +44,13 @@ from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, Plane, logging, nibabelImage, parser_defaults
 from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import vox_size as _vox_size
-from FastSurferCNN.utils.checkpoint import get_checkpoints, load_checkpoint_config_defaults
+from FastSurferCNN.utils.checkpoint import get_checkpoints, get_config_file, load_checkpoint_config_defaults
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.parallel import SerialExecutor, pipeline
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT, SubjectDirectoryConfig
+from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
 
 LOGGER = logging.getLogger(__name__)
-CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
 
 ##
@@ -551,11 +550,12 @@ def make_parser():
     parser_defaults.modify_argument(parser, "--sd", _add_sd_help)
 
     # 3. Checkpoint to load
+    config_file = get_config_file("FastSurferCNN")
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
-    parser = parser_defaults.add_plane_flags(parser, "checkpoint", files, CHECKPOINT_PATHS_FILE)
+    parser = parser_defaults.add_plane_flags(parser, "checkpoint", files, config_file)
 
     # 4. CFG-file with default options for network
-    parser = parser_defaults.add_plane_flags(parser, "config", files, CHECKPOINT_PATHS_FILE)
+    parser = parser_defaults.add_plane_flags(parser, "config", files, config_file)
 
     # 5. technical parameters
     image_flags = ["vox_size", "conform_to_1mm_threshold", "orientation", "image_size", "device"]
@@ -613,8 +613,10 @@ def main(
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
     LOGGER.info("Checking or downloading default checkpoints ...")
-    
-    urls = load_checkpoint_config_defaults("url", filename=CHECKPOINT_PATHS_FILE)
+
+    config_file = get_config_file("FastSurferCNN")
+
+    urls = load_checkpoint_config_defaults("url", filename=config_file)
 
     get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
 

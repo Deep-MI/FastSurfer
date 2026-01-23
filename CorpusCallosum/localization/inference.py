@@ -21,11 +21,11 @@ from monai import transforms
 from monai.networks.nets import DenseNet
 
 from CorpusCallosum.transforms.localization import CropAroundACPCFixedSize
-from CorpusCallosum.utils.checkpoint import YAML_DEFAULT as CC_YAML
 from CorpusCallosum.utils.types import Points2dType
 from FastSurferCNN.download_checkpoints import load_checkpoint_config_defaults
 from FastSurferCNN.download_checkpoints import main as download_checkpoints
 from FastSurferCNN.utils import Image3d, Vector2d, Vector3d
+from FastSurferCNN.utils.checkpoint import get_config_file
 from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 PATCH_SIZE = (64, 64)
@@ -60,10 +60,8 @@ def load_model(device: torch.device) -> DenseNet:
     )
 
     download_checkpoints(cc=True)
-    cc_config = load_checkpoint_config_defaults(
-        "checkpoint",
-        filename=CC_YAML,
-    )
+    config_file = get_config_file("CorpusCallosum")
+    cc_config = load_checkpoint_config_defaults("checkpoint", filename=config_file)
     checkpoint_path = FASTSURFER_ROOT / cc_config['localization']
 
     # Load state dict

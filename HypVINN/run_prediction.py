@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
+    get_config_file,
     load_checkpoint_config_defaults,
 )
 from FastSurferCNN.utils.common import update_docstring
@@ -36,7 +37,6 @@ from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
 from HypVINN.utils import ModalityDict, ModalityMode, ViewOperationDefinition, ViewOperations
-from HypVINN.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
 from HypVINN.utils.img_processing_utils import save_segmentation
 from HypVINN.utils.load_config import load_config
 from HypVINN.utils.misc import create_expand_output_directory
@@ -130,12 +130,14 @@ def option_parse() -> argparse.ArgumentParser:
     advanced = parser.add_argument_group(title="Advanced options")
     parser_defaults.add_arguments(advanced, ["device", "viewagg_device", "threads", "batch_size", "async_io"])
 
+    checkpoints_config = get_config_file("HypVINN")
+
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
     # 5. Checkpoint to load
-    parser_defaults.add_plane_flags(advanced, "checkpoint", files, CHECKPOINT_PATHS_FILE)
+    parser_defaults.add_plane_flags(advanced, "checkpoint", files, checkpoints_config)
 
     config_files = {plane: Path(f"HypVINN/config/HypVINN_{plane}_v1.1.0.yaml") for plane in PLANES}
-    parser_defaults.add_plane_flags(advanced, "config", config_files, CHECKPOINT_PATHS_FILE)
+    parser_defaults.add_plane_flags(advanced, "config", config_files, checkpoints_config)
     return parser
 
 
@@ -395,10 +397,8 @@ def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
         The path to the sagittal checkpoint file.
     """
     logger.info("Checking or downloading default checkpoints ...")
-    urls = load_checkpoint_config_defaults(
-        "url",
-        filename=CHECKPOINT_PATHS_FILE,
-    )
+    config_file = get_config_file("HypVINN")
+    urls = load_checkpoint_config_defaults("url", filename=config_file)
     get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
 
 
