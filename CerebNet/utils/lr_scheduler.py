@@ -133,7 +133,7 @@ class ReduceLROnPlateauWithRestarts(ReduceLROnPlateau):
 
 
 # https://detectron2.readthedocs.io/_modules/detectron2/solver/lr_scheduler.html
-class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # numpydoc ignore=GL09
+class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
     """
     Learning Rate scheduler that combines a cosine schedule with a warmup phase.
     """
