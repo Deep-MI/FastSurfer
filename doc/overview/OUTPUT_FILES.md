@@ -95,3 +95,7 @@ The primary output files are pial, white, and inflated surface files, the thickn
 | stats     | lh.curv.stats, rh.curv.stats                                   | surface | table of curvature statistics                                                                |
 | stats     | wmparc.DKTatlas.mapped.stats                                   | surface | table of white matter segmentation statistics                                                |
 | scripts   | recon-all.log                                                  | surface | logfile                                                                                      |
+
+Longitudinal Processing
+-----------------------
+When running the [longitudinal pipeline](LONG.md) the output will be as above for the individual time point directories. Note that the templateID directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline. 
