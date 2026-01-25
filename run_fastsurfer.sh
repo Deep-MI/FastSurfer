@@ -870,7 +870,7 @@ trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -
 # create the build log, file with all version info in parallel
 # uses ${version_cache_args}, which is filled exactly if a build_cache file exists
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
-$python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}" &
+timeout 20 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}" &
 
 if [[ "$run_seg_pipeline" != "1" ]]
 then
