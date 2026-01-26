@@ -298,13 +298,21 @@ ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
     PATH=/fastsurfer:$PATH
 
 RUN <<EOF
+source /venv/bin/activate
 # Fix for cuda11.8+cudnn8.7 bug+warning: https://github.com/pytorch/pytorch/issues/97041
 if [[ "$DEVICE" == "cu118" ]]
 then
-  torch_lib_path=/venv/python${PYTHON_VERSION}/site-packages/torch/lib
-  ln -s ${torch_lib_path}/libnvrtc-*.so.11.2 ${torch_lib_path}/libnvrtc.so
+  python3 <<CU118FIX
+from pathlib import Path
+import torch
+
+p = Path(torch.__file__).parent / "lib"
+targets = list(p.glob("libnvrtc-*.so.11.2"))
+if len(targets) != 1:
+    raise RuntimeError(f"Could not find libnvrtc-*.so.11.2 in {p}!")
+(p / "libnvrtc.so").symlink_to(p / targets[0])
+CU118FIX
 fi
-source /venv/bin/activate
 cd /fastsurfer
 # Download all remote network checkpoints already
 python3 FastSurferCNN/download_checkpoints.py --all
