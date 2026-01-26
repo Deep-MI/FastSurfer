@@ -52,9 +52,25 @@ from typing import Literal, TypeVar
 
 # there are very few cases, when we do not need nibabel in any "full script" so always
 # including nibabel does not overly drag down performance
-from nibabel.analyze import SpatialHeader as nibabelHeader
-from nibabel.analyze import SpatialImage as nibabelImage
-from numpy import bool_, dtype, float64, ndarray, number
+try:
+    from nibabel.analyze import SpatialHeader as nibabelHeader
+    from nibabel.analyze import SpatialImage as nibabelImage
+# Some scripts like the build script do not require the full FastSurfer environment. This makes sure, this typing
+# module is still functional in such cases.
+except (ImportError, ModuleNotFoundError):
+    nibabelImage = None
+    nibabelHeader = None
+try:
+    from numpy import bool_, dtype, float64, ndarray, number
+# Some scripts like the build script do not require the full FastSurfer environment. This makes sure, this typing
+# module is still functional in such cases.
+except (ImportError, ModuleNotFoundError):
+    float64 = float
+    bool_ = bool
+    # by typing this with tuple, ndarray[...] and dtype [...] will still be valid syntax
+    ndarray = tuple
+    dtype = tuple
+    from numbers import Number as number
 
 AffineMatrix4x4 = ndarray[tuple[Literal[4], Literal[4]], dtype[float64]]
 PlaneAxial = Literal["axial"]
