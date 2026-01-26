@@ -266,6 +266,7 @@ def recon_cc_surf_measures_multi(
             # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
             # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
             cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
+            cc_surf_generated = False
             if wants_output("cc_thickness_image"):
                 # this will also write overlay and surface
                 thickness_image_path = output_path("cc_thickness_image")
@@ -276,8 +277,22 @@ def recon_cc_surf_measures_multi(
                                     if wants_output("cc_thickness_overlay") else None,
                     "ref_image": upright_img,
                 }
-                cc_mesh.snap_cc_picture(thickness_image_path, **kwargs)
-            elif wants_output("cc_surf"):
+                try:
+                    cc_mesh.snap_cc_picture(thickness_image_path, **kwargs)
+                    cc_surf_generated = True
+                except (ImportError, ModuleNotFoundError) as e:
+                    logger.error(
+                        "The thickness image was not generated because whippersnappy, glfw or OpenGL are not installed."
+                    )
+                    logger.exception(e)
+                except Exception as e:
+                    logger.error(
+                        "The thickness image was not generated (see below). On headless Linux systems or if the "
+                        "x-server cannot/should not be accessed due to other reasons, xvfb-run may be used to provide "
+                        "a virtual framebuffer for offscreen rendering."
+                    )
+                    logger.exception(e)
+            if not cc_surf_generated and wants_output("cc_surf"):
                 surf_file_path = output_path("cc_surf")
                 logger.info(f"Saving surf file to {surf_file_path}")
                 io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), image=upright_img))

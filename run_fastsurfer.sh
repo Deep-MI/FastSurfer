@@ -753,15 +753,15 @@ then
     # if we cannot import OpenGL or whippersnappy, its an environment installation issue
     if [[ "$opengl_error_message" =~ "ModuleNotFoundError" ]] || [[ "$opengl_error_message" =~ "ImportError" ]]
     then
-      echo "ERROR: The --qc_snap option of the corpus callosum module requires the Python packages PyOpenGL, glfw and"
-      echo "  whippersnappy to be installed, but python could not import those two. Please install them and their"
+      echo "WARNING: The --qc_snap option of the corpus callosum module requires the Python packages PyOpenGL, glfw and"
+      echo "  whippersnappy to be installed, but python could not import those three. Please install them and their"
       echo "  dependencies via 'pip install pyopengl glfw whippersnappy'."
-      exit 1
     else
-      echo "ERROR: The --qc_snap option of the corpus callosum module requires OpenGL support, but we could not create"
-      echo "  OpenGL handles. For Linux headless systems, you may install xvfb-run to provide a virtual display."
-      exit 1
+      echo "WARNING: The --qc_snap option of the corpus callosum module requires OpenGL support, but we could not"
+      echo "  create OpenGL handles. For Linux headless systems, you may install xvfb-run to provide a virtual display."
     fi
+    echo "  FastSurfer will not fail due to the unavailability of OpenGL, but some QC snapshots (rendered thickness"
+    echo "  image) will not be created."
   fi
 fi
 
