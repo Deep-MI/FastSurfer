@@ -61,7 +61,7 @@ sudo apt install -y g++-11
 
 You also need to have bash-3.2 or higher (check with `bash --version`).
 
-You also need a working version of python3.10 (we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies and a license file).
+You also need a working version of python3 (we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies and a license file).
 
 If you are using pip, make sure pip is updated as older versions will fail.
 

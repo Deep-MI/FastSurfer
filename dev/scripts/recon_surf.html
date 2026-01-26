@@ -507,7 +507,7 @@ FLAGS:
                             eTIV estimates for 3T MR images, default: 1.5T atlas).
   --threads &lt;int&gt;         Set openMP and ITK threads to &lt;int&gt;, parallelize
                             hemispheres, if threads &gt;= 2.
-  --py &lt;python_cmd&gt;       Command for python, default python3.10
+  --py &lt;python_cmd&gt;       Command for python, default python3 -s
   --fs_license &lt;license&gt;  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
@@ -622,7 +622,7 @@ run the following command from the console (do not forget to source FreeSurfer!)
 <span class="c1"># Run recon-surf</span>
 ./recon-surf.sh<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">                </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                </span>--py<span class="w"> </span>python3.10<span class="w"> </span><span class="se">\</span>
+<span class="w">                </span>--py<span class="w"> </span>python3<span class="w"> </span><span class="se">\</span>
 <span class="w">                </span>--3T<span class="w"> </span><span class="se">\</span>
 <span class="w">                </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">                </span>--asegdkt_segfile<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz

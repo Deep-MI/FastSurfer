@@ -489,7 +489,7 @@ accessible inside the container (check <code class="docutils literal notranslate
 <li><p><code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder), same as in <a class="reference internal" href="../scripts/RUN_FASTSURFER.html"><span class="std std-doc">basic run_fastsurfer.sh</span></a>.</p></li>
 </ul>
 <p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory (specified via <code class="docutils literal notranslate"><span class="pre">--sd</span></code>). So in this example output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>. Make sure the output directory is empty, to avoid overwriting existing files.</p>
-<p>All other available flags are identical to the ones explained on the main page <a class="reference internal" href="../index.html"><span class="doc std std-ref">README</span></a>.</p>
+<p>All other available flags are identical to the ones explained on the main page <a class="reference internal" href="intro.html"><span class="doc std std-ref">README</span></a>.</p>
 </section>
 <section id="docker-best-practice">
 <h3>Docker Best Practice<a class="headerlink" href="#docker-best-practice" title="Link to this heading">¶</a></h3>
@@ -645,13 +645,6 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <li><p>Finally, you can now build the FastSurfer image with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">...</span> <span class="pre">--attest</span></code>. This will add the additional flags to the docker build command.</p></li>
 </ol>
 </section>
-<section id="setting-the-ssl-verify-parameter-of-mamba">
-<h2>Setting the ssl_verify parameter of mamba<a class="headerlink" href="#setting-the-ssl-verify-parameter-of-mamba" title="Link to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">build.py</span></code> script supports the <code class="docutils literal notranslate"><span class="pre">--ssl_verify</span></code> flag, which can be passed <code class="docutils literal notranslate"><span class="pre">&quot;False&quot;</span></code> or the path to an alternative root certificate.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu<span class="w"> </span>--ssl_verify<span class="w"> </span>/path/to/custom-cert.srt
-</pre></div>
-</div>
-</section>
 <section id="building-for-release">
 <h2>Building for release<a class="headerlink" href="#building-for-release" title="Link to this heading">¶</a></h2>
 <p>Make sure, you are building on a machine that has <a class="reference internal" href="#"><span class="doc std std-ref">containerd-storage and Buildkit</span></a>.</p>
@@ -661,9 +654,9 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <span class="c1"># the version can be identified with: $build_dir/run_fastsurfer.sh --version</span>
 <span class="nv">version</span><span class="o">=</span><span class="m">2</span>.5.0
 <span class="c1"># the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device</span>
-<span class="nv">cuda</span><span class="o">=</span><span class="m">126</span>
-<span class="nv">cudas</span><span class="o">=(</span><span class="s2">&quot;cuda118&quot;</span><span class="w"> </span><span class="s2">&quot;cuda124&quot;</span><span class="w"> </span><span class="s2">&quot;cuda</span><span class="nv">$cuda</span><span class="s2">&quot;</span><span class="o">)</span>
-<span class="nv">rocm</span><span class="o">=</span><span class="m">6</span>.2.4
+<span class="nv">cuda</span><span class="o">=</span><span class="m">128</span>
+<span class="nv">cudas</span><span class="o">=(</span><span class="s2">&quot;cuda118&quot;</span><span class="w"> </span><span class="s2">&quot;cuda126&quot;</span><span class="w"> </span><span class="s2">&quot;cuda</span><span class="nv">$cuda</span><span class="s2">&quot;</span><span class="o">)</span>
+<span class="nv">rocm</span><span class="o">=</span><span class="m">6</span>.3
 <span class="nv">rocms</span><span class="o">=(</span><span class="s2">&quot;rocm</span><span class="nv">$rocm</span><span class="s2">&quot;</span><span class="o">)</span>
 <span class="c1"># end of config</span>
 
@@ -672,7 +665,7 @@ git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w">
 <span class="nb">cd</span><span class="w"> </span><span class="nv">$build_dir</span>
 <span class="nv">all_tags</span><span class="o">=(</span><span class="s2">&quot;latest&quot;</span><span class="w"> </span><span class="s2">&quot;gpu-latest&quot;</span><span class="w"> </span><span class="s2">&quot;cuda-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;rocm-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;cpu-latest&quot;</span><span class="o">)</span>
 <span class="c1"># build all distinct images</span>
-<span class="k">for</span><span class="w"> </span>dev<span class="w"> </span><span class="k">in</span><span class="w"> </span>cpu<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">rocms</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudas</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="k">for</span><span class="w"> </span>dev<span class="w"> </span><span class="k">in</span><span class="w"> </span>cpu<span class="w"> </span>xpu<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">rocms</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudas</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span>
 <span class="k">do</span>
 <span class="w">  </span>python3<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--tag<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$dev</span>-v<span class="nv">$version</span><span class="w"> </span>--freesurfer_build_image<span class="w"> </span><span class="nv">$img</span>-build:freesurfer741<span class="w"> </span>--attest<span class="w"> </span>--device<span class="w"> </span><span class="nv">$dev</span>
 <span class="w">  </span><span class="nv">all_tags</span><span class="o">+=(</span><span class="s2">&quot;</span><span class="nv">$dev</span><span class="s2">-v</span><span class="nv">$version</span><span class="s2">&quot;</span><span class="o">)</span>
@@ -771,7 +764,6 @@ docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</
 </ul>
 </li>
 <li><a class="reference internal" href="#build-docker-image-with-attestation-and-provenance">Build docker image with attestation and provenance</a></li>
-<li><a class="reference internal" href="#setting-the-ssl-verify-parameter-of-mamba">Setting the ssl_verify parameter of mamba</a></li>
 <li><a class="reference internal" href="#building-for-release">Building for release</a></li>
 </ul>
 </li>

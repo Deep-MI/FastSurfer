@@ -447,10 +447,10 @@ decay factor for where the learning rate restarts at.</p>
 <td><p>Learning rate scheduler that combines a Cosine annealing with warm restarts pattern,  but also adds a decay factor for where the learning rate restarts at.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_last_lr</span></code>()</p></td>
-<td><p>Get the most recent learning rates computed by this scheduler.</p></td>
+<td><p>Return last computed learning rate by current scheduler.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lr</span></code>()</p></td>
-<td><p>Compute the next learning rate for each of the optimizer's <code class="xref py py-attr docutils literal notranslate"><span class="pre">param_groups</span></code>.</p></td>
+<td><p>Compute the initial learning rate.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_state_dict</span></code>(state_dict)</p></td>
 <td><p>Load the scheduler's state.</p></td>
@@ -558,10 +558,10 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_last_lr</span></code>()</p></td>
-<td><p>Get the most recent learning rates computed by this scheduler.</p></td>
+<td><p>Return last computed learning rate by current scheduler.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lr</span></code>()</p></td>
-<td><p>Compute the next learning rate for each of the optimizer's <code class="xref py py-attr docutils literal notranslate"><span class="pre">param_groups</span></code>.</p></td>
+<td><p>Compute learning rate using chainable form of the scheduler.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_state_dict</span></code>(state_dict)</p></td>
 <td><p>Load the scheduler's state.</p></td>
@@ -571,6 +571,15 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts.step" title="CerebNet.utils.lr_scheduler.ReduceLROnPlateauWithRestarts.step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">step</span></code></a>(metrics[, epoch])</p></td>
 <td><p>Performs an optimization step.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>is_better</strong></p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -605,7 +614,7 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_last_lr</span></code>()</p></td>
-<td><p>Get the most recent learning rates computed by this scheduler.</p></td>
+<td><p>Return last computed learning rate by current scheduler.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#CerebNet.utils.lr_scheduler.WarmupCosineLR.get_lr" title="CerebNet.utils.lr_scheduler.WarmupCosineLR.get_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lr</span></code></a>()</p></td>
 <td><p>Get the learning rates at the current epoch.</p></td>
@@ -617,7 +626,7 @@ but also adds a decay factor for where the learning rate restarts at.</p>
 <td><p>Return the state of the scheduler as a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">step</span></code>([epoch])</p></td>
-<td><p>Step the scheduler.</p></td>
+<td><p>Perform a step.</p></td>
 </tr>
 </tbody>
 </table>

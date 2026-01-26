@@ -501,7 +501,7 @@ If “min” is specified (default), the voxel size is read from the size of the
 If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
 If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isotropic voxels of that voxel size.
 The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--py</span></code>: Command for python, used in both pipelines. Default: python3.10</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--py</span></code>: Command for python, used in both pipelines. Default: python3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: Name of the file in which the conformed input image will be saved. Default location: $SUBJECTS_DIR/$sid/mri/orig.mgz</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code>: Prints help text</p></li>
 </ul>
@@ -674,7 +674,7 @@ Resource Options:
                             at number of threads for surfaces &gt;=2, default: 1).
   --batch &lt;batch_size&gt;    Batch size for inference (default: 1).
   --py &lt;python_cmd&gt;       Command for python, used in both pipelines.
-                            Default: &quot;python3.10 -s&quot;
+                            Default: &quot;python3 -s&quot;
                             (-s: do no search for packages in home directory)
 
  Dev Flags:
