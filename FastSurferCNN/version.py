@@ -288,9 +288,11 @@ def main(
         futures["version"] = pool.submit(read_and_close_version, project_file)
         # if we do not have git, try VERSION file else git sha and branch
         if has_git() and not prefer_cache:
-            futures["git_hash"] = Popen(["git", "rev-parse", "--short", "HEAD"], **kw_root).as_future(pool)
+            git_rev_parse_cmd = ["git", "rev-parse", "--short", "HEAD"]
+            futures["git_hash"] = Popen(git_rev_parse_cmd, **kw_root).as_future(pool, timeout=10.0)
             if sections != "":
-                futures["git_branch"] = Popen(["git", "branch", "--show-current"], **kw_root).as_future(pool)
+                git_branch_current_cmd = ["git", "branch", "--show-current"]
+                futures["git_branch"] = Popen(git_branch_current_cmd, **kw_root).as_future(pool, timeout=10.0)
             if "+git" in sections:
                 futures["git_status"] = pool.submit(filter_git_status, Popen(["git", "status", "-sb"], **kw_root))
         else:
@@ -303,18 +305,16 @@ def main(
         if "+checkpoints" in sections and not prefer_cache:
 
             def calculate_md5_for_checkpoints() -> "MessageBuffer":
-                from glob import glob
-
-                files = glob(str(DEFAULTS.PROJECT_ROOT / "checkpoints" / "*"))
-                shorten = len(str(DEFAULTS.PROJECT_ROOT)) + 1
-                files = [f[shorten:] for f in files]
-                return Popen(["md5sum"] + files, **kw_root).finish()
+                files = list(map(str, DEFAULTS.PROJECT_ROOT.glob("checkpoints/*")))
+                if len(files) == 0:
+                    return MessageBuffer(out=b"", err=b"No checkpoints found.", retcode=0, runtime=0.0)
+                return Popen(["md5sum"] + files, **kw_root).finish(timeout=10.0)
 
             futures["checkpoints"] = pool.submit(calculate_md5_for_checkpoints)
 
         if "+pip" in sections and not prefer_cache:
             pip_command = "-m pip list --verbose --no-cache-dir --no-color --disable-pip-version-check"
-            futures["pypackages"] = PyPopen(pip_command.split(" "), **kw_root).as_future(pool)
+            futures["pypackages"] = PyPopen(pip_command.split(" "), **kw_root).as_future(pool, timeout=10.0)
 
     if build_cache_required and build_cache is not False:
         build_cache: VersionDict = futures.pop("build_cache").result()
@@ -496,7 +496,7 @@ def filter_git_status(git_process) -> str:
     str
         The git status string filtered to exclude lines containing "__pycache__".
     """
-    finished_process = git_process.finish()
+    finished_process = git_process.finish(timeout=10.0)
     if finished_process.retcode != 0:
         raise RuntimeError("Failed git status command")
     git_status_text = finished_process.out_str("utf-8")
