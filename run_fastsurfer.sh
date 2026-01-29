@@ -78,8 +78,6 @@ threads_surf="1"
 # python3 -s excludes user-directory package inclusion
 python="python3 -s"
 allow_root=()
-do_timeit="false"
-timing_log=""
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
@@ -269,8 +267,6 @@ Resource Options:
                             (-s: do no search for packages in home directory)
 
  Dev Flags:
-  --timeit                Time the steps of the segmentation pipeline.
-  --timeit_log <time_log> Same as --timeit and write timing to the time_log file.
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will terminate if the supported version
                             (see recon-surf.sh) is not sourced. Can be used for
@@ -341,6 +337,16 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
  https://doi.org/10.1016/j.neuroimage.2012.02.084
 
 EOF
+
+# Environment variables (for advanced users / developers only):
+# SUBJECTS_DIR           (path to SUBJECTS_DIR, no default, either SUBJECTS_DIR or --sd must be set)
+# FASTSURFER_HOME        (path to FastSurfer installation, default: script location)
+# FASTSURFER_EXECTIMELOG (path to execution time log file relative to $SUBJECTS_DIR/$SID, default: scripts/exectime.log)
+# FREESURFER_HOME        (path to FreeSurfer installation, must be set for surface pipeline)
+# FS_LICENSE             (path to FreeSurfer license file, overwritten by --fs_license, must be found for surface
+#                         pipeline, default: search in FREESURFER_HOME, unless...)
+# DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME
+#                         (developer: if "true", deactivate search for the FreeSurfer license file in FREESURFER_HOME)
 }
 
 # PRINT USAGE if called without params
@@ -394,8 +400,6 @@ case $key in
   --t1) t1="$1" ; shift ;;
   --t2) t2="$1" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
-  --timeit) do_timeit="true" ;;
-  --timeit_log) do_timeit="true" ; timing_log="$1" ; shift ;;
   --conformed_name) conformed_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name) norm_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name_t2) norm_name_t2="$1" ; shift ;;
@@ -624,7 +628,7 @@ if [[ -z "$conformed_name" ]] ; then conformed_name="$subject_dir/mri/orig.mgz";
 if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="$subject_dir/mri/T2orig.mgz" ; fi
 if [[ -z "$norm_name" ]] ; then norm_name="$subject_dir/mri/orig_nu.mgz" ; fi
 if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  fi
-if [[ -z "$timing_log" ]] ; then timing_log="$subject_dir/scripts/timing.log" ; fi
+if [[ -z "$exec_time_log" ]] ; then exec_time_log="$subject_dir/${FASTSURFER_EXECTIMELOG:-scripts/exectime.log}" ; fi
 if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
 # T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
@@ -878,11 +882,10 @@ set +eo > /dev/null
 
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
-mkdir -p "$(dirname "$timing_log")"
+mkdir -p "$(dirname "$exec_time_log")"
 
 
-wrap=()
-if [[ "$do_timeit" == "true" ]] ; then wrap=("time_it" "$timing_log") ; fi
+wrap=("time_it" "$exec_time_log")
 
 if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
