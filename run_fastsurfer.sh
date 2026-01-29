@@ -951,11 +951,16 @@ asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 
 if [[ "$run_seg_pipeline" == "1" ]]
 then
+
+  echo "SEGMENTATION PIPELINE" >> "$exec_time_log"
+  echo "=====================" >> "$exec_time_log"
+
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
 
   if [[ "$run_asegdkt_module" == "1" ]]
   then
+    echo "MODULE: FastSurferVINN aseg+DKT segmentation" >> "$exec_time_log"
     cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1" --sid "$subject" --asegdkt_segfile "$asegdkt_segfile"
          --conformed_name "$conformed_name" --brainmask_name "$mask_name" --seg_log "$seg_log" --vox_size "$vox_size"
          --aseg_name "$aseg_segfile" --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
@@ -1003,29 +1008,10 @@ then
       fi
     fi
   fi
-  if [[ -n "$t2" ]]
-  then
-    {
-      echo "INFO: Copying T2 file to ${copy_name_T2}..."
-      cmd=("nib-convert" "$t2" "$copy_name_T2")
-      echo_quoted "${cmd[@]}"
-      "${wrap[@]}" "${cmd[@]}" 2>&1
-      # do not terminate if this fails
-
-      echo "INFO: Robust scaling (partial conforming) of T2 image..."
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia --no_iso_vox --no_img_size
-           -i "$t2" -o "$conformed_name_t2")
-      echo_quoted "${cmd[@]}"
-      "${wrap[@]}" "${cmd[@]}" 2>&1
-      exit_code=$?
-      echo "Done."
-      exit $exit_code  # this will only terminate the subshell
-    } | tee -a "$seg_log"
-    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: Robust scaling of T2 failed!" | tee -a "$seg_log" ; exit 1 ; fi
-  fi
 
   if [[ "$run_biasfield" == "1" ]]
   then
+    echo "MODULE: Biasfield correction" >> "$exec_time_log"
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name" --rescale "$norm_name"
@@ -1118,6 +1104,24 @@ then
 
   if [[ -n "$t2" ]]
   then
+    echo "MODULE: T2 preprocessing" >> "$exec_time_log"
+    {
+      echo "INFO: Copying T2 file to ${copy_name_T2}..."
+      cmd=("nib-convert" "$t2" "$copy_name_T2")
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      # do not terminate if this fails
+
+      echo "INFO: Robust scaling (partial conforming) of T2 image..."
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia --no_iso_vox --no_img_size
+           -i "$t2" -o "$conformed_name_t2")
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit_code=$?
+      echo "Done."
+      exit $exit_code  # this will only terminate the subshell
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: Robust scaling of T2 failed!" | tee -a "$seg_log" ; exit 1 ; fi
     if [[ "$run_biasfield" == "1" ]]
     then
       # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
@@ -1152,6 +1156,7 @@ then
   then
     # ============================= CC SEGMENTATION ============================================
 
+    echo "MODULE: FastSurfer-CC Corpus Callosum processing" >> "$exec_time_log"
     # generate file names of for the analysis
     asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
     asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
@@ -1234,6 +1239,7 @@ then
 
   if [[ "$run_cereb_module" == "1" ]]
   then
+    echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
     if [[ "$run_biasfield" == "1" ]]
     then
       cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
@@ -1261,7 +1267,8 @@ then
 
   if [[ "$run_hypvinn_module" == "1" ]]
   then
-        # currently, the order of the T2 preprocessing only is registration to T1w
+    echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
+    # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
          --device "$device" --viewagg_device "$viewagg" --t1)
@@ -1298,6 +1305,10 @@ fi
 
 if [[ "$run_surf_pipeline" == "1" ]]
 then
+
+  echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
+  echo "===============================" >> "$exec_time_log"
+
   if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
   if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
