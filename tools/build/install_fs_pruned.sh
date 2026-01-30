@@ -99,7 +99,8 @@ if [[ -f "$freesurfer_dl" ]] ; then
   echo "Found cached download $freesurfer_dl, using that ..."
 else
   # dl aria2c if that exists, else wget or curl
-  if [[ -n "$(which aria2c)" ]] ; then dl=(aria2c -cx 16 -s 16 --check-certificate=false -o "$freesurfer_dl" "$fslink")
+  if [[ -n "$(which aria2c)" ]] ; then 
+    dl=(aria2c -c -x 16 -s 16 --check-certificate=false -o "$freesurfer_dl" "$fslink")
   elif [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink" -O "$freesurfer_dl")
   else dl=(curl -L --insecure "$fslink" -o "$freesurfer_dl")
   fi
