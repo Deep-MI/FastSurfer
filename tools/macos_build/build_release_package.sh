@@ -72,7 +72,7 @@ sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
     -e "s|<homebrew_dir>|$HOMEBREW_DIR|g" \
     < "$SCRIPTS_DIR/postinstall.sh.template" \
     > "$SCRIPTS_DIR/postinstall"
-# copy link_fs script (do not keep double copies)
+# copy link_fs script (do not keep double copies, so delete after build)
 cp "$tools_dir/build/link_fs.sh" "$SCRIPTS_DIR/link_fs.sh"
 
 chmod +x "$SCRIPTS_DIR/postinstall"
@@ -131,8 +131,10 @@ mkdir -p "$build_dir/installer"
 productbuild \
     --distribution "$DISTRIBUTION_FILE" \
     --resources "$RESOURCES_DIR" \
-    --package-path $build_dir/raw_package \
+    --package-path "$build_dir/raw_package" \
     "$INSTALLER_PKG"
 
 # get rid of temporary folder
 rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build"
+# remove the previously copied link_fs.sh script
+rm "$SCRIPTS_DIR/link_fs.sh"
