@@ -15,14 +15,16 @@ else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 # Link where to find the FreeSurfer tarball:
 fslink="default"
+insecure="false"
 
 if [[ "$#" -lt 1 ]]; then
     echo
-    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url]"
+    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url] [--insecure]"
     echo 
     echo "--upx is optional, if passed, fs/bin will be packed"
     echo "--url is recommended! This is the download link for freesurfer."
     echo "  The link can be found in pyproject.toml:tool.freesurfer.url!"
+    echo "--insecure will skip certificate checks when downloading freesurfer."
     echo
     exit 2
 fi
@@ -39,6 +41,7 @@ while [[ "$#" -ge 1 ]]; do
   case $lowercase in
   --upx) upx="true" ; shift ;;
   --url) fslink=$2 ; shift ; shift ;;
+  --insecure) insecure="true" ; shift ;;
   *) echo "Invalid argument $1" ; exit 1 ;;
   esac
 done
@@ -99,10 +102,17 @@ if [[ -f "$freesurfer_dl" ]] ; then
   echo "Found cached download $freesurfer_dl, using that ..."
 else
   # dl aria2c if that exists, else wget or curl
-  if [[ -n "$(which aria2c)" ]] ; then 
-    dl=(aria2c -c -x 16 -s 16 --check-certificate=false -o "$freesurfer_dl" "$fslink")
-  elif [[ -n "$(which wget)" ]] ; then dl=(wget --no-check-certificate -qO- "$fslink" -O "$freesurfer_dl")
-  else dl=(curl -L --insecure "$fslink" -o "$freesurfer_dl")
+  cert=()
+  if [[ -n "$(which aria2c)" ]] ; then
+    if [[ "$insecure" == "true" ]] ; then cert=("--check-certificate=false") ; fi
+    # shellcheck disable=SC2206
+    dl=(aria2c -c -x 16 -s 16 "${cert[@]}" -o "$freesurfer_dl" "$fslink")
+  elif [[ -n "$(which wget)" ]] ; then
+    if [[ "$insecure" == "true" ]] ; then cert=("--no-check-certificate") ; fi
+    dl=(wget "${cert[@]}" -qO- "$fslink" -O "$freesurfer_dl")
+  else
+    if [[ "$insecure" == "true" ]] ; then cert=("--insecure") ; fi
+    dl=(curl -L "${cert[@]}" "$fslink" -o "$freesurfer_dl")
   fi
 
   echo "Downloading FreeSurfer from $fslink with ${dl[0]}..."
@@ -111,7 +121,8 @@ fi
 
 
 if [[ ! -f "$freesurfer_dl" ]] ; then
-  echo "ERROR: Downloading FreeSurfer failed! This is not recoverable, see message above and retry!"
+  echo "ERROR: Downloading FreeSurfer failed, maybe due to a certificate error (consider --insecure)!"
+  echo "  This is not recoverable, see message above and retry!"
   exit 1
 fi
 
