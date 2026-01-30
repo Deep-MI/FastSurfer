@@ -326,6 +326,11 @@ def make_parser() -> argparse.ArgumentParser:
              f"(default: {DEFAULTS.BUILD_BASE_IMAGE}).",
     )
     expert.add_argument(
+        "--insecure",
+        action="store_true",
+        help="disables certificate check for downloads, e.g. freesurfer.",
+    )
+    expert.add_argument(
         "--debug",
         action="store_true",
         help="enables the DEBUG build flag.",
@@ -628,6 +633,7 @@ def main(
         dry_run: bool = False,
         tag_dev: bool = True,
         fastsurfer_home: Path | None = None,
+        insecure: bool = False,
         **keywords,
         ) -> int | str:
     from FastSurferCNN.version import has_git, parse_build_file
@@ -660,6 +666,7 @@ def main(
         f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}",
         f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}",
         f"FREESURFER_VERSION={pyproject_freesurfer['version']}",
+        f"INSECURE_FLAG={'--insecure' if insecure else ''}",
     ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")

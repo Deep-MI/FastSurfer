@@ -62,6 +62,16 @@
 # - AUTHOR:
 #   The author string to include in image labels.
 #   - default: "David Kügler <david.kuegler@dzne.de>"
+# - DEVICE:
+#   The device type to build the python environment for, this affects the installed torch packages.
+#   Supported values are what is supported by uv, e.g.: cu128, xpu, rocm6.2.4, etc.
+#   - default: cu128
+# - DEBUG:
+#   If set to "true", retains build debug output during build.
+#   - default: false
+# - INSECURE_FLAG:
+#   If set to "--insecure", will download freesurfer without verifying the ssl certificate.
+#   - default: ""
 
 # DOCUMENTATION FOR TARGETS (use '--target <VALUE>'):
 # To select which imaged will be tagged with '-t'
@@ -91,6 +101,7 @@ ARG AUTHOR="David Kügler <david.kuegler@dzne.de>"
 ARG BUILDKIT_SBOM_SCAN_CONTEXT="true"
 ARG DEVICE="cu128"
 ARG DEBUG="false"
+ARG INSECURE_FLAG=""
 
 FROM ghcr.io/astral-sh/uv:$UV_VERSION AS selected_uv_install_image
 
@@ -200,7 +211,13 @@ RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/in
     --mount=type=bind,source=tools/build/link_fs.sh,target=/install/link_fs.sh \
     --mount=type=cache,target=/install/download \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
-/install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL
+# the INSECURE_FLAG build arg may be set to "--insecure" to skip ssl certificate verification during download
+# for production environments, this should never be used. This option is only provided to deal with an outdated
+# ssl certificate on the freesurfer download server.
+if [[ -n "$INSECURE_FLAG" ]]; then
+    echo "SECURITY NOTICE: Downloading freesurfer for the build image without ssl validation."
+fi
+/install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL $INSECURE_FLAG
 /install/link_fs.sh /opt/freesurfer
 EOF
 
