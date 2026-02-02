@@ -39,6 +39,7 @@ subject=""
 sd="$SUBJECTS_DIR"
 t1=""
 t2=""
+lesion_mask=""
 merged_segfile=""
 cereb_segfile=""
 asegdkt_segfile=""
@@ -118,6 +119,9 @@ FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
+                            ABSOLUTE Path!
+  --lesion_mask <mask_input>
+                          Lesion mask input for lesion inpainting. Requires an
                             ABSOLUTE Path!
   --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
@@ -405,6 +409,7 @@ case $key in
   --sd) sd="$1" ; shift ;;
   --t1) t1="$1" ; shift ;;
   --t2) t2="$1" ; shift ;;
+  --lesion_mask) lesion_mask="$1" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
   --conformed_name) conformed_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name) norm_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
@@ -876,6 +881,13 @@ then
   exit 1
 fi
 
+if [[ -n "$lesion_mask" ]] && [[ ! -f "$lesion_mask" ]]
+then
+  echo "ERROR: Lesion mask file $lesion_mask could not be found. You must supply an existing lesion mask"
+  echo "  via --lesion_mask <absolute path and name> for generating the inpainting."
+  exit 1
+fi
+
 ## make sure +eo are unset
 set +eo > /dev/null
 
@@ -950,6 +962,40 @@ asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 
 if [[ "$run_seg_pipeline" == "true" ]]
 then
+  # ============= Running LIT Inpainting ========================================
+  if [[ -n "$lesion_mask" ]]
+  then
+      {
+        echo "========================================================="
+        echo "Running LIT Inpainting..."
+        echo "========================================================="
+      } | tee -a "$seg_log"
+      lit_out_dir="${sd}/${subject}/inpainting"
+      mkdir -p "$lit_out_dir"
+      # symlink lesion mask to inpainting directory for consistency
+      cp "$lesion_mask" "${lit_out_dir}/inpainting_mask.nii.gz"
+      cmd=("run-lit" "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$lit_out_dir")
+      echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+      "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      then
+        echo "ERROR: LIT Inpainting failed!" | tee -a "$seg_log"
+        exit 1
+      fi
+      inpainted_t1="${lit_out_dir}/inpainting_volumes/inpainting_result.nii.gz"
+      if [[ -f "$inpainted_t1" ]]
+      then
+        t1="$inpainted_t1"
+        {
+          echo "Using inpainted T1: $t1"
+          echo "========================================================="
+        } | tee -a "$seg_log"
+      else
+        echo "ERROR: Inpainted T1 not found at $inpainted_t1" | tee -a "$seg_log"
+        exit 1
+      fi
+  fi
+
 
   echo "SEGMENTATION PIPELINE" >> "$exec_time_log"
   echo "=====================" >> "$exec_time_log"
@@ -1334,6 +1380,40 @@ then
     exit 1
   fi
   popd > /dev/null || return
+fi
+
+# ============= Running LIT Postprocessing ====================================
+if [[ -n "$lesion_mask" ]]
+then
+    {
+      echo "========================================================="
+      echo "Running LIT Postprocessing..."
+      echo "========================================================="
+    } | tee -a "$seg_log"
+
+    # Setup paths for LIT postprocessing
+    export FASTSURFER_HOME="$FASTSURFER_HOME"
+
+    # Call LIT postprocessing
+    # We use the python command defined in the script
+    # and the subjects directory and subject id
+    lit_post_cmd=($python -m neuro_lit.scripts.lesion_postprocessing --subject-id "$subject" --subjects-dir "$sd")
+
+    # If surface pipeline was not run, skip surface masking and stats
+    if [[ "$run_surf_pipeline" == "0" ]]
+    then
+        lit_post_cmd+=(--skip-surface-masking --skip-segstats)
+    fi
+
+    echo_quoted "${lit_post_cmd[@]}" | tee -a "$seg_log"
+    "${lit_post_cmd[@]}" 2>&1 | tee -a "$seg_log"
+
+    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    then
+      echo "ERROR: LIT Postprocessing failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+    echo "========================================================="
 fi
 
 ########################################## End ########################################################

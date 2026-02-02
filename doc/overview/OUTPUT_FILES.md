@@ -64,6 +64,49 @@ If a T2 image is also passed, the following images are created.
 | mri       | T2_nu.mgz     | hypvinn | biasfield-corrected T2 image   |
 | mri       | T2_nu_reg.mgz | hypvinn | co-registered T2 to orig image |
 
+Lesion Inpainting Tool (LIT) module
+-----------------------------------
+The LIT module is run if a lesion mask is provided via the `--lesion_mask` flag. It inpaints the lesion region and generates a suite of modified segmentation and statistics files that integrate the lesion information. Here we list the most commonly used files.
+
+### Inpainting Outputs
+These are the important created during the initial inpainting stage.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| inpainting/inpainting_volumes | inpainting_mask.nii.gz | lit | copy of the input lesion mask (resampled to image space and with dilation applied if selected) |
+| inpainting/inpainting_volumes | inpainting_result.nii.gz | lit | the inpainted T1 image used for downstream processing |
+
+### Postprocessing MRI Outputs (Mapped Segmentations)
+These files contain anatomical segmentations where the lesion mask has been integrated (labels modified to indicate lesion overlap).
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| mri | aparc.DKTatlas+aseg+lesion.deep.mgz | lit | whole-brain segmentation with integrated lesion |
+| mri | aseg+lesion.mgz | lit | refined subcortical segmentation with integrated lesion |
+| mri | wmparc.DKTatlas.mapped+lesion.mgz | lit | white matter parcellation with integrated lesion |
+| mri | hypothalamus.HypVINN+lesion.nii.gz | lit | hypothalamus segmentation with integrated lesion (also created if lesion is not in hypothalamus area) |
+| mri | cerebellum.CerebNet+lesion.nii.gz | lit | cerebellum segmentation with integrated lesion (also created if lesion is not in cerebellum area) |
+
+### Postprocessing Statistics and Reports
+LIT generates detailed reports on how the lesion affects various anatomical structures and creates new statistics tables.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| stats | lesion_impact_summary.yaml | lit | machine-parseable summary of affected brain regions |
+| stats | aparc.DKTatlas+aseg+lesion.anatomy_report.txt | lit | report of volumetric structures affected by the lesion (see aparc.DKTatlas.anatomy_report.txt for surfaces) |
+| stats | aseg+DKT+lesion.stats | lit | summary statistics for the modified whole-brain segmentation |
+| stats | aseg+lesion.stats | lit | refined subcortical statistics including the lesion volume |
+| stats | brainvol+lesion.stats | lit | global brain volume measures adjusted for the lesion |
+
+### Surface-based Outputs
+If the surface pipeline is run, LIT also creates modified annotations and surface statistics.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| label | {lh,rh}.aparc.DKTatlas.lesion.annot | lit | cortical parcellation with lesion projected onto the surface |
+| stats | {lh,rh}.aparc.DKTatlas.anatomy_report.txt | lit | report of cortical structures affected by the lesion |
+| stats | {lh,rh}.aparc.DKTatlas.mapped+lesion.stats | lit | surface-based statistics (area, thickness) adjusted for the lesion |
+
 Surface module
 --------------
 The surface module is run unless switched off by the `--seg_only` argument. It outputs a large number of files, which generally correspond to the FreeSurfer nomenclature and definition. A selection of important output files is shown in the table below, for the other files, we refer to the [FreeSurfer documentation](https://surfer.nmr.mgh.harvard.edu/fswiki). In general, the "mri" directory contains images, including segmentations, the "surf" folder contains surface files (geometries and vertex-wise overlay data), the "label" folder contains cortical parcellation labels, and the "stats" folder contains tabular summary statistics. Many files are available for the left ("lh") and right ("rh") hemisphere of the brain. Symbolic links are created to map FastSurfer files to their FreeSurfer equivalents, which may need to be present for further processing (e.g., with FreeSurfer downstream modules).

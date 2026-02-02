@@ -37,6 +37,10 @@ Modules (all run by default):
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
    - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if `--no_biasfield` is passed).
+5. `neuro-lit`: [FastSurfer-LIT](https://github.com/Deep-MI/neuro-lit) for lesion inpainting (activate with `--lesion_mask <path>`)
+   - specifically designed for brain images with lesions (tumors, surgical cavities, etc.).
+   - replaces lesion affected region with healthy looking tissue to improve downstream segmentation and surface reconstruction.
+   - includes automated postprocessing to mark lesion affected area in final segmentations and surfaces.
 
 ### Surface reconstruction
 - approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
@@ -207,6 +211,8 @@ _Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M
 
 _Pollak C, Diers K, Estrada S, Kuegler D, Reuter M, FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry, pre-print on arXiv: https://doi.org/10.48550/arXiv.2511.16471_
 
+
+_Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M, FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities, Imaging Neuroscience 2025, https://doi.org/10.1162/imag_a_00446
 
 Stay tuned for updates and follow us on [X/Twitter](https://twitter.com/deepmilab).
 

@@ -295,11 +295,12 @@ ENV OS=Linux \
     FSF_OUTPUT_FORMAT=nii.gz \
     FREESURFER_HOME=/opt/freesurfer \
     PYTHONUNBUFFERED=0 \
-    MPLCONFIGDIR=/tmp \
     XDG_CACHE_HOME=/tmp/xdgcache \
     LANG=C.UTF-8 \
     LC_NUMERIC=en_US.UTF-8 \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
+    MPLCONFIGDIR=/tmp/matplotlib-config \
+    XDG_DATA_HOME=/fastsurfer/.local/share \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # Copy fastsurfer venv and pruned freesurfer from build images
@@ -322,6 +323,7 @@ source /venv/bin/activate
 cd /fastsurfer
 # Download all remote network checkpoints already
 python3 FastSurferCNN/download_checkpoints.py --all
+lit-download-models
 # compile all FastSurfer scripts into bytecode
 python3 -m compileall *
 # update the build file with checkpoints md5sums and pip packages.
