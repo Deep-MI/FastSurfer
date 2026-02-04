@@ -16,6 +16,7 @@
 
 # Author: David Kuegler
 # June 27th 2023
+# Modified February 2026
 
 import argparse
 import logging
@@ -650,7 +651,9 @@ def main(
     fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
     # read the freesurfer download url from pyproject.toml
     with open(fastsurfer_home / "pyproject.toml", "rb") as fp:
-        pyproject_freesurfer = tomllib.load(fp)["tool"]["freesurfer"]
+        pyproject_toml = tomllib.load(fp)
+        pyproject_repository_url = pyproject_toml["project"]["urls"]["source"]
+        pyproject_freesurfer = pyproject_toml["tool"]["freesurfer"]
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
@@ -707,13 +710,14 @@ def main(
         build_info = parse_build_file(build_file)
 
     if has_git():
-        repository_url = get_repository_url(build_info["git_status"], build_info["git_branch"])
         kwargs["build_arg"].extend([
-                f"REPOSITORY_URL={repository_url}",
-                f"GIT_HASH={build_info['git_hash']}",
+            f"GIT_HASH={build_info['git_hash']}",
+            f"REPOSITORY_URL={pyproject_repository_url}/tree/{build_info['git_branch']}",
         ])
-        if "github.com/tree/stable" in repository_url:
+        if build_info["git_branch"] == "stable":
             kwargs["build_arg"].append("DOC_URL=https://deep-mi.org/fastsurfer/stable")
+    else:
+        kwargs["build_arg"].append(f"REPOSITORY_URL={pyproject_repository_url}/tree/dev")
     kwargs["build_arg"].append(f"FASTSURFER_VERSION={build_info['version_tag']}")
     version_tag = build_info["version_tag"]
     image_prefix = ""
@@ -755,23 +759,6 @@ def main(
     except RuntimeError as e:
         return e.args[0]
     return 0
-
-
-def get_repository_url(git_status_text: str, branch: str) -> str:
-    """Get the repository URL of the current git repository."""
-    from FastSurferCNN.utils.run_tools import Popen
-
-    remote = git_status_text.removeprefix(f"## {branch}...").split("/")[0]
-    repository_process = Popen(["git", "remote", "get-url", remote], stdout=subprocess.PIPE).finish()
-    if repository_process.retcode != 0:
-        logger.error(repository_process.err_str())
-        raise RuntimeError("Could not get the repository URL from git.")
-    repository_url = repository_process.out_str().strip()
-    if repository_url.endswith(".git"):
-        repository_url = repository_url[:-4]
-    if repository_url.startswith("git@"):
-        repository_url = "https://" + repository_url[4:].replace(":/", "/")
-    return repository_url + "/tree/" + branch
 
 
 def default_home() -> Path:
