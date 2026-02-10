@@ -64,6 +64,35 @@ class MessageBuffer:
     def err_str(self, encoding="utf-8"):
         return self.err.decode(encoding=encoding)
 
+    def forward_output(
+        self,
+        file: io.TextIOBase | None = None,
+        encoding: str | None = None,
+        out_prefix: str = "",
+        err_prefix: str = "!",
+    ):
+        """
+        Forward the content of this MessageBuffer to a file or stream.
+
+        Parameters
+        ----------
+        file : IO.TextIO, optional
+            The file or stream to which the output should be forwarded (defaults to stdout).
+        encoding : str, optional
+            Charset to encode.
+        out_prefix : str, default=""
+            String to prefix lines from the stdout output.
+        err_prefix : str, default="!"
+            String to prefix lines from the stderr output.
+        """
+        if file is None:
+            from sys import stdout
+            file = stdout
+        for line in self.out_str(encoding=encoding).splitlines():
+            print(f"{out_prefix}{line}", file=file)
+        for line in self.err_str(encoding=encoding).splitlines():
+            print(f"{err_prefix}{line}", file=file)
+
 
 class Popen(subprocess.Popen):
     """
@@ -71,9 +100,9 @@ class Popen(subprocess.Popen):
     """
     _starttime: datetime | None = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, args, /, **kwargs):
         self._starttime = datetime.now()
-        super().__init__(*args, **kwargs)
+        super().__init__(args, **kwargs)
 
     def messages(self, timeout: float) -> Generator[MessageBuffer, None, None]:
         """
