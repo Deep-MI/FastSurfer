@@ -184,7 +184,7 @@ function RunBatchJobs()
   then
     echo "PIDs (${PIDS[*]}) completed successfully! Their logs have been appended." | tee -a "$LOG_FILE"
   else
-    echo "PIDs (${unsuccessful[*]}) of (${PIDS[*}]}) have NOT completed successfully! All logs appended." | \
+    echo "PIDs (${unsuccessful[*]}) of (${PIDS[*]}) have NOT completed successfully! All logs appended." | \
       tee -a "$LOG_FILE"
     exit 1
   fi
