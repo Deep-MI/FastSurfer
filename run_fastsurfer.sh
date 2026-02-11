@@ -62,17 +62,17 @@ edits="false"
 viewagg="auto"
 device="auto"
 batch_size="1"
-run_seg_pipeline="1"
-run_biasfield="1"
-run_surf_pipeline="1"
+run_seg_pipeline="true"
+run_biasfield="true"
+run_surf_pipeline="true"
 surf_flags=()
-legacy_parallel_hemi=0
+legacy_parallel_hemi="false"
 vox_size="min"
 native_image="false"
-run_asegdkt_module="1"
-run_cereb_module="1"
-run_hypvinn_module="1"
-run_cc_module="1"
+run_asegdkt_module="true"
+run_cereb_module="true"
+run_hypvinn_module="true"
+run_cc_module="true"
 threads_seg="1"
 threads_surf="1"
 # python3 -s excludes user-directory package inclusion
@@ -421,7 +421,7 @@ case $key in
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
-    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then version_and_quit="1" # no more args or next arg starts with --
+    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then version_and_quit="true" # no more args or next arg starts with --
     else
       case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         all) version_and_quit="+checkpoints+git+pip" ;;
@@ -438,8 +438,8 @@ case $key in
 
   # common options for seg
   #=============================================================
-  --surf_only) run_seg_pipeline="0" ;;
-  --no_biasfield) run_biasfield="0" ;;
+  --surf_only) run_seg_pipeline="false" ;;
+  --no_biasfield) run_biasfield="false" ;;
   --keepgeom|--native_image) native_image="true" ;;
   --tal_reg) run_talairach_registration="true" ;;
   --device) device="$1" ; shift ;;
@@ -468,7 +468,7 @@ case $key in
     then
       echo "WARNING: --no_aparc is deprecated and will be removed, use --no_asegdkt."
     fi
-    run_asegdkt_module="0"
+    run_asegdkt_module="false"
     ;;
   --asegdkt_statsfile) asegdkt_vinn_statsfile="$1" ; shift ;;
   --aseg_statsfile) aseg_vinn_statsfile="$1" ; shift ;;
@@ -478,18 +478,18 @@ case $key in
 
   # corupus callosum module options
   #=============================================================
-  --no_cc) run_cc_module="0" ;;
+  --no_cc) run_cc_module="false" ;;
 
   # cereb module options
   #=============================================================
-  --no_cereb) run_cereb_module="0" ;;
+  --no_cereb) run_cereb_module="false" ;;
   # several options that set a variable
   --cereb_segfile) cereb_segfile="$1" ; shift ;;
   --cereb_statsfile) cereb_statsfile="$1" ; shift ;;
 
   # hypothal module options
   #=============================================================
-  --no_hypothal) run_hypvinn_module="0" ;;
+  --no_hypothal) run_hypvinn_module="false" ;;
   # several options that set a variable
   --hypo_segfile) hypo_segfile="$1" ; shift ;;
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
@@ -511,10 +511,10 @@ case $key in
   ##############################################################
   # surf-pipeline options
   ##############################################################
-  --seg_only) run_surf_pipeline="0" ;;
+  --seg_only) run_surf_pipeline="false" ;;
   # several flag options that are *just* passed through to recon-surf.sh
   --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
-  --parallel) legacy_parallel_hemi=1 ;;
+  --parallel) legacy_parallel_hemi="true" ;;
   --no_fs_t1) surf_flags+=("--no_fs_T1") ;;
 
   # temporary segstats development flag
@@ -523,8 +523,14 @@ case $key in
   ##############################################################
   # longitudinal options
   ##############################################################
-  --base) base=1 ; run_cereb_module="0" ; run_hypvinn_module="0" ; surf_flags=("${surf_flags[@]}" "--base") ;;
-  --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
+  --base)
+    base="true"
+    run_cc_module="false"
+    run_cereb_module="false"
+    run_hypvinn_module="false"
+    surf_flags=("${surf_flags[@]}" "--base")
+    ;;
+  --long) long="true" ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
   # unknown option ;  if not empty arguments, error & exit
   *) if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ; exit 1 ; fi ;;
 esac
@@ -551,8 +557,8 @@ fi
 
 if [[ -n "$version_and_quit" ]]
 then
-  # if version_and_quit is 1, it should only print the version number+git branch
-  if [[ "$version_and_quit" != "1" ]]
+  # if version_and_quit is true, it should only print the version number and version info
+  if [[ "$version_and_quit" != "true" ]]
   then
     version_cache_args=("${version_cache_args[@]}" --sections "$version_and_quit")
   fi
@@ -574,7 +580,7 @@ tmpLF=$(mktemp)
 
 # CHECKS
 
-if [[ "$legacy_parallel_hemi" == 1 ]]
+if [[ "$legacy_parallel_hemi" == "true" ]]
 then
   {
     echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3."
@@ -601,7 +607,7 @@ then
   exit 1
 fi
 
-if [[ "${#warn_seg_only[@]}" -gt 0 ]] && [[ "$run_surf_pipeline" == "1" ]]
+if [[ "${#warn_seg_only[@]}" -gt 0 ]] && [[ "$run_surf_pipeline" == "true" ]]
 then
   {
     echo "WARNING: Specifying '${warn_seg_only[*]}' only affects the segmentation "
@@ -632,7 +638,7 @@ if [[ -z "$exec_time_log" ]] ; then exec_time_log="$subject_dir/${FASTSURFER_EXE
 if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
 # T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
-if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == 1 ]]
+if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == "true" ]]
 then
   if [[ ! -f "$t2" ]] ; then echo "ERROR: T2 file $t2 does not exist!" ; exit 1 ; fi
   copy_name_T2="$subject_dir/mri/orig/T2.001.mgz"
@@ -689,7 +695,7 @@ then
 fi
 
 # Check if running on an existing subject directory
-if [[ "$run_surf_pipeline" == 1 ]]
+if [[ "$run_surf_pipeline" == "true" ]]
 then
   if [[ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ]] || [[ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]]
   then
@@ -702,7 +708,7 @@ then
       exit 1
     fi
   fi
-  if [[ "$run_asegdkt_module" == "0" ]] || [[ "$run_seg_pipeline" == "0" ]]
+  if [[ "$run_asegdkt_module" == "false" ]] || [[ "$run_seg_pipeline" == "false" ]]
   then
     if [[ ! -f "$asegdkt_segfile" ]]
     then
@@ -725,7 +731,8 @@ then
   fi
 fi
 
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] && [[ "$run_cereb_module" == "1" ]]; }
+if [[ "$run_seg_pipeline" == "true" ]] && \
+   { [[ "$run_asegdkt_module" == "false" ]] && [[ "$run_cereb_module" == "true" ]]; }
 then
   if [[ ! -f "$asegdkt_segfile" ]]
   then
@@ -737,7 +744,8 @@ then
   fi
 fi
 
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] && [[ "$run_cc_module" == "1" ]]; }
+if [[ "$run_seg_pipeline" == "true" ]] && \
+   { [[ "$run_asegdkt_module" == "false" ]] && [[ "$run_cc_module" == "true" ]]; }
 then
   if [[ ! -f "$asegdkt_segfile" ]]
   then
@@ -751,7 +759,8 @@ fi
 
 maybe_xvfb=()
 # check if we are running on a headless system (CC QC needs a (virtual) display that support OpenGL)
-if [[ "$run_seg_pipeline" == "1" ]] && [[ "$run_cc_module" == "1" ]] && [[ "${cc_flags[*]}" =~ --thickness_image ]]
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_cc_module" == "true" ]] && \
+   [[ "${cc_flags[*]}" =~ --thickness_image ]]
 then
   # if we have xvfb-run, we can use it to provide a virtual display
   if [[ -n "$(which xvfb-run)" ]] ; then maybe_xvfb=("xvfb-run" "-a") ; fi
@@ -759,7 +768,8 @@ then
   # try loading opengl, if this is successful we are fine
   py_opengltest="import sys ; import glfw ; import whippersnappy.core ; sys.exit(1-glfw.init())"
   opengl_error_message="$("${maybe_xvfb[@]}" $python -c "$py_opengltest" 2>&1 > /dev/null)"
-  if [[ "$?" != "0" ]]
+  exit_code="$?"
+  if [[ "$exit_code" != "0" ]]
   then
     # if we cannot import OpenGL or whippersnappy, its an environment installation issue
     if [[ "$opengl_error_message" =~ "ModuleNotFoundError" ]] || [[ "$opengl_error_message" =~ "ImportError" ]]
@@ -776,14 +786,14 @@ then
   fi
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]] && [[ "$native_image" != "false" ]]
+if [[ "$run_surf_pipeline" == "true" ]] && [[ "$native_image" != "false" ]]
 then
   echo "ERROR: The surface pipeline is not compatible with the options --native_image or "
   echo "  --keepgeom."
   exit 1
 fi
 
-if [[ "$run_surf_pipeline" == "0" ]] && [[ "$run_seg_pipeline" == "0" ]]
+if [[ "$run_surf_pipeline" == "false" ]] && [[ "$run_seg_pipeline" == "false" ]]
 then
   echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
   echo "  To run the whole FastSurfer pipeline, omit both flags."
@@ -791,9 +801,9 @@ then
 fi
 
 what_needs_license=""
-if [[ "$run_surf_pipeline" == 1 ]] ; then what_needs_license+=" and the surface pipeline" ; fi
-if [[ "$run_seg_pipeline" == 1 ]] ; then
-  if [[ "$run_biasfield" == 1 ]] && [[ "$run_talairach_registration" == "true" ]] ; then
+if [[ "$run_surf_pipeline" == "true" ]] ; then what_needs_license+=" and the surface pipeline" ; fi
+if [[ "$run_seg_pipeline" == "true" ]] ; then
+  if [[ "$run_biasfield" == "true" ]] && [[ "$run_talairach_registration" == "true" ]] ; then
     what_needs_license+=" and the talairach-registration in the segmentation pipeline"
   fi
   if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
@@ -833,14 +843,14 @@ fi
 
 # checks and t1 setup for longitudinal pipeline
 # generally any t1 input per command line is overwritten here
-if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+if [[ "$long" == "true" ]] && [[ "$base" == "true" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
   echo "  before you can run any longitudinal time points."
   exit 1
 fi
 
-if [[ "$base" == "1" ]]
+if [[ "$base" == "true" ]]
 then
   check_is_template "$sd" "$subject"
   if [[ -n "$t1" ]] && [[ "$t1" != "from-base" ]]; then
@@ -854,7 +864,7 @@ then
   fi
 fi
 
-if [[ "$long" == "1" ]]
+if [[ "$long" == "true" ]]
 then
   check_is_template "$sd" "$baseid"
   if ! grep -Fxq "$subject" "$sd/$baseid/base-tps.fastsurfer" ; then
@@ -869,7 +879,7 @@ then
   t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
 fi
 
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
+if [[ "$run_seg_pipeline" == "true" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
 then
   echo "ERROR: T1 image ($t1) could not be found. You must supply an existing T1 input"
   echo "  (full head) via --t1 <absolute path and name> for generating the segmentation."
@@ -913,7 +923,7 @@ trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -
 printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
 timeout 20 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}" &
 
-if [[ "$run_seg_pipeline" != "1" ]]
+if [[ "$run_seg_pipeline" != "true" ]]
 then
   {
     echo "INFO: Running run_fastsurfer.sh without segmentation pipeline;"
@@ -929,7 +939,7 @@ then
     # filter expected files $LF and scripts/BUILD.log
     IFS=""
     while read -r file ; do
-      if [[ "$sdir/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+      if [[ "$sd/$subject/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
     done
   }
 
@@ -949,7 +959,7 @@ fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 
-if [[ "$run_seg_pipeline" == "1" ]]
+if [[ "$run_seg_pipeline" == "true" ]]
 then
 
   echo "SEGMENTATION PIPELINE" >> "$exec_time_log"
@@ -958,7 +968,7 @@ then
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
 
-  if [[ "$run_asegdkt_module" == "1" ]]
+  if [[ "$run_asegdkt_module" == "true" ]]
   then
     echo "MODULE: FastSurferVINN aseg+DKT segmentation" >> "$exec_time_log"
     cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1" --sid "$subject" --asegdkt_segfile "$asegdkt_segfile"
@@ -1009,7 +1019,7 @@ then
     fi
   fi
 
-  if [[ "$run_biasfield" == "1" ]]
+  if [[ "$run_biasfield" == "true" ]]
   then
     echo "MODULE: Biasfield correction" >> "$exec_time_log"
     {
@@ -1031,8 +1041,8 @@ then
     then
       cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log"
            --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
-      if [[ "$long" == "1" ]] ; then cmd+=(--long "$basedir") ; fi
-      if [[ "$edits" == "1" ]] ; then cmd+=(--edits) ; fi
+      if [[ "$long" == "true" ]] ; then cmd+=(--long "$basedir") ; fi
+      if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
       if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
       {
         echo "INFO: Running talairach registration..."
@@ -1100,7 +1110,7 @@ then
         exit 1
       fi
     fi
-  fi  # [[ "$run_biasfield" == "1" ]]
+  fi  # [[ "$run_biasfield" == "true" ]]
 
   if [[ -n "$t2" ]]
   then
@@ -1122,7 +1132,7 @@ then
       exit $exit_code  # this will only terminate the subshell
     } | tee -a "$seg_log"
     if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: Robust scaling of T2 failed!" | tee -a "$seg_log" ; exit 1 ; fi
-    if [[ "$run_biasfield" == "1" ]]
+    if [[ "$run_biasfield" == "true" ]]
     then
       # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2" --out "$norm_name_t2"
@@ -1152,7 +1162,7 @@ then
     fi
   fi
 
-  if [[ "$run_cc_module" == "1" ]]
+  if [[ "$run_cc_module" == "true" ]]
   then
     # ============================= CC SEGMENTATION ============================================
 
@@ -1172,7 +1182,7 @@ then
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: FastSurferCC corpus callosum analysis failed!" ; exit 1 ; fi
-      if [[ "$edits" == 1 ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
+      if [[ "$edits" == "true" ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
 
       # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
@@ -1181,7 +1191,7 @@ then
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
 
-      if [[ "$run_biasfield" == 1 ]]
+      if [[ "$run_biasfield" == "true" ]]
       then
         cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
              --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
@@ -1214,10 +1224,10 @@ then
         fi
       fi
     } 2>&1 | tee -a "$seg_log"
-    code="${PIPESTATUS[0]}"
-    if [[ "$code" != 0 ]]; then exit 1; fi # forward subshell exit to main script
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit 1; fi # forward subshell exit to main script
 
-    if [[ "$run_biasfield" == 1 ]]
+    if [[ "$run_biasfield" == "true" ]]
     then
       {
         cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
@@ -1237,10 +1247,10 @@ then
     fi
   fi
 
-  if [[ "$run_cereb_module" == "1" ]]
+  if [[ "$run_cereb_module" == "true" ]]
   then
     echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
-    if [[ "$run_biasfield" == "1" ]]
+    if [[ "$run_biasfield" == "true" ]]
     then
       cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
     else
@@ -1265,14 +1275,14 @@ then
     fi
   fi
 
-  if [[ "$run_hypvinn_module" == "1" ]]
+  if [[ "$run_hypvinn_module" == "true" ]]
   then
     echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
     # currently, the order of the T2 preprocessing only is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
          --device "$device" --viewagg_device "$viewagg" --t1)
-    if [[ "$run_biasfield" == "1" ]]
+    if [[ "$run_biasfield" == "true" ]]
     then
       cmd+=("$norm_name")
       if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
@@ -1303,7 +1313,7 @@ else # not running segmentation pipeline
   if [[ -e "$asegdkt_segfile_manedit" ]] ; then asegdkt_segfile="$asegdkt_segfile_manedit" ; fi
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]]
+if [[ "$run_surf_pipeline" == "true" ]]
 then
 
   echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"

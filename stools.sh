@@ -124,24 +124,16 @@ function check_cases_in_out_dir ()
   #param1 out_dir
   #param2 cases
   #param3 optional: true/false jobarray defined (default: false)
-  if [[ "$#" -gt 2 ]] && [[ "$3" == "true" ]]
-  then
-    jobarray_defined="true"
-  else
-    jobarray_defined="false"
-  fi
+  if [[ "$#" -gt 2 ]] && [[ "$3" == "true" ]] ; then jobarray_defined="true" ; else jobarray_defined="false" ; fi
   case_already_exists=""
   for subject in $2
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
-    if [[ -e "$1/$subject_id" ]]
-    then
-      case_already_exists="$case_already_exists, $subject_id"
-    fi
+    if [[ -e "$1/$subject_id" ]] ; then case_already_exists="$case_already_exists, $subject_id" ; fi
   done
   if [[ "$case_already_exists" != "" ]]
   then
-    echo "Some cases already exist in $1 (${case_already_exists:2})"
+    echo "WARNING: Some cases already exist in $1 (${case_already_exists:2})"
     if [[ "$jobarray_defined" == "true" ]]
     then
       echo "This list does not filter for the --slurm_jobarray argument!"
@@ -157,7 +149,7 @@ function check_seg_surf_only ()
   #param1 seg_only
   #param2 surf_only
   if [[ "$1" == "true" ]] && [[ "$2" == "true" ]]; then
-    echo "Selecting both --seg_only and --surf_only is invalid!"
+    echo "ERROR: Selecting both --seg_only and --surf_only is invalid!"
     exit 1
   fi
 }
@@ -165,7 +157,7 @@ function check_subject_images ()
 {
   #param1 data dir
   #param2 cases
-  if [[ "$#" -lt 2 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
+  if [[ "$#" -lt 2 ]]; then >&2 echo "ERROR: check_subject_images is missing parameters!"; exit 1; fi
   missing_subject_ids=""
   missing_subject_imgs=""
   symlink_subject_imgs=""
